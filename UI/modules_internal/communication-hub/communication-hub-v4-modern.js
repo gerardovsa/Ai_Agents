@@ -1,4 +1,4 @@
-﻿/**
+/**
  * FILE: UI/modules_external/communication-hub/communication-hub-v4-modern.js
  * MODULE TYPE: internal (loaded as regular script, not ES6 module)
  * ARCHITECTURE: V4-Modern (Composition pattern)

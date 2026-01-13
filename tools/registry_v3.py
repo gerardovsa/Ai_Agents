@@ -15,6 +15,7 @@ import json
 import importlib
 import sys
 import time
+import threading
 from pathlib import Path
 from typing import Dict, List, Any, Optional
 import logging
@@ -25,6 +26,10 @@ logger = logging.getLogger(__name__)
 
 class RegistryV3:
     """Enhanced tool registry with direct google_workspace loading"""
+    
+    # ✅ FIX (Jan 13, 2026): Thread-local storage for user_id in worker threads
+    # Flask g context doesn't transfer to background threads, so we need thread-local storage
+    _thread_local = threading.local()
     
     def __init__(self):
         self.tools = {}
@@ -87,6 +92,38 @@ class RegistryV3:
             self._save_to_cache()
         
         logger.info(f"[OK] Registry V3 initialized: {len(self.tools)} tools loaded")
+    
+    # ✅ FIX (Jan 13, 2026): Thread-local storage methods for user_id in worker threads
+    def set_thread_user_id(self, user_id: int) -> None:
+        """
+        Store user_id in thread-local storage for this worker thread.
+        
+        Args:
+            user_id: The authenticated user's ID
+        """
+        self._thread_local.user_id = user_id
+        logger.info(f"[THREAD CONTEXT] Set user_id={user_id} for thread {threading.current_thread().name}")
+    
+    def get_thread_user_id(self) -> Optional[int]:
+        """
+        Get user_id from thread-local storage for this worker thread.
+        
+        Returns:
+            int: User ID if set, None otherwise
+        """
+        user_id = getattr(self._thread_local, 'user_id', None)
+        if user_id:
+            logger.debug(f"[THREAD CONTEXT] Retrieved user_id={user_id} from thread {threading.current_thread().name}")
+        return user_id
+    
+    def clear_thread_user_id(self) -> None:
+        """
+        Clear user_id from thread-local storage (cleanup in finally blocks).
+        """
+        if hasattr(self._thread_local, 'user_id'):
+            user_id = self._thread_local.user_id
+            delattr(self._thread_local, 'user_id')
+            logger.debug(f"[THREAD CONTEXT] Cleared user_id={user_id} for thread {threading.current_thread().name}")
 
     def _load_schemas(self) -> None:
         """Load schemas from tools/schemas/ with UTF-8 encoding and dynamic value injection"""
@@ -592,8 +629,41 @@ class RegistryV3:
         if not tool_name:
             raise ValueError("tool_name is required in kwargs")
         
-        # CHECK TOOL PERMISSION (Phase 3 - User Management)
+        # ============================================
+        # USER ID RESOLUTION (Multi-Source Fallback)
+        # ============================================
+        # Priority order:
+        # 1. _user_id in kwargs (explicit injection)
+        # 2. Thread-local storage (worker threads) ✅ NEW
+        # 3. Flask g context (main request thread)
+        
         user_id = kwargs.get('_user_id')
+        
+        # ✅ FIX (Jan 13, 2026): Check thread-local storage
+        if not user_id:
+            thread_user_id = self.get_thread_user_id()
+            if thread_user_id:
+                user_id = thread_user_id
+                logger.debug(f"[EXECUTE_TOOL] Using user_id={user_id} from thread-local storage")
+        
+        # Fallback to Flask g context (if in Flask request context)
+        if not user_id:
+            try:
+                from flask import g
+                flask_user_id = g.get('user_id')
+                if flask_user_id:
+                    user_id = flask_user_id
+                    logger.debug(f"[EXECUTE_TOOL] Using user_id={user_id} from Flask g context")
+            except (ImportError, RuntimeError):
+                # Not in Flask context or outside request
+                pass
+        
+        # Log if user_id still not found (warning - tools may fail)
+        if not user_id:
+            logger.warning(f"[EXECUTE_TOOL] No user_id available for tool '{tool_name}' - authentication-required tools may fail")
+        
+        # CHECK TOOL PERMISSION (Phase 3 - User Management)
+        # Use the resolved user_id
         if user_id:
             try:
                 from AI_infrastructure.auth.permission_checker import get_permission_checker

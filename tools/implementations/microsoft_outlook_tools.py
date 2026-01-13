@@ -928,7 +928,7 @@ class MicrosoftOutlookTools:
         
         Args:
             message_id: Outlook message ID
-            attachment_id: Attachment ID
+            attachment_id: Attachment ID (will be automatically URL-encoded)
             save_to_disk: If True (default), saves to temp folder and returns path.
                          If False, returns base64 (WARNING: causes token overflow!)
         
@@ -938,8 +938,11 @@ class MicrosoftOutlookTools:
             If save_to_disk=False:
                 {'success': True, 'content': 'base64...', 'name': '...', 'size': 123456}
         """
+        # URL-encode the attachment_id to handle special characters like = in Microsoft Graph IDs
+        from urllib.parse import quote
+        encoded_attachment_id = quote(attachment_id, safe='')
         
-        result = self._make_request('GET', f'/me/messages/{message_id}/attachments/{attachment_id}', **kwargs)
+        result = self._make_request('GET', f'/me/messages/{message_id}/attachments/{encoded_attachment_id}', **kwargs)
         
         if result['success']:
             import base64

@@ -160,8 +160,56 @@ def inhouse_get_query_library_catalog(category: Optional[str] = None, **kwargs) 
             ]
         }
     """
-    agent = _get_agent()
-    return agent._execute_client_tool('get_available_queries', {'category': category})
+    # ✅ FIX: Bypass ToolUseAgent - return hardcoded catalog for now
+    # TODO: Load from query_library.json file in backend/
+    queries = [
+        {
+            "name": "customer_order_history",
+            "category": "Customer Analytics",
+            "description": "Get all orders for a specific customer",
+            "parameters": ["customer_name"],
+            "example": "Find orders for 'Neilson Design'"
+        },
+        {
+            "name": "recent_orders",
+            "category": "Operational Flow",
+            "description": "Get most recent orders",
+            "parameters": ["days_back"],
+            "example": "Orders from last 7 days"
+        },
+        {
+            "name": "urgent_orders",
+            "category": "Operational Flow",
+            "description": "Get all urgent orders not yet invoiced",
+            "parameters": [],
+            "example": "Find all rush orders"
+        },
+        {
+            "name": "customer_lifetime_value",
+            "category": "Customer Analytics",
+            "description": "Calculate total revenue from customer",
+            "parameters": ["customer_name"],
+            "example": "Total spent by CJ King Printing"
+        },
+        {
+            "name": "top_customers_by_revenue",
+            "category": "Sales & Revenue",
+            "description": "Top N customers by total revenue",
+            "parameters": ["limit"],
+            "example": "Top 20 customers"
+        }
+    ]
+    
+    # Filter by category if specified
+    if category:
+        queries = [q for q in queries if q['category'] == category]
+    
+    return {
+        "success": True,
+        "queries": queries,
+        "total_count": len(queries),
+        "note": "Full query library loading requires ToolUseAgent - this is a minimal catalog"
+    }
 
 
 def inhouse_execute_sql(query: str, **kwargs) -> List[Dict[str, Any]]:
@@ -199,6 +247,15 @@ def inhouse_execute_sql(query: str, **kwargs) -> List[Dict[str, Any]]:
     """
     # ✅ FIX: Bypass ToolUseAgent and use InHousePrintDB directly
     try:
+        # Import with proper path resolution
+        import sys
+        from pathlib import Path
+        
+        # Calculate path to db_connector.py (one level up from implementations/)
+        db_connector_dir = Path(__file__).resolve().parent.parent
+        if str(db_connector_dir) not in sys.path:
+            sys.path.insert(0, str(db_connector_dir))
+        
         from db_connector import InHousePrintDB
         
         # Initialize DB connection (auto-detects Supabase vs local config)
@@ -272,8 +329,97 @@ def inhouse_get_calculator_requirements(product_type: str, **kwargs) -> Dict[str
             "extraction_strategy": "Parse TicketNotes for: '350gsm', 'Satin', ..."
         }
     """
-    agent = _get_agent()
-    return agent._execute_client_tool('get_calculator_requirements', {'product_type': product_type})
+    # ✅ FIX (Jan 13, 2026): Use registry to get tool schema instead of importing non-existent calculator
+    try:
+        import sys
+        from pathlib import Path
+        
+        # Add AI_infrastructure to path to access registry
+        ai_infra_dir = Path(__file__).resolve().parent.parent.parent.parent / 'AI_infrastructure'
+        if str(ai_infra_dir) not in sys.path:
+            sys.path.insert(0, str(ai_infra_dir))
+        
+        # Add tools directory to path
+        tools_dir = Path(__file__).resolve().parent.parent.parent.parent / 'tools'
+        if str(tools_dir) not in sys.path:
+            sys.path.insert(0, str(tools_dir))
+        
+        from registry_v3 import RegistryV3
+        
+        # Initialize registry
+        registry = RegistryV3()
+        
+        # Map product_type to calculator tool name
+        calculator_map = {
+            "business_cards": "calculate_business_cards",
+            "flyers": "calculate_folded_flyers_shopify",
+            "folded_flyers": "calculate_folded_flyers_shopify",
+            "perfect_bound_books": "calculate_perfect_bound_books_shopify",
+            "wire_bound": "calculate_wire_bound_books_shopify",
+            "spiral_bound": "calculate_spiral_bound_books_shopify"
+        }
+        
+        tool_name = calculator_map.get(product_type.lower())
+        if not tool_name:
+            return {
+                "success": False,
+                "error": f"Unknown product type: {product_type}",
+                "available_types": list(calculator_map.keys())
+            }
+        
+        # Get tool schema from registry
+        tool_schema = registry.get_tool(tool_name)
+        
+        if not tool_schema:
+            return {
+                "success": False,
+                "error": f"Calculator tool not found: {tool_name}"
+            }
+        
+        # Extract parameters from schema
+        parameters = tool_schema.get("input_schema", {}).get("properties", {})
+        required = tool_schema.get("input_schema", {}).get("required", [])
+        
+        # Build requirements response
+        requirements = {
+            "product_type": product_type,
+            "calculator_tool": tool_name,
+            "parameters": {},
+            "natural_language_mapping": {
+                "300gsm satin": "stock_type='satin_300gsm'",
+                "350gsm satin": "stock_type='satin_350gsm'",
+                "matt cello both sides": "celloglaze='2_side_matt'",
+                "gloss cello both sides": "celloglaze='2_side_gloss'"
+            },
+            "historical_patterns": {
+                "most_common": {
+                    "stock_type": "satin_350gsm",
+                    "celloglaze": "2_side_matt"
+                }
+            }
+        }
+        
+        # Process each parameter
+        for param_name, param_schema in parameters.items():
+            requirements["parameters"][param_name] = {
+                "type": param_schema.get("type"),
+                "description": param_schema.get("description"),
+                "required": param_name in required,
+                "enum": param_schema.get("enum", [])
+            }
+        
+        return {
+            "success": True,
+            "requirements": requirements
+        }
+        
+    except Exception as e:
+        import traceback
+        return {
+            "success": False,
+            "error": f"Failed to get calculator requirements: {e}",
+            "details": traceback.format_exc()
+        }
 
 
 # ============================================================================
@@ -320,11 +466,65 @@ def inhouse_calculate_quote(product_type: str, parameters: Dict[str, Any], **kwa
     Raises:
         Exception: If calculator error or invalid parameters
     """
-    agent = _get_agent()
-    return agent._execute_client_tool('calculate_quote', {
-        'product_type': product_type,
-        'parameters': parameters
-    })
+    # ✅ FIX (Jan 13, 2026): Use registry to execute calculator tool directly
+    try:
+        import sys
+        import json
+        from pathlib import Path
+        
+        # Add AI_infrastructure and tools to path
+        ai_infra_dir = Path(__file__).resolve().parent.parent.parent.parent / 'AI_infrastructure'
+        tools_dir = Path(__file__).resolve().parent.parent.parent.parent / 'tools'
+        
+        for path_to_add in [ai_infra_dir, tools_dir]:
+            if str(path_to_add) not in sys.path:
+                sys.path.insert(0, str(path_to_add))
+        
+        from registry_v3 import RegistryV3
+        
+        # Initialize registry
+        registry = RegistryV3()
+        
+        # Handle both JSON string and dict parameters (from registry)
+        if isinstance(parameters, str):
+            parameters = json.loads(parameters)
+        
+        # Map product_type to calculator tool name
+        calculator_map = {
+            "business_cards": "calculate_business_cards",
+            "flyers": "calculate_folded_flyers_shopify",
+            "folded_flyers": "calculate_folded_flyers_shopify",
+            "perfect_bound_books": "calculate_perfect_bound_books_shopify",
+            "wire_bound": "calculate_wire_bound_books_shopify",
+            "spiral_bound": "calculate_spiral_bound_books_shopify"
+        }
+        
+        tool_name = calculator_map.get(product_type.lower())
+        if not tool_name:
+            return {
+                "success": False,
+                "error": f"Unknown product type: {product_type}",
+                "available_types": list(calculator_map.keys())
+            }
+        
+        # Execute calculator tool via registry
+        # Note: execute_tool expects tool_name in kwargs
+        result = registry.execute_tool(tool_name=tool_name, **parameters)
+        
+        return {
+            "success": True,
+            "product_type": product_type,
+            "quote": result
+        }
+        
+    except Exception as e:
+        import traceback
+        error_details = traceback.format_exc()
+        return {
+            "success": False,
+            "error": f"Failed to calculate quote: {e}",
+            "details": error_details
+        }
 
 
 def inhouse_query_stock_levels(filters: Optional[Dict[str, Any]] = None, **kwargs) -> Dict[str, Any]:

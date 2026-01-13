@@ -1505,6 +1505,7 @@ def run_agent_worker(
         user_id = 1
     
     log_prefix = f"[Combined Worker {agent_id}]"
+    registry = None  # Track registry for cleanup
     
     try:
         print("\n\n" + "=" * 100)
@@ -1516,6 +1517,17 @@ def run_agent_worker(
         print(f"Files: {len(file_data)}")
         print(f"Prompt: {prompt[:100]}..." if len(prompt) > 100 else f"Prompt: {prompt}")
         print("=" * 100 + "\n")
+        
+        # ✅ FIX (Jan 13, 2026): Set thread-local user_id for all tools in this thread
+        # Worker threads don't have Flask g context, so use thread-local storage
+        from tools import registry_v3
+        registry = registry_v3.get_registry()
+        
+        if user_id:
+            registry.set_thread_user_id(user_id)
+            logger.info(f"{log_prefix} Thread context initialized with user_id={user_id}")
+        else:
+            logger.warning(f"{log_prefix} No user_id provided - authentication-required tools may fail")
         
         # Validate conversation history (fixes all 7 issues)
         if conversation_history:
@@ -1642,6 +1654,14 @@ def run_agent_worker(
         queue.put({'type': 'error', 'error': str(e)})
     
     finally:
+        # ✅ FIX (Jan 13, 2026): Clear thread-local user_id for cleanup
+        if registry:
+            try:
+                registry.clear_thread_user_id()
+                logger.debug(f"{log_prefix} Thread context cleaned up")
+            except Exception as e:
+                logger.debug(f"{log_prefix} Thread cleanup error: {e}")
+        
         try:
             lock.release()
         except Exception as e:
@@ -1680,6 +1700,7 @@ def run_simple_agent_worker(
         recipient_team_id: Target recipient (None = broadcast to all, username = private)
     """
     log_prefix = f"[Combined Simple {agent_id}]"
+    registry = None  # Track registry for cleanup
     
     try:
         print("\n\n" + "=" * 100)
@@ -1697,6 +1718,14 @@ def run_simple_agent_worker(
         # Load tools from registry
         from tools import registry_v3
         registry = registry_v3.get_registry()
+        
+        # ✅ FIX (Jan 13, 2026): Set thread-local user_id for all tools in this thread
+        # Worker threads don't have Flask g context, so use thread-local storage
+        if user_id:
+            registry.set_thread_user_id(user_id)
+            logger.info(f"{log_prefix} Thread context initialized with user_id={user_id}")
+        else:
+            logger.warning(f"{log_prefix} No user_id provided - authentication-required tools may fail")
         
         # Just-in-time schema loading
         conversation_length = len(conversation_history or [])
@@ -2000,23 +2029,31 @@ def run_simple_agent_worker(
             # This prevents orphaned tool_use blocks when errors occur before 'complete' event
             if thread_id:
                 print(f"{log_prefix} 💾 IMMEDIATE SAVE: Assistant message with tool_use")
-                from routes.agent_routes_v4 import save_message_to_database
-                save_success = save_message_to_database(
-                    thread_slug=thread_id,
-                    role='assistant',
-                    content=validated_content,
-                    user_id=user_id,
-                    model='claude-sonnet-4-5-20250929',
-                    metadata={'round': tool_iteration, 'has_tool_use': True},
-                    sender_team_id=None,  # AI agent (no Team ID)
-                    recipient_team_id=recipient_team_id,  # Mirror user's privacy mode
-                    message_type='broadcast' if not recipient_team_id else 'direct',  # Broadcast=Central HQ, Direct=Local Ops
-                    message_source='assistant_output'  # AI-generated content
-                )
-                if save_success:
-                    print(f"{log_prefix} ✅ Assistant message saved immediately")
-                else:
-                    print(f"{log_prefix} ⚠️ Failed to save assistant message immediately")
+                print(f"{log_prefix} 🔍 DEBUG: thread_id={thread_id}, user_id={user_id}, blocks={len(validated_content)}")
+                try:
+                    from routes.agent_routes_v4 import save_message_to_database
+                    save_success = save_message_to_database(
+                        thread_slug=thread_id,
+                        role='assistant',
+                        content=validated_content,
+                        user_id=user_id,
+                        model='claude-sonnet-4-5-20250929',
+                        metadata={'round': tool_iteration, 'has_tool_use': True},
+                        sender_team_id=None,  # AI agent (no Team ID)
+                        recipient_team_id=None,  # Broadcast mode (no Team)
+                        message_type='broadcast',  # Broadcast to Central HQ
+                        message_source='assistant_output'  # AI-generated content
+                    )
+                    if save_success:
+                        print(f"{log_prefix} ✅ Assistant message saved immediately to database")
+                    else:
+                        print(f"{log_prefix} ❌ CRITICAL: save_message_to_database returned False!")
+                        print(f"{log_prefix} ❌ Check Flask logs for [DB SAVE] errors")
+                except Exception as save_error:
+                    print(f"{log_prefix} ❌ EXCEPTION during assistant message save:")
+                    print(f"{log_prefix} ❌ {type(save_error).__name__}: {save_error}")
+                    import traceback
+                    traceback.print_exc()
             
             # If there are extracted tool_results, insert them as a user message immediately after
             if extracted_tool_results:
@@ -2027,21 +2064,29 @@ def run_simple_agent_worker(
             # This prevents orphaned tool_use blocks when errors occur
             if thread_id:
                 print(f"{log_prefix} 💾 IMMEDIATE SAVE: Tool result message")
-                save_success = save_message_to_database(
-                    thread_slug=thread_id,
-                    role='user',
-                    content=tool_results,
-                    user_id=user_id,
-                    metadata={'round': tool_iteration, 'tool_results': True},
-                    sender_team_id=None,  # System-generated tool results
-                    recipient_team_id=recipient_team_id,  # Mirror user's privacy mode
-                    message_type='broadcast' if not recipient_team_id else 'direct',
-                    message_source='tool_result'  # System-generated tool response
-                )
-                if save_success:
-                    print(f"{log_prefix} ✅ Tool results saved immediately")
-                else:
-                    print(f"{log_prefix} ⚠️ Failed to save tool results immediately")
+                try:
+                    from routes.agent_routes_v4 import save_message_to_database
+                    save_success = save_message_to_database(
+                        thread_slug=thread_id,
+                        role='user',
+                        content=tool_results,
+                        user_id=user_id,
+                        metadata={'round': tool_iteration, 'tool_results': True},
+                        sender_team_id=None,  # System-generated tool results
+                        recipient_team_id=None,  # Broadcast mode
+                        message_type='broadcast',
+                        message_source='tool_result'  # System-generated tool response
+                    )
+                    if save_success:
+                        print(f"{log_prefix} ✅ Tool results saved immediately to database")
+                    else:
+                        print(f"{log_prefix} ❌ CRITICAL: save_message_to_database returned False!")
+                        print(f"{log_prefix} ❌ Check Flask logs for [DB SAVE] errors")
+                except Exception as save_error:
+                    print(f"{log_prefix} ❌ EXCEPTION during tool_result save:")
+                    print(f"{log_prefix} ❌ {type(save_error).__name__}: {save_error}")
+                    import traceback
+                    traceback.print_exc()
             
             # CRITICAL FIX: Re-validate entire message history before next API call
             # This prevents "text block before thinking block" errors from propagating
@@ -2166,6 +2211,14 @@ def run_simple_agent_worker(
         queue.put({'type': 'error', 'error': str(e)})
     
     finally:
+        # ✅ FIX (Jan 13, 2026): Clear thread-local user_id for cleanup
+        if registry:
+            try:
+                registry.clear_thread_user_id()
+                logger.debug(f"{log_prefix} Thread context cleaned up")
+            except:
+                pass
+        
         try:
             lock.release()
         except:
@@ -2359,6 +2412,7 @@ def execute_streaming_request(
     system_prompt: str,
     tools: List[Dict],
     user_id: Optional[int] = None,
+    thread_id: Optional[str] = None,  # Thread slug for database saves
     max_rounds: int = 30,
     current_round: int = 1,
     ai_model: str = 'claude-sonnet-4-5-20250929',
@@ -2402,6 +2456,7 @@ def execute_streaming_request(
         print("=" * 100)
         print(f"Session: {session_id[:8]}")
         print(f"User ID: {user_id}")
+        print(f"Thread ID: {thread_id}")  # DEBUG: Verify thread_id is passed
         print(f"Prompt: {user_prompt[:100] if user_prompt else '(continuation)'}")
         print(f"History: {len(conversation_history)} messages")
         print(f"Tools: {len(tools)} available")
@@ -2979,6 +3034,7 @@ Proceed to the NEXT step now."""
                 system_prompt=system_prompt,
                 tools=tools,
                 user_id=user_id,
+                thread_id=thread_id,  # Pass through for database saves
                 max_rounds=max_rounds,
                 current_round=current_round + 1,
                 ai_model=ai_model,
@@ -2993,6 +3049,36 @@ Proceed to the NEXT step now."""
             for block in all_content_blocks:
                 if hasattr(block, 'type') and block.type == 'text':
                     final_text += block.text
+            
+            # CRITICAL FIX (Jan 13, 2026): SAVE final assistant message to database BEFORE conversation_sync
+            # This ensures database has complete conversation before frontend sync
+            if thread_id and conversation_history:
+                last_msg = conversation_history[-1]
+                if last_msg.get('role') == 'assistant':
+                    print(f"{log_prefix} 💾 IMMEDIATE SAVE: Final assistant message (conversation complete)")
+                    print(f"{log_prefix} 🔍 DEBUG: thread_id={thread_id}, user_id={user_id}, blocks={len(last_msg.get('content', []))}")
+                    try:
+                        from routes.agent_routes_v4 import save_message_to_database
+                        save_success = save_message_to_database(
+                            thread_slug=thread_id,
+                            role='assistant',
+                            content=last_msg.get('content', []),
+                            user_id=user_id,
+                            model=ai_model,
+                            metadata={'final_response': True, 'rounds': current_round},
+                            sender_team_id=None,  # AI agent
+                            recipient_team_id=None,  # Broadcast mode
+                            message_type='broadcast',
+                            message_source='assistant_output'
+                        )
+                        if save_success:
+                            print(f"{log_prefix} ✅ Final assistant message saved to database")
+                        else:
+                            print(f"{log_prefix} ⚠️ Failed to save final assistant message")
+                    except Exception as save_error:
+                        print(f"{log_prefix} ❌ ERROR saving final message: {save_error}")
+                        import traceback
+                        traceback.print_exc()
             
             # CRITICAL FIX (Nov 22, 2025): Send conversation_sync BEFORE complete event
             # This ensures frontend has authoritative history before finalizing

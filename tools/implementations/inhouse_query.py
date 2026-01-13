@@ -383,16 +383,19 @@ def inhouse_search_database(
                 formatted_query = formatted_query.replace('?', f"'{escaped_search}'", 1)
             
             # Execute search
-            result = inhouse_execute_sql(formatted_query)
-            
-            if result.get('success'):
-                rows = result.get('data', [])
-                if rows:
-                    results[table] = rows
-                    total_matches += len(rows)
-            else:
+            try:
+                result = inhouse_execute_sql(formatted_query)
+                
+                # inhouse_execute_sql returns a list of dicts directly (not a dict with 'success' key)
+                if isinstance(result, list) and result:
+                    results[table] = result
+                    total_matches += len(result)
+                elif isinstance(result, dict) and result.get('error'):
+                    # Handle error case
+                    results[table] = {'error': result.get('error')}
+            except Exception as e:
                 # Include error in results for debugging
-                results[table] = {'error': result.get('error')}
+                results[table] = {'error': str(e)}
         
         # Build message
         if total_matches == 0:

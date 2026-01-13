@@ -120,10 +120,6 @@ class CodeBlockEnhancer {
                 this.enhanceCodeBlock(block);
                 this.processedBlocks.add(block);
             });
-
-            if (codeBlocks.length > 0) {
-                console.log(`🎨 CodeBlockEnhancer: enhanced ${codeBlocks.length} code blocks`);
-            }
         } catch (error) {
             console.error('❌ CodeBlockEnhancer.enhanceContainer failed:', error);
         }

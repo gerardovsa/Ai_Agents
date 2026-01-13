@@ -61,18 +61,20 @@ for path in [current_dir, backend_dir, god_calc_dir, shopify_calc_dir, inhouse_p
     if abs_path not in sys.path:
         sys.path.insert(0, abs_path)
 # Import GOD calculators from backend/god_calculators
+# DEACTIVATED: GOD calculators removed from AI access (Jan 13, 2026)
+# Using Shopify calculators as primary system
 GOD_CALCULATORS_AVAILABLE = False
-try:
-    from GOD_flyer_calculator import FlyerCalculatorGOD
-    from GOD_letterhead_calculator import LetterheadCalculatorGOD
-    from GOD_perfect_bound_books_calculator import PerfectBoundBooksCalculator
-    from corflute_calculator import CorflutePricingCalculator
-    
-    GOD_CALCULATORS_AVAILABLE = True
-    print("✅ [GOD Calculators] Loaded successfully")
-except ImportError as e:
-    print(f"⚠️  [GOD Calculators] Failed to import: {e}")
-    print("   GOD calculator tools will not be available")
+# try:
+#     from GOD_flyer_calculator import FlyerCalculatorGOD
+#     from GOD_letterhead_calculator import LetterheadCalculatorGOD
+#     from GOD_perfect_bound_books_calculator import PerfectBoundBooksCalculator
+#     from corflute_calculator import CorflutePricingCalculator
+#     
+#     GOD_CALCULATORS_AVAILABLE = True
+#     print("✅ [GOD Calculators] Loaded successfully")
+# except ImportError as e:
+#     print(f"⚠️  [GOD Calculators] Failed to import: {e}")
+#     print("   GOD calculator tools will not be available")
 
 # Import Shopify calculators from In_House_SQL (source of truth)
 SHOPIFY_CALCULATORS_AVAILABLE = False

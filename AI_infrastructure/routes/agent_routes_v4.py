@@ -2010,6 +2010,7 @@ Use tools in multiple rounds with interleaved thinking."""
                 system_prompt=system_prompt,
                 tools=tools,
                 user_id=user_id,
+                thread_id=thread_slug,  # Pass thread_id for database saves
                 ai_model=ai_model,
                 ai_temperature=ai_temperature,
                 ai_max_tokens=ai_max_tokens,

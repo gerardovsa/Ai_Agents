@@ -618,7 +618,7 @@ async function sendChatMessage() {
             isThinking: false,
             scrollToBottom: autoScrollEnabled,
             threadId: currentThreadId,
-            syncToBackend: false,
+            syncToBackend: true,  // ✅ FIX: Save user message to database
             messageId: null  // User-typed message, ID assigned after backend sync
         }
     );
@@ -1416,8 +1416,20 @@ async function sendChatMessage() {
                                         if (textBubble && fullResponse.length > 0) {
                                             const textContent = textBubble.querySelector('.ai-message-content');
                                             if (textContent) {
-                                                console.log('[OK] Final rendered content length:', textContent.innerHTML.length);
-                                                console.log('[OK] Streaming complete - content already displayed via incremental updates');
+                                                // ✅ CRITICAL FIX: Check if content is actually visible (not just empty)
+                                                const visibleText = textContent.textContent?.trim() || '';
+                                                if (visibleText.length === 0 || visibleText.length < fullResponse.length * 0.5) {
+                                                    console.warn(`[Prime] ⚠️ Content missing or incomplete in DOM (${visibleText.length} vs ${fullResponse.length} chars) - forcing full render`);
+                                                    if (window.marked) {
+                                                        textContent.innerHTML = marked.parse(fullResponse, { breaks: true, gfm: true });
+                                                    } else {
+                                                        textContent.innerHTML = renderBasicMarkdown(fullResponse);
+                                                    }
+                                                    console.log(`[Prime] ✅ Forced full content render - ${fullResponse.length} chars`);
+                                                } else {
+                                                    console.log('[OK] Final rendered content length:', textContent.innerHTML.length);
+                                                    console.log('[OK] Streaming complete - content already displayed via incremental updates');
+                                                }
 
                                                 if (typeof Prism !== 'undefined') {
                                                     textContent.querySelectorAll('pre code').forEach(block => {
@@ -1871,6 +1883,25 @@ async function sendChatMessage() {
             }
             const responseTime = Date.now() - startTime;
             console.log(`✅ Streamed response received in ${responseTime}ms`);
+
+            // ✅ FIX: Save fullResponse to MessageStore after streaming completes
+            if (fullResponse && fullResponse.trim().length > 0) {
+                if (window.MessageStore) {
+                    await window.MessageStore.addMessage(currentThreadId, {
+                        role: 'assistant',
+                        content: fullResponse,
+                        response_time: responseTime
+                    }, {
+                        checkDuplicates: true,
+                        syncToBackend: false  // Backend handles via conversation_sync
+                    });
+                    console.log('✅ [MessageStore] Streamed assistant response added to history');
+                } else {
+                    console.error('[ERROR] MessageStore not available for saving assistant response');
+                }
+            } else {
+                console.log('[WARN] No streaming response content to add to history');
+            }
 
         } else {
             // NON-STREAMING JSON RESPONSE

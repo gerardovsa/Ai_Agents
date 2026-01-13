@@ -4237,7 +4237,7 @@ async function sendAgentMessage(agentId) {
         displayMessage,
         {
             threadId: currentThread.id,
-            syncToBackend: false,
+            syncToBackend: true,  // ✅ FIX: Save user message to database
             messageId: null  // User-typed message, ID assigned after backend sync
         }
     );
@@ -5259,6 +5259,25 @@ async function sendAgentMessage(agentId) {
         // Clear status indicator
         if (typeof AgentStatusIndicator !== 'undefined') {
             AgentStatusIndicator.clear(agentId);
+        }
+
+        // ✅ CRITICAL FIX: Ensure fullResponse is visible in DOM after streaming
+        // Sometimes TwoRuleStreamProcessor loses content or fails silently
+        if (textBubble && fullResponse && fullResponse.trim().length > 0) {
+            const textContent = textBubble.querySelector('.ai-message-content');
+            if (textContent) {
+                // Check if content is actually visible (not empty or just whitespace)
+                const visibleText = textContent.textContent?.trim() || '';
+                if (visibleText.length === 0 || visibleText.length < fullResponse.length * 0.5) {
+                    console.warn(`[Agent ${agentId}] ⚠️ Content missing or incomplete in DOM (${visibleText.length} vs ${fullResponse.length} chars) - forcing full render`);
+                    if (window.marked) {
+                        textContent.innerHTML = marked.parse(fullResponse, { breaks: true, gfm: true });
+                    } else {
+                        textContent.textContent = fullResponse;
+                    }
+                    console.log(`[Agent ${agentId}] ✅ Forced full content render - ${fullResponse.length} chars`);
+                }
+            }
         }
 
         // Finalize TwoRuleStreamProcessor (render any pending visualizations)

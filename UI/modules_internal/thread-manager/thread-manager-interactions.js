@@ -1226,13 +1226,85 @@ Object.assign(window.ThreadManager, {
         formattedText += `MESSAGES: ${thread.messages.length}\n`;
         formattedText += `${'='.repeat(80)}\n\n`;
 
+        // Track statistics
+        const stats = {
+            userMessages: 0,
+            aiResponses: 0,
+            toolResults: 0,
+            toolsExecuted: {},
+            totalDuration: 0,
+            firstTimestamp: null,
+            lastTimestamp: null
+        };
+
         thread.messages.forEach((msg, index) => {
+            const timestamp = msg.created_at ? new Date(msg.created_at) : null;
+
+            if (timestamp) {
+                if (!stats.firstTimestamp) stats.firstTimestamp = timestamp;
+                stats.lastTimestamp = timestamp;
+            }
+
             if (msg.role === 'user') {
-                formattedText += this._formatUserMessage(msg, index + 1);
+                // Check if it's a tool result or user input
+                const isToolResult = Array.isArray(msg.content) &&
+                    msg.content.some(block => block.type === 'tool_result');
+
+                if (isToolResult) {
+                    stats.toolResults++;
+                } else {
+                    stats.userMessages++;
+                }
+
+                formattedText += this._formatUserMessage(msg, index + 1, timestamp, thread.messages[index - 1]);
             } else if (msg.role === 'assistant') {
-                formattedText += this._formatAssistantMessage(msg, index + 1);
+                stats.aiResponses++;
+
+                // Track tool usage
+                if (Array.isArray(msg.content)) {
+                    msg.content.filter(b => b.type === 'tool_use').forEach(tool => {
+                        stats.toolsExecuted[tool.name] = (stats.toolsExecuted[tool.name] || 0) + 1;
+                    });
+                }
+
+                formattedText += this._formatAssistantMessage(msg, index + 1, timestamp, thread.messages[index - 1]);
             }
         });
+
+        // Calculate total duration
+        if (stats.firstTimestamp && stats.lastTimestamp) {
+            stats.totalDuration = Math.floor((stats.lastTimestamp - stats.firstTimestamp) / 1000);
+        }
+
+        // Add conversation summary
+        formattedText += `\n${'='.repeat(80)}\n`;
+        formattedText += `CONVERSATION STATISTICS\n`;
+        formattedText += `${'='.repeat(80)}\n`;
+        formattedText += `Total Messages: ${thread.messages.length}\n`;
+        formattedText += `  User Messages: ${stats.userMessages}\n`;
+        formattedText += `  AI Responses: ${stats.aiResponses}\n`;
+        formattedText += `  Tool Results: ${stats.toolResults}\n\n`;
+
+        if (Object.keys(stats.toolsExecuted).length > 0) {
+            formattedText += `Tools Executed: ${Object.values(stats.toolsExecuted).reduce((a, b) => a + b, 0)}\n`;
+            Object.entries(stats.toolsExecuted)
+                .sort((a, b) => b[1] - a[1])
+                .forEach(([tool, count]) => {
+                    formattedText += `  - ${tool}: ${count}x\n`;
+                });
+            formattedText += `\n`;
+        }
+
+        if (stats.totalDuration > 0) {
+            const minutes = Math.floor(stats.totalDuration / 60);
+            const seconds = stats.totalDuration % 60;
+            formattedText += `Total Duration: ${minutes}m ${seconds}s\n`;
+        }
+
+        formattedText += `${'='.repeat(80)}\n`;
+        formattedText += `\n${'='.repeat(80)}\n`;
+        formattedText += `END OF CONVERSATION\n`;
+        formattedText += `${'='.repeat(80)}\n`;
 
         // Copy to clipboard
         console.log('📋 [Copy Thread] Formatted text ready, copying to clipboard...');
@@ -1263,8 +1335,32 @@ Object.assign(window.ThreadManager, {
      * Format user message for copying
      * @private
      */
-    _formatUserMessage(msg, index) {
-        let output = `[${index}] USER MESSAGE:\n`;
+    _formatUserMessage(msg, index, timestamp, prevMsg) {
+        const isToolResult = Array.isArray(msg.content) &&
+            msg.content.some(block => block.type === 'tool_result');
+
+        const messageType = isToolResult ? 'USER MESSAGE (Tool Result)' : 'USER MESSAGE';
+        let output = `[${index}] ${messageType}:\n`;
+
+        // Add timestamp and duration
+        if (timestamp) {
+            output += `Timestamp: ${timestamp.toLocaleString()}\n`;
+
+            if (prevMsg && prevMsg.created_at) {
+                const prevTime = new Date(prevMsg.created_at);
+                const duration = Math.floor((timestamp - prevTime) / 1000);
+                if (duration > 0) {
+                    const mins = Math.floor(duration / 60);
+                    const secs = duration % 60;
+                    if (mins > 0) {
+                        output += `Latency: ${mins}m ${secs}s\n`;
+                    } else {
+                        output += `Latency: ${secs}s\n`;
+                    }
+                }
+            }
+        }
+
         output += `${'-'.repeat(80)}\n`;
 
         if (typeof msg.content === 'string') {
@@ -1288,8 +1384,28 @@ Object.assign(window.ThreadManager, {
      * Format assistant message for copying
      * @private
      */
-    _formatAssistantMessage(msg, index) {
+    _formatAssistantMessage(msg, index, timestamp, prevMsg) {
         let output = `[${index}] AI RESPONSE:\n`;
+
+        // Add timestamp and duration
+        if (timestamp) {
+            output += `Timestamp: ${timestamp.toLocaleString()}\n`;
+
+            if (prevMsg && prevMsg.created_at) {
+                const prevTime = new Date(prevMsg.created_at);
+                const duration = Math.floor((timestamp - prevTime) / 1000);
+                if (duration > 0) {
+                    const mins = Math.floor(duration / 60);
+                    const secs = duration % 60;
+                    if (mins > 0) {
+                        output += `Duration: ${mins}m ${secs}s\n`;
+                    } else {
+                        output += `Duration: ${secs}s\n`;
+                    }
+                }
+            }
+        }
+
         output += `${'-'.repeat(80)}\n`;
 
         if (typeof msg.content === 'string') {
