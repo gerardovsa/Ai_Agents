@@ -1,0 +1,518 @@
+/**
+ * Synergy Sidebar Styles
+ * 
+ * PURPOSE: Complete styling for Synergy sidebar matching Automations sidebar structure
+ * - 450px width sidebar (matches Automations)
+ * - ~100px height collapsed cards  
+ * - Proper header, stats, search, filters
+ * - Clean card styling without inline styles
+ * 
+ * LAST MODIFIED: 2025-11-20
+ */
+
+/* ==================== SIDEBAR CONTAINER ==================== */
+
+.synergy-sidebar {
+    position: fixed;
+    left: 0;
+    top: 60px;
+    height: calc(100vh - 60px);
+    width: 450px;
+    /* Match Automations sidebar */
+    background: var(--bg-secondary);
+    border-right: 1px solid var(--border-default);
+    display: flex;
+    flex-direction: column;
+    z-index: 9999;
+    transform: translateX(-100%);
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+    box-shadow: 4px 0 24px rgba(0, 0, 0, 0.3);
+}
+
+.synergy-sidebar.expanded {
+    transform: translateX(0);
+}
+
+.synergy-sidebar.collapsed {
+    transform: translateX(-100%);
+}
+
+/* ==================== SIDEBAR HEADER ==================== */
+
+.synergy-sidebar-header {
+    padding: var(--space-3);
+    border-bottom: 1px solid var(--border-default);
+    background: var(--bg-tertiary);
+    flex-shrink: 0;
+}
+
+.synergy-header-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: var(--space-3);
+}
+
+.synergy-sidebar-title {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    font-size: 16px;
+    /* font-weight: 600; */
+    color: var(--text-primary);
+}
+
+.synergy-sidebar-title i {
+    color: var(--accent-primary);
+    font-size: 18px;
+}
+
+.synergy-header-actions {
+    display: flex;
+    gap: var(--space-1);
+}
+
+.synergy-icon-btn {
+    display: flex;
+    width: 28px;
+    height: 28px;
+    color: var(--text-secondary);
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border-default);
+    padding: var(--space-1);
+    border-radius: 6px;
+    font-size: 12px;
+    /* font-weight: 500; */
+    cursor: pointer;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+}
+
+.synergy-icon-btn:hover {
+    background: var(--bg-hover);
+    color: var(--accent-primary);
+    transform: scale(1.05);
+    border: 1px solid var(--accent-primary);
+}
+
+/* Pin button active state */
+.synergy-icon-btn.pinned {
+    background: #fbbf24;
+    color: #78350f;
+    border-color: #f59e0b;
+}
+
+.synergy-icon-btn.pinned:hover {
+    background: #f59e0b;
+    color: #78350f;
+    border-color: #d97706;
+}
+
+/* ==================== VIEW TABS ==================== */
+
+.synergy-view-tabs {
+    display: flex;
+    gap: var(--space-1);
+    background: var(--bg-secondary);
+    padding: 4px;
+    border-radius: 8px;
+    margin-bottom: var(--space-3);
+}
+
+.synergy-view-tab {
+    flex: 1;
+    padding: 8px 16px;
+    border: none;
+    border-radius: 6px;
+    color: var(--text-secondary);
+    background: transparent;
+    cursor: pointer;
+    font-size: 13px;
+    /* font-weight: 500; */
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+}
+
+.synergy-view-tab:hover {
+    background: var(--bg-hover);
+    color: var(--text-primary);
+}
+
+.synergy-view-tab.active {
+    background: var(--accent-primary);
+    color: white;
+}
+
+/* ==================== SEARCH BAR ==================== */
+
+.synergy-search-bar {
+    position: relative;
+    margin-bottom: var(--space-3);
+}
+
+.synergy-search-icon {
+    position: absolute;
+    left: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--text-tertiary);
+    font-size: 14px;
+    pointer-events: none;
+}
+
+.synergy-search-input {
+    width: 100%;
+    padding: 10px 12px 10px 36px;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-default);
+    border-radius: 8px;
+    color: var(--text-primary);
+    font-size: 14px;
+    transition: all 0.2s ease;
+}
+
+.synergy-search-input:focus {
+    outline: none;
+    border-color: var(--accent-primary);
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.synergy-search-input::placeholder {
+    color: var(--text-tertiary);
+}
+
+/* ==================== CATEGORY FILTERS ==================== */
+
+.synergy-category-filter {
+    display: flex;
+    gap: var(--space-1);
+    flex-wrap: wrap;
+}
+
+.synergy-category-chip {
+    padding: 6px 12px;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-default);
+    border-radius: 20px;
+    color: var(--text-secondary);
+    font-size: 12px;
+    white-space: nowrap;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.synergy-category-chip:hover {
+    background: var(--bg-hover);
+    border-color: var(--accent-primary);
+}
+
+.synergy-category-chip.active {
+    background: var(--accent-primary);
+    color: white;
+    border-color: var(--accent-primary);
+}
+
+/* ==================== SIDEBAR CONTENT ==================== */
+
+.synergy-sidebar-content {
+    flex: 1;
+    overflow-y: auto;
+    padding: var(--space-3);
+}
+
+.synergy-list-view,
+.synergy-pinned-view {
+    display: none;
+}
+
+.synergy-list-view.active,
+.synergy-pinned-view.active {
+    display: block;
+}
+
+/* ==================== SESSION CARDS (Sidebar) ==================== */
+
+.synergy-session-item {
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border-default);
+    border-radius: 12px;
+    margin-bottom: var(--space-3);
+    overflow: visible;
+    transition: all 0.2s ease;
+    /* No fixed height - content determines collapsed card size */
+}
+
+.synergy-session-item.expanded {
+    max-height: none;
+    /* Allow expansion */
+}
+
+.synergy-session-item:hover {
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    border-color: var(--accent-primary);
+}
+
+.synergy-session-item.pinned {
+    border-color: var(--accent-primary);
+    background: linear-gradient(to right, var(--accent-primary)22, var(--bg-tertiary));
+}
+
+/* ==================== COMPACT ICON (Hidden until compact mode) ==================== */
+
+.synergy-compact-icon {
+    display: none;
+    /* Only visible in compact 80px mode */
+}
+
+/* ==================== CARD HEADER ==================== */
+
+.synergy-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 16px;
+    background: var(--bg-tertiary);
+    border-bottom: 2px solid var(--border-secondary);
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.synergy-card-header:hover {
+    background: var(--bg-hover);
+}
+
+.synergy-card-header-left {
+    flex: 1;
+    min-width: 0;
+    /* Allow text truncation */
+}
+
+.synergy-card-title {
+    /* font-weight: 700; */
+    font-size: 15px;
+    color: var(--text-primary);
+    margin-bottom: 6px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.synergy-card-badges {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+}
+
+/* ==================== PRIORITY BADGES ==================== */
+
+.priority-badge {
+    padding: 4px 12px;
+    /* Increased from 3px 10px */
+    border-radius: 12px;
+    font-size: 11px;
+    /* Increased from 10px */
+    /* font-weight: 700; */
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: white;
+}
+
+.priority-badge.priority-critical {
+    background: #dc2626;
+}
+
+.priority-badge.priority-high {
+    background: #ef4444;
+}
+
+.priority-badge.priority-medium {
+    background: #fbbf24;
+}
+
+.priority-badge.priority-low {
+    background: #22c55e;
+}
+
+/* ==================== STATUS BADGES ==================== */
+
+.status-badge {
+    padding: 4px 12px;
+    /* Increased from 3px 10px */
+    border-radius: 12px;
+    font-size: 11px;
+    /* Increased from 10px */
+    /* font-weight: 600; */
+    background: var(--bg-quaternary);
+    color: var(--text-secondary);
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    /* Space for icon */
+}
+
+.status-badge.status-active {
+    background: #dbeafe;
+    color: #1e40af;
+}
+
+.status-badge.status-paused {
+    background: #fef3c7;
+    color: #92400e;
+}
+
+.status-badge.status-completed {
+    background: #d1fae5;
+    color: #065f46;
+}
+
+/* ==================== CARD BUTTONS ==================== */
+
+.synergy-card-header-right {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+}
+
+.synergy-card-btn {
+    background: none;
+    border: none;
+    color: var(--text-tertiary);
+    cursor: pointer;
+    font-size: 16px;
+    padding: 8px;
+    transition: all 0.2s;
+    opacity: 0.7;
+    border-radius: 6px;
+}
+
+.synergy-card-btn:hover {
+    opacity: 1;
+    background: var(--bg-hover);
+    color: var(--accent-primary);
+}
+
+.synergy-card-btn.open-btn {
+    background: var(--accent-primary);
+    color: white;
+    padding: 8px 16px;
+    border-radius: 8px;
+    font-size: 12px;
+    /* font-weight: 600; */
+    opacity: 1;
+}
+
+.synergy-card-btn.open-btn:hover {
+    background: var(--accent-secondary);
+}
+
+.synergy-card-btn.pin-btn.pinned {
+    color: var(--accent-primary);
+    opacity: 1;
+}
+
+/* ==================== CARD CONTENT (Expanded) ==================== */
+
+.synergy-card-content {
+    padding: 16px;
+    display: none;
+}
+
+.synergy-session-item.expanded .synergy-card-content {
+    display: block;
+}
+
+.synergy-card-content.collapsed {
+    display: none;
+}
+
+.loading-placeholder {
+    text-align: center;
+    padding: 24px;
+    color: var(--text-tertiary);
+}
+
+.loading-placeholder i {
+    font-size: 24px;
+    margin-bottom: 8px;
+    display: block;
+}
+
+.loading-text {
+    font-size: 12px;
+}
+
+/* ==================== SCROLLBAR STYLING ==================== */
+
+.synergy-sidebar-content::-webkit-scrollbar {
+    width: 8px;
+}
+
+.synergy-sidebar-content::-webkit-scrollbar-track {
+    background: var(--bg-secondary);
+}
+
+.synergy-sidebar-content::-webkit-scrollbar-thumb {
+    background: var(--border-default);
+    border-radius: 4px;
+}
+
+.synergy-sidebar-content::-webkit-scrollbar-thumb:hover {
+    background: var(--text-tertiary);
+}
+
+/* ==================== CARD DROPDOWN MENU ==================== */
+
+.synergy-card-dropdown-menu {
+    animation: menuFadeIn 0.15s ease;
+}
+
+@keyframes menuFadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(-5px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.synergy-dropdown-item {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 16px;
+    background: transparent;
+    border: none;
+    color: var(--text-primary);
+    font-size: 14px;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    text-align: left;
+}
+
+.synergy-dropdown-item:hover {
+    background: var(--bg-hover);
+}
+
+.synergy-dropdown-item.danger:hover {
+    background: rgba(239, 68, 68, 0.1);
+    color: #ef4444;
+}
+
+.synergy-dropdown-item i {
+    flex-shrink: 0;
+}
+
+.synergy-dropdown-item span {
+    flex: 1;
+}

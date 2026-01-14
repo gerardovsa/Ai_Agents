@@ -1,0 +1,694 @@
+﻿/**
+ * InHousePrint Kanban Module - Synergy Dashboard Styling
+ * Production Workflow Dashboard matching Synergy design system EXACTLY
+ * 
+ * @updated 2025-11-03 - Complete rewrite to match Synergy styling
+ * @version 2.4.0 - FLEX LAYOUT FIXED
+ */
+
+/* ===================================================================
+   MODULE SIDEBAR OVERRIDE - Make Kanban full-width
+   =================================================================== */
+.kanban-sidebar.module-sidebar {
+    width: 95vw;
+    max-width: 1600px;
+}
+
+/* ===================================================================
+   MODULE CONTAINER - Match Synergy wrapper
+   =================================================================== */
+.inhouse-kanban-module,
+.module-inhouse-kanban {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    overflow: hidden;
+}
+
+.kanban-container {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    gap: 0;
+}
+
+/* ===================================================================
+   MODULE HEADER - Match Synergy dashboard header
+   =================================================================== */
+.module-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: var(--space-5);
+    background: var(--bg-secondary);
+    border-bottom: 1px solid var(--border-default);
+    flex-shrink: 0;
+}
+
+.module-header-left {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-1);
+}
+
+.module-title {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    font-size: 24px;
+    /* font-weight: 600; */
+    color: var(--text-primary);
+    margin: 0;
+}
+
+.module-title i {
+    color: var(--accent-primary);
+    font-size: 28px;
+}
+
+.module-description {
+    font-size: 14px;
+    color: var(--text-secondary);
+    margin: 0;
+}
+
+.module-header-right {
+    display: flex;
+    gap: var(--space-3);
+}
+
+.btn-secondary {
+    padding: var(--space-2) var(--space-4);
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border-default);
+    border-radius: 6px;
+    color: var(--text-primary);
+    font-size: 14px;
+    /* font-weight: 500; */
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    transition: all 0.2s ease;
+}
+
+.btn-secondary:hover {
+    background: var(--bg-hover);
+    border-color: var(--accent-primary);
+    transform: translateY(-1px);
+}
+
+/* ===================================================================
+   FILTERS BAR - Clean horizontal layout
+   =================================================================== */
+.filters-bar {
+    background: var(--bg-secondary);
+    border-bottom: 1px solid var(--border-default);
+    padding: var(--space-4) var(--space-5);
+    display: flex;
+    align-items: center;
+    gap: var(--space-4);
+    flex-wrap: wrap;
+}
+
+.filter-group {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+}
+
+.filter-group label {
+    font-size: 14px;
+    color: var(--text-secondary);
+    /* font-weight: 500; */
+    display: flex;
+    align-items: center;
+    gap: var(--space-1);
+}
+
+.filter-group label i {
+    color: var(--accent-primary);
+}
+
+.filter-select {
+    padding: 6px 12px;
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border-default);
+    border-radius: 6px;
+    color: var(--text-primary);
+    font-size: 14px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    min-width: 150px;
+}
+
+.filter-select:hover {
+    border-color: var(--accent-primary);
+}
+
+.filter-select:focus {
+    outline: none;
+    border-color: var(--accent-primary);
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.filter-input {
+    padding: 6px 12px;
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border-default);
+    border-radius: 6px;
+    color: var(--text-primary);
+    font-size: 14px;
+    width: 100%;
+    transition: all 0.2s ease;
+}
+
+.filter-input:hover {
+    border-color: var(--accent-primary);
+}
+
+.filter-input:focus {
+    outline: none;
+    border-color: var(--accent-primary);
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.filter-input::placeholder {
+    color: var(--text-muted);
+}
+
+.last-refresh {
+    font-size: 12px;
+    color: var(--text-muted);
+    margin-left: auto;
+}
+
+.time-value {
+    color: var(--text-secondary);
+    /* font-weight: 500; */
+}
+
+/* ===================================================================
+   WORKBOARD SELECTOR - Tab-style buttons
+   =================================================================== */
+.workboard-selector {
+    background: var(--bg-secondary);
+    border-bottom: 1px solid var(--border-default);
+    padding: 0 var(--space-5);
+    display: flex;
+    gap: var(--space-2);
+}
+
+.workboard-tab {
+    padding: var(--space-3) var(--space-4);
+    background: transparent;
+    border: none;
+    border-bottom: 2px solid transparent;
+    color: var(--text-secondary);
+    font-size: 14px;
+    /* font-weight: 500; */
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    transition: all 0.2s ease;
+    position: relative;
+}
+
+.workboard-tab:hover {
+    color: var(--text-primary);
+    background: var(--bg-hover);
+}
+
+.workboard-tab.active {
+    color: var(--accent-primary);
+    border-bottom-color: var(--accent-primary);
+}
+
+.workboard-tab i {
+    font-size: 16px;
+}
+
+/* ===================================================================
+   METRICS DASHBOARD - Card grid
+   =================================================================== */
+.kanban-metrics {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: var(--space-4);
+    padding: var(--space-5);
+    background: var(--bg-primary);
+}
+
+.metric-card {
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-default);
+    border-radius: 8px;
+    padding: var(--space-4);
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    transition: all 0.2s ease;
+}
+
+.metric-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+    border-color: var(--accent-primary);
+}
+
+.metric-icon {
+    width: 48px;
+    height: 48px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 20px;
+    flex-shrink: 0;
+}
+
+.metric-content {
+    flex: 1;
+}
+
+.metric-value {
+    font-size: 24px;
+    /* font-weight: 700; */
+    color: var(--text-primary);
+    line-height: 1.2;
+    margin-bottom: 2px;
+}
+
+.metric-label {
+    font-size: 12px;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+/* ===================================================================
+   KANBAN BOARD - Match Synergy column layout - FIXED FLEX
+   =================================================================== */
+.kanban-board {
+    display: flex !important;
+    flex-direction: row !important;
+    gap: 16px !important;
+    padding: var(--space-5) !important;
+    overflow-x: auto !important;
+    overflow-y: hidden !important;
+    flex: 1 !important;
+    background: var(--bg-primary) !important;
+    align-items: flex-start !important;
+    width: 100% !important;
+}
+
+/* ===================================================================
+   KANBAN COLUMNS - Match Synergy exactly - FORCE DISPLAY
+   =================================================================== */
+.kanban-column {
+    min-width: 320px !important;
+    max-width: 320px !important;
+    background: var(--bg-secondary) !important;
+    border: 1px solid var(--border-default) !important;
+    border-radius: 8px !important;
+    display: flex !important;
+    flex-direction: column !important;
+    height: fit-content !important;
+    max-height: calc(100vh - 400px) !important;
+    flex-shrink: 0 !important;
+}
+
+.column-header {
+    padding: var(--space-4);
+    border-bottom: 1px solid var(--border-default);
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+    flex-shrink: 0;
+}
+
+.column-title {
+    font-size: 16px;
+    /* font-weight: 600; */
+    color: var(--text-primary);
+    margin: 0;
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+}
+
+.column-title i {
+    font-size: 18px;
+}
+
+.column-metrics {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    font-size: 12px;
+    color: var(--text-secondary);
+}
+
+.column-metrics span {
+    display: flex;
+    align-items: center;
+    gap: var(--space-1);
+}
+
+.column-metrics i {
+    font-size: 12px;
+    opacity: 0.7;
+}
+
+.job-count,
+.stage-value {
+    /* font-weight: 500; */
+}
+
+.column-body {
+    padding: var(--space-2);
+    overflow-y: auto;
+    flex: 1;
+    min-height: 100px;
+}
+
+/* ===================================================================
+   KANBAN CARDS - Match Synergy card design EXACTLY
+   =================================================================== */
+.kanban-card {
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border-default);
+    border-radius: 6px;
+    padding: var(--space-2);
+    margin-bottom: var(--space-3);
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.kanban-card:hover {
+    background: var(--bg-hover);
+    border-color: var(--accent-primary);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+/* Card Header Row - Priority and Tier badges */
+.card-header-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: var(--space-2);
+    gap: var(--space-2);
+}
+
+.priority-badge,
+.customer-tier {
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 11px;
+    /* font-weight: 600; */
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    color: white;
+}
+
+.priority-badge i,
+.customer-tier i {
+    font-size: 10px;
+}
+
+/* Card Body */
+.card-body {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+}
+
+.client-name {
+    font-size: 12px;
+    color: var(--text-secondary);
+    display: flex;
+    align-items: center;
+    gap: var(--space-1);
+}
+
+.client-name i {
+    font-size: 11px;
+    opacity: 0.7;
+}
+
+.job-description {
+    font-size: 14px;
+    /* font-weight: 600; */
+    color: var(--text-primary);
+    line-height: 1.4;
+    word-break: break-word;
+}
+
+/* Job Specs Row */
+.job-specs {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    font-size: 11px;
+    color: var(--text-muted);
+    flex-wrap: wrap;
+}
+
+.spec-item {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.spec-item i {
+    font-size: 10px;
+    opacity: 0.7;
+}
+
+/* Job Details Expandable Section */
+.job-details {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-1);
+    font-size: 11px;
+    color: var(--text-secondary);
+    padding-top: var(--space-1);
+    border-top: 1px solid var(--border-muted);
+}
+
+.detail-row {
+    display: flex;
+    align-items: center;
+    gap: var(--space-1);
+}
+
+.detail-row i {
+    font-size: 10px;
+    opacity: 0.7;
+    width: 14px;
+}
+
+/* Card Footer Row */
+.card-footer-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: 11px;
+    margin-top: var(--space-1);
+    padding-top: var(--space-2);
+    border-top: 1px solid var(--border-muted);
+}
+
+.card-footer {
+    margin-top: var(--space-2);
+}
+
+.card-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-2);
+}
+
+.card-tag {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 11px;
+    color: var(--text-muted);
+    padding: 2px 6px;
+    background: var(--bg-hover);
+    border-radius: 3px;
+}
+
+.card-tag i {
+    font-size: 10px;
+    opacity: 0.7;
+}
+
+.card-time {
+    font-size: 11px;
+    color: var(--text-muted);
+}
+
+.status-delayed {
+    background: rgba(239, 68, 68, 0.1);
+    color: #ef4444;
+}
+
+.status-warning {
+    background: rgba(245, 158, 11, 0.1);
+    color: #f59e0b;
+}
+
+.due-date,
+.wip-status {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.due-date i,
+.wip-status i {
+    font-size: 10px;
+    opacity: 0.7;
+}
+
+/* Due Date Status Colors */
+.due-date.overdue {
+    color: #ef4444;
+    /* font-weight: 600; */
+}
+
+.due-date.due-soon {
+    color: #f59e0b;
+    /* font-weight: 600; */
+}
+
+.due-date.on-track {
+    color: var(--text-secondary);
+}
+
+/* Card Actions */
+.card-actions {
+    display: flex;
+    gap: var(--space-2);
+    margin-top: var(--space-2);
+    padding-top: var(--space-2);
+    border-top: 1px solid var(--border-muted);
+}
+
+.view-details-btn {
+    flex: 1;
+    padding: 6px 12px;
+    background: var(--bg-hover);
+    border: 1px solid var(--border-default);
+    border-radius: 4px;
+    color: var(--text-primary);
+    font-size: 12px;
+    /* font-weight: 500; */
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-1);
+    transition: all 0.2s ease;
+}
+
+.view-details-btn:hover {
+    background: var(--accent-primary);
+    color: white;
+    border-color: var(--accent-primary);
+}
+
+.view-details-btn i {
+    font-size: 11px;
+}
+
+/* ===================================================================
+   EMPTY STATES
+   =================================================================== */
+.empty-column {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: var(--space-8);
+    color: var(--text-muted);
+    text-align: center;
+}
+
+.empty-column i {
+    font-size: 48px;
+    opacity: 0.3;
+    margin-bottom: var(--space-3);
+}
+
+.empty-column p {
+    font-size: 14px;
+    margin: 0;
+}
+
+/* ===================================================================
+   SCROLLBAR STYLING
+   =================================================================== */
+.column-body::-webkit-scrollbar,
+.kanban-board::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+
+.column-body::-webkit-scrollbar-track,
+.kanban-board::-webkit-scrollbar-track {
+    background: var(--bg-secondary);
+    border-radius: 4px;
+}
+
+.column-body::-webkit-scrollbar-thumb,
+.kanban-board::-webkit-scrollbar-thumb {
+    background: var(--border-default);
+    border-radius: 4px;
+}
+
+.column-body::-webkit-scrollbar-thumb:hover,
+.kanban-board::-webkit-scrollbar-thumb:hover {
+    background: var(--text-muted);
+}
+
+/* ===================================================================
+   RESPONSIVE ADJUSTMENTS
+   =================================================================== */
+@media (max-width: 1200px) {
+    .kanban-column {
+        min-width: 280px;
+        max-width: 280px;
+    }
+
+    .kanban-metrics {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+@media (max-width: 768px) {
+    .filters-bar {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .filter-group {
+        width: 100%;
+    }
+
+    .filter-select,
+    .filter-input {
+        width: 100%;
+    }
+
+    .kanban-metrics {
+        grid-template-columns: 1fr;
+    }
+}

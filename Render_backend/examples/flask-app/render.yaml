@@ -1,0 +1,172 @@
+# ================================================================================
+# Render Blueprint - Flask Application
+# ================================================================================
+# This configuration deploys a Flask web application to Render.com
+# 
+# REQUIREMENTS:
+# - requirements.txt with dependencies (including gunicorn)
+# - app.py or wsgi.py with Flask app instance
+# - Health check endpoint at /health (recommended)
+#
+# USAGE:
+# 1. Copy this file to your project root as render.yaml
+# 2. Customize the name, region, and environment variables
+# 3. Commit to git and push to GitHub
+# 4. Deploy: python render_universal_cli.py blueprint deploy render.yaml
+#    OR connect repository at https://dashboard.render.com/select-repo
+# ================================================================================
+
+services:
+  # ==================== Web Service ====================
+  - type: web
+    name: my-flask-app              # Change this to your app name
+    env: python                     # Python runtime environment
+    region: oregon                  # oregon, singapore, frankfurt, ohio
+    plan: starter                   # free, starter ($7/mo), standard, pro
+    
+    # ==================== Build Configuration ====================
+    buildCommand: pip install -r requirements.txt
+    # If you need additional build steps:
+    # buildCommand: |
+    #   pip install -r requirements.txt &&
+    #   python setup.py build
+    
+    # ==================== Start Configuration ====================
+    startCommand: gunicorn app:app --bind 0.0.0.0:$PORT --workers 4
+    # Common variations:
+    # - If your app instance is named differently: gunicorn myapp:application
+    # - If you have a wsgi.py file: gunicorn wsgi:app
+    # - For development (not recommended): python app.py
+    
+    # ==================== Deployment Settings ====================
+    autoDeploy: true                # Auto-deploy on git push
+    
+    # ==================== Health Check ====================
+    healthCheckPath: /health        # Endpoint that returns 200 OK
+    # Create this endpoint in your Flask app:
+    # @app.route('/health')
+    # def health():
+    #     return {'status': 'healthy'}, 200
+    
+    # ==================== Environment Variables ====================
+    envVars:
+      # Python version (3.8, 3.9, 3.10, 3.11, 3.12)
+      - key: PYTHON_VERSION
+        value: "3.11"
+      
+      # Flask configuration
+      - key: FLASK_APP
+        value: "app.py"              # Your main Flask file
+      
+      - key: FLASK_ENV
+        value: "production"          # Always use production on Render
+      
+      # Secret key (Render generates secure random value)
+      - key: SECRET_KEY
+        generateValue: true
+      
+      # Debug mode (should be False in production)
+      - key: DEBUG
+        value: "False"
+      
+      # Example: Database URL
+      # - key: DATABASE_URL
+      #   value: "postgresql://user:pass@host:5432/db"
+      
+      # Example: Redis URL
+      # - key: REDIS_URL
+      #   value: "redis://host:6379/0"
+      
+      # Example: API Keys (add via dashboard for security)
+      # - key: STRIPE_API_KEY
+      #   sync: false                # Don't sync from git (add manually)
+      
+      # Example: CORS allowed origins
+      # - key: CORS_ORIGINS
+      #   value: "https://example.com,https://www.example.com"
+
+# ================================================================================
+# DEPLOYMENT CHECKLIST:
+# ================================================================================
+# 
+# Before deploying, ensure:
+# 
+# 1. requirements.txt includes all dependencies:
+#    - gunicorn==21.2.0 (or latest)
+#    - flask>=2.3.0
+#    - python-dotenv (for local development)
+#    - Any database drivers (psycopg2-binary for PostgreSQL)
+#    - Any other packages your app needs
+#
+# 2. Your Flask app binds to correct host and port:
+#    - Use: app.run(host='0.0.0.0', port=int(os.getenv('PORT', 10000)))
+#    - Or let Gunicorn handle it (recommended)
+#
+# 3. Create /health endpoint for health checks:
+#    @app.route('/health')
+#    def health():
+#        return {'status': 'healthy', 'timestamp': datetime.now().isoformat()}
+#
+# 4. Static files are configured:
+#    - Flask serves static files by default from /static
+#    - For production, consider using CDN
+#
+# 5. Database is configured:
+#    - Get DATABASE_URL from Render PostgreSQL
+#    - Use environment variable, never hardcode
+#
+# 6. Logging is configured:
+#    import logging
+#    logging.basicConfig(level=logging.INFO)
+#
+# 7. Error handling is in place:
+#    @app.errorhandler(500)
+#    def internal_error(error):
+#        return {'error': 'Internal server error'}, 500
+#
+# ================================================================================
+# POST-DEPLOYMENT:
+# ================================================================================
+#
+# After deployment:
+# 1. Check service URL: https://your-app-name.onrender.com
+# 2. Monitor logs: python render_universal_cli.py logs tail <service-id>
+# 3. Check health: curl https://your-app-name.onrender.com/health
+# 4. Update DNS if using custom domain
+# 5. Set up environment-specific variables in Render dashboard
+#
+# ================================================================================
+# COMMON ISSUES & SOLUTIONS:
+# ================================================================================
+#
+# Issue: "Address already in use"
+# Solution: Ensure app uses $PORT environment variable, not hardcoded port
+#
+# Issue: "Module not found"
+# Solution: Add missing package to requirements.txt
+#
+# Issue: "Application failed to bind to $PORT"
+# Solution: Use host='0.0.0.0' not 'localhost' or '127.0.0.1'
+#
+# Issue: "502 Bad Gateway"
+# Solution: Check logs for startup errors, verify startCommand is correct
+#
+# ================================================================================
+# SCALING & PERFORMANCE:
+# ================================================================================
+#
+# Horizontal Scaling:
+# - Increase workers: --workers 8
+# - Or scale instances: plan: standard with multiple instances
+#
+# Vertical Scaling:
+# - Upgrade plan: standard (2GB RAM), pro (4GB+ RAM)
+#
+# Performance Tips:
+# - Use gunicorn with multiple workers (2-4 × CPU cores)
+# - Enable connection pooling for databases
+# - Use Redis for caching
+# - Set up CDN for static assets
+# - Monitor metrics: python render_universal_cli.py metrics all <service-id>
+#
+# ================================================================================

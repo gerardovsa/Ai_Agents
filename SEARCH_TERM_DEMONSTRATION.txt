@@ -1,0 +1,263 @@
+======================================================================
+DEMONSTRATION: Strategic Search Term Variations
+======================================================================
+
+Subject: Gregory Ross Dutton from scatechnology.ai
+
+PHASE 1: Name Variations (Try ALL combinations)
+----------------------------------------------------------------------
+1. Search: "Gregory Ross Dutton"
+2. Search: "Gregory Dutton"
+3. Search: "Greg Dutton"
+4. Search: "G.R. Dutton"
+5. Search: "G. Dutton"
+6. Search: "Ross Dutton"
+7. Search: "Dutton Gregory"
+
+PHASE 2: Name + Context (Geographic)
+----------------------------------------------------------------------
+   Search: "Gregory Dutton" + "Australia"
+   Search: "Gregory Dutton" + "Colombia"
+   Search: "Gregory Dutton" + "Manizales"
+   Search: "Gregory Dutton" + "Poland"
+   Search: "Gregory Dutton" + "Warsaw"
+
+PHASE 3: Name + Context (Professional)
+----------------------------------------------------------------------
+   Search: "Gregory Dutton" + "CEO"
+   Search: "Gregory Dutton" + "founder"
+   Search: "Gregory Dutton" + "director"
+   Search: "Gregory Dutton" + "CTO"
+   Search: "Gregory Dutton" + "engineer"
+   Search: "Gregory Dutton" + "developer"
+
+PHASE 4: Name + Company
+----------------------------------------------------------------------
+   Search: "Gregory Dutton" + "SCA Technology"
+   Search: "Gregory Dutton" + "scatechnology.ai"
+   Search: "Gregory Dutton" + "ISB.eco"
+   Search: "Gregory Dutton" + "Institute of Sustainable Biodiversity"
+   Search: "Gregory Dutton" + "AI company"
+   Search: "Gregory Dutton" + "Colombian tech"
+
+PHASE 5: Email Variations
+----------------------------------------------------------------------
+   Test: gregory.dutton@scatechnology.ai
+   Test: gregory.dutton@isb.eco
+   Test: greg.dutton@scatechnology.ai
+   Test: greg.dutton@isb.eco
+   Test: gdutton@scatechnology.ai
+   Test: gdutton@isb.eco
+   Test: ross.dutton@scatechnology.ai
+   Test: ross.dutton@isb.eco
+   Test: g.dutton@scatechnology.ai
+   Test: g.dutton@isb.eco
+   Test: gregory@scatechnology.ai
+   Test: gregory@isb.eco
+
+PHASE 6: Phone Number Investigations
+----------------------------------------------------------------------
+   Reverse lookup: +61 461 357 358
+   Country validation: +61 = Australia
+   Carrier lookup: Australian mobile network
+   Search: "+61 461 357 358" + "Gregory Dutton"
+   Search: "0461 357 358" (local format)
+
+PHASE 7: Domain Cross-References
+----------------------------------------------------------------------
+   WHOIS: scatechnology.ai
+   WHOIS: isb.eco
+   Reverse IP: 216.198.79.1 (scatechnology.ai)
+   Reverse IP: 185.230.63.171 (isb.eco)
+   Shared hosting check
+   DNS history for both domains
+   Web archive for both domains (multiple timestamps)
+
+PHASE 8: Social Media Matrix
+----------------------------------------------------------------------
+   LinkedIn: "Gregory Dutton" OR "Greg Dutton"
+   Twitter: "Gregory Dutton" OR "@gregorydutton" OR "@gdutton"
+   GitHub: "Gregory Dutton" OR "gregorydutton" OR "gdutton"
+   Facebook: "Gregory Dutton" + "Australia"
+   Instagram: "gregorydutton" OR "gdutton"
+   Medium: "Gregory Dutton" (articles)
+   Dev.to: "Gregory Dutton" (tech posts)
+   Stack Overflow: "Gregory Dutton"
+   Reddit: u/gregorydutton OR u/gdutton
+
+PHASE 9: Business Verification
+----------------------------------------------------------------------
+   Colombian NIT: 901891665-8
+   Australian ABN search: "Gregory Dutton"
+   Polish KRS: (for ISB.eco)
+   Google: "SCA Technology" + "registration"
+   Google: "SCA Technology" + "news"
+   Google: "SCA Technology" + "funding"
+   Google: "SCA Technology" + "employees"
+
+PHASE 10: Academic/Professional Databases
+----------------------------------------------------------------------
+   Google Scholar: "Gregory Dutton"
+   ResearchGate: "Gregory Dutton"
+   Academia.edu: "Gregory Dutton"
+   arXiv.org: "Gregory Dutton"
+   Conference proceedings: "G. Dutton" OR "G.R. Dutton"
+   University affiliations: "Gregory Dutton" + "University"
+
+======================================================================
+TOTAL SEARCH VARIATIONS: 60+
+======================================================================
+
+Current Dashboard Behavior:
+- Uses 1-2 search terms
+- No variations
+- No adaptive branching
+- No cross-referencing
+
+Strategic AI Behavior:
+- Uses 60+ search variations
+- Tries multiple name formats
+- Adds geographic context
+- Adds professional context
+- Checks social media systematically
+- Verifies business registrations
+- Cross-references all findings
+
+======================================================================
+EXPECTED OUTCOMES
+======================================================================
+
+If Person is LEGITIMATE:
+- Multiple LinkedIn profiles found
+- Social media presence discovered
+- Business registration verified
+- News articles or mentions found
+- Professional publications exist
+- Consistent information across sources
+
+If Person is SUSPICIOUS:
+- ZERO results across all variations
+- Inconsistent information
+- No social media presence
+- Cannot verify business claims
+- Domain age doesn't match claims
+- Geographic inconsistencies
+
+======================================================================
+PRACTICAL TERMINAL COMMANDS
+======================================================================
+
+# 1. Test name variations with curl
+curl -s "https://www.google.com/search?q=Gregory+Ross+Dutton"
+curl -s "https://www.google.com/search?q=Greg+Dutton"
+curl -s "https://www.google.com/search?q=Gregory+Dutton+Australia"
+
+# 2. Check LinkedIn with different formats
+curl -s "https://www.linkedin.com/search/results/all/?keywords=Gregory+Dutton"
+curl -s "https://www.linkedin.com/search/results/all/?keywords=Greg+Dutton"
+
+# 3. Domain investigation
+nslookup scatechnology.ai
+nslookup isb.eco
+
+# 4. IP investigation
+curl -s "https://ipinfo.io/216.198.79.1/json"
+curl -s "https://ipinfo.io/185.230.63.171/json"
+
+# 5. Web archive check (multiple timestamps)
+curl -s "http://archive.org/wayback/available?url=scatechnology.ai&timestamp=20241201"
+curl -s "http://archive.org/wayback/available?url=scatechnology.ai&timestamp=20240601"
+curl -s "http://archive.org/wayback/available?url=scatechnology.ai&timestamp=20240101"
+
+# 6. SSL certificate deep dive
+python -c "
+import ssl
+import socket
+context = ssl.create_default_context()
+with socket.create_connection(('scatechnology.ai', 443)) as sock:
+    with context.wrap_socket(sock, server_hostname='scatechnology.ai') as ssock:
+        cert = ssock.getpeercert()
+        print('Not Before:', cert.get('notBefore'))
+        print('Not After:', cert.get('notAfter'))
+        print('Issuer:', cert.get('issuer'))
+"
+
+# 7. Email validation patterns
+python -c "
+import dns.resolver
+domains = ['scatechnology.ai', 'isb.eco']
+for domain in domains:
+    try:
+        mx_records = dns.resolver.resolve(domain, 'MX')
+        print(f'{domain} MX Records:')
+        for mx in mx_records:
+            print(f'  {mx.exchange}')
+    except Exception as e:
+        print(f'{domain}: {e}')
+"
+
+# 8. Scrape website for ALL information
+python -c "
+import requests
+from bs4 import BeautifulSoup
+
+r = requests.get('https://scatechnology.ai')
+soup = BeautifulSoup(r.text, 'html.parser')
+
+# Extract all text
+text = soup.get_text()
+
+# Count mentions
+people = ['Gregory', 'Dutton', 'Casey', 'Greg', 'Ross']
+for person in people:
+    print(f'{person}: {text.count(person)} mentions')
+
+# Extract emails
+import re
+emails = re.findall(r'[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}', text)
+print(f'Emails: {set(emails)}')
+
+# Extract phone numbers
+phones = re.findall(r'\+?\d{1,3}[\s-]?\(?\d{1,4}\)?[\s-]?\d{1,4}[\s-]?\d{1,9}', text)
+print(f'Phones: {set(phones)}')
+"
+
+# 9. Check for shared IP (red flag)
+python -c "
+import requests
+ip = '216.198.79.1'
+r = requests.get(f'https://api.hackertarget.com/reverseiplookup/?q={ip}')
+domains = r.text.strip().split('\n')
+print(f'Domains on {ip}: {len(domains)}')
+if len(domains) > 100:
+    print('[RED FLAG] Shared hosting with 100+ domains')
+"
+
+# 10. Social media systematic check
+python -c "
+import requests
+
+platforms = {
+    'LinkedIn': 'https://www.linkedin.com/search/results/all/?keywords=Gregory+Dutton',
+    'GitHub': 'https://github.com/search?q=Gregory+Dutton',
+    'Twitter': 'https://twitter.com/search?q=Gregory+Dutton',
+}
+
+found = 0
+for platform, url in platforms.items():
+    try:
+        r = requests.get(url, timeout=5)
+        if r.status_code == 200:
+            print(f'{platform}: Accessible')
+            found += 1
+    except:
+        print(f'{platform}: Error')
+
+print(f'Social Media Presence: {found}/{len(platforms)}')
+if found == 0:
+    print('[WARNING] No social media presence found')
+"
+
+======================================================================
+END OF DEMONSTRATION
+======================================================================

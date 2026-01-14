@@ -1,0 +1,61 @@
+﻿{
+    "modules":  [
+                    {
+                        "id":  "inhouse-kanban",
+                        "name":  "Production Workflow",
+                        "color":  "#00509E",
+                        "description":  "InHouse Print production workflow Kanban board",
+                        "icon":  "fas fa-industry",
+                        "manifestPath":  "external/modules/inhouse-kanban/manifest.json",
+                        "enabled":  true
+                    },
+                    {
+                        "id":  "inhouse-print",
+                        "name":  "InHouse Print Tools",
+                        "color":  "#1E88E5",
+                        "description":  "Fred database connector and tools",
+                        "icon":  "fas fa-print",
+                        "manifestPath":  "external/modules/inhouse-print/manifest.json",
+                        "enabled":  true
+                    },
+                    {
+                        "id":  "quote-calculator",
+                        "name":  "Quote Calculator",
+                        "color":  "#43A047",
+                        "description":  "Quote calculation engine (31 calculators)",
+                        "icon":  "fas fa-calculator",
+                        "manifestPath":  "external/modules/quote-calculator/manifest.json",
+                        "enabled":  true
+                    },
+                    {
+                        "id":  "stock-management",
+                        "name":  "Stock Management",
+                        "color":  "#0078d4",
+                        "description":  "Inventory management system",
+                        "icon":  "fas fa-boxes",
+                        "manifestPath":  "external/modules/stock-management/manifest.json",
+                        "enabled":  true
+                    },
+                    {
+                        "id":  "xero",
+                        "name":  "Xero Accounting",
+                        "color":  "#13B5EA",
+                        "description":  "Xero accounting integration",
+                        "icon":  "fas fa-file-invoice-dollar",
+                        "manifestPath":  "external/modules/xero/manifest.json",
+                        "enabled":  true
+                    },
+                    {
+                        "id":  "shopify",
+                        "name":  "Shopify E-Commerce",
+                        "color":  "#96bf48",
+                        "description":  "Shopify e-commerce integration",
+                        "icon":  "fab fa-shopify",
+                        "manifestPath":  "external/modules/shopify/manifest.json",
+                        "enabled":  true
+                    }
+                ],
+    "created":  "2026-01-15",
+    "description":  "InHouse Print focused configuration - V11",
+    "version":  "11.0.0"
+}

@@ -1,0 +1,208 @@
+# Render.com Blueprint Template for Version X
+# Copy this file to render.yaml and replace version markers
+# 
+# Search/Replace Instructions:
+# 1. Replace "vX" with actual version (e.g., "v11")
+# 2. Replace "version X" with number (e.g., "version 11")
+# 3. Update image tag in services section
+# 
+# Quick command:
+# (Get-Content render-vX-template.yaml) -replace 'vX', 'v11' -replace 'version X', 'version 11' | Set-Content render.yaml
+
+services:
+  # AI Agents Backend - Version X
+  - type: web
+    name: ai-agents-vX
+    env: docker
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    
+    # Use pre-built image from GitHub Container Registry
+    image:
+      url: ghcr.io/gerardovsa/ai-agents-backend:vX
+    
+    # Custom domain (Render will auto-provision)
+    # Format: https://ai-agents-vX.onrender.com
+    
+    # Health check
+    healthCheckPath: /api/v1/system/check
+    
+    # Environment variables
+    envVars:
+      # Version info (auto-detected if not set)
+      - key: VERSION_NUMBER
+        value: "X"
+      
+      - key: EXPECTED_URL
+        value: https://ai-agents-vX.onrender.com
+      
+      # Python environment
+      - key: PYTHON_VERSION
+        value: "3.12"
+      
+      - key: PYTHONUNBUFFERED
+        value: "1"
+      
+      - key: PYTHONIOENCODING
+        value: "utf-8"
+      
+      # Flask configuration
+      - key: FLASK_ENV
+        value: production
+      
+      - key: FLASK_APP
+        value: AI_infrastructure.flask_app:app
+      
+      # Database (PostgreSQL)
+      - key: DATABASE_URL
+        fromDatabase:
+          name: ai-infrastructure-db
+          property: connectionString
+      
+      # Supabase PostgreSQL connection
+      - key: SUPABASE_DB_HOST
+        sync: false
+      
+      - key: SUPABASE_DB_PORT
+        value: "6543"
+      
+      - key: SUPABASE_DB_NAME
+        sync: false
+      
+      - key: SUPABASE_DB_USER
+        sync: false
+      
+      - key: SUPABASE_DB_PASSWORD
+        sync: false
+      
+      # AI Provider API Keys
+      - key: ANTHROPIC_API_KEY
+        sync: false
+      
+      - key: OPENAI_API_KEY
+        sync: false
+      
+      - key: DEEPSEEK_API_KEY
+        sync: false
+      
+      # Google OAuth (Service Account)
+      - key: GOOGLE_SERVICE_ACCOUNT_JSON
+        sync: false
+      
+      # Google OAuth 2.0 (Explicit Auth)
+      - key: GOOGLE_CLIENT_ID
+        sync: false
+      
+      - key: GOOGLE_CLIENT_SECRET
+        sync: false
+      
+      # CRITICAL: Do NOT hardcode specific version URL here!
+      # Use auto-detection or set EXPECTED_URL above
+      # OAuth will use version detector to construct correct URL
+      # 
+      # ❌ WRONG (hardcoded):
+      # - key: GOOGLE_REDIRECT_URI
+      #   value: https://ai-agents-v9.onrender.com/api/auth/google/callback
+      #
+      # ✅ CORRECT (auto-detected):
+      # OAuth routes will use version_detector + oauth_url_helper
+      # to construct: https://ai-agents-vX.onrender.com/api/auth/google/callback
+      
+      # Microsoft OAuth
+      - key: MICROSOFT_CLIENT_ID
+        sync: false
+      
+      - key: MICROSOFT_CLIENT_SECRET
+        sync: false
+      
+      - key: MICROSOFT_TENANT_ID
+        value: common
+      
+      # Shopify OAuth
+      - key: SHOPIFY_API_KEY
+        sync: false
+      
+      - key: SHOPIFY_API_SECRET
+        sync: false
+      
+      # Stripe API
+      - key: STRIPE_API_KEY
+        sync: false
+      
+      - key: STRIPE_PUBLISHABLE_KEY
+        sync: false
+      
+      # JWT Secret
+      - key: JWT_SECRET
+        generateValue: true
+      
+      # Session Secret
+      - key: SECRET_KEY
+        generateValue: true
+      
+      # CORS Configuration
+      - key: CORS_ORIGINS
+        value: "https://ai-agents-vX.onrender.com,http://localhost:5001"
+      
+      # Render platform indicator
+      - key: RENDER
+        value: "true"
+    
+    # Auto-deploy on push to branch
+    autoDeploy: true
+    
+    # Build configuration
+    buildCommand: echo "Using pre-built Docker image from GHCR"
+    
+    # Resource allocation
+    plan: starter  # Upgrade to standard/pro as needed
+    
+    # Scaling (optional - configure based on needs)
+    # numInstances: 1
+    # scaling:
+    #   minInstances: 1
+    #   maxInstances: 3
+    #   targetCPUPercent: 70
+
+# Database (shared across all versions)
+databases:
+  - name: ai-infrastructure-db
+    databaseName: ai_infrastructure
+    plan: starter
+    
+    # Shared database for all versions
+    # Each version connects via DATABASE_URL
+
+# Notes for Version X Deployment:
+# 
+# 1. GitHub Actions builds Docker image automatically on push to vX branch
+#    - Image tagged as: ghcr.io/gerardovsa/ai-agents-backend:vX
+#    - Build time: 5-8 minutes
+# 
+# 2. Render auto-deploys when new image pushed to GHCR
+#    - Deploy time: 2-3 minutes
+#    - Custom domain: https://ai-agents-vX.onrender.com
+# 
+# 3. Version detection is automatic:
+#    - Embeds version_info.json during Docker build
+#    - version_detector.py extracts version from branch name
+#    - oauth_url_helper.py constructs correct redirect URL
+#    - NO manual configuration needed!
+# 
+# 4. Testing checklist after deployment:
+#    - Health check: https://ai-agents-vX.onrender.com/api/v1/system/check
+#    - OAuth login: https://ai-agents-vX.onrender.com/login
+#    - Verify URL stays on vX after OAuth (should NOT redirect to v9!)
+#    - Check logs for version detection messages
+# 
+# 5. Environment variables (set in Render dashboard):
+#    - Most are synced from existing services (sync: false)
+#    - Secrets: ANTHROPIC_API_KEY, OPENAI_API_KEY, etc.
+#    - Version-specific: VERSION_NUMBER, EXPECTED_URL
+#    - Database: Automatically linked via DATABASE_URL
+# 
+# 6. To create next version (e.g., v11):
+#    - Run: .\scripts\create_new_version.ps1 -Version 11
+#    - Script auto-updates this template
+#    - Commit and push to vX branch
+#    - GitHub Actions + Render handle the rest!

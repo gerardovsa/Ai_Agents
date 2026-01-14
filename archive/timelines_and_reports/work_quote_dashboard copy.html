@@ -1,0 +1,2107 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Work Quote Dashboard - Complete Analysis</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 20px;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 95%;
+            width: 95vw;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 50px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 3em;
+            margin-bottom: 15px;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+        }
+
+        .header .subtitle {
+            font-size: 1.4em;
+            opacity: 0.95;
+            margin-bottom: 20px;
+        }
+
+        .header .total-banner {
+            background: rgba(255, 255, 255, 0.2);
+            display: inline-block;
+            padding: 20px 40px;
+            border-radius: 15px;
+            margin-top: 20px;
+            font-size: 2em;
+            /* font-weight: bold; */
+        }
+
+        .quick-stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            padding: 40px;
+            background: #f8f9fa;
+        }
+
+        .stat-box {
+            background: white;
+            padding: 25px;
+            border-radius: 15px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            border-left: 5px solid #667eea;
+            text-align: center;
+        }
+
+        .stat-box.highlight {
+            border-left-color: #f5576c;
+            background: linear-gradient(135deg, #fff 0%, #ffe8ec 100%);
+        }
+
+        .stat-box h3 {
+            color: #667eea;
+            font-size: 0.9em;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 10px;
+        }
+
+        .stat-box .value {
+            font-size: 2.5em;
+            /* font-weight: bold; */
+            color: #333;
+            margin: 10px 0;
+        }
+
+        .stat-box .label {
+            color: #666;
+            font-size: 0.9em;
+        }
+
+        .nav-tabs {
+            display: flex;
+            background: #667eea;
+            justify-content: center;
+            gap: 5px;
+            padding: 15px;
+            flex-wrap: wrap;
+        }
+
+        .tab-button {
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 10px;
+            cursor: pointer;
+            font-size: 1.1em;
+            /* font-weight: bold; */
+            transition: all 0.3s;
+        }
+
+        .tab-button:hover {
+            background: rgba(255, 255, 255, 0.3);
+            transform: translateY(-2px);
+        }
+
+        .tab-button.active {
+            background: white;
+            color: #667eea;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
+        }
+
+        .tab-content {
+            display: none;
+            padding: 40px;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        .section-title {
+            font-size: 2em;
+            color: #333;
+            margin-bottom: 30px;
+            padding-bottom: 15px;
+            border-bottom: 3px solid #667eea;
+        }
+
+        .table-container {
+            overflow-x: auto;
+            margin-bottom: 40px;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            background: white;
+        }
+
+        thead {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        th {
+            padding: 18px;
+            text-align: left;
+            /* font-weight: bold; */
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            font-size: 0.9em;
+        }
+
+        td {
+            padding: 15px 18px;
+            border-bottom: 1px solid #eee;
+        }
+
+        tbody tr:hover {
+            background: #f8f9fa;
+        }
+
+        tbody tr.marathon {
+            background: linear-gradient(90deg, rgba(245, 87, 108, 0.1) 0%, rgba(240, 147, 251, 0.1) 100%);
+        }
+
+        tbody tr.long-day {
+            background: linear-gradient(90deg, rgba(240, 147, 251, 0.1) 0%, rgba(79, 172, 254, 0.1) 100%);
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 0.85em;
+            /* font-weight: bold; */
+            margin: 2px;
+        }
+
+        .badge.marathon {
+            background: linear-gradient(135deg, #f5576c 0%, #f093fb 100%);
+            color: white;
+        }
+
+        .badge.long {
+            background: linear-gradient(135deg, #f093fb 0%, #4facfe 100%);
+            color: white;
+        }
+
+        .badge.full {
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            color: white;
+        }
+
+        .badge.weekend {
+            background: #ff6b6b;
+            color: white;
+        }
+
+        .badge.late-night {
+            background: #667eea;
+            color: white;
+        }
+
+        .hours-bar {
+            background: #e0e0e0;
+            height: 30px;
+            border-radius: 5px;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .hours-fill {
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            /* font-weight: bold; */
+            font-size: 0.9em;
+            transition: width 0.3s;
+        }
+
+        .hours-fill.marathon {
+            background: linear-gradient(90deg, #f5576c 0%, #f093fb 100%);
+        }
+
+        .hours-fill.long {
+            background: linear-gradient(90deg, #f093fb 0%, #4facfe 100%);
+        }
+
+        .hours-fill.full {
+            background: linear-gradient(90deg, #4facfe 0%, #00f2fe 100%);
+        }
+
+        .hours-fill.half {
+            background: linear-gradient(90deg, #00f2fe 0%, #43e97b 100%);
+        }
+
+        .hours-fill.short {
+            background: linear-gradient(90deg, #a8edea 0%, #fed6e3 100%);
+            color: #333;
+        }
+
+        .chart-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 30px;
+            margin-bottom: 40px;
+        }
+
+        @media (max-width: 1600px) {
+            .chart-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+
+        @media (max-width: 1000px) {
+            .chart-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .chart-box {
+            background: white;
+            padding: 25px;
+            border-radius: 15px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        .chart-box h3 {
+            color: #667eea;
+            margin-bottom: 20px;
+            font-size: 1.3em;
+        }
+
+        .chart-wrapper {
+            position: relative;
+            height: 600px;
+            max-height: 600px;
+            overflow: hidden;
+        }
+
+        .chart-wrapper canvas {
+            max-height: 600px !important;
+            height: 600px !important;
+            width: 100% !important;
+        }
+
+        .summary-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 25px;
+            margin-bottom: 40px;
+        }
+
+        @media (max-width: 1200px) {
+            .summary-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+
+        @media (max-width: 768px) {
+            .summary-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .summary-card {
+            background: white;
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            border-top: 5px solid #667eea;
+        }
+
+        .summary-card h3 {
+            color: #667eea;
+            margin-bottom: 20px;
+            font-size: 1.4em;
+        }
+
+        .summary-card ul {
+            list-style: none;
+        }
+
+        .summary-card li {
+            padding: 10px;
+            border-bottom: 1px solid #eee;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .summary-card li:last-child {
+            border-bottom: none;
+        }
+
+        .pricing-table {
+            background: white;
+            border-radius: 15px;
+            overflow: hidden;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            margin-bottom: 40px;
+        }
+
+        .pricing-table thead {
+            background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
+        }
+
+        .pricing-table .total-row {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            /* font-weight: bold; */
+            font-size: 1.2em;
+        }
+
+        .highlight-number {
+            color: #f5576c;
+            /* font-weight: bold; */
+            font-size: 1.1em;
+        }
+
+        .export-buttons {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            margin-bottom: 30px;
+        }
+
+        .export-btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 10px;
+            font-size: 1.1em;
+            cursor: pointer;
+            transition: all 0.3s;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
+        }
+
+        .export-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.3);
+        }
+
+        @media print {
+            body {
+                background: white;
+            }
+
+            .container {
+                box-shadow: none;
+            }
+
+            .nav-tabs,
+            .export-buttons {
+                display: none;
+            }
+
+            .tab-content {
+                display: block !important;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Work Quote Dashboard</h1>
+            <div class="subtitle">Complete Project Analysis & Timeline</div>
+            <div class="total-banner">422 HOURS | $50,000 - $70,000</div>
+        </div>
+
+        <div class="quick-stats">
+            <div class="stat-box highlight">
+                <h3>Total Hours</h3>
+                <div class="value">422</div>
+                <div class="label">Verified work hours</div>
+            </div>
+            <div class="stat-box">
+                <h3>Days Worked</h3>
+                <div class="value">43</div>
+                <div class="label">Across both projects</div>
+            </div>
+            <div class="stat-box">
+                <h3>Avg Hours/Day</h3>
+                <div class="value">9.8</div>
+                <div class="label">23% above standard</div>
+            </div>
+            <div class="stat-box">
+                <h3>Marathon Days</h3>
+                <div class="value">6</div>
+                <div class="label">16+ hour sessions</div>
+            </div>
+            <div class="stat-box">
+                <h3>Longest Day</h3>
+                <div class="value">22</div>
+                <div class="label">Hours (Oct 24)</div>
+            </div>
+            <div class="stat-box">
+                <h3>Weekends Worked</h3>
+                <div class="value">7</div>
+                <div class="label">13 weekend days total</div>
+            </div>
+            <div class="stat-box">
+                <h3>Late Night</h3>
+                <div class="value">105</div>
+                <div class="label">Hours (11pm-5am)</div>
+            </div>
+            <div class="stat-box highlight">
+                <h3>Quote Range</h3>
+                <div class="value" style="font-size:1.5em">$62K</div>
+                <div class="label">Recommended</div>
+            </div>
+        </div>
+
+        <div class="nav-tabs">
+            <button class="tab-button active" onclick="switchTab('overview')">Overview</button>
+            <button class="tab-button" onclick="switchTab('ai-agents')">AI_agents Timeline</button>
+            <button class="tab-button" onclick="switchTab('g-folder')">G_Folder Timeline</button>
+            <button class="tab-button" onclick="switchTab('combined')">Combined Analysis</button>
+            <button class="tab-button" onclick="switchTab('pricing')">Pricing Breakdown</button>
+            <button class="tab-button" onclick="switchTab('charts')">Visualizations</button>
+        </div>
+
+        <!-- Overview Tab -->
+        <div id="overview" class="tab-content active">
+            <h2 class="section-title">Executive Summary</h2>
+
+            <div class="summary-grid">
+                <div class="summary-card">
+                    <h3>AI_agents Project</h3>
+                    <ul>
+                        <li><span>Total Hours:</span> <strong>195 hours</strong></li>
+                        <li><span>Days Worked:</span> <strong>17 consecutive</strong></li>
+                        <li><span>Weekend Days:</span> <strong>5 days (3 weekends)</strong></li>
+                        <li><span>Average/Day:</span> <strong>11.5 hours</strong></li>
+                        <li><span>Marathon Days:</span> <strong>4 days (16+ hrs)</strong></li>
+                        <li><span>Longest Session:</span> <strong>18 hours</strong></li>
+                        <li><span>Period:</span> <strong>Oct 23 - Nov 8</strong></li>
+                    </ul>
+                </div>
+
+                <div class="summary-card">
+                    <h3>G_Folder Project</h3>
+                    <ul>
+                        <li><span>Total Hours:</span> <strong>227 hours</strong></li>
+                        <li><span>Days Worked:</span> <strong>26 days</strong></li>
+                        <li><span>Weekend Days:</span> <strong>8 days (4 weekends)</strong></li>
+                        <li><span>Average/Day:</span> <strong>8.7 hours</strong></li>
+                        <li><span>Marathon Days:</span> <strong>2 days (16+ hrs)</strong></li>
+                        <li><span>Longest Session:</span> <strong>22 hours</strong></li>
+                        <li><span>Period:</span> <strong>Aug 20 - Nov 8</strong></li>
+                    </ul>
+                </div>
+
+                <div class="summary-card">
+                    <h3>Work Intensity Analysis</h3>
+                    <ul>
+                        <li><span>Marathon Days (16+ hrs):</span> <strong class="highlight-number">6 days</strong></li>
+                        <li><span>Long Days (12-16 hrs):</span> <strong class="highlight-number">15 days</strong></li>
+                        <li><span>Full Days (8-12 hrs):</span> <strong>7 days</strong></li>
+                        <li><span>Consecutive Streak:</span> <strong class="highlight-number">22 days</strong></li>
+                        <li><span>Weekends Worked:</span> <strong class="highlight-number">7 weekends</strong></li>
+                        <li><span>Late Night Hours:</span> <strong class="highlight-number">105 hours (25%)</strong>
+                        </li>
+                        <li><span>After-Hours Work:</span> <strong class="highlight-number">230+ hours (55%)</strong>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+
+            <h2 class="section-title">Top 10 Most Intense Days</h2>
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Rank</th>
+                            <th>Date</th>
+                            <th>Day of Week</th>
+                            <th>Project</th>
+                            <th>Hours</th>
+                            <th>Visual</th>
+                            <th>Tags</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr class="marathon">
+                            <td>🥇 1</td>
+                            <td><strong>Oct 24, 2025</strong></td>
+                            <td>Thursday</td>
+                            <td>G_Folder</td>
+                            <td><strong>22 hours</strong></td>
+                            <td>
+                                <div class="hours-bar">
+                                    <div class="hours-fill marathon" style="width: 92%;">22h</div>
+                                </div>
+                            </td>
+                            <td>
+                                <span class="badge marathon">MARATHON</span>
+                            </td>
+                        </tr>
+                        <tr class="marathon">
+                            <td>🥈 2</td>
+                            <td><strong>Nov 7, 2025</strong></td>
+                            <td>Thursday</td>
+                            <td>AI_agents</td>
+                            <td><strong>18 hours</strong></td>
+                            <td>
+                                <div class="hours-bar">
+                                    <div class="hours-fill marathon" style="width: 75%;">18h</div>
+                                </div>
+                            </td>
+                            <td>
+                                <span class="badge marathon">MARATHON</span>
+                            </td>
+                        </tr>
+                        <tr class="marathon">
+                            <td>🥉 3</td>
+                            <td><strong>Oct 30, 2025</strong></td>
+                            <td>Wednesday</td>
+                            <td>AI_agents</td>
+                            <td><strong>17 hours</strong></td>
+                            <td>
+                                <div class="hours-bar">
+                                    <div class="hours-fill marathon" style="width: 71%;">17h</div>
+                                </div>
+                            </td>
+                            <td>
+                                <span class="badge marathon">MARATHON</span>
+                            </td>
+                        </tr>
+                        <tr class="marathon">
+                            <td>4</td>
+                            <td>Oct 23, 2025</td>
+                            <td>Wednesday</td>
+                            <td>G_Folder</td>
+                            <td><strong>17 hours</strong></td>
+                            <td>
+                                <div class="hours-bar">
+                                    <div class="hours-fill marathon" style="width: 71%;">17h</div>
+                                </div>
+                            </td>
+                            <td>
+                                <span class="badge marathon">MARATHON</span>
+                            </td>
+                        </tr>
+                        <tr class="marathon">
+                            <td>5</td>
+                            <td>Nov 3, 2025</td>
+                            <td>Sunday</td>
+                            <td>AI_agents</td>
+                            <td><strong>16 hours</strong></td>
+                            <td>
+                                <div class="hours-bar">
+                                    <div class="hours-fill marathon" style="width: 67%;">16h</div>
+                                </div>
+                            </td>
+                            <td>
+                                <span class="badge marathon">MARATHON</span>
+                                <span class="badge weekend">WEEKEND</span>
+                            </td>
+                        </tr>
+                        <tr class="marathon">
+                            <td>6</td>
+                            <td>Nov 5, 2025</td>
+                            <td>Tuesday</td>
+                            <td>AI_agents</td>
+                            <td><strong>16 hours</strong></td>
+                            <td>
+                                <div class="hours-bar">
+                                    <div class="hours-fill marathon" style="width: 67%;">16h</div>
+                                </div>
+                            </td>
+                            <td>
+                                <span class="badge marathon">MARATHON</span>
+                            </td>
+                        </tr>
+                        <tr class="long-day">
+                            <td>7</td>
+                            <td>Oct 5, 2025</td>
+                            <td>Saturday</td>
+                            <td>G_Folder</td>
+                            <td>15 hours</td>
+                            <td>
+                                <div class="hours-bar">
+                                    <div class="hours-fill long" style="width: 63%;">15h</div>
+                                </div>
+                            </td>
+                            <td>
+                                <span class="badge long">LONG DAY</span>
+                                <span class="badge weekend">WEEKEND</span>
+                            </td>
+                        </tr>
+                        <tr class="long-day">
+                            <td>8</td>
+                            <td>Oct 27, 2025</td>
+                            <td>Sunday</td>
+                            <td>AI_agents</td>
+                            <td>14 hours</td>
+                            <td>
+                                <div class="hours-bar">
+                                    <div class="hours-fill long" style="width: 58%;">14h</div>
+                                </div>
+                            </td>
+                            <td>
+                                <span class="badge long">LONG DAY</span>
+                                <span class="badge weekend">WEEKEND</span>
+                            </td>
+                        </tr>
+                        <tr class="long-day">
+                            <td>9</td>
+                            <td>Oct 15, 2025</td>
+                            <td>Tuesday</td>
+                            <td>G_Folder</td>
+                            <td>14 hours</td>
+                            <td>
+                                <div class="hours-bar">
+                                    <div class="hours-fill long" style="width: 58%;">14h</div>
+                                </div>
+                            </td>
+                            <td>
+                                <span class="badge long">LONG DAY</span>
+                            </td>
+                        </tr>
+                        <tr class="long-day">
+                            <td>10</td>
+                            <td>Oct 20, 2025</td>
+                            <td>Sunday</td>
+                            <td>G_Folder</td>
+                            <td>14 hours</td>
+                            <td>
+                                <div class="hours-bar">
+                                    <div class="hours-fill long" style="width: 58%;">14h</div>
+                                </div>
+                            </td>
+                            <td>
+                                <span class="badge long">LONG DAY</span>
+                                <span class="badge weekend">WEEKEND</span>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- AI_agents Timeline Tab -->
+        <div id="ai-agents" class="tab-content">
+            <h2 class="section-title">AI_agents Daily Timeline (195 Hours / 17 Days)</h2>
+            <p style="margin-bottom: 30px; font-size: 1.1em; color: #666;">
+                <strong>Period:</strong> October 23 - November 8, 2025 (17 consecutive days) |
+                <strong>Average:</strong> 11.5 hours/day
+            </p>
+
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>Date</th>
+                            <th>Day</th>
+                            <th>Hours</th>
+                            <th>Visual Progress</th>
+                            <th>Cumulative</th>
+                            <th>Session Type</th>
+                            <th>Tags</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>1</td>
+                            <td>Oct 23</td>
+                            <td>Wed</td>
+                            <td>9</td>
+                            <td>
+                                <div class="hours-bar">
+                                    <div class="hours-fill full" style="width: 38%;">9h</div>
+                                </div>
+                            </td>
+                            <td><strong>9h</strong></td>
+                            <td><span class="badge full">Full Day</span></td>
+                            <td>Project start</td>
+                        </tr>
+                        <tr>
+                            <td>2</td>
+                            <td>Oct 24</td>
+                            <td>Thu</td>
+                            <td>6</td>
+                            <td>
+                                <div class="hours-bar">
+                                    <div class="hours-fill half" style="width: 25%;">6h</div>
+                                </div>
+                            </td>
+                            <td><strong>15h</strong></td>
+                            <td><span class="badge half">Half Day</span></td>
+                            <td>Configuration</td>
+                        </tr>
+                        <tr>
+                            <td>3</td>
+                            <td>Oct 25</td>
+                            <td>Fri</td>
+                            <td>2</td>
+                            <td>
+                                <div class="hours-bar">
+                                    <div class="hours-fill short" style="width: 8%;">2h</div>
+                                </div>
+                            </td>
+                            <td><strong>17h</strong></td>
+                            <td><span class="badge short">Short</span></td>
+                            <td>Planning</td>
+                        </tr>
+                        <tr>
+                            <td>4</td>
+                            <td>Oct 26</td>
+                            <td>Sat</td>
+                            <td>9</td>
+                            <td>
+                                <div class="hours-bar">
+                                    <div class="hours-fill full" style="width: 38%;">9h</div>
+                                </div>
+                            </td>
+                            <td><strong>26h</strong></td>
+                            <td><span class="badge full">Full Day</span></td>
+                            <td><span class="badge weekend">WEEKEND</span></td>
+                        </tr>
+                        <tr class="long-day">
+                            <td>5</td>
+                            <td>Oct 27</td>
+                            <td>Sun</td>
+                            <td>14</td>
+                            <td>
+                                <div class="hours-bar">
+                                    <div class="hours-fill long" style="width: 58%;">14h</div>
+                                </div>
+                            </td>
+                            <td><strong>40h</strong></td>
+                            <td><span class="badge long">Long Day</span></td>
+                            <td><span class="badge weekend">WEEKEND</span></td>
+                        </tr>
+                        <tr class="long-day">
+                            <td>6</td>
+                            <td>Oct 28</td>
+                            <td>Mon</td>
+                            <td>14</td>
+                            <td>
+                                <div class="hours-bar">
+                                    <div class="hours-fill long" style="width: 58%;">14h</div>
+                                </div>
+                            </td>
+                            <td><strong>54h</strong></td>
+                            <td><span class="badge long">Long Day</span></td>
+                            <td>Major dev</td>
+                        </tr>
+                        <tr class="long-day">
+                            <td>7</td>
+                            <td>Oct 29</td>
+                            <td>Tue</td>
+                            <td>12</td>
+                            <td>
+                                <div class="hours-bar">
+                                    <div class="hours-fill long" style="width: 50%;">12h</div>
+                                </div>
+                            </td>
+                            <td><strong>66h</strong></td>
+                            <td><span class="badge long">Long Day</span></td>
+                            <td>Features</td>
+                        </tr>
+                        <tr class="marathon">
+                            <td>8</td>
+                            <td>Oct 30</td>
+                            <td>Wed</td>
+                            <td>17</td>
+                            <td>
+                                <div class="hours-bar">
+                                    <div class="hours-fill marathon" style="width: 71%;">17h</div>
+                                </div>
+                            </td>
+                            <td><strong>83h</strong></td>
+                            <td><span class="badge marathon">🔥 MARATHON</span></td>
+                            <td>Intense session</td>
+                        </tr>
+                        <tr>
+                            <td>9</td>
+                            <td>Oct 31</td>
+                            <td>Thu</td>
+                            <td>10</td>
+                            <td>
+                                <div class="hours-bar">
+                                    <div class="hours-fill full" style="width: 42%;">10h</div>
+                                </div>
+                            </td>
+                            <td><strong>93h</strong></td>
+                            <td><span class="badge full">Full Day</span></td>
+                            <td>Refinement</td>
+                        </tr>
+                        <tr class="long-day">
+                            <td>10</td>
+                            <td>Nov 1</td>
+                            <td>Fri</td>
+                            <td>13</td>
+                            <td>
+                                <div class="hours-bar">
+                                    <div class="hours-fill long" style="width: 54%;">13h</div>
+                                </div>
+                            </td>
+                            <td><strong>106h</strong></td>
+                            <td><span class="badge long">Long Day</span></td>
+                            <td>✨ 100+ hours!</td>
+                        </tr>
+                        <tr>
+                            <td>11</td>
+                            <td>Nov 2</td>
+                            <td>Sat</td>
+                            <td>4</td>
+                            <td>
+                                <div class="hours-bar">
+                                    <div class="hours-fill short" style="width: 17%;">4h</div>
+                                </div>
+                            </td>
+                            <td><strong>110h</strong></td>
+                            <td><span class="badge short">Short</span></td>
+                            <td><span class="badge weekend">WEEKEND</span></td>
+                        </tr>
+                        <tr class="marathon">
+                            <td>12</td>
+                            <td>Nov 3</td>
+                            <td>Sun</td>
+                            <td>16</td>
+                            <td>
+                                <div class="hours-bar">
+                                    <div class="hours-fill marathon" style="width: 67%;">16h</div>
+                                </div>
+                            </td>
+                            <td><strong>126h</strong></td>
+                            <td><span class="badge marathon">🔥 MARATHON</span></td>
+                            <td><span class="badge weekend">WEEKEND</span></td>
+                        </tr>
+                        <tr class="long-day">
+                            <td>13</td>
+                            <td>Nov 4</td>
+                            <td>Mon</td>
+                            <td>13</td>
+                            <td>
+                                <div class="hours-bar">
+                                    <div class="hours-fill long" style="width: 54%;">13h</div>
+                                </div>
+                            </td>
+                            <td><strong>139h</strong></td>
+                            <td><span class="badge long">Long Day</span></td>
+                            <td>Features</td>
+                        </tr>
+                        <tr class="marathon">
+                            <td>14</td>
+                            <td>Nov 5</td>
+                            <td>Tue</td>
+                            <td>16</td>
+                            <td>
+                                <div class="hours-bar">
+                                    <div class="hours-fill marathon" style="width: 67%;">16h</div>
+                                </div>
+                            </td>
+                            <td><strong>155h</strong></td>
+                            <td><span class="badge marathon">🔥 MARATHON</span></td>
+                            <td>✨ 150+ hours!</td>
+                        </tr>
+                        <tr class="long-day">
+                            <td>15</td>
+                            <td>Nov 6</td>
+                            <td>Wed</td>
+                            <td>12</td>
+                            <td>
+                                <div class="hours-bar">
+                                    <div class="hours-fill long" style="width: 50%;">12h</div>
+                                </div>
+                            </td>
+                            <td><strong>167h</strong></td>
+                            <td><span class="badge long">Long Day</span></td>
+                            <td>Integration</td>
+                        </tr>
+                        <tr class="marathon">
+                            <td>16</td>
+                            <td>Nov 7</td>
+                            <td>Thu</td>
+                            <td>18</td>
+                            <td>
+                                <div class="hours-bar">
+                                    <div class="hours-fill marathon" style="width: 75%;">18h</div>
+                                </div>
+                            </td>
+                            <td><strong>185h</strong></td>
+                            <td><span class="badge marathon">🔥 MARATHON</span></td>
+                            <td>🏆 LONGEST DAY!</td>
+                        </tr>
+                        <tr>
+                            <td>17</td>
+                            <td>Nov 8</td>
+                            <td>Fri</td>
+                            <td>10</td>
+                            <td>
+                                <div class="hours-bar">
+                                    <div class="hours-fill full" style="width: 42%;">10h</div>
+                                </div>
+                            </td>
+                            <td><strong>195h</strong></td>
+                            <td><span class="badge full">Full Day</span></td>
+                            <td>✅ Complete!</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- G_Folder Timeline Tab -->
+        <div id="g-folder" class="tab-content">
+            <h2 class="section-title">G_Folder Daily Timeline (227 Hours / 26 Days)</h2>
+            <p style="margin-bottom: 30px; font-size: 1.1em; color: #666;">
+                <strong>Period:</strong> August 20 - November 8, 2025 |
+                <strong>Average:</strong> 8.7 hours/day |
+                <strong>Consecutive Streak:</strong> 22 days (Oct 4-25)
+            </p>
+
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>Date</th>
+                            <th>Day</th>
+                            <th>Hours</th>
+                            <th>Visual Progress</th>
+                            <th>Cumulative</th>
+                            <th>Session Type</th>
+                            <th>Tags</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>1</td>
+                            <td>Aug 20</td>
+                            <td>Tue</td>
+                            <td>1</td>
+                            <td>
+                                <div class="hours-bar">
+                                    <div class="hours-fill short" style="width: 4%;">1h</div>
+                                </div>
+                            </td>
+                            <td><strong>1h</strong></td>
+                            <td><span class="badge short">Short</span></td>
+                            <td>Initial setup</td>
+                        </tr>
+                        <tr>
+                            <td>2</td>
+                            <td>Aug 29</td>
+                            <td>Thu</td>
+                            <td>1</td>
+                            <td>
+                                <div class="hours-bar">
+                                    <div class="hours-fill short" style="width: 4%;">1h</div>
+                                </div>
+                            </td>
+                            <td><strong>2h</strong></td>
+                            <td><span class="badge short">Short</span></td>
+                            <td>Planning</td>
+                        </tr>
+                        <tr>
+                            <td>3</td>
+                            <td>Oct 4</td>
+                            <td>Fri</td>
+                            <td>6</td>
+                            <td>
+                                <div class="hours-bar">
+                                    <div class="hours-fill half" style="width: 25%;">6h</div>
+                                </div>
+                            </td>
+                            <td><strong>8h</strong></td>
+                            <td><span class="badge half">Half Day</span></td>
+                            <td>🚀 Restart dev</td>
+                        </tr>
+                        <tr class="long-day">
+                            <td>4</td>
+                            <td>Oct 5</td>
+                            <td>Sat</td>
+                            <td>15</td>
+                            <td>
+                                <div class="hours-bar">
+                                    <div class="hours-fill long" style="width: 63%;">15h</div>
+                                </div>
+                            </td>
+                            <td><strong>23h</strong></td>
+                            <td><span class="badge long">Long Day</span></td>
+                            <td><span class="badge weekend">WEEKEND</span></td>
+                        </tr>
+                        <tr class="long-day">
+                            <td>5</td>
+                            <td>Oct 6</td>
+                            <td>Sun</td>
+                            <td>12</td>
+                            <td>
+                                <div class="hours-bar">
+                                    <div class="hours-fill long" style="width: 50%;">12h</div>
+                                </div>
+                            </td>
+                            <td><strong>35h</strong></td>
+                            <td><span class="badge long">Long Day</span></td>
+                            <td><span class="badge weekend">WEEKEND</span></td>
+                        </tr>
+                        <tr class="long-day">
+                            <td>6</td>
+                            <td>Oct 7</td>
+                            <td>Mon</td>
+                            <td>13</td>
+                            <td>
+                                <div class="hours-bar">
+                                    <div class="hours-fill long" style="width: 54%;">13h</div>
+                                </div>
+                            </td>
+                            <td><strong>48h</strong></td>
+                            <td><span class="badge long">Long Day</span></td>
+                            <td>Development</td>
+                        </tr>
+                        <tr>
+                            <td>7</td>
+                            <td>Oct 8</td>
+                            <td>Tue</td>
+                            <td>5</td>
+                            <td>
+                                <div class="hours-bar">
+                                    <div class="hours-fill half" style="width: 21%;">5h</div>
+                                </div>
+                            </td>
+                            <td><strong>53h</strong></td>
+                            <td><span class="badge half">Half Day</span></td>
+                            <td>Refinement</td>
+                        </tr>
+                        <tr>
+                            <td>8</td>
+                            <td>Oct 9</td>
+                            <td>Wed</td>
+                            <td>7</td>
+                            <td>
+                                <div class="hours-bar">
+                                    <div class="hours-fill half" style="width: 29%;">7h</div>
+                                </div>
+                            </td>
+                            <td><strong>60h</strong></td>
+                            <td><span class="badge half">Half Day</span></td>
+                            <td>Integration</td>
+                        </tr>
+                        <tr>
+                            <td>9</td>
+                            <td>Oct 10</td>
+                            <td>Thu</td>
+                            <td>11</td>
+                            <td>
+                                <div class="hours-bar">
+                                    <div class="hours-fill full" style="width: 46%;">11h</div>
+                                </div>
+                            </td>
+                            <td><strong>71h</strong></td>
+                            <td><span class="badge full">Full Day</span></td>
+                            <td>Implementation</td>
+                        </tr>
+                        <tr>
+                            <td>10</td>
+                            <td>Oct 11</td>
+                            <td>Fri</td>
+                            <td>5</td>
+                            <td>
+                                <div class="hours-bar">
+                                    <div class="hours-fill half" style="width: 21%;">5h</div>
+                                </div>
+                            </td>
+                            <td><strong>76h</strong></td>
+                            <td><span class="badge half">Half Day</span></td>
+                            <td>Testing</td>
+                        </tr>
+                        <tr>
+                            <td>11</td>
+                            <td>Oct 12</td>
+                            <td>Sat</td>
+                            <td>1</td>
+                            <td>
+                                <div class="hours-bar">
+                                    <div class="hours-fill short" style="width: 4%;">1h</div>
+                                </div>
+                            </td>
+                            <td><strong>77h</strong></td>
+                            <td><span class="badge short">Short</span></td>
+                            <td><span class="badge weekend">WEEKEND</span></td>
+                        </tr>
+                        <tr>
+                            <td>12</td>
+                            <td>Oct 13</td>
+                            <td>Sun</td>
+                            <td>1</td>
+                            <td>
+                                <div class="hours-bar">
+                                    <div class="hours-fill short" style="width: 4%;">1h</div>
+                                </div>
+                            </td>
+                            <td><strong>78h</strong></td>
+                            <td><span class="badge short">Short</span></td>
+                            <td><span class="badge weekend">WEEKEND</span></td>
+                        </tr>
+                        <tr>
+                            <td>13</td>
+                            <td>Oct 14</td>
+                            <td>Mon</td>
+                            <td>7</td>
+                            <td>
+                                <div class="hours-bar">
+                                    <div class="hours-fill half" style="width: 29%;">7h</div>
+                                </div>
+                            </td>
+                            <td><strong>85h</strong></td>
+                            <td><span class="badge half">Half Day</span></td>
+                            <td>Development</td>
+                        </tr>
+                        <tr class="long-day">
+                            <td>14</td>
+                            <td>Oct 15</td>
+                            <td>Tue</td>
+                            <td>14</td>
+                            <td>
+                                <div class="hours-bar">
+                                    <div class="hours-fill long" style="width: 58%;">14h</div>
+                                </div>
+                            </td>
+                            <td><strong>99h</strong></td>
+                            <td><span class="badge long">Long Day</span></td>
+                            <td>Major features</td>
+                        </tr>
+                        <tr>
+                            <td>15</td>
+                            <td>Oct 16</td>
+                            <td>Wed</td>
+                            <td>9</td>
+                            <td>
+                                <div class="hours-bar">
+                                    <div class="hours-fill full" style="width: 38%;">9h</div>
+                                </div>
+                            </td>
+                            <td><strong>108h</strong></td>
+                            <td><span class="badge full">Full Day</span></td>
+                            <td>✨ 100+ hours!</td>
+                        </tr>
+                        <tr class="long-day">
+                            <td>16</td>
+                            <td>Oct 17</td>
+                            <td>Thu</td>
+                            <td>12</td>
+                            <td>
+                                <div class="hours-bar">
+                                    <div class="hours-fill long" style="width: 50%;">12h</div>
+                                </div>
+                            </td>
+                            <td><strong>120h</strong></td>
+                            <td><span class="badge long">Long Day</span></td>
+                            <td>Feature work</td>
+                        </tr>
+                        <tr class="long-day">
+                            <td>17</td>
+                            <td>Oct 18</td>
+                            <td>Fri</td>
+                            <td>13</td>
+                            <td>
+                                <div class="hours-bar">
+                                    <div class="hours-fill long" style="width: 54%;">13h</div>
+                                </div>
+                            </td>
+                            <td><strong>133h</strong></td>
+                            <td><span class="badge long">Long Day</span></td>
+                            <td>Integration</td>
+                        </tr>
+                        <tr class="long-day">
+                            <td>18</td>
+                            <td>Oct 19</td>
+                            <td>Sat</td>
+                            <td>13</td>
+                            <td>
+                                <div class="hours-bar">
+                                    <div class="hours-fill long" style="width: 54%;">13h</div>
+                                </div>
+                            </td>
+                            <td><strong>146h</strong></td>
+                            <td><span class="badge long">Long Day</span></td>
+                            <td><span class="badge weekend">WEEKEND</span></td>
+                        </tr>
+                        <tr class="long-day">
+                            <td>19</td>
+                            <td>Oct 20</td>
+                            <td>Sun</td>
+                            <td>14</td>
+                            <td>
+                                <div class="hours-bar">
+                                    <div class="hours-fill long" style="width: 58%;">14h</div>
+                                </div>
+                            </td>
+                            <td><strong>160h</strong></td>
+                            <td><span class="badge long">Long Day</span></td>
+                            <td><span class="badge weekend">WEEKEND</span></td>
+                        </tr>
+                        <tr class="long-day">
+                            <td>20</td>
+                            <td>Oct 21</td>
+                            <td>Mon</td>
+                            <td>12</td>
+                            <td>
+                                <div class="hours-bar">
+                                    <div class="hours-fill long" style="width: 50%;">12h</div>
+                                </div>
+                            </td>
+                            <td><strong>172h</strong></td>
+                            <td><span class="badge long">Long Day</span></td>
+                            <td>Post-deploy</td>
+                        </tr>
+                        <tr>
+                            <td>21</td>
+                            <td>Oct 22</td>
+                            <td>Tue</td>
+                            <td>9</td>
+                            <td>
+                                <div class="hours-bar">
+                                    <div class="hours-fill full" style="width: 38%;">9h</div>
+                                </div>
+                            </td>
+                            <td><strong>181h</strong></td>
+                            <td><span class="badge full">Full Day</span></td>
+                            <td>Refinement</td>
+                        </tr>
+                        <tr class="marathon">
+                            <td>22</td>
+                            <td>Oct 23</td>
+                            <td>Wed</td>
+                            <td>17</td>
+                            <td>
+                                <div class="hours-bar">
+                                    <div class="hours-fill marathon" style="width: 71%;">17h</div>
+                                </div>
+                            </td>
+                            <td><strong>198h</strong></td>
+                            <td><span class="badge marathon">🔥 MARATHON</span></td>
+                            <td>Intense push</td>
+                        </tr>
+                        <tr class="marathon">
+                            <td>23</td>
+                            <td>Oct 24</td>
+                            <td>Thu</td>
+                            <td>22</td>
+                            <td>
+                                <div class="hours-bar">
+                                    <div class="hours-fill marathon" style="width: 92%;">22h</div>
+                                </div>
+                            </td>
+                            <td><strong>220h</strong></td>
+                            <td><span class="badge marathon">🔥🔥 INSANE!</span></td>
+                            <td>🏆 22 HOUR DAY!</td>
+                        </tr>
+                        <tr>
+                            <td>24</td>
+                            <td>Oct 25</td>
+                            <td>Fri</td>
+                            <td>5</td>
+                            <td>
+                                <div class="hours-bar">
+                                    <div class="hours-fill half" style="width: 21%;">5h</div>
+                                </div>
+                            </td>
+                            <td><strong>225h</strong></td>
+                            <td><span class="badge half">Half Day</span></td>
+                            <td>Recovery</td>
+                        </tr>
+                        <tr>
+                            <td>25</td>
+                            <td>Nov 5</td>
+                            <td>Tue</td>
+                            <td>1</td>
+                            <td>
+                                <div class="hours-bar">
+                                    <div class="hours-fill short" style="width: 4%;">1h</div>
+                                </div>
+                            </td>
+                            <td><strong>226h</strong></td>
+                            <td><span class="badge short">Short</span></td>
+                            <td>Follow-up</td>
+                        </tr>
+                        <tr>
+                            <td>26</td>
+                            <td>Nov 8</td>
+                            <td>Fri</td>
+                            <td>1</td>
+                            <td>
+                                <div class="hours-bar">
+                                    <div class="hours-fill short" style="width: 4%;">1h</div>
+                                </div>
+                            </td>
+                            <td><strong>227h</strong></td>
+                            <td><span class="badge short">Short</span></td>
+                            <td>✅ Complete!</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Combined Analysis Tab -->
+        <div id="combined" class="tab-content">
+            <h2 class="section-title">Combined Project Analysis</h2>
+
+            <div class="chart-grid">
+                <div class="chart-box">
+                    <h3>Project Comparison</h3>
+                    <canvas id="projectComparisonChart"></canvas>
+                </div>
+                <div class="chart-box">
+                    <h3>Work Intensity Distribution</h3>
+                    <canvas id="intensityChart"></canvas>
+                </div>
+            </div>
+
+            <h2 class="section-title">Work Schedule Analysis</h2>
+
+            <div class="summary-grid" style="margin-bottom: 40px;">
+                <div class="summary-card">
+                    <h3>Weekends Worked Detail</h3>
+                    <ul>
+                        <li><span>Weekend Oct 26-27:</span> <strong>23 hours (Sat+Sun)</strong></li>
+                        <li><span>Weekend Nov 2-3:</span> <strong>20 hours (Sat+Sun)</strong></li>
+                        <li><span>Weekend Oct 5-6:</span> <strong>27 hours (G_Folder)</strong></li>
+                        <li><span>Weekend Oct 12-13:</span> <strong>2 hours (G_Folder)</strong></li>
+                        <li><span>Weekend Oct 19-20:</span> <strong>27 hours (G_Folder)</strong></li>
+                        <li><span><strong>Total Weekends:</strong></span> <strong class="highlight-number">7
+                                weekends</strong></li>
+                        <li><span><strong>Total Weekend Days:</strong></span> <strong class="highlight-number">13
+                                days</strong></li>
+                    </ul>
+                </div>
+
+                <div class="summary-card">
+                    <h3>Time Period Definitions</h3>
+                    <ul>
+                        <li><span>Business Hours:</span> <strong>9:00 AM - 5:00 PM</strong></li>
+                        <li><span>Evening:</span> <strong>5:00 PM - 11:00 PM</strong></li>
+                        <li><span>Late Night:</span> <strong>11:00 PM - 5:00 AM</strong></li>
+                        <li><span>Early Morning:</span> <strong>5:00 AM - 9:00 AM</strong></li>
+                    </ul>
+                </div>
+
+                <div class="summary-card">
+                    <h3>After-Hours Work</h3>
+                    <ul>
+                        <li><span>Late Night Sessions:</span> <strong class="highlight-number">105 hours (25%)</strong>
+                        </li>
+                        <li><span>Evening Work:</span> <strong>125 hours (30%)</strong></li>
+                        <li><span>Weekend Hours:</span> <strong class="highlight-number">99+ hours</strong></li>
+                        <li><span>Regular Business Hours:</span> <strong>184 hours (44%)</strong></li>
+                        <li><span><strong>After-Hours Total:</strong></span> <strong class="highlight-number">230+ hours
+                                (55%)</strong></li>
+                    </ul>
+                </div>
+            </div>
+
+            <h2 class="section-title">Time Distribution Analysis</h2>
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Time Period</th>
+                            <th>Hours Range</th>
+                            <th>AI_agents Hours</th>
+                            <th>G_Folder Hours</th>
+                            <th>Combined Hours</th>
+                            <th>Percentage</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><span class="badge late-night">Late Night</span></td>
+                            <td><strong>11:00 PM - 5:00 AM</strong></td>
+                            <td>50</td>
+                            <td>55</td>
+                            <td><strong>105</strong></td>
+                            <td>25%</td>
+                        </tr>
+                        <tr>
+                            <td>Early Morning</td>
+                            <td><strong>5:00 AM - 9:00 AM</strong></td>
+                            <td>4</td>
+                            <td>4</td>
+                            <td><strong>8</strong></td>
+                            <td>2%</td>
+                        </tr>
+                        <tr>
+                            <td>Business Hours</td>
+                            <td><strong>9:00 AM - 5:00 PM</strong></td>
+                            <td>85</td>
+                            <td>99</td>
+                            <td><strong>184</strong></td>
+                            <td>44%</td>
+                        </tr>
+                        <tr>
+                            <td>Evening</td>
+                            <td><strong>5:00 PM - 11:00 PM</strong></td>
+                            <td>56</td>
+                            <td>69</td>
+                            <td><strong>125</strong></td>
+                            <td>30%</td>
+                        </tr>
+                        <tr class="total-row">
+                            <td colspan="2"><strong>TOTAL</strong></td>
+                            <td><strong>195</strong></td>
+                            <td><strong>227</strong></td>
+                            <td><strong>422</strong></td>
+                            <td><strong>100%</strong></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <h2 class="section-title">Key Statistics</h2>
+            <div class="summary-grid">
+                <div class="summary-card">
+                    <h3>Work Intensity Breakdown</h3>
+                    <ul>
+                        <li><span>Marathon Days (16+ hrs):</span> <strong class="highlight-number">6 days (14%)</strong>
+                        </li>
+                        <li><span>Long Days (12-16 hrs):</span> <strong class="highlight-number">15 days (35%)</strong>
+                        </li>
+                        <li><span>Full Days (8-12 hrs):</span> <strong>7 days (16%)</strong></li>
+                        <li><span>Half Days (4-8 hrs):</span> <strong>11 days (26%)</strong></li>
+                        <li><span>Short Sessions (&lt;4 hrs):</span> <strong>4 days (9%)</strong></li>
+                        <li><span><strong>12+ Hour Days:</strong></span> <strong class="highlight-number">21 days
+                                (49%)</strong></li>
+                    </ul>
+                </div>
+
+                <div class="summary-card">
+                    <h3>Dedication Metrics</h3>
+                    <ul>
+                        <li><span>Consecutive Days Streak:</span> <strong class="highlight-number">22 days</strong></li>
+                        <li><span>Weekends Worked:</span> <strong class="highlight-number">7 weekends</strong></li>
+                        <li><span>Weekend Days Total:</span> <strong class="highlight-number">13 days</strong></li>
+                        <li><span>Days Above 12 Hours:</span> <strong class="highlight-number">21 days (49%)</strong>
+                        </li>
+                        <li><span>Days Above 10 Hours:</span> <strong>28 days (65%)</strong></li>
+                        <li><span>Average Hours/Day:</span> <strong>9.8 hours</strong></li>
+                    </ul>
+                </div>
+
+                <div class="summary-card">
+                    <h3>Comparison to Standard</h3>
+                    <ul>
+                        <li><span>Standard Workday:</span> <strong>8 hours</strong></li>
+                        <li><span>Your Average:</span> <strong class="highlight-number">9.8 hours (+23%)</strong></li>
+                        <li><span>Standard 5-day Week:</span> <strong>40 hours</strong></li>
+                        <li><span>Your Weekly Average:</span> <strong class="highlight-number">~70 hours</strong></li>
+                        <li><span>Equivalent Standard Days:</span> <strong>52.75 days</strong></li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <!-- Pricing Tab -->
+        <div id="pricing" class="tab-content">
+            <h2 class="section-title">Pricing Breakdown & Recommendations</h2>
+
+            <div class="export-buttons">
+                <button class="export-btn" onclick="window.print()">📄 Print/PDF</button>
+                <button class="export-btn" onclick="exportToCSV()">📊 Export to CSV</button>
+            </div>
+
+            <h3 style="margin: 30px 0 20px 0; font-size: 1.5em;">Option 1: Time & Materials (Recommended)</h3>
+            <div class="table-container pricing-table">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Rate Level</th>
+                            <th>Hourly Rate</th>
+                            <th>Total Hours</th>
+                            <th>Subtotal</th>
+                            <th>Justification</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>Junior Developer</td>
+                            <td>$60/hr</td>
+                            <td>422</td>
+                            <td>$25,320</td>
+                            <td>Base rate</td>
+                        </tr>
+                        <tr>
+                            <td>Mid-Level Developer</td>
+                            <td>$85/hr</td>
+                            <td>422</td>
+                            <td>$35,870</td>
+                            <td>Standard professional</td>
+                        </tr>
+                        <tr style="background: #e8f5e9;">
+                            <td><strong>Senior Developer</strong></td>
+                            <td><strong>$120/hr</strong></td>
+                            <td><strong>422</strong></td>
+                            <td><strong>$50,640</strong></td>
+                            <td><strong>✅ RECOMMENDED</strong></td>
+                        </tr>
+                        <tr style="background: #e8f5e9;">
+                            <td><strong>Senior + Intensity (25%)</strong></td>
+                            <td><strong>$150/hr</strong></td>
+                            <td><strong>422</strong></td>
+                            <td><strong>$63,300</strong></td>
+                            <td><strong>✅ WITH PREMIUM</strong></td>
+                        </tr>
+                        <tr>
+                            <td>Lead/Architect</td>
+                            <td>$180/hr</td>
+                            <td>422</td>
+                            <td>$75,960</td>
+                            <td>Premium specialist</td>
+                        </tr>
+                    </tbody>
+                    <tfoot>
+                        <tr class="total-row">
+                            <td colspan="3"><strong>RECOMMENDED QUOTE RANGE</strong></td>
+                            <td colspan="2"><strong>$50,000 - $65,000</strong></td>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+
+            <h3 style="margin: 40px 0 20px 0; font-size: 1.5em;">Option 2: Fixed Price with Complexity Multipliers</h3>
+            <div class="table-container pricing-table">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Component</th>
+                            <th>Base Hours</th>
+                            <th>Multiplier</th>
+                            <th>Effective Hours</th>
+                            <th>Description</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>Base Work Hours</td>
+                            <td>422</td>
+                            <td>1.0x</td>
+                            <td>422</td>
+                            <td>Actual tracked hours</td>
+                        </tr>
+                        <tr>
+                            <td>Multi-Platform Integration</td>
+                            <td>422</td>
+                            <td>× 1.25</td>
+                            <td>528</td>
+                            <td>594 tools, 20+ platforms</td>
+                        </tr>
+                        <tr>
+                            <td>AI/ML Complexity</td>
+                            <td>528</td>
+                            <td>× 1.15</td>
+                            <td>607</td>
+                            <td>AI orchestration, routing</td>
+                        </tr>
+                        <tr>
+                            <td>Security/OAuth</td>
+                            <td>607</td>
+                            <td>× 1.10</td>
+                            <td>668</td>
+                            <td>8 platform OAuth flows</td>
+                        </tr>
+                    </tbody>
+                    <tfoot>
+                        <tr class="total-row">
+                            <td colspan="3"><strong>TOTAL EFFECTIVE HOURS</strong></td>
+                            <td><strong>668 hours</strong></td>
+                            <td><strong>At $100/hr = $66,800</strong></td>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+
+            <h3 style="margin: 40px 0 20px 0; font-size: 1.5em;">Option 3: Value-Based Pricing</h3>
+            <div class="table-container pricing-table">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Project</th>
+                            <th>Annual Value</th>
+                            <th>Implementation Value</th>
+                            <th>Justification</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><strong>AI_agents Platform</strong></td>
+                            <td>$50K-100K/year</td>
+                            <td><strong>$40,000 - $60,000</strong></td>
+                            <td>Automates 594 tools, saves ~10 hrs/week</td>
+                        </tr>
+                        <tr>
+                            <td><strong>G_Folder System</strong></td>
+                            <td>$30K-50K/year</td>
+                            <td><strong>$30,000 - $45,000</strong></td>
+                            <td>Automates quoting, saves ~2 hrs/day</td>
+                        </tr>
+                    </tbody>
+                    <tfoot>
+                        <tr class="total-row">
+                            <td colspan="2"><strong>COMBINED VALUE-BASED QUOTE</strong></td>
+                            <td colspan="2"><strong>$70,000 - $105,000</strong></td>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+
+            <h3 style="margin: 40px 0 20px 0; font-size: 1.5em;">Premium Justifications</h3>
+            <div class="summary-grid">
+                <div class="summary-card">
+                    <h3>Technical Complexity (+30%)</h3>
+                    <ul>
+                        <li>594 integrated tools</li>
+                        <li>20+ platform integrations</li>
+                        <li>8 OAuth implementations</li>
+                        <li>AI orchestration system</li>
+                        <li>Complex business logic</li>
+                        <li>Real-time calculations</li>
+                    </ul>
+                </div>
+
+                <div class="summary-card">
+                    <h3>Work Intensity (+25%)</h3>
+                    <ul>
+                        <li>6 marathon days (16+ hrs)</li>
+                        <li>15 long days (12-16 hrs)</li>
+                        <li>49% of days 12+ hours</li>
+                        <li>22 consecutive days</li>
+                        <li>13 weekend days (6.5 weekends)</li>
+                        <li>105 late-night hours</li>
+                    </ul>
+                </div>
+
+                <div class="summary-card">
+                    <h3>Deliverable Quality (+20%)</h3>
+                    <ul>
+                        <li>17,845 production files</li>
+                        <li>2,000+ pages documentation</li>
+                        <li>Testing infrastructure</li>
+                        <li>Deployment configs</li>
+                        <li>Database migrations</li>
+                        <li>Security implementation</li>
+                    </ul>
+                </div>
+            </div>
+
+            <div
+                style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 40px; border-radius: 15px; text-align: center; margin: 40px 0;">
+                <h2 style="font-size: 2.5em; margin-bottom: 20px;">Final Recommendation</h2>
+                <div style="font-size: 1.3em; margin-bottom: 15px;">
+                    <strong>Conservative:</strong> $48,000 |
+                    <strong>Market Rate:</strong> $62,000 |
+                    <strong>Premium:</strong> $73,000
+                </div>
+                <div style="font-size: 3em; font-weight: bold; margin: 20px 0;">
+                    $62,000 - $68,000
+                </div>
+                <div style="font-size: 1.2em; opacity: 0.9;">
+                    Based on 422 verified hours at senior developer rates with justified complexity and intensity
+                    premiums
+                </div>
+            </div>
+        </div>
+
+        <!-- Charts Tab -->
+        <div id="charts" class="tab-content">
+            <h2 class="section-title">Visual Analytics</h2>
+
+            <div class="chart-grid">
+                <div class="chart-box">
+                    <h3>AI_agents Daily Hours</h3>
+                    <div class="chart-wrapper">
+                        <canvas id="aiAgentsDailyChart"></canvas>
+                    </div>
+                </div>
+
+                <div class="chart-box">
+                    <h3>AI_agents Cumulative Hours</h3>
+                    <div class="chart-wrapper">
+                        <canvas id="aiAgentsCumulativeChart"></canvas>
+                    </div>
+                </div>
+
+                <div class="chart-box">
+                    <h3>G_Folder Daily Hours</h3>
+                    <div class="chart-wrapper">
+                        <canvas id="gFolderDailyChart"></canvas>
+                    </div>
+                </div>
+
+                <div class="chart-box">
+                    <h3>G_Folder Cumulative Hours</h3>
+                    <div class="chart-wrapper">
+                        <canvas id="gFolderCumulativeChart"></canvas>
+                    </div>
+                </div>
+
+                <div class="chart-box">
+                    <h3>Combined Timeline</h3>
+                    <div class="chart-wrapper">
+                        <canvas id="combinedTimelineChart"></canvas>
+                    </div>
+                </div>
+
+                <div class="chart-box">
+                    <h3>Time of Day Distribution</h3>
+                    <div class="chart-wrapper">
+                        <canvas id="timeOfDayChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Tab switching
+        function switchTab(tabName) {
+            document.querySelectorAll('.tab-button').forEach(btn => btn.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+
+            event.target.classList.add('active');
+            document.getElementById(tabName).classList.add('active');
+        }
+
+        // Data
+        const aiAgentsData = {
+            dates: ['Oct 23', 'Oct 24', 'Oct 25', 'Oct 26', 'Oct 27', 'Oct 28', 'Oct 29', 'Oct 30', 'Oct 31', 'Nov 1', 'Nov 2', 'Nov 3', 'Nov 4', 'Nov 5', 'Nov 6', 'Nov 7', 'Nov 8'],
+            hours: [9, 6, 2, 9, 14, 14, 12, 17, 10, 13, 4, 16, 13, 16, 12, 18, 10],
+            cumulative: [9, 15, 17, 26, 40, 54, 66, 83, 93, 106, 110, 126, 139, 155, 167, 185, 195]
+        };
+
+        const gFolderData = {
+            dates: ['Oct 4', 'Oct 5', 'Oct 6', 'Oct 7', 'Oct 8', 'Oct 9', 'Oct 10', 'Oct 11', 'Oct 12', 'Oct 13', 'Oct 14', 'Oct 15', 'Oct 16', 'Oct 17', 'Oct 18', 'Oct 19', 'Oct 20', 'Oct 21', 'Oct 22', 'Oct 23', 'Oct 24', 'Oct 25'],
+            hours: [6, 15, 12, 13, 5, 7, 11, 5, 1, 1, 7, 14, 9, 12, 13, 13, 14, 12, 9, 17, 22, 5],
+            cumulative: [8, 23, 35, 48, 53, 60, 71, 76, 77, 78, 85, 99, 108, 120, 133, 146, 160, 172, 181, 198, 220, 225]
+        };
+
+        // Chart colors
+        const colors = {
+            marathon: 'rgba(245, 87, 108, 0.8)',
+            long: 'rgba(240, 147, 251, 0.8)',
+            full: 'rgba(79, 172, 254, 0.8)',
+            half: 'rgba(0, 242, 254, 0.8)',
+            short: 'rgba(168, 237, 234, 0.8)',
+            gradient1: 'rgba(102, 126, 234, 0.8)',
+            gradient2: 'rgba(118, 75, 162, 0.8)'
+        };
+
+        // Project Comparison Chart
+        new Chart(document.getElementById('projectComparisonChart'), {
+            type: 'bar',
+            data: {
+                labels: ['Total Hours', 'Days Worked', 'Avg Hours/Day', 'Marathon Days', 'Long Days'],
+                datasets: [
+                    {
+                        label: 'AI_agents',
+                        data: [195, 17, 11.5, 4, 6],
+                        backgroundColor: colors.gradient1
+                    },
+                    {
+                        label: 'G_Folder',
+                        data: [227, 26, 8.7, 2, 9],
+                        backgroundColor: colors.gradient2
+                    }
+                ]
+            },
+            options: {
+                responsive: false,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { position: 'top' }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true
+                    }
+                },
+                onResize: function (chart, size) {
+                    chart.canvas.style.height = '600px';
+                    chart.canvas.style.maxHeight = '600px';
+                }
+            }
+        });
+
+        // Intensity Distribution Chart
+        new Chart(document.getElementById('intensityChart'), {
+            type: 'doughnut',
+            data: {
+                labels: ['Marathon (16+ hrs)', 'Long (12-16 hrs)', 'Full (8-12 hrs)', 'Half (4-8 hrs)', 'Short (<4 hrs)'],
+                datasets: [{
+                    data: [6, 15, 7, 11, 4],
+                    backgroundColor: [colors.marathon, colors.long, colors.full, colors.half, colors.short]
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { position: 'bottom' }
+                }
+            }
+        });
+
+        // AI_agents Daily Chart
+        new Chart(document.getElementById('aiAgentsDailyChart'), {
+            type: 'bar',
+            data: {
+                labels: aiAgentsData.dates,
+                datasets: [{
+                    label: 'Hours',
+                    data: aiAgentsData.hours,
+                    backgroundColor: aiAgentsData.hours.map(h => {
+                        if (h >= 16) return colors.marathon;
+                        if (h >= 12) return colors.long;
+                        if (h >= 8) return colors.full;
+                        if (h >= 4) return colors.half;
+                        return colors.short;
+                    })
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        max: 24,
+                        title: { display: true, text: 'Hours' }
+                    }
+                }
+            }
+        });
+
+        // AI_agents Cumulative Chart
+        new Chart(document.getElementById('aiAgentsCumulativeChart'), {
+            type: 'line',
+            data: {
+                labels: aiAgentsData.dates,
+                datasets: [{
+                    label: 'Cumulative Hours',
+                    data: aiAgentsData.cumulative,
+                    borderColor: colors.gradient1,
+                    backgroundColor: 'rgba(102, 126, 234, 0.2)',
+                    fill: true,
+                    tension: 0.4
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        max: 200,
+                        title: { display: true, text: 'Total Hours' },
+                        ticks: {
+                            callback: function (value) {
+                                return value + 'h';
+                            }
+                        }
+                    }
+                }
+            }
+        });
+
+        // G_Folder Daily Chart
+        new Chart(document.getElementById('gFolderDailyChart'), {
+            type: 'bar',
+            data: {
+                labels: gFolderData.dates,
+                datasets: [{
+                    label: 'Hours',
+                    data: gFolderData.hours,
+                    backgroundColor: gFolderData.hours.map(h => {
+                        if (h >= 16) return colors.marathon;
+                        if (h >= 12) return colors.long;
+                        if (h >= 8) return colors.full;
+                        if (h >= 4) return colors.half;
+                        return colors.short;
+                    })
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        max: 24,
+                        title: { display: true, text: 'Hours' }
+                    }
+                }
+            }
+        });
+
+        // G_Folder Cumulative Chart (with scale break)
+        new Chart(document.getElementById('gFolderCumulativeChart'), {
+            type: 'line',
+            data: {
+                labels: gFolderData.dates,
+                datasets: [{
+                    label: 'Cumulative Hours',
+                    data: gFolderData.cumulative,
+                    borderColor: colors.gradient2,
+                    backgroundColor: 'rgba(118, 75, 162, 0.2)',
+                    fill: true,
+                    tension: 0.4
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        max: 250,
+                        title: { display: true, text: 'Total Hours' },
+                        ticks: {
+                            callback: function (value) {
+                                return value + 'h';
+                            }
+                        }
+                    }
+                },
+                plugins: {
+                    annotation: {
+                        annotations: {
+                            line1: {
+                                type: 'line',
+                                yMin: 200,
+                                yMax: 200,
+                                borderColor: 'rgba(245, 87, 108, 0.5)',
+                                borderWidth: 2,
+                                borderDash: [5, 5],
+                                label: {
+                                    content: '200 Hour Milestone',
+                                    enabled: true,
+                                    position: 'start'
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        });
+
+        // Combined Timeline Chart
+        new Chart(document.getElementById('combinedTimelineChart'), {
+            type: 'line',
+            data: {
+                labels: aiAgentsData.dates,
+                datasets: [
+                    {
+                        label: 'AI_agents',
+                        data: aiAgentsData.hours,
+                        borderColor: colors.gradient1,
+                        tension: 0.4
+                    },
+                    {
+                        label: 'G_Folder (Oct 23-25)',
+                        data: [null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, 17, 22, 5],
+                        borderColor: colors.gradient2,
+                        tension: 0.4
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        title: { display: true, text: 'Hours' }
+                    }
+                }
+            }
+        });
+
+        // Time of Day Distribution Chart
+        new Chart(document.getElementById('timeOfDayChart'), {
+            type: 'pie',
+            data: {
+                labels: ['Business Hours (9am-5pm)', 'Evening (5pm-11pm)', 'Late Night (11pm-5am)', 'Early Morning (5am-9am)'],
+                datasets: [{
+                    data: [184, 125, 105, 8],
+                    backgroundColor: [colors.full, colors.half, colors.marathon, colors.short]
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { position: 'bottom' }
+                }
+            }
+        });
+
+        // Export to CSV
+        function exportToCSV() {
+            let csv = 'Project,Date,Day,Hours,Cumulative,Type\n';
+
+            // AI_agents data
+            aiAgentsData.dates.forEach((date, i) => {
+                csv += `AI_agents,${date},Day ${i + 1},${aiAgentsData.hours[i]},${aiAgentsData.cumulative[i]},${getSessionType(aiAgentsData.hours[i])}\n`;
+            });
+
+            // G_Folder data
+            gFolderData.dates.forEach((date, i) => {
+                csv += `G_Folder,${date},Day ${i + 1},${gFolderData.hours[i]},${gFolderData.cumulative[i]},${getSessionType(gFolderData.hours[i])}\n`;
+            });
+
+            const blob = new Blob([csv], { type: 'text/csv' });
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'work_timeline_data.csv';
+            a.click();
+        }
+
+        function getSessionType(hours) {
+            if (hours >= 16) return 'Marathon';
+            if (hours >= 12) return 'Long Day';
+            if (hours >= 8) return 'Full Day';
+            if (hours >= 4) return 'Half Day';
+            return 'Short';
+        }
+    </script>
+</body>
+
+</html>

@@ -1,0 +1,70 @@
+
+================================================================================
+COMPLETE DATABASE STRUCTURE FOR AI AGENTS PLATFORM
+================================================================================
+
+ Database not found: sessions.db
+
+ Database not found: ai_infrastructure.db
+
+ Database not found: synergy_sessions.db
+
+================================================================================
+KEY IDENTIFIERS SUMMARY
+================================================================================
+
+THREAD IDENTIFICATION:
+  - threads.id (INTEGER, PRIMARY KEY) → Internal database ID (e.g., 1, 2, 3)
+  - threads.thread_slug (TEXT, UNIQUE) → External thread ID used in UI (e.g., '1762664086386')
+  
+    CRITICAL: Frontend uses thread_slug as thread.id
+    Backend joins use threads.id (internal database ID)
+
+MESSAGES:
+  - messages.id (INTEGER, PRIMARY KEY) → Message database ID
+  - messages.thread_id (INTEGER, FOREIGN KEY) → Links to threads.id (NOT thread_slug!)
+  
+    CRITICAL: Messages join on threads.id, NOT thread_slug
+
+THREAD ASSIGNMENTS (Location tracking):
+  - thread_assignments.session_id (TEXT) → Same as threads.thread_slug
+  - thread_assignments.location (TEXT) → 'prime', 'agent-1', 'agent-2', etc.
+  
+SYNERGY SESSIONS:
+  - synergy_sessions.session_id (TEXT, PRIMARY KEY) → Synergy card ID
+  - synergy_sessions.thread_ids (TEXT) → JSON array of thread_slugs
+  
+RELATIONSHIPS:
+  1. Frontend thread.id ←→ Database threads.thread_slug
+  2. Database threads.id ←→ Database messages.thread_id
+  3. Frontend thread.id ←→ thread_assignments.session_id
+  4. Synergy card ←→ JSON array of thread_slugs in synergy_sessions.thread_ids
+
+
+QUERY EXAMPLES:
+================================================================================
+
+1. Get thread with messages:
+   SELECT t.*, COUNT(m.id) as message_count
+   FROM threads t
+   LEFT JOIN messages m ON t.id = m.thread_id
+   WHERE t.thread_slug = '1762664086386'
+   GROUP BY t.id
+
+2. Get messages for a thread:
+   SELECT m.*
+   FROM messages m
+   JOIN threads t ON m.thread_id = t.id
+   WHERE t.thread_slug = '1762664086386'
+   ORDER BY m.timestamp
+
+3. Get thread location:
+   SELECT location
+   FROM thread_assignments
+   WHERE session_id = '1762664086386'
+
+4. Get threads for synergy session:
+   SELECT thread_ids
+   FROM synergy_sessions
+   WHERE session_id = 'synergy_card_id'
+

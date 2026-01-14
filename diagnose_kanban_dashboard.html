@@ -1,0 +1,354 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kanban Dashboard Diagnostic</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #0B0E13;
+            color: #E5E7EB;
+            padding: 20px;
+        }
+
+        .diagnostic-section {
+            background: #1A1F2E;
+            border: 1px solid #2A3142;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+
+        .diagnostic-section h2 {
+            color: #00509E;
+            margin-top: 0;
+        }
+
+        .check-item {
+            padding: 8px 0;
+            border-bottom: 1px solid #2A3142;
+        }
+
+        .check-item:last-child {
+            border-bottom: none;
+        }
+
+        .status-ok {
+            color: #22C55E;
+        }
+
+        .status-error {
+            color: #EF4444;
+        }
+
+        .status-warning {
+            color: #F59E0B;
+        }
+
+        button {
+            background: #00509E;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            margin: 5px;
+        }
+
+        button:hover {
+            background: #003D7A;
+        }
+
+        pre {
+            background: #0B0E13;
+            border: 1px solid #2A3142;
+            border-radius: 4px;
+            padding: 12px;
+            overflow-x: auto;
+            font-size: 12px;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>🔍 Kanban Dashboard Diagnostic Tool</h1>
+
+    <div class="diagnostic-section">
+        <h2>1. Module Registration</h2>
+        <div id="module-registration"></div>
+    </div>
+
+    <div class="diagnostic-section">
+        <h2>2. DOM Elements</h2>
+        <div id="dom-elements"></div>
+    </div>
+
+    <div class="diagnostic-section">
+        <h2>3. Module Initialization</h2>
+        <div id="module-init"></div>
+    </div>
+
+    <div class="diagnostic-section">
+        <h2>4. API Connectivity</h2>
+        <div id="api-connectivity"></div>
+    </div>
+
+    <div class="diagnostic-section">
+        <h2>5. Actions</h2>
+        <button onclick="runFullDiagnostic()">🔄 Run Full Diagnostic</button>
+        <button onclick="tryLoadModule()">🚀 Try Load Module</button>
+        <button onclick="switchToTab()">📑 Switch to Tab</button>
+        <button onclick="openInBrowser()">🌐 Open Main Dashboard</button>
+    </div>
+
+    <div class="diagnostic-section">
+        <h2>6. Console Output</h2>
+        <pre id="console-output"></pre>
+    </div>
+
+    <script>
+        let consoleLog = [];
+
+        // Capture console output
+        const originalLog = console.log;
+        const originalError = console.error;
+
+        console.log = function (...args) {
+            consoleLog.push('[LOG] ' + args.join(' '));
+            updateConsoleOutput();
+            originalLog.apply(console, args);
+        };
+
+        console.error = function (...args) {
+            consoleLog.push('[ERROR] ' + args.join(' '));
+            updateConsoleOutput();
+            originalError.apply(console, args);
+        };
+
+        function updateConsoleOutput() {
+            document.getElementById('console-output').textContent = consoleLog.slice(-20).join('\n');
+        }
+
+        async function checkModuleRegistration() {
+            const output = document.getElementById('module-registration');
+            output.innerHTML = '<p>Checking Flask API...</p>';
+
+            try {
+                const response = await fetch('http://localhost:5001/api/modules/list?user_id=1');
+                const data = await response.json();
+
+                const kanban = data.modules.find(m => m.id === 'inhouse-kanban');
+
+                if (kanban) {
+                    output.innerHTML = `
+                        <div class="check-item status-ok">✅ Module registered in Flask</div>
+                        <div class="check-item">Module ID: ${kanban.id}</div>
+                        <div class="check-item">Version: ${kanban.version}</div>
+                        <div class="check-item">Framework: ${kanban.loading?.framework || 'N/A'}</div>
+                        <div class="check-item">Container: ${kanban.loading?.container_id || 'N/A'}</div>
+                        <div class="check-item">JS File: ${kanban.files?.js || 'N/A'}</div>
+                        <div class="check-item">CSS File: ${kanban.files?.css || 'N/A'}</div>
+                        <div class="check-item">HTML File: ${kanban.files?.html || 'N/A'}</div>
+                    `;
+                } else {
+                    output.innerHTML = `<div class="check-item status-error">❌ Module NOT found in registry</div>`;
+                }
+            } catch (error) {
+                output.innerHTML = `<div class="check-item status-error">❌ Cannot connect to Flask API: ${error.message}</div>`;
+            }
+        }
+
+        function checkDOMElements() {
+            const output = document.getElementById('dom-elements');
+            const checks = [];
+
+            // Check for main tab container
+            const tabKanban = document.getElementById('tab-inhouse-kanban');
+            checks.push({
+                label: '#tab-inhouse-kanban exists',
+                status: !!tabKanban,
+                extra: tabKanban ? `display: ${getComputedStyle(tabKanban).display}` : ''
+            });
+
+            // Check for main container
+            const mainContainer = document.getElementById('inhouse-kanban-main-container');
+            checks.push({
+                label: '#inhouse-kanban-main-container exists',
+                status: !!mainContainer,
+                extra: mainContainer ? `display: ${getComputedStyle(mainContainer).display}` : ''
+            });
+
+            // Check for kanban board
+            const board = document.getElementById('kanban-board');
+            checks.push({
+                label: '#kanban-board exists',
+                status: !!board,
+                extra: board ? `children: ${board.children.length}` : ''
+            });
+
+            // Check for module registry
+            const hasRegistry = window.ModuleRegistry && window.ModuleRegistry['inhouse-kanban'];
+            checks.push({
+                label: 'window.ModuleRegistry["inhouse-kanban"] exists',
+                status: hasRegistry,
+                extra: hasRegistry ? 'has onDashboardLoad: ' + (typeof window.ModuleRegistry['inhouse-kanban'].onDashboardLoad === 'function') : ''
+            });
+
+            // Check for module loader
+            checks.push({
+                label: 'window.moduleLoader exists',
+                status: !!window.moduleLoader,
+                extra: window.moduleLoader ? 'initialized: ' + window.moduleLoader.initialized : ''
+            });
+
+            output.innerHTML = checks.map(check => `
+                <div class="check-item ${check.status ? 'status-ok' : 'status-error'}">
+                    ${check.status ? '✅' : '❌'} ${check.label}
+                    ${check.extra ? `<br><small style="color: #9CA3AF;">${check.extra}</small>` : ''}
+                </div>
+            `).join('');
+        }
+
+        function checkModuleInit() {
+            const output = document.getElementById('module-init');
+            const checks = [];
+
+            if (window.moduleLoader) {
+                checks.push({
+                    label: 'Module Loader initialized',
+                    status: window.moduleLoader.initialized
+                });
+
+                const isLoaded = window.moduleLoader.loadedModules && window.moduleLoader.loadedModules['inhouse-kanban'];
+                checks.push({
+                    label: 'Module marked as loaded',
+                    status: !!isLoaded
+                });
+
+                const modules = window.moduleLoader.modules;
+                const kanban = modules ? modules.get('inhouse-kanban') : null;
+                checks.push({
+                    label: 'Module in modules map',
+                    status: !!kanban,
+                    extra: kanban ? `available: ${kanban.available}` : ''
+                });
+            } else {
+                checks.push({
+                    label: 'Module Loader',
+                    status: false,
+                    extra: 'window.moduleLoader not found'
+                });
+            }
+
+            output.innerHTML = checks.map(check => `
+                <div class="check-item ${check.status ? 'status-ok' : 'status-error'}">
+                    ${check.status ? '✅' : '❌'} ${check.label}
+                    ${check.extra ? `<br><small style="color: #9CA3AF;">${check.extra}</small>` : ''}
+                </div>
+            `).join('');
+        }
+
+        async function checkAPIConnectivity() {
+            const output = document.getElementById('api-connectivity');
+            output.innerHTML = '<p>Testing API endpoints...</p>';
+
+            const endpoints = [
+                '/api/modules/list?user_id=1',
+                '/api/inhouse-kanban/jobs?workboard=main&timeframe_months=-6',
+                '/api/inhouse-kanban/stages?workboard=main'
+            ];
+
+            const results = [];
+
+            for (const endpoint of endpoints) {
+                try {
+                    const response = await fetch(`http://localhost:5001${endpoint}`);
+                    results.push({
+                        endpoint,
+                        status: response.status,
+                        ok: response.ok
+                    });
+                } catch (error) {
+                    results.push({
+                        endpoint,
+                        status: 'ERROR',
+                        ok: false,
+                        error: error.message
+                    });
+                }
+            }
+
+            output.innerHTML = results.map(result => `
+                <div class="check-item ${result.ok ? 'status-ok' : 'status-error'}">
+                    ${result.ok ? '✅' : '❌'} ${result.endpoint}
+                    <br><small style="color: #9CA3AF;">Status: ${result.status}</small>
+                </div>
+            `).join('');
+        }
+
+        async function runFullDiagnostic() {
+            console.log('Running full diagnostic...');
+            await checkModuleRegistration();
+            checkDOMElements();
+            checkModuleInit();
+            await checkAPIConnectivity();
+            console.log('Diagnostic complete!');
+        }
+
+        async function tryLoadModule() {
+            if (!window.moduleLoader) {
+                console.error('Module loader not available!');
+                alert('Module loader not available!');
+                return;
+            }
+
+            try {
+                console.log('Attempting to load inhouse-kanban module...');
+                await window.moduleLoader.loadModule('inhouse-kanban');
+                console.log('Load module completed!');
+                alert('Module load completed! Check console for details.');
+                setTimeout(runFullDiagnostic, 1000);
+            } catch (error) {
+                console.error('Failed to load module:', error);
+                alert('Failed to load module: ' + error.message);
+            }
+        }
+
+        function switchToTab() {
+            const tab = document.getElementById('tab-inhouse-kanban');
+            if (!tab) {
+                alert('Tab not found! Run diagnostic first.');
+                return;
+            }
+
+            // Hide all tabs
+            document.querySelectorAll('.tab-content').forEach(t => {
+                t.classList.remove('active');
+                t.style.display = 'none';
+            });
+
+            // Show Kanban tab
+            tab.classList.add('active');
+            tab.style.display = 'block';
+
+            console.log('Switched to Kanban tab');
+            alert('Switched to Kanban tab!');
+            setTimeout(checkDOMElements, 500);
+        }
+
+        function openInBrowser() {
+            window.open('http://localhost:5001/', '_blank');
+        }
+
+        // Run initial diagnostic on page load
+        window.addEventListener('DOMContentLoaded', () => {
+            console.log('Diagnostic tool loaded');
+            runFullDiagnostic();
+        });
+    </script>
+</body>
+
+</html>

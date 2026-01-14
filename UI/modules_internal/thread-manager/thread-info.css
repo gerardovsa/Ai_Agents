@@ -1,0 +1,276 @@
+/**
+ * FILE: UI/modules_internal/thread-manager/thread-info.css
+ * PURPOSE: Styling for thread info cards displayed in agent columns and Prime
+ * 
+ * FEATURES:
+ * - Thread info card layout
+ * - Action button styling (unload, move to prime)
+ * - Metadata grid
+ * - Responsive design
+ * 
+ * USED BY:
+ * - thread-info-renderer.js
+ * - Agent columns
+ * - Prime AI column
+ * 
+ * LAST MODIFIED: 2025-12-08 - Created for unload button functionality
+ */
+
+/* ==================== THREAD INFO WRAPPER ==================== */
+
+.thread-info-wrapper {
+    padding: 12px;
+    background: var(--bg-secondary, #1e1e1e);
+    border-bottom: 1px solid var(--border-default, rgba(255, 255, 255, 0.1));
+}
+
+.thread-info-wrapper.active {
+    background: var(--bg-tertiary, #252525);
+}
+
+/* ==================== NO THREAD MESSAGE (Clickable) ==================== */
+
+.no-thread-message {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 12px;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px dashed rgba(255, 255, 255, 0.1);
+    border-radius: 8px;
+    color: var(--text-secondary, #9ca3af);
+    font-size: 14px;
+    transition: all 0.2s ease;
+}
+
+.no-thread-message.clickable {
+    cursor: pointer;
+}
+
+.no-thread-message.clickable:hover {
+    background: rgba(255, 255, 255, 0.05);
+    border-color: var(--accent-primary, #677eea);
+    color: var(--text-primary, #e5e7eb);
+}
+
+/* ==================== THREAD INFO CARD ==================== */
+
+.thread-info-card {
+    background: var(--bg-primary, #0d0d0d);
+    border: 1px solid var(--border-default, rgba(255, 255, 255, 0.1));
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+/* Header */
+.thread-info-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px;
+    background: rgba(103, 126, 234, 0.1);
+    border-bottom: 1px solid var(--border-default, rgba(255, 255, 255, 0.1));
+}
+
+.thread-info-title {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex: 1;
+    min-width: 0;
+    color: var(--text-primary, #e5e7eb);
+    font-size: 14px;
+    font-weight: 600;
+}
+
+.thread-info-title i {
+    color: var(--accent-primary, #677eea);
+    font-size: 14px;
+    flex-shrink: 0;
+}
+
+.thread-info-title span {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.btn-close-thread {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+    padding: 0;
+    background: transparent;
+    border: none;
+    border-radius: 4px;
+    color: var(--text-secondary, #9ca3af);
+    cursor: pointer;
+    transition: all 0.2s ease;
+    flex-shrink: 0;
+}
+
+.btn-close-thread:hover {
+    background: rgba(239, 68, 68, 0.2);
+    color: #ef4444;
+}
+
+/* ==================== METADATA GRID ==================== */
+
+.thread-info-metadata {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    padding: 12px;
+    background: var(--bg-secondary, #1e1e1e);
+}
+
+.metadata-item {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.metadata-item.full-width {
+    grid-column: 1 / -1;
+}
+
+.metadata-label {
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--text-secondary, #9ca3af);
+}
+
+.metadata-value {
+    font-size: 13px;
+    color: var(--text-primary, #e5e7eb);
+}
+
+/* ==================== ACTION BUTTONS ==================== */
+
+.thread-info-actions {
+    display: flex;
+    gap: 8px;
+    padding: 12px;
+    background: var(--bg-secondary, #1e1e1e);
+    border-top: 1px solid var(--border-default, rgba(255, 255, 255, 0.1));
+}
+
+.thread-info-actions .btn {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 8px 12px;
+    font-size: 13px;
+    border-radius: 6px;
+    transition: all 0.2s ease;
+    cursor: pointer;
+}
+
+.thread-info-actions .btn i {
+    font-size: 12px;
+}
+
+/* Secondary button (Move to Prime) */
+.thread-info-actions .btn-secondary {
+    background: rgba(103, 126, 234, 0.1);
+    border: 1px solid rgba(103, 126, 234, 0.3);
+    color: #677eea;
+}
+
+.thread-info-actions .btn-secondary:hover {
+    background: rgba(103, 126, 234, 0.2);
+    border-color: #677eea;
+    transform: translateY(-1px);
+}
+
+/* Danger button (Unload) */
+.thread-info-actions .btn-danger {
+    background: rgba(239, 68, 68, 0.1);
+    border: 1px solid rgba(239, 68, 68, 0.3);
+    color: #ef4444;
+}
+
+.thread-info-actions .btn-danger:hover {
+    background: rgba(239, 68, 68, 0.2);
+    border-color: #ef4444;
+    transform: translateY(-1px);
+}
+
+/* ==================== RESPONSIVE DESIGN ==================== */
+
+@media (max-width: 480px) {
+    .thread-info-actions {
+        flex-direction: column;
+    }
+
+    .thread-info-actions .btn {
+        width: 100%;
+    }
+
+    .thread-info-metadata {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* ==================== DARK/LIGHT THEME SUPPORT ==================== */
+
+[data-theme="light"] .thread-info-wrapper {
+    background: #f3f4f6;
+}
+
+[data-theme="light"] .thread-info-wrapper.active {
+    background: #e5e7eb;
+}
+
+[data-theme="light"] .thread-info-card {
+    background: white;
+    border-color: #d1d5db;
+}
+
+[data-theme="light"] .thread-info-header {
+    background: rgba(103, 126, 234, 0.08);
+    border-color: #d1d5db;
+}
+
+[data-theme="light"] .thread-info-metadata {
+    background: #f9fafb;
+}
+
+[data-theme="light"] .thread-info-actions {
+    background: #f9fafb;
+    border-color: #d1d5db;
+}
+
+[data-theme="light"] .no-thread-message {
+    background: rgba(0, 0, 0, 0.02);
+    border-color: #d1d5db;
+    color: #6b7280;
+}
+
+[data-theme="light"] .no-thread-message.clickable:hover {
+    background: rgba(0, 0, 0, 0.04);
+    color: #111827;
+}
+
+[data-theme="light"] .metadata-label {
+    color: #6b7280;
+}
+
+[data-theme="light"] .metadata-value {
+    color: #111827;
+}
+
+[data-theme="light"] .btn-close-thread {
+    color: #6b7280;
+}
+
+[data-theme="light"] .btn-close-thread:hover {
+    background: rgba(239, 68, 68, 0.1);
+    color: #dc2626;
+}

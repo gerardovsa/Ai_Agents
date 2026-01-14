@@ -1,0 +1,317 @@
+{
+  "module_name": "inhouse-kanban",
+  "module_path": "C:\\Users\\gpoli\\GIT\\AI_agents\\UI\\modules_external\\inhouse-kanban",
+  "timestamp": "2025-11-30T13:50:36.634342",
+  "checks": {
+    "file_structure": {
+      "has_manifest": true,
+      "js_files": 8,
+      "css_files": 2,
+      "html_files": 1,
+      "doc_files": 15,
+      "backup_files": 2,
+      "test_files": 1,
+      "status": "PASS"
+    },
+    "manifest_compliance": {
+      "version": "3.0",
+      "has_all_required": true,
+      "missing_required": [],
+      "has_optional": [
+        "loading",
+        "capabilities"
+      ],
+      "capabilities_defined": true,
+      "status": "PASS"
+    },
+    "dependencies_validation": {
+      "status": "ERROR",
+      "format": "list (legacy)",
+      "dependencies": [
+        {
+          "type": "framework",
+          "name": "sidebar-manager",
+          "files": [
+            "../shared/sidebar-framework/sidebar-manager.js",
+            "../shared/sidebar-framework/sidebar-manager.css"
+          ]
+        }
+      ],
+      "issues": [
+        "dependencies[0] is dict - should be string. This causes 'unhashable type: dict' error!"
+      ],
+      "warnings": [],
+      "message": "Dependencies format has issues"
+    },
+    "html_path_validation": {
+      "html_file_exists": true,
+      "html_path_exists": false,
+      "html_file_value": "inhouse-kanban-SIDEBAR.html",
+      "html_path_value": null,
+      "actual_html_files": [
+        "inhouse-kanban-SIDEBAR.html"
+      ],
+      "path_mismatches": [],
+      "recommendations": [],
+      "status": "PASS"
+    },
+    "architecture_pattern": {
+      "architecture": "Architecture 1 (Separate Files)",
+      "confidence": 80,
+      "js_files": 11,
+      "html_files": 1,
+      "status": "PASS"
+    },
+    "sidebar_integration": {
+      "uses_sidebar": true,
+      "uses_sidebar_manager": true,
+      "custom_implementation": false,
+      "sidebar_files": [
+        "inhouse-kanban-SIDEBAR.html"
+      ],
+      "recommendations": [
+        "Add toggleButtonId: 'inhouse-kanban-floating-toggle' to SidebarManager.register() call"
+      ],
+      "status": "INCOMPLETE"
+    },
+    "api_endpoints": {
+      "total_endpoints": 1,
+      "api_routes": 0,
+      "has_backend_url": true,
+      "endpoints": [
+        "external/modules/inhouse-kanban/manifest.json"
+      ],
+      "status": "PASS"
+    },
+    "api_endpoint_testing": {
+      "enabled": true,
+      "endpoints_tested": 1,
+      "passed": 1,
+      "failed": 0,
+      "skipped": 0,
+      "errors": [],
+      "test_results": [
+        {
+          "endpoint": "external/modules/inhouse-kanban/manifest.json",
+          "full_url": "http://localhost:5001/external/modules/inhouse-kanban/manifest.json",
+          "status": "passed",
+          "status_code": 200,
+          "response_time_ms": 2081,
+          "error": null,
+          "skipped": false
+        }
+      ],
+      "avg_response_time_ms": 2081,
+      "status": "PASS"
+    },
+    "authentication_pattern": {
+      "status": "SKIP",
+      "message": "No routes folder found",
+      "has_routes": false
+    },
+    "ui_rendering": {
+      "has_initialize": true,
+      "has_render_method": true,
+      "has_container_helper": true,
+      "has_event_listeners": true,
+      "render_implementation_valid": true,
+      "render_calls_valid_methods": false,
+      "undefined_method_calls": [
+        "renderAnalytics",
+        "setupControls"
+      ],
+      "container_id_mismatches": [
+        "kanban-priority",
+        "kanban-board-container",
+        "kanban-loading",
+        "analytics-total",
+        "kanban-search",
+        "metric-total-jobs",
+        "analytics-delayed",
+        "analytics-completed",
+        "kanban-search-input",
+        "kanban-timeframe",
+        "analytics-workboard-display",
+        "metric-completed",
+        "kanban-empty",
+        "kanban-refresh-btn",
+        "metric-delayed",
+        "metric-in-progress",
+        "analytics-in-progress",
+        "analytics-refresh-btn",
+        "inhouse-kanban-critical-styles"
+      ],
+      "rendering_issues": [
+        "Container ID mismatch: getElementById('kanban-priority') but ID never created in HTML",
+        "Container ID mismatch: getElementById('kanban-board-container') but ID never created in HTML",
+        "Container ID mismatch: getElementById('kanban-loading') but ID never created in HTML",
+        "Method 'renderAnalytics()' is called but not defined - may cause silent failures",
+        "Method 'setupControls()' is called but not defined - may cause silent failures",
+        "render() method exists but doesn't call any valid rendering method"
+      ],
+      "status": "FAIL"
+    },
+    "runtime_diagnostic": {
+      "containers_checked": [
+        "tab-inhouse-kanban",
+        "inhouse-kanban-main-container",
+        "inhouse-kanban-board"
+      ],
+      "container_generation": {
+        "tab_container": false,
+        "main_container": false,
+        "board_container": true
+      },
+      "module_registry": {
+        "should_register": true,
+        "init_method_exists": false
+      },
+      "initialization_flow": {
+        "has_initialize_method": true,
+        "calls_init_board": true,
+        "calls_display_board": true,
+        "calls_refresh_data": true
+      },
+      "diagnostic_issues": [],
+      "recommendations": [],
+      "status": "PASS"
+    },
+    "module_registry_compat": {
+      "status": "ERROR",
+      "compatibility_score": 7,
+      "max_score": 10,
+      "percentage": 70,
+      "issues": [
+        "Dependencies list contains dict items (causes unhashable error)"
+      ],
+      "warnings": [],
+      "message": "Registry compatibility: 7/10 (70%)"
+    },
+    "connections": {
+      "databases": [
+        "SQL Server",
+        "Supabase"
+      ],
+      "external_apis": [],
+      "websockets": [],
+      "requires_credentials": false,
+      "total_connections": 2,
+      "status": "PASS"
+    },
+    "documentation": {
+      "has_readme": true,
+      "has_integration_guide": true,
+      "total_docs": 15,
+      "doc_files": [
+        "CARD_LAYOUT_UPDATE_NOV29.md",
+        "COLUMN_LAYOUT_FIX.md",
+        "DUAL_ACCESS_COMPLETE.md",
+        "INTEGRATION_GUIDE.md",
+        "KANBAN_CARD_FIELDS.md",
+        "README.md",
+        "SIDEBAR_TOGGLE_VERIFICATION_NOV29.md",
+        "SUPABASE_INTEGRATION_COMPLETE.md",
+        "SUPABASE_QUICK_START.md",
+        "SUPABASE_UI_INTEGRATION_GUIDE.md",
+        "TEST_SIDEBAR_TOGGLE.md",
+        "TEST_SUPABASE_UI.md",
+        "V3_SIDEBAR_ALIGNMENT_COMPLETE.md",
+        "V3_SIDEBAR_ALIGNMENT_PLAN.md",
+        "V4_MIGRATION_COMPLETE.md"
+      ],
+      "status": "PASS"
+    },
+    "best_practices": {
+      "good_practices": 31,
+      "issues": 8,
+      "practices_list": [
+        "Uses logging (41 instances)",
+        "Uses logging (39 instances)",
+        "Uses try-catch error handling",
+        "Uses modern async/await",
+        "Uses try-catch error handling",
+        "Uses modern async/await",
+        "Uses class-based architecture",
+        "Uses logging (6 instances)",
+        "Uses try-catch error handling",
+        "Uses modern async/await",
+        "Uses class-based architecture",
+        "Uses try-catch error handling",
+        "Uses modern async/await",
+        "Uses class-based architecture",
+        "Uses try-catch error handling",
+        "Uses modern async/await",
+        "Uses class-based architecture",
+        "Uses logging (12 instances)",
+        "Uses logging (8 instances)",
+        "Uses class-based architecture",
+        "Uses logging (13 instances)",
+        "Uses try-catch error handling",
+        "Uses modern async/await",
+        "Uses class-based architecture",
+        "Uses logging (6 instances)",
+        "Uses try-catch error handling",
+        "Uses modern async/await",
+        "Uses class-based architecture",
+        "Uses logging (49 instances)",
+        "Uses try-catch error handling",
+        "Uses modern async/await"
+      ],
+      "issues_list": [
+        "Limited error handling detected",
+        "Excessive console.log usage (146 instances)",
+        "Excessive inline styles (277) - use CSS instead",
+        "Excessive inline styles (206) - use CSS instead",
+        "Excessive inline styles (206) - use CSS instead",
+        "Limited error handling detected",
+        "Limited error handling detected",
+        "Excessive inline styles (21) - use CSS instead"
+      ],
+      "status": "NEEDS_IMPROVEMENT"
+    },
+    "duplicate_declarations": {
+      "duplicate_classes": [],
+      "duplicate_functions": [],
+      "redeclared_globals": [],
+      "files_with_issues": [],
+      "total_issues": 0,
+      "status": "PASS"
+    }
+  },
+  "issues": [
+    "CRITICAL: Module has floating_toggle in manifest but SidebarManager.register() missing toggleButtonId parameter",
+    "CRITICAL: render() method calls undefined methods - will fail at runtime",
+    "CRITICAL: 2 undefined method(s) called: renderAnalytics, setupControls",
+    "CRITICAL: render() method exists but doesn't call valid rendering methods",
+    "CRITICAL: 19 container ID mismatch(es) - getElementById() looking for IDs that don't exist in HTML"
+  ],
+  "warnings": [
+    "Rendering: Container ID mismatch: getElementById('kanban-priority') but ID never created in HTML",
+    "Rendering: Container ID mismatch: getElementById('kanban-board-container') but ID never created in HTML",
+    "Rendering: Container ID mismatch: getElementById('kanban-loading') but ID never created in HTML",
+    "Rendering: Method 'renderAnalytics()' is called but not defined - may cause silent failures",
+    "Rendering: Method 'setupControls()' is called but not defined - may cause silent failures",
+    "Rendering: render() method exists but doesn't call any valid rendering method",
+    "Error analyzing DIAGNOSTIC.js for duplicates: cannot access local variable 'class_name' where it is not associated with a value",
+    "Error analyzing FORCE_RELOAD_SUPABASE.js for duplicates: cannot access local variable 'class_name' where it is not associated with a value",
+    "Error analyzing inhouse-kanban copy 2.js for duplicates: cannot access local variable 'func_name' where it is not associated with a value",
+    "Error analyzing inhouse-kanban copy.js for duplicates: cannot access local variable 'func_name' where it is not associated with a value",
+    "Error analyzing inhouse-kanban-V4-COMPLETE.js for duplicates: cannot access local variable 'func_name' where it is not associated with a value",
+    "Error analyzing inhouse-kanban.js for duplicates: cannot access local variable 'func_name' where it is not associated with a value",
+    "Error analyzing INJECT_CSS.js for duplicates: cannot access local variable 'func_name' where it is not associated with a value",
+    "Error analyzing kanban-logger.js for duplicates: cannot access local variable 'func_name' where it is not associated with a value",
+    "Error analyzing kanban-supabase-integration.js for duplicates: cannot access local variable 'func_name' where it is not associated with a value",
+    "Error analyzing kanban-supabase-ui.js for duplicates: cannot access local variable 'func_name' where it is not associated with a value",
+    "Error analyzing VERIFY_SUPABASE_LOAD.js for duplicates: cannot access local variable 'func_name' where it is not associated with a value"
+  ],
+  "recommendations": [
+    "Many documentation files (15), consider consolidation",
+    "Architecture 1 detected - verify HTML templates are properly structured",
+    "Review all method calls in the code - undefined methods cause silent failures",
+    "Ensure render() calls an actual rendering method like renderKanbanBoard() or renderUI()",
+    "Fix container ID mismatches: Ensure getElementById('X') matches id='X' in generated HTML",
+    "Many documentation files (15) - consider consolidation"
+  ],
+  "metrics": {},
+  "compliance_score": 100
+}

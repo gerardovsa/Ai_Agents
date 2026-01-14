@@ -1,0 +1,390 @@
+╔══════════════════════════════════════════════════════════════════════════════╗
+║                    ADAPTIVE INVESTIGATION FLOWCHART                          ║
+║          How Strategic AI Should Branch Based on Findings                   ║
+╚══════════════════════════════════════════════════════════════════════════════╝
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ START: INITIAL RECONNAISSANCE (Commands 1-10)                               │
+│                                                                              │
+│ 1. nslookup domain                                                           │
+│ 2. curl -I https://domain (get headers)                                     │
+│ 3. SSL certificate check                                                    │
+│ 4. Web archive check (1 timestamp)                                          │
+│ 5. Google search: "full name"                                               │
+│ 6. LinkedIn search: "full name"                                             │
+│ 7. WHOIS lookup                                                             │
+│ 8. MX records check                                                         │
+│ 9. IP geolocation                                                           │
+│ 10. Basic website scrape                                                    │
+└─────────────────────────────────────────────────────────────────────────────┘
+                                      │
+                                      ▼
+                        ┌─────────────────────────┐
+                        │   ANALYZE FINDINGS      │
+                        │   Extract Key Facts     │
+                        └─────────────────────────┘
+                                      │
+                ┌─────────────────────┼─────────────────────┐
+                │                     │                     │
+                ▼                     ▼                     ▼
+    ┌───────────────────┐ ┌───────────────────┐ ┌───────────────────┐
+    │ FINDING: Domain   │ │ FINDING: Email    │ │ FINDING: No       │
+    │ Age < 30 days     │ │ Domain Mismatch   │ │ Social Media      │
+    └───────────────────┘ └───────────────────┘ └───────────────────┘
+                │                     │                     │
+                ▼                     ▼                     ▼
+
+╔═══════════════════════════════════════════════════════════════════════════╗
+║ BRANCH 1: NEW DOMAIN INVESTIGATION                                        ║
+╚═══════════════════════════════════════════════════════════════════════════╝
+
+    Domain Age < 30 days → HIGH SUSPICION MODE
+
+    Additional Commands to Run:
+    ┌─────────────────────────────────────────────────────────────┐
+    │ 11. Web Archive: Check 10+ historical timestamps           │
+    │     - 20241201, 20240901, 20240601, 20240301, 20240101     │
+    │     - 20230901, 20230601, 20230101, 20220101, 20210101     │
+    │                                                             │
+    │ 12. DNS History: Check for domain changes                  │
+    │     - Has IP changed recently?                              │
+    │     - Was domain parked before?                             │
+    │     - Any DNS record changes?                               │
+    │                                                             │
+    │ 13. Domain Registration Timeline:                           │
+    │     - When was domain first registered?                     │
+    │     - Was it recently transferred?                          │
+    │     - Previous owners?                                      │
+    │                                                             │
+    │ 14. Check if Domain Was For Sale:                           │
+    │     - Search: "domain-name for sale"                        │
+    │     - Check Sedo, GoDaddy auctions                          │
+    │     - Parked domain history                                 │
+    │                                                             │
+    │ 15. Related Domain Search:                                  │
+    │     - Search for similar domains                            │
+    │     - Check registrar patterns                              │
+    │     - Bulk registration indicators                          │
+    └─────────────────────────────────────────────────────────────┘
+    
+    Cross-Reference Check:
+    ┌─────────────────────────────────────────────────────────────┐
+    │ IF domain_age < 7 days AND claimed_years > 5:              │
+    │   → CRITICAL RED FLAG                                       │
+    │   → Risk Score += 50                                        │
+    │   → Generate "FRAUD ALERT" in report                        │
+    └─────────────────────────────────────────────────────────────┘
+
+╔═══════════════════════════════════════════════════════════════════════════╗
+║ BRANCH 2: EMAIL DOMAIN MISMATCH INVESTIGATION                             ║
+╚═══════════════════════════════════════════════════════════════════════════╝
+
+    Email: user@domain-A.com representing domain-B.com
+
+    Additional Commands to Run:
+    ┌─────────────────────────────────────────────────────────────┐
+    │ 16. Investigate Email Domain (domain-A.com):                │
+    │     - Full website scrape                                   │
+    │     - Search for person's name                              │
+    │     - Check company relationships                           │
+    │     - Look for mentions of domain-B.com                     │
+    │                                                             │
+    │ 17. Investigate Business Domain (domain-B.com):             │
+    │     - Full website scrape                                   │
+    │     - Extract contact emails                                │
+    │     - Check if email domain is mentioned                    │
+    │     - Look for partnerships/affiliations                    │
+    │                                                             │
+    │ 18. Search for Business Relationship:                       │
+    │     - Google: "domain-A + domain-B + partnership"           │
+    │     - Google: "domain-A + domain-B + acquisition"           │
+    │     - Google: "domain-A + domain-B + parent company"        │
+    │                                                             │
+    │ 19. Compare Company Information:                            │
+    │     - Domain-A location vs Domain-B location                │
+    │     - Domain-A industry vs Domain-B industry                │
+    │     - Domain-A team vs Domain-B team                        │
+    │                                                             │
+    │ 20. Check Email Provider:                                   │
+    │     - MX records for domain-A                               │
+    │     - MX records for domain-B                               │
+    │     - Are they using same email provider?                   │
+    └─────────────────────────────────────────────────────────────┘
+    
+    Cross-Reference Check:
+    ┌─────────────────────────────────────────────────────────────┐
+    │ IF no_mention_of_person_on_email_domain AND                │
+    │    no_mention_of_business_domain_on_email_domain AND        │
+    │    no_relationship_found:                                   │
+    │   → HIGH RED FLAG                                           │
+    │   → Risk Score += 30                                        │
+    │   → Flag: "Suspicious email domain usage"                   │
+    └─────────────────────────────────────────────────────────────┘
+
+╔═══════════════════════════════════════════════════════════════════════════╗
+║ BRANCH 3: NO SOCIAL MEDIA PRESENCE INVESTIGATION                          ║
+╚═══════════════════════════════════════════════════════════════════════════╝
+
+    LinkedIn + Twitter + GitHub + Facebook = ZERO results
+
+    Additional Commands to Run:
+    ┌─────────────────────────────────────────────────────────────┐
+    │ 21. Try Alternative Social Platforms:                       │
+    │     - Medium (for articles)                                 │
+    │     - Dev.to (for tech posts)                               │
+    │     - Stack Overflow                                        │
+    │     - Reddit                                                │
+    │     - Hacker News                                           │
+    │     - ProductHunt                                           │
+    │                                                             │
+    │ 22. Search News Archives:                                   │
+    │     - Google News: "person name"                            │
+    │     - Google News: "person name + company"                  │
+    │     - Industry news sites                                   │
+    │     - Press release sites                                   │
+    │                                                             │
+    │ 23. Academic/Professional Databases:                        │
+    │     - Google Scholar                                        │
+    │     - ResearchGate                                          │
+    │     - Academia.edu                                          │
+    │     - Conference proceedings                                │
+    │     - Patent searches                                       │
+    │                                                             │
+    │ 24. Business Registrations:                                 │
+    │     - Search company registrar databases                    │
+    │     - Look for director listings                            │
+    │     - Check professional licenses                           │
+    │                                                             │
+    │ 25. Try Name Variations:                                    │
+    │     - Full name vs shortened name                           │
+    │     - Middle name variations                                │
+    │     - Maiden name (if applicable)                           │
+    │     - Nickname variations                                   │
+    └─────────────────────────────────────────────────────────────┘
+    
+    Cross-Reference Check:
+    ┌─────────────────────────────────────────────────────────────┐
+    │ IF zero_social_media AND                                    │
+    │    zero_news_articles AND                                   │
+    │    zero_academic_papers AND                                 │
+    │    claims_to_be_CEO/founder:                                │
+    │   → CRITICAL RED FLAG                                       │
+    │   → Risk Score += 40                                        │
+    │   → Flag: "No professional digital footprint"               │
+    └─────────────────────────────────────────────────────────────┘
+
+╔═══════════════════════════════════════════════════════════════════════════╗
+║ BRANCH 4: GEOGRAPHIC INCONSISTENCIES                                      ║
+╚═══════════════════════════════════════════════════════════════════════════╝
+
+    Phone: +61 (Australia) | Email: .eco (Poland) | Hosting: USA
+
+    Additional Commands to Run:
+    ┌─────────────────────────────────────────────────────────────┐
+    │ 26. Validate Each Location Claim:                           │
+    │     - Search: "person + Australia"                          │
+    │     - Search: "person + Colombia"                           │
+    │     - Search: "person + Poland"                             │
+    │     - Search: "company + Australia"                         │
+    │     - Search: "company + Colombia"                          │
+    │                                                             │
+    │ 27. Check Business Registrations Per Country:               │
+    │     - Australian ABN lookup                                 │
+    │     - Colombian NIT lookup                                  │
+    │     - Polish KRS lookup                                     │
+    │                                                             │
+    │ 28. Check Hosting Infrastructure:                           │
+    │     - Where are servers located?                            │
+    │     - CDN usage?                                            │
+    │     - Multiple hosting providers?                           │
+    │                                                             │
+    │ 29. Phone Number Deep Dive:                                 │
+    │     - Carrier lookup                                        │
+    │     - VOIP vs Real number                                   │
+    │     - Number porting history                                │
+    │     - Reverse phone lookup                                  │
+    └─────────────────────────────────────────────────────────────┘
+    
+    Cross-Reference Check:
+    ┌─────────────────────────────────────────────────────────────┐
+    │ IF location_count > 3 AND                                   │
+    │    no_valid_business_registration AND                       │
+    │    hosting_country != claimed_country:                      │
+    │   → MEDIUM RED FLAG                                         │
+    │   → Risk Score += 25                                        │
+    │   → Flag: "Multiple inconsistent locations"                 │
+    └─────────────────────────────────────────────────────────────┘
+
+╔═══════════════════════════════════════════════════════════════════════════╗
+║ BRANCH 5: SHARED HOSTING INVESTIGATION                                    ║
+╚═══════════════════════════════════════════════════════════════════════════╝
+
+    Reverse IP shows 500+ domains on same server
+
+    Additional Commands to Run:
+    ┌─────────────────────────────────────────────────────────────┐
+    │ 30. Analyze Shared Hosting Pattern:                         │
+    │     - Get full list of domains on IP                        │
+    │     - Check domain creation dates                           │
+    │     - Look for pattern (mass registration?)                 │
+    │     - Check for known scam domains                          │
+    │                                                             │
+    │ 31. Compare Hosting Infrastructure:                         │
+    │     - Vercel (free tier) vs AWS (paid)                      │
+    │     - Shared vs Dedicated IP                                │
+    │     - CDN usage (Cloudflare, etc.)                          │
+    │                                                             │
+    │ 32. Check Hosting Provider Reputation:                      │
+    │     - Is it free hosting?                                   │
+    │     - Is it commonly used for scams?                        │
+    │     - What tier of service?                                 │
+    └─────────────────────────────────────────────────────────────┘
+    
+    Cross-Reference Check:
+    ┌─────────────────────────────────────────────────────────────┐
+    │ IF shared_ip_with_500+_domains AND                          │
+    │    free_hosting AND                                         │
+    │    claims_to_be_enterprise:                                 │
+    │   → HIGH RED FLAG                                           │
+    │   → Risk Score += 30                                        │
+    │   → Flag: "Inconsistent hosting for claimed business size"  │
+    └─────────────────────────────────────────────────────────────┘
+
+╔═══════════════════════════════════════════════════════════════════════════╗
+║ BRANCH 6: PRESSURE TACTICS DETECTED                                       ║
+╚═══════════════════════════════════════════════════════════════════════════╝
+
+    First contact + Urgent deadline < 7 days
+
+    Additional Commands to Run:
+    ┌─────────────────────────────────────────────────────────────┐
+    │ 33. Timeline Analysis:                                       │
+    │     - Calculate days since domain created                   │
+    │     - Calculate days since first contact                    │
+    │     - Calculate deadline pressure window                    │
+    │                                                             │
+    │ 34. Search for Similar Scam Patterns:                       │
+    │     - Google: "domain scam"                                 │
+    │     - Google: "company name scam"                           │
+    │     - Google: "person name fraud"                           │
+    │     - Check scam reporting sites                            │
+    │                                                             │
+    │ 35. Check Access Request Pattern:                           │
+    │     - What level of access requested?                       │
+    │     - Super admin / CEO passwords?                          │
+    │     - All databases?                                        │
+    │     - Financial access?                                     │
+    └─────────────────────────────────────────────────────────────┘
+    
+    Cross-Reference Check:
+    ┌─────────────────────────────────────────────────────────────┐
+    │ IF domain_age < 7 AND                                       │
+    │    time_to_contact < 3 AND                                  │
+    │    deadline_window < 7 AND                                  │
+    │    high_level_access_requested:                             │
+    │   → CRITICAL RED FLAG                                       │
+    │   → Risk Score += 50                                        │
+    │   → Flag: "URGENT: Classic social engineering pattern"      │
+    └─────────────────────────────────────────────────────────────┘
+
+╔═══════════════════════════════════════════════════════════════════════════╗
+║ FINAL SYNTHESIS: CALCULATE RISK SCORE                                     ║
+╚═══════════════════════════════════════════════════════════════════════════╝
+
+    Risk Score Calculation:
+    ┌─────────────────────────────────────────────────────────────┐
+    │ BASE SCORE: 0/100                                           │
+    │                                                             │
+    │ + 50 points: Domain age < 7 days                            │
+    │ + 40 points: Zero professional footprint                    │
+    │ + 30 points: Email domain mismatch                          │
+    │ + 30 points: Shared IP with 500+ domains                    │
+    │ + 25 points: Multiple location inconsistencies              │
+    │ + 20 points: No business registration found                 │
+    │ + 20 points: Pressure tactics timeline                      │
+    │ + 15 points: SSL cert age = domain age                      │
+    │ + 10 points: No social media presence                       │
+    │ + 10 points: Generic/template website                       │
+    │                                                             │
+    │ TOTAL: Sum of all applicable flags                          │
+    └─────────────────────────────────────────────────────────────┘
+
+    Risk Categories:
+    ┌─────────────────────────────────────────────────────────────┐
+    │ 0-20:   LOW RISK - Minor concerns, likely legitimate        │
+    │ 21-40:  MEDIUM RISK - Several red flags, proceed cautiously │
+    │ 41-60:  HIGH RISK - Major concerns, verify thoroughly       │
+    │ 61-80:  CRITICAL RISK - Likely fraud, do not provide access │
+    │ 81-100: EXTREME RISK - Definite fraud attempt               │
+    └─────────────────────────────────────────────────────────────┘
+
+    Example from Real Investigation:
+    ┌─────────────────────────────────────────────────────────────┐
+    │ Gregory Dutton / scatechnology.ai SCORE: 145/200 (72.5%)   │
+    │                                                             │
+    │ + 50 Domain created 3 days ago                              │
+    │ + 40 No LinkedIn, Twitter, GitHub, Facebook found           │
+    │ + 30 Email uses isb.eco, represents scatechnology.ai        │
+    │ + 30 Shared IP with 500+ domains (Vercel free hosting)      │
+    │ + 25 Australia phone + Poland domain + Colombia claims      │
+    │ + 20 Cannot verify Colombian NIT registration online        │
+    │ + 20 First contact 2 days after domain, 6 day deadline      │
+    │ + 15 SSL cert issued same day as domain                     │
+    │ + 10 No mentions of person on email domain website          │
+    │ + 10 Generic Webflow template site                          │
+    │ ──────────────────────────────────────────────────────      │
+    │ TOTAL: 250/300 possible points = 83% EXTREME RISK           │
+    │                                                             │
+    │ RECOMMENDATION: DO NOT PROVIDE ACCESS - FRAUD ATTEMPT       │
+    └─────────────────────────────────────────────────────────────┘
+
+╔═══════════════════════════════════════════════════════════════════════════╗
+║ KEY INSIGHT: THE POWER OF BRANCHING                                       ║
+╚═══════════════════════════════════════════════════════════════════════════╝
+
+Current Dashboard (Rigid):
+┌─────────────────────────────────────────────────────────────┐
+│ Run command 1                                               │
+│ Run command 2                                               │
+│ Run command 3                                               │
+│ ...                                                         │
+│ Run command 50                                              │
+│ Display all outputs                                         │
+│ END                                                         │
+└─────────────────────────────────────────────────────────────┘
+Total Commands: 50
+Investigation Depth: SHALLOW
+Intelligence: NONE
+Adaptation: NONE
+
+Strategic AI (Adaptive):
+┌─────────────────────────────────────────────────────────────┐
+│ Run initial 10 commands                                     │
+│ ANALYZE results                                             │
+│ IF red_flag_1: Run branch_1 (5 commands)                   │
+│ IF red_flag_2: Run branch_2 (7 commands)                   │
+│ IF red_flag_3: Run branch_3 (8 commands)                   │
+│ CROSS-REFERENCE all findings                               │
+│ CALCULATE risk score                                       │
+│ SYNTHESIZE comprehensive report                            │
+│ END                                                         │
+└─────────────────────────────────────────────────────────────┘
+Total Commands: 10-30 (TARGETED)
+Investigation Depth: DEEP
+Intelligence: HIGH
+Adaptation: FULL
+
+╔═══════════════════════════════════════════════════════════════════════════╗
+║ CONCLUSION                                                                ║
+╚═══════════════════════════════════════════════════════════════════════════╝
+
+The AI should NOT be a "command executor"
+The AI should BE an "intelligent investigator"
+
+Every command output should INFORM the next decision
+Every finding should BRANCH into specialized follow-ups
+Every anomaly should TRIGGER deeper investigation
+
+THIS is what Computer Use was designed for - ADAPTIVE INTELLIGENCE
+
+═══════════════════════════════════════════════════════════════════════════════

@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Card Renderer Test</title>
+    <link rel="stylesheet" href="../modules_internal/internal_docs/card-renderer.css">
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+
+        .test-section {
+            background: white;
+            padding: 20px;
+            margin-bottom: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        .test-section h2 {
+            margin-top: 0;
+            color: #333;
+        }
+
+        .test-result {
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 4px;
+        }
+
+        .test-result.pass {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .test-result.fail {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>🧪 Card Renderer Centralization Test</h1>
+
+    <div class="test-section">
+        <h2>Test 1: Card Renderer Loading</h2>
+        <div id="test1-result" class="test-result"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>Test 2: Default Card Rendering</h2>
+        <div id="test2-result" class="test-result"></div>
+        <div id="test2-output"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>Test 3: Compact Card Rendering</h2>
+        <div id="test3-result" class="test-result"></div>
+        <div id="test3-output"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>Test 4: Multiple Cards (List)</h2>
+        <div id="test4-result" class="test-result"></div>
+        <div id="test4-output"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>Test 5: Empty State</h2>
+        <div id="test5-result" class="test-result"></div>
+        <div id="test5-output"></div>
+    </div>
+
+    <script src="../modules_internal/internal_docs/card-renderer.js"></script>
+    <script>
+        // Test data
+        const testDoc = {
+            id: 1,
+            title: "Test Document",
+            description: "This is a test document description",
+            tags: ["test", "automation", "workflow"],
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+            owner: "Test User"
+        };
+
+        const testDocs = [
+            testDoc,
+            {
+                id: 2,
+                doc_name: "Another Document",
+                doc_description: "Using alternate field names",
+                tags: ["synergy"],
+                created_at: new Date().toISOString()
+            },
+            {
+                id: 3,
+                title: "Third Document",
+                tags: ["internal-docs"],
+                created_at: new Date().toISOString()
+            }
+        ];
+
+        function runTest(testId, testName, testFn) {
+            const resultDiv = document.getElementById(`${testId}-result`);
+            const outputDiv = document.getElementById(`${testId}-output`);
+
+            try {
+                testFn(outputDiv);
+                resultDiv.className = 'test-result pass';
+                resultDiv.textContent = `✅ PASS: ${testName}`;
+                return true;
+            } catch (error) {
+                resultDiv.className = 'test-result fail';
+                resultDiv.textContent = `❌ FAIL: ${testName} - ${error.message}`;
+                console.error(`Test failed: ${testName}`, error);
+                return false;
+            }
+        }
+
+        // Run tests when page loads
+        window.addEventListener('DOMContentLoaded', () => {
+            console.log('Running card renderer tests...');
+
+            // Test 1: Check if renderer exists
+            runTest('test1', 'SynergyDocCardRenderer exists and is initialized', (output) => {
+                if (!window.SynergyDocCardRenderer) {
+                    throw new Error('SynergyDocCardRenderer not found in window');
+                }
+                if (typeof window.SynergyDocCardRenderer.render !== 'function') {
+                    throw new Error('render() method not found');
+                }
+                output.innerHTML = '<p>✅ SynergyDocCardRenderer loaded successfully</p>';
+            });
+
+            // Test 2: Render default card
+            runTest('test2', 'Render default card variant', (output) => {
+                const html = window.SynergyDocCardRenderer.render(testDoc);
+                if (!html || typeof html !== 'string') {
+                    throw new Error('render() did not return a string');
+                }
+                if (!html.includes('synergy-doc-card')) {
+                    throw new Error('Card HTML does not contain expected class');
+                }
+                output.innerHTML = html;
+            });
+
+            // Test 3: Render compact card
+            runTest('test3', 'Render compact card variant', (output) => {
+                const html = window.SynergyDocCardRenderer.render(testDoc, { variant: 'compact' });
+                if (!html.includes('compact')) {
+                    throw new Error('Compact variant not applied');
+                }
+                output.innerHTML = html;
+            });
+
+            // Test 4: Render list
+            runTest('test4', 'Render multiple cards as list', (output) => {
+                const html = window.SynergyDocCardRenderer.renderList(testDocs);
+                if (!html || typeof html !== 'string') {
+                    throw new Error('renderList() did not return a string');
+                }
+                const cardCount = (html.match(/synergy-doc-card/g) || []).length;
+                if (cardCount !== testDocs.length) {
+                    throw new Error(`Expected ${testDocs.length} cards, found ${cardCount}`);
+                }
+                output.innerHTML = html;
+            });
+
+            // Test 5: Empty state
+            runTest('test5', 'Render empty state', (output) => {
+                const html = window.SynergyDocCardRenderer.renderList([]);
+                if (!html.includes('empty-state')) {
+                    throw new Error('Empty state not rendered');
+                }
+                output.innerHTML = html;
+            });
+
+            console.log('All tests completed');
+        });
+    </script>
+</body>
+
+</html>

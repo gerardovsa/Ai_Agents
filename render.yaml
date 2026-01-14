@@ -1,0 +1,215 @@
+﻿# AI Agents V11 - InHouse Print Focused Configuration
+# Created: 2026-01-15
+# Modules: 6 external (inhouse-kanban, inhouse-print, quote-calculator, stock-management, xero, shopify)
+# Removed: 11 external modules not needed for InHouse Print
+# ========================================
+# AI Agents Platform - Render.com Configuration
+# ========================================
+# Region: Singapore (optimized for Australia)
+# Deployment Type: Docker
+# Repository: gerardovsa/AI_agents
+# branch: v7
+
+services:
+  # ==================== AI Agents Backend Service ====================
+  - type: web
+    name: ai-agents-inhouse-v11-backend
+    env: docker
+    region: singapore  # ðŸ‡¸ðŸ‡¬ CLOSEST TO AUSTRALIA (~100-150ms latency)
+    plan: starter  # $7/month (can downgrade to free after testing)
+    
+    # Build Docker image directly on Render from repository
+    # Layer caching optimization reduces build time: 30min â†’ 5-10min
+    # Dockerfile uses multi-layer caching:
+    #   Layer 1: System deps (cached)
+    #   Layer 2: Python deps (cached unless requirements.txt changes)
+    #   Layer 3: Node deps (cached unless package.json changes)
+    #   Layer 4: App code (rebuilds on every push)
+    repo: https://github.com/gerardovsa/AI_agents
+    branch: v11  # âœ… Updated to v10 branch
+    
+    # Deployment settings
+    autoDeploy: true  # Auto-deploy on git push
+    
+    # Health check endpoint
+    healthCheckPath: /health
+    
+    # ==================== Persistent Disk (10GB) ====================
+    # Mounts to /data for SQLite databases
+    # Cost: $2.50/month (10GB @ $0.25/GB)
+    disk:
+      name: ai-agents-inhouse-v11-data
+      mountPath: /data
+      sizeGB: 10
+    
+    # ==================== Environment Variables ====================
+    envVars:
+      # Flask configuration
+      - key: PYTHONUNBUFFERED
+        value: "1"
+      
+      # UTF-8 encoding for emoji support
+      - key: PYTHONIOENCODING
+        value: "utf-8"
+      
+      - key: LANG
+        value: "en_US.UTF-8"
+      
+      - key: LC_ALL
+        value: "en_US.UTF-8"
+      
+      - key: RENDER
+        value: "true"
+      
+      - key: ENVIRONMENT
+        value: "production"
+      
+      - key: FLASK_ENV
+        value: "production"
+      
+      - key: DEBUG
+        value: "False"
+      
+      - key: PORT
+        value: "10000"  # Render default port
+      
+      # âœ… CRITICAL FIX: Set frontend URL to V10 alias
+      # This ensures OAuth callbacks redirect to the correct V10 URL
+      # Without this, request.url_root returns backend service name (ai-agents-backend)
+      - key: FRONTEND_URL
+        value: "https://ai-agents-v10.onrender.com"
+      
+      # ==================== AI Provider API Keys ====================
+      # Note: Add these manually in Render dashboard after deployment
+      # Dashboard: https://dashboard.render.com/web/srv-xxxxx/env
+      
+      - key: ANTHROPIC_API_KEY
+        sync: false  # Will add manually (keeps secrets out of git)
+      
+      - key: OPENAI_API_KEY
+        sync: false
+      
+      - key: DEEPSEEK_API_KEY_1
+        sync: false
+      
+      # ==================== Microsoft OAuth ====================
+      - key: MICROSOFT_CLIENT_ID
+        sync: false
+      
+      - key: MICROSOFT_CLIENT_SECRET
+        sync: false
+      
+      - key: MICROSOFT_TENANT_ID
+        value: common
+      
+      # ==================== Google OAuth ====================
+      - key: GOOGLE_OAUTH_CLIENT_ID
+        sync: false
+      
+      - key: GOOGLE_OAUTH_CLIENT_SECRET
+        sync: false
+      
+        - key: GOOGLE_OAUTH_MODE
+          value: web  # Use web mode for production (not desktop)
+        
+        # âœ… UPDATED to V10 URL (Nov 29, 2025)
+        - key: GOOGLE_REDIRECT_URI
+          value: https://ai-agents-v10.onrender.com/api/auth/google/callback      - key: GOOGLE_OAUTH_REDIRECT_URI
+        value: https://ai-agents-v10.onrender.com/oauth2callback
+      
+      - key: GOOGLE_OAUTH_SCOPES
+        value: https://www.googleapis.com/auth/spreadsheets,https://www.googleapis.com/auth/documents,https://www.googleapis.com/auth/drive,https://www.googleapis.com/auth/gmail.readonly,https://www.googleapis.com/auth/gmail.send,https://www.googleapis.com/auth/calendar.readonly
+      
+      # ==================== Xero Accounting Integration ====================
+      # Xero credentials are stored in Supabase database table:
+      # ai_infrastructure.user_platform_credentials
+      # Platforms: xero_print, xero_publishing, xero_signs
+      # No environment variables needed - fetched dynamically from database
+      
+      # ==================== Database Configuration ====================
+      # Supabase PostgreSQL (Production) or SQLite (Local Dev)
+      # Controlled by USE_SUPABASE environment variable
+      
+      # Supabase Configuration (Production)
+      - key: USE_SUPABASE
+        value: "true"  # Enable Supabase PostgreSQL
+      
+      - key: SUPABASE_URL
+        sync: false  # Add manually: https://ryoicrdifiqhqpsnjmdo.supabase.co
+      
+      - key: SUPABASE_SERVICE_KEY
+        sync: false  # Add manually from Supabase dashboard
+      
+      # âœ… CRITICAL FIX: Two connection modes for Supabase pooler
+      # Transaction Mode (port 6543) - Best for Flask/serverless
+      - key: SUPABASE_DB_URL_POOLER
+        sync: false  # Add manually: postgresql://postgres.PROJECT:PASSWORD@aws-0-REGION.pooler.supabase.com:6543/postgres
+      
+      # Session Mode (port 5432) - Fallback for long-running connections
+      - key: SUPABASE_DB_URL_SESSION
+        sync: false  # Add manually: postgresql://postgres.PROJECT:PASSWORD@aws-0-REGION.pooler.supabase.com:5432/postgres
+      
+      # SQLite Fallback (if Supabase disabled)
+      - key: DATABASE_PATH
+        value: /data/ai_infrastructure.db
+      
+      - key: SESSION_DB_PATH
+        value: /data/sessions.db
+      
+      - key: SYNERGY_DB_PATH
+        value: /data/synergy_sessions.db
+      
+      # ==================== Flask Secret Key ====================
+      # Generate new key: python -c "import secrets; print(secrets.token_hex(32))"
+      - key: SECRET_KEY
+        sync: false  # Add manually in dashboard
+      
+      # ==================== CORS Configuration ====================
+      - key: CORS_ORIGINS
+        value: "*"  # Update with your frontend URL after deployment
+
+# ========================================
+# Post-Deployment Steps
+# ========================================
+# 1. Add environment variables in Render dashboard:
+#    - ANTHROPIC_API_KEY
+#    - OPENAI_API_KEY
+#    - DEEPSEEK_API_KEY_1
+#    - MICROSOFT_CLIENT_ID
+#    - MICROSOFT_CLIENT_SECRET
+#    - GOOGLE_OAUTH_CLIENT_ID
+#    - GOOGLE_OAUTH_CLIENT_SECRET
+#    - SUPABASE_URL & SUPABASE_SERVICE_KEY
+#    - SUPABASE_DB_URL_POOLER & SUPABASE_DB_URL_SESSION
+#    - SECRET_KEY
+#
+# 2. Update OAuth redirect URLs:
+#    - Google Cloud Console: Add https://ai-agents-backend-xxxx.onrender.com/api/auth/google/callback
+#    - Microsoft Azure Portal: Add https://ai-agents-backend-xxxx.onrender.com/api/auth/microsoft/callback
+#
+# 3. Xero Integration:
+#    - Credentials stored in Supabase: ai_infrastructure.user_platform_credentials
+#    - Platforms: xero_print, xero_publishing, xero_signs
+#    - No environment variables needed (fetched from database)
+#
+# 4. Test deployment:
+#    - python Render_backend/test_deployment.py https://ai-agents-backend-xxxx.onrender.com
+#
+# 4. Monitor service:
+#    - python Render_backend/monitor_deployment.py srv-xxxxx
+#
+# ========================================
+# Cost Optimization
+# ========================================
+# Starter Plan: $7/month
+#   - Always-on (no spin down)
+#   - Better performance
+#   - Dedicated resources
+#
+# Free Plan: $0/month (downgrade after testing)
+#   - Spins down after 15 min inactivity
+#   - 1-2 min cold start
+#   - 750 hours/month free
+#
+# Downgrade command:
+#   python Render_backend/downgrade_to_free.py srv-xxxxx

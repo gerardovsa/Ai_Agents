@@ -1,0 +1,766 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Enhanced Stock Management Table</title>
+
+    <!-- Tabulator CSS -->
+    <link href="https://unpkg.com/tabulator-tables@5.5.0/dist/css/tabulator.min.css" rel="stylesheet">
+
+    <!-- Tabulator JS -->
+    <script src="https://unpkg.com/tabulator-tables@5.5.0/dist/js/tabulator.min.js"></script>
+
+    <!-- Moment.js for date formatting -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.4/moment.min.js"></script>
+
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --bg-primary: #0d1117;
+            --bg-secondary: #161b22;
+            --bg-card: #21262d;
+            --border-color: #30363d;
+            --text-primary: #c9d1d9;
+            --text-secondary: #8b949e;
+            --accent-primary: #58a6ff;
+            --success-color: #3fb950;
+            --warning-color: #d29922;
+            --error-color: #f85149;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1800px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            color: var(--accent-primary);
+            margin-bottom: 20px;
+        }
+
+        .controls {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 16px;
+            margin-bottom: 20px;
+            display: flex;
+            gap: 12px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.2s;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .btn-primary {
+            background: var(--accent-primary);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #1f6feb;
+        }
+
+        .btn-secondary {
+            background: #6c757d;
+            color: white;
+        }
+
+        .btn-danger {
+            background: var(--error-color);
+            color: white;
+        }
+
+        /* Tabulator Customization */
+        .tabulator {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            font-size: 13px;
+        }
+
+        .tabulator-header {
+            background: var(--bg-secondary);
+            border-bottom: 2px solid var(--border-color);
+        }
+
+        .tabulator-col {
+            background: var(--bg-secondary);
+            border-right: 1px solid var(--border-color);
+        }
+
+        .tabulator-row {
+            background: var(--bg-card);
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .tabulator-row:hover {
+            background: var(--bg-secondary);
+        }
+
+        .tabulator-row.tabulator-selected {
+            background: rgba(88, 166, 255, 0.1);
+        }
+
+        /* Tagged Rows */
+        .tagged-row-green {
+            border-left: 4px solid #28a745 !important;
+            background: rgba(40, 167, 69, 0.05) !important;
+        }
+
+        .tagged-row-orange {
+            border-left: 4px solid #fd7e14 !important;
+            background: rgba(253, 126, 20, 0.05) !important;
+        }
+
+        .tagged-row-red {
+            border-left: 4px solid #dc3545 !important;
+            background: rgba(220, 53, 69, 0.05) !important;
+        }
+
+        /* Tag Button */
+        .action-btn-tag {
+            background: #6c757d;
+            color: white;
+            border: none;
+            padding: 4px 8px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+        }
+
+        .action-btn-tag.tag-green {
+            background: #28a745;
+        }
+
+        .action-btn-tag.tag-orange {
+            background: #fd7e14;
+        }
+
+        .action-btn-tag.tag-red {
+            background: #dc3545;
+        }
+
+        /* Cell Popup */
+        .cell-popup {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: var(--bg-card);
+            border: 2px solid var(--border-color);
+            border-radius: 8px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+            z-index: 10000;
+            max-width: 800px;
+            max-height: 80vh;
+            width: 90%;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .cell-popup-header {
+            padding: 16px;
+            background: var(--bg-secondary);
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            cursor: move;
+        }
+
+        .cell-popup-content {
+            padding: 20px;
+            overflow-y: auto;
+            flex: 1;
+        }
+
+        .cell-popup-footer {
+            padding: 12px 16px;
+            background: var(--bg-secondary);
+            border-top: 1px solid var(--border-color);
+            display: flex;
+            gap: 8px;
+            justify-content: flex-end;
+        }
+
+        /* Stats Cards */
+        .stats-row {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 16px;
+            margin-bottom: 20px;
+        }
+
+        .stat-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 16px;
+        }
+
+        .stat-label {
+            color: var(--text-secondary);
+            font-size: 12px;
+            text-transform: uppercase;
+            margin-bottom: 8px;
+        }
+
+        .stat-value {
+            font-size: 28px;
+            /* font-weight: bold; */
+            color: var(--accent-primary);
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <h1><i class="fas fa-boxes"></i> Enhanced Stock Management Table</h1>
+
+        <!-- Stats Cards -->
+        <div class="stats-row">
+            <div class="stat-card">
+                <div class="stat-label">Total Stocks</div>
+                <div class="stat-value" id="stat-total">0</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Selected Rows</div>
+                <div class="stat-value" id="stat-selected">0</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Tagged Stocks</div>
+                <div class="stat-value" id="stat-tagged">0</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Low Stock Alerts</div>
+                <div class="stat-value" id="stat-alerts">0</div>
+            </div>
+        </div>
+
+        <!-- Controls -->
+        <div class="controls">
+            <button class="btn btn-primary" onclick="refreshTable()">
+                <i class="fas fa-sync-alt"></i> Refresh
+            </button>
+
+            <button class="btn btn-secondary" onclick="bulkTagRows(null)" title="Clear Tags">
+                <i class="fas fa-tag"></i> Clear Tags
+            </button>
+            <button class="btn btn-secondary" onclick="bulkTagRows('green')" style="background: #28a745;"
+                title="Tag Green">
+                <i class="fas fa-tag"></i> Green
+            </button>
+            <button class="btn btn-secondary" onclick="bulkTagRows('orange')" style="background: #fd7e14;"
+                title="Tag Orange">
+                <i class="fas fa-tag"></i> Orange
+            </button>
+            <button class="btn btn-secondary" onclick="bulkTagRows('red')" style="background: #dc3545;" title="Tag Red">
+                <i class="fas fa-tag"></i> Red
+            </button>
+
+            <button class="btn btn-secondary" onclick="showAllColumns()">
+                <i class="fas fa-eye"></i> Show All Columns
+            </button>
+
+            <button class="btn btn-danger" onclick="clearFilters()">
+                <i class="fas fa-filter-circle-xmark"></i> Clear Filters
+            </button>
+
+            <select id="row-count" onchange="updateRowCount()"
+                style="padding: 8px; background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: 6px; color: var(--text-primary);">
+                <option value="50">50 rows</option>
+                <option value="100" selected>100 rows</option>
+                <option value="200">200 rows</option>
+                <option value="500">500 rows</option>
+            </select>
+        </div>
+
+        <!-- Table -->
+        <div id="stock-table"></div>
+    </div>
+
+    <script>
+        const BACKEND_URL = 'http://localhost:5001';
+        let stockTable;
+
+        // Initialize table on load
+        window.addEventListener('DOMContentLoaded', initStockTable);
+
+        function initStockTable() {
+            stockTable = new Tabulator("#stock-table", {
+                layout: "fitDataStretch",
+                selectable: true,
+                selectableRangeMode: "click",  // Enable shift+click range selection
+                pagination: "local",
+                paginationSize: 100,
+                placeholder: "Loading stock data...",
+                movableColumns: true,
+                resizableColumns: true,
+                persistenceMode: "local",
+                persistence: {
+                    sort: true,
+                    filter: true,
+                    columns: ["width", "visible"]
+                },
+                rowFormatter: function (row) {
+                    const data = row.getData();
+                    const tagColor = getRowTag(data.StockID || data.stock_id);
+
+                    row.getElement().classList.remove('tagged-row-green', 'tagged-row-orange', 'tagged-row-red');
+                    if (tagColor) {
+                        row.getElement().classList.add(`tagged-row-${tagColor}`);
+                    }
+                },
+                headerMenu: [
+                    {
+                        label: "<i class='fas fa-eye-slash'></i> Hide Column",
+                        action: function (e, column) {
+                            column.hide();
+                            showNotification(`Column "${column.getDefinition().title}" hidden`, 'success');
+                        }
+                    },
+                    {
+                        separator: true
+                    },
+                    {
+                        label: "<i class='fas fa-eye'></i> Show All Columns",
+                        action: function (e, column) {
+                            stockTable.getColumns().forEach(col => {
+                                if (!col.getDefinition().frozen) {
+                                    col.show();
+                                }
+                            });
+                            showNotification('All columns visible', 'success');
+                        }
+                    }
+                ],
+                columns: [
+                    {
+                        title: "Select",
+                        formatter: "rowSelection",
+                        titleFormatter: "rowSelection",
+                        hozAlign: "center",
+                        headerHozAlign: "center",
+                        headerSort: false,
+                        width: 60,
+                        frozen: true
+                    },
+                    {
+                        title: "#",
+                        field: "row_number",
+                        width: 50,
+                        frozen: true,
+                        headerSort: false,
+                        hozAlign: "center",
+                        headerHozAlign: "center",
+                        formatter: function (cell) {
+                            return cell.getRow().getPosition();
+                        }
+                    },
+                    {
+                        title: "Tag",
+                        field: "tag",
+                        width: 60,
+                        frozen: true,
+                        headerSort: false,
+                        hozAlign: "center",
+                        headerHozAlign: "center",
+                        formatter: function (cell) {
+                            const row = cell.getRow().getData();
+                            const stockId = row.StockID || row.stock_id;
+                            const currentTag = getRowTag(stockId);
+                            const tagClass = currentTag ? `tag-${currentTag}` : '';
+                            return `
+                                <button class="action-btn-tag ${tagClass}" 
+                                        onclick="toggleRowTag(event, '${stockId}')" 
+                                        title="Tag Row (Click to cycle: Untagged → Green → Orange → Red)">
+                                    <i class="fas fa-tag"></i>
+                                </button>
+                            `;
+                        }
+                    },
+                    {
+                        title: "Stock ID",
+                        field: "StockID",
+                        width: 100,
+                        frozen: true,
+                        headerFilter: "input",
+                        formatter: function (cell) {
+                            return `<strong>#${cell.getValue()}</strong>`;
+                        }
+                    },
+                    {
+                        title: "Stock Type",
+                        field: "StockType",
+                        width: 200,
+                        headerFilter: "input"
+                    },
+                    {
+                        title: "Usage Count",
+                        field: "usage_count",
+                        width: 120,
+                        hozAlign: "right",
+                        headerHozAlign: "right",
+                        sorter: "number",
+                        formatter: function (cell) {
+                            const val = cell.getValue();
+                            return val ? val.toLocaleString() : '0';
+                        }
+                    },
+                    {
+                        title: "Total Quantity",
+                        field: "total_quantity",
+                        width: 140,
+                        hozAlign: "right",
+                        headerHozAlign: "right",
+                        sorter: "number",
+                        formatter: function (cell) {
+                            const val = cell.getValue();
+                            return val ? val.toLocaleString() : '0';
+                        }
+                    },
+                    {
+                        title: "GSM",
+                        field: "GSM",
+                        width: 80,
+                        hozAlign: "right",
+                        headerHozAlign: "right",
+                        headerFilter: "input"
+                    },
+                    {
+                        title: "Dimensions",
+                        field: "Dimensions",
+                        width: 150,
+                        headerFilter: "input"
+                    }
+                ]
+            });
+
+            // Double-click to show cell popup
+            stockTable.on("cellDblClick", function (e, cell) {
+                showCellPopup(e, cell);
+            });
+
+            // Update selection count
+            stockTable.on("rowSelectionChanged", function (data, rows) {
+                document.getElementById('stat-selected').textContent = rows.length;
+            });
+
+            // Load data
+            loadStockData();
+        }
+
+        async function loadStockData() {
+            try {
+                const response = await fetch(`${BACKEND_URL}/api/stock/usage-analytics?days=90`);
+                const result = await response.json();
+
+                if (result.status === 'ok') {
+                    stockTable.setData(result.data);
+                    updateStats(result.data);
+                    showNotification(`Loaded ${result.data.length} stocks`, 'success');
+                } else {
+                    showNotification('Failed to load data: ' + result.message, 'error');
+                }
+            } catch (error) {
+                showNotification('Error: ' + error.message, 'error');
+            }
+        }
+
+        function updateStats(data) {
+            document.getElementById('stat-total').textContent = data.length;
+
+            // Count tagged stocks
+            const tags = JSON.parse(localStorage.getItem('stock_row_tags') || '{}');
+            document.getElementById('stat-tagged').textContent = Object.keys(tags).length;
+
+            // Calculate low stock alerts (mock - would come from reorder endpoint)
+            document.getElementById('stat-alerts').textContent = '0';
+        }
+
+        // ============================================================================
+        // ROW TAGGING SYSTEM
+        // ============================================================================
+
+        function toggleRowTag(event, stockId) {
+            event.stopPropagation();
+
+            const currentTag = getRowTag(stockId);
+            let nextTag;
+
+            switch (currentTag) {
+                case null: nextTag = 'green'; break;
+                case 'green': nextTag = 'orange'; break;
+                case 'orange': nextTag = 'red'; break;
+                case 'red': nextTag = null; break;
+                default: nextTag = 'green';
+            }
+
+            const tags = JSON.parse(localStorage.getItem('stock_row_tags') || '{}');
+            if (nextTag === null) {
+                delete tags[stockId];
+            } else {
+                tags[stockId] = nextTag;
+            }
+            localStorage.setItem('stock_row_tags', JSON.stringify(tags));
+
+            // Update button
+            const button = event.currentTarget;
+            button.classList.remove('tag-green', 'tag-orange', 'tag-red');
+            if (nextTag) button.classList.add(`tag-${nextTag}`);
+
+            // Update row
+            const row = button.closest('.tabulator-row');
+            if (row) {
+                row.classList.remove('tagged-row-green', 'tagged-row-orange', 'tagged-row-red');
+                if (nextTag) row.classList.add(`tagged-row-${nextTag}`);
+            }
+
+            updateStats(stockTable.getData());
+            showNotification(`Stock #${stockId} tagged as ${nextTag || 'untagged'}`, 'success');
+        }
+
+        function getRowTag(stockId) {
+            const tags = JSON.parse(localStorage.getItem('stock_row_tags') || '{}');
+            return tags[stockId] || null;
+        }
+
+        function bulkTagRows(tagColor) {
+            const selectedRows = stockTable.getSelectedRows();
+
+            if (selectedRows.length === 0) {
+                showNotification('No rows selected', 'warning');
+                return;
+            }
+
+            const tags = JSON.parse(localStorage.getItem('stock_row_tags') || '{}');
+
+            selectedRows.forEach(row => {
+                const data = row.getData();
+                const stockId = data.StockID || data.stock_id;
+
+                if (tagColor === null) {
+                    delete tags[stockId];
+                } else {
+                    tags[stockId] = tagColor;
+                }
+
+                row.getElement().classList.remove('tagged-row-green', 'tagged-row-orange', 'tagged-row-red');
+                if (tagColor) row.getElement().classList.add(`tagged-row-${tagColor}`);
+                row.reformat();
+            });
+
+            localStorage.setItem('stock_row_tags', JSON.stringify(tags));
+            updateStats(stockTable.getData());
+            showNotification(`${selectedRows.length} stocks ${tagColor ? 'tagged ' + tagColor : 'untagged'}`, 'success');
+        }
+
+        // ============================================================================
+        // CELL POPUP VIEWER
+        // ============================================================================
+
+        function showCellPopup(event, cell) {
+            const existingPopup = document.getElementById('cell-popup');
+            if (existingPopup) existingPopup.remove();
+
+            const cellData = cell.getValue();
+            const fieldName = cell.getColumn().getField();
+
+            if (!cellData || fieldName === 'tag') return;
+
+            const popup = document.createElement('div');
+            popup.id = 'cell-popup';
+            popup.className = 'cell-popup';
+
+            const displayText = String(cellData).substring(0, 50000);
+            const charCount = String(cellData).length;
+            const tokenCount = Math.ceil(charCount / 4);
+
+            popup.innerHTML = `
+                <div class="cell-popup-header" id="popup-header">
+                    <div>
+                        <strong style="font-size: 16px;">${fieldName}</strong>
+                        <div style="font-size: 12px; color: var(--text-secondary); margin-top: 4px;">
+                            ${charCount.toLocaleString()} characters | ~${tokenCount.toLocaleString()} tokens
+                        </div>
+                    </div>
+                    <div style="display: flex; gap: 8px;">
+                        <button onclick="copyCellContent()" class="btn btn-primary" style="padding: 6px 12px;">
+                            <i class="fas fa-copy"></i> Copy
+                        </button>
+                        <button onclick="closeCellPopup()" class="btn btn-secondary" style="padding: 6px 12px;">
+                            Close
+                        </button>
+                    </div>
+                </div>
+                <div class="cell-popup-content">
+                    <pre style="white-space: pre-wrap; word-wrap: break-word; margin: 0; font-family: monospace; font-size: 13px; color: var(--text-primary);">${escapeHtml(displayText)}</pre>
+                </div>
+            `;
+
+            document.body.appendChild(popup);
+            popup.dataset.fullContent = String(cellData);
+            makeDraggable(popup, document.getElementById('popup-header'));
+        }
+
+        function closeCellPopup() {
+            const popup = document.getElementById('cell-popup');
+            if (popup) popup.remove();
+        }
+
+        function copyCellContent() {
+            const popup = document.getElementById('cell-popup');
+            if (popup && popup.dataset.fullContent) {
+                navigator.clipboard.writeText(popup.dataset.fullContent)
+                    .then(() => showNotification('Copied to clipboard', 'success'))
+                    .catch(() => showNotification('Copy failed', 'error'));
+            }
+        }
+
+        function makeDraggable(popup, header) {
+            let isDragging = false, currentX, currentY, initialX, initialY, xOffset = 0, yOffset = 0;
+
+            header.addEventListener('mousedown', dragStart);
+            document.addEventListener('mousemove', drag);
+            document.addEventListener('mouseup', dragEnd);
+
+            function dragStart(e) {
+                if (e.target.tagName === 'BUTTON' || e.target.closest('button')) return;
+                initialX = e.clientX - xOffset;
+                initialY = e.clientY - yOffset;
+                if (e.target === header || header.contains(e.target)) isDragging = true;
+            }
+
+            function drag(e) {
+                if (isDragging) {
+                    e.preventDefault();
+                    currentX = e.clientX - initialX;
+                    currentY = e.clientY - initialY;
+                    xOffset = currentX;
+                    yOffset = currentY;
+                    popup.style.transform = `translate(calc(-50% + ${currentX}px), calc(-50% + ${currentY}px))`;
+                }
+            }
+
+            function dragEnd() {
+                initialX = currentX;
+                initialY = currentY;
+                isDragging = false;
+            }
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        // ============================================================================
+        // UTILITY FUNCTIONS
+        // ============================================================================
+
+        function refreshTable() {
+            loadStockData();
+        }
+
+        function showAllColumns() {
+            stockTable.getColumns().forEach(col => {
+                if (!col.getDefinition().frozen) col.show();
+            });
+            showNotification('All columns visible', 'success');
+        }
+
+        function clearFilters() {
+            stockTable.clearHeaderFilter();
+            showNotification('Filters cleared', 'success');
+        }
+
+        function updateRowCount() {
+            const count = parseInt(document.getElementById('row-count').value);
+            stockTable.setPageSize(count);
+            showNotification(`Showing ${count} rows per page`, 'success');
+        }
+
+        function showNotification(message, type) {
+            console.log(`[${type.toUpperCase()}] ${message}`);
+
+            // Create toast notification
+            const toast = document.createElement('div');
+            toast.style.cssText = `
+                position: fixed;
+                top: 20px;
+                right: 20px;
+                background: ${type === 'success' ? '#28a745' : type === 'error' ? '#dc3545' : '#ffc107'};
+                color: white;
+                padding: 12px 20px;
+                border-radius: 6px;
+                box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+                z-index: 10001;
+                animation: slideIn 0.3s ease-out;
+            `;
+            toast.textContent = message;
+            document.body.appendChild(toast);
+
+            setTimeout(() => {
+                toast.style.animation = 'slideOut 0.3s ease-in';
+                setTimeout(() => toast.remove(), 300);
+            }, 3000);
+        }
+    </script>
+
+    <style>
+        @keyframes slideIn {
+            from {
+                transform: translateX(400px);
+                opacity: 0;
+            }
+
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+
+        @keyframes slideOut {
+            from {
+                transform: translateX(0);
+                opacity: 1;
+            }
+
+            to {
+                transform: translateX(400px);
+                opacity: 0;
+            }
+        }
+    </style>
+</body>
+
+</html>

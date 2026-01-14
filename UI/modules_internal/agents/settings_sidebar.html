@@ -1,0 +1,333 @@
+<!-- ==================== SETTINGS SIDEBAR ==================== -->
+<div id="settings-sidebar" class="prompt-sidebar">
+    <div class="prompt-sidebar-header">
+        <div class="prompt-sidebar-title">
+            <i class="fas fa-cog"></i>
+            <span>Settings</span>
+        </div>
+        <button class="synergy-icon-btn" onclick="window.closeSettingsSidebar()" title="Close sidebar">
+            <i class="fas fa-times"></i>
+        </button>
+    </div>
+
+    <!-- TABS -->
+    <div class="prompt-sidebar-tabs">
+        <button class="sidebar-tab active" data-tab="recovery" onclick="window.switchSettingsTab('recovery')">
+            <i class="fas fa-sync-alt"></i> Error Recovery
+        </button>
+        <button class="sidebar-tab" data-tab="display" onclick="window.switchSettingsTab('display')">
+            <i class="fas fa-palette"></i> Display
+        </button>
+        <button class="sidebar-tab" data-tab="advanced" onclick="window.switchSettingsTab('advanced')">
+            <i class="fas fa-sliders-h"></i> Advanced
+        </button>
+    </div>
+
+    <div class="prompt-sidebar-body">
+        <!-- TAB 1: ERROR RECOVERY SETTINGS -->
+        <div id="recovery-settings-tab" class="sidebar-tab-content active">
+            <div class="settings-section">
+                <div class="settings-section-header">
+                    <i class="fas fa-shield-alt"></i>
+                    <span>Automatic Error Recovery</span>
+                </div>
+                <div class="settings-section-description">
+                    Control how the system handles API errors and connection issues automatically.
+                </div>
+
+                <!-- Master Toggle -->
+                <div class="setting-item">
+                    <div class="setting-info">
+                        <div class="setting-label">
+                            <i class="fas fa-power-off"></i>
+                            Enable Auto-Recovery
+                        </div>
+                        <div class="setting-description">
+                            Master switch for automatic error recovery system
+                        </div>
+                    </div>
+                    <label class="toggle-switch">
+                        <input type="checkbox" id="setting-auto-recovery-enabled" checked
+                            onchange="window.saveRecoverySettings()">
+                        <span class="toggle-slider"></span>
+                    </label>
+                </div>
+
+                <!-- Recovery Types -->
+                <div class="settings-subsection" id="recovery-options">
+                    <div class="subsection-label">Recovery Types</div>
+
+                    <div class="setting-item">
+                        <div class="setting-info">
+                            <div class="setting-label">
+                                Tool Use Mismatch
+                            </div>
+                            <div class="setting-description">
+                                Fix orphaned tool_result blocks
+                            </div>
+                        </div>
+                        <label class="toggle-switch">
+                            <input type="checkbox" id="setting-recovery-tool-mismatch" checked
+                                onchange="window.saveRecoverySettings()">
+                            <span class="toggle-slider"></span>
+                        </label>
+                    </div>
+
+                    <div class="setting-item">
+                        <div class="setting-info">
+                            <div class="setting-label">
+                                Invalid Message Structure
+                            </div>
+                            <div class="setting-description">
+                                Fix thinking block order issues
+                            </div>
+                        </div>
+                        <label class="toggle-switch">
+                            <input type="checkbox" id="setting-recovery-invalid-structure" checked
+                                onchange="window.saveRecoverySettings()">
+                            <span class="toggle-slider"></span>
+                        </label>
+                    </div>
+
+                    <div class="setting-item">
+                        <div class="setting-info">
+                            <div class="setting-label">
+                                Context Length Exceeded
+                            </div>
+                            <div class="setting-description">
+                                Trim conversation when too large
+                            </div>
+                        </div>
+                        <label class="toggle-switch">
+                            <input type="checkbox" id="setting-recovery-context-length" checked
+                                onchange="window.saveRecoverySettings()">
+                            <span class="toggle-slider"></span>
+                        </label>
+                    </div>
+
+                    <div class="setting-item">
+                        <div class="setting-info">
+                            <div class="setting-label">
+                                Rate Limit Exceeded
+                            </div>
+                            <div class="setting-description">
+                                Wait and retry on rate limits
+                            </div>
+                        </div>
+                        <label class="toggle-switch">
+                            <input type="checkbox" id="setting-recovery-rate-limit" checked
+                                onchange="window.saveRecoverySettings()">
+                            <span class="toggle-slider"></span>
+                        </label>
+                    </div>
+
+                    <div class="setting-item">
+                        <div class="setting-info">
+                            <div class="setting-label">
+                                Network Errors
+                            </div>
+                            <div class="setting-description">
+                                Retry on network failures
+                            </div>
+                        </div>
+                        <label class="toggle-switch">
+                            <input type="checkbox" id="setting-recovery-network" checked
+                                onchange="window.saveRecoverySettings()">
+                            <span class="toggle-slider"></span>
+                        </label>
+                    </div>
+                </div>
+
+                <!-- Advanced Options -->
+                <div class="settings-subsection">
+                    <div class="subsection-label">Advanced Options</div>
+
+                    <div class="setting-item">
+                        <div class="setting-info">
+                            <div class="setting-label">
+                                Max Retry Attempts
+                            </div>
+                            <div class="setting-description">
+                                Maximum number of recovery attempts (1-5)
+                            </div>
+                        </div>
+                        <div class="setting-input-group">
+                            <input type="number" id="setting-max-retries" min="1" max="5" value="3"
+                                onchange="window.saveRecoverySettings()">
+                        </div>
+                    </div>
+
+                    <div class="setting-item">
+                        <div class="setting-info">
+                            <div class="setting-label">
+                                Show Recovery Notifications
+                            </div>
+                            <div class="setting-description">
+                                Display notifications when recovery succeeds
+                            </div>
+                        </div>
+                        <label class="toggle-switch">
+                            <input type="checkbox" id="setting-show-recovery-notifications" checked
+                                onchange="window.saveRecoverySettings()">
+                            <span class="toggle-slider"></span>
+                        </label>
+                    </div>
+
+                    <div class="setting-item">
+                        <div class="setting-info">
+                            <div class="setting-label">
+                                Detailed Recovery Logging
+                            </div>
+                            <div class="setting-description">
+                                Log detailed recovery information to console
+                            </div>
+                        </div>
+                        <label class="toggle-switch">
+                            <input type="checkbox" id="setting-detailed-logging" checked
+                                onchange="window.saveRecoverySettings()">
+                            <span class="toggle-slider"></span>
+                        </label>
+                    </div>
+                </div>
+
+                <!-- Recovery Statistics -->
+                <div class="settings-section"
+                    style="margin-top: 24px; background: var(--bg-secondary); padding: 16px; border-radius: 8px;">
+                    <div class="settings-section-header">
+                        <i class="fas fa-chart-line"></i>
+                        <span>Recovery Statistics</span>
+                    </div>
+                    <div class="recovery-stats">
+                        <div class="stat-item">
+                            <span class="stat-label">Total Recoveries:</span>
+                            <span class="stat-value" id="stat-total-recoveries">0</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-label">Success Rate:</span>
+                            <span class="stat-value" id="stat-success-rate">100%</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-label">Last Recovery:</span>
+                            <span class="stat-value" id="stat-last-recovery">Never</span>
+                        </div>
+                    </div>
+                    <button class="btn-secondary" onclick="window.resetRecoveryStats()"
+                        style="width: 100%; margin-top: 12px;">
+                        <i class="fas fa-redo"></i> Reset Statistics
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- TAB 2: DISPLAY SETTINGS -->
+        <div id="display-settings-tab" class="sidebar-tab-content">
+            <div class="settings-section">
+                <div class="settings-section-header">
+                    <i class="fas fa-eye"></i>
+                    <span>Visual Preferences</span>
+                </div>
+
+                <div class="setting-item">
+                    <div class="setting-info">
+                        <div class="setting-label">
+                            Show Thinking Process
+                        </div>
+                        <div class="setting-description">
+                            Display AI thinking blocks in responses
+                        </div>
+                    </div>
+                    <label class="toggle-switch">
+                        <input type="checkbox" id="setting-show-thinking" checked
+                            onchange="window.saveDisplaySettings()">
+                        <span class="toggle-slider"></span>
+                    </label>
+                </div>
+
+                <div class="setting-item">
+                    <div class="setting-info">
+                        <div class="setting-label">
+                            Show Tool Use Details
+                        </div>
+                        <div class="setting-description">
+                            Display tool execution details
+                        </div>
+                    </div>
+                    <label class="toggle-switch">
+                        <input type="checkbox" id="setting-show-tool-details" checked
+                            onchange="window.saveDisplaySettings()">
+                        <span class="toggle-slider"></span>
+                    </label>
+                </div>
+
+                <div class="setting-item">
+                    <div class="setting-info">
+                        <div class="setting-label">
+                            Auto-scroll to Bottom
+                        </div>
+                        <div class="setting-description">
+                            Automatically scroll to new messages
+                        </div>
+                    </div>
+                    <label class="toggle-switch">
+                        <input type="checkbox" id="setting-auto-scroll" checked onchange="window.saveDisplaySettings()">
+                        <span class="toggle-slider"></span>
+                    </label>
+                </div>
+            </div>
+        </div>
+
+        <!-- TAB 3: ADVANCED SETTINGS -->
+        <div id="advanced-settings-tab" class="sidebar-tab-content">
+            <div class="settings-section">
+                <div class="settings-section-header">
+                    <i class="fas fa-server"></i>
+                    <span>Advanced Configuration</span>
+                </div>
+
+                <div class="setting-item">
+                    <div class="setting-info">
+                        <div class="setting-label">
+                            Enable Debug Mode
+                        </div>
+                        <div class="setting-description">
+                            Show detailed debug information
+                        </div>
+                    </div>
+                    <label class="toggle-switch">
+                        <input type="checkbox" id="setting-debug-mode" onchange="window.saveAdvancedSettings()">
+                        <span class="toggle-slider"></span>
+                    </label>
+                </div>
+
+                <div class="setting-item">
+                    <div class="setting-info">
+                        <div class="setting-label">
+                            Cache API Responses
+                        </div>
+                        <div class="setting-description">
+                            Cache responses for faster loading
+                        </div>
+                    </div>
+                    <label class="toggle-switch">
+                        <input type="checkbox" id="setting-cache-responses" checked
+                            onchange="window.saveAdvancedSettings()">
+                        <span class="toggle-slider"></span>
+                    </label>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- FOOTER -->
+    <div class="prompt-sidebar-footer">
+        <div class="footer-content active">
+            <button class="btn-secondary" onclick="window.resetAllSettings()">
+                <i class="fas fa-undo"></i> Reset All
+            </button>
+            <div style="flex: 1;"></div>
+            <button class="synergy-icon-btn" onclick="window.closeSettingsSidebar()" title="Close sidebar">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+    </div>
+</div>

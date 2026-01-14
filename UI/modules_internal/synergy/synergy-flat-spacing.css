@@ -1,0 +1,1226 @@
+/**
+ * FILE: UI/external/modules/synergy/synergy-flat-spacing.css
+ * PURPOSE: FLAT SPACING CSS - Optimized for 350px width containers
+ * 
+ * CRITICAL RULES:
+ * - Container padding ONLY: 8px (left/right)
+ * - ZERO margin-left on tasks/subtasks (NO nested indentation)
+ * - Section separators: 1px border-top + 8px padding-top
+ * - Visual hierarchy: Badges, borders, font sizes (NO indentation)
+ * 
+ * SPACE EFFICIENCY:
+ * - 350px total width
+ * - 16px lost to container padding (8px each side)
+ * - 334px usable (95.4% efficiency vs 75% old system)
+ * 
+ * VISUAL HIERARCHY:
+ * - Milestone: 3px blue left border, 17px font, [M1] badge
+ * - Task: 2px gray left border, 15px font, [T1.1] badge  
+ * - Subtask: No border, 14px font, [S1.1.1] badge
+ * 
+ * LAST MODIFIED: 2025-11-24 - Initial flat spacing implementation
+ */
+
+/* ==================== FLAT CONTAINER ==================== */
+
+.synergy-flat-container {
+    padding: 8px;
+    /* CRITICAL: ONLY padding here - NO padding on children */
+    width: 100%;
+    box-sizing: border-box;
+    background: var(--bg-primary);
+    overflow: hidden;
+}
+
+/* ==================== FLAT SECTIONS ==================== */
+
+.synergy-flat-section {
+    border-top: 1px solid var(--border-default);
+    padding-top: 15px;
+    margin-bottom: 15px;
+}
+
+.synergy-flat-section:first-child {
+    border-top: none;
+    padding-top: 0;
+}
+
+.synergy-flat-section-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    font-size: 16px;
+    /* Reduced from 18px to make cards more compact */
+    color: var(--text-primary);
+    margin-bottom: 10px;
+    /* Reduced from 12px */
+}
+
+.synergy-flat-section-header i {
+    display: none;
+    /* Hide section icons */
+}
+
+/* ==================== METADATA ==================== */
+
+.synergy-flat-label {
+    font-size: 13px;
+    color: var(--text-secondary);
+    margin-bottom: 2px;
+}
+
+.synergy-flat-value {
+    font-size: 15px;
+    color: var(--text-primary);
+    max-width: 100%;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+}
+
+.synergy-flat-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 12px;
+    border-radius: 8px;
+    font-size: 12px;
+    /* font-weight: 600; */
+    max-width: 100%;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+}
+
+.synergy-flat-stats {
+    display: flex;
+    gap: 16px;
+    font-size: 13px;
+    color: var(--text-secondary);
+    max-width: 100%;
+    flex-wrap: wrap;
+}
+
+/* ==================== DESCRIPTION ==================== */
+
+.synergy-flat-description {
+    font-size: 15px;
+    line-height: 1.7;
+    color: var(--text-primary);
+    white-space: pre-wrap;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+    max-width: 100%;
+}
+
+/* ==================== EMPTY STATES ==================== */
+
+.synergy-flat-empty {
+    text-align: center;
+    padding: 20px;
+    background: var(--bg-quaternary);
+    border-radius: 6px;
+    border: 2px dashed var(--border-default);
+}
+
+.synergy-flat-empty i {
+    font-size: 28px;
+    color: var(--text-tertiary);
+    margin-bottom: 8px;
+    display: block;
+}
+
+.synergy-flat-empty div:first-of-type {
+    color: var(--text-secondary);
+    font-size: 13px;
+    /* font-weight: 500; */
+}
+
+.synergy-flat-empty-hint {
+    color: var(--text-tertiary);
+    font-size: 12px;
+    margin-top: 4px;
+}
+
+/* ==================== MILESTONES - FLAT TWO-ROW ==================== */
+
+.synergy-flat-milestone {
+    border-left: 3px solid var(--accent-primary);
+    /* Blue 3px border for visual hierarchy */
+    padding: 8px;
+    margin-bottom: 15px;
+    background: var(--bg-secondary);
+    border-radius: 6px;
+    max-width: 100%;
+    box-sizing: border-box;
+    /* CRITICAL: NO margin-left, NO padding-left beyond 8px */
+}
+
+.synergy-flat-milestone-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    margin-bottom: 6px;
+}
+
+.synergy-flat-header-left {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.synergy-flat-header-right {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-wrap: wrap;
+}
+
+.synergy-flat-index {
+    font-size: 13px;
+    /* font-weight: 700; */
+    color: var(--text-secondary);
+    font-family: 'Courier New', monospace;
+    min-width: 40px;
+}
+
+.synergy-flat-milestone-title {
+    font-size: 17px;
+    /* Largest font for top-level hierarchy */
+    color: var(--text-primary);
+    line-height: 1.4;
+    padding: 6px;
+    border-radius: 4px;
+    margin-bottom: 8px;
+    min-height: 30px;
+    max-width: 100%;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+}
+
+.synergy-flat-milestone-title[contenteditable="true"] {
+    background: var(--bg-tertiary);
+    border: 2px solid var(--accent-primary);
+    outline: none;
+}
+
+.synergy-flat-milestone-desc {
+    font-size: 14px;
+    color: var(--text-secondary);
+    line-height: 1.6;
+    margin-bottom: 8px;
+    padding: 8px;
+    background: var(--bg-tertiary);
+    border-radius: 4px;
+}
+
+.synergy-flat-milestone-meta {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    font-size: 13px;
+    color: var(--text-secondary);
+    margin-bottom: 8px;
+    max-width: 100%;
+}
+
+.synergy-flat-milestone-meta span {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 3px 8px;
+    background: var(--bg-tertiary);
+    border-radius: 6px;
+    max-width: 100%;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+}
+
+/* ==================== TASKS - FLAT TWO-ROW ==================== */
+
+.synergy-flat-task {
+    border-left: 3px solid var(--text-tertiary);
+    /* Thicker border for better visibility */
+    padding: 12px;
+    margin-bottom: 15px;
+    background: var(--bg-tertiary);
+    border-radius: 6px;
+    max-width: 100%;
+    box-sizing: border-box;
+    /* CRITICAL: NO margin-left (flat structure) */
+}
+
+.synergy-flat-task-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    margin-bottom: 6px;
+}
+
+.synergy-flat-task-title {
+    font-size: 17px;
+    /* Larger font for better readability */
+    color: var(--text-primary);
+    line-height: 1.4;
+    padding: 8px;
+    border-radius: 4px;
+    margin-bottom: 6px;
+    min-height: 32px;
+}
+
+.synergy-flat-task-title[contenteditable="true"] {
+    background: var(--bg-quaternary);
+    border: 2px solid var(--accent-primary);
+    outline: none;
+}
+
+.synergy-flat-task-meta {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+    font-size: 13px;
+    color: var(--text-secondary);
+    margin-bottom: 6px;
+}
+
+.synergy-flat-task-meta span {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 3px 8px;
+    background: var(--bg-quaternary);
+    border-radius: 6px;
+}
+
+/* ==================== SUBTASKS - FLAT TWO-ROW ==================== */
+
+.synergy-flat-subtask {
+    /* NO left border for lowest-level hierarchy */
+    padding: 10px 12px;
+    margin-bottom: 8px;
+    background: var(--bg-quaternary);
+    border-radius: 4px;
+    max-width: 100%;
+    box-sizing: border-box;
+    /* CRITICAL: NO margin-left (completely flat) */
+}
+
+.synergy-flat-subtask-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 6px;
+    margin-bottom: 4px;
+}
+
+.synergy-flat-subtask-title {
+    font-size: 16px;
+    /* Larger font for better readability */
+    color: var(--text-primary);
+    line-height: 1.4;
+    padding: 6px;
+    border-radius: 4px;
+    min-height: 30px;
+}
+
+.synergy-flat-subtask-title[contenteditable="true"] {
+    background: var(--bg-primary);
+    border: 2px solid var(--accent-primary);
+    outline: none;
+}
+
+.synergy-flat-subtask-count {
+    font-size: 13px;
+    color: var(--text-secondary);
+    margin-bottom: 6px;
+}
+
+.synergy-flat-subtask-hours {
+    font-size: 12px;
+    color: var(--text-tertiary);
+    padding: 2px 6px;
+    background: var(--bg-primary);
+    border-radius: 4px;
+}
+
+/* ==================== ACTION BUTTONS ==================== */
+/* Consistent 28px icon buttons with Font Awesome icons */
+
+.synergy-flat-action-btn {
+    width: 28px;
+    height: 28px;
+    background: transparent;
+    border: 1px solid var(--border-default);
+    border-radius: 6px;
+    color: var(--text-secondary);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+    font-size: 14px;
+    padding: 0;
+    flex-shrink: 0;
+}
+
+.synergy-flat-action-btn:hover {
+    border-color: var(--accent-primary);
+    color: var(--accent-primary);
+    background: rgba(59, 130, 246, 0.1);
+}
+
+/* Edit Button - Pen icon */
+.synergy-edit-btn {
+    /* Inherits base styles */
+}
+
+.synergy-edit-btn:hover {
+    border-color: var(--accent-primary);
+    color: var(--accent-primary);
+}
+
+/* Delete Button - Trash icon (red) */
+.synergy-delete-btn {
+    color: var(--text-secondary);
+}
+
+.synergy-delete-btn:hover {
+    background: rgba(220, 38, 38, 0.1);
+    color: #dc2626;
+    border-color: #dc2626;
+}
+
+/* Save Button - Check icon (green when active) */
+.synergy-save-btn {
+    background: #22c55e;
+    color: white;
+    border-color: #22c55e;
+}
+
+.synergy-save-btn:hover {
+    background: #16a34a;
+    border-color: #16a34a;
+}
+
+/* Cancel Button - X icon (gray) */
+.synergy-cancel-btn {
+    /* Inherits base styles */
+}
+
+.synergy-cancel-btn:hover {
+    background: rgba(107, 114, 128, 0.1);
+    color: #6b7280;
+    border-color: #6b7280;
+}
+
+/* Link Button - External link icon */
+.synergy-link-btn {
+    /* Inherits base styles */
+}
+
+.synergy-link-btn:hover {
+    border-color: var(--accent-primary);
+    color: var(--accent-primary);
+}
+
+.synergy-flat-edit-actions {
+    display: flex;
+    gap: 6px;
+    margin-bottom: 8px;
+    padding: 6px;
+    background: var(--bg-quaternary);
+    border-radius: 4px;
+}
+
+/* Priority Dropdown for Milestones */
+.synergy-priority-select {
+    height: 28px;
+    padding: 0 8px;
+    background: var(--bg-primary);
+    border: 1px solid var(--border-default);
+    border-radius: 6px;
+    color: var(--text-primary);
+    font-size: 12px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.synergy-priority-select:hover {
+    border-color: var(--accent-primary);
+}
+
+.synergy-priority-select:focus {
+    outline: none;
+    border-color: var(--accent-primary);
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+/* ==================== BLOCKED INDICATOR ==================== */
+
+.synergy-flat-blocked-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 3px 8px;
+    background: #dc2626;
+    color: white;
+    border-radius: 4px;
+    font-size: 11px;
+    /* font-weight: 700; */
+}
+
+.synergy-flat-blocker {
+    padding: 8px 12px;
+    background: rgba(239, 68, 68, 0.15);
+    border: 1px solid #ef4444;
+    border-left: 4px solid #ef4444;
+    border-radius: 6px;
+    margin-bottom: 8px;
+}
+
+.synergy-flat-blocker-header {
+    color: #dc2626;
+    font-size: 13px;
+    /* font-weight: 700; */
+    margin-bottom: 4px;
+}
+
+.synergy-flat-blocker div {
+    font-size: 13px;
+    color: var(--text-primary);
+    line-height: 1.5;
+}
+
+.synergy-flat-blocker-since {
+    font-size: 12px;
+    color: var(--text-secondary);
+    margin-top: 4px;
+}
+
+/* ==================== PROGRESS BARS ==================== */
+
+.synergy-flat-progress-section {
+    margin-bottom: 8px;
+}
+
+.synergy-flat-progress-label {
+    font-size: 15px;
+    color: var(--text-primary);
+    margin-bottom: 4px;
+    display: block;
+    margin-top: 10px;
+}
+
+.synergy-flat-progress-bar {
+    background: var(--bg-quaternary);
+    border-radius: 4px;
+    height: 8px;
+    overflow: hidden;
+    margin-bottom: 8px;
+}
+
+.synergy-flat-progress-fill {
+    background: linear-gradient(90deg, #22c55e 0%, #16a34a 100%);
+    height: 100%;
+    transition: width 0.3s ease;
+}
+
+/* ==================== CHECKBOXES ==================== */
+
+.synergy-flat-checkbox {
+    width: 18px;
+    height: 18px;
+    cursor: pointer;
+    accent-color: var(--accent-primary);
+    flex-shrink: 0;
+}
+
+.synergy-flat-checkbox:disabled {
+    cursor: not-allowed;
+    opacity: 0.5;
+}
+
+/* ==================== SECTION HEADERS ==================== */
+
+.synergy-flat-section-divider {
+    border: none;
+    border-top: 1px solid var(--border-default);
+    margin: 12px 0 8px 0;
+}
+
+.synergy-flat-section-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 8px;
+}
+
+.synergy-flat-section-label {
+    font-size: 15px;
+    color: var(--text-primary);
+}
+
+/* Add buttons in section headers */
+.synergy-flat-section-header .synergy-flat-action-btn {
+    flex-shrink: 0;
+}
+
+.synergy-flat-action-btn i {
+    font-size: 14px;
+    display: inline-block;
+    line-height: 1;
+    pointer-events: none;
+}
+
+/* ==================== DOCUMENTS - TWO-ROW ==================== */
+
+.synergy-flat-docs-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.synergy-flat-doc-item {
+    padding: 8px;
+    background: var(--bg-secondary);
+    border-radius: 6px;
+    border-left: 2px solid var(--accent-primary);
+}
+
+.synergy-flat-doc-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 4px;
+}
+
+.synergy-flat-doc-title {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 14px;
+    color: var(--text-primary);
+}
+
+.synergy-flat-doc-title i {
+    color: var(--accent-primary);
+    font-size: 16px;
+}
+
+.synergy-flat-doc-type {
+    font-size: 11px;
+    padding: 2px 6px;
+    background: var(--bg-quaternary);
+    border-radius: 4px;
+    color: var(--text-tertiary);
+    margin-left: auto;
+}
+
+/* ==================== LINKS ==================== */
+
+.synergy-flat-links-list {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.synergy-flat-link-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px;
+    background: var(--bg-secondary);
+    border-radius: 6px;
+    font-size: 14px;
+    color: var(--accent-primary);
+    text-decoration: none;
+    transition: background 0.2s ease;
+}
+
+.synergy-flat-link-item:hover {
+    background: var(--bg-hover);
+    text-decoration: underline;
+}
+
+.synergy-flat-link-item i {
+    font-size: 14px;
+}
+
+/* ==================== TAGS ==================== */
+
+.synergy-flat-tags-list {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+}
+
+/* Priority badges (from old system - keep for consistency) */
+.priority-badge {
+    padding: 2px 8px;
+    border-radius: 12px;
+    font-size: 10px;
+    /* font-weight: 700; */
+    text-transform: uppercase;
+}
+
+.priority-critical {
+    background: #7f1d1d;
+    color: white;
+    animation: pulse-critical 2s ease-in-out infinite;
+}
+
+.priority-high {
+    background: #dc2626;
+    color: white;
+}
+
+.priority-medium {
+    background: #f59e0b;
+    color: white;
+}
+
+.priority-low {
+    background: #10b981;
+    color: white;
+}
+
+@keyframes pulse-critical {
+
+    0%,
+    100% {
+        opacity: 1;
+    }
+
+    50% {
+        opacity: 0.7;
+    }
+}
+
+/* Priority dropdown styling */
+.synergy-priority-select {
+    padding: 4px 8px;
+    border: 1px solid var(--border-default);
+    border-radius: 6px;
+    background: var(--bg-secondary);
+    color: var(--text-primary);
+    font-size: 12px;
+    /* font-weight: 600; */
+    cursor: pointer;
+    outline: none;
+    transition: all 0.2s ease;
+}
+
+.synergy-priority-select:hover {
+    border-color: var(--accent-primary);
+    background: var(--bg-tertiary);
+}
+
+.synergy-priority-select:focus {
+    border-color: var(--accent-primary);
+    box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.1);
+}
+
+.synergy-priority-display {
+    display: inline-flex;
+    align-items: center;
+}
+
+/* ==================== RESPONSIVE ADJUSTMENTS ==================== */
+
+@media (max-width: 400px) {
+    .synergy-flat-container {
+        padding: 6px;
+        /* Even less padding on tiny screens */
+    }
+
+    .synergy-flat-milestone-name {
+        font-size: 16px;
+    }
+
+    .synergy-flat-task-name {
+        font-size: 14px;
+    }
+
+    .synergy-flat-subtask-name {
+        font-size: 13px;
+    }
+}
+
+/* ==================== INLINE EDITING ENHANCEMENTS ==================== */
+
+/* Editable description container */
+.synergy-flat-description-container[data-editing="true"] .synergy-flat-description {
+    background: var(--bg-secondary);
+    border: 2px solid var(--accent-primary);
+    border-radius: 4px;
+    padding: 8px;
+    min-height: 60px;
+}
+
+.synergy-flat-description[contenteditable="true"]:focus {
+    outline: none;
+    background: var(--bg-tertiary);
+}
+
+/* Empty editable placeholder */
+.synergy-flat-empty-editable {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px;
+    background: var(--bg-secondary);
+    border: 1px dashed var(--border-default);
+    border-radius: 4px;
+    color: var(--text-secondary);
+    font-style: italic;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.synergy-flat-empty-editable:hover {
+    background: var(--bg-tertiary);
+    border-color: var(--accent-primary);
+}
+
+/* Tag editable with remove button */
+.synergy-flat-tag-editable {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 4px 8px;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-default);
+    border-radius: 12px;
+    font-size: 12px;
+    margin: 4px;
+    transition: all 0.2s;
+}
+
+.synergy-flat-tag-editable:hover {
+    background: var(--bg-tertiary);
+    border-color: var(--accent-primary);
+}
+
+.synergy-flat-tag-text {
+    color: var(--text-primary);
+}
+
+.synergy-flat-tag-remove {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 16px;
+    height: 16px;
+    padding: 0;
+    background: transparent;
+    border: none;
+    border-radius: 50%;
+    color: var(--text-secondary);
+    cursor: pointer;
+    transition: all 0.2s;
+    font-size: 10px;
+}
+
+.synergy-flat-tag-remove:hover {
+    background: var(--accent-error);
+    color: white;
+}
+
+/* Link item with remove button */
+.synergy-flat-link-item-wrapper {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px;
+    background: var(--bg-secondary);
+    border-radius: 4px;
+    margin-bottom: 6px;
+    transition: all 0.2s;
+}
+
+.synergy-flat-link-item-wrapper:hover {
+    background: var(--bg-tertiary);
+}
+
+.synergy-flat-link-item {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    text-decoration: none;
+    color: var(--accent-primary);
+    font-size: 14px;
+    overflow: hidden;
+}
+
+.synergy-flat-link-item:hover {
+    text-decoration: underline;
+}
+
+.synergy-remove-link-btn {
+    padding: 4px 8px;
+    background: transparent;
+    border: 1px solid var(--border-default);
+    border-radius: 4px;
+    color: var(--text-secondary);
+    cursor: pointer;
+    transition: all 0.2s;
+    font-size: 12px;
+}
+
+.synergy-remove-link-btn:hover {
+    background: var(--accent-error);
+    border-color: var(--accent-error);
+    color: white;
+}
+
+/* Add item row for milestones/tasks/subtasks */
+.synergy-flat-add-item-row {
+    margin-top: 8px;
+    margin-bottom: 8px;
+    display: flex;
+    gap: 8px;
+}
+
+/* Session title editable */
+.synergy-session-title-editable {
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.synergy-session-title-editable:hover {
+    background: var(--bg-secondary);
+    border-radius: 4px;
+    padding: 4px 8px;
+    margin: -4px -8px;
+}
+
+.synergy-session-title-editable[contenteditable="true"] {
+    background: var(--bg-tertiary);
+    border: 2px solid var(--accent-primary);
+    border-radius: 4px;
+    padding: 4px 8px;
+    outline: none;
+}
+
+/* Header right section for action buttons */
+.synergy-flat-header-right {
+    display: flex;
+    gap: 6px;
+    margin-left: auto;
+}
+
+/* ==================== DRAG AND DROP STYLES ==================== */
+
+/* Thread cards being dragged */
+.ai-chat-header-info[draggable="true"] {
+    cursor: move;
+    transition: opacity 0.2s ease;
+}
+
+.ai-chat-header-info.dragging {
+    opacity: 0.5;
+}
+
+/* Synergy cards as drop zones */
+.synergy-session-item.drag-over,
+.kanban-card.drag-over {
+    border: 2px solid var(--accent-primary, #4f6cff);
+    box-shadow: 0 0 12px rgba(79, 108, 255, 0.3);
+    background: rgba(79, 108, 255, 0.05);
+    transition: all 0.2s ease;
+}
+
+/* Drop zone hint */
+.synergy-drop-zone-hint {
+    border: 2px dashed var(--border-default);
+    padding: 20px;
+    text-align: center;
+    transition: all 0.2s ease;
+}
+
+.synergy-drop-zone-hint:hover {
+    border-color: var(--accent-primary);
+    background: rgba(79, 108, 255, 0.02);
+}
+
+/* ==================== LINKED THREADS SECTION ==================== */
+
+.synergy-linked-threads-container {
+    min-height: 60px;
+}
+
+.synergy-linked-threads-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.synergy-linked-thread-card {
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-default);
+    border-radius: 6px;
+    padding: 12px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.synergy-linked-thread-card:hover {
+    border-color: var(--accent-primary);
+    background: var(--bg-tertiary);
+    transform: translateX(4px);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.synergy-linked-thread-card .thread-card-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 8px;
+    font-size: 12px;
+}
+
+.synergy-linked-thread-card .thread-agent-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 3px 8px;
+    border-radius: 12px;
+    font-size: 11px;
+    /* font-weight: 600; */
+    background: var(--bg-quaternary);
+    color: var(--text-secondary);
+}
+
+.synergy-linked-thread-card .thread-agent-badge.prime-badge {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+}
+
+.synergy-linked-thread-card .thread-agent-badge.agent-badge {
+    background: var(--accent-secondary);
+    color: white;
+}
+
+.synergy-linked-thread-card .thread-message-count {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    color: var(--text-tertiary);
+    font-size: 11px;
+}
+
+.synergy-linked-thread-card .thread-card-title {
+    font-size: 14px;
+    /* font-weight: 600; */
+    color: var(--text-primary);
+    margin-bottom: 6px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.synergy-linked-thread-card .thread-card-meta {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-size: 11px;
+    color: var(--text-tertiary);
+}
+
+.synergy-linked-thread-card .thread-card-meta span {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.synergy-linked-thread-card .thread-card-meta i {
+    opacity: 0.7;
+}
+
+/* Loading state */
+.synergy-flat-loading {
+    text-align: center;
+    padding: 20px;
+    color: var(--text-secondary);
+}
+
+.synergy-flat-loading i {
+    font-size: 24px;
+    margin-bottom: 8px;
+    color: var(--accent-primary);
+}
+
+/* ==================== EXPAND/COLLAPSE FUNCTIONALITY ==================== */
+
+/* Expand/Collapse Chevron Button */
+.synergy-flat-expand-btn {
+    width: 24px;
+    height: 24px;
+    padding: 0;
+    background: transparent;
+    border: 1px solid var(--border-default);
+    border-radius: 4px;
+    color: var(--text-secondary);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+    flex-shrink: 0;
+}
+
+.synergy-flat-expand-btn:hover {
+    background: var(--bg-hover);
+    color: var(--accent-primary);
+    border-color: var(--accent-primary);
+}
+
+.synergy-flat-expand-btn i {
+    font-size: 11px;
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Rotate chevron when expanded */
+.synergy-flat-expand-btn i.fa-chevron-down {
+    transform: rotate(90deg);
+}
+
+/* ==================== COLLAPSIBLE CONTAINERS ==================== */
+
+/* Milestone Tasks Container */
+.synergy-flat-milestone-tasks {
+    overflow: hidden;
+    transition: max-height 0.5s cubic-bezier(0.4, 0, 0.2, 1),
+        opacity 0.3s ease,
+        margin-top 0.3s ease;
+}
+
+.synergy-flat-milestone-tasks.collapsed {
+    max-height: 0 !important;
+    opacity: 0;
+    margin-top: 0;
+    pointer-events: none;
+}
+
+.synergy-flat-milestone-tasks.expanded {
+    max-height: 5000px;
+    opacity: 1;
+    margin-top: 0;
+}
+
+/* Task Subtasks Container */
+.synergy-flat-task-subtasks {
+    overflow: hidden;
+    transition: max-height 0.4s cubic-bezier(0.4, 0, 0.2, 1),
+        opacity 0.3s ease,
+        margin-top 0.3s ease;
+}
+
+.synergy-flat-task-subtasks.collapsed {
+    max-height: 0 !important;
+    opacity: 0;
+    margin-top: 0;
+    pointer-events: none;
+}
+
+.synergy-flat-task-subtasks.expanded {
+    max-height: 3000px;
+    opacity: 1;
+    margin-top: 0;
+}
+
+/* ==================== PRINT STYLES ==================== */
+
+@media print {
+    .synergy-flat-container {
+        padding: 0;
+        max-width: none;
+    }
+
+    .synergy-flat-section {
+        page-break-inside: avoid;
+    }
+
+    .synergy-flat-checkbox,
+    .synergy-flat-action-btn,
+    .synergy-flat-tag-remove,
+    .synergy-remove-link-btn,
+    .synergy-flat-add-item-row {
+        display: none;
+    }
+
+    /* Hide drag-drop UI in print */
+    .synergy-drop-zone-hint,
+    .synergy-linked-thread-card {
+        page-break-inside: avoid;
+    }
+}
+
+/* ==================== WIDTH TOGGLE (3-STAGE CYCLE) ==================== */
+/* Matches Agent column width toggle pattern: 350px → 500px → 700px → 350px */
+
+/* Fix #2: Sidebar container must expand when cards widen */
+.synergy-sidebar-content {
+    width: 450px;
+    /* Default */
+    max-width: 100vw;
+    overflow-x: hidden;
+    transition: width 0.3s ease;
+}
+
+/* Cards now fill sidebar width naturally (no fixed widths) */
+.synergy-session-item {
+    width: 100%;
+    transition: all 0.3s ease;
+    box-sizing: border-box;
+}
+
+/* Width classes removed - cards inherit from sidebar container */
+
+/* Width toggle button styles */
+.synergy-width-toggle-btn {
+    width: 32px;
+    height: 32px;
+    padding: 0;
+    background: transparent;
+    border: 1px solid var(--border-default);
+    border-radius: 4px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+    color: var(--text-secondary);
+    flex-shrink: 0;
+}
+
+.synergy-width-toggle-btn:hover {
+    background: var(--bg-hover);
+    border-color: var(--accent-primary);
+    color: var(--accent-primary);
+}
+
+.synergy-width-toggle-btn i {
+    font-size: 14px;
+    transition: transform 0.3s ease;
+}
+
+/* Fix #6: Responsive - Hide width toggle on mobile/small screens */
+@media (max-width: 768px) {
+    .synergy-width-toggle-btn {
+        display: none !important;
+    }
+
+    /* Force cards back to default width on mobile */
+    .synergy-session-item.synergy-wide,
+    .synergy-session-item.synergy-extra-wide {
+        min-width: auto;
+        max-width: 100%;
+    }
+
+    .synergy-sidebar-content {
+        width: 100% !important;
+        max-width: 100vw;
+    }
+}

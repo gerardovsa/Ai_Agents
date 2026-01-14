@@ -1,0 +1,516 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>System Diagnostics - AI Agents Platform</title>
+
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #1f2937;
+            color: #e5e7eb;
+            padding: 20px;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 30px;
+            border-radius: 12px;
+            margin-bottom: 30px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+        }
+
+        .header h1 {
+            font-size: 28px;
+            font-weight: 700;
+            color: white;
+            margin-bottom: 8px;
+        }
+
+        .header p {
+            color: rgba(255, 255, 255, 0.9);
+            font-size: 14px;
+        }
+
+        .diagnostic-card {
+            background: rgba(31, 41, 55, 0.95);
+            border-radius: 12px;
+            padding: 24px;
+            margin-bottom: 20px;
+            border: 1px solid rgba(102, 126, 234, 0.2);
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+        }
+
+        .card-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 20px;
+        }
+
+        .card-title {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-size: 20px;
+            font-weight: 600;
+            color: #667eea;
+        }
+
+        .card-title i {
+            font-size: 24px;
+        }
+
+        .run-button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 10px 24px;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.2s;
+        }
+
+        .run-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+        }
+
+        .run-button:active {
+            transform: translateY(0);
+        }
+
+        .run-button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .results-container {
+            background: rgba(17, 24, 39, 0.6);
+            border-radius: 8px;
+            padding: 16px;
+            display: none;
+        }
+
+        .results-container.show {
+            display: block;
+        }
+
+        .result-section {
+            margin-bottom: 16px;
+        }
+
+        .result-section:last-child {
+            margin-bottom: 0;
+        }
+
+        .result-label {
+            font-size: 12px;
+            font-weight: 600;
+            color: #9ca3af;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 8px;
+        }
+
+        .result-value {
+            font-size: 24px;
+            font-weight: 700;
+            color: #667eea;
+        }
+
+        .result-value.success {
+            color: #10b981;
+        }
+
+        .result-value.warning {
+            color: #f59e0b;
+        }
+
+        .result-value.error {
+            color: #ef4444;
+        }
+
+        .leak-list {
+            margin-top: 12px;
+        }
+
+        .leak-item {
+            background: rgba(239, 68, 68, 0.1);
+            border-left: 3px solid #ef4444;
+            padding: 12px;
+            margin-bottom: 8px;
+            border-radius: 6px;
+            font-family: 'Monaco', 'Menlo', monospace;
+            font-size: 13px;
+        }
+
+        .leak-item.warning {
+            background: rgba(245, 158, 11, 0.1);
+            border-left-color: #f59e0b;
+        }
+
+        .leak-file {
+            font-weight: 600;
+            color: #f59e0b;
+            margin-bottom: 4px;
+        }
+
+        .leak-count {
+            color: #9ca3af;
+        }
+
+        .info-banner {
+            background: rgba(59, 130, 246, 0.1);
+            border: 1px solid rgba(59, 130, 246, 0.3);
+            border-radius: 8px;
+            padding: 16px;
+            margin-top: 20px;
+            display: flex;
+            gap: 12px;
+        }
+
+        .info-banner i {
+            color: #3b82f6;
+            font-size: 20px;
+            margin-top: 2px;
+        }
+
+        .info-banner-content {
+            flex: 1;
+        }
+
+        .info-banner-title {
+            font-weight: 600;
+            color: #3b82f6;
+            margin-bottom: 8px;
+        }
+
+        .info-banner-text {
+            color: #9ca3af;
+            font-size: 14px;
+            line-height: 1.6;
+        }
+
+        .raw-output {
+            background: #0f172a;
+            border: 1px solid rgba(102, 126, 234, 0.2);
+            border-radius: 8px;
+            padding: 16px;
+            margin-top: 16px;
+            max-height: 400px;
+            overflow-y: auto;
+            font-family: 'Monaco', 'Menlo', monospace;
+            font-size: 12px;
+            line-height: 1.6;
+            color: #e5e7eb;
+        }
+
+        .loading-spinner {
+            display: inline-block;
+            width: 16px;
+            height: 16px;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            border-top-color: white;
+            animation: spin 0.6s linear infinite;
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        .grid-stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 16px;
+            margin-top: 16px;
+        }
+
+        .stat-box {
+            background: rgba(17, 24, 39, 0.6);
+            border-radius: 8px;
+            padding: 16px;
+            text-align: center;
+        }
+
+        .stat-value {
+            font-size: 32px;
+            font-weight: 700;
+            margin-bottom: 8px;
+        }
+
+        .stat-label {
+            font-size: 12px;
+            color: #9ca3af;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="header">
+        <h1><i class="fas fa-stethoscope"></i> System Diagnostics</h1>
+        <p>Development tools for monitoring database connections and system health</p>
+    </div>
+
+    <!-- Real-Time Connection Monitor -->
+    <div class="diagnostic-card">
+        <div class="card-header">
+            <div class="card-title">
+                <i class="fas fa-heartbeat"></i>
+                <span>Real-Time Connection Monitor</span>
+            </div>
+            <div style="display: flex; gap: 12px; align-items: center;">
+                <div id="monitorStatus"
+                    style="padding: 6px 16px; border-radius: 6px; font-size: 12px; font-weight: 600;">
+                    <i class="fas fa-circle" style="font-size: 8px; margin-right: 6px;"></i>
+                    <span>CHECKING...</span>
+                </div>
+                <button class="run-button" onclick="refreshMonitorStatus()">
+                    <i class="fas fa-sync"></i>
+                    <span>Refresh</span>
+                </button>
+            </div>
+        </div>
+
+        <div class="grid-stats">
+            <div class="stat-box">
+                <div class="stat-value" id="currentLeaked" style="color: #10b981;">-</div>
+                <div class="stat-label">Current Leaks</div>
+            </div>
+            <div class="stat-box">
+                <div class="stat-value" id="totalAcquired" style="color: #667eea;">-</div>
+                <div class="stat-label">Connections Acquired</div>
+            </div>
+            <div class="stat-box">
+                <div class="stat-value" id="totalReturned" style="color: #667eea;">-</div>
+                <div class="stat-label">Connections Returned</div>
+            </div>
+            <div class="stat-box">
+                <div class="stat-value" id="poolHits" style="color: #667eea;">-</div>
+                <div class="stat-label">Pool Hits</div>
+            </div>
+        </div>
+
+        <div class="info-banner" style="margin-top: 20px;">
+            <i class="fas fa-info-circle"></i>
+            <div class="info-banner-content">
+                <div class="info-banner-title">Background Monitoring</div>
+                <div class="info-banner-text">
+                    A background thread monitors connection pools every 60 seconds.
+                    Full audits run every 30 minutes. Events are logged to
+                    <code>logs/connection_monitor.log</code>. Alerts trigger when
+                    leaked connections exceed thresholds (3=warning, 5=critical).
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Database Connection Audit -->
+    <div class="diagnostic-card">
+        <div class="card-header">
+            <div class="card-title">
+                <i class="fas fa-database"></i>
+                <span>Database Connection Audit</span>
+            </div>
+            <button class="run-button" id="runAuditBtn" onclick="runConnectionAudit()">
+                <i class="fas fa-play"></i>
+                <span>Run Audit</span>
+            </button>
+        </div>
+
+        <div class="results-container" id="auditResults">
+            <div class="grid-stats">
+                <div class="stat-box">
+                    <div class="stat-value success" id="totalLeaks">-</div>
+                    <div class="stat-label">Potential Leaks</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-value" id="filesChecked">-</div>
+                    <div class="stat-label">Files Checked</div>
+                </div>
+            </div>
+
+            <div class="result-section" id="leaksByFile" style="margin-top: 20px;">
+                <!-- Populated dynamically -->
+            </div>
+
+            <div class="info-banner">
+                <i class="fas fa-info-circle"></i>
+                <div class="info-banner-content">
+                    <div class="info-banner-title">About This Audit</div>
+                    <div class="info-banner-text">
+                        This tool scans route files for potential database connection leaks.
+                        <strong>Many "leaks" are false positives</strong> if using context managers
+                        (<code>with get_database_connection() as conn:</code>). The
+                        <code>PooledConnection</code> wrapper has built-in failsafes that
+                        automatically return connections to the pool.
+                    </div>
+                </div>
+            </div>
+
+            <details style="margin-top: 16px;">
+                <summary style="cursor: pointer; color: #667eea; font-weight: 600; padding: 8px 0;">
+                    <i class="fas fa-terminal"></i> View Raw Output
+                </summary>
+                <div class="raw-output" id="rawOutput"></div>
+            </details>
+        </div>
+    </div>
+
+    <script>
+        // Auto-refresh monitor status on page load
+        document.addEventListener('DOMContentLoaded', () => {
+            refreshMonitorStatus();
+            // Auto-refresh every 30 seconds
+            setInterval(refreshMonitorStatus, 30000);
+        });
+
+        async function refreshMonitorStatus() {
+            try {
+                const response = await fetch('/api/dev-tools/monitor-status');
+                const data = await response.json();
+
+                if (data.success) {
+                    const monitor = data.monitor;
+                    const leaked = data.current_leaked;
+                    const stats = data.pool_stats._global || {};
+
+                    // Update status badge
+                    const statusBadge = document.getElementById('monitorStatus');
+                    if (monitor.running) {
+                        statusBadge.style.background = 'rgba(16, 185, 129, 0.2)';
+                        statusBadge.style.color = '#10b981';
+                        statusBadge.innerHTML = '<i class="fas fa-circle" style="font-size: 8px; margin-right: 6px;"></i><span>ACTIVE</span>';
+                    } else {
+                        statusBadge.style.background = 'rgba(239, 68, 68, 0.2)';
+                        statusBadge.style.color = '#ef4444';
+                        statusBadge.innerHTML = '<i class="fas fa-circle" style="font-size: 8px; margin-right: 6px;"></i><span>STOPPED</span>';
+                    }
+
+                    // Update current leaks
+                    const leakedEl = document.getElementById('currentLeaked');
+                    leakedEl.textContent = leaked;
+                    leakedEl.className = `stat-value ${leaked === 0 ? 'success' : leaked > 5 ? 'error' : 'warning'}`;
+
+                    // Update stats
+                    document.getElementById('totalAcquired').textContent = stats.connections_acquired || 0;
+                    document.getElementById('totalReturned').textContent = stats.connections_returned || 0;
+                    document.getElementById('poolHits').textContent = stats.pool_hits || 0;
+                } else {
+                    console.error('Monitor status error:', data.error);
+                }
+            } catch (error) {
+                console.error('Failed to fetch monitor status:', error);
+                const statusBadge = document.getElementById('monitorStatus');
+                statusBadge.style.background = 'rgba(156, 163, 175, 0.2)';
+                statusBadge.style.color = '#9ca3af';
+                statusBadge.innerHTML = '<i class="fas fa-circle" style="font-size: 8px; margin-right: 6px;"></i><span>OFFLINE</span>';
+            }
+        }
+
+        async function runConnectionAudit() {
+            const btn = document.getElementById('runAuditBtn');
+            const results = document.getElementById('auditResults');
+
+            // Show loading state
+            btn.disabled = true;
+            btn.innerHTML = '<span class="loading-spinner"></span><span>Running...</span>';
+            results.classList.add('show');
+
+            try {
+                const response = await fetch('/api/dev-tools/audit-connections');
+                const data = await response.json();
+
+                if (data.success) {
+                    // Update stats
+                    document.getElementById('totalLeaks').textContent = data.total_leaks;
+                    document.getElementById('totalLeaks').className =
+                        `stat-value ${data.total_leaks === 0 ? 'success' : data.total_leaks > 20 ? 'error' : 'warning'}`;
+
+                    document.getElementById('filesChecked').textContent = data.files_checked;
+
+                    // Show leaks by file
+                    const leaksByFileDiv = document.getElementById('leaksByFile');
+                    if (data.total_leaks > 0) {
+                        leaksByFileDiv.innerHTML = '<div class="result-label">Leaks by File</div>';
+
+                        // Sort by leak count (highest first)
+                        const sortedFiles = Object.entries(data.leaks_by_file)
+                            .sort((a, b) => b[1] - a[1]);
+
+                        sortedFiles.forEach(([file, count]) => {
+                            const leakItem = document.createElement('div');
+                            leakItem.className = count > 5 ? 'leak-item' : 'leak-item warning';
+                            leakItem.innerHTML = `
+                                <div class="leak-file">${file}</div>
+                                <div class="leak-count">${count} potential leak${count !== 1 ? 's' : ''}</div>
+                            `;
+                            leaksByFileDiv.appendChild(leakItem);
+                        });
+                    } else {
+                        leaksByFileDiv.innerHTML = `
+                            <div style="text-align: center; padding: 24px; color: #10b981;">
+                                <i class="fas fa-check-circle" style="font-size: 48px; margin-bottom: 12px;"></i>
+                                <div style="font-size: 18px; font-weight: 600;">No Leaks Detected!</div>
+                                <div style="font-size: 14px; color: #9ca3af; margin-top: 8px;">
+                                    All database connections are properly managed.
+                                </div>
+                            </div>
+                        `;
+                    }
+
+                    // Show raw output
+                    document.getElementById('rawOutput').textContent = data.raw_output;
+                } else {
+                    leaksByFileDiv.innerHTML = `
+                        <div style="text-align: center; padding: 24px; color: #ef4444;">
+                            <i class="fas fa-exclamation-triangle" style="font-size: 48px; margin-bottom: 12px;"></i>
+                            <div style="font-size: 18px; font-weight: 600;">Audit Failed</div>
+                            <div style="font-size: 14px; color: #9ca3af; margin-top: 8px;">
+                                ${data.error}
+                            </div>
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                console.error('Audit error:', error);
+                document.getElementById('leaksByFile').innerHTML = `
+                    <div style="text-align: center; padding: 24px; color: #ef4444;">
+                        <i class="fas fa-exclamation-triangle" style="font-size: 48px; margin-bottom: 12px;"></i>
+                        <div style="font-size: 18px; font-weight: 600;">Connection Error</div>
+                        <div style="font-size: 14px; color: #9ca3af; margin-top: 8px;">
+                            ${error.message}
+                        </div>
+                    </div>
+                `;
+            } finally {
+                // Reset button
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fas fa-play"></i><span>Run Audit</span>';
+            }
+        }
+    </script>
+</body>
+
+</html>

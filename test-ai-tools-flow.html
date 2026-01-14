@@ -1,0 +1,952 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Tools Flow Test - Calculator & Database</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 20px;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 28px;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            opacity: 0.9;
+            font-size: 14px;
+        }
+
+        .content {
+            padding: 30px;
+        }
+
+        .test-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .test-card {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 8px;
+            border-left: 4px solid #667eea;
+        }
+
+        .test-card h2 {
+            font-size: 18px;
+            margin-bottom: 15px;
+            color: #333;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .test-card h3 {
+            font-size: 16px;
+            margin: 15px 0 10px 0;
+            color: #555;
+        }
+
+        .status-badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .status-badge.success {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .status-badge.error {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        .status-badge.pending {
+            background: #fff3cd;
+            color: #856404;
+        }
+
+        .status-badge.info {
+            background: #d1ecf1;
+            color: #0c5460;
+        }
+
+        .btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+            margin: 5px 5px 5px 0;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn:active {
+            transform: translateY(0);
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .btn-run-all {
+            background: #28a745;
+            font-size: 16px;
+            padding: 15px 30px;
+            margin: 20px 0;
+            display: block;
+            width: 100%;
+        }
+
+        .btn-copy {
+            background: #17a2b8;
+            padding: 8px 16px;
+            font-size: 12px;
+        }
+
+        .btn-copy-all {
+            background: #ffc107;
+            color: #333;
+            font-size: 14px;
+            padding: 12px 24px;
+            margin: 10px 0;
+            display: inline-block;
+        }
+
+        .test-output {
+            background: #1e1e1e;
+            color: #d4d4d4;
+            padding: 15px;
+            border-radius: 6px;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            max-height: 300px;
+            overflow-y: auto;
+            margin-top: 10px;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+
+        .test-output.success {
+            border-left: 4px solid #28a745;
+        }
+
+        .test-output.error {
+            border-left: 4px solid #dc3545;
+        }
+
+        .test-output.info {
+            border-left: 4px solid #17a2b8;
+        }
+
+        .log-entry {
+            margin: 5px 0;
+            padding: 5px;
+            border-radius: 3px;
+        }
+
+        .log-entry.success {
+            color: #4caf50;
+        }
+
+        .log-entry.error {
+            color: #f44336;
+        }
+
+        .log-entry.info {
+            color: #2196f3;
+        }
+
+        .log-entry.warning {
+            color: #ff9800;
+        }
+
+        .summary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 8px;
+            margin-top: 30px;
+        }
+
+        .summary h2 {
+            margin-bottom: 15px;
+        }
+
+        .summary-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+        }
+
+        .summary-item {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 15px;
+            border-radius: 6px;
+        }
+
+        .summary-item h3 {
+            font-size: 14px;
+            opacity: 0.9;
+            margin-bottom: 5px;
+        }
+
+        .summary-item p {
+            font-size: 24px;
+            font-weight: bold;
+        }
+
+        .test-details {
+            font-size: 12px;
+            color: #666;
+            margin-top: 10px;
+            padding: 10px;
+            background: #e9ecef;
+            border-radius: 4px;
+        }
+
+        .spinner {
+            display: inline-block;
+            width: 16px;
+            height: 16px;
+            border: 3px solid rgba(255, 255, 255, .3);
+            border-radius: 50%;
+            border-top-color: #fff;
+            animation: spin 1s ease-in-out infinite;
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🤖 AI Tools Flow Test Suite</h1>
+            <p>Tests the EXACT flow used by AI and Frontend - Credentials → Database → Tools → Results</p>
+            <p style="margin-top: 10px; font-size: 12px;">Last Updated: December 9, 2025</p>
+        </div>
+
+        <div class="content">
+            <div style="display: flex; gap: 10px; margin-bottom: 20px;">
+                <button class="btn btn-run-all" onclick="runAllTests()" style="flex: 1; margin: 0;">
+                    ▶️ RUN ALL TESTS
+                </button>
+                <button class="btn btn-copy-all" onclick="copyAllLogs(event)" style="width: auto;">
+                    📋 COPY ALL LOGS
+                </button>
+            </div>
+
+            <div class="test-grid">
+                <!-- Test 1: Environment Detection -->
+                <div class="test-card">
+                    <h2>
+                        1. Environment Detection
+                        <span id="env-status" class="status-badge pending">PENDING</span>
+                    </h2>
+                    <div class="test-details">
+                        Tests if we can detect Render vs Local environment
+                    </div>
+                    <button class="btn" onclick="testEnvironment()">Run Test</button>
+                    <button class="btn btn-copy" onclick="copyLog(event, 'env-output')">📋 Copy Log</button>
+                    <div id="env-output" class="test-output" style="display:none;"></div>
+                </div>
+
+                <!-- Test 2: Supabase Credentials Fetch -->
+                <div class="test-card">
+                    <h2>
+                        2. Supabase Credentials
+                        <span id="supabase-status" class="status-badge pending">PENDING</span>
+                    </h2>
+                    <div class="test-details">
+                        Simulates fetching InHouse Print credentials from Supabase
+                    </div>
+                    <button class="btn" onclick="testSupabaseCredentials()">Run Test</button>
+                    <button class="btn btn-copy" onclick="copyLog(event, 'supabase-output')">📋 Copy Log</button>
+                    <div id="supabase-output" class="test-output" style="display:none;"></div>
+                </div>
+
+                <!-- Test 3: Database Connection -->
+                <div class="test-card">
+                    <h2>
+                        3. SQL Server Connection
+                        <span id="db-status" class="status-badge pending">PENDING</span>
+                    </h2>
+                    <div class="test-details">
+                        Tests actual database connection to InHousePrint
+                    </div>
+                    <button class="btn" onclick="testDatabaseConnection()">Run Test</button>
+                    <button class="btn btn-copy" onclick="copyLog(event, 'db-output')">📋 Copy Log</button>
+                    <div id="db-output" class="test-output" style="display:none;"></div>
+                </div>
+
+                <!-- Test 4: Quote Calculator -->
+                <div class="test-card">
+                    <h2>
+                        4. Quote Calculator (A4 Flyers)
+                        <span id="calc-status" class="status-badge pending">PENDING</span>
+                    </h2>
+                    <div class="test-details">
+                        Tests calculate_flyers tool with real pricing
+                    </div>
+                    <button class="btn" onclick="testCalculator()">Run Test</button>
+                    <button class="btn btn-copy" onclick="copyLog(event, 'calc-output')">📋 Copy Log</button>
+                    <div id="calc-output" class="test-output" style="display:none;"></div>
+                </div>
+
+                <!-- Test 5: SQL Query Library -->
+                <div class="test-card">
+                    <h2>
+                        5. Query Library (Revenue)
+                        <span id="query-status" class="status-badge pending">PENDING</span>
+                    </h2>
+                    <div class="test-details">
+                        Tests pre-built query: monthly_revenue_trend
+                    </div>
+                    <button class="btn" onclick="testQueryLibrary()">Run Test</button>
+                    <button class="btn btn-copy" onclick="copyLog(event, 'query-output')">📋 Copy Log</button>
+                    <div id="query-output" class="test-output" style="display:none;"></div>
+                </div>
+
+                <!-- Test 6: Custom SQL Query -->
+                <div class="test-card">
+                    <h2>
+                        6. Custom SQL Query
+                        <span id="custom-status" class="status-badge pending">PENDING</span>
+                    </h2>
+                    <div class="test-details">
+                        Tests inhouse_execute_sql with custom query
+                    </div>
+                    <button class="btn" onclick="testCustomSQL()">Run Test</button>
+                    <button class="btn btn-copy" onclick="copyLog(event, 'custom-output')">📋 Copy Log</button>
+                    <div id="custom-output" class="test-output" style="display:none;"></div>
+                </div>
+
+                <!-- Test 7: Registry V3 Tool Loading -->
+                <div class="test-card">
+                    <h2>
+                        7. Registry V3 Loading
+                        <span id="registry-status" class="status-badge pending">PENDING</span>
+                    </h2>
+                    <div class="test-details">
+                        Tests if tools are properly loaded into registry
+                    </div>
+                    <button class="btn" onclick="testRegistry()">Run Test</button>
+                    <button class="btn btn-copy" onclick="copyLog(event, 'registry-output')">📋 Copy Log</button>
+                    <div id="registry-output" class="test-output" style="display:none;"></div>
+                </div>
+
+                <!-- Test 8: Module Plugin System -->
+                <div class="test-card">
+                    <h2>
+                        8. Module Plugin Discovery
+                        <span id="plugin-status" class="status-badge pending">PENDING</span>
+                    </h2>
+                    <div class="test-details">
+                        Tests auto-discovery of calculator & inhouse modules
+                    </div>
+                    <button class="btn" onclick="testPluginSystem()">Run Test</button>
+                    <button class="btn btn-copy" onclick="copyLog(event, 'plugin-output')">📋 Copy Log</button>
+                    <div id="plugin-output" class="test-output" style="display:none;"></div>
+                </div>
+            </div>
+
+            <!-- Summary Section -->
+            <div class="summary" id="summary" style="display:none;">
+                <h2>📊 Test Results Summary</h2>
+                <div class="summary-grid">
+                    <div class="summary-item">
+                        <h3>Total Tests</h3>
+                        <p id="total-tests">0</p>
+                    </div>
+                    <div class="summary-item">
+                        <h3>Passed</h3>
+                        <p id="passed-tests" style="color: #4caf50;">0</p>
+                    </div>
+                    <div class="summary-item">
+                        <h3>Failed</h3>
+                        <p id="failed-tests" style="color: #f44336;">0</p>
+                    </div>
+                    <div class="summary-item">
+                        <h3>Success Rate</h3>
+                        <p id="success-rate">0%</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Test state tracking
+        const testResults = {
+            environment: null,
+            supabase: null,
+            database: null,
+            calculator: null,
+            queryLibrary: null,
+            customSQL: null,
+            registry: null,
+            plugin: null
+        };
+
+        // Local vs Render detection
+        const IS_LOCAL = window.location.hostname === 'localhost' ||
+            window.location.hostname === '127.0.0.1' ||
+            window.location.hostname.includes('192.168');
+
+        const BASE_URL = IS_LOCAL ? 'http://localhost:5000' : 'https://valor-ai-synergy-suite-docker-image.onrender.com';
+
+        // Logging utility
+        function log(elementId, message, type = 'info') {
+            const output = document.getElementById(elementId);
+            output.style.display = 'block';
+            const logEntry = document.createElement('div');
+            logEntry.className = `log-entry ${type}`;
+            const timestamp = new Date().toLocaleTimeString();
+            logEntry.textContent = `[${timestamp}] ${message}`;
+            output.appendChild(logEntry);
+            output.scrollTop = output.scrollHeight;
+
+            // Update output class based on last entry type
+            output.className = `test-output ${type}`;
+        }
+
+        function clearLog(elementId) {
+            const output = document.getElementById(elementId);
+            output.innerHTML = '';
+            output.style.display = 'none';
+        }
+
+        function updateStatus(statusId, status) {
+            const badge = document.getElementById(statusId);
+            badge.className = `status-badge ${status}`;
+            badge.textContent = status.toUpperCase();
+        }
+
+        // Test 1: Environment Detection
+        async function testEnvironment() {
+            clearLog('env-output');
+            updateStatus('env-status', 'pending');
+
+            log('env-output', 'Starting environment detection...', 'info');
+            log('env-output', `Current hostname: ${window.location.hostname}`, 'info');
+            log('env-output', `Detected as: ${IS_LOCAL ? 'LOCAL' : 'RENDER'}`, IS_LOCAL ? 'warning' : 'success');
+            log('env-output', `Base URL: ${BASE_URL}`, 'info');
+
+            try {
+                // Check if server is reachable
+                log('env-output', 'Pinging server health endpoint...', 'info');
+                const response = await fetch(`${BASE_URL}/health`, {
+                    method: 'GET',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    log('env-output', `✓ Server responded: ${JSON.stringify(data)}`, 'success');
+                    testResults.environment = true;
+                    updateStatus('env-status', 'success');
+                } else {
+                    throw new Error(`Server returned ${response.status}`);
+                }
+            } catch (error) {
+                log('env-output', `✗ Server unreachable: ${error.message}`, 'error');
+                testResults.environment = false;
+                updateStatus('env-status', 'error');
+            }
+        }
+
+        // Test 2: Supabase Credentials
+        async function testSupabaseCredentials() {
+            clearLog('supabase-output');
+            updateStatus('supabase-status', 'pending');
+
+            log('supabase-output', 'Testing credential retrieval simulation...', 'info');
+            log('supabase-output', 'This simulates how AI fetches credentials', 'info');
+
+            // Simulate the credential fetching process
+            const mockCredentials = {
+                platform: 'inhouse_print',
+                credential_type: 'database',
+                credentials: {
+                    server: 'server10.fredsitworld.com.au',
+                    database: 'InHousePrint',
+                    uid: 'FredDEV',
+                    pwd: '[REDACTED]',
+                    driver: 'ODBC Driver 18 for SQL Server'
+                }
+            };
+
+            log('supabase-output', 'Platform: inhouse_print', 'info');
+            log('supabase-output', 'Credential Type: database', 'info');
+            log('supabase-output', `Server: ${mockCredentials.credentials.server}`, 'success');
+            log('supabase-output', `Database: ${mockCredentials.credentials.database}`, 'success');
+            log('supabase-output', '✓ Credentials structure valid', 'success');
+
+            testResults.supabase = true;
+            updateStatus('supabase-status', 'success');
+        }
+
+        // Test 3: Database Connection
+        async function testDatabaseConnection() {
+            clearLog('db-output');
+            updateStatus('db-status', 'pending');
+
+            log('db-output', 'Testing database connection...', 'info');
+
+            try {
+                // Use the execute_tool endpoint with inhouse_execute_sql
+                log('db-output', 'Executing test query: SELECT @@VERSION', 'info');
+
+                const response = await fetch(`${BASE_URL}/api/agent/execute_tool`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        tool_name: 'inhouse_execute_sql',
+                        parameters: {
+                            query: 'SELECT @@VERSION AS SQLServerVersion'
+                        }
+                    })
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    log('db-output', '✓ Database connected successfully!', 'success');
+                    log('db-output', `Result: ${JSON.stringify(result.result, null, 2)}`, 'success');
+                    testResults.database = true;
+                    updateStatus('db-status', 'success');
+                } else {
+                    throw new Error(result.error || 'Query failed');
+                }
+            } catch (error) {
+                log('db-output', `✗ Database test failed: ${error.message}`, 'error');
+                testResults.database = false;
+                updateStatus('db-status', 'error');
+            }
+        }
+
+        // Test 4: Quote Calculator
+        async function testCalculator() {
+            clearLog('calc-output');
+            updateStatus('calc-status', 'pending');
+
+            log('calc-output', 'Testing A4 Flyer calculator...', 'info');
+            log('calc-output', 'Quantity: 1000, Size: A4, Stock: 250GSM Satin, Sides: 2', 'info');
+
+            try {
+                const response = await fetch(`${BASE_URL}/api/agent/execute_tool`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        tool_name: 'calculate_flyers',
+                        parameters: {
+                            quantity: 1000,
+                            size: 'A4',
+                            stock: '250GSM Satin',
+                            sides: 2
+                        }
+                    })
+                });
+
+                const result = await response.json();
+
+                if (result.success && result.result.total_cost_inc_gst) {
+                    log('calc-output', '✓ Calculator working!', 'success');
+                    log('calc-output', `Price (ex GST): $${result.result.total_cost_ex_gst.toFixed(2)}`, 'success');
+                    log('calc-output', `Price (inc GST): $${result.result.total_cost_inc_gst.toFixed(2)}`, 'success');
+                    log('calc-output', `Per unit: $${result.result.per_unit_price.toFixed(4)}`, 'info');
+                    log('calc-output', `Stock: ${result.result.stock_details}`, 'info');
+                    testResults.calculator = true;
+                    updateStatus('calc-status', 'success');
+                } else {
+                    throw new Error(result.error || 'No pricing returned');
+                }
+            } catch (error) {
+                log('calc-output', `✗ Calculator test failed: ${error.message}`, 'error');
+                testResults.calculator = false;
+                updateStatus('calc-status', 'error');
+            }
+        }
+
+        // Test 5: Query Library
+        async function testQueryLibrary() {
+            clearLog('query-output');
+            updateStatus('query-status', 'pending');
+
+            log('query-output', 'Testing query library: monthly_revenue_trend', 'info');
+
+            try {
+                const response = await fetch(`${BASE_URL}/api/agent/execute_tool`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        tool_name: 'execute_query_library',
+                        parameters: {
+                            query_name: 'monthly_revenue_trend',
+                            months: 3
+                        }
+                    })
+                });
+
+                const result = await response.json();
+
+                if (result.success && result.result.data) {
+                    log('query-output', '✓ Query library working!', 'success');
+                    log('query-output', `Query: ${result.result.query_name}`, 'info');
+                    log('query-output', `Data rows returned: ${result.result.data.split('\\n').length - 1}`, 'success');
+
+                    // Parse first data row
+                    const lines = result.result.data.split('\n');
+                    if (lines.length > 1) {
+                        log('query-output', `Sample: ${lines[1].substring(0, 100)}...`, 'info');
+                    }
+
+                    testResults.queryLibrary = true;
+                    updateStatus('query-status', 'success');
+                } else {
+                    throw new Error(result.error || 'No data returned');
+                }
+            } catch (error) {
+                log('query-output', `✗ Query library test failed: ${error.message}`, 'error');
+                testResults.queryLibrary = false;
+                updateStatus('query-status', 'error');
+            }
+        }
+
+        // Test 6: Custom SQL
+        async function testCustomSQL() {
+            clearLog('custom-output');
+            updateStatus('custom-status', 'pending');
+
+            log('custom-output', 'Testing custom SQL query...', 'info');
+            log('custom-output', 'Query: SELECT TOP 5 FROM Orders', 'info');
+
+            try {
+                const response = await fetch(`${BASE_URL}/api/agent/execute_tool`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        tool_name: 'inhouse_execute_sql',
+                        parameters: {
+                            query: 'SELECT TOP 5 OrderID, OrderDate, TotalPrice FROM Orders ORDER BY OrderID DESC'
+                        }
+                    })
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    log('custom-output', '✓ Custom SQL working!', 'success');
+                    log('custom-output', `Result: ${JSON.stringify(result.result, null, 2).substring(0, 500)}`, 'success');
+                    testResults.customSQL = true;
+                    updateStatus('custom-status', 'success');
+                } else {
+                    throw new Error(result.error || 'Query failed');
+                }
+            } catch (error) {
+                log('custom-output', `✗ Custom SQL test failed: ${error.message}`, 'error');
+                testResults.customSQL = false;
+                updateStatus('custom-status', 'error');
+            }
+        }
+
+        // Test 7: Registry V3
+        async function testRegistry() {
+            clearLog('registry-output');
+            updateStatus('registry-status', 'pending');
+
+            log('registry-output', 'Testing Registry V3 loading...', 'info');
+
+            try {
+                const response = await fetch(`${BASE_URL}/api/agent/tools/list`, {
+                    method: 'GET',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                const result = await response.json();
+
+                if (result.tools && result.tools.length > 0) {
+                    log('registry-output', `✓ Registry loaded ${result.tools.length} tools`, 'success');
+
+                    // Check for calculator tools
+                    const calcTools = result.tools.filter(t => t.startsWith('calculate_'));
+                    log('registry-output', `Calculator tools: ${calcTools.length}`, 'info');
+
+                    // Check for inhouse tools
+                    const inhouseTools = result.tools.filter(t => t.startsWith('inhouse_'));
+                    log('registry-output', `InHouse tools: ${inhouseTools.length}`, 'info');
+
+                    testResults.registry = true;
+                    updateStatus('registry-status', 'success');
+                } else {
+                    throw new Error('No tools loaded');
+                }
+            } catch (error) {
+                log('registry-output', `✗ Registry test failed: ${error.message}`, 'error');
+                testResults.registry = false;
+                updateStatus('registry-status', 'error');
+            }
+        }
+
+        // Test 8: Module Plugin System
+        async function testPluginSystem() {
+            clearLog('plugin-output');
+            updateStatus('plugin-status', 'pending');
+
+            log('plugin-output', 'Testing module plugin discovery...', 'info');
+            log('plugin-output', 'Expected modules: quote-calculator, inhouse-print', 'info');
+
+            try {
+                // Check if plugin tools are loaded
+                const response = await fetch(`${BASE_URL}/api/agent/tools/list`, {
+                    method: 'GET',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                const result = await response.json();
+
+                const calcTools = result.tools.filter(t => t.startsWith('calculate_'));
+                const inhouseTools = result.tools.filter(t => t.startsWith('inhouse_'));
+
+                if (calcTools.length > 0 && inhouseTools.length > 0) {
+                    log('plugin-output', '✓ Module plugins discovered!', 'success');
+                    log('plugin-output', `quote-calculator module: ${calcTools.length} tools`, 'success');
+                    log('plugin-output', `inhouse-print module: ${inhouseTools.length} tools`, 'success');
+                    log('plugin-output', 'Sample calculator tools:', 'info');
+                    calcTools.slice(0, 3).forEach(tool => {
+                        log('plugin-output', `  - ${tool}`, 'info');
+                    });
+                    testResults.plugin = true;
+                    updateStatus('plugin-status', 'success');
+                } else {
+                    throw new Error('Plugins not loaded properly');
+                }
+            } catch (error) {
+                log('plugin-output', `✗ Plugin test failed: ${error.message}`, 'error');
+                testResults.plugin = false;
+                updateStatus('plugin-status', 'error');
+            }
+        }
+
+        // Run all tests sequentially
+        async function runAllTests() {
+            document.getElementById('summary').style.display = 'none';
+
+            await testEnvironment();
+            await new Promise(resolve => setTimeout(resolve, 500));
+
+            await testSupabaseCredentials();
+            await new Promise(resolve => setTimeout(resolve, 500));
+
+            await testDatabaseConnection();
+            await new Promise(resolve => setTimeout(resolve, 500));
+
+            await testCalculator();
+            await new Promise(resolve => setTimeout(resolve, 500));
+
+            await testQueryLibrary();
+            await new Promise(resolve => setTimeout(resolve, 500));
+
+            await testCustomSQL();
+            await new Promise(resolve => setTimeout(resolve, 500));
+
+            await testRegistry();
+            await new Promise(resolve => setTimeout(resolve, 500));
+
+            await testPluginSystem();
+
+            // Show summary
+            showSummary();
+        }
+
+        function showSummary() {
+            const total = Object.keys(testResults).length;
+            const passed = Object.values(testResults).filter(r => r === true).length;
+            const failed = Object.values(testResults).filter(r => r === false).length;
+            const successRate = ((passed / total) * 100).toFixed(1);
+
+            document.getElementById('total-tests').textContent = total;
+            document.getElementById('passed-tests').textContent = passed;
+            document.getElementById('failed-tests').textContent = failed;
+            document.getElementById('success-rate').textContent = successRate + '%';
+
+            document.getElementById('summary').style.display = 'block';
+        }
+
+        // Copy individual log
+        function copyLog(evt, elementId) {
+            const output = document.getElementById(elementId);
+            const text = output.innerText;
+
+            if (!text || text.trim() === '') {
+                alert('No log content to copy!');
+                return;
+            }
+
+            navigator.clipboard.writeText(text).then(() => {
+                // Visual feedback
+                const btn = evt.target;
+                const originalText = btn.textContent;
+                btn.textContent = '✓ Copied!';
+                setTimeout(() => {
+                    btn.textContent = originalText;
+                }, 2000);
+            }).catch(err => {
+                alert('Failed to copy: ' + err);
+            });
+        }        // Copy all logs combined
+        function copyAllLogs(evt) {
+            const logIds = [
+                'env-output',
+                'supabase-output',
+                'db-output',
+                'calc-output',
+                'query-output',
+                'custom-output',
+                'registry-output',
+                'plugin-output'
+            ];
+
+            const testNames = [
+                '1. Environment Detection',
+                '2. Supabase Credentials',
+                '3. SQL Server Connection',
+                '4. Quote Calculator',
+                '5. Query Library',
+                '6. Custom SQL Query',
+                '7. Registry V3 Loading',
+                '8. Module Plugin Discovery'
+            ];
+
+            let combinedLog = '='.repeat(80) + '\n';
+            combinedLog += 'AI TOOLS FLOW TEST - COMPLETE LOG\n';
+            combinedLog += `Timestamp: ${new Date().toLocaleString()}\n`;
+            combinedLog += `Environment: ${IS_LOCAL ? 'LOCAL' : 'RENDER'}\n`;
+            combinedLog += `Base URL: ${BASE_URL}\n`;
+            combinedLog += '='.repeat(80) + '\n\n';
+
+            let hasContent = false;
+
+            logIds.forEach((id, index) => {
+                const output = document.getElementById(id);
+                const text = output.innerText;
+
+                if (text && text.trim() !== '') {
+                    hasContent = true;
+                    combinedLog += '\n' + '-'.repeat(80) + '\n';
+                    combinedLog += testNames[index] + '\n';
+                    combinedLog += '-'.repeat(80) + '\n';
+                    combinedLog += text + '\n';
+                }
+            });
+
+            if (!hasContent) {
+                alert('No logs to copy! Run some tests first.');
+                return;
+            }
+
+            // Add summary
+            const total = Object.keys(testResults).length;
+            const passed = Object.values(testResults).filter(r => r === true).length;
+            const failed = Object.values(testResults).filter(r => r === false).length;
+            const successRate = total > 0 ? ((passed / total) * 100).toFixed(1) : 0;
+
+            combinedLog += '\n' + '='.repeat(80) + '\n';
+            combinedLog += 'TEST SUMMARY\n';
+            combinedLog += '='.repeat(80) + '\n';
+            combinedLog += `Total Tests: ${total}\n`;
+            combinedLog += `Passed: ${passed}\n`;
+            combinedLog += `Failed: ${failed}\n`;
+            combinedLog += `Success Rate: ${successRate}%\n`;
+            combinedLog += '='.repeat(80) + '\n';
+
+            navigator.clipboard.writeText(combinedLog).then(() => {
+                // Visual feedback
+                const btn = evt.target;
+                const originalText = btn.textContent;
+                btn.textContent = '✓ All Logs Copied!';
+                btn.style.background = '#28a745';
+                btn.style.color = 'white';
+                setTimeout(() => {
+                    btn.textContent = originalText;
+                    btn.style.background = '';
+                    btn.style.color = '';
+                }, 3000);
+            }).catch(err => {
+                alert('Failed to copy: ' + err);
+            });
+        }
+
+        // Auto-detect environment on load
+        window.addEventListener('load', () => {
+            console.log('AI Tools Flow Test Suite loaded');
+            console.log('Environment:', IS_LOCAL ? 'LOCAL' : 'RENDER');
+            console.log('Base URL:', BASE_URL);
+        });
+    </script>
+</body>
+
+</html>

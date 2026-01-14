@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Demo: Hexdump Stream (Subtle Matrix)</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            overflow: hidden;
+            height: 100vh;
+            background: #0d1117;
+        }
+
+        #hexCanvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 1;
+        }
+
+        .gradient-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: radial-gradient(ellipse at center,
+                    rgba(13, 17, 23, 0.4) 0%,
+                    rgba(13, 17, 23, 0.85) 60%,
+                    rgba(13, 17, 23, 0.95) 100%);
+            z-index: 2;
+        }
+
+        .content-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 10;
+        }
+
+        .login-container {
+            background: linear-gradient(145deg, rgba(22, 27, 34, 0.98) 0%, rgba(13, 17, 23, 0.98) 100%);
+            border: 1px solid rgba(88, 166, 255, 0.3);
+            border-radius: 20px;
+            padding: 48px;
+            width: 90%;
+            max-width: 480px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.8);
+            backdrop-filter: blur(15px);
+            animation: slideUp 0.5s ease;
+        }
+
+        @keyframes slideUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .login-header {
+            text-align: center;
+            margin-bottom: 32px;
+        }
+
+        .login-header h1 {
+            color: #ffffff;
+            font-size: 28px;
+            /* font-weight: 600; */
+            margin-bottom: 8px;
+        }
+
+        .login-header p {
+            color: #8b949e;
+            font-size: 14px;
+        }
+
+        .spinner {
+            width: 60px;
+            height: 60px;
+            border: 4px solid rgba(48, 54, 61, 0.8);
+            border-top: 4px solid #3fb950;
+            border-radius: 50%;
+            margin: 0 auto 24px;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% {
+                transform: rotate(0deg);
+            }
+
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+
+        .loading-text {
+            text-align: center;
+            color: #3fb950;
+            font-size: 14px;
+            margin-bottom: 16px;
+            font-family: 'Courier New', monospace;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 4px;
+            background: rgba(48, 54, 61, 0.5);
+            border-radius: 2px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #3fb950, #58a6ff);
+            border-radius: 2px;
+            width: 0%;
+            animation: progressGrow 3s ease-in-out infinite;
+        }
+
+        @keyframes progressGrow {
+
+            0%,
+            100% {
+                width: 0%;
+            }
+
+            50% {
+                width: 100%;
+            }
+        }
+
+        .demo-label {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            color: #3fb950;
+            font-size: 14px;
+            /* font-weight: 600; */
+            z-index: 100;
+            background: rgba(13, 17, 23, 0.9);
+            padding: 8px 16px;
+            border-radius: 8px;
+            border: 1px solid rgba(63, 185, 80, 0.3);
+            font-family: 'Courier New', monospace;
+        }
+
+        .demo-info {
+            position: fixed;
+            bottom: 20px;
+            left: 20px;
+            color: #8b949e;
+            font-size: 12px;
+            z-index: 100;
+            background: rgba(13, 17, 23, 0.9);
+            padding: 12px 16px;
+            border-radius: 8px;
+            border: 1px solid rgba(48, 54, 61, 0.5);
+            max-width: 350px;
+            line-height: 1.5;
+        }
+
+        .info-box {
+            position: fixed;
+            bottom: 20px;
+            left: 20px;
+            color: #3fb950;
+            font-size: 12px;
+            z-index: 100;
+            background: rgba(13, 17, 23, 0.95);
+            padding: 12px 16px;
+            border-radius: 8px;
+            border: 1px solid rgba(63, 185, 80, 0.3);
+            font-family: 'Courier New', monospace;
+            line-height: 1.6;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="demo-label">Alt Matrix 3: Hexadecimal Memory Dump</div>
+    <div class="info-box">
+        📊 What it does:<br>
+        Simulates memory dump scrolling<br>
+        Like watching RAM being processed<br>
+        Memory addresses + hex values
+    </div>
+
+    <canvas id="hexCanvas"></canvas>
+    <div class="gradient-overlay"></div>
+
+    <div class="content-overlay">
+        <div class="login-container">
+            <div class="login-header">
+                <div class="spinner"></div>
+                <h1>Business AI Platform</h1>
+                <p>Loading your workspace...</p>
+            </div>
+            <div class="loading-text">0x7FFF > MEMORY.INIT...</div>
+            <div class="progress-bar">
+                <div class="progress-fill"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Hexdump style - looks like memory dump
+        const canvas = document.getElementById('hexCanvas');
+        const ctx = canvas.getContext('2d');
+
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+
+        window.addEventListener('resize', () => {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+            rows = Math.floor(canvas.height / lineHeight) + 1;
+            hexLines = initializeHexLines();
+        });
+
+        const lineHeight = 20;
+        const fontSize = 12;
+        let rows = Math.floor(canvas.height / lineHeight) + 1;
+
+        const hexChars = '0123456789ABCDEF';
+
+        function generateHexLine() {
+            let line = '';
+            // Memory address
+            line += '0x' + Array(4).fill(0).map(() =>
+                hexChars[Math.floor(Math.random() * 16)]
+            ).join('') + '  ';
+
+            // Hex values (16 bytes)
+            for (let i = 0; i < 16; i++) {
+                line += Array(2).fill(0).map(() =>
+                    hexChars[Math.floor(Math.random() * 16)]
+                ).join('') + ' ';
+            }
+
+            return line;
+        }
+
+        function initializeHexLines() {
+            return Array(rows).fill(null).map((_, i) => ({
+                text: generateHexLine(),
+                y: i * lineHeight,
+                offset: -canvas.height + (i * lineHeight),
+                opacity: 0.2 + Math.random() * 0.3
+            }));
+        }
+
+        let hexLines = initializeHexLines();
+        let scrollSpeed = 0.5;
+
+        function draw() {
+            ctx.fillStyle = 'rgba(13, 17, 23, 0.1)';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            ctx.font = `${fontSize}px "Courier New", monospace`;
+
+            hexLines.forEach((line, i) => {
+                line.offset += scrollSpeed;
+
+                if (line.offset > canvas.height) {
+                    line.offset = -lineHeight;
+                    line.text = generateHexLine();
+                    line.opacity = 0.2 + Math.random() * 0.3;
+                }
+
+                // Fade based on position
+                const centerDist = Math.abs(line.offset - canvas.height / 2);
+                const fade = Math.max(0, 1 - centerDist / (canvas.height / 2));
+
+                ctx.fillStyle = `rgba(63, 185, 80, ${line.opacity * fade})`;
+                ctx.fillText(line.text, 20, line.offset);
+            });
+        }
+
+        setInterval(draw, 30);
+    </script>
+</body>
+
+</html>

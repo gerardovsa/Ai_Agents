@@ -1,0 +1,961 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Message Loading Flow - End-to-End Test</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+
+        .test-section {
+            background: white;
+            padding: 20px;
+            margin-bottom: 15px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        .test-section h3 {
+            margin-top: 0;
+            color: #333;
+            border-bottom: 2px solid #667eea;
+            padding-bottom: 10px;
+        }
+
+        .status {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 4px;
+            font-weight: bold;
+            margin-left: 10px;
+        }
+
+        .status.pending {
+            background: #ffc107;
+            color: #000;
+        }
+
+        .status.running {
+            background: #2196F3;
+            color: white;
+        }
+
+        .status.pass {
+            background: #4CAF50;
+            color: white;
+        }
+
+        .status.fail {
+            background: #f44336;
+            color: white;
+        }
+
+        .status.warning {
+            background: #ff9800;
+            color: white;
+        }
+
+        .test-step {
+            padding: 10px;
+            margin: 10px 0;
+            border-left: 4px solid #ddd;
+            background: #f9f9f9;
+        }
+
+        .test-step.active {
+            border-left-color: #2196F3;
+            background: #e3f2fd;
+        }
+
+        .test-step.pass {
+            border-left-color: #4CAF50;
+            background: #e8f5e9;
+        }
+
+        .test-step.fail {
+            border-left-color: #f44336;
+            background: #ffebee;
+        }
+
+        button {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 5px;
+        }
+
+        button:hover {
+            background: #5568d3;
+        }
+
+        button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+
+        .log-container {
+            background: #263238;
+            color: #aed581;
+            padding: 15px;
+            border-radius: 4px;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            max-height: 400px;
+            overflow-y: auto;
+            margin-top: 10px;
+        }
+
+        .log-entry {
+            margin: 2px 0;
+            padding: 2px 0;
+        }
+
+        .log-entry.error {
+            color: #ef5350;
+        }
+
+        .log-entry.success {
+            color: #66bb6a;
+        }
+
+        .log-entry.info {
+            color: #42a5f5;
+        }
+
+        .log-entry.warning {
+            color: #ffca28;
+        }
+
+        .metric {
+            display: inline-block;
+            padding: 8px 16px;
+            background: #f0f0f0;
+            border-radius: 4px;
+            margin: 5px;
+        }
+
+        .metric-value {
+            font-size: 24px;
+            font-weight: bold;
+            color: #667eea;
+        }
+
+        .metric-label {
+            font-size: 12px;
+            color: #666;
+            text-transform: uppercase;
+        }
+
+        .data-preview {
+            background: #fafafa;
+            border: 1px solid #ddd;
+            padding: 10px;
+            border-radius: 4px;
+            max-height: 200px;
+            overflow: auto;
+            font-family: monospace;
+            font-size: 11px;
+        }
+
+        .flow-diagram {
+            display: flex;
+            align-items: center;
+            justify-content: space-around;
+            padding: 20px 0;
+        }
+
+        .flow-step {
+            text-align: center;
+            padding: 15px;
+            background: #f0f0f0;
+            border-radius: 8px;
+            min-width: 150px;
+        }
+
+        .flow-step.active {
+            background: #e3f2fd;
+            border: 2px solid #2196F3;
+        }
+
+        .flow-step.complete {
+            background: #e8f5e9;
+            border: 2px solid #4CAF50;
+        }
+
+        .flow-arrow {
+            font-size: 24px;
+            color: #999;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="header">
+        <h1>🧪 Message Loading Flow - End-to-End Test</h1>
+        <p>Complete smoke test of database → backend → frontend → UI rendering pipeline</p>
+        <p style="font-size: 14px; opacity: 0.9;">Tests the fix for infinite message rendering loop bug</p>
+    </div>
+
+    <div class="test-section">
+        <h3>⚙️ Test Controls</h3>
+        <button id="runAllTests" onclick="runAllTests()">▶️ Run All Tests</button>
+        <button id="runBackendTests" onclick="runBackendTests()">🔧 Backend Tests Only</button>
+        <button id="runFrontendTests" onclick="runFrontendTests()">🎨 Frontend Tests Only</button>
+        <button onclick="clearLogs()">🗑️ Clear Logs</button>
+        <button onclick="location.reload()">🔄 Reset</button>
+    </div>
+
+    <div class="test-section">
+        <h3>📊 Test Results Summary</h3>
+        <div class="metric">
+            <div class="metric-value" id="totalTests">0</div>
+            <div class="metric-label">Total Tests</div>
+        </div>
+        <div class="metric">
+            <div class="metric-value" id="passedTests" style="color: #4CAF50;">0</div>
+            <div class="metric-label">Passed</div>
+        </div>
+        <div class="metric">
+            <div class="metric-value" id="failedTests" style="color: #f44336;">0</div>
+            <div class="metric-label">Failed</div>
+        </div>
+        <div class="metric">
+            <div class="metric-value" id="testDuration">0ms</div>
+            <div class="metric-label">Duration</div>
+        </div>
+    </div>
+
+    <div class="test-section">
+        <h3>🔄 Message Flow Diagram</h3>
+        <div class="flow-diagram">
+            <div class="flow-step" id="flow-database">
+                <div style="font-size: 32px;">🗄️</div>
+                <div>Database</div>
+                <div style="font-size: 10px;">PostgreSQL</div>
+            </div>
+            <div class="flow-arrow">→</div>
+            <div class="flow-step" id="flow-backend">
+                <div style="font-size: 32px;">⚙️</div>
+                <div>Backend</div>
+                <div style="font-size: 10px;">ThreadLoader</div>
+            </div>
+            <div class="flow-arrow">→</div>
+            <div class="flow-step" id="flow-messagestore">
+                <div style="font-size: 32px;">💾</div>
+                <div>MessageStore</div>
+                <div style="font-size: 10px;">In-Memory Cache</div>
+            </div>
+            <div class="flow-arrow">→</div>
+            <div class="flow-step" id="flow-renderer">
+                <div style="font-size: 32px;">🎨</div>
+                <div>Renderer</div>
+                <div style="font-size: 10px;">UnifiedMessageRenderer</div>
+            </div>
+            <div class="flow-arrow">→</div>
+            <div class="flow-step" id="flow-ui">
+                <div style="font-size: 32px;">✅</div>
+                <div>UI</div>
+                <div style="font-size: 10px;">DOM Elements</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Backend Tests -->
+    <div class="test-section">
+        <h3>🔧 Backend Tests <span class="status pending" id="backend-status">Pending</span></h3>
+
+        <div class="test-step" id="test-db-connection">
+            <strong>1. Database Connection</strong>
+            <div id="test-db-connection-details"></div>
+        </div>
+
+        <div class="test-step" id="test-thread-fetch">
+            <strong>2. Fetch Thread Metadata</strong>
+            <div id="test-thread-fetch-details"></div>
+        </div>
+
+        <div class="test-step" id="test-messages-fetch">
+            <strong>3. Fetch Messages from Database</strong>
+            <div id="test-messages-fetch-details"></div>
+        </div>
+
+        <div class="test-step" id="test-api-endpoint">
+            <strong>4. API Endpoint Response</strong>
+            <div id="test-api-endpoint-details"></div>
+        </div>
+    </div>
+
+    <!-- Frontend Tests -->
+    <div class="test-section">
+        <h3>🎨 Frontend Tests <span class="status pending" id="frontend-status">Pending</span></h3>
+
+        <div class="test-step" id="test-threadloader">
+            <strong>5. ThreadLoader.loadMessagesForThread()</strong>
+            <div id="test-threadloader-details"></div>
+        </div>
+
+        <div class="test-step" id="test-messagestore-add">
+            <strong>6. MessageStore.addMessage() - Historical Load</strong>
+            <div id="test-messagestore-add-details"></div>
+        </div>
+
+        <div class="test-step" id="test-messagestore-duplicate">
+            <strong>7. MessageStore Duplicate Prevention</strong>
+            <div id="test-messagestore-duplicate-details"></div>
+        </div>
+
+        <div class="test-step" id="test-renderer-skip">
+            <strong>8. UnifiedMessageRenderer Skip Logic</strong>
+            <div id="test-renderer-skip-details"></div>
+        </div>
+
+        <div class="test-step" id="test-dom-render">
+            <strong>9. DOM Rendering (No Infinite Loop)</strong>
+            <div id="test-dom-render-details"></div>
+        </div>
+
+        <div class="test-step" id="test-realtime">
+            <strong>10. Real-time Message Addition</strong>
+            <div id="test-realtime-details"></div>
+        </div>
+    </div>
+
+    <!-- Console Log -->
+    <div class="test-section">
+        <h3>📝 Test Console Log</h3>
+        <div class="log-container" id="testLog"></div>
+    </div>
+
+    <!-- Test Data Preview -->
+    <div class="test-section">
+        <h3>📄 Test Data Preview</h3>
+        <div id="dataPreview" class="data-preview">Waiting for test data...</div>
+    </div>
+
+    <script>
+        // Test state
+        const testState = {
+            total: 0,
+            passed: 0,
+            failed: 0,
+            startTime: null,
+            logs: []
+        };
+
+        // Log functions
+        function log(message, type = 'info') {
+            const timestamp = new Date().toISOString().split('T')[1].split('.')[0];
+            const entry = { timestamp, message, type };
+            testState.logs.push(entry);
+
+            const logContainer = document.getElementById('testLog');
+            const logEntry = document.createElement('div');
+            logEntry.className = `log-entry ${type}`;
+            logEntry.textContent = `[${timestamp}] ${message}`;
+            logContainer.appendChild(logEntry);
+            logContainer.scrollTop = logContainer.scrollHeight;
+
+            console.log(`[TEST ${type.toUpperCase()}]`, message);
+        }
+
+        function logError(message) { log(message, 'error'); }
+        function logSuccess(message) { log(message, 'success'); }
+        function logWarning(message) { log(message, 'warning'); }
+
+        function clearLogs() {
+            document.getElementById('testLog').innerHTML = '';
+            testState.logs = [];
+        }
+
+        // Update metrics
+        function updateMetrics() {
+            document.getElementById('totalTests').textContent = testState.total;
+            document.getElementById('passedTests').textContent = testState.passed;
+            document.getElementById('failedTests').textContent = testState.failed;
+
+            if (testState.startTime) {
+                const duration = Date.now() - testState.startTime;
+                document.getElementById('testDuration').textContent = duration + 'ms';
+            }
+        }
+
+        // Test step helpers
+        function startTest(stepId) {
+            const step = document.getElementById(stepId);
+            step.classList.add('active');
+            testState.total++;
+            updateMetrics();
+        }
+
+        function passTest(stepId, details) {
+            const step = document.getElementById(stepId);
+            step.classList.remove('active');
+            step.classList.add('pass');
+
+            const detailsDiv = document.getElementById(stepId + '-details');
+            detailsDiv.innerHTML = `<span style="color: #4CAF50;">✓</span> ${details}`;
+
+            testState.passed++;
+            updateMetrics();
+        }
+
+        function failTest(stepId, details) {
+            const step = document.getElementById(stepId);
+            step.classList.remove('active');
+            step.classList.add('fail');
+
+            const detailsDiv = document.getElementById(stepId + '-details');
+            detailsDiv.innerHTML = `<span style="color: #f44336;">✗</span> ${details}`;
+
+            testState.failed++;
+            updateMetrics();
+        }
+
+        function updateFlowStep(stepId, status) {
+            const step = document.getElementById(stepId);
+            step.classList.remove('active', 'complete');
+            if (status === 'active') step.classList.add('active');
+            if (status === 'complete') step.classList.add('complete');
+        }
+
+        // Backend Tests
+        async function runBackendTests() {
+            log('Starting backend tests...', 'info');
+            document.getElementById('backend-status').textContent = 'Running';
+            document.getElementById('backend-status').className = 'status running';
+
+            try {
+                // Test 1: Database Connection
+                await testDatabaseConnection();
+
+                // Test 2: Fetch Thread
+                const threadId = await testFetchThread();
+
+                // Test 3: Fetch Messages
+                await testFetchMessages(threadId);
+
+                // Test 4: API Endpoint
+                await testAPIEndpoint(threadId);
+
+                document.getElementById('backend-status').textContent = 'Pass';
+                document.getElementById('backend-status').className = 'status pass';
+                logSuccess('All backend tests passed!');
+
+            } catch (error) {
+                document.getElementById('backend-status').textContent = 'Fail';
+                document.getElementById('backend-status').className = 'status fail';
+                logError('Backend tests failed: ' + error.message);
+            }
+        }
+
+        async function testDatabaseConnection() {
+            startTest('test-db-connection');
+            updateFlowStep('flow-database', 'active');
+            log('Testing database connection...');
+
+            try {
+                const response = await fetch('/api/health');
+                const data = await response.json();
+
+                if (data.database === 'connected') {
+                    passTest('test-db-connection', `Database: ${data.database_type || 'PostgreSQL'}`);
+                    updateFlowStep('flow-database', 'complete');
+                    logSuccess('Database connection verified');
+                } else {
+                    failTest('test-db-connection', 'Database not connected');
+                    logError('Database connection failed');
+                }
+            } catch (error) {
+                failTest('test-db-connection', error.message);
+                logError('Database test error: ' + error.message);
+            }
+        }
+
+        async function testFetchThread() {
+            startTest('test-thread-fetch');
+            log('Fetching thread metadata...');
+
+            try {
+                // Get first thread from list
+                const response = await fetch('/api/threads/list?user_id=1');
+                const threads = await response.json();
+
+                if (threads && threads.length > 0) {
+                    const thread = threads[0];
+                    passTest('test-thread-fetch', `Thread: ${thread.title} (${thread.message_count} messages)`);
+                    logSuccess(`Thread found: ${thread.id}`);
+
+                    // Update data preview
+                    document.getElementById('dataPreview').textContent =
+                        JSON.stringify(thread, null, 2);
+
+                    return thread.id;
+                } else {
+                    failTest('test-thread-fetch', 'No threads found');
+                    logWarning('No threads in database - creating test thread...');
+                    return null;
+                }
+            } catch (error) {
+                failTest('test-thread-fetch', error.message);
+                logError('Thread fetch error: ' + error.message);
+                throw error;
+            }
+        }
+
+        async function testFetchMessages(threadId) {
+            if (!threadId) {
+                logWarning('Skipping message fetch (no thread)');
+                return;
+            }
+
+            startTest('test-messages-fetch');
+            log(`Fetching messages for thread ${threadId}...`);
+
+            try {
+                const response = await fetch(`/api/threads/messages/${threadId}`);
+                const data = await response.json();
+
+                if (data.messages) {
+                    passTest('test-messages-fetch',
+                        `Fetched ${data.messages.length} messages (Total: ${data.pagination?.total || data.messages.length})`);
+                    logSuccess(`Messages fetched: ${data.messages.length}`);
+
+                    // Log message structure
+                    if (data.messages.length > 0) {
+                        const sample = data.messages[0];
+                        log(`Sample message: role=${sample.role}, content_type=${typeof sample.content}`);
+                    }
+                } else {
+                    failTest('test-messages-fetch', 'No messages array in response');
+                    logError('Invalid response format');
+                }
+            } catch (error) {
+                failTest('test-messages-fetch', error.message);
+                logError('Message fetch error: ' + error.message);
+                throw error;
+            }
+        }
+
+        async function testAPIEndpoint(threadId) {
+            if (!threadId) {
+                logWarning('Skipping API test (no thread)');
+                return;
+            }
+
+            startTest('test-api-endpoint');
+            updateFlowStep('flow-backend', 'active');
+            log('Testing API endpoint response format...');
+
+            try {
+                const response = await fetch(`/api/threads/messages/${threadId}`);
+                const data = await response.json();
+
+                // Validate response structure
+                const checks = [];
+                if (data.messages) checks.push('✓ messages array');
+                if (data.pagination) checks.push('✓ pagination info');
+                if (data.thread_id) checks.push('✓ thread_id');
+
+                if (checks.length >= 2) {
+                    passTest('test-api-endpoint', checks.join(', '));
+                    updateFlowStep('flow-backend', 'complete');
+                    logSuccess('API endpoint validated');
+                } else {
+                    failTest('test-api-endpoint', 'Incomplete response structure');
+                    logError('API response missing required fields');
+                }
+            } catch (error) {
+                failTest('test-api-endpoint', error.message);
+                logError('API test error: ' + error.message);
+                throw error;
+            }
+        }
+
+        // Frontend Tests
+        async function runFrontendTests() {
+            log('Starting frontend tests...', 'info');
+            document.getElementById('frontend-status').textContent = 'Running';
+            document.getElementById('frontend-status').className = 'status running';
+
+            try {
+                // Test 5: ThreadLoader
+                const threadId = await testThreadLoader();
+
+                // Test 6: MessageStore Add
+                await testMessageStoreAdd(threadId);
+
+                // Test 7: Duplicate Prevention
+                await testMessageStoreDuplicate(threadId);
+
+                // Test 8: Renderer Skip Logic
+                await testRendererSkip();
+
+                // Test 9: DOM Rendering
+                await testDOMRendering(threadId);
+
+                // Test 10: Real-time Messages
+                await testRealtimeMessages(threadId);
+
+                document.getElementById('frontend-status').textContent = 'Pass';
+                document.getElementById('frontend-status').className = 'status pass';
+                logSuccess('All frontend tests passed!');
+
+            } catch (error) {
+                document.getElementById('frontend-status').textContent = 'Fail';
+                document.getElementById('frontend-status').className = 'status fail';
+                logError('Frontend tests failed: ' + error.message);
+            }
+        }
+
+        async function testThreadLoader() {
+            startTest('test-threadloader');
+            log('Testing ThreadLoader.loadMessagesForThread()...');
+
+            try {
+                // Get first thread
+                const response = await fetch('/api/threads/list?user_id=1');
+                const threads = await response.json();
+
+                if (!threads || threads.length === 0) {
+                    failTest('test-threadloader', 'No threads available');
+                    throw new Error('No threads for testing');
+                }
+
+                const threadId = threads[0].id;
+
+                // Test ThreadLoader (if available)
+                if (typeof window.ThreadLoader !== 'undefined') {
+                    const result = await window.ThreadLoader.loadMessagesForThread(threadId, null, 0);
+                    const messages = result?.messages || result;
+
+                    passTest('test-threadloader',
+                        `Loaded ${messages.length} messages via ThreadLoader`);
+                    logSuccess('ThreadLoader working correctly');
+                    return threadId;
+                } else {
+                    failTest('test-threadloader', 'ThreadLoader not available');
+                    logWarning('ThreadLoader module not loaded - using direct API');
+                    return threadId;
+                }
+            } catch (error) {
+                failTest('test-threadloader', error.message);
+                logError('ThreadLoader test error: ' + error.message);
+                throw error;
+            }
+        }
+
+        async function testMessageStoreAdd(threadId) {
+            startTest('test-messagestore-add');
+            updateFlowStep('flow-messagestore', 'active');
+            log('Testing MessageStore.addMessage() with checkDuplicates=false...');
+
+            try {
+                if (typeof window.MessageStore === 'undefined') {
+                    failTest('test-messagestore-add', 'MessageStore not available');
+                    throw new Error('MessageStore not loaded');
+                }
+
+                // Clear MessageStore
+                if (window.MessageStore.clearMessages) {
+                    window.MessageStore.clearMessages(threadId);
+                }
+
+                // Add messages with checkDuplicates: false (historical load)
+                const testMessages = [
+                    { role: 'user', content: 'Test message 1' },
+                    { role: 'assistant', content: 'Test response 1' }
+                ];
+
+                for (const msg of testMessages) {
+                    window.MessageStore.addMessage(threadId, msg, {
+                        checkDuplicates: false,
+                        silent: true
+                    });
+                }
+
+                const stored = window.MessageStore.getMessages(threadId);
+
+                if (stored.length === testMessages.length) {
+                    passTest('test-messagestore-add',
+                        `${stored.length} messages added to MessageStore`);
+                    updateFlowStep('flow-messagestore', 'complete');
+                    logSuccess('MessageStore historical load working');
+                } else {
+                    failTest('test-messagestore-add',
+                        `Expected ${testMessages.length}, got ${stored.length}`);
+                    logError('MessageStore count mismatch');
+                }
+            } catch (error) {
+                failTest('test-messagestore-add', error.message);
+                logError('MessageStore test error: ' + error.message);
+                throw error;
+            }
+        }
+
+        async function testMessageStoreDuplicate(threadId) {
+            startTest('test-messagestore-duplicate');
+            log('Testing MessageStore duplicate prevention...');
+
+            try {
+                const beforeCount = window.MessageStore.getMessages(threadId).length;
+
+                // Try to add duplicate with checkDuplicates: true
+                const result = window.MessageStore.addMessage(threadId,
+                    { role: 'user', content: 'Test message 1' },
+                    { checkDuplicates: true, silent: true }
+                );
+
+                const afterCount = window.MessageStore.getMessages(threadId).length;
+
+                if (result._isDuplicate && afterCount === beforeCount) {
+                    passTest('test-messagestore-duplicate',
+                        'Duplicate correctly prevented');
+                    logSuccess('Duplicate detection working');
+                } else {
+                    failTest('test-messagestore-duplicate',
+                        'Duplicate was not prevented');
+                    logError('Duplicate prevention failed');
+                }
+            } catch (error) {
+                failTest('test-messagestore-duplicate', error.message);
+                logError('Duplicate test error: ' + error.message);
+                throw error;
+            }
+        }
+
+        async function testRendererSkip() {
+            startTest('test-renderer-skip');
+            updateFlowStep('flow-renderer', 'active');
+            log('Testing UnifiedMessageRenderer skip logic (checkDuplicates=false)...');
+
+            try {
+                if (typeof window.UnifiedMessageRenderer === 'undefined') {
+                    failTest('test-renderer-skip', 'UnifiedMessageRenderer not available');
+                    throw new Error('UnifiedMessageRenderer not loaded');
+                }
+
+                // Create test container
+                const testContainer = document.createElement('div');
+                testContainer.id = 'test-messages';
+                testContainer.style.display = 'none';
+                document.body.appendChild(testContainer);
+
+                const testThreadId = 'test-' + Date.now();
+
+                // Clear MessageStore for test thread
+                if (window.MessageStore.clearMessages) {
+                    window.MessageStore.clearMessages(testThreadId);
+                }
+
+                // Pre-add message to MessageStore (simulating backend load)
+                window.MessageStore.addMessage(testThreadId,
+                    { role: 'user', content: 'Pre-loaded message' },
+                    { checkDuplicates: false, silent: true }
+                );
+
+                const beforeCount = window.MessageStore.getMessages(testThreadId).length;
+
+                // Render with checkDuplicates: false (should NOT add to MessageStore again)
+                await window.UnifiedMessageRenderer.render(
+                    testContainer,
+                    'user',
+                    'Pre-loaded message',
+                    {
+                        threadId: testThreadId,
+                        checkDuplicates: false,  // KEY: Should skip MessageStore.addMessage()
+                        syncToBackend: false
+                    }
+                );
+
+                const afterCount = window.MessageStore.getMessages(testThreadId).length;
+
+                // Cleanup
+                testContainer.remove();
+
+                if (beforeCount === afterCount) {
+                    passTest('test-renderer-skip',
+                        `Message NOT re-added (count stayed at ${beforeCount})`);
+                    updateFlowStep('flow-renderer', 'complete');
+                    logSuccess('✅ FIX VERIFIED: Renderer skips MessageStore when checkDuplicates=false');
+                } else {
+                    failTest('test-renderer-skip',
+                        `Message re-added! Before: ${beforeCount}, After: ${afterCount}`);
+                    logError('❌ BUG: Renderer still adding to MessageStore during historical load');
+                }
+            } catch (error) {
+                failTest('test-renderer-skip', error.message);
+                logError('Renderer test error: ' + error.message);
+                throw error;
+            }
+        }
+
+        async function testDOMRendering(threadId) {
+            startTest('test-dom-render');
+            updateFlowStep('flow-ui', 'active');
+            log('Testing DOM rendering (checking for infinite loop)...');
+
+            try {
+                // Create test container
+                const testContainer = document.createElement('div');
+                testContainer.id = 'test-render-container';
+                testContainer.style.display = 'none';
+                document.body.appendChild(testContainer);
+
+                const testThreadId = 'test-render-' + Date.now();
+
+                // Simulate full load cycle
+                const testMessages = [
+                    { role: 'user', content: 'Message 1' },
+                    { role: 'assistant', content: 'Response 1' },
+                    { role: 'user', content: 'Message 2' }
+                ];
+
+                // Step 1: Backend load → MessageStore
+                window.MessageStore.clearMessages(testThreadId);
+                for (const msg of testMessages) {
+                    window.MessageStore.addMessage(testThreadId, msg, {
+                        checkDuplicates: false,
+                        silent: true
+                    });
+                }
+
+                const afterBackendLoad = window.MessageStore.getMessages(testThreadId).length;
+
+                // Step 2: Render messages (with checkDuplicates: false)
+                for (const msg of testMessages) {
+                    await window.UnifiedMessageRenderer.render(
+                        testContainer,
+                        msg.role,
+                        msg.content,
+                        {
+                            threadId: testThreadId,
+                            checkDuplicates: false,  // Historical load flag
+                            syncToBackend: false
+                        }
+                    );
+                }
+
+                const afterRender = window.MessageStore.getMessages(testThreadId).length;
+                const domCount = testContainer.querySelectorAll('.ai-message').length;
+
+                // Cleanup
+                testContainer.remove();
+
+                if (afterBackendLoad === afterRender && domCount === testMessages.length) {
+                    passTest('test-dom-render',
+                        `✅ No duplication! Store: ${afterRender}, DOM: ${domCount}`);
+                    updateFlowStep('flow-ui', 'complete');
+                    logSuccess('DOM rendering working correctly - no infinite loop!');
+                } else {
+                    failTest('test-dom-render',
+                        `Store before: ${afterBackendLoad}, after: ${afterRender}, DOM: ${domCount}`);
+                    logError('Message duplication detected!');
+                }
+            } catch (error) {
+                failTest('test-dom-render', error.message);
+                logError('DOM render test error: ' + error.message);
+                throw error;
+            }
+        }
+
+        async function testRealtimeMessages(threadId) {
+            startTest('test-realtime');
+            log('Testing real-time message addition (with duplicate check)...');
+
+            try {
+                const testThreadId = 'test-realtime-' + Date.now();
+                window.MessageStore.clearMessages(testThreadId);
+
+                // Add message with checkDuplicates: true (real-time)
+                const result1 = window.MessageStore.addMessage(testThreadId,
+                    { role: 'user', content: 'New real-time message' },
+                    { checkDuplicates: true, silent: true }
+                );
+
+                // Try to add same message again (should be prevented)
+                const result2 = window.MessageStore.addMessage(testThreadId,
+                    { role: 'user', content: 'New real-time message' },
+                    { checkDuplicates: true, silent: true }
+                );
+
+                const finalCount = window.MessageStore.getMessages(testThreadId).length;
+
+                if (!result1._isDuplicate && result2._isDuplicate && finalCount === 1) {
+                    passTest('test-realtime',
+                        'Real-time duplicate check working (1 message added, 1 prevented)');
+                    logSuccess('Real-time message flow verified');
+                } else {
+                    failTest('test-realtime',
+                        `Expected 1 message, got ${finalCount}`);
+                    logError('Real-time duplicate check failed');
+                }
+            } catch (error) {
+                failTest('test-realtime', error.message);
+                logError('Real-time test error: ' + error.message);
+                throw error;
+            }
+        }
+
+        // Run all tests
+        async function runAllTests() {
+            log('='.repeat(50), 'info');
+            log('🚀 Starting End-to-End Test Suite', 'info');
+            log('='.repeat(50), 'info');
+
+            testState.startTime = Date.now();
+            testState.total = 0;
+            testState.passed = 0;
+            testState.failed = 0;
+
+            document.getElementById('runAllTests').disabled = true;
+
+            try {
+                await runBackendTests();
+                await runFrontendTests();
+
+                log('='.repeat(50), 'info');
+                log('✅ All Tests Complete!', 'success');
+                log(`Results: ${testState.passed}/${testState.total} passed`, 'info');
+                log('='.repeat(50), 'info');
+
+                if (testState.failed === 0) {
+                    log('🎉 ALL TESTS PASSED - System is working correctly!', 'success');
+                } else {
+                    log(`⚠️ ${testState.failed} test(s) failed - review errors above`, 'warning');
+                }
+
+            } catch (error) {
+                log('❌ Test suite failed: ' + error.message, 'error');
+            } finally {
+                document.getElementById('runAllTests').disabled = false;
+            }
+        }
+
+        // Auto-run on load
+        window.addEventListener('load', () => {
+            log('Test page loaded. Ready to run tests.', 'info');
+            log('Click "Run All Tests" to begin end-to-end testing.', 'info');
+        });
+    </script>
+</body>
+
+</html>

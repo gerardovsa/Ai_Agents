@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Module Creator & Verifier - Enhanced Live Editor</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <!-- Dev Tools External Module -->
+    <link rel="stylesheet" href="dev-tools-styles.css">
+    <script src="dev-tools-module.js"></script>
+
+    <style>
+        /* Minimal wrapper styles - main layout handled by dev-tools-styles.css */
+        body {
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+        }
+
+        main {
+            height: 100vh;
+            width: 100%;
+        }
+    </style>
+</head>
+
+<body>
+    <!-- Dev Tools Module Container (populated by external module) -->
+    <main id="dev-tools-workspace">
+        <!-- Module workspace will be dynamically created by dev-tools-module.js -->
+    </main>
+
+    <!-- Initialize Dev Tools Module -->
+    <script>
+        (async () => {
+            console.log('[ModuleCreator] Initializing dev-tools external module...');
+
+            try {
+                // Get DevToolsModule singleton instance
+                const devTools = DevToolsModule.getInstance({
+                    apiBase: 'http://localhost:5001',
+                    monacoPath: 'https://cdn.jsdelivr.net/npm/monaco-editor@0.45.0/min/vs',
+                    enableWebSocket: true,
+                    enableAutoSave: true,
+                    autoSaveInterval: 30000,
+                    enableCredentialTesting: true,
+                    theme: 'vs-dark',
+                    enableLivePreview: true,
+                    previewUpdateDelay: 1000
+                });
+
+                // Initialize workspace in main element
+                await devTools.initialize('#dev-tools-workspace');
+
+                console.log('[ModuleCreator] ✅ Dev-tools module initialized successfully');
+
+            } catch (error) {
+                console.error('[ModuleCreator] ❌ Failed to initialize dev-tools module:', error);
+                alert('Failed to initialize Module Creator. Check console for details.');
+            }
+        })();
+    </script>
+</body>
+
+</html>

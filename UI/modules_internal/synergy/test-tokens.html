@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Synergy Tokens Test</title>
+
+    <!-- CSS Variables (simulate your theme) -->
+    <style>
+        :root {
+            --text-primary: rgb(230, 237, 243);
+            --text-secondary: rgb(125, 133, 144);
+            --accent-primary: #3b82f6;
+            --bg-secondary: #161b22;
+            --bg-tertiary: #1c2128;
+            --border-default: #30363d;
+        }
+
+        body {
+            font-family: 'Roboto', Arial, sans-serif;
+            background: #0d1117;
+            color: var(--text-primary);
+            padding: 40px;
+        }
+
+        .test-section {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-default);
+            border-radius: 8px;
+            padding: 24px;
+            margin-bottom: 24px;
+        }
+
+        .test-section h2 {
+            margin-top: 0;
+            color: var(--accent-primary);
+        }
+
+        .sample-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 16px;
+            margin-top: 16px;
+        }
+
+        .sample-item {
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-default);
+            border-radius: 6px;
+            padding: 12px;
+        }
+
+        .sample-label {
+            font-size: 11px;
+            color: var(--text-secondary);
+            margin-bottom: 8px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .audit-btn {
+            background: var(--accent-primary);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            margin-top: 20px;
+        }
+
+        .audit-btn:hover {
+            background: #2563eb;
+        }
+
+        .results {
+            margin-top: 20px;
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-default);
+            border-radius: 6px;
+            padding: 16px;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .pass {
+            color: #22c55e;
+        }
+
+        .fail {
+            color: #ef4444;
+        }
+    </style>
+
+    <!-- Load Synergy Tokens -->
+    <link rel="stylesheet" href="synergy-design-vars.css">
+</head>
+
+<body>
+    <h1>🎨 Synergy Token System Test</h1>
+
+    <!-- Test Section 1: Font Sizes -->
+    <div class="test-section">
+        <h2>Font Size Tokens</h2>
+        <div class="sample-grid">
+            <div class="sample-item">
+                <div class="sample-label">--synergy-text-sm (13px)</div>
+                <div class="synergy-text-sm">View Tab Text</div>
+            </div>
+            <div class="sample-item">
+                <div class="sample-label">--synergy-text-base (14px)</div>
+                <div class="synergy-text-base">Button Text</div>
+            </div>
+            <div class="sample-item">
+                <div class="sample-label">--synergy-text-md (16px)</div>
+                <div class="synergy-text-md">Header Text</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Test Section 2: Component Samples -->
+    <div class="test-section">
+        <h2>Component Styling</h2>
+        <div class="sample-grid">
+            <div class="sample-item">
+                <div class="sample-label">Icon Button</div>
+                <button class="synergy-icon-btn"
+                    style="background: var(--bg-tertiary); border: 1px solid var(--border-default); padding: 8px; border-radius: 4px; color: var(--text-secondary); cursor: pointer;">
+                    <i>📌</i>
+                </button>
+            </div>
+            <div class="sample-item">
+                <div class="sample-label">View Tab (Active)</div>
+                <div class="synergy-view-tab active"
+                    style="background: var(--accent-primary); padding: 8px 16px; border-radius: 6px; cursor: pointer;">
+                    Active
+                </div>
+            </div>
+            <div class="sample-item">
+                <div class="sample-label">View Tab (Inactive)</div>
+                <div class="synergy-view-tab"
+                    style="background: var(--bg-tertiary); padding: 8px 16px; border-radius: 6px; cursor: pointer; border: 1px solid var(--border-default);">
+                    Inactive
+                </div>
+            </div>
+            <div class="sample-item">
+                <div class="sample-label">Search Input</div>
+                <input class="synergy-search-input" placeholder="Search..."
+                    style="background: var(--bg-tertiary); border: 1px solid var(--border-default); padding: 8px 12px; border-radius: 6px; width: 100%;">
+            </div>
+        </div>
+    </div>
+
+    <!-- Test Section 3: Audit Tool -->
+    <div class="test-section">
+        <h2>Live Token Audit</h2>
+        <p>Click to verify that tokens are being applied correctly:</p>
+        <button class="audit-btn" onclick="runTokenAudit()">🔍 Run Token Audit</button>
+        <div id="audit-results" class="results" style="display: none;"></div>
+    </div>
+
+    <script>
+        function runTokenAudit() {
+            const results = [];
+            const resultsDiv = document.getElementById('audit-results');
+            resultsDiv.style.display = 'block';
+
+            // Test expectations
+            const tests = [
+                { selector: '.synergy-text-sm', property: 'fontSize', expected: '13px', name: 'Small text token' },
+                { selector: '.synergy-text-base', property: 'fontSize', expected: '14px', name: 'Base text token' },
+                { selector: '.synergy-text-md', property: 'fontSize', expected: '16px', name: 'Medium text token' },
+                { selector: '.synergy-icon-btn', property: 'fontSize', expected: '14px', name: 'Icon button size' },
+                { selector: '.synergy-view-tab.active', property: 'fontSize', expected: '13px', name: 'Active tab size' },
+                { selector: '.synergy-view-tab.active', property: 'fontWeight', expected: '500', name: 'Active tab weight' },
+                { selector: '.synergy-view-tab.active', property: 'color', expected: 'rgb(255, 255, 255)', name: 'Active tab color' },
+                { selector: '.synergy-view-tab:not(.active)', property: 'color', expected: 'rgb(125, 133, 144)', name: 'Inactive tab color' },
+                { selector: '.synergy-search-input', property: 'fontSize', expected: '14px', name: 'Search input size' },
+            ];
+
+            results.push('═══════════════════════════════════════════════');
+            results.push('🧪 SYNERGY TOKEN AUDIT RESULTS');
+            results.push('═══════════════════════════════════════════════\n');
+
+            let passed = 0;
+            let failed = 0;
+
+            tests.forEach(test => {
+                const element = document.querySelector(test.selector);
+                if (!element) {
+                    results.push(`<span class="fail">❌ ${test.name}: Element not found</span>`);
+                    failed++;
+                    return;
+                }
+
+                const computed = window.getComputedStyle(element);
+                const actual = computed[test.property];
+
+                if (actual === test.expected) {
+                    results.push(`<span class="pass">✅ ${test.name}: ${actual}</span>`);
+                    passed++;
+                } else {
+                    results.push(`<span class="fail">❌ ${test.name}: Expected ${test.expected}, got ${actual}</span>`);
+                    failed++;
+                }
+            });
+
+            results.push(`\n═══════════════════════════════════════════════`);
+            results.push(`Summary: ${passed} passed, ${failed} failed`);
+            results.push(`═══════════════════════════════════════════════`);
+
+            resultsDiv.innerHTML = results.join('<br>');
+
+            // Also log to console
+            console.log(results.join('\n'));
+
+            // Additional detailed audit
+            console.log('\n📋 CSS Variable Values:');
+            const root = document.documentElement;
+            const rootStyles = getComputedStyle(root);
+            console.log('--synergy-text-sm:', rootStyles.getPropertyValue('--synergy-text-sm'));
+            console.log('--synergy-text-base:', rootStyles.getPropertyValue('--synergy-text-base'));
+            console.log('--synergy-text-md:', rootStyles.getPropertyValue('--synergy-text-md'));
+            console.log('--synergy-weight-normal:', rootStyles.getPropertyValue('--synergy-weight-normal'));
+            console.log('--synergy-weight-medium:', rootStyles.getPropertyValue('--synergy-weight-medium'));
+        }
+    </script>
+</body>
+
+</html>

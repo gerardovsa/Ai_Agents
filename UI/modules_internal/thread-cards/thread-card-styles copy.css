@@ -1,0 +1,1427 @@
+/**
+ * THREAD CARD STYLES - Extracted from business-ai-platform-v2.html
+ * 
+ * PURPOSE: Unified styling for thread info cards across all locations
+ * - Prime panel (full mode)
+ * - Agent columns (compact mode)
+ * - Synergy cards (compact mode)
+ * - Thread history sidebar
+ * 
+ * FEATURES:
+ * - 5-row layout with collapse animations
+ * - Hover-based expansion (rows 4-5 hidden by default)
+ * - Action buttons (rename, edit, fork, clone, archive, delete)
+ * - UI pill badges (Synergy=green, Workflow=orange, Docs=blue)
+ * - Agent badges and location indicators
+ * - Tag management UI
+ * - Copy thread functionality
+ * - Device lock/unlock controls
+ * 
+ * LAST MODIFIED: 2025-11-17 - Extracted from main HTML
+ */
+
+/* ============================================================
+   BASE THREAD INFO CONTAINER
+   ============================================================ */
+
+.ai-chat-header-info {
+    display: flex;
+    flex-direction: column;
+    border: 1px solid var(--border-default);
+    border-radius: 6px;
+    gap: 6px;
+    font-size: 13px;
+    color: var(--text-secondary);
+    padding: 10x;
+    position: relative;
+    margin: 0px 10px;
+}
+
+/* CLICK-BASED EXPANSION: Controlled by .expanded class (see below for per-card rules) */
+/* Old hover-based expansion removed Nov 24, 2025 */
+
+/* ============================================================
+   ROW 1: TITLE + AGENT BADGE
+   ============================================================ */
+
+.thread-info-row-1 {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 8px;
+}
+
+.thread-info-title-row {
+    width: 100%;
+    margin-bottom: 6px;
+}
+
+.thread-title-display {
+    font-size: 16px;
+    color: var(--text-primary);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    padding: 4px 8px;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: block;
+    width: 100%;
+}
+
+.thread-title-display:hover {
+    background: var(--bg-hover, #21262d);
+}
+
+.thread-title-display.editing {
+    background: var(--bg-primary, #0d1117);
+    border: 1px solid var(--accent-primary, #58a6ff);
+    padding: 3px 7px;
+}
+
+.thread-title-input {
+    width: 100%;
+    background: transparent;
+    border: none;
+    outline: none;
+    color: var(--text-primary);
+    font-size: 16px;
+    font-family: inherit;
+}
+
+.thread-agent-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 12px;
+    background: var(--accent-primary, #238636);
+    color: white;
+    border-radius: 16px;
+    font-size: 12px;
+    white-space: nowrap;
+}
+
+.thread-agent-badge i {
+    font-size: 11px;
+}
+
+/* ============================================================
+   ROW 2: METADATA (MESSAGES, DATE, TIME)
+   ============================================================ */
+
+.thread-info-row-2 {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-size: 12px;
+    color: var(--text-muted, #9ca3af);
+    padding-left: 8px;
+    margin-bottom: 6px;
+}
+
+.thread-metadata-item {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.thread-metadata-item i {
+    font-size: 11px;
+    opacity: 0.7;
+}
+
+/* ============================================================
+   ROW 3: THREAD SLUG (FULL WIDTH)
+   ============================================================ */
+
+.thread-info-row-3 {
+    width: 100%;
+    padding-left: 8px;
+    margin-bottom: 6px;
+}
+
+.thread-id-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 10px;
+    background: var(--bg-tertiary, #161b22);
+    border: 1px solid var(--border-default, #30363d);
+    border-radius: 6px;
+    font-size: 11px;
+    font-family: 'Courier New', monospace;
+    color: var(--text-muted, #9ca3af);
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.thread-id-badge:hover {
+    background: var(--bg-secondary, #0d1117);
+    border-color: var(--accent-primary, #58a6ff);
+    color: var(--accent-primary, #58a6ff);
+}
+
+.thread-id-badge i {
+    font-size: 10px;
+}
+
+/* ============================================================
+   COPY THREAD DROPDOWN
+   ============================================================ */
+
+.thread-copy-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    padding: 0;
+    background: transparent;
+    border: 1px solid var(--border-default, #30363d);
+    border-radius: 6px;
+    color: var(--text-secondary, #8b949e);
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.thread-copy-btn:hover {
+    background: var(--bg-tertiary, #161b22);
+    border-color: var(--accent-primary, #58a6ff);
+    color: var(--accent-primary, #58a6ff);
+}
+
+.thread-copy-btn i {
+    font-size: 12px;
+}
+
+.thread-copy-menu {
+    position: absolute;
+    top: calc(100% + 4px);
+    right: 0;
+    min-width: 140px;
+    background: var(--bg-secondary, #0d1117);
+    border: 1px solid var(--border-default, #30363d);
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    z-index: 1000;
+    overflow: hidden;
+}
+
+.thread-copy-menu button {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+    padding: 10px 14px;
+    background: transparent;
+    border: none;
+    border-bottom: 1px solid var(--border-default, #30363d);
+    color: var(--text-primary, #c9d1d9);
+    font-size: 13px;
+    text-align: left;
+    cursor: pointer;
+    transition: all 0.15s;
+}
+
+.thread-copy-menu button:last-child {
+    border-bottom: none;
+}
+
+.thread-copy-menu button:hover {
+    background: var(--bg-tertiary, #161b22);
+    color: var(--accent-primary, #58a6ff);
+}
+
+.thread-copy-menu button i {
+    font-size: 12px;
+    width: 16px;
+    text-align: center;
+    color: var(--text-secondary, #8b949e);
+}
+
+.thread-copy-menu button:hover i {
+    color: var(--accent-primary, #58a6ff);
+}
+
+/* ============================================================
+   THREAD CARD COLLAPSE BEHAVIOR (AGENT & PRIME)
+   NEW LAYOUT:
+   Row 1: Title | Agent Badge + Unload (always visible)
+   Row 2: Meta info (msgs, date, time) (always visible)
+   Row 3: Copy + Thread ID (always visible)
+   Row 4: Synergy (hidden until hover)
+   Row 5: Tags (hidden until hover)
+   Action buttons: Hidden until hover
+   ============================================================ */
+
+/* Agent Thread Cards (thread-info-1, thread-info-2, thread-info-3) */
+/* HOVER OR CLICK-BASED EXPANSION */
+/* Hide expanded content by default */
+#thread-info-1 .thread-expand-on-hover,
+#thread-info-2 .thread-expand-on-hover,
+#thread-info-3 .thread-expand-on-hover {
+    opacity: 0;
+    max-height: 0;
+    overflow: hidden;
+    margin: 0 !important;
+    padding: 0 !important;
+    transition: opacity 0.5s ease, max-height 0.5s ease;
+}
+
+/* Show expanded content on HOVER or when clicked (.expanded class) */
+#thread-info-1:hover .thread-expand-on-hover,
+#thread-info-2:hover .thread-expand-on-hover,
+#thread-info-3:hover .thread-expand-on-hover,
+#thread-info-1.expanded .thread-expand-on-hover,
+#thread-info-2.expanded .thread-expand-on-hover,
+#thread-info-3.expanded .thread-expand-on-hover {
+    opacity: 1;
+    max-height: 500px;
+    margin-top: 8px !important;
+    transition: opacity 0.5s ease, max-height 0.5s ease;
+}
+
+/* Chevron rotation on HOVER or when clicked (.expanded class) */
+#thread-info-1:hover .chevron-icon,
+#thread-info-2:hover .chevron-icon,
+#thread-info-3:hover .chevron-icon,
+#thread-info-1.expanded .chevron-icon,
+#thread-info-2.expanded .chevron-icon,
+#thread-info-3.expanded .chevron-icon {
+    transform: rotate(180deg);
+    transition: transform 0.5s ease;
+}
+
+/* Prime Panel Thread Card - HOVER OR CLICK-BASED EXPANSION */
+/* Hide expanded content by default */
+#prime-thread-info .thread-expand-on-hover {
+    opacity: 0;
+    max-height: 0;
+    overflow: hidden;
+    margin: 0 !important;
+    padding: 0 !important;
+    transition: opacity 0.5s ease, max-height 0.5s ease;
+}
+
+/* Show expanded content on HOVER or when clicked (.expanded class) */
+#prime-thread-info:hover .thread-expand-on-hover,
+#prime-thread-info.expanded .thread-expand-on-hover {
+    opacity: 1;
+    max-height: 500px;
+    margin-top: 8px !important;
+    transition: opacity 0.5s ease, max-height 0.5s ease;
+}
+
+/* Chevron rotation on HOVER or when clicked (.expanded class) */
+#prime-thread-info:hover .chevron-icon,
+#prime-thread-info.expanded .chevron-icon {
+    transform: rotate(180deg);
+    transition: transform 0.5s ease;
+}
+
+/* Thread History Panel - CLICK-BASED EXPANSION ONLY (no hover) */
+/* Hide expanded content by default in thread-history */
+.ai-chat-header-info[data-location="thread-history"] .thread-expand-on-hover {
+    opacity: 0;
+    max-height: 0;
+    overflow: hidden;
+    margin: 0 !important;
+    padding: 0 !important;
+    transition: opacity 0.5s ease, max-height 0.5s ease;
+}
+
+/* Show expanded content when clicked (has .expanded class) */
+.ai-chat-header-info[data-location="thread-history"].expanded .thread-expand-on-hover {
+    opacity: 1;
+    max-height: 500px;
+    margin-top: 8px !important;
+    transition: opacity 0.5s ease, max-height 0.5s ease;
+}
+
+/* Chevron rotation when expanded */
+.ai-chat-header-info[data-location="thread-history"].expanded .chevron-icon {
+    transform: rotate(180deg);
+    transition: transform 0.5s ease;
+}
+
+/* ============================================================
+   CHEVRON EXPAND BUTTON (CLICK-BASED EXPANSION)
+   ============================================================ */
+
+.thread-card-expand-btn {
+    flex-shrink: 0;
+    width: 28px;
+    height: 28px;
+    border: 1px solid var(--border-default, #30363d);
+    background: transparent;
+    color: var(--text-secondary, #8b949e);
+    cursor: pointer;
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+    padding: 0;
+    margin-left: auto;
+    /* Push to right margin */
+}
+
+.thread-card-expand-btn:hover {
+    background: var(--bg-tertiary, #161b22);
+    border-color: var(--accent-primary, #58a6ff);
+    color: var(--accent-primary, #58a6ff);
+}
+
+/* Active state when card is expanded */
+.ai-chat-header-info.expanded .thread-card-expand-btn,
+.agent-thread-card.expanded .thread-card-expand-btn {
+    border-color: var(--accent-primary, #58a6ff);
+    color: var(--accent-primary, #58a6ff);
+    background: var(--bg-tertiary, #161b22);
+}
+
+.chevron-icon {
+    transition: transform 0.5s ease;
+    font-size: 12px;
+}
+
+/* Expanded state handled per-card above */
+
+/* ============================================================
+   DEVICE LOCK/UNLOCK CONTROLS
+   ============================================================ */
+
+.lock-unlock-container {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.lock-status-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 10px;
+    background: rgba(255, 107, 53, 0.1);
+    border: 1px solid rgba(255, 107, 53, 0.3);
+    border-radius: 6px;
+    font-size: 12px;
+    color: #ff6b35;
+}
+
+.lock-status-badge i {
+    font-size: 11px;
+}
+
+/* Lock/Unlock Toggle Button */
+.lock-toggle-btn {
+    padding: 6px 12px;
+    border: none;
+    border-radius: 6px;
+    color: white;
+    font-size: 12px;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    transition: all 0.2s ease;
+    background: linear-gradient(135deg, #6b7280 0%, #4b5563 100%);
+    box-shadow: 0 2px 8px rgba(107, 114, 128, 0.3);
+}
+
+/* Unlocked state (default - gray) */
+.lock-toggle-btn[data-locked="false"] {
+    background: linear-gradient(135deg, #6b7280 0%, #4b5563 100%);
+}
+
+.lock-toggle-btn[data-locked="false"]:hover {
+    background: linear-gradient(135deg, #ff6b35 0%, #f7931e 100%);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(255, 107, 53, 0.4);
+}
+
+/* Locked state (green) */
+.lock-toggle-btn[data-locked="true"] {
+    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+    box-shadow: 0 2px 8px rgba(16, 185, 129, 0.3);
+}
+
+.lock-toggle-btn[data-locked="true"]:hover {
+    background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(239, 68, 68, 0.4);
+}
+
+.lock-toggle-btn:active {
+    transform: translateY(0);
+}
+
+.lock-toggle-btn i {
+    font-size: 11px;
+    transition: transform 0.2s ease;
+}
+
+/* Rotate icon when locked */
+.lock-toggle-btn[data-locked="true"] i {
+    transform: rotate(-15deg);
+}
+
+/* Locked thread styling */
+.thread-item.locked,
+.ai-chat-header-info.locked {
+    border-color: #ff6b35;
+    box-shadow: 0 0 0 1px rgba(255, 107, 53, 0.2);
+}
+
+.ai-chat-input-container.locked-read-only {
+    opacity: 0.6;
+    pointer-events: none;
+    position: relative;
+}
+
+.ai-chat-input-container.locked-read-only::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.05);
+    pointer-events: none;
+}
+
+.lock-read-only-banner {
+    background: linear-gradient(135deg, #fff3cd 0%, #ffeaa7 100%);
+    border: 1px solid #ffc107;
+    border-radius: 6px;
+    padding: 12px;
+    margin: 12px 0;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    color: #856404;
+    font-size: 13px;
+    font-weight: 500;
+}
+
+.lock-read-only-banner i {
+    font-size: 16px;
+    color: #ff6b35;
+}
+
+.lock-read-only-banner strong {
+    color: #ff6b35;
+}
+
+/* ============================================================
+   ADD TAG BUTTON
+   ============================================================ */
+
+.add-tag-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 12px;
+    background: transparent;
+    border: 1px solid var(--border-default, #30363d);
+    border-radius: 6px;
+    color: var(--text-muted, #9ca3af);
+    font-size: 11px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+    margin-top: 3px;
+}
+
+.add-tag-btn:hover {
+    background: var(--bg-tertiary, #161b22);
+    border-color: var(--accent-primary, #58a6ff);
+    color: var(--accent-primary, #58a6ff);
+}
+
+.add-tag-btn i {
+    font-size: 10px;
+}
+
+/* ============================================================
+   TAGS ROW
+   ============================================================ */
+
+.thread-tags-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-wrap: wrap;
+    transition: background-color 0.2s ease, border-color 0.2s ease;
+    padding: 4px 6px;
+    border-radius: 6px;
+    border: 2px solid transparent;
+}
+
+.thread-tags-row.workflow-drop-active {
+    background-color: rgba(255, 140, 0, 0.1);
+    border-color: #ff8c00;
+    box-shadow: 0 0 0 3px rgba(255, 140, 0, 0.2);
+}
+
+.thread-token-count {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 2px 8px;
+    background: transparent;
+    color: var(--text-muted, #9ca3af);
+    font-size: 11px;
+    border-radius: 6px;
+}
+
+.thread-token-count strong {
+    color: var(--text-primary, #c9d1d9);
+}
+
+.thread-token-count.token-normal {
+    color: var(--text-muted, #9ca3af);
+}
+
+.thread-token-count.token-caution {
+    color: #f59e0b;
+}
+
+.thread-token-count.token-critical {
+    color: #ef4444;
+}
+
+.thread-token-count.token-emergency {
+    color: #b91c1c;
+}
+
+.thread-tag-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 2px 8px;
+    background: var(--bg-tertiary, #1c2128);
+    color: var(--accent-primary, #58a6ff);
+    border: 1px solid var(--border-default, #30363d);
+    border-radius: 12px;
+    font-size: 11px;
+}
+
+/* ============================================================
+   SYNERGY SESSION LINK (GREEN PILL)
+   ============================================================ */
+
+.thread-synergy-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.thread-synergy-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 10px;
+    background: var(--bg-tertiary, #1c2128);
+    border: 1px solid var(--accent-primary, #58a6ff);
+    border-radius: 6px;
+    font-size: 12px;
+    color: var(--text-primary);
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.thread-synergy-badge:hover {
+    background: var(--bg-hover, #21262d);
+    border-color: var(--accent-hover, #4493e6);
+}
+
+.thread-synergy-badge i {
+    color: var(--accent-primary, #58a6ff);
+}
+
+.thread-synergy-id {
+    font-size: 10px;
+    opacity: 0.7;
+    margin-left: 4px;
+}
+
+.thread-synergy-unlink {
+    display: flex !important;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+    padding: 0;
+    margin-left: 0;
+    background: transparent;
+    border: none;
+    border-radius: 4px;
+    color: rgba(248, 81, 73, 0.7);
+    font-size: 12px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    flex-shrink: 0;
+}
+
+.thread-synergy-unlink:hover {
+    background: rgba(248, 81, 73, 0.15);
+    color: #f85149;
+    transform: scale(1.1);
+}
+
+/* Synergy info button (?) - triggers tooltip */
+.thread-synergy-info {
+    display: flex !important;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+    padding: 0;
+    margin-left: 0;
+    background: transparent;
+    border: none;
+    border-radius: 4px;
+    color: rgba(16, 185, 129, 0.7);
+    font-size: 12px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    flex-shrink: 0;
+}
+
+.thread-synergy-info:hover {
+    background: rgba(16, 185, 129, 0.15);
+    color: #10b981;
+    transform: scale(1.1);
+}
+
+/* Synergy popout button - opens card in popup */
+.thread-synergy-popout {
+    display: flex !important;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+    padding: 0;
+    margin-left: 0;
+    background: transparent;
+    border: none;
+    border-radius: 4px;
+    color: rgba(16, 185, 129, 0.7);
+    font-size: 11px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    flex-shrink: 0;
+}
+
+.thread-synergy-popout:hover {
+    background: rgba(16, 185, 129, 0.15);
+    color: #10b981;
+    transform: scale(1.1);
+}
+
+/* ============================================================
+   AGENT UNLOAD BUTTON (RED)
+   ============================================================ */
+
+.agent-unload-btn {
+    display: flex !important;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+    padding: 0;
+    margin-left: 0;
+    background: rgba(248, 81, 73, 0.1);
+    border: 1px solid rgba(248, 81, 73, 0.3);
+    border-radius: 6px;
+    color: #f85149;
+    font-size: 12px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.agent-unload-btn:hover {
+    background: rgba(248, 81, 73, 0.2);
+    border-color: rgba(248, 81, 73, 0.5);
+    color: #ff6b6b;
+    transform: translateY(-1px);
+    box-shadow: 0 2px 8px rgba(248, 81, 73, 0.3);
+}
+
+/* ============================================================
+   UNIFIED THREAD-INFO CONTAINER
+   (Used in Prime, Agents, and Synergy cards)
+   ============================================================ */
+
+/* Compact mode for agent columns and Synergy cards */
+.thread-info-compact {
+    font-size: 12px !important;
+    padding: 10px 12px !important;
+    gap: 4px !important;
+}
+
+.thread-info-compact .thread-title-display {
+    font-size: 14px !important;
+}
+
+.thread-info-compact .thread-agent-badge {
+    font-size: 10px !important;
+    padding: 3px 8px !important;
+}
+
+.thread-info-compact .thread-metadata-item {
+    font-size: 11px !important;
+}
+
+.thread-info-compact .thread-id-badge {
+    font-size: 10px !important;
+    padding: 3px 8px !important;
+}
+
+.thread-info-compact .add-tag-btn {
+    font-size: 10px !important;
+    padding: 3px 10px !important;
+}
+
+.thread-info-compact .thread-tag-pill {
+    font-size: 10px !important;
+    padding: 2px 6px !important;
+}
+
+.thread-info-compact .synergy-badge {
+    font-size: 11px !important;
+    padding: 4px 8px !important;
+}
+
+/* Agent badge color variants */
+.thread-agent-badge-prime {
+    background: linear-gradient(135deg, #ffd700 0%, #ff8c00 100%);
+    color: #1a1a1a;
+}
+
+.thread-agent-badge-agent {
+    background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+    color: #ffffff;
+}
+
+/* ============================================================
+   SYNERGY LINKED THREAD WRAPPER
+   ============================================================ */
+
+.synergy-linked-thread-wrapper {
+    margin-bottom: 8px;
+    border: 1px solid var(--border-default, #30363d);
+    border-radius: 8px;
+    background: var(--bg-secondary, #0d1117);
+    transition: all 0.2s;
+    cursor: pointer;
+    overflow: hidden;
+}
+
+.synergy-linked-thread-wrapper:hover {
+    border-color: var(--accent-primary, #58a6ff);
+    background: var(--bg-hover, #161b22);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+.synergy-linked-thread-wrapper .ai-chat-header-info {
+    border: none;
+    background: transparent;
+}
+
+/* ============================================================
+   THREAD HISTORY SIDEBAR ITEMS
+   ============================================================ */
+
+.thread-item {
+    /* Just a wrapper for drag-and-drop - let inner card control everything */
+    padding: 0;
+    margin-bottom: var(--space-2);
+    cursor: grab;
+    display: block;
+    width: 100%;
+    height: auto;
+    min-height: auto;
+    max-height: none;
+    border: none;
+    background: transparent;
+    box-shadow: none;
+    position: relative;
+    overflow: visible;
+}
+
+/* Removed gradient and hover effects - handled by inner .agent-thread-card */
+
+.thread-item.dragging {
+    opacity: 0.5;
+    cursor: grabbing;
+    transform: rotate(3deg);
+}
+
+.thread-item.drag-ghost {
+    position: fixed;
+    pointer-events: none;
+    z-index: 10000;
+    opacity: 0.8;
+    transform: scale(0.95);
+    box-shadow: 0 8px 24px rgba(88, 166, 255, 0.4);
+}
+
+.thread-item.active {
+    background: rgba(88, 166, 255, 0.1);
+    border-color: var(--accent-primary);
+    border-width: 2px;
+    box-shadow: 0 2px 8px rgba(88, 166, 255, 0.3);
+}
+
+/* Compact/expand behavior handled by inner .agent-thread-card via .thread-expand-on-hover */
+
+/* Also show assignment warning when explicitly shown */
+.thread-item.show-options .thread-item-assignment-warning {
+    opacity: 1;
+    max-height: 300px;
+}
+
+/* ============================================================
+   THREAD ITEM HEADER ROW
+   ============================================================ */
+
+.thread-item-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: var(--space-2);
+    width: 100%;
+    margin-bottom: 0px;
+}
+
+.thread-item-title-row {
+    width: 100%;
+    margin-bottom: 6px;
+    margin-top: 6px;
+}
+
+.thread-item-title {
+    font-size: 15px;
+    color: var(--text-primary);
+    text-align: left;
+    display: block;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.thread-item-title-input {
+    flex: 1;
+    background: var(--bg-primary);
+    border: 1px solid var(--accent-primary);
+    color: var(--text-primary);
+    padding: 6px 10px;
+    border-radius: 6px;
+    font-size: 15px;
+    outline: none;
+}
+
+.thread-item-actions {
+    display: flex;
+    gap: 4px;
+    flex-shrink: 0;
+    opacity: 0;
+    transition: opacity 0.2s ease;
+}
+
+/* Show buttons on parent thread-item hover */
+.thread-item:hover .thread-item-actions,
+.thread-info-container:hover .thread-item-actions,
+.synergy-linked-thread-wrapper:hover .thread-item-actions {
+    opacity: 1;
+}
+
+.thread-action-btn {
+    padding: 6px 8px;
+    background: transparent;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    color: white;
+    font-size: 13px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.thread-action-btn:hover {
+    background: transparent;
+    transform: scale(1.1);
+}
+
+/* Unload Button - Red styling */
+.thread-action-btn.unload {
+    padding: 6px 8px;
+    background: rgba(248, 81, 73, 0.1);
+    border: 1px solid rgba(248, 81, 73, 0.3);
+    border-radius: 4px;
+    color: #f85149;
+    font-size: 14px;
+}
+
+.thread-action-btn.unload:hover {
+    background: rgba(248, 81, 73, 0.2);
+    border-color: rgba(248, 81, 73, 0.5);
+    color: #ff6b6b;
+    transform: scale(1.1);
+}
+
+.thread-action-btn.delete:hover {
+    background: #ef4444;
+}
+
+/* ============================================================
+   THREAD ITEM META ROW
+   ============================================================ */
+
+.thread-item-meta {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+    margin-bottom: 6px;
+    flex-wrap: wrap;
+}
+
+.thread-meta-item {
+    display: inline-flex !important;
+    align-items: center;
+    gap: 4px;
+    font-size: 12px;
+    color: var(--text-secondary);
+    white-space: nowrap;
+}
+
+.thread-meta-item i {
+    font-size: 12px;
+    color: var(--text-tertiary);
+}
+
+/* ============================================================
+   THREAD ITEM AGENT BADGE
+   ============================================================ */
+
+.thread-item-agent-badge {
+    font-size: 11px;
+    color: white;
+    background: #8b5cf6;
+    padding: 4px 10px;
+    border-radius: 12px;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+
+.thread-item-agent-badge.main {
+    background: transparent;
+    border: solid 1px #ffd700;
+}
+
+.thread-item-agent-badge i {
+    font-size: 11px;
+}
+
+/* ============================================================
+   SYNERGY ITEM ROW (IN SIDEBAR)
+   ============================================================ */
+
+.thread-item-synergy {
+    display: flex;
+    align-items: center;
+    width: 100%;
+    gap: 8px;
+}
+
+/* Linked synergy: compact horizontal layout with no background */
+.thread-item-synergy-linked {
+    background: transparent;
+    border: none;
+    padding: 0;
+    border-radius: 0;
+}
+
+/* Unlinked synergy: faint green background, dashed border, clickable container */
+.thread-item-synergy-unlinked {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    border: 1px dashed #10b981;
+    border-radius: 6px;
+    padding: 6px 12px;
+    background: rgba(16, 185, 129, 0.05);
+    color: #10b981;
+    font-size: 13px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.thread-item-synergy-unlinked:hover {
+    background: rgba(16, 185, 129, 0.12);
+    border-color: #10b981;
+    border-style: solid;
+}
+
+.thread-item-synergy-unlinked i {
+    font-size: 12px;
+    flex-shrink: 0;
+}
+
+/* Workflow containers - match synergy styling */
+.thread-item-workflow {
+    display: flex;
+    align-items: center;
+    width: 100%;
+    gap: 8px;
+}
+
+.thread-item-workflow-linked {
+    background: transparent;
+    border: none;
+    padding: 0;
+    border-radius: 0;
+}
+
+.thread-item-workflow-unlinked {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    border: 1px dashed #f97316;
+    border-radius: 6px;
+    padding: 6px 12px;
+    background: rgba(249, 115, 22, 0.05);
+    color: #f97316;
+    font-size: 13px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.thread-item-workflow-unlinked:hover {
+    background: rgba(249, 115, 22, 0.12);
+    border-color: #f97316;
+    border-style: solid;
+}
+
+.thread-item-workflow-unlinked i {
+    font-size: 12px;
+    flex-shrink: 0;
+}
+
+.thread-workflow-unlink {
+    display: flex !important;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+    padding: 0;
+    margin-left: 0;
+    background: transparent;
+    border: none;
+    border-radius: 4px;
+    color: rgba(249, 115, 22, 0.7);
+    font-size: 12px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    flex-shrink: 0;
+}
+
+.thread-workflow-unlink:hover {
+    background: rgba(249, 115, 22, 0.15);
+    color: #f97316;
+    transform: scale(1.1);
+}
+
+.synergy-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 5px 10px;
+    background: rgba(16, 185, 129, 0.12);
+    border: 1px solid rgba(16, 185, 129, 0.3);
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    font-size: 11px;
+    color: #10b981;
+    font-family: 'Courier New', monospace;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 100%;
+}
+
+.synergy-badge:hover {
+    background: rgba(16, 185, 129, 0.2);
+    border-color: #10b981;
+    transform: scale(1.02);
+}
+
+.synergy-badge i {
+    font-size: 10px;
+    flex-shrink: 0;
+}
+
+/* Synergy badge title (truncate if too long to allow space for unlink button) */
+.synergy-badge-title {
+    max-width: 80%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* Tighter constraint for agent columns (350px width) */
+.agent-thread-card .synergy-badge-title {
+    max-width: 160px;
+}
+
+/* Synergy badge priority pill */
+.synergy-badge-priority {
+    flex-shrink: 0;
+}
+
+/* Create & Link Button */
+.synergy-create-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 12px;
+    background: rgba(16, 185, 129, 0.15);
+    border: 1px solid rgba(16, 185, 129, 0.4);
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    font-size: 11px;
+    font-weight: 600;
+    color: #10b981;
+    white-space: nowrap;
+}
+
+.synergy-create-link:hover {
+    background: rgba(16, 185, 129, 0.25);
+    border-color: #10b981;
+    transform: translateY(-1px);
+    box-shadow: 0 2px 8px rgba(16, 185, 129, 0.3);
+}
+
+.synergy-create-link i {
+    font-size: 10px;
+}
+
+/* ============================================================
+   SYNERGY TOOLTIP (HOVER CARD)
+   ============================================================ */
+
+.synergy-tooltip {
+    position: fixed;
+    z-index: 10000;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-default);
+    border-radius: 10px;
+    padding: 16px;
+    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.5);
+    max-width: 420px;
+    min-width: 300px;
+    pointer-events: auto;
+    opacity: 0;
+    transition: opacity 0.2s ease, transform 0.2s ease;
+    transform: translateY(-5px);
+}
+
+.synergy-tooltip.show {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+.synergy-tooltip-title {
+    color: var(--text-primary);
+    margin-bottom: 10px;
+    font-size: 14px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    line-height: 1.4;
+}
+
+.synergy-tooltip-priority {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 10px;
+    font-size: 10px;
+    text-transform: uppercase;
+}
+
+.synergy-tooltip-priority.high {
+    background: rgba(248, 81, 73, 0.2);
+    color: #f85149;
+}
+
+.synergy-tooltip-priority.medium {
+    background: rgba(210, 153, 34, 0.2);
+    color: #d29922;
+}
+
+.synergy-tooltip-priority.low {
+    background: rgba(88, 166, 255, 0.2);
+    color: #58a6ff;
+}
+
+.synergy-tooltip-desc {
+    color: var(--text-secondary);
+    font-size: 13px;
+    line-height: 1.6;
+    margin-bottom: 12px;
+    max-height: 150px;
+    overflow-y: auto;
+    padding-right: 8px;
+}
+
+.synergy-tooltip-meta {
+    font-size: 12px;
+    color: var(--text-muted);
+    margin-bottom: 6px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.synergy-tooltip-meta i {
+    width: 14px;
+    text-align: center;
+    opacity: 0.7;
+}
+
+.synergy-tooltip-actions {
+    margin-top: 10px;
+    padding-top: 10px;
+    border-top: 1px solid var(--border-muted);
+}
+
+.synergy-tooltip-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 4px 10px;
+    background: rgba(88, 166, 255, 0.15);
+    border: 1px solid rgba(88, 166, 255, 0.3);
+    border-radius: 6px;
+    color: var(--accent-primary);
+    font-size: 11px;
+    text-decoration: none;
+    transition: all 0.2s ease;
+    cursor: pointer;
+}
+
+.synergy-tooltip-link:hover {
+    background: rgba(88, 166, 255, 0.25);
+    border-color: var(--accent-primary);
+    transform: translateY(-1px);
+}
+
+/* Enhanced Synergy unlink button with Font Awesome icon */
+.synergy-unlink-btn {
+    display: flex !important;
+    align-items: center;
+    justify-content: center;
+    width: 20px;
+    height: 20px;
+    padding: 0;
+    margin-left: 8px;
+    background: rgba(248, 81, 73, 0.1);
+    border: 1px solid rgba(248, 81, 73, 0.3);
+    border-radius: 4px;
+    color: #f85149;
+    font-size: 11px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.synergy-unlink-btn:hover {
+    background: rgba(248, 81, 73, 0.2);
+    border-color: #f85149;
+    transform: scale(1.1);
+}
+
+.synergy-unlink-btn i {
+    font-size: 10px;
+}
+
+/* ============================================================
+   AGENT THREAD CARD - HOVER EXPAND (Nov 18, 2025)
+   ============================================================ */
+
+/* Agent thread cards show only top 2 rows by default */
+.agent-thread-card {
+    transition: all 0.5s ease-in-out;
+}
+
+/* When inside .thread-item, fill the entire container */
+.thread-item .ai-chat-header-info.agent-thread-card {
+    width: calc(100% - 20px);
+    margin: 0 10px;
+    border-radius: 8px;
+}
+
+/* Always visible: Title + Badge + Unload, and Meta row */
+.thread-meta-row-always-visible {
+    opacity: 1 !important;
+    max-height: 50px !important;
+    overflow: visible !important;
+}
+
+/* Expandable content - CLICK-BASED (not hover) */
+/* Controlled by .expanded class added above (lines 265-315) */
+/* Old hover behavior removed Nov 24, 2025 */
+
+/* Unload button styling */
+.agent-unload-btn {
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    width: 28px;
+    height: 28px;
+    padding: 0;
+    background: rgba(248, 81, 73, 0.1);
+    border: 1px solid rgba(248, 81, 73, 0.3);
+    border-radius: 6px;
+    color: #f85149 !important;
+    font-size: 14px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    line-height: 1 !important;
+}
+
+.agent-unload-btn:hover {
+    background: rgba(248, 81, 73, 0.2);
+    border-color: #f85149;
+    transform: scale(1.1);
+}
+
+.agent-unload-btn i {
+    font-size: 14px !important;
+    color: #f85149 !important;
+    display: inline-block !important;
+    line-height: 1 !important;
+}
+
+/* Smooth transition for all child elements when expanding */
+.agent-thread-card:hover {
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    border-color: var(--accent-primary, #58a6ff);
+}
+
+/* ============================================================
+   END THREAD CARD STYLES
+   ============================================================ */

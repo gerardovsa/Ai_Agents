@@ -1,0 +1,598 @@
+<!-- 
+WEATHER WIDGET FRAGMENT
+Reusable weather display for any dashboard
+Features: Current conditions, 5-day forecast, hourly forecast, weather alerts
+API: Open-Meteo (free, no API key required)
+Usage: Include this fragment and call WeatherWidget.init() after DOM loads
+-->
+
+<style>
+    .weather-widget {
+        background: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%);
+        border-radius: 16px;
+        padding: 24px;
+        color: #ffffff;
+        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        max-width: 100%;
+        position: relative;
+        overflow: hidden;
+    }
+
+    .weather-widget::before {
+        content: '';
+        position: absolute;
+        top: -50%;
+        right: -50%;
+        width: 200%;
+        height: 200%;
+        background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 70%);
+        pointer-events: none;
+    }
+
+    .weather-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        margin-bottom: 20px;
+        position: relative;
+        z-index: 1;
+    }
+
+    .weather-location {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .weather-location i {
+        font-size: 18px;
+        opacity: 0.9;
+    }
+
+    .weather-location-text {
+        display: flex;
+        flex-direction: column;
+    }
+
+    .weather-city {
+        font-size: 20px;
+        font-weight: 600;
+        line-height: 1.2;
+    }
+
+    .weather-country {
+        font-size: 13px;
+        opacity: 0.8;
+    }
+
+    .weather-refresh {
+        background: rgba(255, 255, 255, 0.15);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        border-radius: 8px;
+        padding: 6px 12px;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        font-size: 12px;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        color: #ffffff;
+    }
+
+    .weather-refresh:hover {
+        background: rgba(255, 255, 255, 0.25);
+        transform: translateY(-2px);
+    }
+
+    .weather-refresh i {
+        font-size: 14px;
+    }
+
+    .weather-refresh.refreshing i {
+        animation: spin 1s linear infinite;
+    }
+
+    @keyframes spin {
+        from { transform: rotate(0deg); }
+        to { transform: rotate(360deg); }
+    }
+
+    .weather-current {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 24px;
+        position: relative;
+        z-index: 1;
+    }
+
+    .weather-temp-section {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+    }
+
+    .weather-icon-large {
+        font-size: 72px;
+        text-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+    }
+
+    .weather-temp-details {
+        display: flex;
+        flex-direction: column;
+    }
+
+    .weather-temp {
+        font-size: 56px;
+        font-weight: 700;
+        line-height: 1;
+        text-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    }
+
+    .weather-condition {
+        font-size: 18px;
+        opacity: 0.95;
+        margin-top: 4px;
+    }
+
+    .weather-details-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 12px;
+        margin-bottom: 24px;
+        position: relative;
+        z-index: 1;
+    }
+
+    .weather-detail-item {
+        background: rgba(255, 255, 255, 0.1);
+        border-radius: 10px;
+        padding: 12px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        backdrop-filter: blur(10px);
+    }
+
+    .weather-detail-icon {
+        font-size: 24px;
+        opacity: 0.9;
+    }
+
+    .weather-detail-content {
+        display: flex;
+        flex-direction: column;
+    }
+
+    .weather-detail-label {
+        font-size: 11px;
+        opacity: 0.7;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+
+    .weather-detail-value {
+        font-size: 16px;
+        font-weight: 600;
+        margin-top: 2px;
+    }
+
+    .weather-forecast {
+        position: relative;
+        z-index: 1;
+    }
+
+    .weather-forecast-header {
+        font-size: 14px;
+        font-weight: 600;
+        margin-bottom: 12px;
+        opacity: 0.9;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+
+    .weather-forecast-days {
+        display: grid;
+        grid-template-columns: repeat(5, 1fr);
+        gap: 8px;
+    }
+
+    .weather-day {
+        background: rgba(255, 255, 255, 0.1);
+        border-radius: 10px;
+        padding: 12px 8px;
+        text-align: center;
+        transition: all 0.3s ease;
+        cursor: pointer;
+        backdrop-filter: blur(10px);
+    }
+
+    .weather-day:hover {
+        background: rgba(255, 255, 255, 0.2);
+        transform: translateY(-4px);
+    }
+
+    .weather-day-name {
+        font-size: 12px;
+        opacity: 0.8;
+        margin-bottom: 8px;
+    }
+
+    .weather-day-icon {
+        font-size: 32px;
+        margin: 8px 0;
+    }
+
+    .weather-day-temp {
+        font-size: 16px;
+        font-weight: 600;
+    }
+
+    .weather-day-temp-range {
+        font-size: 11px;
+        opacity: 0.7;
+        margin-top: 4px;
+    }
+
+    .weather-error {
+        background: rgba(239, 68, 68, 0.2);
+        border: 1px solid rgba(239, 68, 68, 0.4);
+        border-radius: 8px;
+        padding: 12px;
+        text-align: center;
+        font-size: 14px;
+        margin: 12px 0;
+    }
+
+    .weather-loading {
+        text-align: center;
+        padding: 40px;
+        font-size: 14px;
+        opacity: 0.8;
+    }
+
+    .weather-loading i {
+        font-size: 32px;
+        margin-bottom: 12px;
+        animation: spin 1s linear infinite;
+    }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+        .weather-widget {
+            padding: 16px;
+        }
+
+        .weather-temp {
+            font-size: 42px;
+        }
+
+        .weather-icon-large {
+            font-size: 56px;
+        }
+
+        .weather-forecast-days {
+            grid-template-columns: repeat(3, 1fr);
+        }
+
+        .weather-forecast-days .weather-day:nth-child(n+4) {
+            display: none;
+        }
+    }
+</style>
+
+<div id="weatherWidget" class="weather-widget">
+    <div class="weather-loading">
+        <i class="fas fa-cloud-sun"></i>
+        <div>Loading weather data...</div>
+    </div>
+</div>
+
+<script>
+/**
+ * WEATHER WIDGET
+ * Standalone weather display using Open-Meteo API
+ * No API key required, unlimited requests
+ */
+const WeatherWidget = {
+    container: null,
+    location: null,
+    updateInterval: 10 * 60 * 1000, // 10 minutes
+    intervalId: null,
+
+    /**
+     * Initialize widget
+     * @param {string} containerId - DOM element ID
+     * @param {object} options - Configuration options
+     */
+    async init(containerId = 'weatherWidget', options = {}) {
+        this.container = document.getElementById(containerId);
+        if (!this.container) {
+            console.error('[WeatherWidget] Container not found:', containerId);
+            return;
+        }
+
+        // Get user location
+        try {
+            this.location = await this.detectLocation(options.lat, options.lon);
+            await this.updateWeather();
+
+            // Auto-refresh
+            if (options.autoRefresh !== false) {
+                this.intervalId = setInterval(() => this.updateWeather(), this.updateInterval);
+            }
+        } catch (error) {
+            this.showError(error.message);
+        }
+    },
+
+    /**
+     * Detect user location from IP or use provided coordinates
+     */
+    async detectLocation(lat, lon) {
+        if (lat && lon) {
+            return { lat, lon, city: 'Custom Location', country: '' };
+        }
+
+        // Use ipapi.co for IP-based location (same as backend)
+        try {
+            const response = await fetch('https://ipapi.co/json/');
+            const data = await response.json();
+            
+            return {
+                lat: data.latitude,
+                lon: data.longitude,
+                city: data.city,
+                region: data.region,
+                country: data.country_name,
+                timezone: data.timezone
+            };
+        } catch (error) {
+            // Fallback to Brisbane (matching backend default)
+            console.warn('[WeatherWidget] Using fallback location (Brisbane)');
+            return {
+                lat: -27.4786,
+                lon: 153.0244,
+                city: 'Brisbane',
+                region: 'Queensland',
+                country: 'Australia',
+                timezone: 'Australia/Brisbane'
+            };
+        }
+    },
+
+    /**
+     * Fetch weather data from Open-Meteo API
+     */
+    async updateWeather() {
+        if (!this.location) return;
+
+        try {
+            const { lat, lon } = this.location;
+
+            // Fetch current + forecast data
+            const url = `https://api.open-meteo.com/v1/forecast?` +
+                `latitude=${lat}&longitude=${lon}` +
+                `&current=temperature_2m,relative_humidity_2m,apparent_temperature,precipitation,weather_code,wind_speed_10m,wind_direction_10m` +
+                `&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_sum,precipitation_probability_max` +
+                `&timezone=auto` +
+                `&forecast_days=5`;
+
+            const response = await fetch(url);
+            if (!response.ok) throw new Error(`Weather API error: ${response.status}`);
+
+            const data = await response.json();
+            this.renderWeather(data);
+        } catch (error) {
+            console.error('[WeatherWidget] Update failed:', error);
+            this.showError('Failed to fetch weather data');
+        }
+    },
+
+    /**
+     * Render weather UI
+     */
+    renderWeather(data) {
+        const current = data.current;
+        const daily = data.daily;
+
+        const weatherIcon = this.getWeatherIcon(current.weather_code);
+        const weatherDesc = this.getWeatherDescription(current.weather_code);
+
+        const html = `
+            <div class="weather-header">
+                <div class="weather-location">
+                    <i class="fas fa-map-marker-alt"></i>
+                    <div class="weather-location-text">
+                        <div class="weather-city">${this.location.city}</div>
+                        <div class="weather-country">${this.location.region ? this.location.region + ', ' : ''}${this.location.country}</div>
+                    </div>
+                </div>
+                <button class="weather-refresh" onclick="WeatherWidget.updateWeather()">
+                    <i class="fas fa-sync-alt"></i>
+                    Refresh
+                </button>
+            </div>
+
+            <div class="weather-current">
+                <div class="weather-temp-section">
+                    <div class="weather-icon-large">${weatherIcon}</div>
+                    <div class="weather-temp-details">
+                        <div class="weather-temp">${Math.round(current.temperature_2m)}°</div>
+                        <div class="weather-condition">${weatherDesc}</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="weather-details-grid">
+                <div class="weather-detail-item">
+                    <div class="weather-detail-icon">💧</div>
+                    <div class="weather-detail-content">
+                        <div class="weather-detail-label">Humidity</div>
+                        <div class="weather-detail-value">${current.relative_humidity_2m}%</div>
+                    </div>
+                </div>
+                <div class="weather-detail-item">
+                    <div class="weather-detail-icon">🌡️</div>
+                    <div class="weather-detail-content">
+                        <div class="weather-detail-label">Feels Like</div>
+                        <div class="weather-detail-value">${Math.round(current.apparent_temperature)}°</div>
+                    </div>
+                </div>
+                <div class="weather-detail-item">
+                    <div class="weather-detail-icon">💨</div>
+                    <div class="weather-detail-content">
+                        <div class="weather-detail-label">Wind Speed</div>
+                        <div class="weather-detail-value">${Math.round(current.wind_speed_10m)} km/h</div>
+                    </div>
+                </div>
+                <div class="weather-detail-item">
+                    <div class="weather-detail-icon">🌧️</div>
+                    <div class="weather-detail-content">
+                        <div class="weather-detail-label">Precipitation</div>
+                        <div class="weather-detail-value">${current.precipitation || 0} mm</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="weather-forecast">
+                <div class="weather-forecast-header">5-Day Forecast</div>
+                <div class="weather-forecast-days">
+                    ${this.renderForecastDays(daily)}
+                </div>
+            </div>
+        `;
+
+        this.container.innerHTML = html;
+    },
+
+    /**
+     * Render forecast days
+     */
+    renderForecastDays(daily) {
+        const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+        let html = '';
+
+        for (let i = 0; i < 5; i++) {
+            const date = new Date(daily.time[i]);
+            const dayName = i === 0 ? 'Today' : days[date.getDay()];
+            const icon = this.getWeatherIcon(daily.weather_code[i]);
+            const maxTemp = Math.round(daily.temperature_2m_max[i]);
+            const minTemp = Math.round(daily.temperature_2m_min[i]);
+            const precipProb = daily.precipitation_probability_max[i] || 0;
+
+            html += `
+                <div class="weather-day">
+                    <div class="weather-day-name">${dayName}</div>
+                    <div class="weather-day-icon">${icon}</div>
+                    <div class="weather-day-temp">${maxTemp}°</div>
+                    <div class="weather-day-temp-range">${minTemp}° • ${precipProb}%</div>
+                </div>
+            `;
+        }
+
+        return html;
+    },
+
+    /**
+     * Get weather icon emoji
+     */
+    getWeatherIcon(code) {
+        const icons = {
+            0: '☀️',    // Clear sky
+            1: '🌤️',   // Mainly clear
+            2: '⛅',   // Partly cloudy
+            3: '☁️',   // Overcast
+            45: '🌫️',  // Foggy
+            48: '🌫️',  // Depositing rime fog
+            51: '🌦️',  // Light drizzle
+            53: '🌦️',  // Moderate drizzle
+            55: '🌧️',  // Dense drizzle
+            61: '🌧️',  // Slight rain
+            63: '🌧️',  // Moderate rain
+            65: '⛈️',  // Heavy rain
+            71: '🌨️',  // Slight snow
+            73: '❄️',  // Moderate snow
+            75: '❄️',  // Heavy snow
+            77: '🌨️',  // Snow grains
+            80: '🌦️',  // Slight rain showers
+            81: '🌧️',  // Moderate rain showers
+            82: '⛈️',  // Violent rain showers
+            85: '🌨️',  // Slight snow showers
+            86: '❄️',  // Heavy snow showers
+            95: '⛈️',  // Thunderstorm
+            96: '⛈️',  // Thunderstorm with slight hail
+            99: '⛈️'   // Thunderstorm with heavy hail
+        };
+        return icons[code] || '🌤️';
+    },
+
+    /**
+     * Get weather description
+     */
+    getWeatherDescription(code) {
+        const descriptions = {
+            0: 'Clear sky',
+            1: 'Mainly clear',
+            2: 'Partly cloudy',
+            3: 'Overcast',
+            45: 'Foggy',
+            48: 'Depositing rime fog',
+            51: 'Light drizzle',
+            53: 'Moderate drizzle',
+            55: 'Dense drizzle',
+            61: 'Slight rain',
+            63: 'Moderate rain',
+            65: 'Heavy rain',
+            71: 'Slight snow',
+            73: 'Moderate snow',
+            75: 'Heavy snow',
+            77: 'Snow grains',
+            80: 'Slight rain showers',
+            81: 'Moderate rain showers',
+            82: 'Violent rain showers',
+            85: 'Slight snow showers',
+            86: 'Heavy snow showers',
+            95: 'Thunderstorm',
+            96: 'Thunderstorm with slight hail',
+            99: 'Thunderstorm with heavy hail'
+        };
+        return descriptions[code] || 'Unknown';
+    },
+
+    /**
+     * Show error message
+     */
+    showError(message) {
+        this.container.innerHTML = `
+            <div class="weather-error">
+                <i class="fas fa-exclamation-triangle"></i>
+                <div style="margin-top: 8px;">${message}</div>
+            </div>
+        `;
+    },
+
+    /**
+     * Destroy widget
+     */
+    destroy() {
+        if (this.intervalId) {
+            clearInterval(this.intervalId);
+            this.intervalId = null;
+        }
+    }
+};
+
+// Auto-initialize if data attributes are present
+document.addEventListener('DOMContentLoaded', () => {
+    const widget = document.getElementById('weatherWidget');
+    if (widget && widget.dataset.autoInit === 'true') {
+        WeatherWidget.init('weatherWidget', {
+            lat: widget.dataset.lat ? parseFloat(widget.dataset.lat) : null,
+            lon: widget.dataset.lon ? parseFloat(widget.dataset.lon) : null,
+            autoRefresh: widget.dataset.autoRefresh !== 'false'
+        });
+    }
+});
+</script>

@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Grid Test - Chat Panel Layout</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        :root {
+            --sidebar-width: 60px;
+            --header-height: 60px;
+            --chat-width: 400px;
+        }
+        
+        body {
+            font-family: Arial, sans-serif;
+            overflow: hidden;
+        }
+        
+        .container {
+            display: grid;
+            grid-template-columns: var(--sidebar-width) 1fr;
+            grid-template-rows: var(--header-height) 1fr;
+            height: 100vh;
+            width: 100vw;
+        }
+        
+        .sidebar {
+            grid-row: 1 / 3;
+            grid-column: 1;
+            background: #161b22;
+            border-right: 1px solid #30363d;
+        }
+        
+        .header {
+            grid-row: 1;
+            grid-column: 2;
+            background: #161b22;
+            border-bottom: 1px solid #30363d;
+            display: flex;
+            align-items: center;
+            padding: 0 24px;
+            color: white;
+        }
+        
+        .main-wrapper {
+            grid-row: 2;
+            grid-column: 2;
+            display: grid;
+            grid-template-columns: 1fr var(--chat-width);
+            overflow: hidden;
+            background: #0d1117;
+        }
+        
+        .main-content {
+            padding: 24px;
+            overflow-y: auto;
+            background: #0d1117;
+            color: white;
+        }
+        
+        .chat-panel {
+            background: #161b22;
+            border-left: 1px solid #30363d;
+            display: flex;
+            flex-direction: column;
+            position: relative;
+            min-width: 300px;
+            max-width: 800px;
+        }
+        
+        .chat-panel::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 0;
+            bottom: 0;
+            width: 6px;
+            cursor: ew-resize;
+            background: transparent;
+            z-index: 10;
+        }
+        
+        .chat-panel:hover::before {
+            background: #58a6ff;
+            opacity: 0.3;
+        }
+        
+        .chat-header {
+            padding: 16px;
+            border-bottom: 1px solid #30363d;
+            color: white;
+            /* font-weight: bold; */
+        }
+        
+        .chat-content {
+            flex: 1;
+            padding: 16px;
+            color: #8b949e;
+            overflow-y: auto;
+        }
+        
+        .dashboard-card {
+            background: #161b22;
+            border: 1px solid #30363d;
+            border-radius: 8px;
+            padding: 24px;
+            margin-bottom: 16px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="sidebar">
+            <div style="padding: 16px; color: white; text-align: center;">☰</div>
+        </div>
+        
+        <div class="header">
+            <h1>Business AI Platform - Grid Test</h1>
+        </div>
+        
+        <div class="main-wrapper" id="main-wrapper">
+            <div class="main-content">
+                <h2>Dashboard Overview</h2>
+                <p style="margin: 16px 0; color: #8b949e;">
+                    This should be on the LEFT side. The chat panel should be on the RIGHT.
+                </p>
+                
+                <div class="dashboard-card">
+                    <h3>Stats Card 1</h3>
+                    <p style="color: #8b949e; margin-top: 8px;">Sample content for the main dashboard area.</p>
+                </div>
+                
+                <div class="dashboard-card">
+                    <h3>Stats Card 2</h3>
+                    <p style="color: #8b949e; margin-top: 8px;">More dashboard content goes here.</p>
+                </div>
+                
+                <div class="dashboard-card">
+                    <h3>Stats Card 3</h3>
+                    <p style="color: #8b949e; margin-top: 8px;">This is the main content area.</p>
+                </div>
+            </div>
+            
+            <div class="chat-panel" id="chat-panel">
+                <div class="chat-header">
+                    🤖 AI Assistant
+                </div>
+                <div class="chat-content">
+                    <p>This is the chat panel. It should appear on the RIGHT side.</p>
+                    <p style="margin-top: 16px;">Hover over the left edge to see the resize cursor.</p>
+                    <p style="margin-top: 16px;">Current width: <span id="width-display">400px</span></p>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        // Resize functionality
+        let isResizing = false;
+        let startX = 0;
+        let startWidth = 0;
+        const panel = document.getElementById('chat-panel');
+        const widthDisplay = document.getElementById('width-display');
+        
+        panel.addEventListener('mousedown', (e) => {
+            const rect = panel.getBoundingClientRect();
+            if (e.clientX - rect.left <= 6) {
+                isResizing = true;
+                startX = e.clientX;
+                startWidth = panel.offsetWidth;
+                e.preventDefault();
+                document.body.style.cursor = 'ew-resize';
+            }
+        });
+        
+        document.addEventListener('mousemove', (e) => {
+            if (!isResizing) return;
+            
+            const deltaX = startX - e.clientX;
+            const newWidth = startWidth + deltaX;
+            
+            if (newWidth >= 300 && newWidth <= 800) {
+                document.documentElement.style.setProperty('--chat-width', newWidth + 'px');
+                widthDisplay.textContent = newWidth + 'px';
+            }
+        });
+        
+        document.addEventListener('mouseup', () => {
+            if (isResizing) {
+                isResizing = false;
+                document.body.style.cursor = 'default';
+            }
+        });
+    </script>
+</body>
+</html>

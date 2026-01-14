@@ -1,0 +1,291 @@
+/**
+ * FILE: UI/shared/css/code-blocks.css
+ * PURPOSE: Styling for enhanced code blocks with syntax highlighting
+ * 
+ * FEATURES:
+ * - Professional code block design
+ * - Language label and copy button on same row (top-right)
+ * - White icons with transparent background
+ * - Accent blue hover effects
+ * - Dark/Light theme support
+ * - Responsive layout
+ * 
+ * USED BY:
+ * - codeBlockEnhancer.js (applies classes to code blocks)
+ * - message_renderer.js (renders markdown with code blocks)
+ * 
+ * LAST MODIFIED: 2025-12-08 - Code block visual improvements
+ */
+
+/* ==================== CODE BLOCK CONTAINER ==================== */
+
+.code-block-enhanced {
+    position: relative;
+    margin: 16px 0;
+    border-radius: 8px;
+    overflow: hidden;
+    background: #1e1e1e;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+/* Light theme variant */
+[data-theme="light"] .code-block-enhanced {
+    background: #f6f8fa;
+    border: 1px solid #d0d7de;
+}
+
+.code-block-enhanced:hover {
+    border-color: rgba(103, 126, 234, 0.3);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+/* ==================== CODE CONTENT PADDING ==================== */
+
+.code-block-enhanced code {
+    display: block;
+    padding: 8px;
+}
+
+/* ==================== LANGUAGE LABEL (Top-Right) ==================== */
+
+.code-language-label {
+    position: absolute;
+    top: 10px;
+    right: 60px;
+    font-family: 'SF Mono', 'Monaco', 'Consolas', 'Courier New', monospace;
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+    color: rgba(255, 255, 255, 0.5);
+    text-transform: uppercase;
+    user-select: none;
+    z-index: 10;
+}
+
+[data-theme="light"] .code-language-label {
+    color: rgba(0, 0, 0, 0.5);
+}
+
+/* ==================== COPY BUTTON (Top-Right) ==================== */
+
+.code-copy-btn {
+    position: absolute;
+    top: 10px;
+    right: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    padding: 0;
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 4px;
+    color: rgba(255, 255, 255, 0.7);
+    cursor: pointer;
+    transition: all 0.2s ease;
+    font-size: 12px;
+    z-index: 10;
+}
+
+[data-theme="light"] .code-copy-btn {
+    background: rgba(0, 0, 0, 0.05);
+    border: 1px solid rgba(0, 0, 0, 0.2);
+    color: rgba(0, 0, 0, 0.6);
+}
+
+/* Hover effect */
+.code-copy-btn:hover {
+    background: rgba(255, 255, 255, 0.15);
+    color: rgba(255, 255, 255, 0.9);
+}
+
+[data-theme="light"] .code-copy-btn:hover {
+    background: rgba(0, 0, 0, 0.1);
+    color: rgba(0, 0, 0, 0.8);
+}
+
+/* Active/Pressed state */
+.code-copy-btn:active {
+    transform: scale(0.95);
+}
+
+/* Copied state (green checkmark) */
+.code-copy-btn.copied {
+    color: #10b981;
+    background: rgba(16, 185, 129, 0.15);
+}
+
+[data-theme="light"] .code-copy-btn.copied {
+    color: #059669;
+    background: rgba(16, 185, 129, 0.1);
+}
+
+.code-copy-btn i {
+    font-size: 11px;
+}
+}
+
+/* ==================== CODE CONTENT ==================== */
+
+.code-block-enhanced code {
+    display: block;
+    padding: 16px;
+    overflow-x: auto;
+    font-family: 'SF Mono', 'Monaco', 'Consolas', 'Courier New', monospace;
+    font-size: 13px;
+    line-height: 1.6;
+    color: #e6edf3;
+    background: transparent;
+}
+
+[data-theme="light"] .code-block-enhanced code {
+    color: #24292f;
+}
+
+/* Custom scrollbar for code blocks */
+.code-block-enhanced code::-webkit-scrollbar {
+    height: 8px;
+}
+
+.code-block-enhanced code::-webkit-scrollbar-track {
+    background: rgba(0, 0, 0, 0.1);
+    border-radius: 4px;
+}
+
+.code-block-enhanced code::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 4px;
+}
+
+.code-block-enhanced code::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 255, 255, 0.3);
+}
+
+[data-theme="light"] .code-block-enhanced code::-webkit-scrollbar-thumb {
+    background: rgba(0, 0, 0, 0.2);
+}
+
+[data-theme="light"] .code-block-enhanced code::-webkit-scrollbar-thumb:hover {
+    background: rgba(0, 0, 0, 0.3);
+}
+
+/* ==================== INLINE CODE (not in pre blocks) ==================== */
+
+.ai-message-content code:not(pre code) {
+    display: inline;
+    padding: 2px 6px;
+    background: rgba(103, 126, 234, 0.1);
+    border: 1px solid rgba(103, 126, 234, 0.2);
+    border-radius: 3px;
+    font-family: 'SF Mono', 'Monaco', 'Consolas', 'Courier New', monospace;
+    font-size: 0.9em;
+    color: #677eea;
+}
+
+[data-theme="light"] .ai-message-content code:not(pre code) {
+    background: rgba(103, 126, 234, 0.08);
+    border-color: rgba(103, 126, 234, 0.15);
+    color: #4f5db8;
+}
+
+/* ==================== SYNTAX HIGHLIGHTING OVERRIDES ==================== */
+
+/* Prism.js theme adjustments for dark mode */
+.code-block-enhanced.code-block-dark .token.comment,
+.code-block-enhanced.code-block-dark .token.prolog,
+.code-block-enhanced.code-block-dark .token.doctype,
+.code-block-enhanced.code-block-dark .token.cdata {
+    color: #6a737d;
+}
+
+.code-block-enhanced.code-block-dark .token.punctuation {
+    color: #c9d1d9;
+}
+
+.code-block-enhanced.code-block-dark .token.property,
+.code-block-enhanced.code-block-dark .token.tag,
+.code-block-enhanced.code-block-dark .token.boolean,
+.code-block-enhanced.code-block-dark .token.number,
+.code-block-enhanced.code-block-dark .token.constant,
+.code-block-enhanced.code-block-dark .token.symbol,
+.code-block-enhanced.code-block-dark .token.deleted {
+    color: #79c0ff;
+}
+
+.code-block-enhanced.code-block-dark .token.selector,
+.code-block-enhanced.code-block-dark .token.attr-name,
+.code-block-enhanced.code-block-dark .token.string,
+.code-block-enhanced.code-block-dark .token.char,
+.code-block-enhanced.code-block-dark .token.builtin,
+.code-block-enhanced.code-block-dark .token.inserted {
+    color: #a5d6ff;
+}
+
+.code-block-enhanced.code-block-dark .token.operator,
+.code-block-enhanced.code-block-dark .token.entity,
+.code-block-enhanced.code-block-dark .token.url,
+.code-block-enhanced.code-block-dark .language-css .token.string,
+.code-block-enhanced.code-block-dark .style .token.string {
+    color: #ff7b72;
+}
+
+.code-block-enhanced.code-block-dark .token.atrule,
+.code-block-enhanced.code-block-dark .token.attr-value,
+.code-block-enhanced.code-block-dark .token.keyword {
+    color: #ff7b72;
+}
+
+.code-block-enhanced.code-block-dark .token.function,
+.code-block-enhanced.code-block-dark .token.class-name {
+    color: #d2a8ff;
+}
+
+.code-block-enhanced.code-block-dark .token.regex,
+.code-block-enhanced.code-block-dark .token.important,
+.code-block-enhanced.code-block-dark .token.variable {
+    color: #ffa657;
+}
+
+/* ==================== RESPONSIVE DESIGN ==================== */
+
+@media (max-width: 768px) {
+    .code-block-enhanced code {
+        font-size: 12px;
+        padding: 12px;
+    }
+
+    .code-block-header {
+        padding: 6px 10px;
+    }
+
+    .code-language-label {
+        font-size: 10px;
+        padding: 3px 6px;
+    }
+
+    .code-copy-btn {
+        width: 28px;
+        height: 28px;
+        font-size: 12px;
+    }
+}
+
+/* ==================== ANIMATION ==================== */
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(-4px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.code-block-enhanced {
+    animation: fadeIn 0.3s ease-out;
+}

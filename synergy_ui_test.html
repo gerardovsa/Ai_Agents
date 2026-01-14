@@ -1,0 +1,1235 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Synergy UI Components Test - Updated</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        /* ==================== ROOT VARIABLES (From Production) ==================== */
+        :root {
+            /* Base Colors */
+            --bg-primary: #0d1117;
+            --bg-secondary: #161b22;
+            --bg-tertiary: #1c2128;
+            --bg-hover: #21262d;
+
+            /* Accent Colors */
+            --accent-primary: #58a6ff;
+            --accent-success: #3fb950;
+            --accent-warning: #d29922;
+            --accent-error: #f85149;
+            --accent-info: #79c0ff;
+
+            /* Status Background Colors */
+            --success-bg: rgba(63, 185, 80, 0.15);
+            --success-text: #3fb950;
+            --error-bg: rgba(248, 81, 73, 0.15);
+            --error-text: #f85149;
+            --warning-bg: rgba(210, 153, 34, 0.15);
+            --warning-text: #d29922;
+
+            /* Text Colors */
+            --text-primary: #f3f4f6;
+            --text-secondary: #d1d5db;
+            --text-muted: #9ca3af;
+
+            /* Border Colors */
+            --border-default: #30363d;
+            --border-muted: #21262d;
+            --border-blue: #58a6ff;
+
+            /* Platform Colors */
+            --slack-purple: #4a154b;
+            --stripe-blue: #635bff;
+            --woocommerce-purple: #7f54b3;
+            --google-blue: #4285f4;
+
+            /* Spacing */
+            --space-1: 4px;
+            --space-2: 8px;
+            --space-3: 12px;
+            --space-4: 16px;
+            --space-5: 24px;
+            --space-6: 32px;
+
+            /* Typography */
+            --font-primary: 'Roboto', Arial, sans-serif;
+            --font-mono: 'Fira Code', 'Consolas', monospace;
+
+            /* Layout */
+            --sidebar-width: 60px;
+            --chat-width: 400px;
+            --header-height: 60px;
+        }
+
+        /* Light Theme Override */
+        [data-theme="light"] {
+            --bg-primary: #ffffff;
+            --bg-secondary: #f6f8fa;
+            --bg-tertiary: #ffffff;
+            --bg-hover: #f3f4f6;
+            --text-primary: #1f2328;
+            --text-secondary: #374151;
+            --text-muted: #6b7280;
+            --border-default: #d0d7de;
+            --border-muted: #e5e7eb;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: var(--font-primary);
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            padding: 20px;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 1800px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            text-align: center;
+            margin-bottom: 30px;
+            color: var(--accent-primary);
+            font-size: 32px;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(450px, 1fr));
+            gap: 30px;
+            margin-bottom: 40px;
+        }
+
+        .component-wrapper {
+            background: var(--bg-secondary);
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+            border: 1px solid var(--border-default);
+        }
+
+        .component-title {
+            font-size: 18px;
+            /* font-weight: 600; */
+            margin-bottom: 15px;
+            color: var(--accent-primary);
+            border-bottom: 2px solid var(--border-default);
+            padding-bottom: 10px;
+        }
+
+        /* ============================================
+           SIDEBAR ITEM STYLES (4-ROW LAYOUT)
+           ============================================ */
+        .sidebar-item {
+            background: var(--bg-tertiary);
+            border-radius: 10px;
+            overflow: hidden;
+            border-left: 4px solid var(--accent-error);
+            transition: all 0.2s;
+        }
+
+        .sidebar-item:hover {
+            background: var(--bg-hover);
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+            border-left-color: var(--accent-primary);
+        }
+
+        .sidebar-header {
+            padding: var(--space-4);
+            cursor: pointer;
+        }
+
+        /* ROW 1: Title + Actions Row */
+        .sidebar-row-1 {
+            display: flex;
+            align-items: center;
+            gap: var(--space-2);
+            margin-bottom: var(--space-2);
+        }
+
+        .sidebar-title {
+            /* font-weight: 600; */
+            font-size: 15px;
+            color: var(--text-primary);
+            flex: 1;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .sidebar-title-row {
+            display: flex;
+            align-items: center;
+            gap: var(--space-2);
+            margin-bottom: var(--space-3);
+        }
+
+        .sidebar-title-text {
+            /* font-weight: 600; */
+            font-size: 15px;
+            color: var(--text-primary);
+            flex: 1;
+        }
+
+        .priority-badge {
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 12px;
+            /* font-weight: 600; */
+            text-transform: uppercase;
+            white-space: nowrap;
+        }
+
+        .priority-high {
+            background: var(--accent-error);
+            color: white;
+        }
+
+        .priority-medium {
+            background: var(--accent-warning);
+            color: var(--bg-primary);
+        }
+
+        .priority-low {
+            background: var(--accent-success);
+            color: white;
+        }
+
+        .badge {
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 12px;
+            /* font-weight: 600; */
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            white-space: nowrap;
+        }
+
+        .badge-status {
+            background: var(--accent-success);
+            color: white;
+        }
+
+        .sidebar-actions {
+            display: flex;
+            align-items: center;
+            gap: var(--space-1);
+        }
+
+        .sidebar-icon-btn {
+            background: none;
+            border: none;
+            color: var(--text-muted);
+            cursor: pointer;
+            font-size: 14px;
+            padding: 4px;
+            border-radius: 4px;
+            transition: all 0.2s;
+        }
+
+        .sidebar-icon-btn:hover {
+            background: var(--bg-secondary);
+            color: var(--accent-primary);
+        }
+
+        .sidebar-icon-btn.chevron {
+            font-size: 16px;
+        }
+
+        .sidebar-icon-btn.chevron.collapsed .fa-chevron-down {
+            display: none;
+        }
+
+        .sidebar-icon-btn.chevron.collapsed .fa-chevron-up {
+            display: inline-block;
+        }
+
+        .sidebar-icon-btn.chevron.expanded .fa-chevron-down {
+            display: inline-block;
+        }
+
+        .sidebar-icon-btn.chevron.expanded .fa-chevron-up {
+            display: none;
+        }
+
+        /* ROW 2: Description */
+        .sidebar-row-2 {
+            margin-bottom: var(--space-3);
+        }
+
+        .sidebar-description {
+            font-size: 12px;
+            color: var(--text-secondary);
+            line-height: 1.4;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+            max-height: 34px;
+        }
+
+        /* ROW 3: Metadata Icons */
+        .sidebar-row-3 {
+            display: flex;
+            align-items: center;
+            gap: var(--space-4);
+            margin-bottom: var(--space-3);
+            font-size: 12px;
+            color: var(--text-muted);
+            flex-wrap: wrap;
+        }
+
+        .sidebar-stat {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .sidebar-stat i {
+            font-size: 13px;
+            color: var(--accent-primary);
+        }
+
+        /* ROW 4: Progress + Footer */
+        .sidebar-row-4 {
+            display: flex;
+            flex-direction: column;
+            gap: var(--space-2);
+        }
+
+        .progress-bar {
+            height: 8px;
+            background: var(--bg-primary);
+            border-radius: 4px;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--accent-success) 0%, #16a34a 100%);
+            transition: width 0.3s;
+        }
+
+        .sidebar-footer {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            font-size: 12px;
+            color: var(--text-muted);
+            gap: var(--space-2);
+        }
+
+        .sidebar-project {
+            /* font-weight: 600; */
+            color: var(--text-secondary);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .sidebar-tags {
+            display: flex;
+            gap: var(--space-1);
+            flex-wrap: wrap;
+        }
+
+        .sidebar-tag {
+            padding: 2px 8px;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-default);
+            border-radius: 12px;
+            font-size: 12px;
+            color: var(--text-secondary);
+        }
+
+        .sidebar-updated {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            white-space: nowrap;
+        }
+
+        /* Expanded Body */
+        .sidebar-body {
+            padding: var(--space-4);
+            background: var(--bg-primary);
+            max-height: 400px;
+            overflow-y: auto;
+            border-top: 1px solid var(--border-default);
+            display: none;
+        }
+
+        .sidebar-item.expanded .sidebar-body {
+            display: block;
+        }
+
+        .sidebar-item.collapsed .sidebar-body {
+            display: none;
+        }
+
+        /* ============================================
+           KANBAN EXPANDED VIEW
+           ============================================ */
+        .kanban-expanded {
+            background: var(--bg-tertiary);
+            border-radius: 12px;
+            border: 1px solid var(--border-default);
+            overflow: hidden;
+            max-height: 600px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .kanban-expanded-header {
+            padding: var(--space-5);
+            background: linear-gradient(135deg, var(--bg-tertiary) 0%, var(--bg-secondary) 100%);
+            border-bottom: 2px solid var(--border-default);
+        }
+
+        .kanban-expanded-body {
+            padding: var(--space-5);
+            overflow-y: auto;
+            flex: 1;
+        }
+
+        /* ============================================
+           POPUP VIEW (MODAL)
+           ============================================ */
+        .popup-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.8);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 10000;
+            backdrop-filter: blur(4px);
+        }
+
+        .popup-modal {
+            background: var(--bg-secondary);
+            border-radius: 16px;
+            width: 90%;
+            max-width: 900px;
+            max-height: 85vh;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.6);
+            border: 1px solid var(--border-default);
+            animation: slideUp 0.3s ease;
+        }
+
+        @keyframes slideUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .popup-header {
+            padding: var(--space-5);
+            background: linear-gradient(135deg, var(--bg-tertiary) 0%, var(--bg-secondary) 100%);
+            border-bottom: 2px solid var(--border-default);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .popup-close-btn {
+            background: none;
+            border: none;
+            color: var(--text-muted);
+            font-size: 24px;
+            cursor: pointer;
+            padding: 8px;
+            border-radius: 6px;
+            transition: all 0.2s;
+        }
+
+        .popup-close-btn:hover {
+            background: var(--bg-hover);
+            color: var(--accent-error);
+        }
+
+        .popup-body {
+            padding: var(--space-5);
+            overflow-y: auto;
+            flex: 1;
+        }
+
+        .popup-footer {
+            padding: var(--space-4);
+            background: var(--bg-tertiary);
+            border-top: 1px solid var(--border-default);
+            display: flex;
+            justify-content: flex-end;
+            gap: var(--space-3);
+        }
+
+        .popup-btn {
+            padding: 10px 20px;
+            border-radius: 6px;
+            font-size: 14px;
+            /* font-weight: 600; */
+            cursor: pointer;
+            transition: all 0.2s;
+            border: none;
+        }
+
+        .popup-btn-primary {
+            background: var(--accent-primary);
+            color: white;
+        }
+
+        .popup-btn-primary:hover {
+            background: #4a8fd9;
+        }
+
+        .popup-btn-secondary {
+            background: transparent;
+            color: var(--text-secondary);
+            border: 1px solid var(--border-default);
+        }
+
+        .popup-btn-secondary:hover {
+            background: var(--bg-hover);
+        }
+
+        /* Milestone Compact Styles */
+        .milestone-compact {
+            background: var(--bg-tertiary);
+            border-left: 3px solid var(--accent-primary);
+            border-radius: 8px;
+            padding: 12px;
+            margin-bottom: 12px;
+        }
+
+        .milestone-compact.completed {
+            border-left-color: var(--accent-success);
+        }
+
+        .milestone-compact.blocked {
+            border-left-color: var(--accent-error);
+        }
+
+        .milestone-header-compact {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 8px;
+        }
+
+        .milestone-badge {
+            background: rgba(88, 166, 255, 0.2);
+            color: var(--accent-primary);
+            padding: 4px 8px;
+            border-radius: 6px;
+            font-size: 12px;
+            /* font-weight: 700; */
+        }
+
+        .milestone-compact.completed .milestone-badge {
+            background: rgba(63, 185, 80, 0.2);
+            color: var(--accent-success);
+        }
+
+        .milestone-compact.blocked .milestone-badge {
+            background: rgba(248, 81, 73, 0.2);
+            color: var(--accent-error);
+        }
+
+        .milestone-name-compact {
+            font-size: 13px;
+            /* font-weight: 600; */
+            color: var(--text-primary);
+            flex: 1;
+        }
+
+        .milestone-progress-compact {
+            font-size: 12px;
+            color: var(--accent-primary);
+        }
+
+        .milestone-compact.completed .milestone-progress-compact {
+            color: var(--accent-success);
+        }
+
+        .milestone-stats-compact {
+            font-size: 12px;
+            color: var(--text-muted);
+            display: flex;
+            gap: 12px;
+        }
+
+        .task-compact {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            margin-bottom: 4px;
+            font-size: 12px;
+            padding-left: 12px;
+            border-left: 2px solid var(--bg-primary);
+        }
+
+        .task-compact input[type="checkbox"] {
+            width: 14px;
+            height: 14px;
+            cursor: pointer;
+            accent-color: var(--accent-success);
+        }
+
+        .task-compact.completed {
+            color: var(--text-muted);
+            text-decoration: line-through;
+        }
+
+        .blocker-badge {
+            background: var(--accent-error);
+            color: white;
+            padding: 3px 8px;
+            border-radius: 12px;
+            font-size: 12px;
+            /* font-weight: 600; */
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        /* Scrollbar Styles */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: var(--bg-primary);
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: var(--bg-hover);
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: var(--border-default);
+        }
+
+        /* Checkbox Styles */
+        input[type="checkbox"] {
+            width: 18px;
+            height: 18px;
+            cursor: pointer;
+            accent-color: var(--accent-success);
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <h1><i class="fa-solid fa-hexagon-nodes-bolt"></i> Synergy UI Components - Complete System</h1>
+
+        <div
+            style="background: var(--accent-primary); color: white; padding: 16px; border-radius: 8px; margin-bottom: 20px; text-align: center; font-weight: 600;">
+            🎨 4-Row Collapsed Structure | Kanban Expanded | Popup Modal View
+        </div>
+
+        <!-- USAGE GUIDE -->
+        <div
+            style="background: var(--bg-secondary); border-radius: 12px; padding: 20px; border: 1px solid var(--border-default); margin-bottom: 30px;">
+            <h2 style="color: var(--accent-primary); margin-bottom: 15px; font-size: 20px;">
+                <i class="fas fa-map"></i> Structure Overview
+            </h2>
+            <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; font-size: 13px;">
+                <div
+                    style="padding: 16px; background: var(--bg-tertiary); border-radius: 8px; border-left: 3px solid var(--accent-primary);">
+                    <strong style="color: var(--accent-primary); display: block; margin-bottom: 8px;">📋 Collapsed
+                        View</strong>
+                    <div style="color: var(--text-secondary); line-height: 1.6;">
+                        • Used in sidebar<br>
+                        • Used in kanban card<br>
+                        • Used in synergy link-sync<br>
+                        • 4-row compact structure
+                    </div>
+                </div>
+                <div
+                    style="padding: 16px; background: var(--bg-tertiary); border-radius: 8px; border-left: 3px solid var(--accent-success);">
+                    <strong style="color: var(--accent-success); display: block; margin-bottom: 8px;">📊 Kanban
+                        Expanded</strong>
+                    <div style="color: var(--text-secondary); line-height: 1.6;">
+                        • Full milestone hierarchy<br>
+                        • Documents & links<br>
+                        • Task breakdown<br>
+                        • Inline editing
+                    </div>
+                </div>
+                <div
+                    style="padding: 16px; background: var(--bg-tertiary); border-radius: 8px; border-left: 3px solid var(--accent-warning);">
+                    <strong style="color: var(--accent-warning); display: block; margin-bottom: 8px;">🪟 Popup
+                        Modal</strong>
+                    <div style="color: var(--text-secondary); line-height: 1.6;">
+                        • Full-screen overlay<br>
+                        • Complete session view<br>
+                        • All metadata<br>
+                        • Action buttons
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <h2 style="color: var(--accent-primary); margin: 30px 0 20px; font-size: 24px;">
+            <i class="fas fa-layer-group"></i> 1. Collapsed View (4-Row Structure)
+        </h2>
+
+        <div class="grid">
+            <!-- SIDEBAR ITEM - COLLAPSED (4-ROW LAYOUT) -->
+            <div class="component-wrapper">
+                <div class="component-title">A. Sidebar / Kanban Card / Link-Sync (Collapsed)</div>
+                <div class="sidebar-item collapsed">
+                    <div class="sidebar-header">
+                        <!-- TITLE ROW -->
+                        <div class="sidebar-title-row">
+                            <div class="sidebar-title-text">E-Commerce Platform Redesign</div>
+                        </div>
+
+                        <!-- ROW 1: Priority + Status + Actions -->
+                        <div class="sidebar-row-1">
+                            <span class="priority-badge priority-high">HIGH</span>
+                            <span class="badge badge-status"><i class="fas fa-check-circle"></i> Active</span>
+                            <div class="sidebar-actions" style="margin-left: auto;">
+                                <button class="sidebar-icon-btn" title="Pin" onclick="alert('Pin clicked')">
+                                    <i class="fas fa-thumbtack"></i>
+                                </button>
+                                <button class="sidebar-icon-btn" title="Open Popup" onclick="alert('Popup clicked')">
+                                    <i class="fas fa-external-link-alt"></i>
+                                </button>
+                                <button class="sidebar-icon-btn chevron collapsed" title="Expand/Collapse"
+                                    onclick="this.closest('.sidebar-item').classList.toggle('expanded'); this.closest('.sidebar-item').classList.toggle('collapsed'); this.classList.toggle('expanded'); this.classList.toggle('collapsed');">
+                                    <i class="fas fa-chevron-down"></i>
+                                    <i class="fas fa-chevron-up"></i>
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- ROW 2: Description (truncated to ~100 chars) -->
+                        <div class="sidebar-row-2">
+                            <div class="sidebar-description">
+                                Complete overhaul of the customer-facing e-commerce platform with modern design system,
+                                improved UX, and performance optimization including frontend redesign and backend API
+                                updates.
+                            </div>
+                        </div>
+
+                        <!-- ROW 3: Metadata Stats -->
+                        <div class="sidebar-row-3">
+                            <div class="sidebar-stat">
+                                <i class="fas fa-calendar"></i>
+                                <span>Nov 30</span>
+                            </div>
+                            <div class="sidebar-stat">
+                                <i class="fas fa-flag-checkered"></i>
+                                <span>3/5 milestones</span>
+                            </div>
+                            <div class="sidebar-stat">
+                                <i class="fas fa-tasks"></i>
+                                <span>12/20 tasks</span>
+                            </div>
+                            <div class="sidebar-stat">
+                                <i class="fas fa-file"></i>
+                                <span>8 files</span>
+                            </div>
+                            <div class="sidebar-stat">
+                                <i class="fas fa-link"></i>
+                                <span>5 links</span>
+                            </div>
+                        </div>
+
+                        <!-- ROW 4: Progress Bar + Footer -->
+                        <div class="sidebar-row-4">
+                            <div class="progress-bar">
+                                <div class="progress-fill" style="width: 60%;"></div>
+                            </div>
+                            <div class="sidebar-footer">
+                                <span class="sidebar-project">E-Commerce Redesign</span>
+                                <div class="sidebar-tags">
+                                    <span class="sidebar-tag">Frontend</span>
+                                    <span class="sidebar-tag">Backend</span>
+                                    <span class="sidebar-tag">API</span>
+                                </div>
+                                <div class="sidebar-updated">
+                                    <i class="fas fa-clock"></i>
+                                    <span>2h ago</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- SIDEBAR ITEM - EXPANDED WITH MILESTONES -->
+            <div class="component-wrapper">
+                <div class="component-title">B. Same Structure (Expanded with Milestones)</div>
+                <div class="sidebar-item expanded">
+                    <div class="sidebar-header">
+                        <!-- TITLE ROW -->
+                        <div class="sidebar-title-row">
+                            <div class="sidebar-title-text">E-Commerce Platform Redesign</div>
+                        </div>
+
+                        <!-- ROW 1: Priority + Status + Actions -->
+                        <div class="sidebar-row-1">
+                            <span class="priority-badge priority-high">HIGH</span>
+                            <span class="badge badge-status"><i class="fas fa-check-circle"></i> Active</span>
+                            <div class="sidebar-actions" style="margin-left: auto;">
+                                <button class="sidebar-icon-btn" title="Pin" onclick="alert('Pin clicked')">
+                                    <i class="fas fa-thumbtack"></i>
+                                </button>
+                                <button class="sidebar-icon-btn" title="Open Popup" onclick="alert('Popup clicked')">
+                                    <i class="fas fa-external-link-alt"></i>
+                                </button>
+                                <button class="sidebar-icon-btn chevron expanded" title="Expand/Collapse"
+                                    onclick="this.closest('.sidebar-item').classList.toggle('expanded'); this.closest('.sidebar-item').classList.toggle('collapsed'); this.classList.toggle('expanded'); this.classList.toggle('collapsed');">
+                                    <i class="fas fa-chevron-down"></i>
+                                    <i class="fas fa-chevron-up"></i>
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- ROW 2: Description (truncated) -->
+                        <div class="sidebar-row-2">
+                            <div class="sidebar-description">
+                                Complete overhaul of the customer-facing e-commerce platform with modern design system,
+                                improved UX, and performance optimization including frontend redesign and backend API
+                                updates.
+                            </div>
+                        </div>
+
+                        <!-- ROW 3: Metadata Stats -->
+                        <div class="sidebar-row-3">
+                            <div class="sidebar-stat">
+                                <i class="fas fa-calendar"></i>
+                                <span>Nov 30</span>
+                            </div>
+                            <div class="sidebar-stat">
+                                <i class="fas fa-flag-checkered"></i>
+                                <span>3/5 milestones</span>
+                            </div>
+                            <div class="sidebar-stat">
+                                <i class="fas fa-tasks"></i>
+                                <span>12/20 tasks</span>
+                            </div>
+                            <div class="sidebar-stat">
+                                <i class="fas fa-file"></i>
+                                <span>8 files</span>
+                            </div>
+                            <div class="sidebar-stat">
+                                <i class="fas fa-link"></i>
+                                <span>5 links</span>
+                            </div>
+                        </div>
+
+                        <!-- ROW 4: Progress Bar + Footer -->
+                        <div class="sidebar-row-4">
+                            <div class="progress-bar">
+                                <div class="progress-fill" style="width: 60%;"></div>
+                            </div>
+                            <div class="sidebar-footer">
+                                <span class="sidebar-project">E-Commerce Redesign</span>
+                                <div class="sidebar-tags">
+                                    <span class="sidebar-tag">Frontend</span>
+                                    <span class="sidebar-tag">Backend</span>
+                                    <span class="sidebar-tag">API</span>
+                                </div>
+                                <div class="sidebar-updated">
+                                    <i class="fas fa-clock"></i>
+                                    <span>2h ago</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- EXPANDED BODY: Milestones -->
+                    <div class="sidebar-body">
+                        <div
+                            style="font-size: 14px; font-weight: 600; color: var(--accent-primary); margin-bottom: 12px;">
+                            <i class="fas fa-flag-checkered"></i> Milestones
+                        </div>
+
+                        <!-- Milestone 1 - COMPLETED -->
+                        <div class="milestone-compact completed">
+                            <div class="milestone-header-compact">
+                                <span class="milestone-badge">M1</span>
+                                <span class="milestone-name-compact">Design & Research Phase</span>
+                                <span class="milestone-progress-compact">✅ 100%</span>
+                            </div>
+                            <div class="milestone-stats-compact">
+                                <span><i class="fas fa-tasks"></i> 3/3 tasks completed</span>
+                            </div>
+                        </div>
+
+                        <!-- Milestone 2 - IN PROGRESS -->
+                        <div class="milestone-compact">
+                            <div class="milestone-header-compact">
+                                <span class="milestone-badge">M2</span>
+                                <span class="milestone-name-compact">Frontend Development</span>
+                                <span class="milestone-progress-compact">66%</span>
+                            </div>
+                            <div class="milestone-stats-compact" style="margin-bottom: 8px;">
+                                <span><i class="fas fa-tasks"></i> 2/3 tasks</span>
+                                <span><i class="fas fa-calendar"></i> Due Nov 25</span>
+                            </div>
+
+                            <!-- Tasks (Compact) -->
+                            <div style="margin-top: 8px;">
+                                <div class="task-compact completed">
+                                    <input type="checkbox" checked>
+                                    <span>T2.1 Setup project structure</span>
+                                </div>
+                                <div class="task-compact completed">
+                                    <input type="checkbox" checked>
+                                    <span>T2.2 Implement design system</span>
+                                </div>
+                                <div class="task-compact">
+                                    <input type="checkbox">
+                                    <span>T2.3 Create responsive layouts</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Milestone 3 - BLOCKED -->
+                        <div class="milestone-compact blocked">
+                            <div class="milestone-header-compact">
+                                <span class="milestone-badge">M3</span>
+                                <span class="milestone-name-compact">Backend API Development</span>
+                                <span class="blocker-badge">
+                                    <i class="fas fa-exclamation-triangle"></i> BLOCKED
+                                </span>
+                            </div>
+                            <div class="milestone-stats-compact">
+                                <span><i class="fas fa-tasks"></i> 0/4 tasks</span>
+                                <span>Waiting for API spec approval</span>
+                            </div>
+                        </div>
+
+                        <!-- Milestone 4 - NOT STARTED -->
+                        <div class="milestone-compact">
+                            <div class="milestone-header-compact">
+                                <span class="milestone-badge">M4</span>
+                                <span class="milestone-name-compact">Testing & QA</span>
+                                <span class="milestone-progress-compact">0%</span>
+                            </div>
+                            <div class="milestone-stats-compact">
+                                <span><i class="fas fa-tasks"></i> 0/5 tasks</span>
+                                <span><i class="fas fa-calendar"></i> Due Dec 5</span>
+                            </div>
+                        </div>
+
+                        <!-- Milestone 5 - NOT STARTED -->
+                        <div class="milestone-compact">
+                            <div class="milestone-header-compact">
+                                <span class="milestone-badge">M5</span>
+                                <span class="milestone-name-compact">Deployment & Launch</span>
+                                <span class="milestone-progress-compact">0%</span>
+                            </div>
+                            <div class="milestone-stats-compact">
+                                <span><i class="fas fa-tasks"></i> 0/3 tasks</span>
+                                <span><i class="fas fa-calendar"></i> Due Dec 10</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <h2 style="color: var(--accent-success); margin: 50px 0 20px; font-size: 24px;">
+            <i class="fas fa-expand"></i> 2. Kanban Expanded View
+        </h2>
+
+        <div class="grid" style="grid-template-columns: 1fr;">
+            <div class="component-wrapper">
+                <div class="component-title">C. Kanban Board Expanded Card</div>
+                <div class="kanban-expanded">
+                    <div class="kanban-expanded-header">
+                        <div class="sidebar-title-row">
+                            <div class="sidebar-title-text">E-Commerce Platform Redesign</div>
+                        </div>
+                        <div class="sidebar-row-1">
+                            <span class="priority-badge priority-high">HIGH</span>
+                            <span class="badge badge-status"><i class="fas fa-check-circle"></i> Active</span>
+                            <div class="sidebar-actions" style="margin-left: auto;">
+                                <button class="sidebar-icon-btn" title="Pin">
+                                    <i class="fas fa-thumbtack"></i>
+                                </button>
+                                <button class="sidebar-icon-btn" title="Open Popup">
+                                    <i class="fas fa-external-link-alt"></i>
+                                </button>
+                                <button class="sidebar-icon-btn" title="Close">
+                                    <i class="fas fa-times"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="sidebar-row-2" style="margin-top: var(--space-3);">
+                            <div style="font-size: 13px; color: var(--text-secondary); line-height: 1.6;">
+                                Complete overhaul of the customer-facing e-commerce platform with modern design system,
+                                improved UX, and performance optimization including frontend redesign, backend API
+                                updates, and comprehensive testing infrastructure.
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="kanban-expanded-body">
+                        <!-- Same milestone structure as expanded sidebar -->
+                        <div
+                            style="font-size: 14px; font-weight: 600; color: var(--accent-primary); margin-bottom: 16px;">
+                            <i class="fas fa-flag-checkered"></i> Milestones (3/5 complete)
+                        </div>
+
+                        <div class="milestone-compact completed">
+                            <div class="milestone-header-compact">
+                                <span class="milestone-badge">M1</span>
+                                <span class="milestone-name-compact">Design & Research Phase</span>
+                                <span class="milestone-progress-compact">✅ 100%</span>
+                            </div>
+                            <div class="milestone-stats-compact">
+                                <span><i class="fas fa-tasks"></i> 3/3 tasks completed</span>
+                            </div>
+                        </div>
+
+                        <div class="milestone-compact">
+                            <div class="milestone-header-compact">
+                                <span class="milestone-badge">M2</span>
+                                <span class="milestone-name-compact">Frontend Development</span>
+                                <span class="milestone-progress-compact">66%</span>
+                            </div>
+                            <div class="milestone-stats-compact" style="margin-bottom: 8px;">
+                                <span><i class="fas fa-tasks"></i> 2/3 tasks</span>
+                                <span><i class="fas fa-calendar"></i> Due Nov 25</span>
+                            </div>
+                            <div style="margin-top: 8px;">
+                                <div class="task-compact completed">
+                                    <input type="checkbox" checked>
+                                    <span>T2.1 Setup project structure</span>
+                                </div>
+                                <div class="task-compact completed">
+                                    <input type="checkbox" checked>
+                                    <span>T2.2 Implement design system</span>
+                                </div>
+                                <div class="task-compact">
+                                    <input type="checkbox">
+                                    <span>T2.3 Create responsive layouts</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="milestone-compact blocked">
+                            <div class="milestone-header-compact">
+                                <span class="milestone-badge">M3</span>
+                                <span class="milestone-name-compact">Backend API Development</span>
+                                <span class="blocker-badge">
+                                    <i class="fas fa-exclamation-triangle"></i> BLOCKED
+                                </span>
+                            </div>
+                            <div class="milestone-stats-compact">
+                                <span><i class="fas fa-tasks"></i> 0/4 tasks</span>
+                                <span>Waiting for API spec approval</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <h2 style="color: var(--accent-warning); margin: 50px 0 20px; font-size: 24px;">
+            <i class="fas fa-window-restore"></i> 3. Popup Modal View
+        </h2>
+
+        <div class="grid" style="grid-template-columns: 1fr;">
+            <div class="component-wrapper">
+                <div class="component-title">D. Full Popup Modal (Click button to preview)</div>
+                <button onclick="document.getElementById('popup-demo').style.display='flex'"
+                    style="padding: 12px 24px; background: var(--accent-primary); color: white; border: none; border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer; margin: 20px auto; display: block;">
+                    <i class="fas fa-external-link-alt"></i> Open Popup Modal Demo
+                </button>
+            </div>
+        </div>
+
+        <!-- POPUP MODAL (HIDDEN BY DEFAULT) -->
+        <div id="popup-demo" class="popup-overlay" style="display: none;"
+            onclick="if(event.target === this) this.style.display='none'">
+            <div class="popup-modal" onclick="event.stopPropagation()">
+                <div class="popup-header">
+                    <div style="flex: 1;">
+                        <div class="sidebar-title-row">
+                            <div class="sidebar-title-text" style="font-size: 20px;">E-Commerce Platform Redesign</div>
+                        </div>
+                        <div class="sidebar-row-1" style="margin-top: var(--space-3);">
+                            <span class="priority-badge priority-high">HIGH</span>
+                            <span class="badge badge-status"><i class="fas fa-check-circle"></i> Active</span>
+                            <div class="sidebar-stat" style="margin-left: var(--space-4);">
+                                <i class="fas fa-calendar"></i>
+                                <span>Due Nov 30</span>
+                            </div>
+                        </div>
+                    </div>
+                    <button class="popup-close-btn"
+                        onclick="document.getElementById('popup-demo').style.display='none'">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+
+                <div class="popup-body">
+                    <!-- Description -->
+                    <div style="margin-bottom: var(--space-5);">
+                        <h3 style="color: var(--accent-primary); font-size: 14px; margin-bottom: var(--space-2);">
+                            <i class="fas fa-align-left"></i> Description
+                        </h3>
+                        <p style="color: var(--text-secondary); font-size: 14px; line-height: 1.6;">
+                            Complete overhaul of the customer-facing e-commerce platform with modern design system,
+                            improved UX, and performance optimization including frontend redesign, backend API updates,
+                            and comprehensive testing infrastructure.
+                        </p>
+                    </div>
+
+                    <!-- Stats Row -->
+                    <div class="sidebar-row-3" style="margin-bottom: var(--space-5);">
+                        <div class="sidebar-stat">
+                            <i class="fas fa-flag-checkered"></i>
+                            <span>3/5 milestones</span>
+                        </div>
+                        <div class="sidebar-stat">
+                            <i class="fas fa-tasks"></i>
+                            <span>12/20 tasks</span>
+                        </div>
+                        <div class="sidebar-stat">
+                            <i class="fas fa-file"></i>
+                            <span>8 files</span>
+                        </div>
+                        <div class="sidebar-stat">
+                            <i class="fas fa-link"></i>
+                            <span>5 links</span>
+                        </div>
+                    </div>
+
+                    <!-- Progress -->
+                    <div style="margin-bottom: var(--space-5);">
+                        <div style="display: flex; justify-content: space-between; margin-bottom: var(--space-2);">
+                            <span style="font-size: 13px; color: var(--text-secondary);">Overall Progress</span>
+                            <span style="font-size: 13px; color: var(--accent-success); font-weight: 600;">60%</span>
+                        </div>
+                        <div class="progress-bar" style="height: 12px;">
+                            <div class="progress-fill" style="width: 60%;"></div>
+                        </div>
+                    </div>
+
+                    <!-- Milestones -->
+                    <div>
+                        <h3 style="color: var(--accent-primary); font-size: 14px; margin-bottom: var(--space-3);">
+                            <i class="fas fa-flag-checkered"></i> Milestones
+                        </h3>
+
+                        <div class="milestone-compact completed">
+                            <div class="milestone-header-compact">
+                                <span class="milestone-badge">M1</span>
+                                <input type="checkbox" checked>
+                                <span class="milestone-name-compact">Design & Research Phase</span>
+                                <span class="milestone-progress-compact">✅ 100%</span>
+                            </div>
+                            <div class="milestone-stats-compact">
+                                <span><i class="fas fa-tasks"></i> 3/3 tasks completed</span>
+                                <span><i class="fas fa-check-circle"></i> Completed Nov 15</span>
+                            </div>
+                        </div>
+
+                        <div class="milestone-compact">
+                            <div class="milestone-header-compact">
+                                <span class="milestone-badge">M2</span>
+                                <input type="checkbox">
+                                <span class="milestone-name-compact">Frontend Development</span>
+                                <span class="milestone-progress-compact">66%</span>
+                            </div>
+                            <div class="milestone-stats-compact" style="margin-bottom: 8px;">
+                                <span><i class="fas fa-tasks"></i> 2/3 tasks</span>
+                                <span><i class="fas fa-calendar"></i> Due Nov 25</span>
+                            </div>
+                            <div style="margin-top: 8px;">
+                                <div class="task-compact completed">
+                                    <input type="checkbox" checked>
+                                    <span>T2.1 Setup project structure</span>
+                                </div>
+                                <div class="task-compact completed">
+                                    <input type="checkbox" checked>
+                                    <span>T2.2 Implement design system</span>
+                                </div>
+                                <div class="task-compact">
+                                    <input type="checkbox">
+                                    <span>T2.3 Create responsive layouts</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="milestone-compact blocked">
+                            <div class="milestone-header-compact">
+                                <span class="milestone-badge">M3</span>
+                                <input type="checkbox">
+                                <span class="milestone-name-compact">Backend API Development</span>
+                                <span class="blocker-badge">
+                                    <i class="fas fa-exclamation-triangle"></i> BLOCKED
+                                </span>
+                            </div>
+                            <div class="milestone-stats-compact">
+                                <span><i class="fas fa-tasks"></i> 0/4 tasks</span>
+                                <span style="color: var(--accent-error);">Waiting for API spec approval</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="popup-footer">
+                    <button class="popup-btn popup-btn-secondary"
+                        onclick="document.getElementById('popup-demo').style.display='none'">
+                        <i class="fas fa-times"></i> Close
+                    </button>
+                    <button class="popup-btn popup-btn-primary">
+                        <i class="fas fa-save"></i> Save Changes
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Interactive functionality
+        document.querySelectorAll('.sidebar-icon-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                console.log('Button clicked:', btn.title);
+            });
+        });
+
+        document.querySelectorAll('.sidebar-header').forEach(header => {
+            header.addEventListener('click', () => {
+                console.log('Sidebar item clicked');
+            });
+        });
+    </script>
+</body>
+
+</html>

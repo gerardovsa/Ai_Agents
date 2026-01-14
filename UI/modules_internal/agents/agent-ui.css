@@ -1,0 +1,1438 @@
+/**
+ * FILE: UI/modules/agents/agent-ui.css
+ * PURPOSE: Centralized styling for multi-agent column UI system
+ * 
+ * FEATURES:
+ * - Agent column layout (collapsed/expanded states)
+ * - Input area with textarea auto-expand
+ * - File attachment UI
+ * - Action buttons (send, attach, etc.)
+ * - Responsive design
+ * 
+ * USED BY:
+ * - business-ai-platform-v2.html (multi-agent section)
+ * 
+ * RELATED FILES:
+ * - agent-ui.js (JavaScript functionality)
+ * - agent-column.js (Column state management)
+ * - agent-input.js (Input handling)
+ * 
+ * LAST MODIFIED: 2025-11-15 - Initial extraction from monolithic HTML
+ */
+
+/* ==================== AGENT COLUMN LAYOUT ==================== */
+
+.agent-column {
+    display: flex;
+    flex-direction: column;
+    background: var(--bg-secondary);
+    border-radius: 8px;
+    overflow: hidden;
+    transition: all 0.3s ease;
+    min-width: 400px;
+    max-width: 400px;
+    flex: 1;
+}
+
+/* Realtime presence highlight: another session is viewing this agent */
+.agent-column.other-session-viewing:not(.drag-over) {
+    box-shadow: 0 0 0 2px var(--accent-primary) inset;
+}
+
+/* Drag-over state for drop zones */
+.agent-column.drag-over {
+    border: 2px solid var(--accent-primary);
+    background: rgba(103, 126, 234, 0.05);
+    box-shadow: 0 0 20px rgba(103, 126, 234, 0.3);
+}
+
+.agent-column.collapsed {
+    min-width: 60px;
+    max-width: 60px;
+}
+
+.agent-column.wide {
+    min-width: 600px;
+    max-width: 600px;
+    flex: 1.5;
+}
+
+.agent-column.extra-wide {
+    min-width: 800px;
+    max-width: 800px;
+    flex: 2;
+}
+
+/* ==================== RESIZE HANDLES (Dec 12, 2025) ==================== */
+
+.agent-column .resize-handle {
+    position: absolute;
+    right: 0;
+    top: 0;
+    width: 10px;
+    height: 100%;
+    cursor: ew-resize;
+    z-index: 100;
+    transition: background 0.2s ease;
+}
+
+.agent-column .resize-handle:hover {
+    background: rgba(103, 126, 234, 0.2);
+}
+
+.agent-column.resizing {
+    user-select: none;
+    pointer-events: none;
+}
+
+.agent-column.resizing * {
+    cursor: ew-resize !important;
+}
+
+/* ==================== COLLAPSED STATE ==================== */
+
+.collapsed-column-bar {
+    display: none;
+    flex-direction: column;
+    align-items: center;
+    padding: var(--space-3) var(--space-2) var(--space-2) var(--space-2);
+    gap: var(--space-2);
+    height: 100%;
+    cursor: pointer;
+    background: var(--bg-secondary);
+    transition: background 0.2s ease;
+    justify-content: flex-end;
+}
+
+.agent-column.collapsed .collapsed-column-bar {
+    display: flex;
+}
+
+.collapsed-column-bar:hover {
+    background: var(--bg-hover);
+}
+
+.agent-name-vertical {
+    writing-mode: vertical-rl;
+    transform: rotate(180deg);
+    /* font-weight: 600; */
+    font-size: 14px;
+    color: var(--text-primary);
+    white-space: nowrap;
+}
+
+.thread-info-vertical {
+    writing-mode: vertical-rl;
+    transform: rotate(180deg);
+    font-size: 11px;
+    color: var(--text-tertiary);
+    /* Changed to text-tertiary for subtlety */
+    display: flex;
+    flex-direction: column;
+    /* Column layout for vertical stacking */
+    gap: var(--space-1);
+    /* Reduced gap for tighter vertical spacing */
+    align-items: center;
+}
+
+.thread-status-vertical,
+.thread-timestamp-vertical {
+    color: var(--text-tertiary);
+    /* Match parent tertiary text color */
+    white-space: nowrap;
+}
+
+/* ==================== AGENT HEADER ==================== */
+
+.agent-header {
+    padding: var(--space-3);
+    background: var(--bg-tertiary);
+    border-bottom: 1px solid var(--border-default);
+    overflow: visible;
+    /* Allow ring animation to show */
+}
+
+.agent-header-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-2);
+    margin-bottom: var(--space-2);
+    overflow: visible;
+    /* Allow ring animation to show */
+}
+
+.agent-header-left {
+    display: flex;
+    align-items: center;
+    gap: var(--space-1);
+    margin-left: 10px;
+    position: relative;
+}
+
+.agent-title-wrapper {
+    flex: 1;
+    min-width: 0;
+    overflow: visible;
+    text-align: center;
+    /* Allow ring animation to show */
+}
+
+.agent-title-wrapper h2 {
+    font-size: 16px;
+    /* font-weight: 600; */
+    color: var(--text-primary);
+    margin: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-2);
+    white-space: nowrap;
+    overflow: visible;
+    /* Allow ring animation to show */
+    text-overflow: ellipsis;
+}
+
+/* Agent icon in header - match ai-icon size */
+.agent-title-wrapper h2 i {
+    width: 32px;
+    height: 32px;
+    font-size: 18px;
+    color: var(--text-primary);
+    display: inline-flex !important;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    font-style: normal !important;
+    /* Override user agent stylesheet font-style:italic */
+    font-family: "Font Awesome 6 Free" !important;
+    font-weight: 900 !important;
+}
+
+.agent-title-wrapper h2 i::before {
+    display: inline-block;
+    font-style: normal;
+    font-variant: normal;
+    text-rendering: auto;
+    -webkit-font-smoothing: antialiased;
+    font-family: "Font Awesome 6 Free" !important;
+    font-weight: 900 !important;
+}
+
+.agent-header-controls {
+    display: flex;
+    gap: var(--space-1);
+    margin-right: 10px;
+    position: relative;
+}
+
+.collapse-btn {
+    width: 32px;
+    height: 32px;
+    padding: 8px;
+    border: 1px solid var(--border-default);
+    background: var(--bg-secondary);
+    color: var(--text-secondary);
+    border-radius: 4px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+    font-size: 12px;
+}
+
+.width-toggle-btn,
+.agent-hamburger-button {
+    width: 36px;
+    height: 36px;
+    padding: 0;
+    border: 1px solid var(--border-default);
+    background: transparent;
+    color: var(--text-secondary);
+    border-radius: 6px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+    font-size: 14px;
+}
+
+.view-mode-btn {
+    width: 32px;
+    height: 32px;
+    padding: 8px;
+    border: 1px solid var(--border-default);
+    background: var(--bg-secondary);
+    color: var(--text-secondary);
+    border-radius: 4px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+    font-size: 12px;
+    line-height: 1;
+}
+
+.collapse-btn:hover,
+.width-toggle-btn:hover,
+.agent-hamburger-button:hover {
+    background: rgba(88, 166, 255, 0.1);
+    color: var(--accent-primary);
+    border-color: var(--accent-primary);
+    transform: scale(1.05);
+}
+
+.view-mode-btn:hover {
+    background: var(--bg-hover);
+    color: var(--accent-primary);
+    border-color: var(--accent-primary);
+}
+
+/* ==================== MESSAGE VIEW MODE CONTROL ==================== */
+
+.view-mode-dropdown {
+    display: none;
+    position: absolute;
+    top: 100%;
+    right: 60px;
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border-default);
+    border-radius: 8px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4), 0 2px 8px rgba(0, 0, 0, 0.2);
+    z-index: 1000;
+    min-width: 200px;
+    margin-top: 4px;
+}
+
+.view-mode-dropdown.show {
+    display: block;
+}
+
+.view-mode-item {
+    padding: var(--space-2) var(--space-3);
+    color: var(--text-primary);
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    font-size: 13px;
+}
+
+.view-mode-item i {
+    width: 16px;
+    font-size: 12px;
+    text-align: center;
+}
+
+.view-mode-item:hover {
+    background: var(--bg-hover);
+    color: var(--accent-primary);
+}
+
+.view-mode-item.active {
+    background: var(--accent-primary);
+    color: white;
+}
+
+.view-mode-item.active:hover {
+    background: var(--accent-hover);
+}
+
+/* ==================== AGENT MENU DROPDOWN ==================== */
+
+.agent-menu-dropdown {
+    display: none;
+    position: absolute;
+    top: 100%;
+    right: 10px;
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border-default);
+    border-radius: 8px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4), 0 2px 8px rgba(0, 0, 0, 0.2);
+    z-index: 1000;
+    min-width: 180px;
+    margin-top: 10px;
+}
+
+.agent-menu-dropdown.show {
+    display: block;
+}
+
+.agent-menu-item {
+    padding: var(--space-2) var(--space-3);
+    color: var(--text-primary);
+    cursor: pointer;
+    transition: background 0.2s ease;
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    font-size: 14px;
+}
+
+.agent-menu-item:hover {
+    background: var(--bg-hover);
+}
+
+.agent-menu-item.close-agent {
+    color: var(--accent-error);
+}
+
+.agent-menu-item.close-agent:hover {
+    background: var(--error-bg);
+}
+
+.agent-menu-divider {
+    height: 1px;
+    background: var(--border-default);
+    margin: var(--space-1) 0;
+}
+
+/* ==================== MESSAGES CONTAINER ==================== */
+
+.agent-messages-container {
+    flex: 1;
+    overflow-y: auto;
+    padding: var(--space-3);
+    background: var(--bg-primary);
+}
+
+/* ==================== INPUT AREA ==================== */
+
+.agent-input-area {
+    padding: var(--space-3);
+    background: var(--bg-secondary);
+    border-top: 1px solid var(--border-default);
+}
+
+/* File Attachment Preview */
+.agent-attached-files {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-2);
+    margin-bottom: var(--space-2);
+}
+
+.agent-file-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-2);
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border-default);
+    border-radius: 4px;
+    padding: 4px 8px;
+    font-size: 12px;
+    color: var(--text-primary);
+}
+
+.agent-file-chip i {
+    color: var(--accent-primary);
+}
+
+.agent-file-chip-remove {
+    background: none;
+    border: none;
+    color: var(--text-secondary);
+    cursor: pointer;
+    padding: 0 4px;
+    margin-left: 4px;
+    font-size: 16px;
+    line-height: 1;
+    transition: color 0.2s ease;
+}
+
+.agent-file-chip-remove:hover {
+    color: var(--accent-error);
+}
+
+/* Input Group Layout */
+.agent-input-group {
+    display: flex;
+    gap: 8px;
+    align-items: stretch;
+}
+
+.agent-input-center {
+    flex: 1;
+    display: flex;
+}
+
+.agent-input-right-buttons {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    width: 32px;
+}
+
+/* ==================== TEXTAREA STYLING (CONSOLIDATED) ==================== */
+
+.agent-input-group textarea {
+    /* Layout */
+    flex: 1;
+    min-height: 80px;
+    max-height: 200px;
+    overflow-y: auto;
+    resize: none;
+
+    /* Styling */
+    background: var(--bg-primary);
+    border: 1px solid var(--border-default);
+    border-radius: 6px;
+    padding: var(--space-3);
+    color: var(--text-primary);
+    font-size: 14px;
+    line-height: 1.5;
+    font-family: var(--font-primary);
+
+    /* Transitions */
+    transition: border-color 0.2s ease;
+
+    /* Firefox Scrollbar */
+    scrollbar-color: var(--border-default) transparent;
+    scrollbar-width: thin;
+}
+
+.agent-input-group textarea:hover {
+    scrollbar-color: var(--accent-primary) transparent;
+}
+
+.agent-input-group textarea:focus {
+    outline: none;
+    border-color: var(--accent-primary);
+}
+
+.agent-input-group textarea.drag-over {
+    border-color: var(--accent-primary);
+    background: rgba(59, 130, 246, 0.05);
+}
+
+/* Webkit Scrollbar (Chrome, Safari, Edge) */
+.agent-input-group textarea::-webkit-scrollbar {
+    width: 8px;
+}
+
+.agent-input-group textarea::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.agent-input-group textarea::-webkit-scrollbar-thumb {
+    background: var(--border-default);
+    border-radius: 4px;
+    transition: background 0.2s ease;
+}
+
+.agent-input-group textarea::-webkit-scrollbar-thumb:hover {
+    background: var(--accent-primary);
+}
+
+/* ==================== ACTION BUTTONS ==================== */
+
+.agent-attach-btn,
+.agent-send-btn {
+    width: 32px;
+    height: 32px;
+    padding: 0;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+    border: 1px solid var(--border-default);
+}
+
+.agent-attach-btn {
+    background: var(--bg-tertiary);
+    color: var(--text-primary);
+}
+
+.agent-attach-btn:hover {
+    background: var(--bg-hover);
+    color: var(--accent-primary);
+    border-color: var(--accent-primary);
+}
+
+.agent-send-btn {
+    background: var(--accent-primary);
+    color: white;
+    border-color: var(--accent-primary);
+}
+
+.agent-send-btn:hover {
+    background: var(--accent-primary-hover, #4a8edb);
+    transform: translateY(-1px);
+    box-shadow: 0 2px 8px rgba(88, 166, 255, 0.3);
+}
+
+.agent-send-btn:active {
+    transform: translateY(0);
+}
+
+.agent-send-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    transform: none;
+}
+
+/* Hidden file input */
+.agent-file-input {
+    display: none;
+}
+
+/* ==================== EMPTY STATE ==================== */
+
+.agent-messages-container .empty-state {
+    padding-top: 60%;
+    text-align: center;
+}
+
+.agent-messages-container .empty-state i {
+    font-size: 2em;
+    display: block;
+}
+
+/* Prime AI empty state */
+.ai-chat-messages .empty-state {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    min-height: 400px;
+}
+
+/* ==================== RESPONSIVE DESIGN ==================== */
+
+@media (max-width: 768px) {
+    .agent-column {
+        min-width: 100%;
+        max-width: 100%;
+    }
+
+    .agent-column.wide {
+        max-width: 100%;
+    }
+
+    .agent-input-group {
+        flex-direction: column;
+    }
+
+    .agent-input-right-buttons {
+        flex-direction: row;
+        width: auto;
+        justify-content: flex-end;
+    }
+}
+
+/* ==================== THEME SUPPORT ==================== */
+
+/* Light theme overrides (if implemented) */
+[data-theme="light"] .agent-column {
+    background: #ffffff;
+}
+
+[data-theme="light"] .agent-header {
+    background: #f9fafb;
+}
+
+[data-theme="light"] .agent-input-group textarea {
+    background: #ffffff;
+    border-color: #d1d5db;
+    color: #111827;
+}
+
+/* ==================== ERROR RECOVERY SYSTEM (Nov 22, 2025) ==================== */
+
+.ai-message.recovery {
+    background: linear-gradient(135deg, rgba(59, 130, 246, 0.1) 0%, rgba(147, 51, 234, 0.1) 100%);
+    border-left: 3px solid #3b82f6;
+    padding: 12px 16px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin: 8px 0;
+    border-radius: 8px;
+    font-size: 13px;
+    color: var(--text-primary);
+}
+
+.ai-message.recovery i.fa-sync {
+    color: #3b82f6;
+    font-size: 16px;
+}
+
+/* Different colors for different recovery types */
+.ai-message.recovery-structure-fix {
+    border-left-color: #8b5cf6;
+    background: linear-gradient(135deg, rgba(139, 92, 246, 0.1) 0%, rgba(168, 85, 247, 0.1) 100%);
+}
+
+.ai-message.recovery-structure-fix i {
+    color: #8b5cf6;
+}
+
+.ai-message.recovery-tool-fix {
+    border-left-color: #eab308;
+    background: linear-gradient(135deg, rgba(234, 179, 8, 0.1) 0%, rgba(250, 204, 21, 0.1) 100%);
+}
+
+.ai-message.recovery-tool-fix i {
+    color: #eab308;
+}
+
+.ai-message.recovery-context-trim {
+    border-left-color: #10b981;
+    background: linear-gradient(135deg, rgba(16, 185, 129, 0.1) 0%, rgba(52, 211, 153, 0.1) 100%);
+}
+
+.ai-message.recovery-context-trim i {
+    color: #10b981;
+}
+
+.ai-message.recovery-rate-limit,
+.ai-message.recovery-overload,
+.ai-message.recovery-network {
+    border-left-color: #f59e0b;
+    background: linear-gradient(135deg, rgba(245, 158, 11, 0.1) 0%, rgba(251, 146, 60, 0.1) 100%);
+}
+
+.ai-message.recovery-rate-limit i,
+.ai-message.recovery-overload i,
+.ai-message.recovery-network i {
+    color: #f59e0b;
+}
+
+.ai-message.recovery-auth-error {
+    border-left-color: #ef4444;
+    background: linear-gradient(135deg, rgba(239, 68, 68, 0.1) 0%, rgba(248, 113, 113, 0.1) 100%);
+}
+
+.ai-message.recovery-auth-error i {
+    color: #ef4444;
+}
+
+/* Spinning animation for recovery icon */
+@keyframes spin {
+    from {
+        transform: rotate(0deg);
+    }
+
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+.ai-message.recovery i.fa-spin {
+    animation: spin 1s linear infinite;
+}
+
+/* Dark theme adjustments */
+[data-theme="dark"] .ai-message.recovery {
+    color: #e5e7eb;
+}
+
+/* ==================== PROCESSING INDICATOR ==================== */
+
+.processing-indicator {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 16px 20px;
+    background: var(--bg-secondary);
+    border: 1px solid var(--accent-primary);
+    border-radius: 8px;
+    margin: 12px 0;
+    animation: fadeIn 0.3s ease;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.processing-dots {
+    display: flex;
+    gap: 6px;
+}
+
+.processing-dots .dot {
+    width: 8px;
+    height: 8px;
+    background: var(--accent-primary);
+    border-radius: 50%;
+    animation: bounce 1.4s infinite ease-in-out both;
+}
+
+.processing-dots .dot:nth-child(1) {
+    animation-delay: -0.32s;
+}
+
+.processing-dots .dot:nth-child(2) {
+    animation-delay: -0.16s;
+}
+
+@keyframes bounce {
+
+    0%,
+    80%,
+    100% {
+        transform: scale(0);
+        opacity: 0.5;
+    }
+
+    40% {
+        transform: scale(1);
+        opacity: 1;
+    }
+}
+
+.processing-text {
+    color: var(--text-secondary);
+    font-size: 14px;
+    /* font-weight: 500; */
+}
+
+/* Dark theme */
+[data-theme="dark"] .processing-indicator {
+    background: rgba(255, 255, 255, 0.05);
+}
+
+[data-theme="dark"] .processing-dots .dot {
+    background: #677eea;
+}
+
+/* Light theme */
+[data-theme="light"] .processing-indicator {
+    background: rgba(0, 0, 0, 0.03);
+}
+
+[data-theme="light"] .processing-dots .dot {
+    background: #4f5db8;
+}
+
+/* ==================== EXPANDABLE INPUT CONTAINER (PRIME-STYLE) ==================== */
+
+/* Agent Input Container - Collapsed Bar (State 1) */
+.agent-input-container {
+    flex-shrink: 0;
+    padding: 0 20px;
+    background: transparent;
+    transition: all 0.4s cubic-bezier(0.4, 0.0, 0.2, 1);
+    height: 30px;
+    /* Collapsed bar height */
+    overflow: hidden;
+    cursor: pointer;
+    position: relative;
+}
+
+/* Hover state - subtle background */
+.agent-input-container:not(.expanded):hover {
+    background: rgba(88, 166, 255, 0.02);
+}
+
+/* State 4: Expanded */
+.agent-input-container.expanded {
+    height: auto;
+    padding: 20px;
+    cursor: default;
+    overflow: visible;
+    background: transparent;
+}
+
+/* Drag-over state for file drop */
+.agent-input-container.drag-over {
+    background: rgba(88, 166, 255, 0.08) !important;
+    border: 2px dashed var(--accent-primary) !important;
+}
+
+.agent-input-container.drag-over::before {
+    background: var(--accent-primary);
+    box-shadow: 0 0 12px rgba(88, 166, 255, 0.7);
+}
+
+/* Collapsed bar visual */
+.agent-input-container::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 1px;
+    background: rgba(255, 255, 255, 0.08);
+    transition: all 0.3s ease;
+    pointer-events: none;
+}
+
+/* Hover state - accent border */
+.agent-input-container:not(.expanded):hover::before {
+    background: var(--accent-primary);
+    box-shadow: 0 0 8px rgba(88, 166, 255, 0.5);
+}
+
+/* Chevron indicator (double stacked chevrons - matches Prime AI) */
+.agent-input-container::after {
+    content: '\f077\A\f077';
+    font-family: 'Font Awesome 5 Free';
+    font-weight: 900;
+    white-space: pre;
+    line-height: 0.5;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 10px;
+    color: rgba(139, 148, 158, 0.5);
+    transition: all 0.3s ease;
+    pointer-events: none;
+    opacity: 1;
+}
+
+/* Hover - animate chevrons upward */
+.agent-input-container:not(.expanded):hover::after {
+    color: var(--accent-primary);
+    text-shadow: 0 0 8px rgba(88, 166, 255, 0.8);
+    transform: translate(-50%, -60%) scale(1.2);
+    animation: chevron-bounce-up 0.6s ease-in-out infinite;
+}
+
+@keyframes chevron-bounce-up {
+
+    0%,
+    100% {
+        transform: translate(-50%, -60%) scale(1.2);
+    }
+
+    50% {
+        transform: translate(-50%, -70%) scale(1.2);
+    }
+}
+
+/* Hide chevrons when expanded */
+.agent-input-container.expanded::after,
+.agent-input-container.expanded::before {
+    opacity: 0;
+}
+
+/* Agent Input Wrapper */
+.agent-input-wrapper {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+    position: relative;
+    opacity: 0;
+    transition: opacity 0.4s cubic-bezier(0.4, 0.0, 0.2, 1);
+    pointer-events: none;
+}
+
+/* Ensure all child elements don't block clicks when collapsed */
+.agent-input-container:not(.expanded) * {
+    pointer-events: none !important;
+}
+
+/* Hide buttons completely when collapsed */
+.agent-input-container:not(.expanded) .agent-input-right-buttons {
+    opacity: 0;
+    visibility: hidden;
+}
+
+/* Expanded state - wrapper visible */
+.agent-input-container.expanded .agent-input-wrapper {
+    opacity: 1;
+    pointer-events: auto;
+}
+
+/* Re-enable pointer events for interactive elements when expanded */
+.agent-input-container.expanded * {
+    pointer-events: auto;
+}
+
+/* Agent Input Controls */
+.agent-input-controls {
+    display: flex;
+    gap: var(--space-2);
+    position: relative;
+}
+
+.agent-input-center {
+    flex: 1;
+    min-width: 0;
+    margin-right: 40px;
+    /* Space for 32px button column + 8px gap */
+}
+
+.agent-input-textarea {
+    width: 100%;
+    min-height: 80px;
+    padding: 12px;
+    padding-right: 50px;
+    /* Space for button column overlay */
+    background: transparent;
+    /* Match Prime chat input transparency */
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    border-radius: 6px;
+    color: var(--text-primary);
+    font-size: 14px;
+    line-height: 1.5;
+    resize: vertical;
+    transition: background-color 180ms ease, border-color 180ms ease, box-shadow 180ms ease;
+}
+
+.agent-input-textarea:hover {
+    background: rgba(0, 0, 0, 0.60) !important;
+    border-color: rgba(255, 255, 255, 0.18);
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.45);
+}
+
+.agent-input-textarea:focus {
+    outline: none;
+    background: rgba(0, 0, 0, 0.60) !important;
+    border-color: rgba(255, 255, 255, 0.18) !important;
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.45);
+}
+
+/* Right Button Stack (6 buttons) */
+.agent-input-right-buttons {
+    position: absolute;
+    bottom: 3px;
+    right: 0px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    width: 32px;
+    pointer-events: auto;
+    z-index: 10;
+}
+
+/* Button styling */
+.agent-prompt-library-btn,
+.agent-autoscroll-btn,
+.agent-feedback-btn,
+.agent-mic-btn,
+.agent-attach-btn {
+    width: 32px;
+    height: 32px;
+    padding: 0;
+    background: transparent;
+    color: rgba(139, 148, 158, 0.5);
+    border: none;
+    border-radius: 6px;
+    font-size: 14px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.3s ease;
+}
+
+.agent-send-btn {
+    width: 32px;
+    height: 32px;
+    padding: 0;
+    background: transparent;
+    color: var(--accent-primary);
+    border: 1px solid var(--accent-primary);
+    border-radius: 6px;
+    font-size: 14px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.3s ease;
+    opacity: 0.5;
+}
+
+/* Expanded state - buttons interactive */
+.agent-input-container.expanded .agent-prompt-library-btn,
+.agent-input-container.expanded .agent-autoscroll-btn,
+.agent-input-container.expanded .agent-feedback-btn,
+.agent-input-container.expanded .agent-mic-btn,
+.agent-input-container.expanded .agent-attach-btn {
+    background: transparent;
+    border: 1px solid var(--border-default);
+    color: var(--text-primary);
+}
+
+.agent-input-container.expanded .agent-send-btn {
+    background: var(--accent-primary);
+    color: white;
+    border: 1px solid var(--accent-primary);
+    opacity: 1;
+}
+
+/* Hover states */
+.agent-prompt-library-btn:hover,
+.agent-autoscroll-btn:hover,
+.agent-feedback-btn:hover,
+.agent-mic-btn:hover,
+.agent-attach-btn:hover {
+    background: transparent !important;
+    color: var(--accent-primary);
+    border-color: var(--accent-primary) !important;
+    transform: scale(1.05);
+}
+
+.agent-send-btn:hover {
+    background: var(--accent-primary) !important;
+    transform: scale(1.1);
+    box-shadow: 0 2px 8px rgba(88, 166, 255, 0.4);
+}
+
+/* Active states */
+.agent-autoscroll-btn.active {
+    color: var(--accent-primary);
+    border-color: var(--accent-primary);
+}
+
+.agent-feedback-btn.active {
+    color: var(--accent-primary);
+    border-color: var(--accent-primary);
+}
+
+/* Recording state for microphone button */
+.agent-mic-btn.recording {
+    color: #ef4444 !important;
+    border-color: #ef4444 !important;
+    animation: pulse-recording 1.5s ease-in-out infinite;
+}
+
+@keyframes pulse-recording {
+
+    0%,
+    100% {
+        opacity: 1;
+    }
+
+    50% {
+        opacity: 0.6;
+    }
+}
+
+/* ==================== FEEDBACK CONTAINER ==================== */
+
+.agent-feedback-container {
+    display: none;
+    /* Hidden by default */
+    flex-direction: column;
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border-default);
+    border-radius: 8px;
+    padding: 16px;
+    margin-bottom: 12px;
+    gap: 12px;
+}
+
+.agent-feedback-container.active {
+    display: flex !important;
+}
+
+.feedback-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+}
+
+.feedback-header-left {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: var(--text-primary);
+}
+
+.feedback-header-left i {
+    color: var(--accent-primary);
+    font-size: 16px;
+}
+
+.feedback-header-text {
+    /* font-weight: 600; */
+    font-size: 14px;
+}
+
+.feedback-close-btn {
+    width: 24px;
+    height: 24px;
+    padding: 0;
+    background: transparent;
+    border: none;
+    color: var(--text-secondary);
+    border-radius: 4px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+}
+
+.feedback-close-btn:hover {
+    background: var(--bg-hover);
+    color: var(--text-primary);
+}
+
+.feedback-body {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.feedback-textarea {
+    width: 100%;
+    min-height: 80px;
+    padding: 12px;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-default);
+    border-radius: 8px;
+    color: var(--text-primary);
+    font-size: 14px;
+    line-height: 1.5;
+    resize: vertical;
+    transition: all 0.3s ease;
+}
+
+.feedback-textarea:focus {
+    outline: none;
+    border-color: var(--accent-primary);
+    box-shadow: 0 0 0 3px rgba(88, 166, 255, 0.1);
+}
+
+.feedback-quick-buttons {
+    display: flex;
+    gap: 8px;
+    justify-content: flex-end;
+}
+
+.feedback-quick-buttons button {
+    width: 36px;
+    height: 36px;
+    padding: 0;
+    background: transparent;
+    border: 1px solid var(--border-default);
+    border-radius: 6px;
+    color: var(--text-secondary);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+}
+
+.feedback-quick-buttons button:hover {
+    background: var(--bg-hover);
+    color: var(--accent-primary);
+    border-color: var(--accent-primary);
+    transform: scale(1.05);
+}
+
+.feedback-send-btn {
+    background: var(--accent-primary) !important;
+    border-color: var(--accent-primary) !important;
+    color: white !important;
+}
+
+.feedback-send-btn:hover {
+    background: var(--accent-secondary) !important;
+    transform: scale(1.1);
+    box-shadow: 0 2px 8px rgba(88, 166, 255, 0.4);
+}
+
+/* ==================== AGENT SCROLL CONTROLS (TOP-RIGHT) ==================== */
+
+.agent-messages-container {
+    position: relative;
+}
+
+.agent-scroll-controls {
+    position: absolute;
+    top: 0;
+    right: 8px;
+    left: auto;
+    /* Ensure right-side positioning */
+    display: flex;
+    /* Always in DOM */
+    flex-direction: row;
+    gap: 4px;
+    z-index: 1000;
+    opacity: 0;
+    /* Invisible by default */
+    visibility: hidden;
+    pointer-events: none;
+    transition: opacity 0.2s ease, visibility 0.2s ease;
+}
+
+.agent-messages-container.has-messages .agent-scroll-controls {
+    opacity: 1;
+    /* Visible when messages exist */
+    visibility: visible;
+}
+
+.agent-scroll-controls button {
+    pointer-events: auto;
+    width: 28px;
+    height: 28px;
+    padding: 0;
+    background: transparent;
+    /* Fully transparent background */
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 4px;
+    color: var(--text-secondary);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+    backdrop-filter: blur(4px);
+    /* Subtle blur effect */
+}
+
+.agent-scroll-controls button:hover {
+    background: rgba(88, 166, 255, 0.15);
+    /* Slight blue tint on hover */
+    color: var(--accent-primary);
+    border-color: var(--accent-primary);
+    transform: scale(1.1);
+    box-shadow: 0 2px 8px rgba(88, 166, 255, 0.3);
+    backdrop-filter: blur(8px);
+    /* More blur on hover */
+}
+
+.agent-scroll-controls button:active {
+    transform: scale(0.95);
+}
+
+.agent-autoscroll-btn {
+    position: relative;
+}
+
+.agent-autoscroll-btn::after {
+    content: attr(data-tooltip);
+    position: absolute;
+    bottom: -35px;
+    right: 0;
+    background: rgba(0, 0, 0, 0.8);
+    color: white;
+    padding: 6px 12px;
+    border-radius: 4px;
+    font-size: 11px;
+    white-space: nowrap;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.2s ease;
+    z-index: 1000;
+}
+
+.agent-autoscroll-btn:hover::after {
+    opacity: 1;
+}
+
+.agent-autoscroll-btn.active::after {
+    content: 'Toggle auto-scroll off';
+}
+
+.agent-autoscroll-btn:not(.active)::after {
+    content: 'Toggle auto-scroll on';
+}
+
+/* ==================== LIVE VIEWERS BADGE (Jan 4, 2026) ==================== */
+
+.live-viewers-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 4px 10px;
+    background: rgba(34, 197, 94, 0.12);
+    border: 1px solid rgba(34, 197, 94, 0.3);
+    border-radius: 12px;
+    font-size: 11px;
+    font-weight: 600;
+    color: #22c55e;
+    margin-left: 8px;
+    animation: badge-appear 0.3s ease;
+    cursor: help;
+    transition: all 0.2s ease;
+}
+
+.live-viewers-badge:hover {
+    background: rgba(34, 197, 94, 0.2);
+    transform: scale(1.05);
+}
+
+.pulse-dot {
+    width: 6px;
+    height: 6px;
+    background: #22c55e;
+    border-radius: 50%;
+    animation: pulse-green 2s infinite;
+    box-shadow: 0 0 4px rgba(34, 197, 94, 0.5);
+}
+
+.viewer-count {
+    font-size: 12px;
+    font-weight: 700;
+    color: #22c55e;
+    min-width: 12px;
+    text-align: center;
+}
+
+.viewer-label {
+    font-size: 10px;
+    font-weight: 600;
+    color: rgba(34, 197, 94, 0.8);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+@keyframes pulse-green {
+
+    0%,
+    100% {
+        opacity: 1;
+        transform: scale(1);
+    }
+
+    50% {
+        opacity: 0.5;
+        transform: scale(1.2);
+    }
+}
+
+@keyframes badge-appear {
+    0% {
+        opacity: 0;
+        transform: translateY(-5px) scale(0.9);
+    }
+
+    100% {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+
+/* Agent column highlight when other session is viewing - uses device-specific color */
+.agent-column.other-session-viewing {
+    /* Border is set via JavaScript with dashed style and session color */
+    animation: glow-pulse 3s infinite;
+}
+
+@keyframes glow-pulse {
+
+    0%,
+    100% {
+        /* Glow uses session color variable set by JavaScript */
+        box-shadow: 0 0 0 4px color-mix(in srgb, var(--session-color, #22c55e) 20%, transparent);
+    }
+
+    50% {
+        box-shadow: 0 0 0 4px color-mix(in srgb, var(--session-color, #22c55e) 30%, transparent),
+            0 0 20px color-mix(in srgb, var(--session-color, #22c55e) 20%, transparent);
+    }
+}

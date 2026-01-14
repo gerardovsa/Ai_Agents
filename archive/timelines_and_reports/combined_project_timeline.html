@@ -1,0 +1,1969 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Combined Project Timeline - Evolution Journey</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 20px;
+            min-height: 100vh;
+        }
+        
+        .container {
+            max-width: 98%;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            overflow: hidden;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 40px;
+            text-align: center;
+        }
+        
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 15px;
+        }
+        
+        .header .subtitle {
+            font-size: 1.3em;
+            opacity: 0.95;
+            margin-bottom: 20px;
+        }
+        
+        .timeline-info {
+            display: flex;
+            justify-content: center;
+            gap: 40px;
+            margin-top: 20px;
+            font-size: 1.1em;
+        }
+        
+        .info-box {
+            background: rgba(255,255,255,0.2);
+            padding: 15px 30px;
+            border-radius: 10px;
+        }
+        
+        .info-box strong {
+            display: block;
+            font-size: 1.5em;
+            margin-bottom: 5px;
+        }
+        
+        .legend {
+            display: flex;
+            justify-content: center;
+            gap: 30px;
+            padding: 30px;
+            background: #f8f9fa;
+            flex-wrap: wrap;
+        }
+        
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 1.1em;
+        }
+        
+        .legend-bar {
+            width: 40px;
+            height: 25px;
+            border-radius: 5px;
+        }
+        
+        .timeline-scroll {
+            overflow-x: auto;
+            overflow-y: visible;
+            padding: 40px;
+            background: white;
+        }
+        
+        .timeline-container {
+            min-width: 4860px;
+            position: relative;
+            padding: 20px 0;
+        }
+        
+        .date-axis {
+            display: flex;
+            position: relative;
+            height: 50px;
+            margin-bottom: 30px;
+            border-bottom: 3px solid #667eea;
+        }
+        
+        .date-marker {
+            position: absolute;
+            width: 2px;
+            height: 100%;
+            background: #ddd;
+        }
+        
+        .date-marker.major {
+            background: #667eea;
+            width: 3px;
+        }
+        
+        .date-label {
+            position: absolute;
+            bottom: -25px;
+            transform: translateX(-50%);
+            font-size: 0.85em;
+            /* font-weight: bold; */
+            white-space: nowrap;
+        }
+        
+        .date-label.major {
+            font-size: 1em;
+            color: #667eea;
+        }
+        
+        .project-marker {
+            position: absolute;
+            top: -40px;
+            padding: 8px 20px;
+            border-radius: 10px;
+            /* font-weight: bold; */
+            font-size: 1.1em;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.2);
+            transform: translateX(-50%);
+        }
+        
+        .project-marker.g-folder {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            color: white;
+        }
+        
+        .project-marker.ai-agents {
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            color: white;
+        }
+        
+        .categories-container {
+            position: relative;
+        }
+        
+        .category-row {
+            display: flex;
+            align-items: center;
+            margin-bottom: 15px;
+            position: relative;
+        }
+        
+        .category-label {
+            width: 250px;
+            padding: 10px 15px;
+            background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            /* font-weight: bold; */
+            border-radius: 10px 0 0 10px;
+            font-size: 1em;
+        }
+        
+        .category-timeline {
+            flex: 1;
+            height: 50px;
+            position: relative;
+            background: #f8f9fa;
+            border-radius: 0 10px 10px 0;
+        }
+        
+        .activity-bar {
+            position: absolute;
+            height: 100%;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.85em;
+            /* font-weight: bold; */
+            color: white;
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.3);
+        }
+        
+        .activity-bar:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 6px 12px rgba(0,0,0,0.3);
+            z-index: 10;
+        }
+        
+        .activity-bar.g-folder {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+        }
+        
+        .activity-bar.ai-agents {
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+        }
+        
+        .activity-bar.both {
+            background: linear-gradient(135deg, #f093fb 0%, #4facfe 100%);
+            border: 2px solid #fff;
+        }
+        
+        .tooltip {
+            display: none;
+            position: absolute;
+            bottom: 110%;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0,0,0,0.95);
+            color: white;
+            padding: 10px 15px;
+            border-radius: 8px;
+            font-size: 0.9em;
+            white-space: nowrap;
+            z-index: 1000;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+        }
+        
+        .activity-bar:hover .tooltip {
+            display: block;
+        }
+        
+        .transition-marker {
+            position: absolute;
+            top: 0;
+            bottom: 0;
+            width: 4px;
+            background: repeating-linear-gradient(
+                45deg,
+                #f5576c,
+                #f5576c 10px,
+                #4facfe 10px,
+                #4facfe 20px
+            );
+            z-index: 5;
+        }
+        
+        .transition-label {
+            position: absolute;
+            top: 50%;
+            left: 10px;
+            transform: translateY(-50%);
+            background: white;
+            padding: 10px 20px;
+            border-radius: 10px;
+            /* font-weight: bold; */
+            box-shadow: 0 4px 6px rgba(0,0,0,0.2);
+            border: 3px solid #667eea;
+        }
+        
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            padding: 40px;
+            background: #f8f9fa;
+        }
+        
+        .stat-box {
+            background: white;
+            padding: 25px;
+            border-radius: 15px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            text-align: center;
+            border-top: 4px solid #667eea;
+        }
+        
+        .stat-box h3 {
+            color: #667eea;
+            font-size: 0.9em;
+            margin-bottom: 10px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        
+        .stat-box .value {
+            font-size: 2.5em;
+            /* font-weight: bold; */
+            color: #333;
+            margin: 10px 0;
+        }
+        
+        .stat-box .label {
+            color: #666;
+            font-size: 0.9em;
+        }
+        
+        .weekend {
+            background: rgba(255, 107, 107, 0.05);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🚀 Project Evolution Timeline</h1>
+            <div class="subtitle">From Streamlit Prototype → Full AI Agent Platform</div>
+            <div class="timeline-info">
+                <div class="info-box">
+                    <strong>Aug 20, 2025</strong>
+                    <span>Start Date</span>
+                </div>
+                <div class="info-box">
+                    <strong>81 Days</strong>
+                    <span>Development Period</span>
+                </div>
+                <div class="info-box">
+                    <strong>Nov 08, 2025</strong>
+                    <span>End Date</span>
+                </div>
+            </div>
+        </div>
+        
+        <div class="legend">
+            <div class="legend-item">
+                <div class="legend-bar" style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);"></div>
+                <span>G_Folder (Streamlit)</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-bar" style="background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);"></div>
+                <span>AI_agents (Flask + AI)</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-bar" style="background: linear-gradient(135deg, #f093fb 0%, #4facfe 100%); border: 2px solid #fff;"></div>
+                <span>Both Projects</span>
+            </div>
+        </div>
+        
+        <div class="timeline-scroll">
+            <div class="timeline-container">
+                <div class="date-axis">
+
+                    <div class="date-marker " style="left: 0.0%;"></div>
+                    <div class="date-label " style="left: 0.0%;">
+                        Aug 20
+                    </div>
+
+                    <div class="date-marker major" style="left: 6.172839506172839%;"></div>
+                    <div class="date-label major" style="left: 6.172839506172839%;">
+                        Aug 25
+                    </div>
+
+                    <div class="date-marker major" style="left: 14.814814814814813%;"></div>
+                    <div class="date-label major" style="left: 14.814814814814813%;">
+                        Sep 01
+                    </div>
+
+                    <div class="date-marker major" style="left: 23.456790123456788%;"></div>
+                    <div class="date-label major" style="left: 23.456790123456788%;">
+                        Sep 08
+                    </div>
+
+                    <div class="date-marker major" style="left: 32.098765432098766%;"></div>
+                    <div class="date-label major" style="left: 32.098765432098766%;">
+                        Sep 15
+                    </div>
+
+                    <div class="date-marker major" style="left: 40.74074074074074%;"></div>
+                    <div class="date-label major" style="left: 40.74074074074074%;">
+                        Sep 22
+                    </div>
+
+                    <div class="date-marker major" style="left: 49.382716049382715%;"></div>
+                    <div class="date-label major" style="left: 49.382716049382715%;">
+                        Sep 29
+                    </div>
+
+                    <div class="date-marker major" style="left: 51.85185185185185%;"></div>
+                    <div class="date-label major" style="left: 51.85185185185185%;">
+                        Oct 01
+                    </div>
+
+                    <div class="date-marker major" style="left: 58.0246913580247%;"></div>
+                    <div class="date-label major" style="left: 58.0246913580247%;">
+                        Oct 06
+                    </div>
+
+                    <div class="date-marker major" style="left: 66.66666666666666%;"></div>
+                    <div class="date-label major" style="left: 66.66666666666666%;">
+                        Oct 13
+                    </div>
+
+                    <div class="date-marker major" style="left: 75.30864197530865%;"></div>
+                    <div class="date-label major" style="left: 75.30864197530865%;">
+                        Oct 20
+                    </div>
+
+                    <div class="date-marker major" style="left: 83.9506172839506%;"></div>
+                    <div class="date-label major" style="left: 83.9506172839506%;">
+                        Oct 27
+                    </div>
+
+                    <div class="date-marker major" style="left: 90.12345679012346%;"></div>
+                    <div class="date-label major" style="left: 90.12345679012346%;">
+                        Nov 01
+                    </div>
+
+                    <div class="date-marker major" style="left: 92.5925925925926%;"></div>
+                    <div class="date-label major" style="left: 92.5925925925926%;">
+                        Nov 03
+                    </div>
+
+                    <div class="date-marker " style="left: 98.76543209876543%;"></div>
+                    <div class="date-label " style="left: 98.76543209876543%;">
+                        Nov 08
+                    </div>
+
+                    <div class="project-marker g-folder" style="left: 49.382716049382715%;">
+                        📊 G_Folder Phase<br><small>Streamlit + Python</small>
+                    </div>
+                    <div class="project-marker ai-agents" style="left: 89.50617283950618%;">
+                        🤖 AI_agents Phase<br><small>Flask + AI Integration</small>
+                    </div>
+
+                </div>
+                
+                <div class="categories-container">
+
+                    <div class="transition-marker" style="left: 88.88888888888889%;"></div>
+                    <div class="transition-label" style="left: 88.88888888888889%;">
+                        🔄 Integration<br>Attempt
+                    </div>
+
+                    <div class="category-row">
+                        <div class="category-label">⚙️ Other</div>
+                        <div class="category-timeline">
+
+                            <div class="activity-bar g-folder" style="left: 0.0%; width: 1.2345679012345678%;">
+                                4922
+                                <div class="tooltip">
+                                    Aug 20, 2025<br>
+                                    G_Folder<br>
+                                    <strong>4922 files</strong>
+                                </div>
+                            </div>
+
+                            <div class="activity-bar g-folder" style="left: 2.4691358024691357%; width: 1.2345679012345678%;">
+                                260
+                                <div class="tooltip">
+                                    Aug 22, 2025<br>
+                                    G_Folder<br>
+                                    <strong>260 files</strong>
+                                </div>
+                            </div>
+
+                            <div class="activity-bar g-folder" style="left: 11.11111111111111%; width: 1.2345679012345678%;">
+                                800
+                                <div class="tooltip">
+                                    Aug 29, 2025<br>
+                                    G_Folder<br>
+                                    <strong>800 files</strong>
+                                </div>
+                            </div>
+
+                            <div class="activity-bar g-folder" style="left: 67.90123456790124%; width: 1.2345679012345678%;">
+                                159
+                                <div class="tooltip">
+                                    Oct 14, 2025<br>
+                                    G_Folder<br>
+                                    <strong>159 files</strong>
+                                </div>
+                            </div>
+
+                            <div class="activity-bar g-folder" style="left: 69.1358024691358%; width: 1.2345679012345678%;">
+                                17
+                                <div class="tooltip">
+                                    Oct 15, 2025<br>
+                                    G_Folder<br>
+                                    <strong>17 files</strong>
+                                </div>
+                            </div>
+
+                            <div class="activity-bar g-folder" style="left: 70.37037037037037%; width: 1.2345679012345678%;">
+                                12
+                                <div class="tooltip">
+                                    Oct 16, 2025<br>
+                                    G_Folder<br>
+                                    <strong>12 files</strong>
+                                </div>
+                            </div>
+
+                            <div class="activity-bar g-folder" style="left: 71.60493827160494%; width: 1.2345679012345678%;">
+                                16
+                                <div class="tooltip">
+                                    Oct 17, 2025<br>
+                                    G_Folder<br>
+                                    <strong>16 files</strong>
+                                </div>
+                            </div>
+
+                            <div class="activity-bar g-folder" style="left: 72.8395061728395%; width: 1.2345679012345678%;">
+                                45
+                                <div class="tooltip">
+                                    Oct 18, 2025<br>
+                                    G_Folder<br>
+                                    <strong>45 files</strong>
+                                </div>
+                            </div>
+
+                            <div class="activity-bar g-folder" style="left: 74.07407407407408%; width: 1.2345679012345678%;">
+                                118
+                                <div class="tooltip">
+                                    Oct 19, 2025<br>
+                                    G_Folder<br>
+                                    <strong>118 files</strong>
+                                </div>
+                            </div>
+
+                            <div class="activity-bar g-folder" style="left: 75.30864197530865%; width: 1.2345679012345678%;">
+                                128
+                                <div class="tooltip">
+                                    Oct 20, 2025<br>
+                                    G_Folder<br>
+                                    <strong>128 files</strong>
+                                </div>
+                            </div>
+
+                            <div class="activity-bar g-folder" style="left: 79.01234567901234%; width: 1.2345679012345678%;">
+                                11
+                                <div class="tooltip">
+                                    Oct 23, 2025<br>
+                                    G_Folder<br>
+                                    <strong>11 files</strong>
+                                </div>
+                            </div>
+
+                            <div class="activity-bar g-folder" style="left: 80.24691358024691%; width: 1.2345679012345678%;">
+                                
+                                <div class="tooltip">
+                                    Oct 24, 2025<br>
+                                    G_Folder<br>
+                                    <strong>2 files</strong>
+                                </div>
+                            </div>
+
+                            <div class="activity-bar g-folder" style="left: 81.48148148148148%; width: 1.2345679012345678%;">
+                                
+                                <div class="tooltip">
+                                    Oct 25, 2025<br>
+                                    G_Folder<br>
+                                    <strong>2 files</strong>
+                                </div>
+                            </div>
+
+                            <div class="activity-bar g-folder" style="left: 98.76543209876543%; width: 1.2345679012345678%;">
+                                
+                                <div class="tooltip">
+                                    Nov 08, 2025<br>
+                                    G_Folder<br>
+                                    <strong>5 files</strong>
+                                </div>
+                            </div>
+
+                        </div>
+                    </div>
+
+                    <div class="category-row">
+                        <div class="category-label">🌶️ Flask Backend</div>
+                        <div class="category-timeline">
+
+                            <div class="activity-bar g-folder" style="left: 67.90123456790124%; width: 1.2345679012345678%;">
+                                
+                                <div class="tooltip">
+                                    Oct 14, 2025<br>
+                                    G_Folder<br>
+                                    <strong>4 files</strong>
+                                </div>
+                            </div>
+
+                            <div class="activity-bar g-folder" style="left: 71.60493827160494%; width: 1.2345679012345678%;">
+                                
+                                <div class="tooltip">
+                                    Oct 17, 2025<br>
+                                    G_Folder<br>
+                                    <strong>1 files</strong>
+                                </div>
+                            </div>
+
+                            <div class="activity-bar g-folder" style="left: 75.30864197530865%; width: 1.2345679012345678%;">
+                                
+                                <div class="tooltip">
+                                    Oct 20, 2025<br>
+                                    G_Folder<br>
+                                    <strong>1 files</strong>
+                                </div>
+                            </div>
+
+                            <div class="activity-bar both" style="left: 79.01234567901234%; width: 1.2345679012345678%;">
+                                17
+                                <div class="tooltip">
+                                    Oct 23, 2025<br>
+                                    Both Projects<br>
+                                    <strong>17 files</strong>
+                                </div>
+                            </div>
+
+                            <div class="activity-bar g-folder" style="left: 80.24691358024691%; width: 1.2345679012345678%;">
+                                10
+                                <div class="tooltip">
+                                    Oct 24, 2025<br>
+                                    G_Folder<br>
+                                    <strong>10 files</strong>
+                                </div>
+                            </div>
+
+                            <div class="activity-bar both" style="left: 81.48148148148148%; width: 1.2345679012345678%;">
+                                
+                                <div class="tooltip">
+                                    Oct 25, 2025<br>
+                                    Both Projects<br>
+                                    <strong>3 files</strong>
+                                </div>
+                            </div>
+
+                            <div class="activity-bar ai-agents" style="left: 97.53086419753086%; width: 1.2345679012345678%;">
+                                8
+                                <div class="tooltip">
+                                    Nov 07, 2025<br>
+                                    AI_agents<br>
+                                    <strong>8 files</strong>
+                                </div>
+                            </div>
+
+                            <div class="activity-bar ai-agents" style="left: 98.76543209876543%; width: 1.2345679012345678%;">
+                                
+                                <div class="tooltip">
+                                    Nov 08, 2025<br>
+                                    AI_agents<br>
+                                    <strong>4 files</strong>
+                                </div>
+                            </div>
+
+                        </div>
+                    </div>
+
+                    <div class="category-row">
+                        <div class="category-label">🎨 UI Components</div>
+                        <div class="category-timeline">
+
+                            <div class="activity-bar g-folder" style="left: 0.0%; width: 1.2345679012345678%;">
+                                10
+                                <div class="tooltip">
+                                    Aug 20, 2025<br>
+                                    G_Folder<br>
+                                    <strong>10 files</strong>
+                                </div>
+                            </div>
+
+                            <div class="activity-bar g-folder" style="left: 2.4691358024691357%; width: 1.2345679012345678%;">
+                                
+                                <div class="tooltip">
+                                    Aug 22, 2025<br>
+                                    G_Folder<br>
+                                    <strong>2 files</strong>
+                                </div>
+                            </div>
+
+                            <div class="activity-bar g-folder" style="left: 11.11111111111111%; width: 1.2345679012345678%;">
+                                
+                                <div class="tooltip">
+                                    Aug 29, 2025<br>
+                                    G_Folder<br>
+                                    <strong>5 files</strong>
+                                </div>
+                            </div>
+
+                            <div class="activity-bar g-folder" style="left: 67.90123456790124%; width: 1.2345679012345678%;">
+                                
+                                <div class="tooltip">
+                                    Oct 14, 2025<br>
+                                    G_Folder<br>
+                                    <strong>4 files</strong>
+                                </div>
+                            </div>
+
+                            <div class="activity-bar g-folder" style="left: 69.1358024691358%; width: 1.2345679012345678%;">
+                                
+                                <div class="tooltip">
+                                    Oct 15, 2025<br>
+                                    G_Folder<br>
+                                    <strong>1 files</strong>
+                                </div>
+                            </div>
+
+                            <div class="activity-bar g-folder" style="left: 75.30864197530865%; width: 1.2345679012345678%;">
+                                
+                                <div class="tooltip">
+                                    Oct 20, 2025<br>
+                                    G_Folder<br>
+                                    <strong>4 files</strong>
+                                </div>
+                            </div>
+
+                            <div class="activity-bar g-folder" style="left: 98.76543209876543%; width: 1.2345679012345678%;">
+                                
+                                <div class="tooltip">
+                                    Nov 08, 2025<br>
+                                    G_Folder<br>
+                                    <strong>3 files</strong>
+                                </div>
+                            </div>
+
+                        </div>
+                    </div>
+
+                    <div class="category-row">
+                        <div class="category-label">🐍 Python Backend</div>
+                        <div class="category-timeline">
+
+                            <div class="activity-bar g-folder" style="left: 0.0%; width: 1.2345679012345678%;">
+                                11473
+                                <div class="tooltip">
+                                    Aug 20, 2025<br>
+                                    G_Folder<br>
+                                    <strong>11473 files</strong>
+                                </div>
+                            </div>
+
+                            <div class="activity-bar g-folder" style="left: 2.4691358024691357%; width: 1.2345679012345678%;">
+                                3460
+                                <div class="tooltip">
+                                    Aug 22, 2025<br>
+                                    G_Folder<br>
+                                    <strong>3460 files</strong>
+                                </div>
+                            </div>
+
+                            <div class="activity-bar g-folder" style="left: 9.876543209876543%; width: 1.2345679012345678%;">
+                                537
+                                <div class="tooltip">
+                                    Aug 28, 2025<br>
+                                    G_Folder<br>
+                                    <strong>537 files</strong>
+                                </div>
+                            </div>
+
+                            <div class="activity-bar g-folder" style="left: 11.11111111111111%; width: 1.2345679012345678%;">
+                                397
+                                <div class="tooltip">
+                                    Aug 29, 2025<br>
+                                    G_Folder<br>
+                                    <strong>397 files</strong>
+                                </div>
+                            </div>
+
+                            <div class="activity-bar g-folder" style="left: 67.90123456790124%; width: 1.2345679012345678%;">
+                                385
+                                <div class="tooltip">
+                                    Oct 14, 2025<br>
+                                    G_Folder<br>
+                                    <strong>385 files</strong>
+                                </div>
+                            </div>
+
+                            <div class="activity-bar g-folder" style="left: 69.1358024691358%; width: 1.2345679012345678%;">
+                                189
+                                <div class="tooltip">
+                                    Oct 15, 2025<br>
+                                    G_Folder<br>
+                                    <strong>189 files</strong>
+                                </div>
+                            </div>
+
+                            <div class="activity-bar g-folder" style="left: 70.37037037037037%; width: 1.2345679012345678%;">
+                                16
+                                <div class="tooltip">
+                                    Oct 16, 2025<br>
+                                    G_Folder<br>
+                                    <strong>16 files</strong>
+                                </div>
+                            </div>
+
+                            <div class="activity-bar g-folder" style="left: 71.60493827160494%; width: 1.2345679012345678%;">
+                                193
+                                <div class="tooltip">
+                                    Oct 17, 2025<br>
+                                    G_Folder<br>
+                                    <strong>193 files</strong>
+                                </div>
+                            </div>
+
+                            <div class="activity-bar g-folder" style="left: 72.8395061728395%; width: 1.2345679012345678%;">
+                                988
+                                <div class="tooltip">
+                                    Oct 18, 2025<br>
+                                    G_Folder<br>
+                                    <strong>988 files</strong>
+                                </div>
+                            </div>
+
+                            <div class="activity-bar g-folder" style="left: 74.07407407407408%; width: 1.2345679012345678%;">
+                                
+                                <div class="tooltip">
+                                    Oct 19, 2025<br>
+                                    G_Folder<br>
+                                    <strong>2 files</strong>
+                                </div>
+                            </div>
+
+                            <div class="activity-bar g-folder" style="left: 75.30864197530865%; width: 1.2345679012345678%;">
+                                1042
+                                <div class="tooltip">
+                                    Oct 20, 2025<br>
+                                    G_Folder<br>
+                                    <strong>1042 files</strong>
+                                </div>
+                            </div>
+
+                            <div class="activity-bar g-folder" style="left: 76.5432098765432%; width: 1.2345679012345678%;">
+                                14
+                                <div class="tooltip">
+                                    Oct 21, 2025<br>
+                                    G_Folder<br>
+                                    <strong>14 files</strong>
+                                </div>
+                            </div>
+
+                            <div class="activity-bar g-folder" style="left: 77.77777777777779%; width: 1.2345679012345678%;">
+                                
+                                <div class="tooltip">
+                                    Oct 22, 2025<br>
+                                    G_Folder<br>
+                                    <strong>4 files</strong>
+                                </div>
+                            </div>
+
+                            <div class="activity-bar g-folder" style="left: 79.01234567901234%; width: 1.2345679012345678%;">
+                                64
+                                <div class="tooltip">
+                                    Oct 23, 2025<br>
+                                    G_Folder<br>
+                                    <strong>64 files</strong>
+                                </div>
+                            </div>
+
+                            <div class="activity-bar g-folder" style="left: 80.24691358024691%; width: 1.2345679012345678%;">
+                                
+                                <div class="tooltip">
+                                    Oct 24, 2025<br>
+                                    G_Folder<br>
+                                    <strong>5 files</strong>
+                                </div>
+                            </div>
+
+                            <div class="activity-bar g-folder" style="left: 81.48148148148148%; width: 1.2345679012345678%;">
+                                10
+                                <div class="tooltip">
+                                    Oct 25, 2025<br>
+                                    G_Folder<br>
+                                    <strong>10 files</strong>
+                                </div>
+                            </div>
+
+                            <div class="activity-bar ai-agents" style="left: 98.76543209876543%; width: 1.2345679012345678%;">
+                                
+                                <div class="tooltip">
+                                    Nov 08, 2025<br>
+                                    AI_agents<br>
+                                    <strong>1 files</strong>
+                                </div>
+                            </div>
+
+                        </div>
+                    </div>
+
+                    <div class="category-row">
+                        <div class="category-label">🐍 Streamlit Frontend</div>
+                        <div class="category-timeline">
+
+                            <div class="activity-bar g-folder" style="left: 0.0%; width: 1.2345679012345678%;">
+                                150
+                                <div class="tooltip">
+                                    Aug 20, 2025<br>
+                                    G_Folder<br>
+                                    <strong>150 files</strong>
+                                </div>
+                            </div>
+
+                            <div class="activity-bar g-folder" style="left: 2.4691358024691357%; width: 1.2345679012345678%;">
+                                22
+                                <div class="tooltip">
+                                    Aug 22, 2025<br>
+                                    G_Folder<br>
+                                    <strong>22 files</strong>
+                                </div>
+                            </div>
+
+                            <div class="activity-bar g-folder" style="left: 9.876543209876543%; width: 1.2345679012345678%;">
+                                22
+                                <div class="tooltip">
+                                    Aug 28, 2025<br>
+                                    G_Folder<br>
+                                    <strong>22 files</strong>
+                                </div>
+                            </div>
+
+                            <div class="activity-bar g-folder" style="left: 11.11111111111111%; width: 1.2345679012345678%;">
+                                16
+                                <div class="tooltip">
+                                    Aug 29, 2025<br>
+                                    G_Folder<br>
+                                    <strong>16 files</strong>
+                                </div>
+                            </div>
+
+                            <div class="activity-bar g-folder" style="left: 67.90123456790124%; width: 1.2345679012345678%;">
+                                8
+                                <div class="tooltip">
+                                    Oct 14, 2025<br>
+                                    G_Folder<br>
+                                    <strong>8 files</strong>
+                                </div>
+                            </div>
+
+                            <div class="activity-bar g-folder" style="left: 69.1358024691358%; width: 1.2345679012345678%;">
+                                
+                                <div class="tooltip">
+                                    Oct 15, 2025<br>
+                                    G_Folder<br>
+                                    <strong>1 files</strong>
+                                </div>
+                            </div>
+
+                            <div class="activity-bar g-folder" style="left: 70.37037037037037%; width: 1.2345679012345678%;">
+                                
+                                <div class="tooltip">
+                                    Oct 16, 2025<br>
+                                    G_Folder<br>
+                                    <strong>2 files</strong>
+                                </div>
+                            </div>
+
+                            <div class="activity-bar g-folder" style="left: 71.60493827160494%; width: 1.2345679012345678%;">
+                                
+                                <div class="tooltip">
+                                    Oct 17, 2025<br>
+                                    G_Folder<br>
+                                    <strong>1 files</strong>
+                                </div>
+                            </div>
+
+                            <div class="activity-bar g-folder" style="left: 72.8395061728395%; width: 1.2345679012345678%;">
+                                11
+                                <div class="tooltip">
+                                    Oct 18, 2025<br>
+                                    G_Folder<br>
+                                    <strong>11 files</strong>
+                                </div>
+                            </div>
+
+                            <div class="activity-bar g-folder" style="left: 75.30864197530865%; width: 1.2345679012345678%;">
+                                23
+                                <div class="tooltip">
+                                    Oct 20, 2025<br>
+                                    G_Folder<br>
+                                    <strong>23 files</strong>
+                                </div>
+                            </div>
+
+                            <div class="activity-bar g-folder" style="left: 77.77777777777779%; width: 1.2345679012345678%;">
+                                
+                                <div class="tooltip">
+                                    Oct 22, 2025<br>
+                                    G_Folder<br>
+                                    <strong>1 files</strong>
+                                </div>
+                            </div>
+
+                            <div class="activity-bar g-folder" style="left: 79.01234567901234%; width: 1.2345679012345678%;">
+                                
+                                <div class="tooltip">
+                                    Oct 23, 2025<br>
+                                    G_Folder<br>
+                                    <strong>5 files</strong>
+                                </div>
+                            </div>
+
+                            <div class="activity-bar g-folder" style="left: 81.48148148148148%; width: 1.2345679012345678%;">
+                                
+                                <div class="tooltip">
+                                    Oct 25, 2025<br>
+                                    G_Folder<br>
+                                    <strong>2 files</strong>
+                                </div>
+                            </div>
+
+                        </div>
+                    </div>
+
+                    <div class="category-row">
+                        <div class="category-label">💬 Chat System</div>
+                        <div class="category-timeline">
+
+                            <div class="activity-bar g-folder" style="left: 0.0%; width: 1.2345679012345678%;">
+                                20
+                                <div class="tooltip">
+                                    Aug 20, 2025<br>
+                                    G_Folder<br>
+                                    <strong>20 files</strong>
+                                </div>
+                            </div>
+
+                            <div class="activity-bar g-folder" style="left: 2.4691358024691357%; width: 1.2345679012345678%;">
+                                
+                                <div class="tooltip">
+                                    Aug 22, 2025<br>
+                                    G_Folder<br>
+                                    <strong>4 files</strong>
+                                </div>
+                            </div>
+
+                            <div class="activity-bar g-folder" style="left: 71.60493827160494%; width: 1.2345679012345678%;">
+                                
+                                <div class="tooltip">
+                                    Oct 17, 2025<br>
+                                    G_Folder<br>
+                                    <strong>1 files</strong>
+                                </div>
+                            </div>
+
+                            <div class="activity-bar g-folder" style="left: 72.8395061728395%; width: 1.2345679012345678%;">
+                                
+                                <div class="tooltip">
+                                    Oct 18, 2025<br>
+                                    G_Folder<br>
+                                    <strong>1 files</strong>
+                                </div>
+                            </div>
+
+                            <div class="activity-bar g-folder" style="left: 75.30864197530865%; width: 1.2345679012345678%;">
+                                68
+                                <div class="tooltip">
+                                    Oct 20, 2025<br>
+                                    G_Folder<br>
+                                    <strong>68 files</strong>
+                                </div>
+                            </div>
+
+                            <div class="activity-bar g-folder" style="left: 79.01234567901234%; width: 1.2345679012345678%;">
+                                
+                                <div class="tooltip">
+                                    Oct 23, 2025<br>
+                                    G_Folder<br>
+                                    <strong>2 files</strong>
+                                </div>
+                            </div>
+
+                            <div class="activity-bar g-folder" style="left: 81.48148148148148%; width: 1.2345679012345678%;">
+                                
+                                <div class="tooltip">
+                                    Oct 25, 2025<br>
+                                    G_Folder<br>
+                                    <strong>1 files</strong>
+                                </div>
+                            </div>
+
+                        </div>
+                    </div>
+
+                    <div class="category-row">
+                        <div class="category-label">💰 Quote Calculator</div>
+                        <div class="category-timeline">
+
+                            <div class="activity-bar g-folder" style="left: 0.0%; width: 1.2345679012345678%;">
+                                8
+                                <div class="tooltip">
+                                    Aug 20, 2025<br>
+                                    G_Folder<br>
+                                    <strong>8 files</strong>
+                                </div>
+                            </div>
+
+                            <div class="activity-bar g-folder" style="left: 11.11111111111111%; width: 1.2345679012345678%;">
+                                111
+                                <div class="tooltip">
+                                    Aug 29, 2025<br>
+                                    G_Folder<br>
+                                    <strong>111 files</strong>
+                                </div>
+                            </div>
+
+                            <div class="activity-bar g-folder" style="left: 67.90123456790124%; width: 1.2345679012345678%;">
+                                289
+                                <div class="tooltip">
+                                    Oct 14, 2025<br>
+                                    G_Folder<br>
+                                    <strong>289 files</strong>
+                                </div>
+                            </div>
+
+                            <div class="activity-bar g-folder" style="left: 69.1358024691358%; width: 1.2345679012345678%;">
+                                31
+                                <div class="tooltip">
+                                    Oct 15, 2025<br>
+                                    G_Folder<br>
+                                    <strong>31 files</strong>
+                                </div>
+                            </div>
+
+                            <div class="activity-bar g-folder" style="left: 70.37037037037037%; width: 1.2345679012345678%;">
+                                
+                                <div class="tooltip">
+                                    Oct 16, 2025<br>
+                                    G_Folder<br>
+                                    <strong>1 files</strong>
+                                </div>
+                            </div>
+
+                            <div class="activity-bar g-folder" style="left: 71.60493827160494%; width: 1.2345679012345678%;">
+                                12
+                                <div class="tooltip">
+                                    Oct 17, 2025<br>
+                                    G_Folder<br>
+                                    <strong>12 files</strong>
+                                </div>
+                            </div>
+
+                            <div class="activity-bar g-folder" style="left: 72.8395061728395%; width: 1.2345679012345678%;">
+                                11
+                                <div class="tooltip">
+                                    Oct 18, 2025<br>
+                                    G_Folder<br>
+                                    <strong>11 files</strong>
+                                </div>
+                            </div>
+
+                            <div class="activity-bar g-folder" style="left: 75.30864197530865%; width: 1.2345679012345678%;">
+                                13
+                                <div class="tooltip">
+                                    Oct 20, 2025<br>
+                                    G_Folder<br>
+                                    <strong>13 files</strong>
+                                </div>
+                            </div>
+
+                            <div class="activity-bar g-folder" style="left: 76.5432098765432%; width: 1.2345679012345678%;">
+                                12
+                                <div class="tooltip">
+                                    Oct 21, 2025<br>
+                                    G_Folder<br>
+                                    <strong>12 files</strong>
+                                </div>
+                            </div>
+
+                            <div class="activity-bar g-folder" style="left: 77.77777777777779%; width: 1.2345679012345678%;">
+                                96
+                                <div class="tooltip">
+                                    Oct 22, 2025<br>
+                                    G_Folder<br>
+                                    <strong>96 files</strong>
+                                </div>
+                            </div>
+
+                            <div class="activity-bar g-folder" style="left: 79.01234567901234%; width: 1.2345679012345678%;">
+                                8
+                                <div class="tooltip">
+                                    Oct 23, 2025<br>
+                                    G_Folder<br>
+                                    <strong>8 files</strong>
+                                </div>
+                            </div>
+
+                            <div class="activity-bar g-folder" style="left: 80.24691358024691%; width: 1.2345679012345678%;">
+                                
+                                <div class="tooltip">
+                                    Oct 24, 2025<br>
+                                    G_Folder<br>
+                                    <strong>4 files</strong>
+                                </div>
+                            </div>
+
+                        </div>
+                    </div>
+
+                    <div class="category-row">
+                        <div class="category-label">💾 Database</div>
+                        <div class="category-timeline">
+
+                            <div class="activity-bar g-folder" style="left: 0.0%; width: 1.2345679012345678%;">
+                                43
+                                <div class="tooltip">
+                                    Aug 20, 2025<br>
+                                    G_Folder<br>
+                                    <strong>43 files</strong>
+                                </div>
+                            </div>
+
+                            <div class="activity-bar g-folder" style="left: 2.4691358024691357%; width: 1.2345679012345678%;">
+                                
+                                <div class="tooltip">
+                                    Aug 22, 2025<br>
+                                    G_Folder<br>
+                                    <strong>1 files</strong>
+                                </div>
+                            </div>
+
+                            <div class="activity-bar g-folder" style="left: 11.11111111111111%; width: 1.2345679012345678%;">
+                                8
+                                <div class="tooltip">
+                                    Aug 29, 2025<br>
+                                    G_Folder<br>
+                                    <strong>8 files</strong>
+                                </div>
+                            </div>
+
+                            <div class="activity-bar g-folder" style="left: 67.90123456790124%; width: 1.2345679012345678%;">
+                                14
+                                <div class="tooltip">
+                                    Oct 14, 2025<br>
+                                    G_Folder<br>
+                                    <strong>14 files</strong>
+                                </div>
+                            </div>
+
+                            <div class="activity-bar g-folder" style="left: 69.1358024691358%; width: 1.2345679012345678%;">
+                                
+                                <div class="tooltip">
+                                    Oct 15, 2025<br>
+                                    G_Folder<br>
+                                    <strong>4 files</strong>
+                                </div>
+                            </div>
+
+                            <div class="activity-bar g-folder" style="left: 72.8395061728395%; width: 1.2345679012345678%;">
+                                
+                                <div class="tooltip">
+                                    Oct 18, 2025<br>
+                                    G_Folder<br>
+                                    <strong>1 files</strong>
+                                </div>
+                            </div>
+
+                            <div class="activity-bar g-folder" style="left: 75.30864197530865%; width: 1.2345679012345678%;">
+                                
+                                <div class="tooltip">
+                                    Oct 20, 2025<br>
+                                    G_Folder<br>
+                                    <strong>4 files</strong>
+                                </div>
+                            </div>
+
+                            <div class="activity-bar g-folder" style="left: 79.01234567901234%; width: 1.2345679012345678%;">
+                                8
+                                <div class="tooltip">
+                                    Oct 23, 2025<br>
+                                    G_Folder<br>
+                                    <strong>8 files</strong>
+                                </div>
+                            </div>
+
+                        </div>
+                    </div>
+
+                    <div class="category-row">
+                        <div class="category-label">📚 Documentation</div>
+                        <div class="category-timeline">
+
+                            <div class="activity-bar g-folder" style="left: 0.0%; width: 1.2345679012345678%;">
+                                13
+                                <div class="tooltip">
+                                    Aug 20, 2025<br>
+                                    G_Folder<br>
+                                    <strong>13 files</strong>
+                                </div>
+                            </div>
+
+                            <div class="activity-bar g-folder" style="left: 2.4691358024691357%; width: 1.2345679012345678%;">
+                                
+                                <div class="tooltip">
+                                    Aug 22, 2025<br>
+                                    G_Folder<br>
+                                    <strong>2 files</strong>
+                                </div>
+                            </div>
+
+                            <div class="activity-bar g-folder" style="left: 11.11111111111111%; width: 1.2345679012345678%;">
+                                17
+                                <div class="tooltip">
+                                    Aug 29, 2025<br>
+                                    G_Folder<br>
+                                    <strong>17 files</strong>
+                                </div>
+                            </div>
+
+                            <div class="activity-bar g-folder" style="left: 67.90123456790124%; width: 1.2345679012345678%;">
+                                64
+                                <div class="tooltip">
+                                    Oct 14, 2025<br>
+                                    G_Folder<br>
+                                    <strong>64 files</strong>
+                                </div>
+                            </div>
+
+                            <div class="activity-bar g-folder" style="left: 69.1358024691358%; width: 1.2345679012345678%;">
+                                36
+                                <div class="tooltip">
+                                    Oct 15, 2025<br>
+                                    G_Folder<br>
+                                    <strong>36 files</strong>
+                                </div>
+                            </div>
+
+                            <div class="activity-bar g-folder" style="left: 70.37037037037037%; width: 1.2345679012345678%;">
+                                8
+                                <div class="tooltip">
+                                    Oct 16, 2025<br>
+                                    G_Folder<br>
+                                    <strong>8 files</strong>
+                                </div>
+                            </div>
+
+                            <div class="activity-bar g-folder" style="left: 71.60493827160494%; width: 1.2345679012345678%;">
+                                14
+                                <div class="tooltip">
+                                    Oct 17, 2025<br>
+                                    G_Folder<br>
+                                    <strong>14 files</strong>
+                                </div>
+                            </div>
+
+                            <div class="activity-bar g-folder" style="left: 72.8395061728395%; width: 1.2345679012345678%;">
+                                34
+                                <div class="tooltip">
+                                    Oct 18, 2025<br>
+                                    G_Folder<br>
+                                    <strong>34 files</strong>
+                                </div>
+                            </div>
+
+                            <div class="activity-bar g-folder" style="left: 74.07407407407408%; width: 1.2345679012345678%;">
+                                178
+                                <div class="tooltip">
+                                    Oct 19, 2025<br>
+                                    G_Folder<br>
+                                    <strong>178 files</strong>
+                                </div>
+                            </div>
+
+                            <div class="activity-bar g-folder" style="left: 75.30864197530865%; width: 1.2345679012345678%;">
+                                37
+                                <div class="tooltip">
+                                    Oct 20, 2025<br>
+                                    G_Folder<br>
+                                    <strong>37 files</strong>
+                                </div>
+                            </div>
+
+                            <div class="activity-bar g-folder" style="left: 76.5432098765432%; width: 1.2345679012345678%;">
+                                6
+                                <div class="tooltip">
+                                    Oct 21, 2025<br>
+                                    G_Folder<br>
+                                    <strong>6 files</strong>
+                                </div>
+                            </div>
+
+                            <div class="activity-bar g-folder" style="left: 77.77777777777779%; width: 1.2345679012345678%;">
+                                28
+                                <div class="tooltip">
+                                    Oct 22, 2025<br>
+                                    G_Folder<br>
+                                    <strong>28 files</strong>
+                                </div>
+                            </div>
+
+                            <div class="activity-bar g-folder" style="left: 79.01234567901234%; width: 1.2345679012345678%;">
+                                37
+                                <div class="tooltip">
+                                    Oct 23, 2025<br>
+                                    G_Folder<br>
+                                    <strong>37 files</strong>
+                                </div>
+                            </div>
+
+                            <div class="activity-bar g-folder" style="left: 80.24691358024691%; width: 1.2345679012345678%;">
+                                
+                                <div class="tooltip">
+                                    Oct 24, 2025<br>
+                                    G_Folder<br>
+                                    <strong>5 files</strong>
+                                </div>
+                            </div>
+
+                            <div class="activity-bar g-folder" style="left: 81.48148148148148%; width: 1.2345679012345678%;">
+                                
+                                <div class="tooltip">
+                                    Oct 25, 2025<br>
+                                    G_Folder<br>
+                                    <strong>5 files</strong>
+                                </div>
+                            </div>
+
+                        </div>
+                    </div>
+
+                    <div class="category-row">
+                        <div class="category-label">🔐 Authentication</div>
+                        <div class="category-timeline">
+
+                            <div class="activity-bar g-folder" style="left: 0.0%; width: 1.2345679012345678%;">
+                                13
+                                <div class="tooltip">
+                                    Aug 20, 2025<br>
+                                    G_Folder<br>
+                                    <strong>13 files</strong>
+                                </div>
+                            </div>
+
+                            <div class="activity-bar g-folder" style="left: 2.4691358024691357%; width: 1.2345679012345678%;">
+                                
+                                <div class="tooltip">
+                                    Aug 22, 2025<br>
+                                    G_Folder<br>
+                                    <strong>3 files</strong>
+                                </div>
+                            </div>
+
+                            <div class="activity-bar g-folder" style="left: 11.11111111111111%; width: 1.2345679012345678%;">
+                                6
+                                <div class="tooltip">
+                                    Aug 29, 2025<br>
+                                    G_Folder<br>
+                                    <strong>6 files</strong>
+                                </div>
+                            </div>
+
+                            <div class="activity-bar g-folder" style="left: 70.37037037037037%; width: 1.2345679012345678%;">
+                                
+                                <div class="tooltip">
+                                    Oct 16, 2025<br>
+                                    G_Folder<br>
+                                    <strong>1 files</strong>
+                                </div>
+                            </div>
+
+                            <div class="activity-bar g-folder" style="left: 71.60493827160494%; width: 1.2345679012345678%;">
+                                
+                                <div class="tooltip">
+                                    Oct 17, 2025<br>
+                                    G_Folder<br>
+                                    <strong>2 files</strong>
+                                </div>
+                            </div>
+
+                            <div class="activity-bar g-folder" style="left: 75.30864197530865%; width: 1.2345679012345678%;">
+                                
+                                <div class="tooltip">
+                                    Oct 20, 2025<br>
+                                    G_Folder<br>
+                                    <strong>1 files</strong>
+                                </div>
+                            </div>
+
+                        </div>
+                    </div>
+
+                    <div class="category-row">
+                        <div class="category-label">🔧 Tool Integrations</div>
+                        <div class="category-timeline">
+
+                            <div class="activity-bar g-folder" style="left: 0.0%; width: 1.2345679012345678%;">
+                                12
+                                <div class="tooltip">
+                                    Aug 20, 2025<br>
+                                    G_Folder<br>
+                                    <strong>12 files</strong>
+                                </div>
+                            </div>
+
+                            <div class="activity-bar g-folder" style="left: 2.4691358024691357%; width: 1.2345679012345678%;">
+                                
+                                <div class="tooltip">
+                                    Aug 22, 2025<br>
+                                    G_Folder<br>
+                                    <strong>1 files</strong>
+                                </div>
+                            </div>
+
+                            <div class="activity-bar g-folder" style="left: 11.11111111111111%; width: 1.2345679012345678%;">
+                                
+                                <div class="tooltip">
+                                    Aug 29, 2025<br>
+                                    G_Folder<br>
+                                    <strong>3 files</strong>
+                                </div>
+                            </div>
+
+                            <div class="activity-bar g-folder" style="left: 67.90123456790124%; width: 1.2345679012345678%;">
+                                61
+                                <div class="tooltip">
+                                    Oct 14, 2025<br>
+                                    G_Folder<br>
+                                    <strong>61 files</strong>
+                                </div>
+                            </div>
+
+                            <div class="activity-bar g-folder" style="left: 69.1358024691358%; width: 1.2345679012345678%;">
+                                
+                                <div class="tooltip">
+                                    Oct 15, 2025<br>
+                                    G_Folder<br>
+                                    <strong>2 files</strong>
+                                </div>
+                            </div>
+
+                            <div class="activity-bar g-folder" style="left: 70.37037037037037%; width: 1.2345679012345678%;">
+                                
+                                <div class="tooltip">
+                                    Oct 16, 2025<br>
+                                    G_Folder<br>
+                                    <strong>5 files</strong>
+                                </div>
+                            </div>
+
+                            <div class="activity-bar g-folder" style="left: 71.60493827160494%; width: 1.2345679012345678%;">
+                                23
+                                <div class="tooltip">
+                                    Oct 17, 2025<br>
+                                    G_Folder<br>
+                                    <strong>23 files</strong>
+                                </div>
+                            </div>
+
+                            <div class="activity-bar g-folder" style="left: 72.8395061728395%; width: 1.2345679012345678%;">
+                                
+                                <div class="tooltip">
+                                    Oct 18, 2025<br>
+                                    G_Folder<br>
+                                    <strong>3 files</strong>
+                                </div>
+                            </div>
+
+                            <div class="activity-bar g-folder" style="left: 74.07407407407408%; width: 1.2345679012345678%;">
+                                
+                                <div class="tooltip">
+                                    Oct 19, 2025<br>
+                                    G_Folder<br>
+                                    <strong>2 files</strong>
+                                </div>
+                            </div>
+
+                            <div class="activity-bar g-folder" style="left: 75.30864197530865%; width: 1.2345679012345678%;">
+                                9
+                                <div class="tooltip">
+                                    Oct 20, 2025<br>
+                                    G_Folder<br>
+                                    <strong>9 files</strong>
+                                </div>
+                            </div>
+
+                        </div>
+                    </div>
+
+                    <div class="category-row">
+                        <div class="category-label">🤖 AI Integration</div>
+                        <div class="category-timeline">
+
+                            <div class="activity-bar g-folder" style="left: 0.0%; width: 1.2345679012345678%;">
+                                8
+                                <div class="tooltip">
+                                    Aug 20, 2025<br>
+                                    G_Folder<br>
+                                    <strong>8 files</strong>
+                                </div>
+                            </div>
+
+                            <div class="activity-bar g-folder" style="left: 2.4691358024691357%; width: 1.2345679012345678%;">
+                                16
+                                <div class="tooltip">
+                                    Aug 22, 2025<br>
+                                    G_Folder<br>
+                                    <strong>16 files</strong>
+                                </div>
+                            </div>
+
+                            <div class="activity-bar g-folder" style="left: 11.11111111111111%; width: 1.2345679012345678%;">
+                                
+                                <div class="tooltip">
+                                    Aug 29, 2025<br>
+                                    G_Folder<br>
+                                    <strong>5 files</strong>
+                                </div>
+                            </div>
+
+                            <div class="activity-bar g-folder" style="left: 55.55555555555556%; width: 1.2345679012345678%;">
+                                23
+                                <div class="tooltip">
+                                    Oct 04, 2025<br>
+                                    G_Folder<br>
+                                    <strong>23 files</strong>
+                                </div>
+                            </div>
+
+                            <div class="activity-bar g-folder" style="left: 56.79012345679012%; width: 1.2345679012345678%;">
+                                100
+                                <div class="tooltip">
+                                    Oct 05, 2025<br>
+                                    G_Folder<br>
+                                    <strong>100 files</strong>
+                                </div>
+                            </div>
+
+                            <div class="activity-bar g-folder" style="left: 58.0246913580247%; width: 1.2345679012345678%;">
+                                85
+                                <div class="tooltip">
+                                    Oct 06, 2025<br>
+                                    G_Folder<br>
+                                    <strong>85 files</strong>
+                                </div>
+                            </div>
+
+                            <div class="activity-bar g-folder" style="left: 59.25925925925925%; width: 1.2345679012345678%;">
+                                70
+                                <div class="tooltip">
+                                    Oct 07, 2025<br>
+                                    G_Folder<br>
+                                    <strong>70 files</strong>
+                                </div>
+                            </div>
+
+                            <div class="activity-bar g-folder" style="left: 60.49382716049383%; width: 1.2345679012345678%;">
+                                36
+                                <div class="tooltip">
+                                    Oct 08, 2025<br>
+                                    G_Folder<br>
+                                    <strong>36 files</strong>
+                                </div>
+                            </div>
+
+                            <div class="activity-bar g-folder" style="left: 61.72839506172839%; width: 1.2345679012345678%;">
+                                23
+                                <div class="tooltip">
+                                    Oct 09, 2025<br>
+                                    G_Folder<br>
+                                    <strong>23 files</strong>
+                                </div>
+                            </div>
+
+                            <div class="activity-bar g-folder" style="left: 62.96296296296296%; width: 1.2345679012345678%;">
+                                52
+                                <div class="tooltip">
+                                    Oct 10, 2025<br>
+                                    G_Folder<br>
+                                    <strong>52 files</strong>
+                                </div>
+                            </div>
+
+                            <div class="activity-bar g-folder" style="left: 64.19753086419753%; width: 1.2345679012345678%;">
+                                10
+                                <div class="tooltip">
+                                    Oct 11, 2025<br>
+                                    G_Folder<br>
+                                    <strong>10 files</strong>
+                                </div>
+                            </div>
+
+                            <div class="activity-bar g-folder" style="left: 65.4320987654321%; width: 1.2345679012345678%;">
+                                8
+                                <div class="tooltip">
+                                    Oct 12, 2025<br>
+                                    G_Folder<br>
+                                    <strong>8 files</strong>
+                                </div>
+                            </div>
+
+                            <div class="activity-bar g-folder" style="left: 66.66666666666666%; width: 1.2345679012345678%;">
+                                6
+                                <div class="tooltip">
+                                    Oct 13, 2025<br>
+                                    G_Folder<br>
+                                    <strong>6 files</strong>
+                                </div>
+                            </div>
+
+                            <div class="activity-bar g-folder" style="left: 67.90123456790124%; width: 1.2345679012345678%;">
+                                219
+                                <div class="tooltip">
+                                    Oct 14, 2025<br>
+                                    G_Folder<br>
+                                    <strong>219 files</strong>
+                                </div>
+                            </div>
+
+                            <div class="activity-bar g-folder" style="left: 69.1358024691358%; width: 1.2345679012345678%;">
+                                16
+                                <div class="tooltip">
+                                    Oct 15, 2025<br>
+                                    G_Folder<br>
+                                    <strong>16 files</strong>
+                                </div>
+                            </div>
+
+                            <div class="activity-bar g-folder" style="left: 70.37037037037037%; width: 1.2345679012345678%;">
+                                
+                                <div class="tooltip">
+                                    Oct 16, 2025<br>
+                                    G_Folder<br>
+                                    <strong>2 files</strong>
+                                </div>
+                            </div>
+
+                            <div class="activity-bar g-folder" style="left: 71.60493827160494%; width: 1.2345679012345678%;">
+                                34
+                                <div class="tooltip">
+                                    Oct 17, 2025<br>
+                                    G_Folder<br>
+                                    <strong>34 files</strong>
+                                </div>
+                            </div>
+
+                            <div class="activity-bar g-folder" style="left: 72.8395061728395%; width: 1.2345679012345678%;">
+                                120
+                                <div class="tooltip">
+                                    Oct 18, 2025<br>
+                                    G_Folder<br>
+                                    <strong>120 files</strong>
+                                </div>
+                            </div>
+
+                            <div class="activity-bar g-folder" style="left: 74.07407407407408%; width: 1.2345679012345678%;">
+                                510
+                                <div class="tooltip">
+                                    Oct 19, 2025<br>
+                                    G_Folder<br>
+                                    <strong>510 files</strong>
+                                </div>
+                            </div>
+
+                            <div class="activity-bar g-folder" style="left: 75.30864197530865%; width: 1.2345679012345678%;">
+                                22
+                                <div class="tooltip">
+                                    Oct 20, 2025<br>
+                                    G_Folder<br>
+                                    <strong>22 files</strong>
+                                </div>
+                            </div>
+
+                            <div class="activity-bar g-folder" style="left: 76.5432098765432%; width: 1.2345679012345678%;">
+                                57
+                                <div class="tooltip">
+                                    Oct 21, 2025<br>
+                                    G_Folder<br>
+                                    <strong>57 files</strong>
+                                </div>
+                            </div>
+
+                            <div class="activity-bar g-folder" style="left: 77.77777777777779%; width: 1.2345679012345678%;">
+                                29
+                                <div class="tooltip">
+                                    Oct 22, 2025<br>
+                                    G_Folder<br>
+                                    <strong>29 files</strong>
+                                </div>
+                            </div>
+
+                            <div class="activity-bar both" style="left: 79.01234567901234%; width: 1.2345679012345678%;">
+                                241
+                                <div class="tooltip">
+                                    Oct 23, 2025<br>
+                                    Both Projects<br>
+                                    <strong>241 files</strong>
+                                </div>
+                            </div>
+
+                            <div class="activity-bar both" style="left: 80.24691358024691%; width: 1.2345679012345678%;">
+                                64
+                                <div class="tooltip">
+                                    Oct 24, 2025<br>
+                                    Both Projects<br>
+                                    <strong>64 files</strong>
+                                </div>
+                            </div>
+
+                            <div class="activity-bar both" style="left: 81.48148148148148%; width: 1.2345679012345678%;">
+                                18
+                                <div class="tooltip">
+                                    Oct 25, 2025<br>
+                                    Both Projects<br>
+                                    <strong>18 files</strong>
+                                </div>
+                            </div>
+
+                            <div class="activity-bar ai-agents" style="left: 82.71604938271605%; width: 1.2345679012345678%;">
+                                16
+                                <div class="tooltip">
+                                    Oct 26, 2025<br>
+                                    AI_agents<br>
+                                    <strong>16 files</strong>
+                                </div>
+                            </div>
+
+                            <div class="activity-bar ai-agents" style="left: 83.9506172839506%; width: 1.2345679012345678%;">
+                                39
+                                <div class="tooltip">
+                                    Oct 27, 2025<br>
+                                    AI_agents<br>
+                                    <strong>39 files</strong>
+                                </div>
+                            </div>
+
+                            <div class="activity-bar ai-agents" style="left: 85.18518518518519%; width: 1.2345679012345678%;">
+                                64
+                                <div class="tooltip">
+                                    Oct 28, 2025<br>
+                                    AI_agents<br>
+                                    <strong>64 files</strong>
+                                </div>
+                            </div>
+
+                            <div class="activity-bar ai-agents" style="left: 86.41975308641975%; width: 1.2345679012345678%;">
+                                45
+                                <div class="tooltip">
+                                    Oct 29, 2025<br>
+                                    AI_agents<br>
+                                    <strong>45 files</strong>
+                                </div>
+                            </div>
+
+                            <div class="activity-bar ai-agents" style="left: 87.65432098765432%; width: 1.2345679012345678%;">
+                                138
+                                <div class="tooltip">
+                                    Oct 30, 2025<br>
+                                    AI_agents<br>
+                                    <strong>138 files</strong>
+                                </div>
+                            </div>
+
+                            <div class="activity-bar ai-agents" style="left: 88.88888888888889%; width: 1.2345679012345678%;">
+                                49
+                                <div class="tooltip">
+                                    Oct 31, 2025<br>
+                                    AI_agents<br>
+                                    <strong>49 files</strong>
+                                </div>
+                            </div>
+
+                            <div class="activity-bar ai-agents" style="left: 90.12345679012346%; width: 1.2345679012345678%;">
+                                23
+                                <div class="tooltip">
+                                    Nov 01, 2025<br>
+                                    AI_agents<br>
+                                    <strong>23 files</strong>
+                                </div>
+                            </div>
+
+                            <div class="activity-bar ai-agents" style="left: 91.35802469135803%; width: 1.2345679012345678%;">
+                                10
+                                <div class="tooltip">
+                                    Nov 02, 2025<br>
+                                    AI_agents<br>
+                                    <strong>10 files</strong>
+                                </div>
+                            </div>
+
+                            <div class="activity-bar ai-agents" style="left: 92.5925925925926%; width: 1.2345679012345678%;">
+                                55
+                                <div class="tooltip">
+                                    Nov 03, 2025<br>
+                                    AI_agents<br>
+                                    <strong>55 files</strong>
+                                </div>
+                            </div>
+
+                            <div class="activity-bar ai-agents" style="left: 93.82716049382715%; width: 1.2345679012345678%;">
+                                51
+                                <div class="tooltip">
+                                    Nov 04, 2025<br>
+                                    AI_agents<br>
+                                    <strong>51 files</strong>
+                                </div>
+                            </div>
+
+                            <div class="activity-bar both" style="left: 95.06172839506173%; width: 1.2345679012345678%;">
+                                104
+                                <div class="tooltip">
+                                    Nov 05, 2025<br>
+                                    Both Projects<br>
+                                    <strong>104 files</strong>
+                                </div>
+                            </div>
+
+                            <div class="activity-bar ai-agents" style="left: 96.29629629629629%; width: 1.2345679012345678%;">
+                                89
+                                <div class="tooltip">
+                                    Nov 06, 2025<br>
+                                    AI_agents<br>
+                                    <strong>89 files</strong>
+                                </div>
+                            </div>
+
+                            <div class="activity-bar ai-agents" style="left: 97.53086419753086%; width: 1.2345679012345678%;">
+                                11548
+                                <div class="tooltip">
+                                    Nov 07, 2025<br>
+                                    AI_agents<br>
+                                    <strong>11548 files</strong>
+                                </div>
+                            </div>
+
+                            <div class="activity-bar ai-agents" style="left: 98.76543209876543%; width: 1.2345679012345678%;">
+                                235
+                                <div class="tooltip">
+                                    Nov 08, 2025<br>
+                                    AI_agents<br>
+                                    <strong>235 files</strong>
+                                </div>
+                            </div>
+
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+        
+        <div class="stats">
+
+            <div class="stat-box">
+                <h3>G_Folder Files</h3>
+                <div class="value">28,667</div>
+                <div class="label">Streamlit Phase</div>
+            </div>
+            <div class="stat-box">
+                <h3>AI_agents Files</h3>
+                <div class="value">12,598</div>
+                <div class="label">Flask + AI Phase</div>
+            </div>
+            <div class="stat-box">
+                <h3>Total Files</h3>
+                <div class="value">41,265</div>
+                <div class="label">Combined Projects</div>
+            </div>
+            <div class="stat-box">
+                <h3>G_Folder Days</h3>
+                <div class="value">28</div>
+                <div class="label">Active Days</div>
+            </div>
+            <div class="stat-box">
+                <h3>AI_agents Days</h3>
+                <div class="value">17</div>
+                <div class="label">Active Days</div>
+            </div>
+            <div class="stat-box">
+                <h3>Categories</h3>
+                <div class="value">12</div>
+                <div class="label">Development Areas</div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

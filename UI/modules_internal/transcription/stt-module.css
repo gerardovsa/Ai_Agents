@@ -1,0 +1,463 @@
+/**
+ * FILE: UI/modules/transcription/stt-module.css
+ * PURPOSE: Styling for STT (Speech-to-Text) controls and transcript display
+ * 
+ * DEPENDENCIES:
+ * - Font Awesome icons (already loaded in main HTML)
+ * 
+ * USED BY:
+ * - stt-module.js (STT module)
+ * - business-ai-platform-v2.html (main HTML)
+ * 
+ * RELATED FILES:
+ * - stt-module.js - JavaScript functionality
+ * - tts-module.css - TTS counterpart styling
+ * 
+ * NOTES:
+ * - Inspired by V7_MustCare transcription.css
+ * - Recording button with pulsing red animation
+ * - Transcript display area separate from chat input
+ * - Status indicators (recording/processing/success/error)
+ * - Responsive design
+ * 
+ * LAST MODIFIED: 2025-01-XX - Initial creation
+ */
+
+/* ==================== RECORD BUTTON ==================== */
+
+#stt-record-btn {
+    width: 48px;
+    height: 48px;
+    padding: 0;
+    background: var(--bg-secondary, #1c1f26);
+    border: 2px solid var(--border-default, #30363d);
+    border-radius: 50%;
+    color: white;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 20px;
+    position: relative;
+}
+
+#stt-record-btn:hover {
+    background: var(--bg-hover, #292e36);
+    border-color: var(--accent-primary, #58a6ff);
+    transform: scale(1.05);
+}
+
+#stt-record-btn:active {
+    transform: scale(0.95);
+}
+
+/* Recording state - red pulsing animation */
+#stt-record-btn.stt-recording {
+    background: #dc3545;
+    border-color: #dc3545;
+    animation: stt-pulse-red 1.5s ease-in-out infinite;
+}
+
+@keyframes stt-pulse-red {
+    0%, 100% {
+        box-shadow: 0 0 0 0 rgba(220, 53, 69, 0.7);
+    }
+    50% {
+        box-shadow: 0 0 0 10px rgba(220, 53, 69, 0);
+    }
+}
+
+#stt-record-btn.stt-recording:hover {
+    background: #c82333;
+    border-color: #c82333;
+}
+
+/* ==================== TRANSCRIPT DISPLAY AREA ==================== */
+
+#stt-transcript-display {
+    width: 100%;
+    max-width: 800px;
+    height: 200px;
+    overflow-y: auto;
+    padding: 16px;
+    background: var(--bg-secondary, #1c1f26);
+    border: 1px solid var(--border-default, #30363d);
+    border-radius: 12px;
+    margin: 16px 0;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+/* Custom scrollbar */
+#stt-transcript-display::-webkit-scrollbar {
+    width: 8px;
+}
+
+#stt-transcript-display::-webkit-scrollbar-track {
+    background: var(--bg-tertiary, #161921);
+    border-radius: 4px;
+}
+
+#stt-transcript-display::-webkit-scrollbar-thumb {
+    background: var(--border-default, #30363d);
+    border-radius: 4px;
+    transition: background 0.2s ease;
+}
+
+#stt-transcript-display::-webkit-scrollbar-thumb:hover {
+    background: var(--accent-primary, #58a6ff);
+}
+
+/* Empty state */
+#stt-transcript-display:empty::before {
+    content: "Click microphone to start recording. Transcript will appear here.";
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    color: var(--text-muted, #8b949e);
+    font-size: 14px;
+    text-align: center;
+}
+
+/* ==================== TRANSCRIPT ENTRIES ==================== */
+
+.stt-transcript-entry {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 8px 12px;
+    background: var(--bg-tertiary, #161921);
+    border-left: 3px solid var(--accent-primary, #58a6ff);
+    border-radius: 6px;
+    transition: all 0.3s ease;
+}
+
+.stt-transcript-entry:hover {
+    background: var(--bg-hover, #292e36);
+}
+
+/* Fade-in animation */
+.stt-transcript-entry.stt-fade-in {
+    animation: stt-fade-in 0.3s ease;
+}
+
+@keyframes stt-fade-in {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.stt-transcript-time {
+    font-size: 11px;
+    font-family: 'Courier New', monospace;
+    color: var(--text-muted, #8b949e);
+    white-space: nowrap;
+}
+
+.stt-transcript-text {
+    flex: 1;
+    font-size: 14px;
+    line-height: 1.5;
+    color: var(--text-primary, #c9d1d9);
+}
+
+/* ==================== STATUS INDICATOR ==================== */
+
+#stt-status-indicator {
+    position: fixed;
+    bottom: 24px;
+    left: 24px;
+    padding: 12px 16px;
+    background: var(--bg-secondary, #1c1f26);
+    border: 1px solid var(--border-default, #30363d);
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    font-size: 14px;
+    /* font-weight: 500; */
+    display: none;
+    align-items: center;
+    gap: 8px;
+    z-index: 10000;
+    transition: all 0.3s ease;
+}
+
+#stt-status-indicator::before {
+    content: '';
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    animation: stt-status-pulse 1.5s ease-in-out infinite;
+}
+
+/* Status indicator states */
+.stt-status-recording::before {
+    background: #dc3545;
+}
+
+.stt-status-processing::before {
+    background: #1e90ff;
+}
+
+.stt-status-success::before {
+    background: #2ea043;
+}
+
+.stt-status-error::before {
+    background: #da3633;
+}
+
+@keyframes stt-status-pulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.5; transform: scale(1.2); }
+}
+
+/* ==================== TOAST NOTIFICATIONS ==================== */
+
+.stt-toast {
+    position: fixed;
+    top: 24px;
+    left: 24px;
+    padding: 12px 16px;
+    background: var(--bg-secondary, #1c1f26);
+    border: 1px solid var(--border-default, #30363d);
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    font-size: 14px;
+    z-index: 10001;
+    animation: stt-toast-slide-in 0.3s ease;
+}
+
+@keyframes stt-toast-slide-in {
+    from {
+        transform: translateX(-400px);
+        opacity: 0;
+    }
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+
+.stt-toast.stt-toast-fade-out {
+    animation: stt-toast-fade-out 0.3s ease;
+}
+
+@keyframes stt-toast-fade-out {
+    from {
+        transform: translateX(0);
+        opacity: 1;
+    }
+    to {
+        transform: translateX(-400px);
+        opacity: 0;
+    }
+}
+
+/* Toast types */
+.stt-toast-info {
+    border-color: #58a6ff;
+    color: #58a6ff;
+}
+
+.stt-toast-success {
+    border-color: #2ea043;
+    color: #2ea043;
+}
+
+.stt-toast-error {
+    border-color: #da3633;
+    color: #da3633;
+}
+
+.stt-toast-warning {
+    border-color: #d29922;
+    color: #d29922;
+}
+
+/* ==================== COMBINED STT + TTS CONTROLS ==================== */
+
+.transcription-controls {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 16px;
+    background: var(--bg-secondary, #1c1f26);
+    border: 1px solid var(--border-default, #30363d);
+    border-radius: 12px;
+    margin: 16px 0;
+}
+
+.transcription-controls-label {
+    font-size: 14px;
+    /* font-weight: 500; */
+    color: var(--text-primary, #c9d1d9);
+}
+
+.transcription-button-group {
+    display: flex;
+    gap: 12px;
+    margin-left: auto;
+}
+
+/* ==================== AUDIO LEVEL INDICATOR (Optional) ==================== */
+
+.stt-audio-level {
+    width: 100%;
+    max-width: 400px;
+    height: 4px;
+    background: var(--bg-tertiary, #161921);
+    border-radius: 2px;
+    overflow: hidden;
+    position: relative;
+}
+
+.stt-audio-level-bar {
+    height: 100%;
+    background: linear-gradient(90deg, #2ea043, #d29922, #dc3545);
+    width: 0%;
+    transition: width 0.1s ease;
+    border-radius: 2px;
+}
+
+/* ==================== RECORDING INDICATOR (Floating) ==================== */
+
+.stt-recording-indicator {
+    position: fixed;
+    top: 24px;
+    left: 50%;
+    transform: translateX(-50%);
+    padding: 12px 20px;
+    background: rgba(220, 53, 69, 0.95);
+    color: white;
+    border-radius: 24px;
+    font-size: 14px;
+    /* font-weight: 500; */
+    display: none;
+    align-items: center;
+    gap: 8px;
+    z-index: 10002;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    animation: stt-slide-down 0.3s ease;
+}
+
+@keyframes stt-slide-down {
+    from {
+        transform: translateX(-50%) translateY(-100px);
+        opacity: 0;
+    }
+    to {
+        transform: translateX(-50%) translateY(0);
+        opacity: 1;
+    }
+}
+
+.stt-recording-indicator::before {
+    content: '';
+    width: 10px;
+    height: 10px;
+    background: white;
+    border-radius: 50%;
+    animation: stt-blink 1s ease-in-out infinite;
+}
+
+@keyframes stt-blink {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.3; }
+}
+
+.stt-recording-indicator.visible {
+    display: flex;
+}
+
+/* ==================== RESPONSIVE DESIGN ==================== */
+
+@media (max-width: 768px) {
+    #stt-record-btn {
+        width: 44px;
+        height: 44px;
+        font-size: 18px;
+    }
+
+    #stt-transcript-display {
+        max-width: 100%;
+        height: 150px;
+        padding: 12px;
+    }
+
+    .stt-transcript-entry {
+        padding: 6px 10px;
+    }
+
+    .stt-transcript-text {
+        font-size: 13px;
+    }
+
+    #stt-status-indicator {
+        bottom: 16px;
+        left: 16px;
+        font-size: 13px;
+        padding: 10px 14px;
+    }
+
+    .stt-toast {
+        top: 16px;
+        left: 16px;
+        right: 16px;
+        font-size: 13px;
+    }
+
+    .transcription-controls {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .transcription-button-group {
+        margin-left: 0;
+        justify-content: center;
+    }
+}
+
+/* ==================== DARK MODE OVERRIDE ==================== */
+
+[data-theme="light"] #stt-transcript-display {
+    background: #ffffff;
+    border-color: #d0d7de;
+}
+
+[data-theme="light"] .stt-transcript-entry {
+    background: #f6f8fa;
+}
+
+[data-theme="light"] .stt-transcript-text {
+    color: #24292f;
+}
+
+[data-theme="light"] #stt-record-btn {
+    background: #ffffff;
+    border-color: #d0d7de;
+    color: #24292f;
+}
+
+[data-theme="light"] #stt-record-btn:hover {
+    background: #f6f8fa;
+}
+
+/* ==================== UTILITY CLASSES ==================== */
+
+.stt-hidden {
+    display: none !important;
+}
+
+.stt-disabled {
+    opacity: 0.5;
+    cursor: not-allowed !important;
+    pointer-events: none;
+}

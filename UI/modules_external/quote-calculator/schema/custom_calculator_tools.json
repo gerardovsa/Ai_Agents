@@ -1,0 +1,1285 @@
+{
+    "platform": "quote_calculator",
+    "description": "Custom Calculator Builder Tools - Build and manage TIER 2E custom calculators with formula-based execution (6 interactive tools)",
+    "tools": [
+        {
+            "name": "calculator_builder_start",
+            "short_description": "START HERE! Initialize new custom calculator with name, description, and category",
+            "description": "Initialize a new custom calculator in the database with draft status. This is STEP 1 of the calculator building process. Creates calculator record and returns calculator_id for subsequent operations. BEFORE using: Call custom_calculator_get_schema_guide() to understand system architecture and see example calculators. After creating: Use calculator_builder_add_parameter() to add input fields, calculator_builder_set_formula() to add calculation steps, calculator_builder_add_component() to add reusable logic, calculator_builder_test() to test with sample inputs, calculator_builder_save() to activate when ready. Returns: calculator_id (UUID to use in all subsequent builder calls), suggested_parameters (top 10 most-used parameters from library for quick reference), name, category, is_active (false=draft status), created_at timestamp. Optional: Can clone from existing calculator by providing based_on_calculator parameter to copy structure as starting point.",
+            "platform": "quote_calculator",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "name": {
+                        "type": "string",
+                        "description": "REQUIRED: Unique calculator name for internal references. Use PascalCase without spaces (e.g., 'CustomVinylRushJob', 'LargeBannerSpecialty'). Must be unique across all custom calculators. Max 255 characters. Will be used in API calls and database queries."
+                    },
+                    "description": {
+                        "type": "string",
+                        "description": "REQUIRED: Detailed explanation of what this calculator is for and when to use it. Be specific about: What products/services it covers, what makes it different from standard calculators, typical use cases, any special pricing rules. This helps users discover and understand the calculator. Max 5000 characters."
+                    },
+                    "short_description": {
+                        "type": "string",
+                        "description": "REQUIRED: Brief one-line summary for listings and search results. 50-500 characters. Should quickly convey what calculator does. Example: 'Rush vinyl stickers with 24-hour turnaround premium pricing'"
+                    },
+                    "category": {
+                        "type": "string",
+                        "description": "REQUIRED: Grouping category for organization. Suggested categories: 'custom_quote' (non-standard jobs), 'specialty_substrate' (unusual materials), 'rush_job' (expedited turnaround), 'large_format' (oversized printing), 'complex_finishing' (multi-step finishing), 'seasonal_pricing' (holiday/event pricing), 'customer_specific' (client agreements), 'what_if_scenario' (testing). Can create new categories as needed."
+                    },
+                    "tags": {
+                        "type": "array",
+                        "description": "Optional: Array of searchable tags for discovery. Use specific keywords: materials (vinyl, canvas, corflute), finishes (laminate, die-cut, grommet), urgency (rush, same-day, overnight), size (large-format, small-run, bulk), etc. Example: ['vinyl', 'rush', 'outdoor', 'laminated']. Improves searchability.",
+                        "items": {
+                            "type": "string"
+                        }
+                    },
+                    "based_on_calculator": {
+                        "type": "string",
+                        "description": "Optional: Name of existing calculator to clone as starting point. If provided, copies json_definition structure from that calculator. Useful for creating variants. Example: Clone 'VinylStickerStandard' and modify for rush pricing. Can clone from both custom and hardcoded calculators."
+                    }
+                },
+                "required": [
+                    "name",
+                    "description",
+                    "short_description",
+                    "category"
+                ]
+            },
+            "returns": {
+                "type": "object",
+                "description": "Success status, calculator_id (UUID for subsequent builder calls), name, category, is_active (false=draft), created_at, and suggested_parameters (top 10 most-used pricing parameters for quick reference). On error: success=False with error message and error_type"
+            },
+            "examples": [
+                {
+                    "description": "Start new rush vinyl sticker calculator",
+                    "parameters": {
+                        "name": "VinylStickerRush24Hr",
+                        "description": "Custom pricing calculator for vinyl stickers with guaranteed 24-hour turnaround. Includes rush job premium, after-hours labor rates, and expedited material sourcing fees. Use for customers who need urgent delivery and are willing to pay premium pricing.",
+                        "short_description": "Rush vinyl stickers with 24hr turnaround - premium pricing with expedited fees",
+                        "category": "rush_job",
+                        "tags": [
+                            "vinyl",
+                            "sticker",
+                            "rush",
+                            "24-hour",
+                            "premium"
+                        ]
+                    },
+                    "expected_result": "Creates draft calculator, returns calculator_id='550e8400-e29b-41d4-a716-446655440000', suggested_parameters includes labor_rate_specialist, profit_margin_premium, gst_rate, etc."
+                },
+                {
+                    "description": "Clone existing calculator as starting point",
+                    "parameters": {
+                        "name": "VinylBannerWinterPromo",
+                        "description": "Seasonal pricing for vinyl banners during winter promotion. Based on standard vinyl banner calculator but with discounted rates for off-season sales.",
+                        "short_description": "Winter promotional pricing for vinyl banners - 15% off standard rates",
+                        "category": "seasonal_pricing",
+                        "tags": [
+                            "vinyl",
+                            "banner",
+                            "seasonal",
+                            "promotion",
+                            "winter"
+                        ],
+                        "based_on_calculator": "VinylBannerStandard"
+                    },
+                    "expected_result": "Clones VinylBannerStandard structure, returns calculator_id, copies all inputs and calculation_steps as starting point for modification"
+                }
+            ],
+            "usage_guide": {
+                "when_to_use": [
+                    "FIRST STEP when building any new custom calculator",
+                    "Need to create calculator for non-standard job (specialty material, unusual size, custom finish)",
+                    "Want to create rush/expedited pricing calculator",
+                    "Need seasonal or promotional pricing variant",
+                    "Building customer-specific pricing calculator",
+                    "Creating what-if scenario calculator for testing price changes"
+                ],
+                "workflow": [
+                    "Step 1: Call custom_calculator_get_schema_guide() to learn system (if first time)",
+                    "Step 2: Decide on calculator name (PascalCase, descriptive, unique)",
+                    "Step 3: Write clear description explaining what calculator is for and when to use",
+                    "Step 4: Choose appropriate category (rush_job, specialty_substrate, etc.)",
+                    "Step 5: Add relevant tags for discoverability",
+                    "Step 6: Call calculator_builder_start() with parameters",
+                    "Step 7: Save calculator_id from response for all subsequent builder calls",
+                    "Step 8: Review suggested_parameters list for relevant pricing constants",
+                    "Step 9: Proceed to calculator_builder_add_parameter() to add input fields",
+                    "Step 10: Continue with formulas, components, testing, and saving"
+                ],
+                "best_practices": [
+                    "Use descriptive PascalCase names that explain purpose (VinylStickerRush24Hr not Calculator1)",
+                    "Write detailed descriptions - help future users understand when to use calculator",
+                    "Choose category carefully - affects organization and filtering",
+                    "Add multiple tags for better searchability",
+                    "Use based_on_calculator to clone similar calculator as starting point",
+                    "Review suggested_parameters - shows which parameters are commonly used",
+                    "Start simple - can add complexity later with additional steps",
+                    "Calculator starts in draft mode (is_active=false) - safe to experiment",
+                    "Save calculator_id - you'll need it for every subsequent builder operation"
+                ],
+                "error_handling": [
+                    "Error: Calculator name already exists - Choose unique name, or use custom_calculator_list() to check existing names",
+                    "Error: based_on_calculator not found - Verify calculator name is correct, check calculators_registry and custom_calculators tables",
+                    "Error: Invalid category - Category can be any string, but use consistent naming for organization",
+                    "Error: Description too long - Max 5000 characters, summarize or split into description + usage_instructions"
+                ],
+                "related_tools": [
+                    "custom_calculator_get_schema_guide",
+                    "calculator_builder_add_parameter",
+                    "calculator_builder_set_formula",
+                    "calculator_builder_add_component",
+                    "calculator_builder_test",
+                    "calculator_builder_save",
+                    "custom_calculator_list"
+                ]
+            },
+            "tool_intelligence": {
+                "category": "data_processing",
+                "typical_workflow_patterns": [
+                    "custom_calculator_get_schema_guide -> calculator_builder_start -> calculator_builder_add_parameter",
+                    "custom_calculator_list -> calculator_builder_start (with based_on_calculator)"
+                ],
+                "success_indicators": {
+                    "keywords": [
+                        "success: true",
+                        "calculator_id",
+                        "draft"
+                    ],
+                    "behavioral": [
+                        "User saves calculator_id",
+                        "User proceeds to add parameters"
+                    ]
+                },
+                "failure_indicators": {
+                    "keywords": [
+                        "success: false",
+                        "already exists",
+                        "error"
+                    ],
+                    "behavioral": [
+                        "User changes name",
+                        "User checks existing calculators"
+                    ]
+                },
+                "performance_expectations": {
+                    "typical_duration_ms": 200,
+                    "rate_limit_per_minute": null,
+                    "max_retries": 2
+                }
+            },
+            "memory_context": {
+                "vectorization_fields": [
+                    "name",
+                    "description",
+                    "category",
+                    "calculator_id"
+                ],
+                "search_keywords": [
+                    "calculator builder",
+                    "start calculator",
+                    "create calculator",
+                    "new calculator"
+                ],
+                "related_synergy_platforms": [
+                    "quote_calculator"
+                ],
+                "typical_use_cases": [
+                    "Creating rush job calculator with premium pricing",
+                    "Building specialty substrate calculator for unusual materials",
+                    "Creating seasonal promotional pricing",
+                    "Setting up customer-specific pricing agreement",
+                    "Building what-if scenario for testing price changes"
+                ],
+                "conversation_memory_hints": {
+                    "what_to_remember": "calculator_id (critical for all subsequent operations), calculator name, category",
+                    "search_context": "When user asks about calculator they just created or wants to continue building"
+                }
+            }
+        },
+        {
+            "name": "calculator_builder_add_parameter",
+            "short_description": "Add input parameter (user input field) to calculator definition",
+            "description": "Add input parameter to calculator's json_definition. Input parameters are user-facing fields that customers fill in (width, height, quantity, material choice, etc.). This is STEP 2 of calculator building (after calculator_builder_start). Each parameter becomes a variable available in formulas. Supports 4 parameter types: 'integer' (whole numbers like quantity), 'number' (decimals like dimensions), 'select' (dropdown choices like material type), 'boolean' (yes/no like lamination). Can reference pricing parameter library using source field (e.g., source='calculator_pricing_parameters:labor_rate_trade' to use global labor rate). Parameters are stored in json_definition.inputs array and also tracked in custom_calculator_parameters table for impact analysis. Returns: success status, parameter added, current parameter count, and updated input parameters list. Call this multiple times to add all required inputs before adding calculation steps.",
+            "platform": "quote_calculator",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "calculator_id": {
+                        "type": "string",
+                        "description": "REQUIRED: Calculator UUID from calculator_builder_start() response. Must be valid UUID for draft or active calculator."
+                    },
+                    "parameter_name": {
+                        "type": "string",
+                        "description": "REQUIRED: Variable name to use in formulas (e.g., 'width_mm', 'quantity', 'material_type'). Use snake_case, no spaces. Must be valid Python identifier. Will be referenced in calculation_steps formulas and component inputs. Max 255 characters."
+                    },
+                    "parameter_type": {
+                        "type": "string",
+                        "enum": [
+                            "integer",
+                            "number",
+                            "select",
+                            "boolean"
+                        ],
+                        "description": "REQUIRED: Data type for input. 'integer' for whole numbers (quantity, sheets), 'number' for decimals (width_mm, price), 'select' for dropdown choices (material type, finish), 'boolean' for yes/no (lamination, rush). Affects validation and UI rendering."
+                    },
+                    "label": {
+                        "type": "string",
+                        "description": "REQUIRED: User-facing label for input field. Use proper capitalization and spacing (e.g., 'Width (mm)', 'Quantity', 'Material Type'). Shows in UI above input field. Max 255 characters."
+                    },
+                    "description": {
+                        "type": "string",
+                        "description": "Optional: Help text explaining what this input is and how to use it. Shows as tooltip or below input field. Example: 'Width of sticker in millimeters. Measure from left edge to right edge.' Be specific and helpful."
+                    },
+                    "required": {
+                        "type": "boolean",
+                        "description": "REQUIRED: Whether this input is mandatory (true) or optional (false). Required inputs must be provided before calculator can execute. Most inputs should be required except for optional add-ons. Default: true"
+                    },
+                    "default": {
+                        "type": "any",
+                        "description": "Optional: Default value if not provided. Must match parameter_type (integer for integer type, etc.). Use for common values to reduce user input. Example: default=1 for quantity, default=false for rush delivery. Null if no default."
+                    },
+                    "options": {
+                        "type": "array",
+                        "description": "REQUIRED for parameter_type='select': Array of choice objects with {value, label}. Example: [{value: 'vinyl', label: 'Vinyl'}, {value: 'canvas', label: 'Canvas'}]. Value is used in formulas, label shown to user. Must have at least 2 options.",
+                        "items": {
+                            "type": "object"
+                        }
+                    },
+                    "source": {
+                        "type": "string",
+                        "description": "Optional: Reference to pricing parameter library. Format: 'calculator_pricing_parameters:parameter_name'. Example: 'calculator_pricing_parameters:labor_rate_trade' to use global labor rate. When provided, parameter value is resolved from database instead of user input. Tracks in custom_calculator_parameters table for impact analysis."
+                    },
+                    "validation": {
+                        "type": "object",
+                        "description": "Optional: Validation rules object. For number/integer types can include {min: 1, max: 10000} for range. For select can include custom validation. Example: {min: 100, max: 5000} for width_mm to enforce size limits. Prevents invalid inputs."
+                    }
+                },
+                "required": [
+                    "calculator_id",
+                    "parameter_name",
+                    "parameter_type",
+                    "label",
+                    "required"
+                ]
+            },
+            "returns": {
+                "type": "object",
+                "description": "Success status, parameter_name added, parameter_type, parameter_count (total inputs now), source_table (where parameter comes from), and current_inputs (full inputs array). On error: success=False with error message"
+            },
+            "examples": [
+                {
+                    "description": "Add width dimension parameter",
+                    "parameters": {
+                        "calculator_id": "550e8400-e29b-41d4-a716-446655440000",
+                        "parameter_name": "width_mm",
+                        "parameter_type": "number",
+                        "label": "Width (mm)",
+                        "description": "Width of sticker in millimeters. Measure from left edge to right edge.",
+                        "required": true,
+                        "validation": {
+                            "min": 10,
+                            "max": 5000
+                        }
+                    },
+                    "expected_result": "Adds width_mm to inputs array, returns parameter_count=1, current_inputs shows new parameter"
+                },
+                {
+                    "description": "Add quantity with default value",
+                    "parameters": {
+                        "calculator_id": "550e8400-e29b-41d4-a716-446655440000",
+                        "parameter_name": "quantity",
+                        "parameter_type": "integer",
+                        "label": "Quantity",
+                        "description": "Number of stickers to produce",
+                        "required": true,
+                        "default": 1,
+                        "validation": {
+                            "min": 1,
+                            "max": 10000
+                        }
+                    },
+                    "expected_result": "Adds quantity input with default=1, parameter_count=2"
+                },
+                {
+                    "description": "Add material select dropdown",
+                    "parameters": {
+                        "calculator_id": "550e8400-e29b-41d4-a716-446655440000",
+                        "parameter_name": "material_type",
+                        "parameter_type": "select",
+                        "label": "Material Type",
+                        "description": "Choose vinyl type for sticker",
+                        "required": true,
+                        "options": [
+                            {
+                                "value": "vinyl_gloss",
+                                "label": "Vinyl Gloss"
+                            },
+                            {
+                                "value": "vinyl_matte",
+                                "label": "Vinyl Matte"
+                            },
+                            {
+                                "value": "vinyl_clear",
+                                "label": "Clear Vinyl"
+                            }
+                        ]
+                    },
+                    "expected_result": "Adds material_type select input with 3 options, parameter_count=3"
+                },
+                {
+                    "description": "Add boolean for lamination option",
+                    "parameters": {
+                        "calculator_id": "550e8400-e29b-41d4-a716-446655440000",
+                        "parameter_name": "add_lamination",
+                        "parameter_type": "boolean",
+                        "label": "Add Lamination?",
+                        "description": "Protective lamination extends outdoor life to 5+ years",
+                        "required": false,
+                        "default": false
+                    },
+                    "expected_result": "Adds add_lamination boolean input, parameter_count=4"
+                },
+                {
+                    "description": "Reference pricing parameter from library",
+                    "parameters": {
+                        "calculator_id": "550e8400-e29b-41d4-a716-446655440000",
+                        "parameter_name": "labor_rate",
+                        "parameter_type": "number",
+                        "label": "Labor Rate (internal)",
+                        "required": true,
+                        "source": "calculator_pricing_parameters:labor_rate_trade"
+                    },
+                    "expected_result": "Adds labor_rate parameter linked to global calculator_pricing_parameters, tracks in custom_calculator_parameters table, parameter_count=5"
+                }
+            ],
+            "usage_guide": {
+                "when_to_use": [
+                    "Adding user input fields to calculator (width, height, quantity, material, etc.)",
+                    "Defining dropdown choices for material types, finishes, or options",
+                    "Adding boolean toggles for optional add-ons (lamination, rush, etc.)",
+                    "Referencing global pricing parameters for consistency",
+                    "Building complete input form before adding calculation logic"
+                ],
+                "workflow": [
+                    "Step 1: Have calculator_id from calculator_builder_start()",
+                    "Step 2: Decide what inputs user needs to provide (sketch input form on paper)",
+                    "Step 3: For each input determine: name (snake_case), type (integer/number/select/boolean), label (user-facing), required (yes/no)",
+                    "Step 4: Add validation rules where appropriate (min/max for dimensions and quantity)",
+                    "Step 5: Call calculator_builder_add_parameter() for each input",
+                    "Step 6: For select types provide at least 2 options with value and label",
+                    "Step 7: For boolean types consider setting default to false",
+                    "Step 8: For pricing parameters use source to reference calculator_pricing_parameters",
+                    "Step 9: Review current_inputs in response to verify all parameters added correctly",
+                    "Step 10: Proceed to calculator_builder_set_formula() to add calculation logic"
+                ],
+                "best_practices": [
+                    "Use snake_case for parameter names (width_mm not widthMM or Width MM)",
+                    "Add validation rules to prevent invalid inputs (negative dimensions, zero quantity)",
+                    "Use descriptive labels with units (Width (mm) not just Width)",
+                    "Provide helpful descriptions for complex inputs",
+                    "Set sensible defaults for common values (quantity=1, lamination=false)",
+                    "Use select type for limited choices instead of free text",
+                    "Reference pricing parameters from library when possible for consistency",
+                    "Add all input parameters before adding calculation steps",
+                    "Keep required=true for essential inputs, false only for optional add-ons",
+                    "For dimensions use number type (allows decimals) not integer"
+                ],
+                "error_handling": [
+                    "Error: Calculator not found - Verify calculator_id is correct UUID from calculator_builder_start()",
+                    "Error: Parameter name already exists - Each parameter must be unique within calculator, choose different name",
+                    "Error: Invalid parameter type - Must be one of: integer, number, select, boolean",
+                    "Error: Select type requires options - For parameter_type='select' must provide options array with at least 2 choices",
+                    "Error: Source parameter not found - When using source field, verify parameter exists in calculator_pricing_parameters table",
+                    "Error: Invalid validation rules - Check validation object format, min/max must be numbers for number/integer types"
+                ],
+                "related_tools": [
+                    "calculator_builder_start",
+                    "calculator_builder_set_formula",
+                    "calculator_builder_add_component",
+                    "calculator_builder_test",
+                    "custom_calculator_get_schema_guide"
+                ]
+            },
+            "tool_intelligence": {
+                "category": "data_processing",
+                "typical_workflow_patterns": [
+                    "calculator_builder_start -> calculator_builder_add_parameter (multiple times) -> calculator_builder_set_formula",
+                    "calculator_builder_add_parameter (width) -> calculator_builder_add_parameter (height) -> calculator_builder_add_parameter (quantity)"
+                ],
+                "success_indicators": {
+                    "keywords": [
+                        "success: true",
+                        "parameter_count",
+                        "current_inputs"
+                    ],
+                    "behavioral": [
+                        "User adds more parameters",
+                        "User proceeds to formulas"
+                    ]
+                },
+                "failure_indicators": {
+                    "keywords": [
+                        "success: false",
+                        "already exists",
+                        "invalid type"
+                    ],
+                    "behavioral": [
+                        "User changes parameter name",
+                        "User fixes validation"
+                    ]
+                },
+                "performance_expectations": {
+                    "typical_duration_ms": 150,
+                    "rate_limit_per_minute": null,
+                    "max_retries": 2
+                }
+            },
+            "memory_context": {
+                "vectorization_fields": [
+                    "parameter_name",
+                    "parameter_type",
+                    "label"
+                ],
+                "search_keywords": [
+                    "add parameter",
+                    "input field",
+                    "calculator input"
+                ],
+                "related_synergy_platforms": [
+                    "quote_calculator"
+                ],
+                "typical_use_cases": [
+                    "Adding width and height dimensions for area-based pricing",
+                    "Adding quantity input for volume pricing",
+                    "Adding material dropdown for substrate choices",
+                    "Adding boolean toggles for optional features",
+                    "Referencing global pricing parameters for labor rates"
+                ],
+                "conversation_memory_hints": {
+                    "what_to_remember": "Parameter names added (will be used in formulas), parameter_count",
+                    "search_context": "When user references input fields or asks about parameters"
+                }
+            }
+        },
+        {
+            "name": "calculator_builder_set_formula",
+            "short_description": "Add formula calculation step using asteval safe evaluation",
+            "description": "Add formula-based calculation step to calculator's calculation_steps array. Formulas use asteval safe Python expression evaluator - supports arithmetic, comparisons, logic, and built-in functions. This is STEP 3 of calculator building (after adding parameters). Each formula step creates a new variable that can be referenced by subsequent steps. Formula syntax: Can reference input parameters, previous step variables, pricing constants (param:name). Allowed operations: +, -, *, /, **, %, <, >, <=, >=, ==, !=, and, or, not. Allowed functions: min, max, abs, round. NOT allowed: imports, file I/O, system calls, lambda, exec. Steps execute sequentially - each step can only reference previous steps and inputs. Returns: success status, step number added, variable name created, formula string, current step count. Call multiple times to build complete calculation sequence. Steps are auto-sorted by step_number.",
+            "platform": "quote_calculator",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "calculator_id": {
+                        "type": "string",
+                        "description": "REQUIRED: Calculator UUID from calculator_builder_start() response."
+                    },
+                    "step_number": {
+                        "type": "integer",
+                        "description": "REQUIRED: Sequence number for this step (1, 2, 3, ...). Steps execute in order. Each step can reference previous steps only. If step_number exists, it updates that step, otherwise inserts new step."
+                    },
+                    "variable_name": {
+                        "type": "string",
+                        "description": "REQUIRED: Variable name to store calculation result. Use snake_case (e.g., 'area_m2', 'unit_price', 'subtotal'). Must be valid Python identifier. Will be available to subsequent steps and in final result breakdown. Max 255 characters."
+                    },
+                    "formula": {
+                        "type": "string",
+                        "description": "REQUIRED: Mathematical expression to evaluate. Can reference: input parameters (width_mm, quantity), previous steps (area_m2), pricing constants (param:gst_rate). Supports: +, -, *, /, **, %, <, >, <=, >=, ==, !=, and, or, not, min(), max(), abs(), round(). Examples: '(width_mm * height_mm) / 1000000', 'base_cost * (1 + param:profit_margin)', 'max(calculated_price, param:minimum_order)'. NO imports, NO file operations, NO system calls."
+                    },
+                    "description": {
+                        "type": "string",
+                        "description": "Optional: Plain language explanation of what this step calculates. Example: 'Calculate area in square meters', 'Add profit margin to base cost'. Shows in calculation breakdown. Helps users understand pricing logic."
+                    }
+                },
+                "required": [
+                    "calculator_id",
+                    "step_number",
+                    "variable_name",
+                    "formula"
+                ]
+            },
+            "returns": {
+                "type": "object",
+                "description": "Success status, step_number added, variable_name created, formula, step_count (total calculation steps), and current_steps (all calculation steps). On error: success=False with error message and formula syntax error details"
+            },
+            "examples": [
+                {
+                    "description": "Calculate area from width and height",
+                    "parameters": {
+                        "calculator_id": "550e8400-e29b-41d4-a716-446655440000",
+                        "step_number": 1,
+                        "variable_name": "area_m2",
+                        "formula": "(width_mm * height_mm) / 1000000",
+                        "description": "Calculate area in square meters from mm dimensions"
+                    },
+                    "expected_result": "Adds step 1, creates area_m2 variable, step_count=1"
+                },
+                {
+                    "description": "Calculate base price from area and parameter",
+                    "parameters": {
+                        "calculator_id": "550e8400-e29b-41d4-a716-446655440000",
+                        "step_number": 2,
+                        "variable_name": "base_price",
+                        "formula": "area_m2 * param:vinyl_price_per_sqm * quantity",
+                        "description": "Base price = area × price per m² × quantity"
+                    },
+                    "expected_result": "Adds step 2, references area_m2 from step 1 and pricing parameter, step_count=2"
+                },
+                {
+                    "description": "Add profit margin",
+                    "parameters": {
+                        "calculator_id": "550e8400-e29b-41d4-a716-446655440000",
+                        "step_number": 3,
+                        "variable_name": "with_margin",
+                        "formula": "base_price * (1 + param:profit_margin_standard)",
+                        "description": "Add standard profit margin"
+                    },
+                    "expected_result": "Adds step 3, applies profit margin to base_price, step_count=3"
+                },
+                {
+                    "description": "Conditional pricing based on quantity",
+                    "parameters": {
+                        "calculator_id": "550e8400-e29b-41d4-a716-446655440000",
+                        "step_number": 4,
+                        "variable_name": "unit_price",
+                        "formula": "base_price * 0.9 if quantity >= 100 else base_price",
+                        "description": "10% discount for orders of 100+ units"
+                    },
+                    "expected_result": "Adds conditional step, applies discount for bulk orders, step_count=4"
+                },
+                {
+                    "description": "Enforce minimum with max function",
+                    "parameters": {
+                        "calculator_id": "550e8400-e29b-41d4-a716-446655440000",
+                        "step_number": 5,
+                        "variable_name": "final_price",
+                        "formula": "max(with_margin, param:minimum_order_value)",
+                        "description": "Enforce minimum order value"
+                    },
+                    "expected_result": "Adds step using max() function, ensures minimum pricing, step_count=5"
+                }
+            ],
+            "usage_guide": {
+                "when_to_use": [
+                    "Adding mathematical calculations to calculator (area, volume, weight)",
+                    "Applying pricing formulas (unit_price × quantity)",
+                    "Adding profit margins and markups",
+                    "Implementing conditional pricing logic (bulk discounts, minimum orders)",
+                    "Calculating totals and subtotals",
+                    "Referencing pricing parameters from database"
+                ],
+                "workflow": [
+                    "Step 1: Have calculator_id and parameters added via calculator_builder_add_parameter()",
+                    "Step 2: Review custom_calculator_get_schema_guide() formula_syntax_guide for allowed operations",
+                    "Step 3: Plan calculation sequence on paper - each step builds on previous",
+                    "Step 4: Start with step_number=1 for first calculation",
+                    "Step 5: Write formula using input parameters and param:xxx for pricing constants",
+                    "Step 6: Choose descriptive variable_name for result (area_m2, unit_price, subtotal)",
+                    "Step 7: Add description to explain what step does",
+                    "Step 8: Call calculator_builder_set_formula() to add step",
+                    "Step 9: Increment step_number for next step",
+                    "Step 10: Reference previous step variables in subsequent formulas",
+                    "Step 11: Test with calculator_builder_test() to verify formula works correctly"
+                ],
+                "best_practices": [
+                    "Start simple - add one step at a time and test",
+                    "Use descriptive variable names (area_m2 not x, unit_price not p)",
+                    "Add descriptions to each step for transparency",
+                    "Reference pricing parameters with param: prefix for database values",
+                    "Use round() function for final prices to avoid $45.3333333",
+                    "Order steps logically - calculate inputs needed for later steps first",
+                    "Use parentheses liberally for clarity even if not required",
+                    "Test edge cases: quantity=1, very large quantities, zero dimensions",
+                    "Use max() or min() functions to enforce limits",
+                    "For conditional logic use: result_if_true if condition else result_if_false"
+                ],
+                "error_handling": [
+                    "Error: Calculator not found - Verify calculator_id is correct",
+                    "Error: Invalid formula syntax - Check parentheses, operators, function names against formula_syntax_guide",
+                    "Error: Undefined variable in formula - Variable not in inputs or previous steps, check spelling and step order",
+                    "Error: Division by zero - Add check or default: quantity if quantity > 0 else 1",
+                    "Error: Parameter not found - When using param:xxx verify parameter exists in calculator_pricing_parameters",
+                    "Error: Type mismatch - Ensure inputs are correct type (number not string)",
+                    "Error: Forbidden operation - Check formula_syntax_guide for allowed operations, no imports/file I/O/system calls"
+                ],
+                "related_tools": [
+                    "calculator_builder_add_parameter",
+                    "calculator_builder_add_component",
+                    "calculator_builder_test",
+                    "custom_calculator_get_schema_guide"
+                ]
+            },
+            "tool_intelligence": {
+                "category": "data_processing",
+                "typical_workflow_patterns": [
+                    "calculator_builder_add_parameter (multiple) -> calculator_builder_set_formula (multiple) -> calculator_builder_test",
+                    "calculator_builder_set_formula (step 1) -> calculator_builder_set_formula (step 2) -> calculator_builder_set_formula (step 3)"
+                ],
+                "success_indicators": {
+                    "keywords": [
+                        "success: true",
+                        "step_count",
+                        "variable_name"
+                    ],
+                    "behavioral": [
+                        "User adds more formulas",
+                        "User tests calculator"
+                    ]
+                },
+                "failure_indicators": {
+                    "keywords": [
+                        "success: false",
+                        "syntax error",
+                        "undefined variable"
+                    ],
+                    "behavioral": [
+                        "User fixes formula",
+                        "User checks variable names"
+                    ]
+                },
+                "performance_expectations": {
+                    "typical_duration_ms": 150,
+                    "rate_limit_per_minute": null,
+                    "max_retries": 2
+                }
+            },
+            "memory_context": {
+                "vectorization_fields": [
+                    "variable_name",
+                    "formula",
+                    "description"
+                ],
+                "search_keywords": [
+                    "add formula",
+                    "calculation step",
+                    "math formula"
+                ],
+                "related_synergy_platforms": [
+                    "quote_calculator"
+                ],
+                "typical_use_cases": [
+                    "Calculating area from width and height dimensions",
+                    "Applying unit pricing to quantities",
+                    "Adding profit margins to base costs",
+                    "Implementing volume discounts",
+                    "Enforcing minimum order values"
+                ],
+                "conversation_memory_hints": {
+                    "what_to_remember": "Variable names created (available to subsequent steps), step_count, formulas added",
+                    "search_context": "When user references calculation steps or formula logic"
+                }
+            }
+        },
+        {
+            "name": "calculator_builder_add_component",
+            "short_description": "Add pre-built component step (tiered pricing, GST, discounts, labor, etc.)",
+            "description": "Add component-based calculation step using pre-built functions from common_components.py. Components are tested, optimized, reusable logic blocks for common calculations. This is ALTERNATIVE to calculator_builder_set_formula for complex logic. 11 available components: tiered_pricing_lookup (51-tier pricing tables), quantity_break_discount (volume pricing), calculate_profit_margin (markup), apply_complexity_multiplier (job complexity), calculate_gst (10% GST), calculate_double_gst_shopify (Shopify double GST), calculate_area_m2 (mm to m² conversion), calculate_labor_cost (with multipliers), calculate_material_waste (10% default), calculate_setup_cost (base + artworks), minimum_order_check ($45 minimum). Each component has specific input parameters. Component calls are tracked in custom_calculator_components table for analytics. Returns: success status, step number, component name, inputs mapping, component_count (how many components used). Call multiple times to add different components.",
+            "platform": "quote_calculator",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "calculator_id": {
+                        "type": "string",
+                        "description": "REQUIRED: Calculator UUID from calculator_builder_start() response."
+                    },
+                    "step_number": {
+                        "type": "integer",
+                        "description": "REQUIRED: Sequence number for this step. Steps execute in order. If step exists, updates it, otherwise inserts new step."
+                    },
+                    "variable_name": {
+                        "type": "string",
+                        "description": "REQUIRED: Variable name to store component result. Use snake_case (e.g., 'base_price', 'gst_amount', 'labor_cost'). Available to subsequent steps."
+                    },
+                    "component_name": {
+                        "type": "string",
+                        "enum": [
+                            "tiered_pricing_lookup",
+                            "quantity_break_discount",
+                            "calculate_profit_margin",
+                            "apply_complexity_multiplier",
+                            "calculate_gst",
+                            "calculate_double_gst_shopify",
+                            "calculate_area_m2",
+                            "calculate_labor_cost",
+                            "calculate_material_waste",
+                            "calculate_setup_cost",
+                            "minimum_order_check"
+                        ],
+                        "description": "REQUIRED: Name of component function to call. Must be one of 11 available components. See custom_calculator_get_schema_guide() component_library for full list with parameters and usage."
+                    },
+                    "inputs": {
+                        "type": "object",
+                        "description": "REQUIRED: Map of component parameter names to formula variables. Keys are component's expected parameters, values are variable names from inputs or previous steps. Example: {'lookup_value': 'area_m2', 'tier_table': 'pricing.vinyl_tiers'}. Each component requires specific inputs - check component_library in schema guide."
+                    },
+                    "description": {
+                        "type": "string",
+                        "description": "Optional: Explanation of what this component does in this context. Example: 'Lookup vinyl price from 51-tier pricing table based on area'. Shows in breakdown."
+                    }
+                },
+                "required": [
+                    "calculator_id",
+                    "step_number",
+                    "variable_name",
+                    "component_name",
+                    "inputs"
+                ]
+            },
+            "returns": {
+                "type": "object",
+                "description": "Success status, step_number, variable_name, component_name, inputs mapping, step_count, component_count (total unique components), and current_steps. On error: success=False with error message"
+            },
+            "examples": [
+                {
+                    "description": "Calculate area from width and height using component",
+                    "parameters": {
+                        "calculator_id": "550e8400-e29b-41d4-a716-446655440000",
+                        "step_number": 1,
+                        "variable_name": "area_m2",
+                        "component_name": "calculate_area_m2",
+                        "inputs": {
+                            "width_mm": "width_mm",
+                            "height_mm": "height_mm"
+                        },
+                        "description": "Convert mm dimensions to square meters"
+                    },
+                    "expected_result": "Adds component step, creates area_m2 variable, tracks in custom_calculator_components, step_count=1"
+                },
+                {
+                    "description": "Lookup tiered pricing",
+                    "parameters": {
+                        "calculator_id": "550e8400-e29b-41d4-a716-446655440000",
+                        "step_number": 2,
+                        "variable_name": "price_per_m2",
+                        "component_name": "tiered_pricing_lookup",
+                        "inputs": {
+                            "lookup_value": "area_m2",
+                            "tier_table": "pricing.vinyl_tiers"
+                        },
+                        "description": "Lookup vinyl price from 51-tier table"
+                    },
+                    "expected_result": "Adds tiered pricing component, uses area_m2 from step 1, step_count=2"
+                },
+                {
+                    "description": "Calculate 10% GST",
+                    "parameters": {
+                        "calculator_id": "550e8400-e29b-41d4-a716-446655440000",
+                        "step_number": 5,
+                        "variable_name": "gst_amount",
+                        "component_name": "calculate_gst",
+                        "inputs": {
+                            "subtotal": "subtotal",
+                            "gst_rate": "param:gst_rate"
+                        },
+                        "description": "Calculate 10% GST on subtotal"
+                    },
+                    "expected_result": "Adds GST component, references pricing parameter, step_count=5"
+                },
+                {
+                    "description": "Apply volume discount",
+                    "parameters": {
+                        "calculator_id": "550e8400-e29b-41d4-a716-446655440000",
+                        "step_number": 3,
+                        "variable_name": "discount_rate",
+                        "component_name": "quantity_break_discount",
+                        "inputs": {
+                            "quantity": "quantity",
+                            "break_points": "{100: 0.05, 500: 0.10, 1000: 0.15}"
+                        },
+                        "description": "5% off for 100+, 10% for 500+, 15% for 1000+"
+                    },
+                    "expected_result": "Adds discount component with break points, step_count=3"
+                },
+                {
+                    "description": "Enforce minimum order",
+                    "parameters": {
+                        "calculator_id": "550e8400-e29b-41d4-a716-446655440000",
+                        "step_number": 10,
+                        "variable_name": "final_price",
+                        "component_name": "minimum_order_check",
+                        "inputs": {
+                            "calculated_price": "with_gst",
+                            "minimum_order": "45",
+                            "handling_fee": "10"
+                        },
+                        "description": "Enforce $45 minimum + $10 handling fee"
+                    },
+                    "expected_result": "Adds minimum order component, ensures pricing floor, step_count=10"
+                }
+            ],
+            "usage_guide": {
+                "when_to_use": [
+                    "Need tiered pricing table lookups (51 pricing tiers)",
+                    "Applying volume discounts with break points",
+                    "Calculating GST or Shopify double GST",
+                    "Converting mm dimensions to m² area",
+                    "Calculating labor costs with multipliers (after hours, holidays)",
+                    "Adding material waste factor (typically 10%)",
+                    "Enforcing minimum order values with handling fees",
+                    "Complex logic that's already implemented in component library"
+                ],
+                "workflow": [
+                    "Step 1: Review custom_calculator_get_schema_guide() component_library section",
+                    "Step 2: Identify which component matches your calculation need",
+                    "Step 3: Note required input parameters for that component",
+                    "Step 4: Map component parameters to your calculator's variables",
+                    "Step 5: Ensure variables referenced in inputs exist (from previous steps or calculator inputs)",
+                    "Step 6: Call calculator_builder_add_component() with correct inputs mapping",
+                    "Step 7: Component is tracked in custom_calculator_components table",
+                    "Step 8: Result stored in variable_name, available to subsequent steps",
+                    "Step 9: Test with calculator_builder_test() to verify component works"
+                ],
+                "best_practices": [
+                    "Use components instead of formulas for complex logic - they're tested and optimized",
+                    "Check component_library in schema guide for exact parameter names",
+                    "Map inputs correctly - component will fail if parameters don't match",
+                    "Use meaningful variable names for component results",
+                    "Add descriptions to explain why using this component",
+                    "Components return Decimal for precision - safe for currency calculations",
+                    "Can mix formulas and components - use best tool for each step",
+                    "Reference pricing parameters in inputs with param: prefix",
+                    "Test edge cases - components have built-in validation",
+                    "Components are faster than equivalent formulas for complex calculations"
+                ],
+                "error_handling": [
+                    "Error: Component not found - Must be one of 11 available components, check spelling against component_library list",
+                    "Error: Missing required input - Component requires specific parameters, check component_library for parameter list",
+                    "Error: Invalid input variable - Variable referenced in inputs doesn't exist, check previous steps and calculator inputs",
+                    "Error: Type mismatch - Input value doesn't match component's expected type (number, string, object)",
+                    "Error: Component execution failed - Input values invalid (negative number where positive expected, etc.)"
+                ],
+                "related_tools": [
+                    "calculator_builder_set_formula",
+                    "calculator_builder_test",
+                    "custom_calculator_get_schema_guide"
+                ]
+            },
+            "tool_intelligence": {
+                "category": "data_processing",
+                "typical_workflow_patterns": [
+                    "calculator_builder_add_component (calculate_area_m2) -> calculator_builder_add_component (tiered_pricing_lookup) -> calculator_builder_set_formula",
+                    "calculator_builder_set_formula (subtotal) -> calculator_builder_add_component (calculate_gst)"
+                ],
+                "success_indicators": {
+                    "keywords": [
+                        "success: true",
+                        "component_count",
+                        "step_count"
+                    ],
+                    "behavioral": [
+                        "User adds more components or formulas",
+                        "User tests calculator"
+                    ]
+                },
+                "failure_indicators": {
+                    "keywords": [
+                        "success: false",
+                        "component not found",
+                        "missing input"
+                    ],
+                    "behavioral": [
+                        "User checks component library",
+                        "User fixes input mapping"
+                    ]
+                },
+                "performance_expectations": {
+                    "typical_duration_ms": 150,
+                    "rate_limit_per_minute": null,
+                    "max_retries": 2
+                }
+            },
+            "memory_context": {
+                "vectorization_fields": [
+                    "component_name",
+                    "variable_name",
+                    "inputs"
+                ],
+                "search_keywords": [
+                    "add component",
+                    "tiered pricing",
+                    "gst calculation",
+                    "discount"
+                ],
+                "related_synergy_platforms": [
+                    "quote_calculator"
+                ],
+                "typical_use_cases": [
+                    "Adding tiered pricing lookups from 51-tier tables",
+                    "Calculating GST with standard or Shopify double GST",
+                    "Converting dimensions to area for area-based pricing",
+                    "Applying volume discounts at quantity break points",
+                    "Enforcing minimum order values with handling fees"
+                ],
+                "conversation_memory_hints": {
+                    "what_to_remember": "Components used, component_count, inputs mappings",
+                    "search_context": "When user references components or pre-built logic"
+                }
+            }
+        },
+        {
+            "name": "calculator_builder_test",
+            "short_description": "Test calculator with sample inputs BEFORE saving/activating",
+            "description": "Execute calculator with sample inputs to verify logic works correctly. This is STEP 5 (before calculator_builder_save). Does NOT save to quote_history_archive - test mode only. Returns complete calculation breakdown showing: each step's result, final price (total_price and unit_price if quantity provided), execution time, and any errors. Use this repeatedly during development to test edge cases: minimum values, maximum values, typical orders, zero quantities, etc. Validates: all required parameters provided, formulas execute without errors, components receive correct inputs, parameter references resolve, calculation produces sensible result. Returns detailed step-by-step breakdown for debugging. If test fails, fix formulas/components and test again before saving.",
+            "platform": "quote_calculator",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "calculator_id": {
+                        "type": "string",
+                        "description": "REQUIRED: Calculator UUID from calculator_builder_start() response."
+                    },
+                    "test_inputs": {
+                        "type": "object",
+                        "description": "REQUIRED: Map of parameter names to test values. Keys must match parameter names defined in calculator. Values must match parameter types (integer, number, select value, boolean). Example: {'width_mm': 300, 'height_mm': 200, 'quantity': 50, 'material_type': 'vinyl_gloss', 'add_lamination': true}. Provide all required parameters."
+                    }
+                },
+                "required": [
+                    "calculator_id",
+                    "test_inputs"
+                ]
+            },
+            "returns": {
+                "type": "object",
+                "description": "Success status, total_price (final calculated price), unit_price (if quantity provided), breakdown (step-by-step results with variable names and values), execution_time_ms (performance metric), inputs_provided, and any validation errors. On error: success=False with error details"
+            },
+            "examples": [
+                {
+                    "description": "Test vinyl sticker calculator with typical values",
+                    "parameters": {
+                        "calculator_id": "550e8400-e29b-41d4-a716-446655440000",
+                        "test_inputs": {
+                            "width_mm": 300,
+                            "height_mm": 200,
+                            "quantity": 50
+                        }
+                    },
+                    "expected_result": "Executes all calculation steps, returns breakdown showing area_m2=0.06, base_price=calculated, with_margin=calculated, etc., total_price=$127.50, unit_price=$2.55, execution_time_ms=45"
+                },
+                {
+                    "description": "Test with minimum values (edge case)",
+                    "parameters": {
+                        "calculator_id": "550e8400-e29b-41d4-a716-446655440000",
+                        "test_inputs": {
+                            "width_mm": 10,
+                            "height_mm": 10,
+                            "quantity": 1
+                        }
+                    },
+                    "expected_result": "Tests minimum size and quantity, verifies minimum order enforcement triggers, breakdown shows each step, total_price=$55 (minimum + handling)"
+                },
+                {
+                    "description": "Test with large quantity for discount",
+                    "parameters": {
+                        "calculator_id": "550e8400-e29b-41d4-a716-446655440000",
+                        "test_inputs": {
+                            "width_mm": 500,
+                            "height_mm": 500,
+                            "quantity": 1000
+                        }
+                    },
+                    "expected_result": "Tests bulk order, breakdown shows discount_rate=0.15 (15% off), final price reflects volume discount"
+                },
+                {
+                    "description": "Test with all optional parameters",
+                    "parameters": {
+                        "calculator_id": "550e8400-e29b-41d4-a716-446655440000",
+                        "test_inputs": {
+                            "width_mm": 400,
+                            "height_mm": 300,
+                            "quantity": 100,
+                            "material_type": "vinyl_gloss",
+                            "add_lamination": true,
+                            "job_complexity": "rush"
+                        }
+                    },
+                    "expected_result": "Tests with all inputs including optional add-ons, breakdown shows lamination cost added, rush multiplier applied"
+                }
+            ],
+            "usage_guide": {
+                "when_to_use": [
+                    "After adding all parameters, formulas, and components - before saving",
+                    "Want to verify calculation logic produces correct results",
+                    "Need to test edge cases (minimum, maximum, zero values)",
+                    "Debugging formula errors or component issues",
+                    "Checking execution time for performance",
+                    "Validating parameter overrides work correctly",
+                    "Comparing results to expected pricing"
+                ],
+                "workflow": [
+                    "Step 1: Have complete calculator with parameters, formulas, and components",
+                    "Step 2: Prepare test_inputs object with sample values",
+                    "Step 3: Start with typical customer order values",
+                    "Step 4: Call calculator_builder_test() with test_inputs",
+                    "Step 5: Review breakdown to see each step's result",
+                    "Step 6: Verify total_price is reasonable and expected",
+                    "Step 7: Check execution_time_ms (should be under 100ms typically)",
+                    "Step 8: If errors, fix formulas/components and test again",
+                    "Step 9: Test edge cases: minimum order, maximum quantity, zero dimensions",
+                    "Step 10: Test all select options and boolean combinations",
+                    "Step 11: When all tests pass, proceed to calculator_builder_save()"
+                ],
+                "best_practices": [
+                    "Test with TYPICAL values first to verify basic logic",
+                    "Test EDGE CASES: minimum dimensions, quantity=1, very large quantities",
+                    "Test ALL select dropdown options to verify each path works",
+                    "Test boolean combinations (true and false for each optional feature)",
+                    "Review breakdown line-by-line to verify each step makes sense",
+                    "Compare total_price to expected result - manual calculation or existing calculator",
+                    "Check execution_time_ms - simple calculators under 100ms, complex under 500ms",
+                    "Test with and without optional parameters to verify defaults work",
+                    "If test fails study error message carefully - shows exact issue",
+                    "Test repeatedly during development - catch issues early"
+                ],
+                "error_handling": [
+                    "Error: Missing required parameter - test_inputs missing a required input, add missing parameter",
+                    "Error: Invalid parameter value - Value doesn't match parameter type (string for number, etc.)",
+                    "Error: Formula execution failed - Formula has syntax error or references undefined variable, check formula in calculator_builder_set_formula",
+                    "Error: Component execution failed - Component received wrong inputs or invalid values, check component inputs mapping",
+                    "Error: Parameter not found - Formula references param:xxx that doesn't exist in calculator_pricing_parameters",
+                    "Error: Division by zero - Formula divides by zero, add check or default value",
+                    "Error: Undefined variable - Formula references variable from non-existent step, check step order"
+                ],
+                "related_tools": [
+                    "calculator_builder_save",
+                    "calculator_builder_set_formula",
+                    "calculator_builder_add_component",
+                    "custom_calculator_get_detail"
+                ]
+            },
+            "tool_intelligence": {
+                "category": "data_processing",
+                "typical_workflow_patterns": [
+                    "calculator_builder_set_formula -> calculator_builder_test -> calculator_builder_set_formula (fix) -> calculator_builder_test",
+                    "calculator_builder_test (typical) -> calculator_builder_test (edge cases) -> calculator_builder_save"
+                ],
+                "success_indicators": {
+                    "keywords": [
+                        "success: true",
+                        "total_price",
+                        "breakdown",
+                        "execution_time_ms"
+                    ],
+                    "behavioral": [
+                        "User reviews breakdown",
+                        "User tests more scenarios",
+                        "User proceeds to save"
+                    ]
+                },
+                "failure_indicators": {
+                    "keywords": [
+                        "success: false",
+                        "formula error",
+                        "missing parameter",
+                        "execution failed"
+                    ],
+                    "behavioral": [
+                        "User fixes formula",
+                        "User adds missing parameter",
+                        "User tests again"
+                    ]
+                },
+                "performance_expectations": {
+                    "typical_duration_ms": 100,
+                    "rate_limit_per_minute": null,
+                    "max_retries": 3
+                }
+            },
+            "memory_context": {
+                "vectorization_fields": [
+                    "test_inputs",
+                    "total_price",
+                    "breakdown"
+                ],
+                "search_keywords": [
+                    "test calculator",
+                    "verify calculation",
+                    "debug calculator"
+                ],
+                "related_synergy_platforms": [
+                    "quote_calculator"
+                ],
+                "typical_use_cases": [
+                    "Testing new calculator with typical customer order",
+                    "Verifying edge cases produce sensible results",
+                    "Debugging formula or component errors",
+                    "Checking execution time performance",
+                    "Comparing calculated price to expected value"
+                ],
+                "conversation_memory_hints": {
+                    "what_to_remember": "Test results, total_price, whether test passed or failed, errors encountered",
+                    "search_context": "When user references test results or debugging calculator"
+                }
+            }
+        },
+        {
+            "name": "calculator_builder_save",
+            "short_description": "Save and ACTIVATE calculator for production use (or save as template)",
+            "description": "Save calculator and optionally activate for production use. This is FINAL STEP of calculator building. Auto-generates usage_instructions if not provided (based on inputs, steps, components). Sets is_active flag - when true calculator is ready for production quotes. Can save as template (is_template=true) for cloning starting point. Updates timestamp. After activation, calculator appears in custom_calculator_list() and can be executed via API. BEFORE saving: Test thoroughly with calculator_builder_test() to verify all logic works. Once activated, calculator can be used immediately. Can re-save to update definition - deactivate first if making breaking changes. Returns: success status, calculator_id, is_active status, is_template flag, usage_instructions (auto-generated or provided), and updated_at timestamp.",
+            "platform": "quote_calculator",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "calculator_id": {
+                        "type": "string",
+                        "description": "REQUIRED: Calculator UUID from calculator_builder_start() response."
+                    },
+                    "usage_instructions": {
+                        "type": "string",
+                        "description": "Optional: Detailed instructions on how to use this calculator. Explain what each input means, typical values, when to use this calculator vs others, any special considerations. If not provided, auto-generates based on inputs, parameters, and components. Max 5000 characters."
+                    },
+                    "activate": {
+                        "type": "boolean",
+                        "description": "REQUIRED: Set to true to activate calculator for production use (is_active=true), false to save as draft (is_active=false). Activated calculators appear in listings and can be executed. Draft calculators are hidden. Default: false (safe default - save as draft first)."
+                    },
+                    "as_template": {
+                        "type": "boolean",
+                        "description": "Optional: Set to true to mark as template for cloning (is_template=true). Templates appear in template listings for use with based_on_calculator. Useful for creating reusable starting points. Default: false."
+                    }
+                },
+                "required": [
+                    "calculator_id",
+                    "activate"
+                ]
+            },
+            "returns": {
+                "type": "object",
+                "description": "Success status, calculator_id, name, is_active (production ready flag), is_template (clone source flag), usage_instructions (auto-generated or provided), parameter_count, step_count, component_count, updated_at. On error: success=False with error message"
+            },
+            "examples": [
+                {
+                    "description": "Save and activate for production",
+                    "parameters": {
+                        "calculator_id": "550e8400-e29b-41d4-a716-446655440000",
+                        "usage_instructions": "Use for vinyl stickers with 24-hour rush turnaround. Enter exact dimensions in millimeters. Select vinyl type (gloss/matte/clear). Quantity discounts: 5% at 100+, 10% at 500+, 15% at 1000+. Add lamination for outdoor durability. Price includes rush premium and expedited fees.",
+                        "activate": true,
+                        "as_template": false
+                    },
+                    "expected_result": "Saves calculator, sets is_active=true, calculator ready for production, returns complete metadata"
+                },
+                {
+                    "description": "Save as draft without activating",
+                    "parameters": {
+                        "calculator_id": "550e8400-e29b-41d4-a716-446655440000",
+                        "activate": false
+                    },
+                    "expected_result": "Saves calculator with is_active=false, auto-generates usage_instructions, calculator hidden from production listings"
+                },
+                {
+                    "description": "Save as template for cloning",
+                    "parameters": {
+                        "calculator_id": "550e8400-e29b-41d4-a716-446655440000",
+                        "usage_instructions": "Template for vinyl product calculators. Includes area calculation, tiered pricing lookup, volume discounts, profit margin, GST, and minimum order. Clone and customize for specific vinyl products.",
+                        "activate": true,
+                        "as_template": true
+                    },
+                    "expected_result": "Saves as active template, appears in template listings for based_on_calculator cloning"
+                }
+            ],
+            "usage_guide": {
+                "when_to_use": [
+                    "FINAL STEP after building and testing complete calculator",
+                    "Want to activate calculator for production use",
+                    "Need to save template for future cloning",
+                    "Updating existing calculator with changes",
+                    "Adding usage instructions for users",
+                    "Ready to make calculator available via API"
+                ],
+                "workflow": [
+                    "Step 1: Complete all calculator building (parameters, formulas, components)",
+                    "Step 2: Test thoroughly with calculator_builder_test() - multiple scenarios",
+                    "Step 3: Verify all tests pass and prices are correct",
+                    "Step 4: Write clear usage_instructions (or let system auto-generate)",
+                    "Step 5: Decide: activate for production or save as draft?",
+                    "Step 6: Decide: save as template for cloning?",
+                    "Step 7: Call calculator_builder_save() with activate flag",
+                    "Step 8: If activated, calculator immediately available for use",
+                    "Step 9: Verify with custom_calculator_list() or custom_calculator_get_detail()",
+                    "Step 10: Test via API or UI with real customer scenarios"
+                ],
+                "best_practices": [
+                    "ALWAYS test with calculator_builder_test() BEFORE activating",
+                    "Write clear usage_instructions - helps users know when to use calculator",
+                    "Start with activate=false (draft) until fully tested",
+                    "Use activate=true only when ready for production",
+                    "Save as template if calculator is good starting point for variants",
+                    "Auto-generated usage_instructions are basic - add detail for better UX",
+                    "Can re-save to update definition - careful with breaking changes to active calculators",
+                    "Deactivate (activate=false) before making major changes to production calculator",
+                    "Test in production environment after activation",
+                    "Monitor usage_count and avg_calculation_time_ms after deployment"
+                ],
+                "error_handling": [
+                    "Error: Calculator not found - Verify calculator_id is correct",
+                    "Error: No calculation steps defined - Must add at least one formula or component step before saving",
+                    "Error: No input parameters defined - Must add at least one input parameter before saving",
+                    "Error: Invalid JSON definition - Calculator definition malformed, rebuild from scratch if needed"
+                ],
+                "related_tools": [
+                    "calculator_builder_test",
+                    "custom_calculator_list",
+                    "custom_calculator_get_detail",
+                    "custom_calculator_search"
+                ]
+            },
+            "tool_intelligence": {
+                "category": "data_processing",
+                "typical_workflow_patterns": [
+                    "calculator_builder_test (multiple times) -> calculator_builder_save (activate=true)",
+                    "calculator_builder_save (activate=false draft) -> calculator_builder_test -> calculator_builder_save (activate=true)"
+                ],
+                "success_indicators": {
+                    "keywords": [
+                        "success: true",
+                        "is_active: true",
+                        "usage_instructions"
+                    ],
+                    "behavioral": [
+                        "User queries calculator with custom_calculator_get_detail",
+                        "User executes calculator via API"
+                    ]
+                },
+                "failure_indicators": {
+                    "keywords": [
+                        "success: false",
+                        "no steps",
+                        "no parameters"
+                    ],
+                    "behavioral": [
+                        "User adds missing steps",
+                        "User tests more"
+                    ]
+                },
+                "performance_expectations": {
+                    "typical_duration_ms": 200,
+                    "rate_limit_per_minute": null,
+                    "max_retries": 2
+                }
+            },
+            "memory_context": {
+                "vectorization_fields": [
+                    "calculator_id",
+                    "is_active",
+                    "usage_instructions"
+                ],
+                "search_keywords": [
+                    "save calculator",
+                    "activate calculator",
+                    "production ready"
+                ],
+                "related_synergy_platforms": [
+                    "quote_calculator"
+                ],
+                "typical_use_cases": [
+                    "Activating fully tested calculator for production use",
+                    "Saving draft calculator for future work",
+                    "Creating template calculator for cloning",
+                    "Updating existing calculator with improvements",
+                    "Adding usage instructions for better discoverability"
+                ],
+                "conversation_memory_hints": {
+                    "what_to_remember": "Calculator activation status, whether saved as template, usage_instructions added",
+                    "search_context": "When user references saved calculator or production deployment"
+                }
+            }
+        }
+    ]
+}

@@ -1,0 +1,539 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TTS Module Demo - AI Agents Platform</title>
+    
+    <!-- Font Awesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css">
+    
+    <!-- TTS Module CSS -->
+    <link rel="stylesheet" href="modules/transcription/tts-module.css">
+    
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --bg-primary: #0d1117;
+            --bg-secondary: #1c1f26;
+            --bg-tertiary: #161921;
+            --bg-hover: #292e36;
+            --text-primary: #c9d1d9;
+            --text-muted: #8b949e;
+            --border-default: #30363d;
+            --accent-primary: #58a6ff;
+            --accent-hover: #4a93e0;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            padding: 24px;
+            line-height: 1.6;
+        }
+
+        .demo-container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .demo-header {
+            text-align: center;
+            margin-bottom: 32px;
+        }
+
+        .demo-header h1 {
+            font-size: 32px;
+            margin-bottom: 8px;
+            color: var(--accent-primary);
+        }
+
+        .demo-header p {
+            color: var(--text-muted);
+            font-size: 16px;
+        }
+
+        .demo-controls {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-default);
+            border-radius: 12px;
+            padding: 24px;
+            margin-bottom: 24px;
+        }
+
+        .control-group {
+            margin-bottom: 20px;
+        }
+
+        .control-group:last-child {
+            margin-bottom: 0;
+        }
+
+        .control-group label {
+            display: block;
+            margin-bottom: 8px;
+            /* font-weight: 500; */
+            color: var(--text-primary);
+        }
+
+        .control-group textarea {
+            width: 100%;
+            padding: 12px;
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-default);
+            border-radius: 8px;
+            color: var(--text-primary);
+            font-family: inherit;
+            font-size: 14px;
+            resize: vertical;
+            min-height: 100px;
+        }
+
+        .control-group textarea:focus {
+            outline: none;
+            border-color: var(--accent-primary);
+        }
+
+        .control-row {
+            display: flex;
+            gap: 16px;
+            flex-wrap: wrap;
+        }
+
+        .control-item {
+            flex: 1;
+            min-width: 200px;
+        }
+
+        .control-item select,
+        .control-item input[type="range"] {
+            width: 100%;
+            padding: 8px;
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-default);
+            border-radius: 6px;
+            color: var(--text-primary);
+            font-size: 14px;
+        }
+
+        .control-item select:focus {
+            outline: none;
+            border-color: var(--accent-primary);
+        }
+
+        .range-value {
+            display: inline-block;
+            margin-left: 8px;
+            /* font-weight: 500; */
+            color: var(--accent-primary);
+        }
+
+        .button-group {
+            display: flex;
+            gap: 12px;
+            margin-top: 20px;
+        }
+
+        .demo-btn {
+            flex: 1;
+            padding: 12px 20px;
+            background: var(--accent-primary);
+            border: none;
+            border-radius: 8px;
+            color: white;
+            font-size: 14px;
+            /* font-weight: 500; */
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .demo-btn:hover {
+            background: var(--accent-hover);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(88, 166, 255, 0.3);
+        }
+
+        .demo-btn:active {
+            transform: translateY(0);
+        }
+
+        .demo-btn-secondary {
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-default);
+        }
+
+        .demo-btn-secondary:hover {
+            background: var(--bg-hover);
+        }
+
+        .demo-btn-danger {
+            background: #da3633;
+        }
+
+        .demo-btn-danger:hover {
+            background: #c82d2a;
+        }
+
+        .demo-section {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-default);
+            border-radius: 12px;
+            padding: 24px;
+            margin-bottom: 24px;
+        }
+
+        .demo-section h2 {
+            font-size: 20px;
+            margin-bottom: 16px;
+            color: var(--accent-primary);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .quick-test-buttons {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 12px;
+        }
+
+        .quick-test-btn {
+            padding: 12px;
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-default);
+            border-radius: 8px;
+            color: var(--text-primary);
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .quick-test-btn:hover {
+            border-color: var(--accent-primary);
+            background: var(--bg-hover);
+            transform: translateY(-2px);
+        }
+
+        .state-display {
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-default);
+            border-radius: 8px;
+            padding: 16px;
+            margin-top: 16px;
+        }
+
+        .state-display pre {
+            color: var(--text-muted);
+            font-size: 13px;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+
+        .info-box {
+            background: rgba(88, 166, 255, 0.1);
+            border: 1px solid var(--accent-primary);
+            border-radius: 8px;
+            padding: 16px;
+            margin-top: 16px;
+        }
+
+        .info-box h3 {
+            font-size: 16px;
+            margin-bottom: 8px;
+            color: var(--accent-primary);
+        }
+
+        .info-box ul {
+            margin-left: 20px;
+            color: var(--text-muted);
+        }
+
+        .info-box li {
+            margin-bottom: 4px;
+        }
+    </style>
+</head>
+<body>
+    <div class="demo-container">
+        <!-- Header -->
+        <div class="demo-header">
+            <h1><i class="fas fa-volume-up"></i> TTS Module Demo</h1>
+            <p>Text-to-Speech with streaming transcript display for AI Agents Platform</p>
+        </div>
+
+        <!-- Controls -->
+        <div class="demo-controls">
+            <div class="control-group">
+                <label for="demo-text-input">Text to Speak:</label>
+                <textarea id="demo-text-input" placeholder="Enter text to speak...">Hello! This is a demonstration of the Text-to-Speech module with streaming transcript display. The transcript will appear in the container below as the speech is generated.</textarea>
+            </div>
+
+            <div class="control-row">
+                <div class="control-item">
+                    <label for="voice-select">Voice:</label>
+                    <select id="voice-select">
+                        <option>Loading voices...</option>
+                    </select>
+                </div>
+
+                <div class="control-item">
+                    <label for="rate-slider">
+                        Speed: <span class="range-value" id="rate-value">1.0x</span>
+                    </label>
+                    <input type="range" id="rate-slider" min="0.5" max="2" step="0.1" value="1.0">
+                </div>
+
+                <div class="control-item">
+                    <label for="pitch-slider">
+                        Pitch: <span class="range-value" id="pitch-value">1.0</span>
+                    </label>
+                    <input type="range" id="pitch-slider" min="0" max="2" step="0.1" value="1.0">
+                </div>
+
+                <div class="control-item">
+                    <label for="volume-slider">
+                        Volume: <span class="range-value" id="volume-value">100%</span>
+                    </label>
+                    <input type="range" id="volume-slider" min="0" max="1" step="0.1" value="1.0">
+                </div>
+            </div>
+
+            <div class="button-group">
+                <button class="demo-btn" id="speak-btn">
+                    <i class="fas fa-play"></i> Speak
+                </button>
+                <button class="demo-btn demo-btn-secondary" id="pause-btn">
+                    <i class="fas fa-pause"></i> Pause/Resume
+                </button>
+                <button class="demo-btn demo-btn-danger" id="stop-btn">
+                    <i class="fas fa-stop"></i> Stop
+                </button>
+                <button class="demo-btn demo-btn-secondary" id="clear-btn">
+                    <i class="fas fa-eraser"></i> Clear Transcript
+                </button>
+            </div>
+        </div>
+
+        <!-- Quick Test Buttons -->
+        <div class="demo-section">
+            <h2><i class="fas fa-bolt"></i> Quick Tests</h2>
+            <div class="quick-test-buttons">
+                <button class="quick-test-btn" data-text="Hello, world! This is a short test.">
+                    Short Text
+                </button>
+                <button class="quick-test-btn" data-text="This is a medium-length test to demonstrate the streaming transcript display feature. Watch how the text appears in chunks below!">
+                    Medium Text
+                </button>
+                <button class="quick-test-btn" data-text="This is a longer text to test the scrolling and chunking behavior of the transcript container. The text should stream in smoothly, character by character, creating a nice visual effect. As the container fills up, it should automatically scroll to keep the latest content visible. This helps demonstrate how the module handles longer passages of text.">
+                    Long Text
+                </button>
+                <button class="quick-test-btn" data-text="The quick brown fox jumps over the lazy dog. This sentence contains every letter of the alphabet!">
+                    Pangram
+                </button>
+                <button class="quick-test-btn" data-text="1, 2, 3, 4, 5. Testing numbers and punctuation! Can you hear this? How about this... And finally: a colon.">
+                    Numbers & Punctuation
+                </button>
+                <button class="quick-test-btn" data-text="Thank you for using the AI Agents Platform. We hope this Text-to-Speech module enhances your experience!">
+                    Thank You Message
+                </button>
+            </div>
+        </div>
+
+        <!-- Transcript Container -->
+        <div class="demo-section">
+            <h2><i class="fas fa-list"></i> Transcript</h2>
+            <div id="tts-transcript-container"></div>
+        </div>
+
+        <!-- State Display -->
+        <div class="demo-section">
+            <h2><i class="fas fa-info-circle"></i> Module State</h2>
+            <button class="demo-btn demo-btn-secondary" id="refresh-state-btn">
+                <i class="fas fa-sync"></i> Refresh State
+            </button>
+            <div class="state-display">
+                <pre id="state-display">Click "Refresh State" to see current module state</pre>
+            </div>
+        </div>
+
+        <!-- Info Box -->
+        <div class="info-box">
+            <h3><i class="fas fa-lightbulb"></i> Features</h3>
+            <ul>
+                <li><strong>Streaming Transcript:</strong> Text appears in chunks for visual effect</li>
+                <li><strong>Voice Control:</strong> Choose from available system voices</li>
+                <li><strong>Speed Control:</strong> Adjust speech rate (0.5x - 2.0x)</li>
+                <li><strong>Pitch Control:</strong> Adjust voice pitch (0 - 2)</li>
+                <li><strong>Volume Control:</strong> Adjust speech volume (0% - 100%)</li>
+                <li><strong>Pause/Resume:</strong> Pause and resume speech mid-sentence</li>
+                <li><strong>Stop:</strong> Stop speech at any time</li>
+                <li><strong>Copy to Clipboard:</strong> Copy transcript text easily</li>
+                <li><strong>Auto-scroll:</strong> Transcript automatically scrolls to latest content</li>
+                <li><strong>Visual Feedback:</strong> Color-coded status indicators (blue=speaking, green=success, red=error, yellow=paused)</li>
+            </ul>
+        </div>
+    </div>
+
+    <!-- Status Indicator (fixed position) -->
+    <div id="tts-status-indicator"></div>
+
+    <!-- TTS Module JavaScript -->
+    <script src="modules/transcription/tts-module.js"></script>
+
+    <!-- Demo Script -->
+    <script>
+        // Initialize TTS Module
+        let ttsModule;
+
+        document.addEventListener('DOMContentLoaded', () => {
+            console.log('🚀 Initializing TTS Module Demo...');
+
+            // Create TTS module instance
+            ttsModule = new TTSModule({
+                transcriptContainer: 'tts-transcript-container',
+                statusIndicator: 'tts-status-indicator',
+                autoScroll: true,
+                showTimestamps: true,
+                chunkSize: 50,
+                chunkDelay: 30,
+                
+                // Callbacks
+                onStart: (event) => {
+                    console.log('📢 Speech started:', event);
+                    updateState();
+                },
+                onEnd: (event) => {
+                    console.log('✅ Speech ended:', event);
+                    updateState();
+                },
+                onError: (event) => {
+                    console.error('❌ Speech error:', event);
+                    updateState();
+                },
+                onPause: (event) => {
+                    console.log('⏸️ Speech paused:', event);
+                    updateState();
+                },
+                onResume: (event) => {
+                    console.log('▶️ Speech resumed:', event);
+                    updateState();
+                }
+            });
+
+            // Populate voice select
+            populateVoiceSelect();
+
+            // Event Listeners
+            document.getElementById('speak-btn').addEventListener('click', speakText);
+            document.getElementById('pause-btn').addEventListener('click', () => ttsModule.togglePause());
+            document.getElementById('stop-btn').addEventListener('click', () => ttsModule.stop());
+            document.getElementById('clear-btn').addEventListener('click', () => ttsModule.clearTranscript());
+            document.getElementById('refresh-state-btn').addEventListener('click', updateState);
+
+            // Voice selection
+            document.getElementById('voice-select').addEventListener('change', (e) => {
+                const voices = ttsModule.getVoices();
+                ttsModule.setVoice(parseInt(e.target.value));
+            });
+
+            // Sliders
+            document.getElementById('rate-slider').addEventListener('input', (e) => {
+                const value = parseFloat(e.target.value);
+                ttsModule.setRate(value);
+                document.getElementById('rate-value').textContent = `${value}x`;
+            });
+
+            document.getElementById('pitch-slider').addEventListener('input', (e) => {
+                const value = parseFloat(e.target.value);
+                ttsModule.setPitch(value);
+                document.getElementById('pitch-value').textContent = value.toFixed(1);
+            });
+
+            document.getElementById('volume-slider').addEventListener('input', (e) => {
+                const value = parseFloat(e.target.value);
+                ttsModule.setVolume(value);
+                document.getElementById('volume-value').textContent = `${Math.round(value * 100)}%`;
+            });
+
+            // Quick test buttons
+            document.querySelectorAll('.quick-test-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const text = btn.getAttribute('data-text');
+                    document.getElementById('demo-text-input').value = text;
+                    ttsModule.speak(text);
+                });
+            });
+
+            console.log('✅ Demo initialized');
+        });
+
+        function populateVoiceSelect() {
+            const select = document.getElementById('voice-select');
+            const voices = ttsModule.getVoices();
+
+            if (voices.length === 0) {
+                console.warn('⚠️ No voices available yet, retrying in 100ms...');
+                setTimeout(populateVoiceSelect, 100);
+                return;
+            }
+
+            select.innerHTML = '';
+            voices.forEach((voice, index) => {
+                const option = document.createElement('option');
+                option.value = index;
+                option.textContent = `${voice.name} (${voice.lang})`;
+                if (voice === ttsModule.options.voice) {
+                    option.selected = true;
+                }
+                select.appendChild(option);
+            });
+
+            console.log(`✅ Populated ${voices.length} voices`);
+        }
+
+        function speakText() {
+            const text = document.getElementById('demo-text-input').value;
+            if (!text || text.trim() === '') {
+                alert('Please enter some text to speak');
+                return;
+            }
+
+            ttsModule.speak(text);
+        }
+
+        function updateState() {
+            const state = ttsModule.getState();
+            document.getElementById('state-display').textContent = JSON.stringify(state, null, 2);
+        }
+
+        // Keyboard shortcuts
+        document.addEventListener('keydown', (e) => {
+            // Ctrl+Enter = Speak
+            if (e.ctrlKey && e.key === 'Enter') {
+                e.preventDefault();
+                speakText();
+            }
+            // Ctrl+Space = Pause/Resume
+            if (e.ctrlKey && e.key === ' ') {
+                e.preventDefault();
+                ttsModule.togglePause();
+            }
+            // Escape = Stop
+            if (e.key === 'Escape') {
+                e.preventDefault();
+                ttsModule.stop();
+            }
+        });
+    </script>
+</body>
+</html>

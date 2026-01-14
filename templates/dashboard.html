@@ -1,0 +1,625 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - Business AI Platform</title>
+    <style>
+        /* ==================== ROOT VARIABLES (Match Main Platform) ==================== */
+        :root {
+            --bg-primary: #0d1117;
+            --bg-secondary: #161b22;
+            --bg-tertiary: #1c2128;
+            --bg-hover: #21262d;
+            --accent-primary: #58a6ff;
+            --accent-success: #3fb950;
+            --accent-error: #f85149;
+            --text-primary: #f3f4f6;
+            --text-secondary: #d1d5db;
+            --text-muted: #9ca3af;
+            --border-default: #30363d;
+            --border-muted: #21262d;
+            --space-2: 8px;
+            --space-3: 12px;
+            --space-4: 16px;
+            --space-5: 24px;
+            --space-6: 32px;
+            --font-primary: 'Roboto', Arial, sans-serif;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: var(--font-primary);
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            min-height: 100vh;
+        }
+
+        .header {
+            background: var(--bg-secondary);
+            border-bottom: 1px solid var(--border-default);
+            padding: var(--space-4) var(--space-6);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .header h1 {
+            color: var(--text-primary);
+            font-size: 20px;
+            /* font-weight: 600; */
+            display: flex;
+            align-items: center;
+            gap: var(--space-3);
+        }
+
+        .user-menu {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+
+        .user-info {
+            text-align: right;
+        }
+
+        .user-email {
+            color: var(--text-primary);
+            font-size: 13px;
+            /* font-weight: 500; */
+        }
+
+        .user-status {
+            color: var(--text-secondary);
+            font-size: 12px;
+        }
+
+        .logout-btn {
+            padding: var(--space-2) var(--space-4);
+            background: transparent;
+            border: 1px solid var(--border-default);
+            border-radius: 6px;
+            color: var(--text-secondary);
+            cursor: pointer;
+            transition: all 0.2s ease;
+            font-size: 12px;
+        }
+
+        .logout-btn:hover {
+            background: rgba(248, 81, 73, 0.1);
+            border-color: var(--accent-error);
+            color: var(--accent-error);
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 40px 20px;
+        }
+
+        .welcome-card {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-default);
+            border-radius: 12px;
+            padding: var(--space-6);
+            margin-bottom: var(--space-5);
+            text-align: center;
+        }
+
+        .welcome-card h2 {
+            color: var(--text-primary);
+            font-size: 24px;
+            /* font-weight: 600; */
+            margin-bottom: var(--space-3);
+        }
+
+        .welcome-card p {
+            color: var(--text-secondary);
+            font-size: 14px;
+        }
+
+        .status-cards {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .status-card {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-default);
+            border-radius: 12px;
+            padding: var(--space-3);
+            transition: all 0.2s ease;
+        }
+
+        .status-card:hover {
+            border-color: var(--accent-primary);
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+        }
+
+        .status-card h3 {
+            color: var(--text-primary);
+            font-size: 16px;
+            /* font-weight: 600; */
+            margin-bottom: var(--space-2);
+            display: flex;
+            align-items: center;
+            gap: var(--space-2);
+        }
+
+        .status-card .icon {
+            font-size: 24px;
+        }
+
+        .status-indicator {
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            margin-right: 8px;
+        }
+
+        .status-indicator.connected {
+            background: #3fb950;
+            box-shadow: 0 0 8px #3fb950;
+        }
+
+        .status-indicator.disconnected {
+            background: #f85149;
+        }
+
+        .service-list {
+            list-style: none;
+            margin-top: 16px;
+        }
+
+        .service-list li {
+            padding: var(--space-2) 0;
+            color: var(--text-secondary);
+            font-size: 13px;
+            display: flex;
+            align-items: center;
+            gap: var(--space-2);
+        }
+
+        .service-list li::before {
+            content: '✓';
+            color: var(--accent-success);
+            /* font-weight: bold; */
+        }
+
+        .button {
+            padding: var(--space-3) var(--space-5);
+            background: var(--accent-primary);
+            border: none;
+            border-radius: 8px;
+            color: white;
+            font-size: 13px;
+            /* font-weight: 600; */
+            cursor: pointer;
+            transition: all 0.2s ease;
+            margin-top: var(--space-4);
+        }
+
+        .button:hover {
+            background: #1c5fa8;
+            transform: translateY(-1px);
+        }
+
+        .button.secondary {
+            background: transparent;
+            border: 1px solid var(--border-default);
+        }
+
+        .button.secondary:hover {
+            border-color: var(--accent-primary);
+            background: rgba(88, 166, 255, 0.05);
+        }
+
+        .alert {
+            padding: 16px 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            font-size: 14px;
+            display: none;
+        }
+
+        .alert.success {
+            background: rgba(46, 160, 67, 0.2);
+            border: 1px solid rgba(46, 160, 67, 0.4);
+            color: #3fb950;
+        }
+
+        .alert.show {
+            display: block;
+        }
+
+        .chat-section {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-default);
+            border-radius: 12px;
+            padding: var(--space-6);
+            margin-top: var(--space-5);
+        }
+
+        .chat-section h3 {
+            color: var(--text-primary);
+            font-size: 18px;
+            /* font-weight: 600; */
+            margin-bottom: var(--space-4);
+            display: flex;
+            align-items: center;
+            gap: var(--space-3);
+        }
+
+        .chat-input-container {
+            display: flex;
+            gap: 12px;
+        }
+
+        .chat-input {
+            flex: 1;
+            padding: var(--space-3) var(--space-4);
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-default);
+            border-radius: 8px;
+            color: var(--text-primary);
+            font-size: 14px;
+            font-family: var(--font-primary);
+        }
+
+        .chat-input:focus {
+            outline: none;
+            border-color: var(--accent-primary);
+            box-shadow: 0 0 0 3px rgba(88, 166, 255, 0.1);
+        }
+
+        .send-btn {
+            padding: var(--space-3) var(--space-5);
+            background: var(--accent-primary);
+            border: none;
+            border-radius: 8px;
+            color: white;
+            font-size: 14px;
+            /* font-weight: 600; */
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .send-btn:hover {
+            background: #1c5fa8;
+            transform: translateY(-1px);
+        }
+
+        .send-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        @media (max-width: 768px) {
+            .header {
+                padding: 16px 20px;
+                flex-direction: column;
+                gap: 16px;
+            }
+
+            .status-cards {
+                grid-template-columns: 1fr;
+            }
+
+            .chat-input-container {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="header">
+        <h1>
+            <span>🤖</span>
+            Business AI Platform
+        </h1>
+        <div class="user-menu">
+            <div class="user-info">
+                <div class="user-email" id="user-email">Loading...</div>
+                <div class="user-status">
+                    <span class="status-indicator" id="status-indicator"></span>
+                    <span id="status-text">Checking connection...</span>
+                </div>
+            </div>
+            <button class="logout-btn" onclick="logout()">🚪 Sign Out</button>
+        </div>
+    </div>
+
+    <div class="container">
+        <div id="alert" class="alert success"></div>
+
+        <div class="welcome-card">
+            <h2>Welcome to Your AI Dashboard! 🎉</h2>
+            <p>Your AI-powered business platform is ready to help you automate tasks, manage emails, create documents,
+                and more.</p>
+        </div>
+
+        <div class="status-cards">
+            <div class="status-card">
+                <h3>
+                    <span class="icon">🔐</span>
+                    Google Workspace
+                </h3>
+                <p id="oauth-status-text">Checking connection...</p>
+                <ul class="service-list" id="service-list" style="display: none;">
+                    <li>Gmail</li>
+                    <li>Google Calendar</li>
+                    <li>Google Tasks</li>
+                    <li>Google Forms</li>
+                    <li>Google Docs</li>
+                    <li>Google Sheets</li>
+                    <li>Google Slides</li>
+                    <li>Google Drive</li>
+                </ul>
+                <button class="button" id="connect-btn" onclick="connectWorkspace()" style="display: none;">
+                    🔗 Connect Google Workspace
+                </button>
+                <button class="button secondary" id="disconnect-btn" onclick="disconnectWorkspace()"
+                    style="display: none;">
+                    🔓 Disconnect
+                </button>
+            </div>
+
+            <div class="status-card">
+                <h3>
+                    <span class="icon">📊</span>
+                    Platform Status
+                </h3>
+                <p>All systems operational</p>
+                <ul class="service-list">
+                    <li>AI Agent: Active</li>
+                    <li>API: Healthy</li>
+                    <li>Database: Connected</li>
+                </ul>
+            </div>
+
+            <div class="status-card">
+                <h3>
+                    <span class="icon">🎯</span>
+                    Quick Actions
+                </h3>
+                <p>Get started with these common tasks</p>
+                <button class="button" onclick="quickAction('create-doc')">📄 Create Document</button>
+                <button class="button secondary" onclick="quickAction('send-email')">📧 Send Email</button>
+            </div>
+        </div>
+
+        <div class="chat-section">
+            <h3>
+                <span>💬</span>
+                Chat with AI
+            </h3>
+            <p style="color: #8b92a7; margin-bottom: 20px;">
+                Ask the AI to help you with tasks like creating documents, sending emails, scheduling events, and more.
+            </p>
+            <div class="chat-input-container">
+                <input type="text" class="chat-input" id="chat-input"
+                    placeholder="Type your message... (e.g., 'Create a marketing plan document')"
+                    onkeypress="handleChatKeypress(event)">
+                <button class="send-btn" id="send-btn" onclick="sendMessage()">
+                    📤 Send
+                </button>
+            </div>
+            <div id="chat-response"
+                style="margin-top: 20px; padding: 16px; background: #0d1117; border-radius: 8px; display: none;"></div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE_URL = window.location.hostname === 'localhost'
+            ? 'http://localhost:4000'
+            : window.location.origin;
+
+        // Check authentication on load
+        window.addEventListener('DOMContentLoaded', async () => {
+            await checkAuth();
+            await checkOAuthStatus();
+            checkUrlParams();
+        });
+
+        async function checkAuth() {
+            const token = localStorage.getItem('auth_token');
+
+            if (!token) {
+                window.location.href = '/login';
+                return;
+            }
+
+            try {
+                const response = await fetch(`${API_BASE_URL}/api/auth/verify`, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    document.getElementById('user-email').textContent = result.user.email;
+                } else {
+                    localStorage.removeItem('auth_token');
+                    window.location.href = '/login';
+                }
+            } catch (error) {
+                console.error('Auth check error:', error);
+                // Keep on dashboard, may be network issue
+            }
+        }
+
+        async function checkOAuthStatus() {
+            try {
+                const response = await fetch(`${API_BASE_URL}/api/oauth/status`);
+                const result = await response.json();
+
+                const statusIndicator = document.getElementById('status-indicator');
+                const statusText = document.getElementById('status-text');
+                const oauthStatusText = document.getElementById('oauth-status-text');
+                const serviceList = document.getElementById('service-list');
+                const connectBtn = document.getElementById('connect-btn');
+                const disconnectBtn = document.getElementById('disconnect-btn');
+
+                if (result.connected) {
+                    statusIndicator.classList.add('connected');
+                    statusText.textContent = 'Connected';
+                    oauthStatusText.textContent = ' Connected to Google Workspace';
+                    serviceList.style.display = 'block';
+                    disconnectBtn.style.display = 'block';
+                    connectBtn.style.display = 'none';
+                } else {
+                    statusIndicator.classList.add('disconnected');
+                    statusText.textContent = 'Not connected';
+                    oauthStatusText.textContent = '⚠️ Connect your Google Workspace to unlock all features';
+                    serviceList.style.display = 'none';
+                    disconnectBtn.style.display = 'none';
+                    connectBtn.style.display = 'block';
+                }
+            } catch (error) {
+                console.error('OAuth status check error:', error);
+            }
+        }
+
+        function checkUrlParams() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const success = urlParams.get('success');
+
+            if (success) {
+                const alert = document.getElementById('alert');
+                alert.textContent = ` ${success}`;
+                alert.classList.add('show');
+
+                // Remove param from URL
+                window.history.replaceState({}, '', '/dashboard');
+
+                // Auto-hide after 5 seconds
+                setTimeout(() => {
+                    alert.classList.remove('show');
+                }, 5000);
+            }
+        }
+
+        function connectWorkspace() {
+            window.location.href = `${API_BASE_URL}/api/oauth/workspace/start?mode=signin`;
+        }
+
+        async function disconnectWorkspace() {
+            if (!confirm('Are you sure you want to disconnect Google Workspace?')) {
+                return;
+            }
+
+            try {
+                const response = await fetch(`${API_BASE_URL}/api/oauth/disconnect`, {
+                    method: 'POST'
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    alert(' Google Workspace disconnected');
+                    await checkOAuthStatus();
+                } else {
+                    alert(` ${result.error}`);
+                }
+            } catch (error) {
+                console.error('Disconnect error:', error);
+                alert(' Network error');
+            }
+        }
+
+        function logout() {
+            localStorage.removeItem('auth_token');
+            localStorage.removeItem('user_email');
+            localStorage.removeItem('remember_me');
+            window.location.href = '/login';
+        }
+
+        function quickAction(action) {
+            const chatInput = document.getElementById('chat-input');
+
+            if (action === 'create-doc') {
+                chatInput.value = 'Create a new document called "Business Plan"';
+            } else if (action === 'send-email') {
+                chatInput.value = 'Send an email to team@example.com with subject "Meeting Update"';
+            }
+
+            chatInput.focus();
+        }
+
+        function handleChatKeypress(event) {
+            if (event.key === 'Enter') {
+                sendMessage();
+            }
+        }
+
+        async function sendMessage() {
+            const chatInput = document.getElementById('chat-input');
+            const sendBtn = document.getElementById('send-btn');
+            const chatResponse = document.getElementById('chat-response');
+            const message = chatInput.value.trim();
+
+            if (!message) return;
+
+            const token = localStorage.getItem('auth_token');
+            const userEmail = localStorage.getItem('user_email');
+
+            try {
+                sendBtn.disabled = true;
+                sendBtn.textContent = '⏳ Sending...';
+                chatResponse.style.display = 'block';
+                chatResponse.innerHTML = '<p style="color: #8b92a7;">🤖 AI is thinking...</p>';
+
+                const response = await fetch(`${API_BASE_URL}/api/agent/chat`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify({
+                        message: message,
+                        user_email: userEmail
+                    })
+                });
+
+                const result = await response.json();
+
+                if (result.success || result.response) {
+                    chatResponse.innerHTML = `
+                        <p style="color: #3fb950; margin-bottom: 8px;"> AI Response:</p>
+                        <p style="color: #c9d1d9;">${result.response || result.message}</p>
+                    `;
+                } else {
+                    chatResponse.innerHTML = `
+                        <p style="color: #f85149;"> Error: ${result.error || 'Unknown error'}</p>
+                    `;
+                }
+
+                chatInput.value = '';
+            } catch (error) {
+                console.error('Chat error:', error);
+                chatResponse.innerHTML = `
+                    <p style="color: #f85149;"> Network error. Please try again.</p>
+                `;
+            } finally {
+                sendBtn.disabled = false;
+                sendBtn.textContent = '📤 Send';
+            }
+        }
+    </script>
+</body>
+
+</html>

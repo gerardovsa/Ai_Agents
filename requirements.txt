@@ -1,0 +1,129 @@
+﻿# AI Agents V11 - InHouse Print Configuration
+# Updated: 2026-01-15
+# Removed unused dependencies from deleted modules
+# Focus: InHouse Print core functionality
+# Web Framework
+flask==3.0.0
+flask-cors==4.0.0
+flask-socketio==5.5.1
+python-socketio==5.12.0
+websocket-client==1.6.4
+waitress==2.1.2
+gunicorn==21.2.0
+
+# Async Workers (for Gunicorn)
+gevent>=23.9.0
+gevent-websocket>=0.10.1
+
+# AI Models
+anthropic>=0.40.0
+openai==1.35.0
+requests==2.31.0
+
+# Voice Transcription - Local Whisper (PyTorch)
+# Adds ~10-15 min to Docker build but provides accurate server-side transcription
+# Browser Speech Recognition also available as alternative (no conflict)
+openai-whisper>=20231117
+torch>=2.0.0
+torchaudio>=2.0.0
+
+# Data Processing
+pandas==2.3.3
+numpy>=1.26.4
+scipy>=1.11.0           # Scientific computing for advanced analytics
+statsmodels>=0.14.0     # Time series forecasting (ARIMA) for accurate revenue predictions
+scikit-learn>=1.3.0     # ML models (Logistic Regression, Random Forest) for predictions
+
+# Calculator Formula Evaluation
+asteval>=1.0.7
+
+# Environment
+python-dotenv==1.0.0
+
+# Google APIs (loosened constraints to resolve dependency conflicts)
+google-auth>=2.23.0
+google-auth-oauthlib>=1.1.0
+google-api-python-client>=2.100.0
+google-cloud-run>=0.10.0
+google-cloud-logging>=3.8.0
+google-cloud-monitoring>=2.16.0
+
+# Database
+psycopg2-binary==2.9.9
+supabase>=2.0.0,<3.0  # Pin to avoid gotrue backtracking
+sqlalchemy==2.0.23
+pyodbc>=5.0.0
+pymssql>=2.2.0
+
+# Vector Database
+pinecone>=3.0.0
+qdrant-client>=1.7.0,<2.0  # Pin to prevent excessive version backtracking
+
+# Scheduler
+apscheduler>=3.10.0
+
+# Document Processing & Text Extraction (Markdown Support)
+python-docx==1.1.0      # DOCX extraction with formatting
+openpyxl>=3.1.0         # XLSX/XLS extraction with tables
+python-pptx>=1.0.0      # PPTX extraction with slides
+pypdf>=3.17.0
+PyPDF2>=3.0.0
+reportlab>=4.0.0        # PDF generation from documents
+Pillow>=10.0.0          # Image conversion and manipulation
+pytesseract>=0.3.10
+
+# Document Conversion (PDF/Image Generation - NEW Dec 2025)
+# docx2pdf>=0.1.8       # DOCX to PDF (Windows only - optional)
+pdf2image>=1.16.0       # PDF to images (requires poppler)
+img2pdf>=0.5.0          # Images to PDF
+
+# Text/HTML Processing
+html2text>=2020.1.16
+beautifulsoup4>=4.12.0  # HTML extraction
+lxml>=4.9.0             # XML/HTML parsing
+
+# Professional Verification & Integration Tools
+python-whois>=0.9.6     # Domain age checks and WHOIS lookups for verification module
+stripe>=13.0.0          # Payment processing integration
+
+# E-commerce & Accounting Integrations
+xero-python>=9.3.0      # Xero accounting API integration
+ShopifyAPI>=12.7.0      # Shopify e-commerce API integration
+
+# Background Task Processing
+celery>=5.5.0           # Async task queue for scheduled workflows
+
+# Geolocation (optional) - removed maxminddb-geolite2 due to slow download
+# geoip2>=4.7.0
+# maxminddb-geolite2>=2018.701
+
+# Token counting
+tiktoken>=0.5.0
+
+# Utilities
+pytz==2023.3
+python-dateutil==2.8.2
+
+# Authentication & Security (NEW)
+bcrypt==4.0.1
+PyJWT==2.8.0
+
+# Engineering & CAD Libraries (Dec 12, 2025 - EXACT VERSIONS)
+# Using exact versions from working local environment to avoid pip backtracking
+matplotlib==3.10.5
+numpy==2.3.3
+cytriangle==2.0.0
+sectionproperties==3.9.0
+PyNiteFEA==1.6.2
+forallpeople==2.7.1
+handcalcs==1.10.0
+cadquery==2.6.1
+ezdxf==1.4.3
+
+# Infrastructure & Service Management
+docker>=7.0.0
+redis>=5.0.0
+
+# API Framework & WebSockets
+fastapi>=0.109.0
+uvicorn[standard]>=0.27.0

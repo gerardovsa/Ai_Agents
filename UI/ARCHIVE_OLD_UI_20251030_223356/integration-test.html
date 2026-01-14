@@ -1,0 +1,351 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Flask-UI Integration Test</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            max-width: 800px;
+            width: 100%;
+            padding: 40px;
+        }
+
+        h1 {
+            color: #2d3748;
+            margin-bottom: 10px;
+            font-size: 28px;
+        }
+
+        .subtitle {
+            color: #718096;
+            margin-bottom: 30px;
+            font-size: 14px;
+        }
+
+        .test-section {
+            background: #f7fafc;
+            border-radius: 12px;
+            padding: 24px;
+            margin-bottom: 20px;
+            border: 2px solid #e2e8f0;
+        }
+
+        .test-title {
+            /* font-weight: 600; */
+            color: #2d3748;
+            margin-bottom: 12px;
+            font-size: 18px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .status {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 6px 12px;
+            border-radius: 6px;
+            font-size: 12px;
+            /* font-weight: 600; */
+        }
+
+        .status.pending {
+            background: #fef3c7;
+            color: #92400e;
+        }
+
+        .status.success {
+            background: #d1fae5;
+            color: #065f46;
+        }
+
+        .status.error {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+
+        .indicator {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: currentColor;
+        }
+
+        button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            /* font-weight: 600; */
+            cursor: pointer;
+            font-size: 14px;
+            transition: transform 0.2s;
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+        }
+
+        button:active {
+            transform: translateY(0);
+        }
+
+        .result {
+            margin-top: 12px;
+            padding: 12px;
+            background: white;
+            border-radius: 8px;
+            font-size: 13px;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+
+        .result pre {
+            margin: 0;
+            font-family: 'Courier New', monospace;
+            color: #2d3748;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+
+        .button-group {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+
+        .endpoint-info {
+            background: #edf2f7;
+            padding: 8px 12px;
+            border-radius: 6px;
+            font-size: 12px;
+            font-family: 'Courier New', monospace;
+            color: #4a5568;
+            margin-top: 8px;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <h1>🧪 Flask-UI Integration Test</h1>
+        <p class="subtitle">Testing connection to Flask backend at http://localhost:4000</p>
+
+        <!-- Test 1: Health Check -->
+        <div class="test-section">
+            <div class="test-title">
+                1️⃣ Health Check
+                <span class="status pending" id="health-status">
+                    <span class="indicator"></span>
+                    <span>Pending</span>
+                </span>
+            </div>
+            <div class="endpoint-info">GET /health</div>
+            <button onclick="testHealth()">Run Health Check</button>
+            <div class="result" id="health-result" style="display: none;"></div>
+        </div>
+
+        <!-- Test 2: List Tools -->
+        <div class="test-section">
+            <div class="test-title">
+                2️⃣ List Available Tools
+                <span class="status pending" id="tools-status">
+                    <span class="indicator"></span>
+                    <span>Pending</span>
+                </span>
+            </div>
+            <div class="endpoint-info">GET /api/agent/tools</div>
+            <button onclick="testTools()">Fetch Tools</button>
+            <div class="result" id="tools-result" style="display: none;"></div>
+        </div>
+
+        <!-- Test 3: Send Chat Message -->
+        <div class="test-section">
+            <div class="test-title">
+                3️⃣ Send Chat Message
+                <span class="status pending" id="chat-status">
+                    <span class="indicator"></span>
+                    <span>Pending</span>
+                </span>
+            </div>
+            <div class="endpoint-info">POST /api/agent/chat</div>
+            <div class="button-group">
+                <button onclick="testChat('Hello AI!')">Send "Hello AI!"</button>
+                <button onclick="testChat('What can you do?')">Send "What can you do?"</button>
+                <button onclick="testChat('List all available platforms')">Send "List platforms"</button>
+            </div>
+            <div class="result" id="chat-result" style="display: none;"></div>
+        </div>
+
+        <!-- Test 4: List Threads -->
+        <div class="test-section">
+            <div class="test-title">
+                4️⃣ Thread Management
+                <span class="status pending" id="threads-status">
+                    <span class="indicator"></span>
+                    <span>Pending</span>
+                </span>
+            </div>
+            <div class="endpoint-info">GET /api/threads</div>
+            <button onclick="testThreads()">List Threads</button>
+            <div class="result" id="threads-result" style="display: none;"></div>
+        </div>
+
+        <!-- Summary -->
+        <div class="test-section" style="background: linear-gradient(135deg, #667eea22 0%, #764ba244 100%);">
+            <div class="test-title">
+                📊 Test Summary
+            </div>
+            <div id="summary" style="font-size: 14px; color: #4a5568;">
+                Run tests to see results
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = 'http://localhost:4000';
+        let testResults = {
+            health: false,
+            tools: false,
+            chat: false,
+            threads: false
+        };
+
+        function updateStatus(testName, status, message) {
+            const statusEl = document.getElementById(`${testName}-status`);
+            const resultEl = document.getElementById(`${testName}-result`);
+
+            statusEl.className = `status ${status}`;
+            statusEl.innerHTML = `
+                <span class="indicator"></span>
+                <span>${status === 'success' ? 'Passed' : status === 'error' ? 'Failed' : 'Pending'}</span>
+            `;
+
+            resultEl.style.display = 'block';
+            resultEl.innerHTML = `<pre>${message}</pre>`;
+
+            testResults[testName] = status === 'success';
+            updateSummary();
+        }
+
+        function updateSummary() {
+            const total = Object.keys(testResults).length;
+            const passed = Object.values(testResults).filter(v => v === true).length;
+            const failed = Object.values(testResults).filter(v => v === false).length;
+
+            document.getElementById('summary').innerHTML = `
+                <div style="display: flex; gap: 20px;">
+                    <div><strong>Total Tests:</strong> ${total}</div>
+                    <div style="color: #065f46;"><strong>✅ Passed:</strong> ${passed}</div>
+                    <div style="color: #991b1b;"><strong> Failed:</strong> ${failed}</div>
+                </div>
+            `;
+        }
+
+        async function testHealth() {
+            try {
+                const response = await fetch(`${API_BASE}/health`);
+                const data = await response.json();
+
+                if (data.status === 'healthy') {
+                    updateStatus('health', 'success', JSON.stringify(data, null, 2));
+                } else {
+                    updateStatus('health', 'error', 'Unexpected response: ' + JSON.stringify(data));
+                }
+            } catch (error) {
+                updateStatus('health', 'error', `Error: ${error.message}\n\nMake sure Flask server is running on port 5001`);
+            }
+        }
+
+        async function testTools() {
+            try {
+                const response = await fetch(`${API_BASE}/api/agent/tools`);
+                const data = await response.json();
+
+                if (data.tools && Array.isArray(data.tools)) {
+                    const platforms = new Set(data.tools.map(t => t.platform));
+                    const summary = `✅ Found ${data.tools.length} tools across ${platforms.size} platforms\n\nPlatforms: ${Array.from(platforms).join(', ')}\n\nFirst 5 tools:\n${data.tools.slice(0, 5).map(t => `  • ${t.name} (${t.platform})`).join('\n')}`;
+                    updateStatus('tools', 'success', summary);
+                } else {
+                    updateStatus('tools', 'error', 'Unexpected response format');
+                }
+            } catch (error) {
+                updateStatus('tools', 'error', `Error: ${error.message}`);
+            }
+        }
+
+        async function testChat(message) {
+            try {
+                const sessionId = 'test_session_' + Date.now();
+                const response = await fetch(`${API_BASE}/api/agent/chat`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        message: message,
+                        session_id: sessionId,
+                        context: { platform: 'integration_test' }
+                    })
+                });
+
+                const data = await response.json();
+
+                if (data.response) {
+                    const result = `📤 Sent: "${message}"\n\n📥 Response:\n${data.response}\n\n📊 Session: ${data.session_id}\n🤖 Model: ${data.model || 'N/A'}`;
+                    updateStatus('chat', 'success', result);
+                } else if (data.error) {
+                    updateStatus('chat', 'error', `API Error: ${data.error}`);
+                } else {
+                    updateStatus('chat', 'error', 'No response from AI');
+                }
+            } catch (error) {
+                updateStatus('chat', 'error', `Error: ${error.message}`);
+            }
+        }
+
+        async function testThreads() {
+            try {
+                const response = await fetch(`${API_BASE}/api/threads`);
+                const data = await response.json();
+
+                if (data.threads && Array.isArray(data.threads)) {
+                    const summary = `✅ Found ${data.threads.length} saved threads\n\n${data.threads.length > 0 ? data.threads.slice(0, 5).map((t, i) => `${i + 1}. ${t.name || 'Unnamed'} (${t.message_count || 0} messages)`).join('\n') : 'No threads yet - send some chat messages first!'}`;
+                    updateStatus('threads', 'success', summary);
+                } else {
+                    updateStatus('threads', 'error', 'Unexpected response format');
+                }
+            } catch (error) {
+                updateStatus('threads', 'error', `Error: ${error.message}`);
+            }
+        }
+
+        // Auto-run health check on load
+        window.addEventListener('load', () => {
+            setTimeout(testHealth, 500);
+        });
+    </script>
+</body>
+
+</html>

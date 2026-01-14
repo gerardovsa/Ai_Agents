@@ -1,0 +1,1025 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Synergy UI Components Test</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+            color: #e2e8f0;
+            padding: 20px;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 1800px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            text-align: center;
+            margin-bottom: 30px;
+            color: #60a5fa;
+            font-size: 32px;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+            gap: 30px;
+            margin-bottom: 40px;
+        }
+
+        .component-wrapper {
+            background: #1e293b;
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+        }
+
+        .component-title {
+            font-size: 18px;
+            /* font-weight: 600; */
+            margin-bottom: 15px;
+            color: #60a5fa;
+            border-bottom: 2px solid #334155;
+            padding-bottom: 10px;
+        }
+
+        /* ============================================
+           1. SYNC CARD STYLES
+           ============================================ */
+        .sync-card {
+            background: #334155;
+            border-radius: 8px;
+            padding: 16px;
+            cursor: pointer;
+            transition: all 0.2s;
+            border-left: 4px solid #ef4444;
+        }
+
+        .sync-card:hover {
+            background: #3f4b5f;
+            transform: translateX(4px);
+        }
+
+        .sync-card-header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 8px;
+        }
+
+        .sync-card-title {
+            /* font-weight: 600; */
+            font-size: 15px;
+            flex: 1;
+        }
+
+        .priority-badge {
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 11px;
+            /* font-weight: 600; */
+            text-transform: uppercase;
+        }
+
+        .priority-high {
+            background: #dc2626;
+            color: white;
+        }
+
+        .priority-medium {
+            background: #fbbf24;
+            color: #1e293b;
+        }
+
+        .priority-low {
+            background: #22c55e;
+            color: white;
+        }
+
+        .priority-critical {
+            background: #7c3aed;
+            color: white;
+        }
+
+        .sync-card-stats {
+            display: flex;
+            gap: 16px;
+            font-size: 13px;
+            color: #94a3b8;
+        }
+
+        .sync-card-stats span {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        /* ============================================
+           2. KANBAN CARD STYLES
+           ============================================ */
+        .kanban-card {
+            background: #334155;
+            border-radius: 10px;
+            padding: 16px;
+            cursor: grab;
+            transition: all 0.2s;
+            border: 2px solid transparent;
+            border-left: 4px solid #ef4444;
+        }
+
+        .kanban-card:hover {
+            border-color: #60a5fa;
+            box-shadow: 0 8px 24px rgba(96, 165, 250, 0.2);
+        }
+
+        .kanban-header {
+            margin-bottom: 12px;
+        }
+
+        .kanban-title {
+            /* font-weight: 600; */
+            font-size: 16px;
+            margin-bottom: 8px;
+            color: #e2e8f0;
+        }
+
+        .kanban-description {
+            font-size: 13px;
+            color: #94a3b8;
+            line-height: 1.5;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+
+        .kanban-badges {
+            display: flex;
+            gap: 8px;
+            margin: 12px 0;
+            flex-wrap: wrap;
+        }
+
+        .badge {
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 11px;
+            /* font-weight: 600; */
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .badge-status {
+            background: #22c55e;
+            color: white;
+        }
+
+        .badge-due {
+            background: #475569;
+            color: #e2e8f0;
+        }
+
+        .badge-count {
+            background: #3b82f6;
+            color: white;
+        }
+
+        .kanban-progress {
+            margin: 12px 0;
+        }
+
+        .progress-bar {
+            height: 8px;
+            background: #1e293b;
+            border-radius: 4px;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #22c55e 0%, #16a34a 100%);
+            transition: width 0.3s;
+        }
+
+        .progress-text {
+            font-size: 12px;
+            color: #94a3b8;
+            margin-top: 4px;
+        }
+
+        .kanban-footer {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 12px;
+            padding-top: 12px;
+            border-top: 1px solid #1e293b;
+        }
+
+        .assignees {
+            display: flex;
+            gap: -8px;
+        }
+
+        .avatar {
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #60a5fa 0%, #3b82f6 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 11px;
+            /* font-weight: 600; */
+            border: 2px solid #334155;
+        }
+
+        /* ============================================
+           3. EXPANDED CARD STYLES
+           ============================================ */
+        .expanded-card {
+            background: #1e293b;
+            border-radius: 12px;
+            max-height: 600px;
+            overflow-y: auto;
+            border: 1px solid #334155;
+        }
+
+        .expanded-header {
+            padding: 20px;
+            border-bottom: 2px solid #334155;
+            background: linear-gradient(135deg, #334155 0%, #1e293b 100%);
+        }
+
+        .expanded-title {
+            font-size: 20px;
+            /* font-weight: 700; */
+            margin-bottom: 12px;
+            color: #e2e8f0;
+        }
+
+        .expanded-meta {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+
+        .expanded-body {
+            padding: 20px;
+        }
+
+        .section {
+            margin-bottom: 24px;
+        }
+
+        .section-title {
+            font-size: 14px;
+            /* font-weight: 600; */
+            color: #60a5fa;
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        /* Milestone Styles */
+        .milestone-item {
+            background: #334155;
+            border-radius: 10px;
+            margin-bottom: 16px;
+            overflow: hidden;
+            border-left: 4px solid #3b82f6;
+        }
+
+        .milestone-header {
+            padding: 16px;
+            background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            transition: all 0.2s;
+        }
+
+        .milestone-header:hover {
+            background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+        }
+
+        .milestone-number {
+            background: rgba(255, 255, 255, 0.2);
+            padding: 6px 12px;
+            border-radius: 8px;
+            /* font-weight: 700; */
+            font-size: 14px;
+        }
+
+        .milestone-name {
+            flex: 1;
+            /* font-weight: 600; */
+            font-size: 15px;
+            color: white;
+        }
+
+        .milestone-progress {
+            background: rgba(255, 255, 255, 0.2);
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 12px;
+            /* font-weight: 600; */
+        }
+
+        .milestone-body {
+            padding: 16px;
+            background: #1e293b;
+        }
+
+        /* Task Styles */
+        .task-item {
+            background: #334155;
+            border-radius: 8px;
+            padding: 12px;
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            transition: all 0.2s;
+        }
+
+        .task-item:hover {
+            background: #3f4b5f;
+        }
+
+        .task-number {
+            background: #475569;
+            padding: 4px 10px;
+            border-radius: 6px;
+            font-size: 11px;
+            /* font-weight: 600; */
+            color: #e2e8f0;
+        }
+
+        .task-name {
+            flex: 1;
+            font-size: 14px;
+            color: #e2e8f0;
+        }
+
+        .blocker-badge {
+            background: #dc2626;
+            color: white;
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 11px;
+            /* font-weight: 600; */
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        /* Subtask Styles */
+        .task-subtasks {
+            margin-left: 40px;
+            margin-top: 8px;
+        }
+
+        .subtask-item {
+            background: #1e293b;
+            border-radius: 6px;
+            padding: 10px 10px;
+            margin-bottom: 6px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 13px;
+        }
+
+        .subtask-number {
+            background: #334155;
+            padding: 3px 8px;
+            border-radius: 4px;
+            font-size: 10px;
+            /* font-weight: 600; */
+            color: #94a3b8;
+        }
+
+        .subtask-name {
+            flex: 1;
+            color: #cbd5e1;
+        }
+
+        /* Document/Link Styles */
+        .doc-item,
+        .link-item {
+            background: #334155;
+            border-radius: 6px;
+            padding: 10px;
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            transition: all 0.2s;
+        }
+
+        .doc-item:hover,
+        .link-item:hover {
+            background: #3f4b5f;
+        }
+
+        .doc-badge,
+        .link-badge {
+            background: #475569;
+            padding: 4px 10px;
+            border-radius: 6px;
+            font-size: 11px;
+            /* font-weight: 600; */
+        }
+
+        .doc-link,
+        .link-url {
+            flex: 1;
+            color: #60a5fa;
+            text-decoration: none;
+            font-size: 13px;
+        }
+
+        .doc-link:hover,
+        .link-url:hover {
+            text-decoration: underline;
+        }
+
+        /* Footer */
+        .milestone-footer {
+            padding: 12px 16px;
+            background: #1e293b;
+            border-top: 1px solid #334155;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .milestone-footer-stats {
+            display: flex;
+            gap: 16px;
+            font-size: 12px;
+            color: #94a3b8;
+        }
+
+        /* ============================================
+           4. SIDEBAR ITEM STYLES
+           ============================================ */
+        .sidebar-item {
+            background: #334155;
+            border-radius: 10px;
+            overflow: hidden;
+            border-left: 4px solid #ef4444;
+        }
+
+        .sidebar-header {
+            padding: 16px;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .sidebar-header:hover {
+            background: #3f4b5f;
+        }
+
+        .sidebar-title {
+            /* font-weight: 600; */
+            font-size: 15px;
+            margin-bottom: 8px;
+            color: #e2e8f0;
+        }
+
+        .sidebar-summary {
+            font-size: 12px;
+            color: #94a3b8;
+            display: flex;
+            gap: 12px;
+        }
+
+        .sidebar-body {
+            padding: 16px;
+            background: #1e293b;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        /* Checkbox Styles */
+        input[type="checkbox"] {
+            width: 18px;
+            height: 18px;
+            cursor: pointer;
+            accent-color: #22c55e;
+        }
+
+        /* Scrollbar Styles */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: #1e293b;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #475569;
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: #64748b;
+        }
+
+        /* Expand Button */
+        .expand-btn {
+            background: none;
+            border: none;
+            color: white;
+            cursor: pointer;
+            font-size: 16px;
+            transition: transform 0.2s;
+        }
+
+        .expand-btn.expanded {
+            transform: rotate(90deg);
+        }
+
+        /* Status Badge */
+        .status-active {
+            background: #22c55e;
+            color: white;
+        }
+
+        .status-completed {
+            background: #3b82f6;
+            color: white;
+        }
+
+        .status-blocked {
+            background: #dc2626;
+            color: white;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <h1><i class="fa-solid fa-hexagon-nodes-bolt"></i> Synergy UI Components Test</h1>
+
+        <!-- First Row: Sync Card + Kanban Card -->
+        <div class="grid">
+            <!-- 1. SYNC CARD -->
+            <div class="component-wrapper">
+                <div class="component-title">1. Sync Card (Simple List)</div>
+                <div class="sync-card">
+                    <div class="sync-card-header">
+                        <i class="fas fa-hexagon-nodes-bolt" style="color: #60a5fa;"></i>
+                        <div class="sync-card-title">E-Commerce Platform Redesign</div>
+                        <span class="priority-badge priority-high">HIGH</span>
+                    </div>
+                    <div class="sync-card-stats">
+                        <span><i class="fas fa-check-circle"></i> 3/5 milestones</span>
+                        <span><i class="fas fa-tasks"></i> 12/20 tasks</span>
+                        <span><i class="fas fa-file"></i> 8</span>
+                        <span><i class="fas fa-calendar"></i> Nov 30</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 2. KANBAN CARD -->
+            <div class="component-wrapper">
+                <div class="component-title">2. Kanban Card (Draggable)</div>
+                <div class="kanban-card">
+                    <div class="kanban-header">
+                        <div class="kanban-title">E-Commerce Platform Redesign</div>
+                        <div class="kanban-description">
+                            Complete overhaul of the customer-facing e-commerce platform with modern design system,
+                            improved UX, and performance optimization.
+                        </div>
+                    </div>
+
+                    <div class="kanban-badges">
+                        <span class="badge priority-badge priority-high"><i class="fas fa-flag"></i> HIGH</span>
+                        <span class="badge badge-status"><i class="fas fa-check-circle"></i> Active</span>
+                        <span class="badge badge-due"><i class="fas fa-calendar"></i> Nov 30</span>
+                        <span class="badge badge-count"><i class="fas fa-file"></i> 8</span>
+                        <span class="badge badge-count"><i class="fas fa-link"></i> 5</span>
+                    </div>
+
+                    <div class="kanban-progress">
+                        <div class="progress-bar">
+                            <div class="progress-fill" style="width: 60%;"></div>
+                        </div>
+                        <div class="progress-text">60% complete • 3/5 milestones • 12/20 tasks</div>
+                    </div>
+
+                    <div class="kanban-footer">
+                        <div class="assignees">
+                            <div class="avatar">JD</div>
+                            <div class="avatar" style="background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);">
+                                SM</div>
+                            <div class="avatar" style="background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);">
+                                AK</div>
+                        </div>
+                        <div style="font-size: 12px; color: #94a3b8;">
+                            <i class="fas fa-clock"></i> Updated 2h ago
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Second Row: Expanded Card -->
+        <div class="grid" style="grid-template-columns: 1fr;">
+            <!-- 3. EXPANDED CARD -->
+            <div class="component-wrapper">
+                <div class="component-title">3. Expanded Card (Modal/Popup View)</div>
+                <div class="expanded-card">
+                    <div class="expanded-header">
+                        <div class="expanded-title">E-Commerce Platform Redesign</div>
+                        <div class="expanded-meta">
+                            <span class="priority-badge priority-high">HIGH PRIORITY</span>
+                            <span class="badge badge-status"><i class="fas fa-check-circle"></i> Active</span>
+                            <span class="badge badge-due"><i class="fas fa-calendar"></i> Due Nov 30, 2025</span>
+                        </div>
+                    </div>
+
+                    <div class="expanded-body">
+                        <!-- Description Section -->
+                        <div class="section">
+                            <div class="section-title"><i class="fas fa-align-left"></i> Description</div>
+                            <p style="color: #cbd5e1; font-size: 14px; line-height: 1.6;">
+                                Complete overhaul of the customer-facing e-commerce platform with modern design system,
+                                improved UX, and performance optimization. Includes frontend redesign, backend API
+                                updates, and testing infrastructure.
+                            </p>
+                        </div>
+
+                        <!-- Documents Section -->
+                        <div class="section">
+                            <div class="section-title"><i class="fas fa-file"></i> Session Documents (3)</div>
+                            <div class="doc-item">
+                                <span class="doc-badge">D1</span>
+                                <i class="fas fa-file-pdf" style="color: #dc2626;"></i>
+                                <a href="#" class="doc-link">Project Requirements.pdf</a>
+                                <button style="background: none; border: none; color: #94a3b8; cursor: pointer;"><i
+                                        class="fas fa-trash"></i></button>
+                            </div>
+                            <div class="doc-item">
+                                <span class="doc-badge">D2</span>
+                                <i class="fab fa-google-drive" style="color: #4285f4;"></i>
+                                <a href="#" class="doc-link">Design Mockups</a>
+                                <button style="background: none; border: none; color: #94a3b8; cursor: pointer;"><i
+                                        class="fas fa-trash"></i></button>
+                            </div>
+                            <div class="doc-item">
+                                <span class="doc-badge">D3</span>
+                                <span
+                                    style="background: #7c3aed; color: white; padding: 2px 8px; border-radius: 4px; font-size: 10px; font-weight: 600;">Internal</span>
+                                <i class="fas fa-file-alt" style="color: #60a5fa;"></i>
+                                <a href="#" class="doc-link">Project Meeting Notes</a>
+                                <button style="background: none; border: none; color: #94a3b8; cursor: pointer;"><i
+                                        class="fas fa-trash"></i></button>
+                            </div>
+                        </div>
+
+                        <!-- Links Section -->
+                        <div class="section">
+                            <div class="section-title"><i class="fas fa-link"></i> Session Links (2)</div>
+                            <div class="link-item">
+                                <span class="link-badge">L1</span>
+                                <i class="fas fa-external-link-alt" style="color: #60a5fa;"></i>
+                                <a href="#" class="link-url">Staging Environment</a>
+                                <button style="background: none; border: none; color: #94a3b8; cursor: pointer;"><i
+                                        class="fas fa-trash"></i></button>
+                            </div>
+                            <div class="link-item">
+                                <span class="link-badge">L2</span>
+                                <i class="fab fa-figma" style="color: #f24e1e;"></i>
+                                <a href="#" class="link-url">Figma Design System</a>
+                                <button style="background: none; border: none; color: #94a3b8; cursor: pointer;"><i
+                                        class="fas fa-trash"></i></button>
+                            </div>
+                        </div>
+
+                        <!-- Milestones Section -->
+                        <div class="section">
+                            <div class="section-title"><i class="fas fa-flag-checkered"></i> Milestones (3/5 complete)
+                            </div>
+
+                            <!-- Milestone 1: COMPLETED -->
+                            <div class="milestone-item" style="border-left-color: #22c55e;">
+                                <div class="milestone-header"
+                                    style="background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);">
+                                    <button class="expand-btn"><i class="fas fa-chevron-right"></i></button>
+                                    <span class="milestone-number">M1</span>
+                                    <input type="checkbox" checked onclick="return false;">
+                                    <span class="milestone-name">Design & Research Phase</span>
+                                    <span class="milestone-progress">✅ 100%</span>
+                                </div>
+                            </div>
+
+                            <!-- Milestone 2: IN PROGRESS -->
+                            <div class="milestone-item">
+                                <div class="milestone-header">
+                                    <button class="expand-btn expanded"><i class="fas fa-chevron-right"></i></button>
+                                    <span class="milestone-number">M2</span>
+                                    <input type="checkbox">
+                                    <span class="milestone-name">Frontend Development</span>
+                                    <span class="milestone-progress">66%</span>
+                                    <span class="badge badge-due" style="background: rgba(255,255,255,0.2);"><i
+                                            class="fas fa-calendar"></i> Nov 25</span>
+                                </div>
+
+                                <div class="milestone-body">
+                                    <!-- Description -->
+                                    <p
+                                        style="color: #cbd5e1; font-size: 13px; margin-bottom: 16px; font-style: italic;">
+                                        Build React components, implement design system, and create responsive layouts.
+                                    </p>
+
+                                    <!-- Milestone Documents -->
+                                    <div style="margin-bottom: 16px;">
+                                        <div
+                                            style="font-size: 12px; font-weight: 600; color: #60a5fa; margin-bottom: 8px;">
+                                            <i class="fas fa-file"></i> Milestone Documents (2)
+                                        </div>
+                                        <div class="doc-item" style="font-size: 12px; padding: 8px;">
+                                            <span class="doc-badge" style="font-size: 10px;">D2.1</span>
+                                            <i class="fab fa-google-drive" style="color: #4285f4; font-size: 14px;"></i>
+                                            <a href="#" class="doc-link">Component Library</a>
+                                        </div>
+                                        <div class="doc-item" style="font-size: 12px; padding: 8px;">
+                                            <span class="doc-badge" style="font-size: 10px;">D2.2</span>
+                                            <span
+                                                style="background: #7c3aed; color: white; padding: 2px 6px; border-radius: 3px; font-size: 9px; font-weight: 600;">Internal</span>
+                                            <i class="fas fa-file-alt" style="color: #60a5fa; font-size: 14px;"></i>
+                                            <a href="#" class="doc-link">Frontend Code Standards</a>
+                                        </div>
+                                    </div>
+
+                                    <!-- Milestone Links -->
+                                    <div style="margin-bottom: 16px;">
+                                        <div
+                                            style="font-size: 12px; font-weight: 600; color: #60a5fa; margin-bottom: 8px;">
+                                            <i class="fas fa-link"></i> Milestone Links (1)
+                                        </div>
+                                        <div class="link-item" style="font-size: 12px; padding: 8px;">
+                                            <span class="link-badge" style="font-size: 10px;">L2.1</span>
+                                            <i class="fab fa-github" style="color: #e2e8f0; font-size: 14px;"></i>
+                                            <a href="#" class="link-url">GitHub Repository</a>
+                                        </div>
+                                    </div>
+
+                                    <!-- Tasks -->
+                                    <div
+                                        style="font-size: 12px; font-weight: 600; color: #94a3b8; margin-bottom: 12px;">
+                                        <i class="fas fa-tasks"></i> Tasks (2/3 complete)
+                                    </div>
+
+                                    <!-- Task 1: COMPLETED -->
+                                    <div class="task-item">
+                                        <span class="task-number">T2.1</span>
+                                        <input type="checkbox" checked>
+                                        <span class="task-name"
+                                            style="text-decoration: line-through; opacity: 0.7;">Setup React project
+                                            structure</span>
+                                    </div>
+
+                                    <!-- Task 2: COMPLETED WITH SUBTASKS -->
+                                    <div>
+                                        <div class="task-item">
+                                            <button class="expand-btn expanded" style="color: #e2e8f0;"><i
+                                                    class="fas fa-chevron-right"></i></button>
+                                            <span class="task-number">T2.2</span>
+                                            <input type="checkbox" checked>
+                                            <span class="task-name"
+                                                style="text-decoration: line-through; opacity: 0.7;">Implement design
+                                                system</span>
+                                            <span style="font-size: 11px; color: #94a3b8;">3/3 subtasks</span>
+                                        </div>
+                                        <div class="task-subtasks">
+                                            <div class="subtask-item">
+                                                <span class="subtask-number">S2.2.1</span>
+                                                <input type="checkbox" checked>
+                                                <span class="subtask-name"
+                                                    style="text-decoration: line-through; opacity: 0.7;">Create color
+                                                    palette</span>
+                                            </div>
+                                            <div class="subtask-item">
+                                                <span class="subtask-number">S2.2.2</span>
+                                                <input type="checkbox" checked>
+                                                <span class="subtask-name"
+                                                    style="text-decoration: line-through; opacity: 0.7;">Setup
+                                                    typography system</span>
+                                            </div>
+                                            <div class="subtask-item">
+                                                <span class="subtask-number">S2.2.3</span>
+                                                <input type="checkbox" checked>
+                                                <span class="subtask-name"
+                                                    style="text-decoration: line-through; opacity: 0.7;">Build component
+                                                    library</span>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- Task 3: IN PROGRESS -->
+                                    <div class="task-item">
+                                        <span class="task-number">T2.3</span>
+                                        <input type="checkbox">
+                                        <span class="task-name">Create responsive layouts</span>
+                                        <span style="font-size: 11px; color: #94a3b8;"><i class="fas fa-clock"></i> 8h
+                                            est.</span>
+                                    </div>
+
+                                    <!-- Milestone Footer -->
+                                    <div class="milestone-footer">
+                                        <div class="milestone-footer-stats">
+                                            <span><i class="fas fa-tasks"></i> 2/3 tasks</span>
+                                            <span><i class="fas fa-check-circle"></i> 3/3 subtasks</span>
+                                            <span><i class="fas fa-clock"></i> 8h remaining</span>
+                                        </div>
+                                        <button
+                                            style="background: #3b82f6; color: white; border: none; padding: 6px 12px; border-radius: 6px; font-size: 12px; cursor: pointer;">
+                                            <i class="fas fa-comment"></i> Comment
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Milestone 3: BLOCKED -->
+                            <div class="milestone-item" style="border-left-color: #dc2626;">
+                                <div class="milestone-header"
+                                    style="background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);">
+                                    <button class="expand-btn"><i class="fas fa-chevron-right"></i></button>
+                                    <span class="milestone-number">M3</span>
+                                    <input type="checkbox">
+                                    <span class="milestone-name">Backend API Development</span>
+                                    <span class="milestone-progress">0%</span>
+                                    <span class="blocker-badge"><i class="fas fa-exclamation-triangle"></i>
+                                        BLOCKED</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Third Row: Sidebar Item -->
+        <div class="grid">
+            <!-- 4. SIDEBAR ITEM -->
+            <div class="component-wrapper">
+                <div class="component-title">4. Sidebar Item (Collapsed)</div>
+                <div class="sidebar-item">
+                    <div class="sidebar-header">
+                        <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
+                            <span style="width: 8px; height: 8px; background: #ef4444; border-radius: 50%;"></span>
+                            <div class="sidebar-title">E-Commerce Platform Redesign</div>
+                        </div>
+                        <div class="sidebar-summary">
+                            <span><i class="fas fa-flag-checkered"></i> 3/5 milestones</span>
+                            <span><i class="fas fa-tasks"></i> 12/20 tasks</span>
+                        </div>
+                        <div class="progress-bar" style="margin-top: 8px;">
+                            <div class="progress-fill" style="width: 60%;"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 4B. SIDEBAR ITEM (EXPANDED) -->
+            <div class="component-wrapper">
+                <div class="component-title">4. Sidebar Item (Expanded Inline)</div>
+                <div class="sidebar-item">
+                    <div class="sidebar-header">
+                        <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
+                            <span style="width: 8px; height: 8px; background: #ef4444; border-radius: 50%;"></span>
+                            <div class="sidebar-title">E-Commerce Platform Redesign</div>
+                            <button class="expand-btn expanded" style="margin-left: auto;"><i
+                                    class="fas fa-chevron-right"></i></button>
+                        </div>
+                        <div class="sidebar-summary">
+                            <span><i class="fas fa-flag-checkered"></i> 3/5 milestones</span>
+                            <span><i class="fas fa-tasks"></i> 12/20 tasks</span>
+                        </div>
+                        <div class="progress-bar" style="margin-top: 8px;">
+                            <div class="progress-fill" style="width: 60%;"></div>
+                        </div>
+                    </div>
+
+                    <div class="sidebar-body">
+                        <!-- Same milestone structure as expanded card but more compact -->
+                        <div style="font-size: 12px; font-weight: 600; color: #60a5fa; margin-bottom: 12px;">
+                            <i class="fas fa-flag-checkered"></i> Milestones
+                        </div>
+
+                        <!-- Milestone 1 (Compact) -->
+                        <div
+                            style="background: #334155; border-left: 3px solid #22c55e; border-radius: 8px; padding: 12px; margin-bottom: 12px;">
+                            <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
+                                <span
+                                    style="background: rgba(34, 197, 94, 0.2); color: #22c55e; padding: 4px 8px; border-radius: 6px; font-size: 11px; font-weight: 700;">M1</span>
+                                <span style="font-size: 13px; font-weight: 600; color: #e2e8f0;">Design & Research
+                                    Phase</span>
+                                <span style="margin-left: auto; font-size: 11px; color: #22c55e;">✅ 100%</span>
+                            </div>
+                            <div style="font-size: 11px; color: #94a3b8;">
+                                <i class="fas fa-tasks"></i> 3/3 tasks completed
+                            </div>
+                        </div>
+
+                        <!-- Milestone 2 (Compact with Tasks) -->
+                        <div
+                            style="background: #334155; border-left: 3px solid #3b82f6; border-radius: 8px; padding: 12px; margin-bottom: 12px;">
+                            <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
+                                <span
+                                    style="background: rgba(59, 130, 246, 0.2); color: #3b82f6; padding: 4px 8px; border-radius: 6px; font-size: 11px; font-weight: 700;">M2</span>
+                                <span style="font-size: 13px; font-weight: 600; color: #e2e8f0;">Frontend
+                                    Development</span>
+                                <span style="margin-left: auto; font-size: 11px; color: #3b82f6;">66%</span>
+                            </div>
+                            <div style="font-size: 11px; color: #94a3b8; margin-bottom: 8px;">
+                                <i class="fas fa-tasks"></i> 2/3 tasks • <i class="fas fa-calendar"></i> Due Nov 25
+                            </div>
+
+                            <!-- Tasks (Compact) -->
+                            <div style="margin-top: 8px; padding-left: 12px; border-left: 2px solid #1e293b;">
+                                <div
+                                    style="display: flex; align-items: center; gap: 6px; margin-bottom: 4px; font-size: 11px;">
+                                    <input type="checkbox" checked style="width: 14px; height: 14px;">
+                                    <span style="color: #94a3b8; text-decoration: line-through;">T2.1 Setup
+                                        project</span>
+                                </div>
+                                <div
+                                    style="display: flex; align-items: center; gap: 6px; margin-bottom: 4px; font-size: 11px;">
+                                    <input type="checkbox" checked style="width: 14px; height: 14px;">
+                                    <span style="color: #94a3b8; text-decoration: line-through;">T2.2 Design
+                                        system</span>
+                                </div>
+                                <div style="display: flex; align-items: center; gap: 6px; font-size: 11px;">
+                                    <input type="checkbox" style="width: 14px; height: 14px;">
+                                    <span style="color: #cbd5e1;">T2.3 Responsive layouts</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Milestone 3 (Blocked) -->
+                        <div
+                            style="background: #334155; border-left: 3px solid #dc2626; border-radius: 8px; padding: 12px;">
+                            <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
+                                <span
+                                    style="background: rgba(220, 38, 38, 0.2); color: #dc2626; padding: 4px 8px; border-radius: 6px; font-size: 11px; font-weight: 700;">M3</span>
+                                <span style="font-size: 13px; font-weight: 600; color: #e2e8f0;">Backend API
+                                    Development</span>
+                                <span class="blocker-badge"
+                                    style="margin-left: auto; padding: 3px 8px; font-size: 10px;">
+                                    <i class="fas fa-exclamation-triangle"></i> BLOCKED
+                                </span>
+                            </div>
+                            <div style="font-size: 11px; color: #94a3b8;">
+                                <i class="fas fa-tasks"></i> 0/4 tasks • Waiting for API spec approval
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Toggle expand/collapse
+        document.querySelectorAll('.expand-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                btn.classList.toggle('expanded');
+            });
+        });
+
+        // Log interactions
+        document.querySelectorAll('.sync-card, .kanban-card, .sidebar-header').forEach(el => {
+            el.addEventListener('click', () => {
+                console.log('Card clicked:', el.querySelector('.sync-card-title, .kanban-title, .sidebar-title')?.textContent);
+            });
+        });
+    </script>
+</body>
+
+</html>

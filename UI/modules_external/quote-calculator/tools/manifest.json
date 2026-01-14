@@ -1,0 +1,91 @@
+{
+    "module_id": "quote-calculator",
+    "module_name": "Quote Calculator",
+    "version": "1.0.0",
+    "last_updated": "2025-12-20",
+    "description": "Complete tool manifest for Quote Calculator module with 80 tools across calculator operations, database queries, and custom calculator builder",
+    "total_tools": 80,
+    "tool_categories": [
+        {
+            "category_id": "calculators",
+            "category_name": "Product Calculators",
+            "description": "Shopify and GOD pricing calculators for print products",
+            "tool_count": 36,
+            "schema_files": [
+                "../schema/calculator_tools.json"
+            ]
+        },
+        {
+            "category_id": "database",
+            "category_name": "Database Operations",
+            "description": "Query and modify calculator pricing database",
+            "tool_count": 4,
+            "schema_files": [
+                "../schema/calculator_pricing_tools.json"
+            ]
+        },
+        {
+            "category_id": "query_library",
+            "category_name": "Query Library",
+            "description": "77 pre-built SQL queries for analytics and reporting",
+            "tool_count": 2,
+            "schema_files": [
+                "../schema/query_library_tools.json"
+            ]
+        },
+        {
+            "category_id": "custom_calculator_builder",
+            "category_name": "Custom Calculator Builder",
+            "description": "AI-assisted calculator creation with formula engine",
+            "tool_count": 6,
+            "schema_files": [
+                "../schema/custom_calculator_tools.json"
+            ]
+        },
+        {
+            "category_id": "custom_calculator_queries",
+            "category_name": "Custom Calculator Queries",
+            "description": "Query and search custom calculators",
+            "tool_count": 6,
+            "schema_files": [
+                "../schema/custom_calculator_query_tools.json"
+            ]
+        },
+        {
+            "category_id": "guides",
+            "category_name": "Schema Guides",
+            "description": "Comprehensive schema documentation for AI agent reference",
+            "tool_count": 2,
+            "schema_files": [
+                "../schema/calculator_pricing_guide.json",
+                "../schema/custom_calculator_guide.json"
+            ]
+        }
+    ],
+    "implementation_details": {
+        "wrapper_file": "../implementations/calculator_builder_wrapper.py",
+        "backend_files": [
+            "../backend/calculator_builder_tools.py",
+            "../backend/query_library.py",
+            "../backend/universal_calculator_executor.py"
+        ],
+        "registry": "tools.registry_v3.RegistryV3",
+        "auto_discovery": true
+    },
+    "notes": [
+        "Tools are auto-discovered by Registry V3 from schema/ directory",
+        "Each schema file contains tool definitions with parameters and descriptions",
+        "Implementation wrappers use @tool_executor() decorator",
+        "All database operations use AI_infrastructure.shared.database_utils.execute_query()",
+        "Custom calculator builder requires asteval package for formula execution"
+    ],
+    "dependencies": {
+        "required": [
+            "AI_infrastructure.shared.database_utils",
+            "tools.registry_v3"
+        ],
+        "optional": [
+            "asteval (for custom calculator builder)"
+        ]
+    }
+}

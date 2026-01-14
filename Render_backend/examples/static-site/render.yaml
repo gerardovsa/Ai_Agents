@@ -1,0 +1,462 @@
+# ==============================================================================
+# STATIC SITE - RENDER.COM DEPLOYMENT CONFIGURATION
+# ==============================================================================
+#
+# This configuration file deploys a static website to Render.com.
+# Static sites are HTML/CSS/JS files served directly without a backend server.
+#
+# WHAT THIS CONFIGURES:
+# - Static site service with automatic builds
+# - Support for React, Vue, Angular, plain HTML, etc.
+# - Custom build commands for frameworks
+# - Automatic CDN distribution
+# - Custom headers and redirects
+#
+# PREREQUISITES:
+# 1. Build output directory (dist/, build/, public/, etc.)
+# 2. Build command that generates static files
+# 3. HTML, CSS, and JavaScript files
+#
+# SUPPORTED FRAMEWORKS:
+# - React (Create React App, Vite)
+# - Vue.js (Vue CLI, Vite)
+# - Angular
+# - Svelte
+# - Plain HTML/CSS/JS
+# - Static Site Generators (Hugo, Jekyll, Gatsby, etc.)
+#
+# ==============================================================================
+
+services:
+  # ----------------------------------------------------------------------------
+  # STATIC SITE SERVICE
+  # ----------------------------------------------------------------------------
+  - type: web
+    name: my-static-site
+    runtime: static  # IMPORTANT: Use 'static' runtime
+    env: static
+    region: oregon  # Options: oregon, frankfurt, singapore, ohio, virginia
+    
+    # Build Configuration
+    # Command to generate static files
+    # Examples:
+    # - npm run build (React, Vue, Angular)
+    # - yarn build
+    # - hugo (Hugo static site generator)
+    # - jekyll build (Jekyll)
+    # - gatsby build (Gatsby)
+    buildCommand: npm run build
+    
+    # Static Publish Directory
+    # Path to folder containing built static files (relative to repo root)
+    # Common values:
+    # - build (Create React App)
+    # - dist (Vite, Vue CLI, Angular)
+    # - public (Hugo, Gatsby)
+    # - _site (Jekyll)
+    # - out (Next.js static export)
+    staticPublishPath: build
+    
+    # Plan Configuration
+    # Starter: FREE (1GB bandwidth/month, auto-sleep)
+    # Note: Static sites on free tier don't sleep!
+    plan: starter
+    
+    # Auto-Deploy
+    # Automatically rebuild and deploy on git push
+    autoDeploy: true
+    
+    # Custom Headers (optional)
+    # Add security and caching headers
+    headers:
+      - path: /*
+        name: X-Frame-Options
+        value: DENY
+      - path: /*
+        name: X-Content-Type-Options
+        value: nosniff
+      - path: /*
+        name: X-XSS-Protection
+        value: 1; mode=block
+      - path: /static/*
+        name: Cache-Control
+        value: public, max-age=31536000, immutable
+      - path: /*.js
+        name: Cache-Control
+        value: public, max-age=31536000, immutable
+      - path: /*.css
+        name: Cache-Control
+        value: public, max-age=31536000, immutable
+    
+    # Routes (optional)
+    # Configure SPA routing, redirects, rewrites
+    routes:
+      # SPA fallback - send all requests to index.html
+      # Required for React Router, Vue Router, etc.
+      - type: rewrite
+        source: /*
+        destination: /index.html
+    
+    # Environment Variables (optional)
+    # For build-time configuration
+    # NOTE: These are baked into static files during build!
+    # Don't use for secrets that should be hidden from browser
+    envVars:
+      # React environment variables must start with REACT_APP_
+      # - key: REACT_APP_API_URL
+      #   value: https://api.example.com
+      # - key: REACT_APP_GOOGLE_ANALYTICS_ID
+      #   value: G-XXXXXXXXXX
+      
+      # Vue environment variables must start with VUE_APP_
+      # - key: VUE_APP_API_URL
+      #   value: https://api.example.com
+      
+      # Vite environment variables must start with VITE_
+      # - key: VITE_API_URL
+      #   value: https://api.example.com
+      
+      # Angular uses environment.ts files (not env vars typically)
+      
+      # Node version for build (if needed)
+      - key: NODE_VERSION
+        value: "20.11.0"
+
+# ==============================================================================
+# FRAMEWORK-SPECIFIC CONFIGURATIONS
+# ==============================================================================
+#
+# REACT (CREATE REACT APP):
+#   buildCommand: npm run build
+#   staticPublishPath: build
+#   
+#   package.json:
+#   {
+#     "scripts": {
+#       "build": "react-scripts build"
+#     }
+#   }
+#   
+#   Environment variables: REACT_APP_* prefix
+#
+# REACT (VITE):
+#   buildCommand: npm run build
+#   staticPublishPath: dist
+#   
+#   package.json:
+#   {
+#     "scripts": {
+#       "build": "vite build"
+#     }
+#   }
+#   
+#   Environment variables: VITE_* prefix
+#
+# VUE.JS (VUE CLI):
+#   buildCommand: npm run build
+#   staticPublishPath: dist
+#   
+#   package.json:
+#   {
+#     "scripts": {
+#       "build": "vue-cli-service build"
+#     }
+#   }
+#   
+#   Environment variables: VUE_APP_* prefix
+#
+# ANGULAR:
+#   buildCommand: npm run build -- --configuration production
+#   staticPublishPath: dist/my-app
+#   
+#   package.json:
+#   {
+#     "scripts": {
+#       "build": "ng build"
+#     }
+#   }
+#   
+#   Note: Check angular.json for output path
+#
+# SVELTE (VITE):
+#   buildCommand: npm run build
+#   staticPublishPath: dist
+#   
+#   package.json:
+#   {
+#     "scripts": {
+#       "build": "vite build"
+#     }
+#   }
+#
+# HUGO:
+#   buildCommand: hugo --minify
+#   staticPublishPath: public
+#   
+#   No package.json needed (Hugo is Go-based)
+#
+# JEKYLL:
+#   buildCommand: jekyll build
+#   staticPublishPath: _site
+#   
+#   Gemfile required with jekyll gem
+#
+# GATSBY:
+#   buildCommand: gatsby build
+#   staticPublishPath: public
+#   
+#   package.json:
+#   {
+#     "scripts": {
+#       "build": "gatsby build"
+#     }
+#   }
+#
+# NEXT.JS (STATIC EXPORT):
+#   buildCommand: npm run build && npm run export
+#   staticPublishPath: out
+#   
+#   package.json:
+#   {
+#     "scripts": {
+#       "build": "next build",
+#       "export": "next export"
+#     }
+#   }
+#   
+#   next.config.js:
+#   module.exports = {
+#     output: 'export',
+#     images: { unoptimized: true }
+#   }
+#
+# ==============================================================================
+# DEPLOYMENT CHECKLIST
+# ==============================================================================
+# Before deploying, ensure:
+#
+# 1. BUILD COMMAND WORKS LOCALLY:
+#    npm run build
+#    # Should create build/dist folder with index.html
+#
+# 2. STATIC PUBLISH PATH IS CORRECT:
+#    # Check output folder name
+#    # Verify index.html exists in that folder
+#
+# 3. ENVIRONMENT VARIABLES USE CORRECT PREFIX:
+#    # React: REACT_APP_*
+#    # Vue: VUE_APP_*
+#    # Vite: VITE_*
+#    # Angular: Use environment.ts files
+#
+# 4. SPA ROUTING CONFIGURED:
+#    # For React Router, Vue Router, etc.
+#    # Add rewrite rule: /* -> /index.html
+#
+# 5. 404 PAGE EXISTS (optional):
+#    # Create 404.html in build output
+#    # Render automatically serves it for 404 errors
+#
+# 6. PUBLIC FOLDER SETUP:
+#    # Favicon, robots.txt, sitemap.xml in public/
+#    # These get copied to build folder
+#
+# ==============================================================================
+# POST-DEPLOYMENT STEPS
+# ==============================================================================
+# After first deployment:
+#
+# 1. VERIFY SITE IS ACCESSIBLE:
+#    Open browser to: https://your-site.onrender.com
+#    # Should load home page
+#
+# 2. TEST SPA ROUTING:
+#    # Navigate to /about or other route
+#    # Refresh page - should still work (not 404)
+#
+# 3. CHECK STATIC ASSETS:
+#    # Open browser DevTools > Network
+#    # Verify JS, CSS, images load successfully
+#
+# 4. VERIFY ENVIRONMENT VARIABLES:
+#    # Check console.log for API URLs
+#    # Ensure build-time variables were injected
+#
+# 5. TEST 404 PAGE:
+#    # Visit non-existent route like /this-does-not-exist
+#    # Should show custom 404 page if configured
+#
+# 6. CONFIGURE CUSTOM DOMAIN:
+#    # Render Dashboard > Settings > Custom Domains
+#    # Add CNAME record: your-domain.com -> your-site.onrender.com
+#
+# ==============================================================================
+# COMMON ISSUES & SOLUTIONS
+# ==============================================================================
+#
+# ISSUE: Build fails with "Command not found"
+# SOLUTION: Ensure package.json has build script
+#           Check buildCommand matches script name
+#           Verify dependencies are in package.json
+#
+# ISSUE: Blank page after deployment
+# SOLUTION: Check browser console for errors
+#           Verify staticPublishPath is correct
+#           Check index.html exists in publish directory
+#           Verify environment variables are set correctly
+#
+# ISSUE: 404 on page refresh (SPA routing broken)
+# SOLUTION: Add rewrite rule in routes:
+#           - type: rewrite
+#             source: /*
+#             destination: /index.html
+#
+# ISSUE: Static assets not loading (CSS, JS, images)
+# SOLUTION: Check file paths are relative or absolute from root
+#           React: Use PUBLIC_URL environment variable
+#           Verify files exist in build output
+#           Check browser network tab for 404s
+#
+# ISSUE: Environment variables not available
+# SOLUTION: Use correct prefix (REACT_APP_, VUE_APP_, VITE_)
+#           Rebuild after adding new variables
+#           Check variables are accessed correctly in code
+#
+# ISSUE: Build succeeds but wrong files deployed
+# SOLUTION: Verify staticPublishPath points to correct folder
+#           Check .gitignore doesn't exclude build folder
+#           Ensure build folder is created by buildCommand
+#
+# ==============================================================================
+# ROUTING EXAMPLES
+# ==============================================================================
+#
+# SPA FALLBACK (REACT ROUTER, VUE ROUTER):
+# routes:
+#   - type: rewrite
+#     source: /*
+#     destination: /index.html
+#
+# REDIRECT OLD URL TO NEW URL:
+# routes:
+#   - type: redirect
+#     source: /old-page
+#     destination: /new-page
+#     status: 301  # Permanent redirect
+#
+# REDIRECT TO EXTERNAL URL:
+# routes:
+#   - type: redirect
+#     source: /blog
+#     destination: https://blog.example.com
+#     status: 302  # Temporary redirect
+#
+# CUSTOM 404 PAGE:
+# routes:
+#   - type: rewrite
+#     source: /*
+#     destination: /404.html
+#     status: 404
+#
+# API PROXY (AVOID CORS):
+# routes:
+#   - type: redirect
+#     source: /api/*
+#     destination: https://api.example.com/:splat
+#     status: 200
+#
+# ==============================================================================
+# PERFORMANCE OPTIMIZATION
+# ==============================================================================
+#
+# BUILD OPTIMIZATION:
+# - Minimize bundle size with tree shaking
+# - Use code splitting for large apps
+# - Optimize images (compress, use WebP)
+# - Remove console.log statements
+# - Use production builds (NODE_ENV=production)
+#
+# CACHING HEADERS:
+# - Set long cache times for static assets
+# - Use Cache-Control: public, max-age=31536000, immutable
+# - Add hash/version to filenames for cache busting
+#
+# CDN BENEFITS:
+# - Render automatically uses CDN for static sites
+# - Files cached at edge locations globally
+# - Faster load times for users worldwide
+#
+# IMAGE OPTIMIZATION:
+# - Compress images with tools like ImageOptim
+# - Use modern formats (WebP, AVIF)
+# - Serve responsive images with srcset
+# - Lazy load images below the fold
+#
+# LIGHTHOUSE SCORE:
+# - Run Lighthouse audit in Chrome DevTools
+# - Aim for 90+ scores in all categories
+# - Fix issues highlighted in report
+#
+# ==============================================================================
+# SECURITY HEADERS
+# ==============================================================================
+# Add these headers for better security:
+#
+# headers:
+#   # Prevent clickjacking
+#   - path: /*
+#     name: X-Frame-Options
+#     value: DENY
+#   
+#   # Prevent MIME type sniffing
+#   - path: /*
+#     name: X-Content-Type-Options
+#     value: nosniff
+#   
+#   # XSS protection
+#   - path: /*
+#     name: X-XSS-Protection
+#     value: 1; mode=block
+#   
+#   # Content Security Policy
+#   - path: /*
+#     name: Content-Security-Policy
+#     value: default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'
+#   
+#   # Referrer policy
+#   - path: /*
+#     name: Referrer-Policy
+#     value: strict-origin-when-cross-origin
+#   
+#   # Permissions policy
+#   - path: /*
+#     name: Permissions-Policy
+#     value: camera=(), microphone=(), geolocation=()
+#
+# ==============================================================================
+# EXAMPLE PACKAGE.JSON
+# ==============================================================================
+#
+# {
+#   "name": "my-static-site",
+#   "version": "1.0.0",
+#   "scripts": {
+#     "dev": "vite",
+#     "build": "vite build",
+#     "preview": "vite preview"
+#   },
+#   "dependencies": {
+#     "react": "^18.2.0",
+#     "react-dom": "^18.2.0",
+#     "react-router-dom": "^6.21.0"
+#   },
+#   "devDependencies": {
+#     "vite": "^5.0.0",
+#     "@vitejs/plugin-react": "^4.2.0"
+#   },
+#   "engines": {
+#     "node": "20.11.0"
+#   }
+# }
+#
+# ==============================================================================

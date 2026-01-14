@@ -1,0 +1,1144 @@
+"""
+FILE: AI_infrastructure/routes/message_operations.py
+Message Operations API Routes
+==============================
+CURSOR MANAGEMENT AUDIT COMPLETED: December 7, 2025
+
+Advanced message operations:
+- Fork thread (create branch from specific message)
+- Clone thread (duplicate entire thread)
+- Delete messages (single or bulk)
+- Copy messages between threads
+- Export thread with messages
+- Merge branches back to parent thread
+
+AUDIT STATUS: ✅ ALL 6 ENDPOINTS FIXED
+- Eliminated all context manager anti-patterns
+- Proper cursor/connection management with explicit close
+- Safe exception handling in all paths
+- No resource leaks on any code path
+
+Author: AI Agent
+Date: November 25, 2025
+Last Modified: December 7, 2025 - Complete cursor management overhaul
+"""
+
+from flask import Blueprint, request, jsonify
+from shared.database_utils import get_database_connection, convert_sql_placeholders
+import json
+from datetime import datetime
+
+# ============================================================
+# HELPER: Thread ID/Slug Lookup
+# ============================================================
+
+def get_thread_lookup_clause(thread_id):
+    """
+    Convert thread_id to appropriate WHERE clause and value.
+    Handles both new integer IDs and legacy timestamp-based slugs.
+    """
+    try:
+        thread_id_int = int(thread_id)
+        # Large timestamp-like numbers (> 1 trillion) are legacy slugs
+        if thread_id_int > 1000000000000:
+            return ("t.thread_slug = %s", str(thread_id))
+        else:
+            return ("t.id = %s", thread_id_int)
+    except (ValueError, TypeError):
+        # Non-numeric string, use as slug
+        return ("t.thread_slug = %s", thread_id)
+
+message_ops_bp = Blueprint('message_ops', __name__, url_prefix='/api/messages')
+
+def success_response(data, message="Success"):
+    return jsonify({'success': True, 'data': data, 'message': message}), 200
+
+def error_response(message, status_code=400):
+    return jsonify({'success': False, 'error': message}), status_code
+
+
+@message_ops_bp.route('/fork', methods=['POST'])
+def fork_thread():
+    """
+    Fork a thread from a specific message
+    Creates a new branch with messages up to the fork point
+    
+    POST /api/messages/fork
+    Body: {
+        "thread_id": "123",
+        "message_id": "456",
+        "branch_name": "Alternative approach",
+        "user_id": 14
+    }
+    
+    AUDIT STATUS: ✅ FIXED
+    - Replaced context manager with explicit cursor/conn management
+    - Added proper finally block
+    - Fixed all early return paths
+    - Eliminated "return inside with block" anti-pattern
+    """
+    cursor = None
+    conn = None
+    try:
+        data = request.get_json()
+        thread_id = data.get('thread_id')
+        message_id = data.get('message_id')
+        branch_name = data.get('branch_name', 'Forked thread')
+        user_id = data.get('user_id')
+        
+        if not all([thread_id, message_id, user_id]):
+            return error_response("thread_id, message_id, and user_id are required")
+        
+        conn = get_database_connection('sessions')
+        cursor = conn.cursor()
+        
+        # Get original thread
+        sql, params = convert_sql_placeholders(
+            "SELECT * FROM sessions.threads WHERE id = %s",
+            (thread_id,)
+        )
+        cursor.execute(sql, params)
+        thread = cursor.fetchone()
+        
+        if not thread:
+            cursor.close()
+            cursor = None
+            conn.close()
+            conn = None
+            return error_response("Thread not found", 404)
+        
+        # Get messages up to fork point
+        sql, params = convert_sql_placeholders("""
+            SELECT * FROM sessions.messages 
+            WHERE thread_id = %s 
+            AND created_at <= (SELECT created_at FROM sessions.messages WHERE id = %s)
+            ORDER BY created_at ASC
+        """, (thread_id, message_id))
+        cursor.execute(sql, params)
+        messages = cursor.fetchall()
+        
+        # Create new thread
+        new_thread_slug = str(int(datetime.now().timestamp() * 1000))
+        
+        metadata = json.loads(thread['metadata']) if thread.get('metadata') else {}
+        metadata['forked_from'] = thread['thread_slug']
+        metadata['fork_message_id'] = message_id
+        
+        sql, params = convert_sql_placeholders("""
+            INSERT INTO sessions.threads (
+                thread_slug, name, user_id, location, tags, 
+                parent_thread_id, branch_name, branch_point_message_id,
+                metadata, synergy_card_id, created_at, updated_at
+            ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+            RETURNING id
+        """, (
+            new_thread_slug,
+            f"{thread['name']} - {branch_name}",
+            user_id,
+            thread['location'],
+            thread['tags'],
+            thread_id,
+            branch_name,
+            message_id,
+            json.dumps(metadata),
+            thread.get('synergy_card_id'),
+            datetime.now().isoformat(),
+            datetime.now().isoformat()
+        ))
+        
+        cursor.execute(sql, params)
+        new_thread = cursor.fetchone()
+        new_thread_id = new_thread['id'] if isinstance(new_thread, dict) else new_thread[0]
+        
+        # Copy messages to new thread
+        for msg in messages:
+            sql, params = convert_sql_placeholders("""
+                INSERT INTO sessions.messages (
+                    thread_id, workspace_id, user_id, role, content, 
+                    prompt, include, tool_calls, tokens_used, 
+                    response_time_ms, metadata, created_at, updated_at
+                ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+            """, (
+                new_thread_id,
+                msg.get('workspace_id'),
+                user_id,
+                msg['role'],
+                msg['content'],
+                msg.get('prompt'),
+                msg.get('include'),
+                msg.get('tool_calls'),
+                msg.get('tokens_used'),
+                msg.get('response_time_ms'),
+                msg.get('metadata'),
+                msg['created_at'],
+                datetime.now().isoformat()
+            ))
+            cursor.execute(sql, params)
+        
+        conn.commit()
+        
+        cursor.close()
+        cursor = None
+        conn.close()
+        conn = None
+        
+        return success_response({
+            'new_thread_id': new_thread_id,
+            'new_thread_slug': new_thread_slug,
+            'messages_copied': len(messages),
+            'branch_name': branch_name
+        }, message=f"Thread forked successfully with {len(messages)} messages")
+        
+    except Exception as e:
+        return error_response(f"Failed to fork thread: {str(e)}", 500)
+    finally:
+        if cursor:
+            try:
+                cursor.close()
+            except:
+                pass
+        if conn:
+            try:
+                conn.close()
+            except:
+                pass
+
+
+@message_ops_bp.route('/clone', methods=['POST'])
+def clone_thread():
+    """
+    Clone an entire thread (duplicate all messages)
+    
+    POST /api/messages/clone
+    Body: {
+        "thread_id": "123",
+        "new_name": "Copy of Original",
+        "user_id": 14
+    }
+    
+    AUDIT STATUS: ✅ FIXED
+    - Replaced context manager with explicit cursor/conn management
+    - Added proper finally block
+    - Fixed all early return paths
+    """
+    cursor = None
+    conn = None
+    try:
+        data = request.get_json()
+        thread_id = data.get('thread_id')
+        new_name = data.get('new_name')
+        user_id = data.get('user_id')
+        
+        if not all([thread_id, user_id]):
+            return error_response("thread_id and user_id are required")
+        
+        conn = get_database_connection('sessions')
+        cursor = conn.cursor()
+        
+        # Get original thread
+        sql, params = convert_sql_placeholders(
+            "SELECT * FROM sessions.threads WHERE id = %s",
+            (thread_id,)
+        )
+        cursor.execute(sql, params)
+        thread = cursor.fetchone()
+        
+        if not thread:
+            cursor.close()
+            cursor = None
+            conn.close()
+            conn = None
+            return error_response("Thread not found", 404)
+        
+        # Get all messages
+        sql, params = convert_sql_placeholders(
+            "SELECT * FROM sessions.messages WHERE thread_id = %s ORDER BY created_at ASC",
+            (thread_id,)
+        )
+        cursor.execute(sql, params)
+        messages = cursor.fetchall()
+        
+        # Create new thread
+        new_thread_slug = str(int(datetime.now().timestamp() * 1000))
+        final_name = new_name or f"Copy of {thread['name']}"
+        
+        metadata = json.loads(thread['metadata']) if thread.get('metadata') else {}
+        metadata['cloned_from'] = thread['thread_slug']
+        metadata['clone_date'] = datetime.now().isoformat()
+        
+        sql, params = convert_sql_placeholders("""
+            INSERT INTO sessions.threads (
+                thread_slug, name, user_id, workspace_id, location, tags, 
+                metadata, synergy_card_id, created_at, updated_at
+            ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+            RETURNING id
+        """, (
+            new_thread_slug,
+            final_name,
+            user_id,
+            thread.get('workspace_id'),
+            thread['location'],
+            thread['tags'],
+            json.dumps(metadata),
+            thread.get('synergy_card_id'),
+            datetime.now().isoformat(),
+            datetime.now().isoformat()
+        ))
+        
+        cursor.execute(sql, params)
+        new_thread = cursor.fetchone()
+        new_thread_id = new_thread['id'] if isinstance(new_thread, dict) else new_thread[0]
+        
+        # Copy all messages
+        for msg in messages:
+            sql, params = convert_sql_placeholders("""
+                INSERT INTO sessions.messages (
+                    thread_id, workspace_id, user_id, role, content, 
+                    prompt, include, tool_calls, tokens_used,
+                    response_time_ms, metadata, created_at, updated_at
+                ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+            """, (
+                new_thread_id,
+                msg.get('workspace_id'),
+                user_id,
+                msg['role'],
+                msg['content'],
+                msg.get('prompt'),
+                msg.get('include'),
+                msg.get('tool_calls'),
+                msg.get('tokens_used'),
+                msg.get('response_time_ms'),
+                msg.get('metadata'),
+                msg['created_at'],
+                datetime.now().isoformat()
+            ))
+            cursor.execute(sql, params)
+        
+        conn.commit()
+        
+        cursor.close()
+        cursor = None
+        conn.close()
+        conn = None
+        
+        return success_response({
+            'new_thread_id': new_thread_id,
+            'new_thread_slug': new_thread_slug,
+            'messages_cloned': len(messages),
+            'name': final_name
+        }, message=f"Thread cloned successfully with {len(messages)} messages")
+        
+    except Exception as e:
+        return error_response(f"Failed to clone thread: {str(e)}", 500)
+    finally:
+        if cursor:
+            try:
+                cursor.close()
+            except:
+                pass
+        if conn:
+            try:
+                conn.close()
+            except:
+                pass
+
+
+@message_ops_bp.route('/delete', methods=['DELETE'])
+def delete_messages():
+    """
+    Delete one or more messages
+    
+    DELETE /api/messages/delete
+    Body: {
+        "message_ids": [123, 456, 789],
+        "thread_id": "abc123"
+    }
+    
+    AUDIT STATUS: ✅ FIXED
+    - Replaced context manager with explicit cursor/conn management
+    - Added proper finally block
+    """
+    cursor = None
+    conn = None
+    try:
+        data = request.get_json()
+        message_ids = data.get('message_ids', [])
+        thread_id = data.get('thread_id')
+        
+        if not message_ids:
+            return error_response("message_ids array is required")
+        
+        conn = get_database_connection('sessions')
+        cursor = conn.cursor()
+        
+        # Delete messages using parameterized query
+        placeholders = ','.join(['%s'] * len(message_ids))
+        delete_query = f"DELETE FROM sessions.messages WHERE id IN ({placeholders})"
+        sql, params = convert_sql_placeholders(delete_query, tuple(message_ids))
+        cursor.execute(sql, params)
+        
+        # Update thread updated_at
+        if thread_id:
+            sql, params = convert_sql_placeholders(
+                "UPDATE sessions.threads SET updated_at = %s WHERE id = %s",
+                (datetime.now().isoformat(), thread_id)
+            )
+            cursor.execute(sql, params)
+        
+        conn.commit()
+        
+        cursor.close()
+        cursor = None
+        conn.close()
+        conn = None
+        
+        return success_response({
+            'deleted_count': len(message_ids)
+        }, message=f"Deleted {len(message_ids)} messages")
+        
+    except Exception as e:
+        return error_response(f"Failed to delete messages: {str(e)}", 500)
+    finally:
+        if cursor:
+            try:
+                cursor.close()
+            except:
+                pass
+        if conn:
+            try:
+                conn.close()
+            except:
+                pass
+
+
+@message_ops_bp.route('/copy', methods=['POST'])
+def copy_messages():
+    """
+    Copy messages from one thread to another
+    
+    POST /api/messages/copy
+    Body: {
+        "message_ids": [123, 456],
+        "source_thread_id": "abc",
+        "target_thread_id": "xyz",
+        "user_id": 14
+    }
+    
+    AUDIT STATUS: ✅ FIXED
+    - Replaced context manager with explicit cursor/conn management
+    - Added proper finally block
+    """
+    cursor = None
+    conn = None
+    try:
+        data = request.get_json()
+        message_ids = data.get('message_ids', [])
+        target_thread_id = data.get('target_thread_id')
+        user_id = data.get('user_id')
+        
+        if not all([message_ids, target_thread_id, user_id]):
+            return error_response("message_ids, target_thread_id, and user_id are required")
+        
+        conn = get_database_connection('sessions')
+        cursor = conn.cursor()
+        
+        # Get messages to copy
+        placeholders = ','.join(['%s'] * len(message_ids))
+        messages_query = f"SELECT * FROM sessions.messages WHERE id IN ({placeholders}) ORDER BY created_at ASC"
+        sql, params = convert_sql_placeholders(messages_query, tuple(message_ids))
+        cursor.execute(sql, params)
+        messages = cursor.fetchall()
+        
+        # Copy messages to target thread
+        for msg in messages:
+            msg_metadata = json.loads(msg.get('metadata', '{}')) if msg.get('metadata') else {}
+            msg_metadata['copied_from_message_id'] = msg['id']
+            msg_metadata['copy_date'] = datetime.now().isoformat()
+            
+            sql, params = convert_sql_placeholders("""
+                INSERT INTO sessions.messages (
+                    thread_id, workspace_id, user_id, role, content, 
+                    prompt, include, tool_calls, tokens_used,
+                    response_time_ms, metadata, created_at, updated_at
+                ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+            """, (
+                target_thread_id,
+                msg.get('workspace_id'),
+                user_id,
+                msg['role'],
+                msg['content'],
+                msg.get('prompt'),
+                msg.get('include'),
+                msg.get('tool_calls'),
+                msg.get('tokens_used'),
+                msg.get('response_time_ms'),
+                json.dumps(msg_metadata),
+                msg['created_at'],
+                datetime.now().isoformat()
+            ))
+            cursor.execute(sql, params)
+        
+        # Update target thread timestamp
+        sql, params = convert_sql_placeholders(
+            "UPDATE sessions.threads SET updated_at = %s WHERE id = %s",
+            (datetime.now().isoformat(), target_thread_id)
+        )
+        cursor.execute(sql, params)
+        
+        conn.commit()
+        
+        cursor.close()
+        cursor = None
+        conn.close()
+        conn = None
+        
+        return success_response({
+            'copied_count': len(messages),
+            'target_thread_id': target_thread_id
+        }, message=f"Copied {len(messages)} messages to target thread")
+        
+    except Exception as e:
+        return error_response(f"Failed to copy messages: {str(e)}", 500)
+    finally:
+        if cursor:
+            try:
+                cursor.close()
+            except:
+                pass
+        if conn:
+            try:
+                conn.close()
+            except:
+                pass
+
+
+@message_ops_bp.route('/export', methods=['GET'])
+def export_thread():
+    """
+    Export thread with all messages as JSON
+    
+    GET /api/messages/export?thread_id=123
+    
+    AUDIT STATUS: ✅ FIXED
+    - Replaced context manager with explicit cursor/conn management
+    - Added proper finally block
+    - Fixed early return path
+    """
+    cursor = None
+    conn = None
+    try:
+        thread_id = request.args.get('thread_id')
+        if not thread_id:
+            return error_response("thread_id is required")
+        
+        conn = get_database_connection('sessions')
+        cursor = conn.cursor()
+        
+        # Get WHERE clause for thread lookup (handles both ID and slug)
+        where_clause, lookup_value = get_thread_lookup_clause(thread_id)
+        
+        # Get thread
+        sql, params = convert_sql_placeholders(
+            f"SELECT * FROM sessions.threads t WHERE {where_clause}",
+            (lookup_value,)
+        )
+        cursor.execute(sql, params)
+        thread = cursor.fetchone()
+        
+        if not thread:
+            cursor.close()
+            cursor = None
+            conn.close()
+            conn = None
+            return error_response("Thread not found", 404)
+        
+        # Use actual thread.id for messages lookup (not the slug)
+        actual_thread_id = thread['id']
+        
+        # Get messages
+        sql, params = convert_sql_placeholders("""
+            SELECT * FROM sessions.messages 
+            WHERE thread_id = %s 
+            ORDER BY created_at ASC
+        """, (actual_thread_id,))
+        cursor.execute(sql, params)
+        messages = cursor.fetchall()
+        
+        # Build export data
+        export_data = {
+            'thread': {
+                'id': thread['id'],
+                'thread_slug': thread['thread_slug'],
+                'name': thread['name'],
+                'user_id': thread['user_id'],
+                'workspace_id': thread.get('workspace_id'),
+                'location': thread['location'],
+                'tags': json.loads(thread['tags']) if thread.get('tags') else [],
+                'metadata': json.loads(thread['metadata']) if thread.get('metadata') else {},
+                'synergy_card_id': thread.get('synergy_card_id'),
+                'created_at': thread['created_at'],
+                'updated_at': thread['updated_at']
+            },
+            'messages': [
+                {
+                    'id': msg['id'],
+                    'role': msg['role'],
+                    'content': msg['content'],
+                    'prompt': msg.get('prompt'),
+                    'include': msg.get('include'),
+                    'tool_calls': json.loads(msg['tool_calls']) if msg.get('tool_calls') else None,
+                    'tokens_used': msg.get('tokens_used'),
+                    'response_time_ms': msg.get('response_time_ms'),
+                    'metadata': json.loads(msg['metadata']) if msg.get('metadata') else {},
+                    'created_at': msg['created_at']
+                }
+                for msg in messages
+            ],
+            'export_metadata': {
+                'export_date': datetime.now().isoformat(),
+                'message_count': len(messages),
+                'format_version': '1.0'
+            }
+        }
+        
+        cursor.close()
+        cursor = None
+        conn.close()
+        conn = None
+        
+        return success_response(export_data, message=f"Exported thread with {len(messages)} messages")
+        
+    except Exception as e:
+        return error_response(f"Failed to export thread: {str(e)}", 500)
+    finally:
+        if cursor:
+            try:
+                cursor.close()
+            except:
+                pass
+        if conn:
+            try:
+                conn.close()
+            except:
+                pass
+
+
+@message_ops_bp.route('/merge-branch', methods=['POST'])
+def merge_branch():
+    """
+    Merge a branch back to parent thread
+    
+    POST /api/messages/merge-branch
+    Body: {
+        "branch_thread_id": "456",
+        "parent_thread_id": "123",
+        "user_id": 14,
+        "merge_strategy": "append"  // or "replace_from_fork_point"
+    }
+    
+    AUDIT STATUS: ✅ FIXED
+    - Replaced context manager with explicit cursor/conn management
+    - Added proper finally block
+    - Fixed all early return paths
+    - Cleaned up complex nested logic
+    """
+    cursor = None
+    conn = None
+    try:
+        data = request.get_json()
+        branch_thread_id = data.get('branch_thread_id')
+        parent_thread_id = data.get('parent_thread_id')
+        user_id = data.get('user_id')
+        merge_strategy = data.get('merge_strategy', 'append')
+        
+        if not all([branch_thread_id, parent_thread_id, user_id]):
+            return error_response("branch_thread_id, parent_thread_id, and user_id are required")
+        
+        conn = get_database_connection('sessions')
+        cursor = conn.cursor()
+        
+        # Get branch thread
+        sql, params = convert_sql_placeholders(
+            "SELECT * FROM sessions.threads WHERE id = %s",
+            (branch_thread_id,)
+        )
+        cursor.execute(sql, params)
+        branch_thread = cursor.fetchone()
+        
+        if not branch_thread:
+            cursor.close()
+            cursor = None
+            conn.close()
+            conn = None
+            return error_response("Branch thread not found", 404)
+        
+        # Get parent thread
+        sql, params = convert_sql_placeholders(
+            "SELECT * FROM sessions.threads WHERE id = %s",
+            (parent_thread_id,)
+        )
+        cursor.execute(sql, params)
+        parent_thread = cursor.fetchone()
+        
+        if not parent_thread:
+            cursor.close()
+            cursor = None
+            conn.close()
+            conn = None
+            return error_response("Parent thread not found", 404)
+        
+        # Get branch messages
+        sql, params = convert_sql_placeholders("""
+            SELECT * FROM sessions.messages 
+            WHERE thread_id = %s 
+            ORDER BY created_at ASC
+        """, (branch_thread_id,))
+        cursor.execute(sql, params)
+        branch_messages = cursor.fetchall()
+        
+        merged_count = 0
+        
+        if merge_strategy == 'append':
+            # Simply append branch messages to parent
+            for msg in branch_messages:
+                msg_metadata = json.loads(msg.get('metadata', '{}')) if msg.get('metadata') else {}
+                msg_metadata['merged_from_branch'] = branch_thread_id
+                msg_metadata['merge_date'] = datetime.now().isoformat()
+                
+                sql, params = convert_sql_placeholders("""
+                    INSERT INTO sessions.messages (
+                        thread_id, workspace_id, user_id, role, content, 
+                        prompt, include, tool_calls, tokens_used,
+                        response_time_ms, metadata, created_at, updated_at
+                    ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                """, (
+                    parent_thread_id,
+                    msg.get('workspace_id'),
+                    user_id,
+                    msg['role'],
+                    msg['content'],
+                    msg.get('prompt'),
+                    msg.get('include'),
+                    msg.get('tool_calls'),
+                    msg.get('tokens_used'),
+                    msg.get('response_time_ms'),
+                    json.dumps(msg_metadata),
+                    msg['created_at'],
+                    datetime.now().isoformat()
+                ))
+                cursor.execute(sql, params)
+            
+            merged_count = len(branch_messages)
+            
+        elif merge_strategy == 'replace_from_fork_point':
+            # Delete messages after fork point in parent, then add branch messages
+            fork_point_msg_id = branch_thread.get('branch_point_message_id')
+            
+            if fork_point_msg_id:
+                # Get fork point timestamp
+                sql, params = convert_sql_placeholders(
+                    "SELECT created_at FROM sessions.messages WHERE id = %s",
+                    (fork_point_msg_id,)
+                )
+                cursor.execute(sql, params)
+                fork_point = cursor.fetchone()
+                
+                if fork_point:
+                    fork_timestamp = fork_point['created_at'] if isinstance(fork_point, dict) else fork_point[0]
+                    
+                    # Delete messages after fork point
+                    sql, params = convert_sql_placeholders("""
+                        DELETE FROM sessions.messages 
+                        WHERE thread_id = %s AND created_at > %s
+                    """, (parent_thread_id, fork_timestamp))
+                    cursor.execute(sql, params)
+            
+            # Add branch messages
+            for msg in branch_messages:
+                msg_metadata = json.loads(msg.get('metadata', '{}')) if msg.get('metadata') else {}
+                msg_metadata['merged_from_branch'] = branch_thread_id
+                msg_metadata['merge_date'] = datetime.now().isoformat()
+                
+                sql, params = convert_sql_placeholders("""
+                    INSERT INTO sessions.messages (
+                        thread_id, workspace_id, user_id, role, content, 
+                        prompt, include, tool_calls, tokens_used,
+                        response_time_ms, metadata, created_at, updated_at
+                    ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                """, (
+                    parent_thread_id,
+                    msg.get('workspace_id'),
+                    user_id,
+                    msg['role'],
+                    msg['content'],
+                    msg.get('prompt'),
+                    msg.get('include'),
+                    msg.get('tool_calls'),
+                    msg.get('tokens_used'),
+                    msg.get('response_time_ms'),
+                    json.dumps(msg_metadata),
+                    msg['created_at'],
+                    datetime.now().isoformat()
+                ))
+                cursor.execute(sql, params)
+            
+            merged_count = len(branch_messages)
+        
+        else:
+            cursor.close()
+            cursor = None
+            conn.close()
+            conn = None
+            return error_response(f"Invalid merge strategy: {merge_strategy}", 400)
+        
+        # Update parent thread timestamp
+        sql, params = convert_sql_placeholders(
+            "UPDATE sessions.threads SET updated_at = %s WHERE id = %s",
+            (datetime.now().isoformat(), parent_thread_id)
+        )
+        cursor.execute(sql, params)
+        
+        # Optionally mark branch as merged
+        branch_metadata = json.loads(branch_thread.get('metadata', '{}')) if branch_thread.get('metadata') else {}
+        branch_metadata['merged_to_parent'] = parent_thread_id
+        branch_metadata['merge_date'] = datetime.now().isoformat()
+        branch_metadata['merge_strategy'] = merge_strategy
+        
+        sql, params = convert_sql_placeholders(
+            "UPDATE sessions.threads SET metadata = %s WHERE id = %s",
+            (json.dumps(branch_metadata), branch_thread_id)
+        )
+        cursor.execute(sql, params)
+        
+        conn.commit()
+        
+        cursor.close()
+        cursor = None
+        conn.close()
+        conn = None
+        
+        return success_response({
+            'parent_thread_id': parent_thread_id,
+            'branch_thread_id': branch_thread_id,
+            'messages_merged': merged_count,
+            'merge_strategy': merge_strategy
+        }, message=f"Branch merged successfully ({merged_count} messages)")
+        
+    except Exception as e:
+        return error_response(f"Failed to merge branch: {str(e)}", 500)
+    finally:
+        if cursor:
+            try:
+                cursor.close()
+            except:
+                pass
+        if conn:
+            try:
+                conn.close()
+            except:
+                pass
+
+
+# ============================================================================
+# TEAM ID MESSAGE ROUTING FUNCTIONS
+# ============================================================================
+
+def save_message_with_team_id(
+    thread_id: int,
+    user_id: int,
+    role: str,
+    content: str,
+    sender_team_id: str = None,
+    recipient_team_id: str = None,
+    message_type: str = 'direct',
+    workspace_id: int = None,
+    metadata: dict = None
+) -> dict:
+    """
+    Save message with Team ID routing
+    
+    Args:
+        thread_id: Thread ID
+        user_id: User ID of sender
+        role: 'user', 'assistant', 'system'
+        content: Message content
+        sender_team_id: Team ID of sender (username of sub-user)
+        recipient_team_id: Team ID of recipient (None for broadcast)
+        message_type: 'direct', 'broadcast', 'team'
+        workspace_id: Optional workspace ID
+        metadata: Additional metadata
+    
+    Returns:
+        {'success': True, 'message_id': int} or {'error': str}
+    
+    Example:
+        # Direct message from Sarah to Bob
+        save_message_with_team_id(
+            thread_id=123,
+            user_id=1,
+            role='user',
+            content='Hey Bob!',
+            sender_team_id='Sarah',
+            recipient_team_id='Bob',
+            message_type='direct'
+        )
+        
+        # Broadcast message (visible to all Team IDs)
+        save_message_with_team_id(
+            thread_id=123,
+            user_id=1,
+            role='user',
+            content='Team announcement!',
+            sender_team_id='Sarah',
+            recipient_team_id=None,
+            message_type='broadcast'
+        )
+    """
+    cursor = None
+    conn = None
+    try:
+        conn = get_database_connection('ai_infrastructure')
+        cursor = conn.cursor()
+        
+        # Insert message with Team ID columns
+        sql, params = convert_sql_placeholders("""
+            INSERT INTO sessions.messages (
+                thread_id, workspace_id, user_id, role, content,
+                sender_team_id, recipient_team_id, message_type,
+                metadata, created_at, updated_at
+            ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+            RETURNING id
+        """, (
+            thread_id,
+            workspace_id,
+            user_id,
+            role,
+            content,
+            sender_team_id,
+            recipient_team_id,
+            message_type,
+            json.dumps(metadata) if metadata else None,
+            datetime.now().isoformat(),
+            datetime.now().isoformat()
+        ))
+        
+        cursor.execute(sql, params)
+        row = cursor.fetchone()
+        message_id = row['id'] if isinstance(row, dict) else row[0]
+        
+        conn.commit()
+        
+        cursor.close()
+        cursor = None
+        conn.close()
+        conn = None
+        
+        print(f"✅ Saved message {message_id} | Sender: {sender_team_id or 'main'} → Recipient: {recipient_team_id or 'broadcast'}")
+        
+        return {'success': True, 'message_id': message_id}
+        
+    except Exception as e:
+        print(f"❌ Save Team ID message error: {e}")
+        import traceback
+        traceback.print_exc()
+        return {'error': str(e)}
+    
+    finally:
+        if cursor:
+            try:
+                cursor.close()
+            except:
+                pass
+        if conn:
+            try:
+                conn.close()
+            except:
+                pass
+
+
+def get_team_messages(
+    thread_id: int,
+    team_id: str = None,
+    message_type: str = None,
+    limit: int = 100,
+    offset: int = 0
+) -> dict:
+    """
+    Get messages for a specific Team ID with filtering
+    
+    Args:
+        thread_id: Thread ID
+        team_id: Team ID to filter by (shows messages sent TO this Team ID or broadcasts)
+        message_type: Filter by 'direct', 'broadcast', 'team'
+        limit: Max messages to return
+        offset: Pagination offset
+    
+    Returns:
+        {
+            'messages': [...],
+            'total': int,
+            'team_id': str,
+            'has_more': bool
+        }
+    
+    Logic:
+        - If team_id provided: Get messages WHERE recipient_team_id = team_id OR recipient_team_id IS NULL
+        - If team_id is None: Get all messages (main account view)
+        - Broadcasts (recipient_team_id IS NULL) visible to everyone
+    
+    Example:
+        # Get Sarah's messages (sent to her + broadcasts)
+        result = get_team_messages(thread_id=123, team_id='Sarah')
+        
+        # Get all messages (main account)
+        result = get_team_messages(thread_id=123, team_id=None)
+    """
+    cursor = None
+    conn = None
+    try:
+        conn = get_database_connection('ai_infrastructure')
+        cursor = conn.cursor()
+        
+        # Build WHERE clause
+        where_parts = ['thread_id = %s']
+        params = [thread_id]
+        
+        if team_id:
+            # Team ID sees: messages sent TO them + broadcasts (NULL recipient)
+            where_parts.append('(recipient_team_id = %s OR recipient_team_id IS NULL)')
+            params.append(team_id)
+        
+        if message_type:
+            where_parts.append('message_type = %s')
+            params.append(message_type)
+        
+        where_clause = ' AND '.join(where_parts)
+        
+        # Count total
+        sql, count_params = convert_sql_placeholders(
+            f"SELECT COUNT(*) FROM sessions.messages WHERE {where_clause}",
+            params
+        )
+        
+        cursor.execute(sql, count_params)
+        row = cursor.fetchone()
+        total = row['count'] if isinstance(row, dict) else row[0]
+        
+        # Get messages
+        params.extend([limit, offset])
+        sql, msg_params = convert_sql_placeholders(f"""
+            SELECT 
+                id, thread_id, workspace_id, user_id, role, content,
+                sender_team_id, recipient_team_id, message_type,
+                metadata, created_at, updated_at
+            FROM sessions.messages
+            WHERE {where_clause}
+            ORDER BY created_at DESC
+            LIMIT %s OFFSET %s
+        """, params)
+        
+        cursor.execute(sql, msg_params)
+        
+        messages = []
+        for row in cursor.fetchall():
+            messages.append({
+                'id': row['id'] if isinstance(row, dict) else row[0],
+                'thread_id': row['thread_id'] if isinstance(row, dict) else row[1],
+                'user_id': row['user_id'] if isinstance(row, dict) else row[3],
+                'role': row['role'] if isinstance(row, dict) else row[4],
+                'content': row['content'] if isinstance(row, dict) else row[5],
+                'sender_team_id': row['sender_team_id'] if isinstance(row, dict) else row[6],
+                'recipient_team_id': row['recipient_team_id'] if isinstance(row, dict) else row[7],
+                'message_type': row['message_type'] if isinstance(row, dict) else row[8],
+                'metadata': json.loads(row['metadata'] if isinstance(row, dict) else row[9]) if (row['metadata'] if isinstance(row, dict) else row[9]) else None,
+                'created_at': (row['created_at'] if isinstance(row, dict) else row[10]).isoformat() if (row['created_at'] if isinstance(row, dict) else row[10]) else None,
+                'updated_at': (row['updated_at'] if isinstance(row, dict) else row[11]).isoformat() if (row['updated_at'] if isinstance(row, dict) else row[11]) else None
+            })
+        
+        cursor.close()
+        cursor = None
+        conn.close()
+        conn = None
+        
+        return {
+            'success': True,
+            'messages': messages,
+            'total': total,
+            'team_id': team_id,
+            'has_more': (offset + limit) < total
+        }
+        
+    except Exception as e:
+        print(f"❌ Get Team messages error: {e}")
+        import traceback
+        traceback.print_exc()
+        return {'error': str(e)}
+    
+    finally:
+        if cursor:
+            try:
+                cursor.close()
+            except:
+                pass
+        if conn:
+            try:
+                conn.close()
+            except:
+                pass
+
+
+def get_team_id_from_user(user_id: int) -> str:
+    """
+    Get Team ID (username) for a sub-user
+    
+    Args:
+        user_id: User ID
+    
+    Returns:
+        Team ID (username) if sub-user, None if main account
+    """
+    cursor = None
+    conn = None
+    try:
+        conn = get_database_connection('ai_infrastructure')
+        cursor = conn.cursor()
+        
+        sql, params = convert_sql_placeholders("""
+            SELECT username, is_sub_user
+            FROM ai_infrastructure.users
+            WHERE id = %s
+        """, [user_id])
+        
+        cursor.execute(sql, params)
+        row = cursor.fetchone()
+        
+        cursor.close()
+        cursor = None
+        conn.close()
+        conn = None
+        
+        if not row:
+            return None
+        
+        is_sub_user = row['is_sub_user'] if isinstance(row, dict) else row[1]
+        
+        if is_sub_user:
+            return row['username'] if isinstance(row, dict) else row[0]
+        
+        return None
+        
+    except Exception as e:
+        print(f"❌ Get Team ID error: {e}")
+        return None
+    
+    finally:
+        if cursor:
+            try:
+                cursor.close()
+            except:
+                pass
+        if conn:
+            try:
+                conn.close()
+            except:
+                pass

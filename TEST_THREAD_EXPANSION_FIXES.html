@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Thread Card Expansion Fixes - Test Suite</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: #1a1a1a;
+            color: #e5e7eb;
+            padding: 20px;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .test-container {
+            background: #2a2a2a;
+            border: 1px solid #404040;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+
+        .test-title {
+            font-size: 18px;
+            font-weight: bold;
+            color: #58a6ff;
+            margin-bottom: 10px;
+        }
+
+        .test-description {
+            color: #9ca3af;
+            margin-bottom: 15px;
+            font-size: 14px;
+        }
+
+        .test-status {
+            padding: 10px;
+            border-radius: 6px;
+            font-weight: bold;
+            margin: 10px 0;
+        }
+
+        .status-pending {
+            background: #1f2937;
+            color: #9ca3af;
+            border: 1px solid #4b5563;
+        }
+
+        .status-pass {
+            background: #064e3b;
+            color: #86efac;
+            border: 1px solid #15803d;
+        }
+
+        .status-fail {
+            background: #7f1d1d;
+            color: #fca5a5;
+            border: 1px solid #dc2626;
+        }
+
+        .code-block {
+            background: #1a1a1a;
+            border: 1px solid #404040;
+            border-radius: 4px;
+            padding: 10px;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            overflow-x: auto;
+            margin: 10px 0;
+            color: #a1a1a1;
+        }
+
+        .checklist {
+            list-style: none;
+            padding: 0;
+            margin: 10px 0;
+        }
+
+        .checklist li {
+            padding: 8px;
+            margin: 5px 0;
+            background: #1a1a1a;
+            border-left: 3px solid #404040;
+            padding-left: 15px;
+        }
+
+        .checklist li.pass {
+            border-left-color: #15803d;
+            color: #86efac;
+        }
+
+        .checklist li.fail {
+            border-left-color: #dc2626;
+            color: #fca5a5;
+        }
+
+        .checklist li.pending {
+            border-left-color: #404040;
+            color: #9ca3af;
+        }
+
+        .summary {
+            background: #064e3b;
+            border: 1px solid #15803d;
+            border-radius: 6px;
+            padding: 15px;
+            margin-top: 20px;
+        }
+
+        .summary h3 {
+            color: #86efac;
+            margin-top: 0;
+        }
+
+        button {
+            background: #58a6ff;
+            color: #0d1117;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: bold;
+            margin: 5px 5px 5px 0;
+        }
+
+        button:hover {
+            background: #79c0ff;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>🧪 Thread Card Expansion Fixes - Test Suite</h1>
+    <p style="color: #9ca3af;">Tests performed on Dec 13, 2025</p>
+
+    <!-- TEST 1: History Expansion -->
+    <div class="test-container">
+        <div class="test-title">✅ FIX #1: Thread History Expand Isolation</div>
+        <div class="test-description">
+            Issue: Clicking expand in Thread History panel would expand in Agent Column instead
+            <br>Fix: Modified toggleCard() to use event.target.closest() for location-aware selection
+        </div>
+
+        <div class="code-block">
+            // Before (BROKEN):
+            const card = document.querySelector(`.ai-chat-header-info[data-thread-id="${threadId}"]`);
+            // Returns: First DOM match (wrong location if same thread in multiple places)
+
+            // After (FIXED):
+            let card = event.target.closest('.ai-chat-header-info, .agent-thread-card');
+            // Returns: Exact clicked card element
+        </div>
+
+        <div class="test-status status-pending">Awaiting Manual Test</div>
+
+        <div class="test-description"><strong>Test Steps:</strong></div>
+        <ol>
+            <li>Load a thread into Agent-1 column</li>
+            <li>Open Thread History sidebar</li>
+            <li>Find the same thread in Thread History</li>
+            <li>Click the expand chevron on the History card</li>
+            <li>VERIFY: Card expands IN History (not in Agent column)</li>
+            <li>Details should slide down within History card only</li>
+        </ol>
+
+        <ul class="checklist">
+            <li class="pending">event.target.closest() finds History card ✓</li>
+            <li class="pending">Card expands IN History sidebar ✓</li>
+            <li class="pending">Agent column card unaffected ✓</li>
+            <li class="pending">Chevron rotates 180° in History card ✓</li>
+        </ul>
+    </div>
+
+    <!-- TEST 2: Prime Expansion -->
+    <div class="test-container">
+        <div class="test-title">✅ FIX #2: Prime Chat Panel Card Expansion</div>
+        <div class="test-description">
+            Issue: Clicking expand on Prime thread info card had no effect
+            <br>Fix: Added CSS selectors to handle .expanded class on card itself
+        </div>
+
+        <div class="code-block">
+            // CSS Added:
+            #prime-thread-info.expanded .thread-expand-on-hover,
+            #prime-thread-info .ai-chat-header-info.expanded .thread-expand-on-hover {
+            opacity: 1;
+            max-height: 500px;
+            }
+        </div>
+
+        <div class="test-status status-pending">Awaiting Manual Test</div>
+
+        <div class="test-description"><strong>Test Steps:</strong></div>
+        <ol>
+            <li>Load a thread into Prime Chat panel</li>
+            <li>Look for thread info card in Prime header (#prime-thread-info)</li>
+            <li>Click the expand chevron on the card</li>
+            <li>VERIFY: Card expands smoothly with animation</li>
+            <li>Details (thread ID, tags, etc.) appear with fade-in effect</li>
+            <li>Chevron rotates 180° when expanded</li>
+            <li>Click again to collapse</li>
+        </ol>
+
+        <ul class="checklist">
+            <li class="pending">Prime thread info card visible ✓</li>
+            <li class="pending">Expand chevron button clickable ✓</li>
+            <li class="pending">Card expands with animation ✓</li>
+            <li class="pending">Details fade in (opacity 0→1) ✓</li>
+            <li class="pending">Chevron rotates 180° ✓</li>
+            <li class="pending">Collapse works correctly ✓</li>
+        </ul>
+    </div>
+
+    <!-- TEST 3: Unload Welcome Screen -->
+    <div class="test-container">
+        <div class="test-title">✅ FIX #3: Agent Column Welcome Screen on Unload</div>
+        <div class="test-description">
+            Issue: Agent column blank after unloading thread (no welcome screen)
+            <br>Fix: Changed to call AgentColumn.unloadThread() for proper empty state
+        </div>
+
+        <div class="code-block">
+            // Before (BROKEN):
+            messagesContainer.innerHTML = ''; // Just empties it
+
+            // After (FIXED):
+            if (typeof AgentColumn !== 'undefined' && typeof AgentColumn.unloadThread === 'function') {
+            AgentColumn.unloadThread(agentId); // Renders proper welcome screen
+            }
+        </div>
+
+        <div class="test-status status-pending">Awaiting Manual Test</div>
+
+        <div class="test-description"><strong>Test Steps:</strong></div>
+        <ol>
+            <li>Load a thread into Agent-1 column</li>
+            <li>Open Thread History sidebar</li>
+            <li>Find the thread in Thread History</li>
+            <li>Click [Unload] button on the History card</li>
+            <li>VERIFY: Agent-1 column shows welcome screen</li>
+            <li>Should see "Agent-1 Ready" message (not blank)</li>
+            <li>Should see "Start New Chat" button</li>
+            <li>Should see "Thread History" button</li>
+            <li>Verify scroll controls are hidden (no messages)</li>
+        </ol>
+
+        <ul class="checklist">
+            <li class="pending">Unload button in History works ✓</li>
+            <li class="pending">Agent column not blank ✓</li>
+            <li class="pending">"Agent-1 Ready" message appears ✓</li>
+            <li class="pending">"Start New Chat" button visible ✓</li>
+            <li class="pending">"Thread History" button visible ✓</li>
+            <li class="pending">Quick tip card displayed ✓</li>
+            <li class="pending">Scroll controls hidden ✓</li>
+        </ul>
+    </div>
+
+    <!-- CROSS-LOCATION TEST -->
+    <div class="test-container">
+        <div class="test-title">🔀 Cross-Location Isolation Test</div>
+        <div class="test-description">
+            Verify that expansion in one location doesn't affect other locations
+        </div>
+
+        <div class="test-status status-pending">Awaiting Manual Test</div>
+
+        <div class="test-description"><strong>Test Steps:</strong></div>
+        <ol>
+            <li>Load Thread A into Agent-1 and Prime simultaneously</li>
+            <li>Also see Thread A in Thread History</li>
+            <li>Expand Thread A in Thread History</li>
+            <li>VERIFY: Only History card expanded, Agent-1 and Prime unaffected</li>
+            <li>Expand Thread A in Agent-1</li>
+            <li>VERIFY: Only Agent-1 card expanded, History still expanded, Prime unaffected</li>
+            <li>Expand Thread A in Prime</li>
+            <li>VERIFY: All three can be expanded independently at same time</li>
+        </ol>
+
+        <ul class="checklist">
+            <li class="pending">History expansion isolated ✓</li>
+            <li class="pending">Agent-1 expansion isolated ✓</li>
+            <li class="pending">Prime expansion isolated ✓</li>
+            <li class="pending">Multiple locations can expand simultaneously ✓</li>
+            <li class="pending">Collapsing in one location doesn't affect others ✓</li>
+        </ul>
+    </div>
+
+    <!-- SUMMARY -->
+    <div class="summary">
+        <h3>📊 Test Summary</h3>
+        <p><strong>All Fixes Applied:</strong></p>
+        <ul>
+            <li>✅ thread-card-expansion.js - event.target.closest() implementation</li>
+            <li>✅ thread-card-styles.css - Prime card expansion CSS selectors</li>
+            <li>✅ thread-manager-interactions.js - AgentColumn.unloadThread() call</li>
+        </ul>
+
+        <p><strong>Files Modified:</strong></p>
+        <ul>
+            <li>UI/modules_internal/thread-cards/thread-card-expansion.js</li>
+            <li>UI/modules_internal/thread-cards/thread-card-styles.css</li>
+            <li>UI/modules_internal/thread-manager/thread-manager-interactions.js</li>
+        </ul>
+
+        <p><strong>Browser Testing Required:</strong></p>
+        <ul>
+            <li>Open http://localhost:5001/business-ai-platform.html</li>
+            <li>Go to Multi-Agent tab</li>
+            <li>Load threads and perform tests above</li>
+            <li>Check browser console for logs: [ThreadCardExpansion], [unloadThread]</li>
+        </ul>
+    </div>
+
+    <div
+        style="margin-top: 30px; padding: 20px; background: #1a1a1a; border-left: 4px solid #58a6ff; border-radius: 4px;">
+        <p><strong>📝 Notes:</strong></p>
+        <ul>
+            <li>Browser DevTools Console will show logs for each action</li>
+            <li>Look for green ✅ messages indicating proper function calls</li>
+            <li>Any red warnings indicate potential issues</li>
+            <li>Test with multiple threads in multiple locations simultaneously</li>
+            <li>Verify animations are smooth (0.5s transitions)</li>
+        </ul>
+    </div>
+
+</body>
+
+</html>

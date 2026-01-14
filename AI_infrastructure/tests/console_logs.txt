@@ -1,0 +1,1708 @@
+[Service Worker] Script loaded - waiting for registration
+service-worker.js:192 [Service Worker] Cache MISS, fetching: /ajax/libs/font-awesome/6.7.2/css/all.min.css
+service-worker.js:192 [Service Worker] Cache MISS, fetching: /ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css
+service-worker.js:192 [Service Worker] Cache MISS, fetching: /tabulator-tables@5.5.0/dist/css/tabulator.min.css
+service-worker.js:192 [Service Worker] Cache MISS, fetching: /npm/katex@0.16.9/dist/katex.min.css
+service-worker.js:192 [Service Worker] Cache MISS, fetching: /npm/handsontable/dist/handsontable.full.min.css
+service-worker.js:192 [Service Worker] Cache MISS, fetching: /ajax/libs/dragula/3.7.3/dragula.min.css
+service-worker.js:192 [Service Worker] Cache MISS, fetching: /npm/marked/marked.min.js
+service-worker.js:192 [Service Worker] Cache MISS, fetching: /ajax/libs/prism/1.29.0/prism.min.js
+service-worker.js:192 [Service Worker] Cache MISS, fetching: /ajax/libs/prism/1.29.0/components/prism-python.min.js
+service-worker.js:192 [Service Worker] Cache MISS, fetching: /ajax/libs/prism/1.29.0/components/prism-javascript.min.js
+service-worker.js:192 [Service Worker] Cache MISS, fetching: /ajax/libs/prism/1.29.0/components/prism-sql.min.js
+service-worker.js:192 [Service Worker] Cache MISS, fetching: /ajax/libs/prism/1.29.0/components/prism-json.min.js
+service-worker.js:192 [Service Worker] Cache MISS, fetching: /ajax/libs/prism/1.29.0/components/prism-bash.min.js
+service-worker.js:192 [Service Worker] Cache MISS, fetching: /ajax/libs/prism/1.29.0/components/prism-css.min.js
+service-worker.js:192 [Service Worker] Cache MISS, fetching: /ajax/libs/prism/1.29.0/components/prism-markup.min.js
+service-worker.js:192 [Service Worker] Cache MISS, fetching: /npm/@supabase/supabase-js@2
+service-worker.js:192 [Service Worker] Cache MISS, fetching: /4.5.4/socket.io.min.js
+service-worker.js:192 [Service Worker] Cache MISS, fetching: /tabulator-tables@5.5.0/dist/js/tabulator.min.js
+service-worker.js:192 [Service Worker] Cache MISS, fetching: /npm/chart.js@4.4.0/dist/chart.umd.min.js
+service-worker.js:192 [Service Worker] Cache MISS, fetching: /plotly-2.27.0.min.js
+service-worker.js:192 [Service Worker] Cache MISS, fetching: /npm/mermaid@10.6.1/dist/mermaid.min.js
+service-worker.js:192 [Service Worker] Cache MISS, fetching: /npm/katex@0.16.9/dist/katex.min.js
+service-worker.js:192 [Service Worker] Cache MISS, fetching: /npm/luxon@3.4.4/build/global/luxon.min.js
+service-worker.js:192 [Service Worker] Cache MISS, fetching: /npm/moment@2.29.4/moment.min.js
+service-worker.js:192 [Service Worker] Cache MISS, fetching: /npm/handsontable/dist/handsontable.full.min.js
+service-worker.js:192 [Service Worker] Cache MISS, fetching: /npm/xlsx@0.18.5/dist/xlsx.full.min.js
+service-worker.js:192 [Service Worker] Cache MISS, fetching: /ajax/libs/dragula/3.7.3/dragula.min.js
+service-worker.js:192 [Service Worker] Cache MISS, fetching: /ajax/libs/font-awesome/6.7.2/webfonts/fa-solid-900.woff2
+service-worker.js:192 [Service Worker] Cache MISS, fetching: /ajax/libs/font-awesome/6.7.2/webfonts/fa-brands-400.woff2
+service-worker.js:192 [Service Worker] Cache MISS, fetching: /ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css
+2service-worker.js:187 [Service Worker] Cache HIT: /ajax/libs/font-awesome/6.7.2/css/all.min.css
+service-worker.js:192 [Service Worker] Cache MISS, fetching: /ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css
+service-worker.js:192 [Service Worker] Cache MISS, fetching: /tabulator-tables@5.5.0/dist/css/tabulator.min.css
+service-worker.js:192 [Service Worker] Cache MISS, fetching: /npm/katex@0.16.9/dist/katex.min.css
+service-worker.js:192 [Service Worker] Cache MISS, fetching: /npm/handsontable/dist/handsontable.full.min.css
+service-worker.js:192 [Service Worker] Cache MISS, fetching: /ajax/libs/dragula/3.7.3/dragula.min.css
+?token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoxNCwiZW1haWwiOiJwcmludGluZ0BpbmhvdXNlcHJpbnQuY29tLmF1IiwiZXhwIjoxNzY1MzMyODMwfQ.wc4zszg7AbX38R3sFcHkh0LDAlwSkO6r9Q2ey6OQABk:34 ✅ localStorage CLEARED
+(anonymous) @ ?token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoxNCwiZW1haWwiOiJwcmludGluZ0BpbmhvdXNlcHJpbnQuY29tLmF1IiwiZXhwIjoxNzY1MzMyODMwfQ.wc4zszg7AbX38R3sFcHkh0LDAlwSkO6r9Q2ey6OQABk:34Understand this error
+?token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoxNCwiZW1haWwiOiJwcmludGluZ0BpbmhvdXNlcHJpbnQuY29tLmF1IiwiZXhwIjoxNzY1MzMyODMwfQ.wc4zszg7AbX38R3sFcHkh0LDAlwSkO6r9Q2ey6OQABk:35 ✅ sessionStorage CLEARED
+(anonymous) @ ?token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoxNCwiZW1haWwiOiJwcmludGluZ0BpbmhvdXNlcHJpbnQuY29tLmF1IiwiZXhwIjoxNzY1MzMyODMwfQ.wc4zszg7AbX38R3sFcHkh0LDAlwSkO6r9Q2ey6OQABk:35Understand this error
+?token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoxNCwiZW1haWwiOiJwcmludGluZ0BpbmhvdXNlcHJpbnQuY29tLmF1IiwiZXhwIjoxNzY1MzMyODMwfQ.wc4zszg7AbX38R3sFcHkh0LDAlwSkO6r9Q2ey6OQABk:37 🚀🚀🚀 LOADING FRESH CODE: visualisation_v3.js (NOT visualisation_copy.js)
+(anonymous) @ ?token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoxNCwiZW1haWwiOiJwcmludGluZ0BpbmhvdXNlcHJpbnQuY29tLmF1IiwiZXhwIjoxNzY1MzMyODMwfQ.wc4zszg7AbX38R3sFcHkh0LDAlwSkO6r9Q2ey6OQABk:37Understand this error
+?token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoxNCwiZW1haWwiOiJwcmludGluZ0BpbmhvdXNlcHJpbnQuY29tLmF1IiwiZXhwIjoxNzY1MzMyODMwfQ.wc4zszg7AbX38R3sFcHkh0LDAlwSkO6r9Q2ey6OQABk:38 ⚠️ If you see visualisation_copy.js in errors, YOUR BROWSER CACHE IS CORRUPT
+(anonymous) @ ?token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoxNCwiZW1haWwiOiJwcmludGluZ0BpbmhvdXNlcHJpbnQuY29tLmF1IiwiZXhwIjoxNzY1MzMyODMwfQ.wc4zszg7AbX38R3sFcHkh0LDAlwSkO6r9Q2ey6OQABk:38Understand this error
+?token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoxNCwiZW1haWwiOiJwcmludGluZ0BpbmhvdXNlcHJpbnQuY29tLmF1IiwiZXhwIjoxNzY1MzMyODMwfQ.wc4zszg7AbX38R3sFcHkh0LDAlwSkO6r9Q2ey6OQABk:17 🧹🧹🧹 CACHE CLEAR: Unregistering 1 service workers...
+(anonymous) @ ?token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoxNCwiZW1haWwiOiJwcmludGluZ0BpbmhvdXNlcHJpbnQuY29tLmF1IiwiZXhwIjoxNzY1MzMyODMwfQ.wc4zszg7AbX38R3sFcHkh0LDAlwSkO6r9Q2ey6OQABk:17
+Promise.then
+(anonymous) @ ?token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoxNCwiZW1haWwiOiJwcmludGluZ0BpbmhvdXNlcHJpbnQuY29tLmF1IiwiZXhwIjoxNzY1MzMyODMwfQ.wc4zszg7AbX38R3sFcHkh0LDAlwSkO6r9Q2ey6OQABk:16Understand this error
+?token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoxNCwiZW1haWwiOiJwcmludGluZ0BpbmhvdXNlcHJpbnQuY29tLmF1IiwiZXhwIjoxNzY1MzMyODMwfQ.wc4zszg7AbX38R3sFcHkh0LDAlwSkO6r9Q2ey6OQABk:20 ✅ UNREGISTERED SERVICE WORKER
+(anonymous) @ ?token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoxNCwiZW1haWwiOiJwcmludGluZ0BpbmhvdXNlcHJpbnQuY29tLmF1IiwiZXhwIjoxNzY1MzMyODMwfQ.wc4zszg7AbX38R3sFcHkh0LDAlwSkO6r9Q2ey6OQABk:20
+(anonymous) @ ?token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoxNCwiZW1haWwiOiJwcmludGluZ0BpbmhvdXNlcHJpbnQuY29tLmF1IiwiZXhwIjoxNzY1MzMyODMwfQ.wc4zszg7AbX38R3sFcHkh0LDAlwSkO6r9Q2ey6OQABk:18
+Promise.then
+(anonymous) @ ?token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoxNCwiZW1haWwiOiJwcmludGluZ0BpbmhvdXNlcHJpbnQuY29tLmF1IiwiZXhwIjoxNzY1MzMyODMwfQ.wc4zszg7AbX38R3sFcHkh0LDAlwSkO6r9Q2ey6OQABk:16Understand this error
+?token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoxNCwiZW1haWwiOiJwcmludGluZ0BpbmhvdXNlcHJpbnQuY29tLmF1IiwiZXhwIjoxNzY1MzMyODMwfQ.wc4zszg7AbX38R3sFcHkh0LDAlwSkO6r9Q2ey6OQABk:25 🧹🧹🧹 CACHE CLEAR: Deleting 1 caches...
+(anonymous) @ ?token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoxNCwiZW1haWwiOiJwcmludGluZ0BpbmhvdXNlcHJpbnQuY29tLmF1IiwiZXhwIjoxNzY1MzMyODMwfQ.wc4zszg7AbX38R3sFcHkh0LDAlwSkO6r9Q2ey6OQABk:25
+Promise.then
+(anonymous) @ ?token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoxNCwiZW1haWwiOiJwcmludGluZ0BpbmhvdXNlcHJpbnQuY29tLmF1IiwiZXhwIjoxNzY1MzMyODMwfQ.wc4zszg7AbX38R3sFcHkh0LDAlwSkO6r9Q2ey6OQABk:24Understand this error
+?token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoxNCwiZW1haWwiOiJwcmludGluZ0BpbmhvdXNlcHJpbnQuY29tLmF1IiwiZXhwIjoxNzY1MzMyODMwfQ.wc4zszg7AbX38R3sFcHkh0LDAlwSkO6r9Q2ey6OQABk:28 ✅ DELETED CACHE: ai-agents-v2.1.3-CAD-SVG-SUPPORT
+(anonymous) @ ?token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoxNCwiZW1haWwiOiJwcmludGluZ0BpbmhvdXNlcHJpbnQuY29tLmF1IiwiZXhwIjoxNzY1MzMyODMwfQ.wc4zszg7AbX38R3sFcHkh0LDAlwSkO6r9Q2ey6OQABk:28
+(anonymous) @ ?token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoxNCwiZW1haWwiOiJwcmludGluZ0BpbmhvdXNlcHJpbnQuY29tLmF1IiwiZXhwIjoxNzY1MzMyODMwfQ.wc4zszg7AbX38R3sFcHkh0LDAlwSkO6r9Q2ey6OQABk:26
+Promise.then
+(anonymous) @ ?token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoxNCwiZW1haWwiOiJwcmludGluZ0BpbmhvdXNlcHJpbnQuY29tLmF1IiwiZXhwIjoxNzY1MzMyODMwfQ.wc4zszg7AbX38R3sFcHkh0LDAlwSkO6r9Q2ey6OQABk:24Understand this error
+lazy-loader.js:350 ✅ LazyLoader initialized
+lazy-loader-manifests.js:290 ✅ Lazy Loader Manifests loaded
+lazy-loader-manifests.js:291 📦 Available manifests: postAuth, synergy, automation, visualizations, spreadsheet, pdfExport, transcription, background
+sidebar-manager.js:41 [SIDEBAR MANAGER] Initialized
+sidebar-manager.js:531 [SIDEBAR MANAGER] Module loaded
+sidebar-init.js:17 [SIDEBAR INIT] Loading sidebar registrations...
+sidebar-init.js:275 [SIDEBAR INIT] Module loaded
+vector_database.js?v=20251207:1069 ✅ [VECTOR DB] Module script loaded (window.VectorDatabaseModule available)
+?token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoxNCwiZW1haWwiOiJwcmludGluZ0BpbmhvdXNlcHJ…:338  GET https://ai-agents-v10.onrender.com/modules_internal/synergy/synergy-tokens.css net::ERR_ABORTED 404 (Not Found)Understand this error
+email-thread-integration.js:26 📦 [EMAIL-THREAD] Loading email thread integration module...
+email-thread-integration.js:185 ⚠️ [EMAIL-THREAD] ThreadCardRegistry not found - will register on DOMContentLoaded
+(anonymous) @ email-thread-integration.js:185Understand this warning
+email-thread-integration.js:214 ✅ [EMAIL-THREAD] Email thread integration module loaded
+add-expand-buttons-to-loaded-messages.js:20 📦 [EXPAND BUTTONS] Loading retrofit module...
+add-expand-buttons-to-loaded-messages.js:98 ✅ [EXPAND BUTTONS] Retrofit module loaded
+message-fullscreen.js:211 ✅ Message Fullscreen Viewer loaded
+message-fullscreen.js:212    Functions available: openMessageFullscreen, addMessageFullscreenHandler
+synergy-board-init.js:16 📦 [SYNERGY] Starting synergyBoard initialization...
+synergy-board-init.js:1864 ✅ [SYNERGY] synergy-board-init.js loaded successfully
+synergy-sidebar-renderer-v2-FLAT.js?v=20251124_1445:29 [SYNERGY V2] ========================================
+synergy-sidebar-renderer-v2-FLAT.js?v=20251124_1445:30 [SYNERGY V2] Starting renderer module load...
+synergy-sidebar-renderer-v2-FLAT.js?v=20251124_1445:31 [SYNERGY V2] ========================================
+synergy-sidebar-renderer-v2-FLAT.js?v=20251124_1445:942 [SYNERGY V2] Exporting to window object...
+synergy-sidebar-renderer-v2-FLAT.js?v=20251124_1445:944 [SYNERGY V2] ✅ window.SynergySidebarRendererV2 = function
+synergy-sidebar-renderer-v2-FLAT.js?v=20251124_1445:948 [SYNERGY V2] ✅ window.SynergySidebarRenderer = function
+synergy-sidebar-renderer-v2-FLAT.js?v=20251124_1445:950 [SYNERGY V2] ========================================
+synergy-sidebar-renderer-v2-FLAT.js?v=20251124_1445:951 [SYNERGY V2] FLAT spacing renderer loaded and registered
+synergy-sidebar-renderer-v2-FLAT.js?v=20251124_1445:952 [SYNERGY V2] ========================================
+synergy-inline-edit.js?v=20251124_1445:23 [SYNERGY INLINE EDIT] Instance created
+synergy-inline-edit.js?v=20251124_1445:826 [SYNERGY INLINE EDIT] ✅ Instance created with event delegation
+synergy-inline-edit.js?v=20251124_1445:1159 [SYNERGY INLINE EDIT] ✅ Event delegation initialized (no inline handlers needed)
+synergy-sidebar-renderer-v2-FLAT.js?v=20251124_1445:36 [SYNERGY RENDERER V2] Instance created
+synergy-sidebar-controller.js:35 [SYNERGY SIDEBAR CONTROLLER] Using V2 renderer
+synergy-sidebar-controller.js:43 [SYNERGY SIDEBAR CONTROLLER] Initialized
+synergy-sidebar-controller.js:353 [SYNERGY SIDEBAR CONTROLLER] Exported to window.SynergySidebar
+thread_synergy.js:43 📦 [THREAD-SYNERGY] Loading thread-synergy integration module...
+thread_synergy.js:633 ✅ [THREAD-SYNERGY] Thread-Synergy integration loaded
+synergy-doc-picker.js?v=20251124:33 [SYNERGY DOC PICKER] Initialized
+synergy-doc-picker.js?v=20251124:433 [SYNERGY DOC PICKER] Module loaded and ready
+synergy-thread-integration.js?v=20251128:235 [SynergyThreadIntegration] ThreadCardRegistry not available yet
+(anonymous) @ synergy-thread-integration.js?v=20251128:235Understand this warning
+synergy-thread-integration.js?v=20251128:256 [SynergyThreadIntegration] Loaded - handlers registered for ThreadCardRegistry
+synergy-manager.js?v=20251201:86 📦 [SynergyManager] Class loaded
+workflow-link-modal.js?v=20251129:407 ✅ [Workflow Link Modal] Initialized with global wrapper: window.WorkflowLinkModal
+automation-link-modal.js?v=20251129:529 ✅ [Automation Link Modal] Initialized with global wrapper: window.AutomationLinkModal
+internal-docs-link-modal.js?v=20251129:544 ✅ [Internal Docs Link Modal] Initialized with global wrapper: window.InternalDocsLinkModal
+workflow-thread-integration.js?v=20251129:88 [Workflow Thread Integration] Loaded successfully
+automation-thread-integration.js?v=20251129:194 [AutomationThreadIntegration] ThreadCardRegistry not available yet
+(anonymous) @ automation-thread-integration.js?v=20251129:194Understand this warning
+automation-thread-integration.js?v=20251129:215 [AutomationThreadIntegration] Module loaded
+docs-thread-integration.js?v=20251129:227 [InternalDocsThreadIntegration] ThreadCardRegistry not available yet
+(anonymous) @ docs-thread-integration.js?v=20251129:227Understand this warning
+docs-thread-integration.js?v=20251129:248 [InternalDocsThreadIntegration] Module loaded
+workflow-manager.js?v=20251201:115 📦 [WorkflowManager] Class loaded
+script-loader-diagnostics.js?v=20251130:14 [ScriptLoaderDiag] Script loader diagnostics installed. Use window.ScriptLoaderDiagnostics.check() and .ensure()
+user_auth.js?v=20251128b:662 ✅ [UserAuth] Module loaded and exposed globally
+device_lock_manager.js:368 ✅ [DeviceLockManager] Module loaded and exposed globally
+service-worker.js:192 [Service Worker] Cache MISS, fetching: /npm/marked/marked.min.js
+message_store.js:18 [MessageStore] Initialized (minimal v1)
+message_store.js:148 MessageStore module loaded
+thread_loader.js?v=20251122q:336 ✅ ThreadLoader module loaded
+account_profile.js?v=20251124j:2574 ✅ [account_profile.js] Account profile module loaded (awaiting initialization)
+automation-settings-sync.js:382 [SETTINGS-SYNC] Module loaded
+?token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoxNCwiZW1haWwiOiJwcmludGluZ0BpbmhvdXNlcHJpbnQuY29tLmF1IiwiZXhwIjoxNzY1MzMyODMwfQ.wc4zszg7AbX38R3sFcHkh0LDAlwSkO6r9Q2ey6OQABk:521 ✅ [Pre-loader] window.initializeModuleSystem defined (synchronous)
+?token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoxNCwiZW1haWwiOiJwcmludGluZ0BpbmhvdXNlcHJpbnQuY29tLmF1IiwiZXhwIjoxNzY1MzMyODMwfQ.wc4zszg7AbX38R3sFcHkh0LDAlwSkO6r9Q2ey6OQABk:594 🚀 [API CONFIG] Mode: PRODUCTION (Auto-detected from URL)
+?token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoxNCwiZW1haWwiOiJwcmludGluZ0BpbmhvdXNlcHJpbnQuY29tLmF1IiwiZXhwIjoxNzY1MzMyODMwfQ.wc4zszg7AbX38R3sFcHkh0LDAlwSkO6r9Q2ey6OQABk:607 🌐 [API CONFIG] Frontend URL: https://ai-agents-v10.onrender.com
+?token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoxNCwiZW1haWwiOiJwcmludGluZ0BpbmhvdXNlcHJpbnQuY29tLmF1IiwiZXhwIjoxNzY1MzMyODMwfQ.wc4zszg7AbX38R3sFcHkh0LDAlwSkO6r9Q2ey6OQABk:608 🌐 [API CONFIG] Backend API: https://ai-agents-v10.onrender.com
+?token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoxNCwiZW1haWwiOiJwcmludGluZ0BpbmhvdXNlcHJpbnQuY29tLmF1IiwiZXhwIjoxNzY1MzMyODMwfQ.wc4zszg7AbX38R3sFcHkh0LDAlwSkO6r9Q2ey6OQABk:609 🌐 [API CONFIG] VSA API: https://vsa-agent-service.onrender.com
+?token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoxNCwiZW1haWwiOiJwcmludGluZ0BpbmhvdXNlcHJpbnQuY29tLmF1IiwiZXhwIjoxNzY1MzMyODMwfQ.wc4zszg7AbX38R3sFcHkh0LDAlwSkO6r9Q2ey6OQABk:610 🌐 [API CONFIG] Match: ✅ Same domain (correct)
+service-worker.js:192 [Service Worker] Cache MISS, fetching: /ajax/libs/prism/1.29.0/prism.min.js
+service-worker.js:192 [Service Worker] Cache MISS, fetching: /ajax/libs/prism/1.29.0/components/prism-python.min.js
+service-worker.js:192 [Service Worker] Cache MISS, fetching: /ajax/libs/prism/1.29.0/components/prism-javascript.min.js
+service-worker.js:192 [Service Worker] Cache MISS, fetching: /ajax/libs/prism/1.29.0/components/prism-sql.min.js
+service-worker.js:192 [Service Worker] Cache MISS, fetching: /ajax/libs/prism/1.29.0/components/prism-json.min.js
+service-worker.js:192 [Service Worker] Cache MISS, fetching: /ajax/libs/prism/1.29.0/components/prism-bash.min.js
+service-worker.js:192 [Service Worker] Cache MISS, fetching: /ajax/libs/prism/1.29.0/components/prism-css.min.js
+service-worker.js:192 [Service Worker] Cache MISS, fetching: /ajax/libs/prism/1.29.0/components/prism-markup.min.js
+service-worker.js:192 [Service Worker] Cache MISS, fetching: /npm/@supabase/supabase-js@2
+service-worker.js:192 [Service Worker] Cache MISS, fetching: /4.5.4/socket.io.min.js
+service-worker.js:192 [Service Worker] Cache MISS, fetching: /tabulator-tables@5.5.0/dist/js/tabulator.min.js
+service-worker.js:192 [Service Worker] Cache MISS, fetching: /npm/chart.js@4.4.0/dist/chart.umd.min.js
+service-worker.js:192 [Service Worker] Cache MISS, fetching: /plotly-2.27.0.min.js
+service-worker.js:192 [Service Worker] Cache MISS, fetching: /npm/mermaid@10.6.1/dist/mermaid.min.js
+service-worker.js:192 [Service Worker] Cache MISS, fetching: /npm/katex@0.16.9/dist/katex.min.js
+service-worker.js:192 [Service Worker] Cache MISS, fetching: /npm/luxon@3.4.4/build/global/luxon.min.js
+service-worker.js:192 [Service Worker] Cache MISS, fetching: /npm/moment@2.29.4/moment.min.js
+service-worker.js:192 [Service Worker] Cache MISS, fetching: /npm/handsontable/dist/handsontable.full.min.js
+service-worker.js:192 [Service Worker] Cache MISS, fetching: /npm/xlsx@0.18.5/dist/xlsx.full.min.js
+service-worker.js:192 [Service Worker] Cache MISS, fetching: /ajax/libs/dragula/3.7.3/dragula.min.js
+?token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoxNCwiZW1haWwiOiJwcmludGluZ0BpbmhvdXNlcHJpbnQuY29tLmF1IiwiZXhwIjoxNzY1MzMyODMwfQ.wc4zszg7AbX38R3sFcHkh0LDAlwSkO6r9Q2ey6OQABk:19664 ======================================================================
+?token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoxNCwiZW1haWwiOiJwcmludGluZ0BpbmhvdXNlcHJpbnQuY29tLmF1IiwiZXhwIjoxNzY1MzMyODMwfQ.wc4zszg7AbX38R3sFcHkh0LDAlwSkO6r9Q2ey6OQABk:19665 🌍 [RENDER CONFIG] Environment Detection (LEGACY LOGS)
+?token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoxNCwiZW1haWwiOiJwcmludGluZ0BpbmhvdXNlcHJpbnQuY29tLmF1IiwiZXhwIjoxNzY1MzMyODMwfQ.wc4zszg7AbX38R3sFcHkh0LDAlwSkO6r9Q2ey6OQABk:19666 ======================================================================
+?token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoxNCwiZW1haWwiOiJwcmludGluZ0BpbmhvdXNlcHJpbnQuY29tLmF1IiwiZXhwIjoxNzY1MzMyODMwfQ.wc4zszg7AbX38R3sFcHkh0LDAlwSkO6r9Q2ey6OQABk:19667  Current URL: https://ai-agents-v10.onrender.com/?token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoxNCwiZW1haWwiOiJwcmludGluZ0BpbmhvdXNlcHJpbnQuY29tLmF1IiwiZXhwIjoxNzY1MzMyODMwfQ.wc4zszg7AbX38R3sFcHkh0LDAlwSkO6r9Q2ey6OQABk
+?token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoxNCwiZW1haWwiOiJwcmludGluZ0BpbmhvdXNlcHJpbnQuY29tLmF1IiwiZXhwIjoxNzY1MzMyODMwfQ.wc4zszg7AbX38R3sFcHkh0LDAlwSkO6r9Q2ey6OQABk:19668  Current protocol: https:
+?token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoxNCwiZW1haWwiOiJwcmludGluZ0BpbmhvdXNlcHJpbnQuY29tLmF1IiwiZXhwIjoxNzY1MzMyODMwfQ.wc4zszg7AbX38R3sFcHkh0LDAlwSkO6r9Q2ey6OQABk:19669  Current hostname: ai-agents-v10.onrender.com
+?token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoxNCwiZW1haWwiOiJwcmludGluZ0BpbmhvdXNlcHJpbnQuY29tLmF1IiwiZXhwIjoxNzY1MzMyODMwfQ.wc4zszg7AbX38R3sFcHkh0LDAlwSkO6r9Q2ey6OQABk:19670  Current origin: https://ai-agents-v10.onrender.com
+?token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoxNCwiZW1haWwiOiJwcmludGluZ0BpbmhvdXNlcHJpbnQuY29tLmF1IiwiZXhwIjoxNzY1MzMyODMwfQ.wc4zszg7AbX38R3sFcHkh0LDAlwSkO6r9Q2ey6OQABk:19671 
+?token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoxNCwiZW1haWwiOiJwcmludGluZ0BpbmhvdXNlcHJpbnQuY29tLmF1IiwiZXhwIjoxNzY1MzMyODMwfQ.wc4zszg7AbX38R3sFcHkh0LDAlwSkO6r9Q2ey6OQABk:19672  ✅ API Base URL (set at line ~280): https://ai-agents-v10.onrender.com
+?token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoxNCwiZW1haWwiOiJwcmludGluZ0BpbmhvdXNlcHJpbnQuY29tLmF1IiwiZXhwIjoxNzY1MzMyODMwfQ.wc4zszg7AbX38R3sFcHkh0LDAlwSkO6r9Q2ey6OQABk:19673  ✅ VSA Agent URL (set at line ~280): https://vsa-agent-service.onrender.com
+?token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoxNCwiZW1haWwiOiJwcmludGluZ0BpbmhvdXNlcHJpbnQuY29tLmF1IiwiZXhwIjoxNzY1MzMyODMwfQ.wc4zszg7AbX38R3sFcHkh0LDAlwSkO6r9Q2ey6OQABk:19674 ======================================================================
+?token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoxNCwiZW1haWwiOiJwcmludGluZ0BpbmhvdXNlcHJpbnQuY29tLmF1IiwiZXhwIjoxNzY1MzMyODMwfQ.wc4zszg7AbX38R3sFcHkh0LDAlwSkO6r9Q2ey6OQABk:21234 🔧 Sidebar diagnostics available:
+?token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoxNCwiZW1haWwiOiJwcmludGluZ0BpbmhvdXNlcHJpbnQuY29tLmF1IiwiZXhwIjoxNzY1MzMyODMwfQ.wc4zszg7AbX38R3sFcHkh0LDAlwSkO6r9Q2ey6OQABk:21235    • debugSidebars() - Full diagnostic report
+?token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoxNCwiZW1haWwiOiJwcmludGluZ0BpbmhvdXNlcHJpbnQuY29tLmF1IiwiZXhwIjoxNzY1MzMyODMwfQ.wc4zszg7AbX38R3sFcHkh0LDAlwSkO6r9Q2ey6OQABk:21236    • debugSidebars("sidebar-id") - Detailed single sidebar check
+?token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoxNCwiZW1haWwiOiJwcmludGluZ0BpbmhvdXNlcHJpbnQuY29tLmF1IiwiZXhwIjoxNzY1MzMyODMwfQ.wc4zszg7AbX38R3sFcHkh0LDAlwSkO6r9Q2ey6OQABk:21237    • dbg() - Shorthand alias
+?token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoxNCwiZW1haWwiOiJwcmludGluZ0BpbmhvdXNlcHJpbnQuY29tLmF1IiwiZXhwIjoxNzY1MzMyODMwfQ.wc4zszg7AbX38R3sFcHkh0LDAlwSkO6r9Q2ey6OQABk:21550 🎨 Code block theme set to: dark
+service-worker.js:192 [Service Worker] Cache MISS, fetching: /ajax/libs/font-awesome/6.7.2/webfonts/fa-solid-900.woff2
+workflow-slug-integration.js?v=20251124j:431 ⚠️ [WORKFLOW] ThreadManager.loadThreadsFromBackend not available yet - workflow fields included in base implementation
+(anonymous) @ workflow-slug-integration.js?v=20251124j:431
+(anonymous) @ workflow-slug-integration.js?v=20251124j:485Understand this warning
+workflow-slug-integration.js?v=20251124j:447 ✅ [WORKFLOW] Workflow slug integration module loaded
+workflow-slug-integration.js?v=20251124j:464 [WorkflowSlugIntegration] ThreadCardRegistry not available yet
+(anonymous) @ workflow-slug-integration.js?v=20251124j:464
+(anonymous) @ workflow-slug-integration.js?v=20251124j:485Understand this warning
+?token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoxNCwiZW1haWwiOiJwcmludGluZ0BpbmhvdXNlcHJpbnQuY29tLmF1IiwiZXhwIjoxNzY1MzMyODMwfQ.wc4zszg7AbX38R3sFcHkh0LDAlwSkO6r9Q2ey6OQABk:23218 [Circuit] Initializing circuit board animation...
+?token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoxNCwiZW1haWwiOiJwcmludGluZ0BpbmhvdXNlcHJpbnQuY29tLmF1IiwiZXhwIjoxNzY1MzMyODMwfQ.wc4zszg7AbX38R3sFcHkh0LDAlwSkO6r9Q2ey6OQABk:23225 [Circuit] Canvas elements found: {login: true, auth: true}
+?token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoxNCwiZW1haWwiOiJwcmludGluZ0BpbmhvdXNlcHJpbnQuY29tLmF1IiwiZXhwIjoxNzY1MzMyODMwfQ.wc4zszg7AbX38R3sFcHkh0LDAlwSkO6r9Q2ey6OQABk:23235 [Circuit] Contexts created: {login: true, auth: true}
+?token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoxNCwiZW1haWwiOiJwcmludGluZ0BpbmhvdXNlcHJpbnQuY29tLmF1IiwiZXhwIjoxNzY1MzMyODMwfQ.wc4zszg7AbX38R3sFcHkh0LDAlwSkO6r9Q2ey6OQABk:23741 [Circuit] Starting animation loop...
+config.js:36 [Transcription Config] Using global API_BASE_URL: https://ai-agents-v10.onrender.com
+config.js:180 [Transcription Config] ✅ Initialized
+config.js:181 [Transcription Config] 🌐 Using global API_BASE_URL: https://ai-agents-v10.onrender.com
+config.js:182 [Transcription Config] 📍 Environment: 🚀 PRODUCTION (Render)
+config.js:55 [Transcription Config] Using global API_BASE_URL: https://ai-agents-v10.onrender.com
+config.js:183 [Transcription Config] 🔗 Transcribe endpoint: https://ai-agents-v10.onrender.com/api/transcribe
+config.js:184 [Transcription Config] 💡 Available commands:
+config.js:185   - getTranscriptionConfig() - View current config
+config.js:186   - setTranscriptionBackend("https://your-backend.com") - Set custom URL
+config.js:187   - testTranscriptionBackend() - Test backend connection
+transcription-streaming-container.js:24 [TRANSCRIPTION STREAMING] Controller initialized
+transcription-streaming-container.js:455 [TRANSCRIPTION STREAMING] Exported to window.TranscriptionStreaming
+transcription-sidebar.js:34 [SHARED STATE] Transcription state manager initialized
+transcription-sidebar.js:553 [TRANSCRIPTION SIDEBAR] Controller initialized with shared state
+transcription-sidebar.js:2957 [TRANSCRIPTION SIDEBAR] Exported to window.TranscriptionSidebar
+?token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoxNCwiZW1haWwiOiJwcmludGluZ0BpbmhvdXNlcHJpbnQuY29tLmF1IiwiZXhwIjoxNzY1MzMyODMwfQ.wc4zszg7AbX38R3sFcHkh0LDAlwSkO6r9Q2ey6OQABk:24407 [TRANSCRIPTION] Voice transcription system loaded
+?token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoxNCwiZW1haWwiOiJwcmludGluZ0BpbmhvdXNlcHJpbnQuY29tLmF1IiwiZXhwIjoxNzY1MzMyODMwfQ.wc4zszg7AbX38R3sFcHkh0LDAlwSkO6r9Q2ey6OQABk:24755 [SESSIONS] Session management UI initialized
+?token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoxNCwiZW1haWwiOiJwcmludGluZ0BpbmhvdXNlcHJpbnQuY29tLmF1IiwiZXhwIjoxNzY1MzMyODMwfQ.wc4zszg7AbX38R3sFcHkh0LDAlwSkO6r9Q2ey6OQABk:26936 [CONNECTIONS] Connection management UI initialized
+status-indicator.js:61 ✅ [Status Indicator] Initialized
+status-indicator.js:238 📊 [Status Indicator] Module loaded
+supabase-connection-manager.js?v=20251124O:51 🔷 [Supabase] Initializing connection manager...
+supabase-connection-manager.js?v=20251124O:496 ✅ [Supabase] Network listeners configured
+supabase-connection-manager.js?v=20251124O:95 ⏳ [Supabase] Waiting for config...
+workflow-link-modal.js?v=1765246431858:407 ✅ [Workflow Link Modal] Initialized with global wrapper: window.WorkflowLinkModal
+workflow-link-modal-shim.js?v=20251130:44 [WorkflowLinkModalShim] Injected workflow-link-modal.js after ThreadManager became available
+supabase-heartbeat-listener.js?v=20251124A:242 ✅ [Heartbeat] Listener module loaded
+data-loader.js:487 [DataLoader] Initialized
+data-loader.js:524 [DataLoader] Module loaded - Use DataLoader.threads.load(), DataLoader.synergy.load(), etc.
+synergy-realtime.js:413 [REALTIME] Module loaded - Ready to connect
+synergy-realtime.js:416 [REALTIME] WebSocket manager loaded - Use SynergyRealtime.connect()
+codeBlockEnhancer.js:31 🔧 CodeBlockEnhancer: initialized
+codeBlockEnhancer.js:56 ✅ Prism.js detected and loaded
+codeBlockEnhancer.js:432 ✅ CodeBlockEnhancer module loaded
+codeBlockEnhancer.js:104 🔍 CodeBlockEnhancer: mutation observer setup
+codeBlockEnhancer.js:47 ✅ CodeBlockEnhancer: ready
+streamingTwoRule.js?v=20251207-FINALIZE-FIX:2638 ⚙️ Initializing Two-Rule Streaming System...
+streamingTwoRule.js?v=20251207-FINALIZE-FIX:2639 ✅ Two-Rule Streaming System loaded successfully
+theme_detector.js?v=20251206c:257 ✅ ThemeDetector loaded - Current theme: dark
+visualisation_v3.js?v=20251206-JSFUNC:9808 ⚙️ Initializing Unified Visualization Engine V1.19...
+visualisation_v3.js?v=20251206-JSFUNC:9809 ✅ Unified Visualization Engine V1.19 loaded successfully
+prompt-library.js:11 [PROMPT LIBRARY] ========================================
+prompt-library.js:12 [PROMPT LIBRARY] Module file loading...
+prompt-library.js:13 [PROMPT LIBRARY] ========================================
+prompt-library.js:18 [PROMPT LIBRARY] IIFE executing...
+prompt-library.js:170 [PROMPT LIBRARY] Initializing...
+prompt-library.js:205 [PROMPT LIBRARY] Active prompts bar created
+prompt-library.js:383 [PROMPT LIBRARY] Unified sidebar created and appended to body (starts hidden)
+prompt-library.js:392 [PROMPT LIBRARY] Looking for button with ID: ai-chat-prompt-library-btn
+prompt-library.js:393 [PROMPT LIBRARY] Button found: <button class=​"ai-chat-prompt-library-btn" id=​"ai-chat-prompt-library-btn" title=​"Browse Prompt Library">​…​</button>​
+prompt-library.js:402 [PROMPT LIBRARY] Click listener attached to button
+prompt-library.js:437 [PROMPT LIBRARY] Event listeners setup complete
+prompt-library.js:182 [PROMPT LIBRARY] Waiting for authentication...
+prompt-library.js:1688 [PROMPT LIBRARY] Module loaded
+automation-workflows.js:3253 [AUTOMATION] AutomationCanvas class loaded
+thread-card-registry.js?v=20251128:55 [ThreadCardRegistry] Instance created (waiting for initialization)
+thread-card-registry.js?v=20251128:544 [ThreadCardRegistry] DOM already loaded - scheduling initialization
+thread-card-registry.js?v=20251128:552 [ThreadCardRegistry] Module loaded (singleton created)
+thread-card-templates.js?v=20251201:925 ✅ [ThreadCardTemplates] Module loaded successfully
+thread-card-expansion.js?v=20251124141959:243 [Thread Card Expansion] Click-based expansion loaded
+thread-lock-toggle.js?v=20251120:19 🔷 [Thread Lock Toggle] Module loading...
+thread-lock-toggle.js?v=20251120:34 🔷 [Thread Lock Toggle] Initializing toggle functionality...
+thread-lock-toggle.js?v=20251120:91 ✅ [Thread Lock Toggle] Toggle functionality initialized
+thread-card-realtime.js:62 [ThreadCardRealtime] Initializing with connection manager...
+supabase-connection-manager.js?v=20251124O:86 ⏳ [Supabase] Client creation in progress, waiting...
+communication-hub-v4-modern.js?v=20251201:47 🔷 Communication Hub Module V4.0 - Modern Framework Pattern
+?token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoxNCwiZW1haWwiOiJwcmludGluZ0BpbmhvdXNlcHJpbnQuY29tLmF1IiwiZXhwIjoxNzY1MzMyODMwfQ.wc4zszg7AbX38R3sFcHkh0LDAlwSkO6r9Q2ey6OQABk:436 🔷 [CORE] Initializing Communication Hub...
+?token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoxNCwiZW1haWwiOiJwcmludGluZ0BpbmhvdXNlcHJpbnQuY29tLmF1IiwiZXhwIjoxNzY1MzMyODMwfQ.wc4zszg7AbX38R3sFcHkh0LDAlwSkO6r9Q2ey6OQABk:19697 ? [SUPABASE] Config loaded: https://ryoicrdifiqhqpsnjmdo.supabase.co
+?token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoxNCwiZW1haWwiOiJwcmludGluZ0BpbmhvdXNlcHJpbnQuY29tLmF1IiwiZXhwIjoxNzY1MzMyODMwfQ.wc4zszg7AbX38R3sFcHkh0LDAlwSkO6r9Q2ey6OQABk:19702 ? [SUPABASE] Config ready for connection manager
+transcription-streaming-container.js:31 [TRANSCRIPTION STREAMING] Initializing...
+transcription-streaming-container.js:49 [TRANSCRIPTION STREAMING] Initialized successfully
+?token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoxNCwiZW1haWwiOiJwcmludGluZ0BpbmhvdXNlcHJpbnQuY29tLmF1IiwiZXhwIjoxNzY1MzMyODMwfQ.wc4zszg7AbX38R3sFcHkh0LDAlwSkO6r9Q2ey6OQABk:24189 [TRANSCRIPTION] Streaming container loaded and initialized
+transcription-sidebar.js:560 [TRANSCRIPTION SIDEBAR] Initializing...
+config.js:55 [Transcription Config] Using global API_BASE_URL: https://ai-agents-v10.onrender.com
+config.js:55 [Transcription Config] Using global API_BASE_URL: https://ai-agents-v10.onrender.com
+transcription-sidebar.js:984 [TRANSCRIPTION SIDEBAR] Initializing modules...
+transcription-sidebar.js:985 [TRANSCRIPTION SIDEBAR] STTModule available: false
+transcription-sidebar.js:986 [TRANSCRIPTION SIDEBAR] Button exists: true
+transcription-sidebar.js:1327 [TRANSCRIPTION SIDEBAR] Web Speech API initialized
+transcription-sidebar.js:1016 [TRANSCRIPTION SIDEBAR] STTModule not available
+initializeModules @ transcription-sidebar.js:1016
+init @ transcription-sidebar.js:598
+(anonymous) @ ?token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoxNCwiZW1haWwiOiJwcmludGluZ0BpbmhvdXNlcHJpbnQuY29tLmF1IiwiZXhwIjoxNzY1MzMyODMwfQ.wc4zszg7AbX38R3sFcHkh0LDAlwSkO6r9Q2ey6OQABk:24205
+Promise.then
+(anonymous) @ ?token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoxNCwiZW1haWwiOiJwcmludGluZ0BpbmhvdXNlcHJpbnQuY29tLmF1IiwiZXhwIjoxNzY1MzMyODMwfQ.wc4zszg7AbX38R3sFcHkh0LDAlwSkO6r9Q2ey6OQABk:24199Understand this warning
+tts-module.js:77 🎙️ Initializing TTS Module...
+tts-module.js:112 🔍 Found 0 voices
+tts-module.js:115 ⚠️ No voices available yet
+loadVoices @ tts-module.js:115
+initialize @ tts-module.js:96
+TTSModule @ tts-module.js:70
+initializeModules @ transcription-sidebar.js:1022
+init @ transcription-sidebar.js:598
+(anonymous) @ ?token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoxNCwiZW1haWwiOiJwcmludGluZ0BpbmhvdXNlcHJpbnQuY29tLmF1IiwiZXhwIjoxNzY1MzMyODMwfQ.wc4zszg7AbX38R3sFcHkh0LDAlwSkO6r9Q2ey6OQABk:24205
+Promise.then
+(anonymous) @ ?token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoxNCwiZW1haWwiOiJwcmludGluZ0BpbmhvdXNlcHJpbnQuY29tLmF1IiwiZXhwIjoxNzY1MzMyODMwfQ.wc4zszg7AbX38R3sFcHkh0LDAlwSkO6r9Q2ey6OQABk:24199Understand this warning
+tts-module.js:103 ✅ TTS Module initialized
+transcription-sidebar.js:1038 [TRANSCRIPTION SIDEBAR] TTS module initialized
+transcription-sidebar.js:649 [TRANSCRIPTION] Drop zones setup complete
+config.js:55 [Transcription Config] Using global API_BASE_URL: https://ai-agents-v10.onrender.com
+?token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoxNCwiZW1haWwiOiJwcmludGluZ0BpbmhvdXNlcHJpbnQuY29tLmF1IiwiZXhwIjoxNzY1MzMyODMwfQ.wc4zszg7AbX38R3sFcHkh0LDAlwSkO6r9Q2ey6OQABk:24206 [TRANSCRIPTION] Sidebar loaded and initialized
+?token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoxNCwiZW1haWwiOiJwcmludGluZ0BpbmhvdXNlcHJpbnQuY29tLmF1IiwiZXhwIjoxNzY1MzMyODMwfQ.wc4zszg7AbX38R3sFcHkh0LDAlwSkO6r9Q2ey6OQABk:24231 [TRANSCRIPTION] Chat button UI callbacks registered with SharedTranscriptionState
+?token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoxNCwiZW1haWwiOiJwcmludGluZ0BpbmhvdXNlcHJpbnQuY29tLmF1IiwiZXhwIjoxNzY1MzMyODMwfQ.wc4zszg7AbX38R3sFcHkh0LDAlwSkO6r9Q2ey6OQABk:24257 [TRANSCRIPTION] toggleTranscriptionRecording function registered globally
+?token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoxNCwiZW1haWwiOiJwcmludGluZ0BpbmhvdXNlcHJpbnQuY29tLmF1IiwiZXhwIjoxNzY1MzMyODMwfQ.wc4zszg7AbX38R3sFcHkh0LDAlwSkO6r9Q2ey6OQABk:19697 ? [SUPABASE] Config loaded: https://ryoicrdifiqhqpsnjmdo.supabase.co
+?token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoxNCwiZW1haWwiOiJwcmludGluZ0BpbmhvdXNlcHJpbnQuY29tLmF1IiwiZXhwIjoxNzY1MzMyODMwfQ.wc4zszg7AbX38R3sFcHkh0LDAlwSkO6r9Q2ey6OQABk:19702 ? [SUPABASE] Config ready for connection manager
+supabase-connection-manager.js?v=20251124O:109 🔷 [Supabase] Creating new client...
+supabase-connection-manager.js?v=20251124O:172 🔷 [Supabase] Establishing realtime connection...
+tts-module.js:112 🔍 Found 24 voices
+tts-module.js:129 ✅ Default voice: Google UK English Female
+supabase-connection-manager.js?v=20251124O:262 ⏳ [Supabase] Waiting for connection...
+module-loader-v4.js?v=20251130235959:46 🔷 ModuleLoaderV4 initialized (Composition pattern)
+?token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoxNCwiZW1haWwiOiJwcmludGluZ0BpbmhvdXNlcHJpbnQuY29tLmF1IiwiZXhwIjoxNzY1MzMyODMwfQ.wc4zszg7AbX38R3sFcHkh0LDAlwSkO6r9Q2ey6OQABk:535 🔷 ModuleLoaderV4 loaded, notifying pre-loader...
+?token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoxNCwiZW1haWwiOiJwcmludGluZ0BpbmhvdXNlcHJpbnQuY29tLmF1IiwiZXhwIjoxNzY1MzMyODMwfQ.wc4zszg7AbX38R3sFcHkh0LDAlwSkO6r9Q2ey6OQABk:510 ✅ [ModuleLoaderV4] Module loaded, processing 0 queued initializations
+thread-manager-core.js?v=20251128e:878 ✅ ThreadManager-Core loaded and exposed globally
+thread-manager-welcome.js:149 ✅ ThreadManager-Welcome module loaded
+thread-manager-assignment.js?v=20251128d:713 ✅ ThreadManager-Assignment module loaded
+thread-manager-assignment.js?v=20251128d:714 🔍 [Assignment] restoreThreadAssignments exists? true
+thread-manager-crud.js:614 ✅ ThreadManager-CRUD module loaded
+thread-manager-ui.js:739 ✅ ThreadManager-UI module loaded
+thread-manager-messages.js:406 ✅ ThreadManager-Messages module loaded
+thread-manager-interactions.js:1200 ✅ ThreadManager-Interactions module loaded
+thread-manager-filters.js:403 ✅ ThreadManager-Filters module loaded
+thread-manager-sync.js:192 ✅ ThreadManager-Sync module loaded
+thread-manager-synergy.js:658 ✅ ThreadManager-Synergy module loaded and merged
+thread-manager-workflows.js:394 ✅ ThreadManager-Workflows module loaded and merged
+error_recovery_manager.js?v=20251122k:772 [OK] ErrorRecoveryManager loaded - Auto-recovery enabled for 7 error types
+agent-js.js?v=20251122r:5048 ✅ [AGENT-JS] Module loaded successfully - initMultiAgent and MultiAgent exported to window scope
+agent-js.js?v=20251122r:5049 ✅ [AGENT-JS] File size: https://ai-agents-v10.onrender.com/modules_internal/agents/agent-js.js?v=20251122r - ready for initialization
+agent-ui.js?v=20251122k:44 [AgentUI] Initializing agent UI system...
+agent-ui.js?v=20251122k:62 [AgentUI] Agent UI system ready
+global-link-handler.js:94 [Global Link Handler] MutationObserver initialized
+global-link-handler.js:120 [Global Link Handler] Click listener initialized
+global-link-handler.js:136 [Global Link Handler] ✅ Initialized - All external links will open in new tabs
+sidebar-manager.js:491 [SIDEBAR MANAGER] Drag-and-drop initialized
+sidebar-manager.js:57 [SIDEBAR MANAGER] Ready
+?token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoxNCwiZW1haWwiOiJwcmludGluZ0BpbmhvdXNlcHJpbnQuY29tLmF1IiwiZXhwIjoxNzY1MzMyODMwfQ.wc4zszg7AbX38R3sFcHkh0LDAlwSkO6r9Q2ey6OQABk:247 ✅ [INIT] Vector Database Module ready
+thread-card-registry.js?v=20251128:190 [ThreadCardRegistry] ✅ Registered badge renderer: email_threads (priority 40)
+email-thread-integration.js:200 ✅ [EMAIL-THREAD] Badge renderer registered (deferred)
+email-thread-integration.js:156 [EMAIL-THREAD] Setting up drag-and-drop handlers...
+email-thread-integration.js:167 [EMAIL-THREAD] Drag-and-drop handlers ready
+synergy-board-init.js:390 [LINK INTERCEPTION] ✅ Initialized link interception for Synergy sessions
+synergy-sidebar-renderer-v2-FLAT.js?v=20251124_1445:36 [SYNERGY RENDERER V2] Instance created
+synergy-popup-modal.js:19 [SYNERGY POPUP] Module loaded
+synergy-popup-modal.js:390 ✅ [SYNERGY POPUP] Module initialized
+thread-card-registry.js?v=20251128:190 [ThreadCardRegistry] ✅ Registered badge renderer: synergy_sessions (priority 1)
+synergy-thread-integration.js?v=20251128:251 [SynergyThreadIntegration] Registered with ThreadCardRegistry (deferred)
+synergy-manager.js?v=20251201:28 [SynergyManager] Initializing synergy integration...
+synergy-manager.js?v=20251201:51 ✅ [SynergyManager] Initialization complete
+?token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoxNCwiZW1haWwiOiJwcmludGluZ0BpbmhvdXNlcHJpbnQuY29tLmF1IiwiZXhwIjoxNzY1MzMyODMwfQ.wc4zszg7AbX38R3sFcHkh0LDAlwSkO6r9Q2ey6OQABk:357 ✅ [INIT] SynergyManager initialized
+thread-card-registry.js?v=20251128:190 [ThreadCardRegistry] ✅ Registered badge renderer: automation (priority 3)
+automation-thread-integration.js?v=20251129:210 [AutomationThreadIntegration] Registered with ThreadCardRegistry (deferred)
+thread-card-registry.js?v=20251128:190 [ThreadCardRegistry] ✅ Registered badge renderer: internal_docs (priority 4)
+docs-thread-integration.js?v=20251129:243 [InternalDocsThreadIntegration] Registered with ThreadCardRegistry (deferred)
+workflow-manager.js?v=20251201:28 [WorkflowManager] Initializing workflow integration...
+workflow-manager.js?v=20251201:51 ✅ [WorkflowManager] Initialization complete
+?token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoxNCwiZW1haWwiOiJwcmludGluZ0BpbmhvdXNlcHJpbnQuY29tLmF1IiwiZXhwIjoxNzY1MzMyODMwfQ.wc4zszg7AbX38R3sFcHkh0LDAlwSkO6r9Q2ey6OQABk:414 ✅ [INIT] WorkflowManager initialized
+agent-status-indicator.js?v=20251122:186 [STATUS] AgentStatusIndicator module initialized
+agent-status-indicator.js?v=20251122:191 [STATUS] Prime AI icon found
+agent-status-indicator.js?v=20251122:198 [STATUS] 0 agent icon(s) found
+?token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoxNCwiZW1haWwiOiJwcmludGluZ0BpbmhvdXNlcHJpbnQuY29tLmF1IiwiZXhwIjoxNzY1MzMyODMwfQ.wc4zszg7AbX38R3sFcHkh0LDAlwSkO6r9Q2ey6OQABk:20478 [SYNERGY] Toggle button initialized
+?token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoxNCwiZW1haWwiOiJwcmludGluZ0BpbmhvdXNlcHJpbnQuY29tLmF1IiwiZXhwIjoxNzY1MzMyODMwfQ.wc4zszg7AbX38R3sFcHkh0LDAlwSkO6r9Q2ey6OQABk:20712 [ACCOUNT] AccountSidebar initialized on DOM ready
+?token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoxNCwiZW1haWwiOiJwcmludGluZ0BpbmhvdXNlcHJpbnQuY29tLmF1IiwiZXhwIjoxNzY1MzMyODMwfQ.wc4zszg7AbX38R3sFcHkh0LDAlwSkO6r9Q2ey6OQABk:21241 [AUTH] Checking authentication status...
+?token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoxNCwiZW1haWwiOiJwcmludGluZ0BpbmhvdXNlcHJpbnQuY29tLmF1IiwiZXhwIjoxNzY1MzMyODMwfQ.wc4zszg7AbX38R3sFcHkh0LDAlwSkO6r9Q2ey6OQABk:21247 [CLOCK] Header datetime updates started
+?token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoxNCwiZW1haWwiOiJwcmludGluZ0BpbmhvdXNlcHJpbnQuY29tLmF1IiwiZXhwIjoxNzY1MzMyODMwfQ.wc4zszg7AbX38R3sFcHkh0LDAlwSkO6r9Q2ey6OQABk:21270 ? [AUTH] UserAuth is now available
+?token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoxNCwiZW1haWwiOiJwcmludGluZ0BpbmhvdXNlcHJpbnQuY29tLmF1IiwiZXhwIjoxNzY1MzMyODMwfQ.wc4zszg7AbX38R3sFcHkh0LDAlwSkO6r9Q2ey6OQABk:21280 🔐 [AUTH INIT] OAuth callback detected - token in URL
+?token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoxNCwiZW1haWwiOiJwcmludGluZ0BpbmhvdXNlcHJpbnQuY29tLmF1IiwiZXhwIjoxNzY1MzMyODMwfQ.wc4zszg7AbX38R3sFcHkh0LDAlwSkO6r9Q2ey6OQABk:21281 🔐 [AUTH INIT] Token length: 175
+?token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoxNCwiZW1haWwiOiJwcmludGluZ0BpbmhvdXNlcHJpbnQuY29tLmF1IiwiZXhwIjoxNzY1MzMyODMwfQ.wc4zszg7AbX38R3sFcHkh0LDAlwSkO6r9Q2ey6OQABk:21282 🔐 [AUTH INIT] Token preview: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkI...
+?token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoxNCwiZW1haWwiOiJwcmludGluZ0BpbmhvdXNlcHJpbnQuY29tLmF1IiwiZXhwIjoxNzY1MzMyODMwfQ.wc4zszg7AbX38R3sFcHkh0LDAlwSkO6r9Q2ey6OQABk:21286 ✅ [AUTH INIT] Token stored in localStorage
+?token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoxNCwiZW1haWwiOiJwcmludGluZ0BpbmhvdXNlcHJpbnQuY29tLmF1IiwiZXhwIjoxNzY1MzMyODMwfQ.wc4zszg7AbX38R3sFcHkh0LDAlwSkO6r9Q2ey6OQABk:21290 ✅ [AUTH INIT] Token set in UserAuth.token
+?token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoxNCwiZW1haWwiOiJwcmludGluZ0BpbmhvdXNlcHJpbnQuY29tLmF1IiwiZXhwIjoxNzY1MzMyODMwfQ.wc4zszg7AbX38R3sFcHkh0LDAlwSkO6r9Q2ey6OQABk:21295 ✅ [AUTH INIT] URL cleaned (token removed from browser history)
+?token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoxNCwiZW1haWwiOiJwcmludGluZ0BpbmhvdXNlcHJpbnQuY29tLmF1IiwiZXhwIjoxNzY1MzMyODMwfQ.wc4zszg7AbX38R3sFcHkh0LDAlwSkO6r9Q2ey6OQABk:21299 🚀 [AUTH INIT] Calling initializeAccountProfile() for OAuth flow...
+account_profile.js?v=20251124j:2492 🔐 [AUTH] Token found in localStorage - continuing OAuth flow...
+account_profile.js?v=20251124j:2496 📋 [AUTH] Loading user profile from backend...
+account_profile.js?v=20251124j:397 📋 [PROFILE] Loading user profile...
+account_profile.js?v=20251124j:398 📋 [PROFILE] Token available: true
+account_profile.js?v=20251124j:399 📋 [PROFILE] Token preview: eyJhbGciOiJIUzI1NiIsInR5cCI6Ik...
+account_profile.js?v=20251124j:400 📋 [PROFILE] Existing user data: None
+account_profile.js?v=20251124j:410 📋 [PROFILE] Fetching from: https://ai-agents-v10.onrender.com/api/auth/profile
+account_profile.js?v=20251124j:411 📋 [PROFILE] Authorization header: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6Ik...
+workflow-slug-integration.js?v=20251124j:236 ✅ [WORKFLOW] Drag-drop handlers initialized
+thread-card-registry.js?v=20251128:190 [ThreadCardRegistry] ✅ Registered badge renderer: workflow_automation (priority 2)
+workflow-slug-integration.js?v=20251124j:480 [WorkflowSlugIntegration] Registered with ThreadCardRegistry (deferred)
+?token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoxNCwiZW1haWwiOiJwcmludGluZ0BpbmhvdXNlcHJpbnQuY29tLmF1IiwiZXhwIjoxNzY1MzMyODMwfQ.wc4zszg7AbX38R3sFcHkh0LDAlwSkO6r9Q2ey6OQABk:24002 [AutomationDebug] Initializing...
+?token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoxNCwiZW1haWwiOiJwcmludGluZ0BpbmhvdXNlcHJpbnQuY29tLmF1IiwiZXhwIjoxNzY1MzMyODMwfQ.wc4zszg7AbX38R3sFcHkh0LDAlwSkO6r9Q2ey6OQABk:24023 [AutomationDebug] Initialized
+automation-workflows.js:3260 [AUTOMATION] DOM loaded, checking for canvas wrapper...
+automation-workflows.js:3266 [AUTOMATION] Canvas wrapper found, initializing AutomationCanvas...
+automation-workflows.js:14 [AUTOMATION] Constructor called - initializing properties...
+automation-workflows.js:67 [AUTOMATION] Properties initialized, calling init()...
+automation-workflows.js:79 [AUTOMATION] init() - Setting up event listeners...
+automation-workflows.js:387 [AUTOMATION] setupEventListeners() - Starting...
+automation-workflows.js:401 [AUTOMATION] Palette toggle listener attached
+automation-workflows.js:408 [AUTOMATION] Found 8 draggable shape items
+automation-workflows.js:416 [AUTOMATION] Attached dragstart to shape 1: trigger
+automation-workflows.js:416 [AUTOMATION] Attached dragstart to shape 2: wait
+automation-workflows.js:416 [AUTOMATION] Attached dragstart to shape 3: schedule
+automation-workflows.js:416 [AUTOMATION] Attached dragstart to shape 4: end
+automation-workflows.js:416 [AUTOMATION] Attached dragstart to shape 5: database
+automation-workflows.js:416 [AUTOMATION] Attached dragstart to shape 6: output
+automation-workflows.js:416 [AUTOMATION] Attached dragstart to shape 7: tool
+automation-workflows.js:416 [AUTOMATION] Attached dragstart to shape 8: instructions
+automation-workflows.js:421 [AUTOMATION] Found 8 color swatches
+automation-workflows.js:429 [AUTOMATION] Canvas wrapper found, attaching drop handlers
+automation-workflows.js:443 [AUTOMATION] Canvas drop zone configured
+automation-workflows.js:341 [AUTOMATION] 🔍 Verifying event listeners...
+automation-workflows.js:375 [AUTOMATION]    ✅ new-workflow-btn
+automation-workflows.js:375 [AUTOMATION]    ✅ load-workflow-btn
+automation-workflows.js:375 [AUTOMATION]    ✅ save-workflow-btn
+automation-workflows.js:375 [AUTOMATION]    ✅ undo-workflow-btn
+automation-workflows.js:375 [AUTOMATION]    ✅ redo-workflow-btn
+automation-workflows.js:375 [AUTOMATION]    ✅ export-workflow-btn
+automation-workflows.js:375 [AUTOMATION]    ✅ print-workflow-btn
+automation-workflows.js:375 [AUTOMATION]    ✅ automation-clear-btn
+automation-workflows.js:375 [AUTOMATION]    ✅ automation-settings-btn
+automation-workflows.js:375 [AUTOMATION]    ✅ automation-send-ai-btn
+automation-workflows.js:375 [AUTOMATION]    ✅ zoom-in-btn
+automation-workflows.js:375 [AUTOMATION]    ✅ zoom-out-btn
+automation-workflows.js:375 [AUTOMATION]    ✅ zoom-reset-btn
+automation-workflows.js:375 [AUTOMATION]    ✅ recenter-btn
+automation-workflows.js:382 [AUTOMATION] 📊 Result: 14 attached, 0 missing
+automation-workflows.js:82 [AUTOMATION] init() - Starting auto-save timer...
+automation-workflows.js:131 [AUTO-SAVE] Auto-save enabled (30 second interval, only saves when isDirty=true)
+automation-workflows.js:86 [AUTOMATION] init() - Waiting for authentication...
+automation-workflows.js:92 [AUTOMATION] init() - Complete! Canvas ready.
+automation-workflows.js:69 [AUTOMATION] Constructor complete!
+automation-workflows.js:3270 [AUTOMATION] AutomationCanvas initialized and assigned to window.automationCanvas
+automation-workflows.js:3271 [AUTOMATION] Instance check: true
+?token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoxNCwiZW1haWwiOiJwcmludGluZ0BpbmhvdXNlcHJpbnQuY29tLmF1IiwiZXhwIjoxNzY1MzMyODMwfQ.wc4zszg7AbX38R3sFcHkh0LDAlwSkO6r9Q2ey6OQABk:544 ⏳ [ModuleLoaderV4] Module system will initialize after authentication via user_auth.js
+content.js:12 🔍 Valor content script loaded
+content.js:111 🚫 Text selection detection is disabled (listener not registered)
+?token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoxNCwiZW1haWwiOiJwcmludGluZ0BpbmhvdXNlcHJpbnQuY29tLmF1IiwiZXhwIjoxNzY1MzMyODMwfQ.wc4zszg7AbX38R3sFcHkh0LDAlwSkO6r9Q2ey6OQABk:20988 ? [Service Worker] Registered successfully: https://ai-agents-v10.onrender.com/
+script-loader-diagnostics.js?v=20251130:14 [ScriptLoaderDiag] Running script presence check...
+script-loader-diagnostics.js?v=20251130:14 [ScriptLoaderDiag] modules_internal/workflow/workflow-link-modal.js -> LOADED
+script-loader-diagnostics.js?v=20251130:14 [ScriptLoaderDiag] modules_internal/workflow/workflow-thread-integration.js -> LOADED
+script-loader-diagnostics.js?v=20251130:14 [ScriptLoaderDiag] modules_internal/automation/automation-link-modal.js -> LOADED
+script-loader-diagnostics.js?v=20251130:14 [ScriptLoaderDiag] modules_internal/automation-workflows/automation-thread-integration.js -> LOADED
+script-loader-diagnostics.js?v=20251130:14 [ScriptLoaderDiag] modules_internal/internal-docs/internal-docs-link-modal.js -> LOADED
+script-loader-diagnostics.js?v=20251130:14 [ScriptLoaderDiag] modules_internal/internal_docs/docs-thread-integration.js -> LOADED
+script-loader-diagnostics.js?v=20251130:14 [ScriptLoaderDiag] modules_internal/thread-manager/thread-manager-workflows.js -> LOADED
+transcription-sidebar.js:609 [TRANSCRIPTION SIDEBAR] Initialization complete
+sidebar-init.js:28 [SIDEBAR INIT] Registering sidebars...
+sidebar-manager.js:164 [SIDEBAR MANAGER] Initialized: synergy-sidebar
+sidebar-manager.js:122 [SIDEBAR MANAGER] Registered: synergy-sidebar (left side, z-index: 9999)
+sidebar-manager.js:164 [SIDEBAR MANAGER] Initialized: automations-sidebar
+sidebar-manager.js:122 [SIDEBAR MANAGER] Registered: automations-sidebar (right side, z-index: 9999)
+sidebar-manager.js:164 [SIDEBAR MANAGER] Initialized: account-sidebar
+sidebar-manager.js:122 [SIDEBAR MANAGER] Registered: account-sidebar (right side, z-index: 10000)
+sidebar-manager.js:137 [SIDEBAR MANAGER] Sidebar element 'debug-sidebar' not found
+initializeSidebar @ sidebar-manager.js:137
+register @ sidebar-manager.js:120
+initializeAllSidebars @ sidebar-init.js:102
+(anonymous) @ sidebar-init.js:264
+setTimeout
+(anonymous) @ sidebar-init.js:263Understand this warning
+sidebar-manager.js:122 [SIDEBAR MANAGER] Registered: debug-sidebar (right side, z-index: 9000)
+sidebar-manager.js:142 [SIDEBAR MANAGER] Toggle button 'vector-database-toggle' not found
+initializeSidebar @ sidebar-manager.js:142
+register @ sidebar-manager.js:120
+initializeAllSidebars @ sidebar-init.js:125
+(anonymous) @ sidebar-init.js:264
+setTimeout
+(anonymous) @ sidebar-init.js:263Understand this warning
+sidebar-manager.js:122 [SIDEBAR MANAGER] Registered: vector-database (right side, z-index: 9999)
+sidebar-init.js:190 [SIDEBAR INIT] All sidebars registered
+sidebar-init.js:191 ℹ️ [SIDEBAR INIT] Note: Communication Hub is a tab module, not a sidebar
+sidebar-init.js:192 [SIDEBAR INIT] Registered: (5) ['synergy-sidebar', 'automations-sidebar', 'account-sidebar', 'debug-sidebar', 'vector-database']
+sidebar-init.js:256 [SIDEBAR INIT] Legacy compatibility layer installed
+supabase-connection-manager.js?v=20251124O:189 ✅ [Supabase] Realtime connection established
+supabase-connection-manager.js?v=20251124O:132 ✅ [Supabase] Client created and aliases set
+supabase-connection-manager.js?v=20251124O:365 ✅ [Supabase] Health monitoring started (60s idle threshold)
+supabase-connection-manager.js?v=20251124O:66 ✅ [Supabase] Connection manager initialized
+supabase-connection-manager.js?v=20251124O:274 🔷 [Supabase] Subscribing to channel: threads-realtime-channel
+thread-card-realtime.js:91 [ThreadCardRealtime] Initialized with connection manager
+supabase-connection-manager.js?v=20251124O:299 ✅ [Supabase] Channel 'threads-realtime-channel' subscribed
+thread-card-registry.js?v=20251128:84 [ThreadCardRegistry] Starting initialization...
+thread-card-registry.js?v=20251128:152 [ThreadCardRegistry] Operating without ModuleLoader (post-archive mode)
+thread-card-registry.js?v=20251128:111 [ThreadCardRegistry] No ModuleLoader - registering built-in integrations...
+thread-card-registry.js?v=20251128:115 [ThreadCardRegistry] ✅ Registered built-in: Synergy
+thread-card-registry.js?v=20251128:119 [ThreadCardRegistry] ✅ Initialization complete (standalone mode)
+thread-card-registry.js?v=20251128:433 [ThreadCardRegistry] RealtimeManager not available - skipping subscriptions
+setupRealtimeSubscriptions @ thread-card-registry.js?v=20251128:433
+_doInitialize @ thread-card-registry.js?v=20251128:123
+await in _doInitialize
+initialize @ thread-card-registry.js?v=20251128:79
+(anonymous) @ thread-card-registry.js?v=20251128:546
+setTimeout
+(anonymous) @ thread-card-registry.js?v=20251128:545Understand this warning
+transcription-sidebar.js:297 [SHARED STATE] Starting audio preview...
+transcription-sidebar.js:305 [SHARED STATE] Attempting system audio preview...
+transcription-sidebar.js:319 [SHARED STATE] System audio not available, trying microphone...
+transcription-sidebar.js:333 [SHARED STATE] ✅ Microphone preview active
+transcription-sidebar.js:409 [SHARED STATE] Audio level monitoring started (preview)
+agent-column.js?v=20251122k:1782 👁️ [AgentColumn] Watching for new agent columns...
+add-expand-buttons-to-loaded-messages.js:23 [EXPAND BUTTONS] Scanning for messages without expand buttons...
+add-expand-buttons-to-loaded-messages.js:79 [EXPAND BUTTONS] ✅ Added 0 expand buttons to loaded messages
+agent-column.js?v=20251122k:1220 🔄 [AgentColumn] refreshAllAgentThreadInfos called but DISABLED - threads load via initMultiAgent()
+agent-column.js?v=20251122k:1220 🔄 [AgentColumn] refreshAllAgentThreadInfos called but DISABLED - threads load via initMultiAgent()
+account_profile.js?v=20251124j:419 📋 [PROFILE] Response status: 200
+account_profile.js?v=20251124j:420 📋 [PROFILE] Response ok: true
+account_profile.js?v=20251124j:442 Profile data received: {profile: {…}, success: true}
+account_profile.js?v=20251124j:447 ✅ User profile loaded: {auth_platform: 'microsoft', email: 'printing@inhouseprint.com.au', exp: 1765332830, gmail_accounts: Array(0), google_oauth_connected: false, …}
+account_profile.js?v=20251124j:448  User ID (id): 14
+account_profile.js?v=20251124j:449  User ID (user_id): 14
+device_lock_manager.js:27 [Device Lock] Initializing...
+account_profile.js?v=20251124j:508 ✅ [PROFILE] Updated sidebar user info: {name: undefined, email: 'printing@inhouseprint.com.au', role: undefined}
+account_profile.js?v=20251124j:524 Auto-added Gmail account: printing@inhouseprint.com.au
+account_profile.js?v=20251124j:550  Google OAuth connected: false
+account_profile.js?v=20251124j:551  Microsoft OAuth connected: true
+account_profile.js?v=20251124j:555  Auth Platform: microsoft
+account_profile.js?v=20251124j:582 Microsoft OAuth user - showing Microsoft 365 section (hiding Google Gmail blocks)
+account_profile.js?v=20251124j:884  Updated OAuth services: DISCONNECTED
+account_profile.js?v=20251124j:607 [WARN] No Google OAuth tokens - services disconnected
+account_profile.js?v=20251124j:933  Updated Microsoft 365 services: CONNECTED
+account_profile.js?v=20251124j:627 Microsoft 365 OAuth tokens found - services connected
+account_profile.js?v=20251124j:656 Profile button displayed
+account_profile.js?v=20251124j:657 [SEARCH] Profile container visibility: flex
+account_profile.js?v=20251124j:667 [SEARCH] Google Workspace section display: none
+account_profile.js?v=20251124j:668 [SEARCH] Microsoft 365 section display: block
+account_profile.js?v=20251124j:669 [SEARCH] Gmail SMTP section display: none
+account_profile.js?v=20251124j:383 ✅ [OAUTH] Loaded sidebar OAuth connections: {google: false, microsoft: true}
+account_profile.js?v=20251124j:2503 ✅ [AUTH] User profile loaded successfully
+account_profile.js?v=20251124j:2506 🚀 [AUTH] Calling UserAuth.showMainApp() with profile data...
+user_auth.js?v=20251128b:342  Login successful - Initializing main application...
+user_auth.js?v=20251128b:314  [LOADING] 5% - Initializing application...
+user_auth.js?v=20251128b:362 [AUTH] Waiting for DOM to be fully rendered...
+service-worker.js:192 [Service Worker] Cache MISS, fetching: /ajax/libs/font-awesome/6.7.2/webfonts/fa-brands-400.woff2
+user_auth.js?v=20251128b:371 ✅ [AUTH] Platform container is active and in layout
+user_auth.js?v=20251128b:314  [LOADING] 15% - Loading your profile...
+user_auth.js?v=20251128b:382 🔵 [AUTH] Using provided profile data (skipping duplicate load)
+user_auth.js?v=20251128b:383 ✅ 🔓🔓 [AUTH] Profile data ready: undefined
+user_auth.js?v=20251128b:401 ✅ 🔓🔓 [AUTH] Profile button marked as authenticated (green border)
+user_auth.js?v=20251128b:405  Logged in as: undefined
+user_auth.js?v=20251128b:406  User ID: 14
+user_auth.js?v=20251128b:407  Gmail accounts: 0
+user_auth.js?v=20251128b:314  [LOADING] 30% - Profile loaded
+user_auth.js?v=20251128b:416 🔔 [AUTH] Dispatching authComplete event...
+prompt-library.js:184 [PROMPT LIBRARY] Auth complete, loading prompts...
+automation-workflows.js:88 [AUTOMATION] init() - Auth complete, loading workflows...
+automation-workflows.js:1538 [AUTOMATION] Loading workflows...
+automation-workflows.js:1539 [AUTOMATION] Token available: Yes (eyJhbGciOiJIUzI1NiIs...)
+automation-workflows.js:1540 [AUTOMATION] localStorage.authToken: YES
+automation-workflows.js:1541 [AUTOMATION] window.UserAuth?.token: YES
+user_auth.js?v=20251128b:314  [LOADING] 35% - Loading essential modules...
+user_auth.js?v=20251128b:421 ⚡ [AUTH] Loading post-auth essentials with LazyLoader...
+lazy-loader.js:39 🔓 [LazyLoader] Enabling disabled data-post-auth resources...
+lazy-loader.js:49   🔓 Enabling CSS: https://ai-agents-v10.onrender.com/modules_internal/prompt-library/prompt-library.css
+lazy-loader.js:49   🔓 Enabling CSS: https://ai-agents-v10.onrender.com/modules_internal/automation-workflows/automation-workflows.css
+lazy-loader.js:49   🔓 Enabling CSS: https://ai-agents-v10.onrender.com/modules_internal/agents/agent-ui.css?v=20251202
+lazy-loader.js:64 ✅ [LazyLoader] Enabled 3 post-auth resources
+user_auth.js?v=20251128b:427 ✅ [AUTH] Enabled 3 post-auth resources
+lazy-loader.js:190 📦 Loading manifest: Post-Auth Essentials
+lazy-loader.js:191 📊 Modules to load: 3
+lazy-loader.js:206 ⚡ Loading 3 modules in parallel...
+service-worker.js:192 [Service Worker] Cache MISS, fetching: /npm/marked@9.1.0/marked.min.js
+service-worker.js:192 [Service Worker] Cache MISS, fetching: /npm/prismjs@1.29.0/prism.min.js
+service-worker.js:192 [Service Worker] Cache MISS, fetching: /npm/prismjs@1.29.0/themes/prism-tomorrow.min.css
+lazy-loader.js:129 ✅ Loaded CSS: https://cdn.jsdelivr.net/npm/prismjs@1.29.0/themes/prism-tomorrow.min.css
+lazy-loader.js:91 ✅ Loaded: https://cdn.jsdelivr.net/npm/prismjs@1.29.0/prism.min.js
+lazy-loader.js:91 ✅ Loaded: https://cdn.jsdelivr.net/npm/marked@9.1.0/marked.min.js
+lazy-loader.js:211 ✅ Manifest loaded: Post-Auth Essentials
+user_auth.js?v=20251128b:433 ✅ [AUTH] Post-auth essentials loaded
+user_auth.js?v=20251128b:314  [LOADING] 45% - Essential modules loaded
+user_auth.js?v=20251128b:314  [LOADING] 47% - Initializing application...
+user_auth.js?v=20251128b:447 🔵 [AUTH] Starting initializeMainApp()...
+?token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoxNCwiZW1haWwiOiJwcmludGluZ0BpbmhvdXNlcHJpbnQuY29tLmF1IiwiZXhwIjoxNzY1MzMyODMwfQ.wc4zszg7AbX38R3sFcHkh0LDAlwSkO6r9Q2ey6OQABk:20849 Business AI Platform initializing...
+?token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoxNCwiZW1haWwiOiJwcmludGluZ0BpbmhvdXNlcHJpbnQuY29tLmF1IiwiZXhwIjoxNzY1MzMyODMwfQ.wc4zszg7AbX38R3sFcHkh0LDAlwSkO6r9Q2ey6OQABk:20850 VERSION: Tool-Integrated - Agents can now USE all 281 tools
+?token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoxNCwiZW1haWwiOiJwcmludGluZ0BpbmhvdXNlcHJpbnQuY29tLmF1IiwiZXhwIjoxNzY1MzMyODMwfQ.wc4zszg7AbX38R3sFcHkh0LDAlwSkO6r9Q2ey6OQABk:20851 API Base URL: https://ai-agents-v10.onrender.com
+?token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoxNCwiZW1haWwiOiJwcmludGluZ0BpbmhvdXNlcHJpbnQuY29tLmF1IiwiZXhwIjoxNzY1MzMyODMwfQ.wc4zszg7AbX38R3sFcHkh0LDAlwSkO6r9Q2ey6OQABk:20852 VSA API URL: https://vsa-agent-service.onrender.com
+?token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoxNCwiZW1haWwiOiJwcmludGluZ0BpbmhvdXNlcHJpbnQuY29tLmF1IiwiZXhwIjoxNzY1MzMyODMwfQ.wc4zszg7AbX38R3sFcHkh0LDAlwSkO6r9Q2ey6OQABk:21756  Initializing visualization engine...
+?token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoxNCwiZW1haWwiOiJwcmludGluZ0BpbmhvdXNlcHJpbnQuY29tLmF1IiwiZXhwIjoxNzY1MzMyODMwfQ.wc4zszg7AbX38R3sFcHkh0LDAlwSkO6r9Q2ey6OQABk:21767 TwoRuleStreamProcessor loaded successfully
+?token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoxNCwiZW1haWwiOiJwcmludGluZ0BpbmhvdXNlcHJpbnQuY29tLmF1IiwiZXhwIjoxNzY1MzMyODMwfQ.wc4zszg7AbX38R3sFcHkh0LDAlwSkO6r9Q2ey6OQABk:21784 Visualization state initialized
+?token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoxNCwiZW1haWwiOiJwcmludGluZ0BpbmhvdXNlcHJpbnQuY29tLmF1IiwiZXhwIjoxNzY1MzMyODMwfQ.wc4zszg7AbX38R3sFcHkh0LDAlwSkO6r9Q2ey6OQABk:21795 Mermaid initialized
+?token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoxNCwiZW1haWwiOiJwcmludGluZ0BpbmhvdXNlcHJpbnQuY29tLmF1IiwiZXhwIjoxNzY1MzMyODMwfQ.wc4zszg7AbX38R3sFcHkh0LDAlwSkO6r9Q2ey6OQABk:21800 Visualization engine ready
+?token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoxNCwiZW1haWwiOiJwcmludGluZ0BpbmhvdXNlcHJpbnQuY29tLmF1IiwiZXhwIjoxNzY1MzMyODMwfQ.wc4zszg7AbX38R3sFcHkh0LDAlwSkO6r9Q2ey6OQABk:21806 [SEARCH] Checking backend connection to: https://ai-agents-v10.onrender.com
+device_lock_manager.js:185 [Device Lock] Device registered: {device_id: 'browser-Mozilla/5.-1765246436367', device_name: 'Chrome Browser', success: true}
+device_lock_manager.js:39 [Device Lock] Initialized: {deviceId: 'browser-Mozilla/5.-1765246436367', deviceName: 'Chrome Browser'}
+agent-column.js?v=20251122k:1220 🔄 [AgentColumn] refreshAllAgentThreadInfos called but DISABLED - threads load via initMultiAgent()
+?token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoxNCwiZW1haWwiOiJwcmludGluZ0BpbmhvdXNlcHJpbnQuY29tLmF1IiwiZXhwIjoxNzY1MzMyODMwfQ.wc4zszg7AbX38R3sFcHkh0LDAlwSkO6r9Q2ey6OQABk:21815 Connected to Flask backend: https://ai-agents-v10.onrender.com
+?token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoxNCwiZW1haWwiOiJwcmludGluZ0BpbmhvdXNlcHJpbnQuY29tLmF1IiwiZXhwIjoxNzY1MzMyODMwfQ.wc4zszg7AbX38R3sFcHkh0LDAlwSkO6r9Q2ey6OQABk:21816 [CHART] Backend info: {app: 'new_flask_app', infrastructure: 'AI_infrastructure', providers: Array(3), status: 'healthy'}
+?token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoxNCwiZW1haWwiOiJwcmludGluZ0BpbmhvdXNlcHJpbnQuY29tLmF1IiwiZXhwIjoxNzY1MzMyODMwfQ.wc4zszg7AbX38R3sFcHkh0LDAlwSkO6r9Q2ey6OQABk:20864 Loading tools from backend...
+?token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoxNCwiZW1haWwiOiJwcmludGluZ0BpbmhvdXNlcHJpbnQuY29tLmF1IiwiZXhwIjoxNzY1MzMyODMwfQ.wc4zszg7AbX38R3sFcHkh0LDAlwSkO6r9Q2ey6OQABk:19887  Loading available tools from backend...
+automation-workflows.js:1553 [AUTOMATION] Visual response: 200 
+automation-workflows.js:1554 [AUTOMATION] Production response: 200 
+prompt-library.js:88 [PROMPT LIBRARY] Loaded prompts: 44
+prompt-library.js:187 [PROMPT LIBRARY] Initialization complete
+?token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoxNCwiZW1haWwiOiJwcmludGluZ0BpbmhvdXNlcHJpbnQuY29tLmF1IiwiZXhwIjoxNzY1MzMyODMwfQ.wc4zszg7AbX38R3sFcHkh0LDAlwSkO6r9Q2ey6OQABk:19908 Loaded 0 tools across 0 platforms
+?token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoxNCwiZW1haWwiOiJwcmludGluZ0BpbmhvdXNlcHJpbnQuY29tLmF1IiwiZXhwIjoxNzY1MzMyODMwfQ.wc4zszg7AbX38R3sFcHkh0LDAlwSkO6r9Q2ey6OQABk:19909 [CHART] Tools by platform: {}
+prime_ai_chat.js?v=20251122k:424 [RESIZE OBSERVER] Watching .ai-chat-input-container for size changes (flex layout)
+prime_ai_chat.js?v=20251122k:2639 [CHAT PANEL] Resize functionality already initialized in initChatPanel()
+prime_ai_chat.js?v=20251122k:2440 ✅ Initializing theme toggle...
+account_profile.js?v=20251124j:232 ? Initializing right sidebar buttons...
+?token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoxNCwiZW1haWwiOiJwcmludGluZ0BpbmhvdXNlcHJpbnQuY29tLmF1IiwiZXhwIjoxNzY1MzMyODMwfQ.wc4zszg7AbX38R3sFcHkh0LDAlwSkO6r9Q2ey6OQABk:20884 ?? [INIT] Checking for initMultiAgent... function
+?token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoxNCwiZW1haWwiOiJwcmludGluZ0BpbmhvdXNlcHJpbnQuY29tLmF1IiwiZXhwIjoxNzY1MzMyODMwfQ.wc4zszg7AbX38R3sFcHkh0LDAlwSkO6r9Q2ey6OQABk:20885 ?? [INIT] window.MultiAgent exists? true
+?token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoxNCwiZW1haWwiOiJwcmludGluZ0BpbmhvdXNlcHJpbnQuY29tLmF1IiwiZXhwIjoxNzY1MzMyODMwfQ.wc4zszg7AbX38R3sFcHkh0LDAlwSkO6r9Q2ey6OQABk:20888 ? [INIT] initMultiAgent found, initializing...
+?token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoxNCwiZW1haWwiOiJwcmludGluZ0BpbmhvdXNlcHJpbnQuY29tLmF1IiwiZXhwIjoxNzY1MzMyODMwfQ.wc4zszg7AbX38R3sFcHkh0LDAlwSkO6r9Q2ey6OQABk:20894 ⚠️ [INIT] Multi-agent tab is hidden, activating for DOM initialization...
+?token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoxNCwiZW1haWwiOiJwcmludGluZ0BpbmhvdXNlcHJpbnQuY29tLmF1IiwiZXhwIjoxNzY1MzMyODMwfQ.wc4zszg7AbX38R3sFcHkh0LDAlwSkO6r9Q2ey6OQABk:20903 ✅ [INIT] Multi-agent tab activated (DOM elements will be visible during creation)
+agent-js.js?v=20251122r:1916 🚀 [Multi-Agent] Initializing NATO AI Columns...
+agent-js.js?v=20251122r:1249 ⚠️ [Multi-Agent] localStorage loading disabled - using backend only
+agent-js.js?v=20251122r:1254 🗑️ [Multi-Agent] Cleared stale localStorage
+agent-js.js?v=20251122r:1929 📥 [initMultiAgent] Loading threads from backend FIRST...
+thread-manager-core.js?v=20251128e:329 📥 [ThreadManager] Loading threads for user_id: 14
+thread-manager-core.js?v=20251128e:330 🌐 [ThreadManager] API URL: https://ai-agents-v10.onrender.com/api/threads/list?user_id=14
+agent-column.js?v=20251122k:1220 🔄 [AgentColumn] refreshAllAgentThreadInfos called but DISABLED - threads load via initMultiAgent()
+agent-column.js?v=20251122k:1220 🔄 [AgentColumn] refreshAllAgentThreadInfos called but DISABLED - threads load via initMultiAgent()
+thread-manager-core.js?v=20251128e:333 📡 [ThreadManager] Response status: 200 
+thread-manager-core.js?v=20251128e:336 📦 [ThreadManager] API response keys: (3) ['data', 'message', 'success']
+thread-manager-core.js?v=20251128e:339 🔢 [ThreadManager] Loaded 50 threads
+thread-manager-core.js?v=20251128e:342 🔄 [ThreadManager] Processing 50 threads...
+thread-manager-core.js?v=20251128e:353    📍 Thread 1: "Xero" (1764795281265) → location="prime-loaded"
+thread-manager-core.js?v=20251128e:353    📍 Thread 2: "Neilson Workbooks" (1765231491719) → location="agent-4"
+thread-manager-core.js?v=20251128e:353    📍 Thread 3: "Email: No Subject" (1765231360373) → location="prime"
+thread-manager-core.js?v=20251128e:353    📍 Thread 4: "Email: No Subject" (1765170755321) → location="agent-1"
+thread-manager-core.js?v=20251128e:353    📍 Thread 5: "InHouse SQL DB Search" (1765163907332) → location="prime"
+thread-manager-core.js?v=20251128e:401 ✅ [ThreadManager] Threads loaded: 50
+thread-manager-core.js?v=20251128e:402 📊 [ThreadManager] Location distribution: {prime-loaded: 1, agent-4: 1, prime: 41, agent-1: 2, agent-2: 1, …}
+agent-js.js?v=20251122r:1931 ✅ [initMultiAgent] Threads loaded: 50 threads in memory
+thread-manager-assignment.js?v=20251128d:482 ✅ [Assignment] Fetched assignments: {agent-1: '1764568408365', agent-2: '1765163909086', agent-4: '1765231491719', agent-5: '1765162926245', agent-6: '1765161883806', …}
+agent-js.js?v=20251122r:1940 ✅ [Multi-Agent] Fetched thread assignments from backend: {agent-1: '1764568408365', agent-2: '1765163909086', agent-4: '1765231491719', agent-5: '1765162926245', agent-6: '1765161883806', …}
+agent-js.js?v=20251122r:1958 📊 [Multi-Agent] Creating 9 agents (assigned agents: [1, 2, 4, 5, 6, 7, 8])
+agent-input-manager.js?v=20251202:78 [AgentInput] Initialized state for Agent-1
+agent-input-manager.js?v=20251202:372 [AgentInput] Setting up handlers for agent-1...
+agent-input-manager.js?v=20251202:490 [AgentInput] Agent-1 handlers initialized (with drag-drop)
+agent-js.js?v=20251122r:2440 [createAgentColumn] Agent-1 expandable input handlers initialized
+agent-js.js?v=20251122r:2460 [setupAgentFileInput] Agent-1 file input configured
+agent-js.js?v=20251122r:1977 [OK][Multi-Agent] Alpha-1 is EXPANDED (has thread: true)
+agent-input-manager.js?v=20251202:78 [AgentInput] Initialized state for Agent-2
+agent-input-manager.js?v=20251202:372 [AgentInput] Setting up handlers for agent-2...
+agent-input-manager.js?v=20251202:490 [AgentInput] Agent-2 handlers initialized (with drag-drop)
+agent-js.js?v=20251122r:2440 [createAgentColumn] Agent-2 expandable input handlers initialized
+agent-js.js?v=20251122r:2460 [setupAgentFileInput] Agent-2 file input configured
+agent-js.js?v=20251122r:1977 [OK][Multi-Agent] Bravo-2 is EXPANDED (has thread: true)
+agent-input-manager.js?v=20251202:78 [AgentInput] Initialized state for Agent-3
+agent-input-manager.js?v=20251202:372 [AgentInput] Setting up handlers for agent-3...
+agent-input-manager.js?v=20251202:490 [AgentInput] Agent-3 handlers initialized (with drag-drop)
+agent-js.js?v=20251122r:2440 [createAgentColumn] Agent-3 expandable input handlers initialized
+agent-js.js?v=20251122r:2460 [setupAgentFileInput] Agent-3 file input configured
+agent-js.js?v=20251122r:1977 [OK][Multi-Agent] Charlie-3 is EXPANDED (has thread: false)
+agent-input-manager.js?v=20251202:78 [AgentInput] Initialized state for Agent-4
+agent-input-manager.js?v=20251202:372 [AgentInput] Setting up handlers for agent-4...
+agent-input-manager.js?v=20251202:490 [AgentInput] Agent-4 handlers initialized (with drag-drop)
+agent-js.js?v=20251122r:2440 [createAgentColumn] Agent-4 expandable input handlers initialized
+agent-js.js?v=20251122r:2460 [setupAgentFileInput] Agent-4 file input configured
+agent-js.js?v=20251122r:1977 [OK][Multi-Agent] Delta-4 is EXPANDED (has thread: true)
+agent-input-manager.js?v=20251202:78 [AgentInput] Initialized state for Agent-5
+agent-input-manager.js?v=20251202:372 [AgentInput] Setting up handlers for agent-5...
+agent-input-manager.js?v=20251202:490 [AgentInput] Agent-5 handlers initialized (with drag-drop)
+agent-js.js?v=20251122r:2440 [createAgentColumn] Agent-5 expandable input handlers initialized
+agent-js.js?v=20251122r:2460 [setupAgentFileInput] Agent-5 file input configured
+agent-js.js?v=20251122r:1977 [OK][Multi-Agent] Echo-5 is EXPANDED (has thread: true)
+agent-input-manager.js?v=20251202:78 [AgentInput] Initialized state for Agent-6
+agent-input-manager.js?v=20251202:372 [AgentInput] Setting up handlers for agent-6...
+agent-input-manager.js?v=20251202:490 [AgentInput] Agent-6 handlers initialized (with drag-drop)
+agent-js.js?v=20251122r:2440 [createAgentColumn] Agent-6 expandable input handlers initialized
+agent-js.js?v=20251122r:2460 [setupAgentFileInput] Agent-6 file input configured
+agent-js.js?v=20251122r:1977 [OK][Multi-Agent] Foxtrot-6 is EXPANDED (has thread: true)
+agent-input-manager.js?v=20251202:78 [AgentInput] Initialized state for Agent-7
+agent-input-manager.js?v=20251202:372 [AgentInput] Setting up handlers for agent-7...
+agent-input-manager.js?v=20251202:490 [AgentInput] Agent-7 handlers initialized (with drag-drop)
+agent-js.js?v=20251122r:2440 [createAgentColumn] Agent-7 expandable input handlers initialized
+agent-js.js?v=20251122r:2460 [setupAgentFileInput] Agent-7 file input configured
+agent-js.js?v=20251122r:1977 [OK][Multi-Agent] Golf-7 is EXPANDED (has thread: true)
+agent-input-manager.js?v=20251202:78 [AgentInput] Initialized state for Agent-8
+agent-input-manager.js?v=20251202:372 [AgentInput] Setting up handlers for agent-8...
+agent-input-manager.js?v=20251202:490 [AgentInput] Agent-8 handlers initialized (with drag-drop)
+agent-js.js?v=20251122r:2440 [createAgentColumn] Agent-8 expandable input handlers initialized
+agent-js.js?v=20251122r:2460 [setupAgentFileInput] Agent-8 file input configured
+agent-js.js?v=20251122r:1977 [OK][Multi-Agent] Hotel-8 is EXPANDED (has thread: true)
+agent-input-manager.js?v=20251202:78 [AgentInput] Initialized state for Agent-9
+agent-input-manager.js?v=20251202:372 [AgentInput] Setting up handlers for agent-9...
+agent-input-manager.js?v=20251202:490 [AgentInput] Agent-9 handlers initialized (with drag-drop)
+agent-js.js?v=20251122r:2440 [createAgentColumn] Agent-9 expandable input handlers initialized
+agent-js.js?v=20251122r:2460 [setupAgentFileInput] Agent-9 file input configured
+agent-js.js?v=20251122r:1977 [OK][Multi-Agent] India-9 is EXPANDED (has thread: false)
+agent-js.js?v=20251122r:533 ✅ [Command Center] Quick nav built with 9 agent badges (from backend assignments)
+agent-js.js?v=20251122r:1982 ✅ [Command Center] Quick nav built with 9 agent badges (from backend assignments)
+agent-js.js?v=20251122r:1989 ⏳ [initMultiAgent] Verifying DOM containers for 9 agents...
+agent-js.js?v=20251122r:1993 🔍 [initMultiAgent] Parent container state: {exists: true, isConnected: true, offsetWidth: 1586, offsetHeight: 1347, computedDisplay: 'flex', …}
+agent-js.js?v=20251122r:2009 ✅ [initMultiAgent] Agent-1 container ready (immediate)
+agent-js.js?v=20251122r:2010    ├─ Container ID: thread-info-1
+agent-js.js?v=20251122r:2011    ├─ IsConnected: true
+agent-js.js?v=20251122r:2012    ├─ OffsetWidth: 398px
+agent-js.js?v=20251122r:2013    └─ Parent: unknown
+agent-js.js?v=20251122r:2009 ✅ [initMultiAgent] Agent-2 container ready (immediate)
+agent-js.js?v=20251122r:2010    ├─ Container ID: thread-info-2
+agent-js.js?v=20251122r:2011    ├─ IsConnected: true
+agent-js.js?v=20251122r:2012    ├─ OffsetWidth: 398px
+agent-js.js?v=20251122r:2013    └─ Parent: unknown
+agent-js.js?v=20251122r:2009 ✅ [initMultiAgent] Agent-3 container ready (immediate)
+agent-js.js?v=20251122r:2010    ├─ Container ID: thread-info-3
+agent-js.js?v=20251122r:2011    ├─ IsConnected: true
+agent-js.js?v=20251122r:2012    ├─ OffsetWidth: 398px
+agent-js.js?v=20251122r:2013    └─ Parent: unknown
+agent-js.js?v=20251122r:2009 ✅ [initMultiAgent] Agent-4 container ready (immediate)
+agent-js.js?v=20251122r:2010    ├─ Container ID: thread-info-4
+agent-js.js?v=20251122r:2011    ├─ IsConnected: true
+agent-js.js?v=20251122r:2012    ├─ OffsetWidth: 398px
+agent-js.js?v=20251122r:2013    └─ Parent: unknown
+agent-js.js?v=20251122r:2009 ✅ [initMultiAgent] Agent-5 container ready (immediate)
+agent-js.js?v=20251122r:2010    ├─ Container ID: thread-info-5
+agent-js.js?v=20251122r:2011    ├─ IsConnected: true
+agent-js.js?v=20251122r:2012    ├─ OffsetWidth: 398px
+agent-js.js?v=20251122r:2013    └─ Parent: unknown
+agent-js.js?v=20251122r:2009 ✅ [initMultiAgent] Agent-6 container ready (immediate)
+agent-js.js?v=20251122r:2010    ├─ Container ID: thread-info-6
+agent-js.js?v=20251122r:2011    ├─ IsConnected: true
+agent-js.js?v=20251122r:2012    ├─ OffsetWidth: 398px
+agent-js.js?v=20251122r:2013    └─ Parent: unknown
+agent-js.js?v=20251122r:2009 ✅ [initMultiAgent] Agent-7 container ready (immediate)
+agent-js.js?v=20251122r:2010    ├─ Container ID: thread-info-7
+agent-js.js?v=20251122r:2011    ├─ IsConnected: true
+agent-js.js?v=20251122r:2012    ├─ OffsetWidth: 398px
+agent-js.js?v=20251122r:2013    └─ Parent: unknown
+agent-js.js?v=20251122r:2009 ✅ [initMultiAgent] Agent-8 container ready (immediate)
+agent-js.js?v=20251122r:2010    ├─ Container ID: thread-info-8
+agent-js.js?v=20251122r:2011    ├─ IsConnected: true
+agent-js.js?v=20251122r:2012    ├─ OffsetWidth: 398px
+agent-js.js?v=20251122r:2013    └─ Parent: unknown
+agent-js.js?v=20251122r:2009 ✅ [initMultiAgent] Agent-9 container ready (immediate)
+agent-js.js?v=20251122r:2010    ├─ Container ID: thread-info-9
+agent-js.js?v=20251122r:2011    ├─ IsConnected: true
+agent-js.js?v=20251122r:2012    ├─ OffsetWidth: 398px
+agent-js.js?v=20251122r:2013    └─ Parent: unknown
+9agent-column.js?v=20251122k:1770 🔄 [AgentColumn] New agent detected, refreshing thread selectors...
+agent-js.js?v=20251122r:2058 ✅ [initMultiAgent] All agent column containers verified and ready
+agent-js.js?v=20251122r:2075 ✅ [initMultiAgent] Final check: All 9 containers confirmed present
+agent-js.js?v=20251122r:2087 ✅ [initMultiAgent] Prime thread-info container ready
+agent-js.js?v=20251122r:2097 🎯 [initMultiAgent] Prime has prime-loaded thread: 1764795281265, loading...
+thread-manager-interactions.js:82 📖 [Interactions] Loading thread in Prime: Xero
+thread-manager-assignment.js?v=20251128d:94 🔄 [Assignment] START: 1764795281265 → prime-loaded
+9agent-column.js?v=20251122k:1220 🔄 [AgentColumn] refreshAllAgentThreadInfos called but DISABLED - threads load via initMultiAgent()
+thread-manager-assignment.js?v=20251128d:159 ✅ [Assignment] API updated: {assignment: {…}, success: true}
+thread-manager-assignment.js?v=20251128d:195 🔄 [CASCADE] Starting UI updates for thread 1764795281265
+thread-manager-assignment.js?v=20251128d:207 ✅ [CASCADE] Updated thread object: location=prime-loaded
+thread-card-registry.js?v=20251128:316 [ThreadCardRegistry] No linked badges - using fallback system for placeholders
+thread-manager-ui.js:567 🔄 [refreshAllThreadInfoCards] Refreshing all cards for thread 1764795281265
+thread-manager-ui.js:397 🎨 [renderThreadInfoContainer] CALLED: location="thread-history", threadId="1764795281265", compact=false
+thread-manager-ui.js:408 ✅ [renderThreadInfoContainer] Thread found: {id: '1764795281265', title: 'Xero', location: 'prime-loaded', message_count: 63}
+thread-manager-ui.js:470 [renderThreadInfoContainer] Calling ThreadCardTemplates.compactCard() with: {location: 'thread-history', agent: 'Prime', meta: {…}, slug: '17647952', currentLocation: 'prime-loaded'}
+thread-manager-ui.js:490 ✅ [renderThreadInfoContainer] Generated card HTML (11789 chars) for location="thread-history"
+thread-manager-ui.js:609 ✅ [refreshAllThreadInfoCards] Updated thread-info card at thread-history
+thread-manager-assignment.js?v=20251128d:277 ⏭️ [CASCADE] Skipping backend verification (1/10)
+thread-manager-assignment.js?v=20251128d:280 ✅ [CASCADE] Complete for thread 1764795281265
+thread-manager-interactions.js:96 ✅ [Interactions] Thread assigned to prime-loaded: 1764795281265
+thread-manager-messages.js:401 ✅ [Messages] AppState synced with thread: 1764795281265
+thread-manager-interactions.js:103 ✅ [Interactions] AppState synced with thread: 1764795281265
+thread-manager-interactions.js:133 📥 [Interactions] Loading 63 messages from backend...
+thread-manager-messages.js:86 📥 [Messages] Loading messages for thread 1764795281265 (limit: null, offset: 0)...
+thread_loader.js?v=20251122q:65 [ThreadLoader] Fetching messages for thread 1764795281265 (limit: null, offset: 0)...
+thread_loader.js?v=20251122q:98 [ThreadLoader] Loaded 109 messages (109/109)
+thread-manager-interactions.js:148 📋 [Interactions] Rendering 109 messages...
+message_store.js:64 [MessageStore] Message added: msg_1765246449516_yyuulmlyg to thread 1764795281265
+message_renderer.js?v=20251121:135 [UnifiedMessageRenderer] Rendered user message in ai-chat-messages
+message_store.js:64 [MessageStore] Message added: msg_1765246449516_qhhuyyxvd to thread 1764795281265
+message_renderer.js?v=20251121:247 [UnifiedMessageRenderer] Visualization engine produced empty content, using markdown fallback
+renderAssistantContent @ message_renderer.js?v=20251121:247
+render @ message_renderer.js?v=20251121:108
+addChatMessage @ prime_ai_chat.js?v=20251122k:2290
+(anonymous) @ thread-manager-interactions.js:160
+loadThreadInPrime @ thread-manager-interactions.js:152
+await in loadThreadInPrime
+initMultiAgent @ agent-js.js?v=20251122r:2098
+await in initMultiAgent
+window.initializeMainApp @ ?token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoxNCwiZW1haWwiOiJwcmludGluZ0BpbmhvdXNlcHJpbnQuY29tLmF1IiwiZXhwIjoxNzY1MzMyODMwfQ.wc4zszg7AbX38R3sFcHkh0LDAlwSkO6r9Q2ey6OQABk:20906
+await in window.initializeMainApp
+showMainApp @ user_auth.js?v=20251128b:448
+await in showMainApp
+initializeApp @ account_profile.js?v=20251124j:2507
+await in initializeApp
+(anonymous) @ ?token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoxNCwiZW1haWwiOiJwcmludGluZ0BpbmhvdXNlcHJpbnQuY29tLmF1IiwiZXhwIjoxNzY1MzMyODMwfQ.wc4zszg7AbX38R3sFcHkh0LDAlwSkO6r9Q2ey6OQABk:21301Understand this warning
+message_renderer.js?v=20251121:269 [UnifiedMessageRenderer] 132 chars → markdown (fallback) → ✅ Success (5.20ms) [Debug mode OFF - use window.DEBUG_TWO_RULE=true for details]
+message_renderer.js?v=20251121:135 [UnifiedMessageRenderer] Rendered assistant message in ai-chat-messages
+message_store.js:64 [MessageStore] Message added: msg_1765246449522_p2ikfbnqo to thread 1764795281265
+message_renderer.js?v=20251121:247 [UnifiedMessageRenderer] Visualization engine produced empty content, using markdown fallback
+renderAssistantContent @ message_renderer.js?v=20251121:247
+render @ message_renderer.js?v=20251121:108
+addChatMessage @ prime_ai_chat.js?v=20251122k:2290
+(anonymous) @ thread-manager-interactions.js:160
+loadThreadInPrime @ thread-manager-interactions.js:152
+await in loadThreadInPrime
+initMultiAgent @ agent-js.js?v=20251122r:2098
+await in initMultiAgent
+window.initializeMainApp @ ?token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoxNCwiZW1haWwiOiJwcmludGluZ0BpbmhvdXNlcHJpbnQuY29tLmF1IiwiZXhwIjoxNzY1MzMyODMwfQ.wc4zszg7AbX38R3sFcHkh0LDAlwSkO6r9Q2ey6OQABk:20906
+await in window.initializeMainApp
+showMainApp @ user_auth.js?v=20251128b:448
+await in showMainApp
+initializeApp @ account_profile.js?v=20251124j:2507
+await in initializeApp
+(anonymous) @ ?token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoxNCwiZW1haWwiOiJwcmludGluZ0BpbmhvdXNlcHJpbnQuY29tLmF1IiwiZXhwIjoxNzY1MzMyODMwfQ.wc4zszg7AbX38R3sFcHkh0LDAlwSkO6r9Q2ey6OQABk:21301Understand this warning
+message_renderer.js?v=20251121:269 [UnifiedMessageRenderer] 124 chars → markdown (fallback) → ✅ Success (1.50ms) [Debug mode OFF - use window.DEBUG_TWO_RULE=true for details]
+message_renderer.js?v=20251121:135 [UnifiedMessageRenderer] Rendered assistant message in ai-chat-messages
+message_store.js:64 [MessageStore] Message added: msg_1765246449524_3vazn5sod to thread 1764795281265
+message_renderer.js?v=20251121:247 [UnifiedMessageRenderer] Visualization engine produced empty content, using markdown fallback
+renderAssistantContent @ message_renderer.js?v=20251121:247
+render @ message_renderer.js?v=20251121:108
+addChatMessage @ prime_ai_chat.js?v=20251122k:2290
+(anonymous) @ thread-manager-interactions.js:160
+loadThreadInPrime @ thread-manager-interactions.js:152
+await in loadThreadInPrime
+initMultiAgent @ agent-js.js?v=20251122r:2098
+await in initMultiAgent
+window.initializeMainApp @ ?token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoxNCwiZW1haWwiOiJwcmludGluZ0BpbmhvdXNlcHJpbnQuY29tLmF1IiwiZXhwIjoxNzY1MzMyODMwfQ.wc4zszg7AbX38R3sFcHkh0LDAlwSkO6r9Q2ey6OQABk:20906
+await in window.initializeMainApp
+showMainApp @ user_auth.js?v=20251128b:448
+await in showMainApp
+initializeApp @ account_profile.js?v=20251124j:2507
+await in initializeApp
+(anonymous) @ ?token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoxNCwiZW1haWwiOiJwcmludGluZ0BpbmhvdXNlcHJpbnQuY29tLmF1IiwiZXhwIjoxNzY1MzMyODMwfQ.wc4zszg7AbX38R3sFcHkh0LDAlwSkO6r9Q2ey6OQABk:21301Understand this warning
+message_renderer.js?v=20251121:269 [UnifiedMessageRenderer] 133 chars → markdown (fallback) → ✅ Success (0.60ms) [Debug mode OFF - use window.DEBUG_TWO_RULE=true for details]
+message_renderer.js?v=20251121:135 [UnifiedMessageRenderer] Rendered assistant message in ai-chat-messages
+message_store.js:64 [MessageStore] Message added: msg_1765246449525_v3pe72pbh to thread 1764795281265
+streamingTwoRule.js?v=20251207-FINALIZE-FIX:668 🔍 TWO-RULE: New markdown block, marked available? object
+streamingTwoRule.js?v=20251207-FINALIZE-FIX:670 📝 TWO-RULE: Using renderEnhancedMarkdown
+codeBlockEnhancer.js:125 🎨 CodeBlockEnhancer: enhanced 15 code blocks
+streamingTwoRule.js?v=20251207-FINALIZE-FIX:706 📝 TWO-RULE: New markdown element created (1537 chars)
+message_renderer.js?v=20251121:269 [UnifiedMessageRenderer] 1741 chars → TwoRuleStreamProcessor → ✅ Success (4.70ms) [Debug mode OFF - use window.DEBUG_TWO_RULE=true for details]
+message_renderer.js?v=20251121:135 [UnifiedMessageRenderer] Rendered assistant message in ai-chat-messages
+message_store.js:64 [MessageStore] Message added: msg_1765246449530_tbf2r4gwf to thread 1764795281265
+message_renderer.js?v=20251121:135 [UnifiedMessageRenderer] Rendered user message in ai-chat-messages
+message_store.js:64 [MessageStore] Message added: msg_1765246449530_hezhdieva to thread 1764795281265
+message_renderer.js?v=20251121:247 [UnifiedMessageRenderer] Visualization engine produced empty content, using markdown fallback
+renderAssistantContent @ message_renderer.js?v=20251121:247
+render @ message_renderer.js?v=20251121:108
+addChatMessage @ prime_ai_chat.js?v=20251122k:2290
+(anonymous) @ thread-manager-interactions.js:160
+loadThreadInPrime @ thread-manager-interactions.js:152
+await in loadThreadInPrime
+initMultiAgent @ agent-js.js?v=20251122r:2098
+await in initMultiAgent
+window.initializeMainApp @ ?token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoxNCwiZW1haWwiOiJwcmludGluZ0BpbmhvdXNlcHJpbnQuY29tLmF1IiwiZXhwIjoxNzY1MzMyODMwfQ.wc4zszg7AbX38R3sFcHkh0LDAlwSkO6r9Q2ey6OQABk:20906
+await in window.initializeMainApp
+showMainApp @ user_auth.js?v=20251128b:448
+await in showMainApp
+initializeApp @ account_profile.js?v=20251124j:2507
+await in initializeApp
+(anonymous) @ ?token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoxNCwiZW1haWwiOiJwcmludGluZ0BpbmhvdXNlcHJpbnQuY29tLmF1IiwiZXhwIjoxNzY1MzMyODMwfQ.wc4zszg7AbX38R3sFcHkh0LDAlwSkO6r9Q2ey6OQABk:21301Understand this warning
+message_renderer.js?v=20251121:269 [UnifiedMessageRenderer] 114 chars → markdown (fallback) → ✅ Success (0.10ms) [Debug mode OFF - use window.DEBUG_TWO_RULE=true for details]
+message_renderer.js?v=20251121:135 [UnifiedMessageRenderer] Rendered assistant message in ai-chat-messages
+message_store.js:64 [MessageStore] Message added: msg_1765246449530_rjpw3sv3m to thread 1764795281265
+message_renderer.js?v=20251121:247 [UnifiedMessageRenderer] Visualization engine produced empty content, using markdown fallback
+renderAssistantContent @ message_renderer.js?v=20251121:247
+render @ message_renderer.js?v=20251121:108
+addChatMessage @ prime_ai_chat.js?v=20251122k:2290
+(anonymous) @ thread-manager-interactions.js:160
+loadThreadInPrime @ thread-manager-interactions.js:152
+await in loadThreadInPrime
+initMultiAgent @ agent-js.js?v=20251122r:2098
+await in initMultiAgent
+window.initializeMainApp @ ?token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoxNCwiZW1haWwiOiJwcmludGluZ0BpbmhvdXNlcHJpbnQuY29tLmF1IiwiZXhwIjoxNzY1MzMyODMwfQ.wc4zszg7AbX38R3sFcHkh0LDAlwSkO6r9Q2ey6OQABk:20906
+await in window.initializeMainApp
+showMainApp @ user_auth.js?v=20251128b:448
+await in showMainApp
+initializeApp @ account_profile.js?v=20251124j:2507
+await in initializeApp
+(anonymous) @ ?token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoxNCwiZW1haWwiOiJwcmludGluZ0BpbmhvdXNlcHJpbnQuY29tLmF1IiwiZXhwIjoxNzY1MzMyODMwfQ.wc4zszg7AbX38R3sFcHkh0LDAlwSkO6r9Q2ey6OQABk:21301Understand this warning
+message_renderer.js?v=20251121:269 [UnifiedMessageRenderer] 53 chars → markdown (fallback) → ✅ Success (0.20ms) [Debug mode OFF - use window.DEBUG_TWO_RULE=true for details]
+message_renderer.js?v=20251121:135 [UnifiedMessageRenderer] Rendered assistant message in ai-chat-messages
+message_store.js:64 [MessageStore] Message added: msg_1765246449531_wkn4k4zlt to thread 1764795281265
+streamingTwoRule.js?v=20251207-FINALIZE-FIX:668 🔍 TWO-RULE: New markdown block, marked available? object
+streamingTwoRule.js?v=20251207-FINALIZE-FIX:670 📝 TWO-RULE: Using renderEnhancedMarkdown
+codeBlockEnhancer.js:125 🎨 CodeBlockEnhancer: enhanced 1 code blocks
+streamingTwoRule.js?v=20251207-FINALIZE-FIX:706 📝 TWO-RULE: New markdown element created (526 chars)
+message_renderer.js?v=20251121:269 [UnifiedMessageRenderer] 730 chars → TwoRuleStreamProcessor → ✅ Success (0.70ms) [Debug mode OFF - use window.DEBUG_TWO_RULE=true for details]
+
+
+
+[UnifiedMessageRenderer] 106 chars → markdown (fallback) → ✅ Success (0.00ms) [Debug mode OFF - use window.DEBUG_TWO_RULE=true for details]
+message_renderer.js?v=20251121:135 [UnifiedMessageRenderer] Rendered assistant message in ai-chat-messages
+message_store.js:39 [MessageStore] DUPLICATE PREVENTED: Message already exists in thread 1764795281265 Existing ID: msg_1765246456039_93nt1pm0y
+addMessage @ message_store.js:39
+render @ message_renderer.js?v=20251121:78
+addChatMessage @ prime_ai_chat.js?v=20251122k:2290
+(anonymous) @ thread-manager-interactions.js:160
+loadThreadInPrime @ thread-manager-interactions.js:152
+await in loadThreadInPrime
+autoLoadPrimeThread @ thread-manager-core.js?v=20251128e:445
+(anonymous) @ thread-manager-core.js?v=20251128e:192
+await in (anonymous)
+init @ thread-manager-core.js?v=20251128e:222
+window.initializeMainApp @ ?token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoxNCwiZW1haWwiOiJwcmludGluZ0BpbmhvdXNlcHJpbnQuY29tLmF1IiwiZXhwIjoxNzY1MzMyODMwfQ.wc4zszg7AbX38R3sFcHkh0LDAlwSkO6r9Q2ey6OQABk:20921
+await in window.initializeMainApp
+showMainApp @ user_auth.js?v=20251128b:448
+await in showMainApp
+initializeApp @ account_profile.js?v=20251124j:2507
+await in initializeApp
+(anonymous) @ ?token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoxNCwiZW1haWwiOiJwcmludGluZ0BpbmhvdXNlcHJpbnQuY29tLmF1IiwiZXhwIjoxNzY1MzMyODMwfQ.wc4zszg7AbX38R3sFcHkh0LDAlwSkO6r9Q2ey6OQABk:21301Understand this warning
+message_renderer.js?v=20251121:247 [UnifiedMessageRenderer] Visualization engine produced empty content, using markdown fallback
+renderAssistantContent @ message_renderer.js?v=20251121:247
+render @ message_renderer.js?v=20251121:108
+addChatMessage @ prime_ai_chat.js?v=20251122k:2290
+(anonymous) @ thread-manager-interactions.js:160
+loadThreadInPrime @ thread-manager-interactions.js:152
+await in loadThreadInPrime
+autoLoadPrimeThread @ thread-manager-core.js?v=20251128e:445
+(anonymous) @ thread-manager-core.js?v=20251128e:192
+await in (anonymous)
+init @ thread-manager-core.js?v=20251128e:222
+window.initializeMainApp @ ?token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoxNCwiZW1haWwiOiJwcmludGluZ0BpbmhvdXNlcHJpbnQuY29tLmF1IiwiZXhwIjoxNzY1MzMyODMwfQ.wc4zszg7AbX38R3sFcHkh0LDAlwSkO6r9Q2ey6OQABk:20921
+await in window.initializeMainApp
+showMainApp @ user_auth.js?v=20251128b:448
+await in showMainApp
+initializeApp @ account_profile.js?v=20251124j:2507
+await in initializeApp
+(anonymous) @ ?token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoxNCwiZW1haWwiOiJwcmludGluZ0BpbmhvdXNlcHJpbnQuY29tLmF1IiwiZXhwIjoxNzY1MzMyODMwfQ.wc4zszg7AbX38R3sFcHkh0LDAlwSkO6r9Q2ey6OQABk:21301Understand this warning
+message_renderer.js?v=20251121:269 [UnifiedMessageRenderer] 129 chars → markdown (fallback) → ✅ Success (0.10ms) [Debug mode OFF - use window.DEBUG_TWO_RULE=true for details]
+message_renderer.js?v=20251121:135 [UnifiedMessageRenderer] Rendered assistant message in ai-chat-messages
+message_store.js:64 [MessageStore] Message added: msg_1765246456040_4424gix4r to thread 1764795281265
+streamingTwoRule.js?v=20251207-FINALIZE-FIX:668 🔍 TWO-RULE: New markdown block, marked available? object
+streamingTwoRule.js?v=20251207-FINALIZE-FIX:670 📝 TWO-RULE: Using renderEnhancedMarkdown
+streamingTwoRule.js?v=20251207-FINALIZE-FIX:706 📝 TWO-RULE: New markdown element created (2357 chars)
+message_renderer.js?v=20251121:269 [UnifiedMessageRenderer] 2406 chars → TwoRuleStreamProcessor → ✅ Success (0.90ms) [Debug mode OFF - use window.DEBUG_TWO_RULE=true for details]
+message_renderer.js?v=20251121:135 [UnifiedMessageRenderer] Rendered assistant message in ai-chat-messages
+message_store.js:64 [MessageStore] Message added: msg_1765246456042_s3782oa5l to thread 1764795281265
+message_renderer.js?v=20251121:135 [UnifiedMessageRenderer] Rendered user message in ai-chat-messages
+message_store.js:64 [MessageStore] Message added: msg_1765246456042_l68zgltsk to thread 1764795281265
+streamingTwoRule.js?v=20251207-FINALIZE-FIX:668 🔍 TWO-RULE: New markdown block, marked available? object
+streamingTwoRule.js?v=20251207-FINALIZE-FIX:670 📝 TWO-RULE: Using renderEnhancedMarkdown
+streamingTwoRule.js?v=20251207-FINALIZE-FIX:706 📝 TWO-RULE: New markdown element created (220 chars)
+message_renderer.js?v=20251121:269 [UnifiedMessageRenderer] 372 chars → TwoRuleStreamProcessor → ✅ Success (0.20ms) [Debug mode OFF - use window.DEBUG_TWO_RULE=true for details]
+message_renderer.js?v=20251121:135 [UnifiedMessageRenderer] Rendered assistant message in ai-chat-messages
+message_store.js:64 [MessageStore] Message added: msg_1765246456042_h8ylb5z8n to thread 1764795281265
+message_renderer.js?v=20251121:135 [UnifiedMessageRenderer] Rendered user message in ai-chat-messages
+message_store.js:64 [MessageStore] Message added: msg_1765246456042_uugwmulxm to thread 1764795281265
+streamingTwoRule.js?v=20251207-FINALIZE-FIX:668 🔍 TWO-RULE: New markdown block, marked available? object
+streamingTwoRule.js?v=20251207-FINALIZE-FIX:670 📝 TWO-RULE: Using renderEnhancedMarkdown
+codeBlockEnhancer.js:125 🎨 CodeBlockEnhancer: enhanced 1 code blocks
+streamingTwoRule.js?v=20251207-FINALIZE-FIX:706 📝 TWO-RULE: New markdown element created (1321 chars)
+message_renderer.js?v=20251121:269 [UnifiedMessageRenderer] 1377 chars → TwoRuleStreamProcessor → ✅ Success (0.60ms) [Debug mode OFF - use window.DEBUG_TWO_RULE=true for details]
+message_renderer.js?v=20251121:135 [UnifiedMessageRenderer] Rendered assistant message in ai-chat-messages
+message_store.js:64 [MessageStore] Message added: msg_1765246456043_oqovca5lr to thread 1764795281265
+streamingTwoRule.js?v=20251207-FINALIZE-FIX:668 🔍 TWO-RULE: New markdown block, marked available? object
+streamingTwoRule.js?v=20251207-FINALIZE-FIX:670 📝 TWO-RULE: Using renderEnhancedMarkdown
+streamingTwoRule.js?v=20251207-FINALIZE-FIX:706 📝 TWO-RULE: New markdown element created (1446 chars)
+message_renderer.js?v=20251121:269 [UnifiedMessageRenderer] 1485 chars → TwoRuleStreamProcessor → ✅ Success (0.60ms) [Debug mode OFF - use window.DEBUG_TWO_RULE=true for details]
+message_renderer.js?v=20251121:135 [UnifiedMessageRenderer] Rendered assistant message in ai-chat-messages
+message_store.js:64 [MessageStore] Message added: msg_1765246456045_kg9wtb0c1 to thread 1764795281265
+message_renderer.js?v=20251121:135 [UnifiedMessageRenderer] Rendered user message in ai-chat-messages
+message_store.js:64 [MessageStore] Message added: msg_1765246456045_0qmcrc5is to thread 1764795281265
+message_renderer.js?v=20251121:247 [UnifiedMessageRenderer] Visualization engine produced empty content, using markdown fallback
+renderAssistantContent @ message_renderer.js?v=20251121:247
+render @ message_renderer.js?v=20251121:108
+addChatMessage @ prime_ai_chat.js?v=20251122k:2290
+(anonymous) @ thread-manager-interactions.js:160
+loadThreadInPrime @ thread-manager-interactions.js:152
+await in loadThreadInPrime
+autoLoadPrimeThread @ thread-manager-core.js?v=20251128e:445
+(anonymous) @ thread-manager-core.js?v=20251128e:192
+await in (anonymous)
+init @ thread-manager-core.js?v=20251128e:222
+window.initializeMainApp @ ?token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoxNCwiZW1haWwiOiJwcmludGluZ0BpbmhvdXNlcHJpbnQuY29tLmF1IiwiZXhwIjoxNzY1MzMyODMwfQ.wc4zszg7AbX38R3sFcHkh0LDAlwSkO6r9Q2ey6OQABk:20921
+await in window.initializeMainApp
+showMainApp @ user_auth.js?v=20251128b:448
+await in showMainApp
+initializeApp @ account_profile.js?v=20251124j:2507
+await in initializeApp
+(anonymous) @ ?token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoxNCwiZW1haWwiOiJwcmludGluZ0BpbmhvdXNlcHJpbnQuY29tLmF1IiwiZXhwIjoxNzY1MzMyODMwfQ.wc4zszg7AbX38R3sFcHkh0LDAlwSkO6r9Q2ey6OQABk:21301Understand this warning
+message_renderer.js?v=20251121:269 [UnifiedMessageRenderer] 145 chars → markdown (fallback) → ✅ Success (0.00ms) [Debug mode OFF - use window.DEBUG_TWO_RULE=true for details]
+message_renderer.js?v=20251121:135 [UnifiedMessageRenderer] Rendered assistant message in ai-chat-messages
+message_store.js:64 [MessageStore] Message added: msg_1765246456045_0six7kq5q to thread 1764795281265
+message_renderer.js?v=20251121:247 [UnifiedMessageRenderer] Visualization engine produced empty content, using markdown fallback
+renderAssistantContent @ message_renderer.js?v=20251121:247
+render @ message_renderer.js?v=20251121:108
+addChatMessage @ prime_ai_chat.js?v=20251122k:2290
+(anonymous) @ thread-manager-interactions.js:160
+loadThreadInPrime @ thread-manager-interactions.js:152
+await in loadThreadInPrime
+autoLoadPrimeThread @ thread-manager-core.js?v=20251128e:445
+(anonymous) @ thread-manager-core.js?v=20251128e:192
+await in (anonymous)
+init @ thread-manager-core.js?v=20251128e:222
+window.initializeMainApp @ ?token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoxNCwiZW1haWwiOiJwcmludGluZ0BpbmhvdXNlcHJpbnQuY29tLmF1IiwiZXhwIjoxNzY1MzMyODMwfQ.wc4zszg7AbX38R3sFcHkh0LDAlwSkO6r9Q2ey6OQABk:20921
+await in window.initializeMainApp
+showMainApp @ user_auth.js?v=20251128b:448
+await in showMainApp
+initializeApp @ account_profile.js?v=20251124j:2507
+await in initializeApp
+(anonymous) @ ?token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoxNCwiZW1haWwiOiJwcmludGluZ0BpbmhvdXNlcHJpbnQuY29tLmF1IiwiZXhwIjoxNzY1MzMyODMwfQ.wc4zszg7AbX38R3sFcHkh0LDAlwSkO6r9Q2ey6OQABk:21301Understand this warning
+message_renderer.js?v=20251121:269 [UnifiedMessageRenderer] 82 chars → markdown (fallback) → ✅ Success (0.10ms) [Debug mode OFF - use window.DEBUG_TWO_RULE=true for details]
+message_renderer.js?v=20251121:135 [UnifiedMessageRenderer] Rendered assistant message in ai-chat-messages
+message_store.js:64 [MessageStore] Message added: msg_1765246456046_9kxnus82f to thread 1764795281265
+streamingTwoRule.js?v=20251207-FINALIZE-FIX:668 🔍 TWO-RULE: New markdown block, marked available? object
+streamingTwoRule.js?v=20251207-FINALIZE-FIX:670 📝 TWO-RULE: Using renderEnhancedMarkdown
+streamingTwoRule.js?v=20251207-FINALIZE-FIX:706 📝 TWO-RULE: New markdown element created (179 chars)
+message_renderer.js?v=20251121:269 [UnifiedMessageRenderer] 430 chars → TwoRuleStreamProcessor → ✅ Success (0.30ms) [Debug mode OFF - use window.DEBUG_TWO_RULE=true for details]
+message_renderer.js?v=20251121:135 [UnifiedMessageRenderer] Rendered assistant message in ai-chat-messages
+message_store.js:64 [MessageStore] Message added: msg_1765246456046_ctbpcp9ie to thread 1764795281265
+message_renderer.js?v=20251121:135 [UnifiedMessageRenderer] Rendered user message in ai-chat-messages
+message_store.js:64 [MessageStore] Message added: msg_1765246456046_fsj4bp8xh to thread 1764795281265
+message_renderer.js?v=20251121:247 [UnifiedMessageRenderer] Visualization engine produced empty content, using markdown fallback
+renderAssistantContent @ message_renderer.js?v=20251121:247
+render @ message_renderer.js?v=20251121:108
+addChatMessage @ prime_ai_chat.js?v=20251122k:2290
+(anonymous) @ thread-manager-interactions.js:160
+loadThreadInPrime @ thread-manager-interactions.js:152
+await in loadThreadInPrime
+autoLoadPrimeThread @ thread-manager-core.js?v=20251128e:445
+(anonymous) @ thread-manager-core.js?v=20251128e:192
+await in (anonymous)
+init @ thread-manager-core.js?v=20251128e:222
+window.initializeMainApp @ ?token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoxNCwiZW1haWwiOiJwcmludGluZ0BpbmhvdXNlcHJpbnQuY29tLmF1IiwiZXhwIjoxNzY1MzMyODMwfQ.wc4zszg7AbX38R3sFcHkh0LDAlwSkO6r9Q2ey6OQABk:20921
+await in window.initializeMainApp
+showMainApp @ user_auth.js?v=20251128b:448
+await in showMainApp
+initializeApp @ account_profile.js?v=20251124j:2507
+await in initializeApp
+(anonymous) @ ?token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoxNCwiZW1haWwiOiJwcmludGluZ0BpbmhvdXNlcHJpbnQuY29tLmF1IiwiZXhwIjoxNzY1MzMyODMwfQ.wc4zszg7AbX38R3sFcHkh0LDAlwSkO6r9Q2ey6OQABk:21301Understand this warning
+message_renderer.js?v=20251121:269 [UnifiedMessageRenderer] 109 chars → markdown (fallback) → ✅ Success (0.10ms) [Debug mode OFF - use window.DEBUG_TWO_RULE=true for details]
+message_renderer.js?v=20251121:135 [UnifiedMessageRenderer] Rendered assistant message in ai-chat-messages
+message_store.js:64 [MessageStore] Message added: msg_1765246456046_7n4bz2d3l to thread 1764795281265
+message_renderer.js?v=20251121:247 [UnifiedMessageRenderer] Visualization engine produced empty content, using markdown fallback
+renderAssistantContent @ message_renderer.js?v=20251121:247
+render @ message_renderer.js?v=20251121:108
+addChatMessage @ prime_ai_chat.js?v=20251122k:2290
+(anonymous) @ thread-manager-interactions.js:160
+loadThreadInPrime @ thread-manager-interactions.js:152
+await in loadThreadInPrime
+autoLoadPrimeThread @ thread-manager-core.js?v=20251128e:445
+(anonymous) @ thread-manager-core.js?v=20251128e:192
+await in (anonymous)
+init @ thread-manager-core.js?v=20251128e:222
+window.initializeMainApp @ ?token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoxNCwiZW1haWwiOiJwcmludGluZ0BpbmhvdXNlcHJpbnQuY29tLmF1IiwiZXhwIjoxNzY1MzMyODMwfQ.wc4zszg7AbX38R3sFcHkh0LDAlwSkO6r9Q2ey6OQABk:20921
+await in window.initializeMainApp
+showMainApp @ user_auth.js?v=20251128b:448
+await in showMainApp
+initializeApp @ account_profile.js?v=20251124j:2507
+await in initializeApp
+(anonymous) @ ?token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoxNCwiZW1haWwiOiJwcmludGluZ0BpbmhvdXNlcHJpbnQuY29tLmF1IiwiZXhwIjoxNzY1MzMyODMwfQ.wc4zszg7AbX38R3sFcHkh0LDAlwSkO6r9Q2ey6OQABk:21301Understand this warning
+message_renderer.js?v=20251121:269 [UnifiedMessageRenderer] 94 chars → markdown (fallback) → ✅ Success (0.10ms) [Debug mode OFF - use window.DEBUG_TWO_RULE=true for details]
+message_renderer.js?v=20251121:135 [UnifiedMessageRenderer] Rendered assistant message in ai-chat-messages
+message_store.js:64 [MessageStore] Message added: msg_1765246456047_oopyg8u1s to thread 1764795281265
+streamingTwoRule.js?v=20251207-FINALIZE-FIX:668 🔍 TWO-RULE: New markdown block, marked available? object
+streamingTwoRule.js?v=20251207-FINALIZE-FIX:670 📝 TWO-RULE: Using renderEnhancedMarkdown
+codeBlockEnhancer.js:125 🎨 CodeBlockEnhancer: enhanced 5 code blocks
+streamingTwoRule.js?v=20251207-FINALIZE-FIX:706 📝 TWO-RULE: New markdown element created (511 chars)
+message_renderer.js?v=20251121:269 [UnifiedMessageRenderer] 587 chars → TwoRuleStreamProcessor → ✅ Success (0.30ms) [Debug mode OFF - use window.DEBUG_TWO_RULE=true for details]
+message_renderer.js?v=20251121:135 [UnifiedMessageRenderer] Rendered assistant message in ai-chat-messages
+message_store.js:64 [MessageStore] Message added: msg_1765246456047_oksvdsnm9 to thread 1764795281265
+streamingTwoRule.js?v=20251207-FINALIZE-FIX:668 🔍 TWO-RULE: New markdown block, marked available? object
+streamingTwoRule.js?v=20251207-FINALIZE-FIX:670 📝 TWO-RULE: Using renderEnhancedMarkdown
+codeBlockEnhancer.js:125 🎨 CodeBlockEnhancer: enhanced 1 code blocks
+streamingTwoRule.js?v=20251207-FINALIZE-FIX:706 📝 TWO-RULE: New markdown element created (993 chars)
+message_renderer.js?v=20251121:269 [UnifiedMessageRenderer] 1037 chars → TwoRuleStreamProcessor → ✅ Success (0.50ms) [Debug mode OFF - use window.DEBUG_TWO_RULE=true for details]
+message_renderer.js?v=20251121:135 [UnifiedMessageRenderer] Rendered assistant message in ai-chat-messages
+message_store.js:64 [MessageStore] Message added: msg_1765246456048_2y8awavd7 to thread 1764795281265
+message_renderer.js?v=20251121:135 [UnifiedMessageRenderer] Rendered user message in ai-chat-messages
+message_store.js:64 [MessageStore] Message added: msg_1765246456048_5f10lml9u to thread 1764795281265
+message_renderer.js?v=20251121:247 [UnifiedMessageRenderer] Visualization engine produced empty content, using markdown fallback
+renderAssistantContent @ message_renderer.js?v=20251121:247
+render @ message_renderer.js?v=20251121:108
+addChatMessage @ prime_ai_chat.js?v=20251122k:2290
+(anonymous) @ thread-manager-interactions.js:160
+loadThreadInPrime @ thread-manager-interactions.js:152
+await in loadThreadInPrime
+autoLoadPrimeThread @ thread-manager-core.js?v=20251128e:445
+(anonymous) @ thread-manager-core.js?v=20251128e:192
+await in (anonymous)
+init @ thread-manager-core.js?v=20251128e:222
+window.initializeMainApp @ ?token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoxNCwiZW1haWwiOiJwcmludGluZ0BpbmhvdXNlcHJpbnQuY29tLmF1IiwiZXhwIjoxNzY1MzMyODMwfQ.wc4zszg7AbX38R3sFcHkh0LDAlwSkO6r9Q2ey6OQABk:20921
+await in window.initializeMainApp
+showMainApp @ user_auth.js?v=20251128b:448
+await in showMainApp
+initializeApp @ account_profile.js?v=20251124j:2507
+await in initializeApp
+(anonymous) @ ?token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoxNCwiZW1haWwiOiJwcmludGluZ0BpbmhvdXNlcHJpbnQuY29tLmF1IiwiZXhwIjoxNzY1MzMyODMwfQ.wc4zszg7AbX38R3sFcHkh0LDAlwSkO6r9Q2ey6OQABk:21301Understand this warning
+message_renderer.js?v=20251121:269 [UnifiedMessageRenderer] 99 chars → markdown (fallback) → ✅ Success (0.00ms) [Debug mode OFF - use window.DEBUG_TWO_RULE=true for details]
+message_renderer.js?v=20251121:135 [UnifiedMessageRenderer] Rendered assistant message in ai-chat-messages
+message_store.js:64 [MessageStore] Message added: msg_1765246456049_imspv7pjd to thread 1764795281265
+streamingTwoRule.js?v=20251207-FINALIZE-FIX:668 🔍 TWO-RULE: New markdown block, marked available? object
+streamingTwoRule.js?v=20251207-FINALIZE-FIX:670 📝 TWO-RULE: Using renderEnhancedMarkdown
+streamingTwoRule.js?v=20251207-FINALIZE-FIX:706 📝 TWO-RULE: New markdown element created (115 chars)
+message_renderer.js?v=20251121:269 [UnifiedMessageRenderer] 236 chars → TwoRuleStreamProcessor → ✅ Success (0.20ms) [Debug mode OFF - use window.DEBUG_TWO_RULE=true for details]
+message_renderer.js?v=20251121:135 [UnifiedMessageRenderer] Rendered assistant message in ai-chat-messages
+message_store.js:64 [MessageStore] Message added: msg_1765246456049_10wqhas8s to thread 1764795281265
+message_renderer.js?v=20251121:135 [UnifiedMessageRenderer] Rendered user message in ai-chat-messages
+message_store.js:64 [MessageStore] Message added: msg_1765246456049_gi2ykv1r5 to thread 1764795281265
+message_renderer.js?v=20251121:247 [UnifiedMessageRenderer] Visualization engine produced empty content, using markdown fallback
+renderAssistantContent @ message_renderer.js?v=20251121:247
+render @ message_renderer.js?v=20251121:108
+addChatMessage @ prime_ai_chat.js?v=20251122k:2290
+(anonymous) @ thread-manager-interactions.js:160
+loadThreadInPrime @ thread-manager-interactions.js:152
+await in loadThreadInPrime
+autoLoadPrimeThread @ thread-manager-core.js?v=20251128e:445
+(anonymous) @ thread-manager-core.js?v=20251128e:192
+await in (anonymous)
+init @ thread-manager-core.js?v=20251128e:222
+window.initializeMainApp @ ?token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoxNCwiZW1haWwiOiJwcmludGluZ0BpbmhvdXNlcHJpbnQuY29tLmF1IiwiZXhwIjoxNzY1MzMyODMwfQ.wc4zszg7AbX38R3sFcHkh0LDAlwSkO6r9Q2ey6OQABk:20921
+await in window.initializeMainApp
+showMainApp @ user_auth.js?v=20251128b:448
+await in showMainApp
+initializeApp @ account_profile.js?v=20251124j:2507
+await in initializeApp
+(anonymous) @ ?token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoxNCwiZW1haWwiOiJwcmludGluZ0BpbmhvdXNlcHJpbnQuY29tLmF1IiwiZXhwIjoxNzY1MzMyODMwfQ.wc4zszg7AbX38R3sFcHkh0LDAlwSkO6r9Q2ey6OQABk:21301Understand this warning
+message_renderer.js?v=20251121:269 [UnifiedMessageRenderer] 130 chars → markdown (fallback) → ✅ Success (0.10ms) [Debug mode OFF - use window.DEBUG_TWO_RULE=true for details]
+message_renderer.js?v=20251121:135 [UnifiedMessageRenderer] Rendered assistant message in ai-chat-messages
+message_store.js:64 [MessageStore] Message added: msg_1765246456049_2rvgv5816 to thread 1764795281265
+message_renderer.js?v=20251121:247 [UnifiedMessageRenderer] Visualization engine produced empty content, using markdown fallback
+renderAssistantContent @ message_renderer.js?v=20251121:247
+render @ message_renderer.js?v=20251121:108
+addChatMessage @ prime_ai_chat.js?v=20251122k:2290
+(anonymous) @ thread-manager-interactions.js:160
+loadThreadInPrime @ thread-manager-interactions.js:152
+await in loadThreadInPrime
+autoLoadPrimeThread @ thread-manager-core.js?v=20251128e:445
+(anonymous) @ thread-manager-core.js?v=20251128e:192
+await in (anonymous)
+init @ thread-manager-core.js?v=20251128e:222
+window.initializeMainApp @ ?token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoxNCwiZW1haWwiOiJwcmludGluZ0BpbmhvdXNlcHJpbnQuY29tLmF1IiwiZXhwIjoxNzY1MzMyODMwfQ.wc4zszg7AbX38R3sFcHkh0LDAlwSkO6r9Q2ey6OQABk:20921
+await in window.initializeMainApp
+showMainApp @ user_auth.js?v=20251128b:448
+await in showMainApp
+initializeApp @ account_profile.js?v=20251124j:2507
+await in initializeApp
+(anonymous) @ ?token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoxNCwiZW1haWwiOiJwcmludGluZ0BpbmhvdXNlcHJpbnQuY29tLmF1IiwiZXhwIjoxNzY1MzMyODMwfQ.wc4zszg7AbX38R3sFcHkh0LDAlwSkO6r9Q2ey6OQABk:21301Understand this warning
+message_renderer.js?v=20251121:269 [UnifiedMessageRenderer] 123 chars → markdown (fallback) → ✅ Success (0.10ms) [Debug mode OFF - use window.DEBUG_TWO_RULE=true for details]
+message_renderer.js?v=20251121:135 [UnifiedMessageRenderer] Rendered assistant message in ai-chat-messages
+message_store.js:64 [MessageStore] Message added: msg_1765246456049_abxhapzrb to thread 1764795281265
+message_renderer.js?v=20251121:247 [UnifiedMessageRenderer] Visualization engine produced empty content, using markdown fallback
+renderAssistantContent @ message_renderer.js?v=20251121:247
+render @ message_renderer.js?v=20251121:108
+addChatMessage @ prime_ai_chat.js?v=20251122k:2290
+(anonymous) @ thread-manager-interactions.js:160
+loadThreadInPrime @ thread-manager-interactions.js:152
+await in loadThreadInPrime
+autoLoadPrimeThread @ thread-manager-core.js?v=20251128e:445
+(anonymous) @ thread-manager-core.js?v=20251128e:192
+await in (anonymous)
+init @ thread-manager-core.js?v=20251128e:222
+window.initializeMainApp @ ?token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoxNCwiZW1haWwiOiJwcmludGluZ0BpbmhvdXNlcHJpbnQuY29tLmF1IiwiZXhwIjoxNzY1MzMyODMwfQ.wc4zszg7AbX38R3sFcHkh0LDAlwSkO6r9Q2ey6OQABk:20921
+await in window.initializeMainApp
+showMainApp @ user_auth.js?v=20251128b:448
+await in showMainApp
+initializeApp @ account_profile.js?v=20251124j:2507
+await in initializeApp
+(anonymous) @ ?token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoxNCwiZW1haWwiOiJwcmludGluZ0BpbmhvdXNlcHJpbnQuY29tLmF1IiwiZXhwIjoxNzY1MzMyODMwfQ.wc4zszg7AbX38R3sFcHkh0LDAlwSkO6r9Q2ey6OQABk:21301Understand this warning
+message_renderer.js?v=20251121:269 [UnifiedMessageRenderer] 40 chars → markdown (fallback) → ✅ Success (0.10ms) [Debug mode OFF - use window.DEBUG_TWO_RULE=true for details]
+message_renderer.js?v=20251121:135 [UnifiedMessageRenderer] Rendered assistant message in ai-chat-messages
+message_store.js:64 [MessageStore] Message added: msg_1765246456050_jemsrwrhl to thread 1764795281265
+message_renderer.js?v=20251121:247 [UnifiedMessageRenderer] Visualization engine produced empty content, using markdown fallback
+renderAssistantContent @ message_renderer.js?v=20251121:247
+render @ message_renderer.js?v=20251121:108
+addChatMessage @ prime_ai_chat.js?v=20251122k:2290
+(anonymous) @ thread-manager-interactions.js:160
+loadThreadInPrime @ thread-manager-interactions.js:152
+await in loadThreadInPrime
+autoLoadPrimeThread @ thread-manager-core.js?v=20251128e:445
+(anonymous) @ thread-manager-core.js?v=20251128e:192
+await in (anonymous)
+init @ thread-manager-core.js?v=20251128e:222
+window.initializeMainApp @ ?token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoxNCwiZW1haWwiOiJwcmludGluZ0BpbmhvdXNlcHJpbnQuY29tLmF1IiwiZXhwIjoxNzY1MzMyODMwfQ.wc4zszg7AbX38R3sFcHkh0LDAlwSkO6r9Q2ey6OQABk:20921
+await in window.initializeMainApp
+showMainApp @ user_auth.js?v=20251128b:448
+await in showMainApp
+initializeApp @ account_profile.js?v=20251124j:2507
+await in initializeApp
+(anonymous) @ ?token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoxNCwiZW1haWwiOiJwcmludGluZ0BpbmhvdXNlcHJpbnQuY29tLmF1IiwiZXhwIjoxNzY1MzMyODMwfQ.wc4zszg7AbX38R3sFcHkh0LDAlwSkO6r9Q2ey6OQABk:21301Understand this warning
+codeBlockEnhancer.js:125 🎨 CodeBlockEnhancer: enhanced 2 code blocks
+message_renderer.js?v=20251121:269 [UnifiedMessageRenderer] 125 chars → markdown (fallback) → ✅ Success (0.10ms) [Debug mode OFF - use window.DEBUG_TWO_RULE=true for details]
+message_renderer.js?v=20251121:135 [UnifiedMessageRenderer] Rendered assistant message in ai-chat-messages
+message_store.js:64 [MessageStore] Message added: msg_1765246456050_kflqbesgt to thread 1764795281265
+streamingTwoRule.js?v=20251207-FINALIZE-FIX:668 🔍 TWO-RULE: New markdown block, marked available? object
+streamingTwoRule.js?v=20251207-FINALIZE-FIX:670 📝 TWO-RULE: Using renderEnhancedMarkdown
+streamingTwoRule.js?v=20251207-FINALIZE-FIX:706 📝 TWO-RULE: New markdown element created (223 chars)
+message_renderer.js?v=20251121:269 [UnifiedMessageRenderer] 283 chars → TwoRuleStreamProcessor → ✅ Success (0.30ms) [Debug mode OFF - use window.DEBUG_TWO_RULE=true for details]
+message_renderer.js?v=20251121:135 [UnifiedMessageRenderer] Rendered assistant message in ai-chat-messages
+message_store.js:64 [MessageStore] Message added: msg_1765246456050_3hk0j4rmf to thread 1764795281265
+streamingTwoRule.js?v=20251207-FINALIZE-FIX:668 🔍 TWO-RULE: New markdown block, marked available? object
+streamingTwoRule.js?v=20251207-FINALIZE-FIX:670 📝 TWO-RULE: Using renderEnhancedMarkdown
+codeBlockEnhancer.js:125 🎨 CodeBlockEnhancer: enhanced 7 code blocks
+streamingTwoRule.js?v=20251207-FINALIZE-FIX:706 📝 TWO-RULE: New markdown element created (1094 chars)
+message_renderer.js?v=20251121:269 [UnifiedMessageRenderer] 1182 chars → TwoRuleStreamProcessor → ✅ Success (0.60ms) [Debug mode OFF - use window.DEBUG_TWO_RULE=true for details]
+message_renderer.js?v=20251121:135 [UnifiedMessageRenderer] Rendered assistant message in ai-chat-messages
+message_store.js:64 [MessageStore] Message added: msg_1765246456051_lk6gkre4i to thread 1764795281265
+message_renderer.js?v=20251121:135 [UnifiedMessageRenderer] Rendered user message in ai-chat-messages
+message_store.js:64 [MessageStore] Message added: msg_1765246456051_2ham1chk5 to thread 1764795281265
+message_renderer.js?v=20251121:247 [UnifiedMessageRenderer] Visualization engine produced empty content, using markdown fallback
+renderAssistantContent @ message_renderer.js?v=20251121:247
+render @ message_renderer.js?v=20251121:108
+addChatMessage @ prime_ai_chat.js?v=20251122k:2290
+(anonymous) @ thread-manager-interactions.js:160
+loadThreadInPrime @ thread-manager-interactions.js:152
+await in loadThreadInPrime
+autoLoadPrimeThread @ thread-manager-core.js?v=20251128e:445
+(anonymous) @ thread-manager-core.js?v=20251128e:192
+await in (anonymous)
+init @ thread-manager-core.js?v=20251128e:222
+window.initializeMainApp @ ?token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoxNCwiZW1haWwiOiJwcmludGluZ0BpbmhvdXNlcHJpbnQuY29tLmF1IiwiZXhwIjoxNzY1MzMyODMwfQ.wc4zszg7AbX38R3sFcHkh0LDAlwSkO6r9Q2ey6OQABk:20921
+await in window.initializeMainApp
+showMainApp @ user_auth.js?v=20251128b:448
+await in showMainApp
+initializeApp @ account_profile.js?v=20251124j:2507
+await in initializeApp
+(anonymous) @ ?token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoxNCwiZW1haWwiOiJwcmludGluZ0BpbmhvdXNlcHJpbnQuY29tLmF1IiwiZXhwIjoxNzY1MzMyODMwfQ.wc4zszg7AbX38R3sFcHkh0LDAlwSkO6r9Q2ey6OQABk:21301Understand this warning
+message_renderer.js?v=20251121:269 [UnifiedMessageRenderer] 133 chars → markdown (fallback) → ✅ Success (0.10ms) [Debug mode OFF - use window.DEBUG_TWO_RULE=true for details]
+message_renderer.js?v=20251121:135 [UnifiedMessageRenderer] Rendered assistant message in ai-chat-messages
+message_store.js:64 [MessageStore] Message added: msg_1765246456052_a5827ink8 to thread 1764795281265
+message_renderer.js?v=20251121:247 [UnifiedMessageRenderer] Visualization engine produced empty content, using markdown fallback
+renderAssistantContent @ message_renderer.js?v=20251121:247
+render @ message_renderer.js?v=20251121:108
+addChatMessage @ prime_ai_chat.js?v=20251122k:2290
+(anonymous) @ thread-manager-interactions.js:160
+loadThreadInPrime @ thread-manager-interactions.js:152
+await in loadThreadInPrime
+autoLoadPrimeThread @ thread-manager-core.js?v=20251128e:445
+(anonymous) @ thread-manager-core.js?v=20251128e:192
+await in (anonymous)
+init @ thread-manager-core.js?v=20251128e:222
+window.initializeMainApp @ ?token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoxNCwiZW1haWwiOiJwcmludGluZ0BpbmhvdXNlcHJpbnQuY29tLmF1IiwiZXhwIjoxNzY1MzMyODMwfQ.wc4zszg7AbX38R3sFcHkh0LDAlwSkO6r9Q2ey6OQABk:20921
+await in window.initializeMainApp
+showMainApp @ user_auth.js?v=20251128b:448
+await in showMainApp
+initializeApp @ account_profile.js?v=20251124j:2507
+await in initializeApp
+(anonymous) @ ?token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoxNCwiZW1haWwiOiJwcmludGluZ0BpbmhvdXNlcHJpbnQuY29tLmF1IiwiZXhwIjoxNzY1MzMyODMwfQ.wc4zszg7AbX38R3sFcHkh0LDAlwSkO6r9Q2ey6OQABk:21301Understand this warning
+message_renderer.js?v=20251121:269 [UnifiedMessageRenderer] 66 chars → markdown (fallback) → ✅ Success (0.00ms) [Debug mode OFF - use window.DEBUG_TWO_RULE=true for details]
+message_renderer.js?v=20251121:135 [UnifiedMessageRenderer] Rendered assistant message in ai-chat-messages
+message_store.js:64 [MessageStore] Message added: msg_1765246456052_ca0x4s9be to thread 1764795281265
+message_renderer.js?v=20251121:247 [UnifiedMessageRenderer] Visualization engine produced empty content, using markdown fallback
+renderAssistantContent @ message_renderer.js?v=20251121:247
+render @ message_renderer.js?v=20251121:108
+addChatMessage @ prime_ai_chat.js?v=20251122k:2290
+(anonymous) @ thread-manager-interactions.js:160
+loadThreadInPrime @ thread-manager-interactions.js:152
+await in loadThreadInPrime
+autoLoadPrimeThread @ thread-manager-core.js?v=20251128e:445
+(anonymous) @ thread-manager-core.js?v=20251128e:192
+await in (anonymous)
+init @ thread-manager-core.js?v=20251128e:222
+window.initializeMainApp @ ?token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoxNCwiZW1haWwiOiJwcmludGluZ0BpbmhvdXNlcHJpbnQuY29tLmF1IiwiZXhwIjoxNzY1MzMyODMwfQ.wc4zszg7AbX38R3sFcHkh0LDAlwSkO6r9Q2ey6OQABk:20921
+await in window.initializeMainApp
+showMainApp @ user_auth.js?v=20251128b:448
+await in showMainApp
+initializeApp @ account_profile.js?v=20251124j:2507
+await in initializeApp
+(anonymous) @ ?token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoxNCwiZW1haWwiOiJwcmludGluZ0BpbmhvdXNlcHJpbnQuY29tLmF1IiwiZXhwIjoxNzY1MzMyODMwfQ.wc4zszg7AbX38R3sFcHkh0LDAlwSkO6r9Q2ey6OQABk:21301Understand this warning
+message_renderer.js?v=20251121:269 [UnifiedMessageRenderer] 29 chars → markdown (fallback) → ✅ Success (0.10ms) [Debug mode OFF - use window.DEBUG_TWO_RULE=true for details]
+message_renderer.js?v=20251121:135 [UnifiedMessageRenderer] Rendered assistant message in ai-chat-messages
+message_store.js:64 [MessageStore] Message added: msg_1765246456052_uf40ieh0d to thread 1764795281265
+message_renderer.js?v=20251121:247 [UnifiedMessageRenderer] Visualization engine produced empty content, using markdown fallback
+renderAssistantContent @ message_renderer.js?v=20251121:247
+render @ message_renderer.js?v=20251121:108
+addChatMessage @ prime_ai_chat.js?v=20251122k:2290
+(anonymous) @ thread-manager-interactions.js:160
+loadThreadInPrime @ thread-manager-interactions.js:152
+await in loadThreadInPrime
+autoLoadPrimeThread @ thread-manager-core.js?v=20251128e:445
+(anonymous) @ thread-manager-core.js?v=20251128e:192
+await in (anonymous)
+init @ thread-manager-core.js?v=20251128e:222
+window.initializeMainApp @ ?token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoxNCwiZW1haWwiOiJwcmludGluZ0BpbmhvdXNlcHJpbnQuY29tLmF1IiwiZXhwIjoxNzY1MzMyODMwfQ.wc4zszg7AbX38R3sFcHkh0LDAlwSkO6r9Q2ey6OQABk:20921
+await in window.initializeMainApp
+showMainApp @ user_auth.js?v=20251128b:448
+await in showMainApp
+initializeApp @ account_profile.js?v=20251124j:2507
+await in initializeApp
+(anonymous) @ ?token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoxNCwiZW1haWwiOiJwcmludGluZ0BpbmhvdXNlcHJpbnQuY29tLmF1IiwiZXhwIjoxNzY1MzMyODMwfQ.wc4zszg7AbX38R3sFcHkh0LDAlwSkO6r9Q2ey6OQABk:21301Understand this warning
+message_renderer.js?v=20251121:269 [UnifiedMessageRenderer] 43 chars → markdown (fallback) → ✅ Success (0.00ms) [Debug mode OFF - use window.DEBUG_TWO_RULE=true for details]
+message_renderer.js?v=20251121:135 [UnifiedMessageRenderer] Rendered assistant message in ai-chat-messages
+message_store.js:64 [MessageStore] Message added: msg_1765246456052_0l88jf6ra to thread 1764795281265
+message_renderer.js?v=20251121:247 [UnifiedMessageRenderer] Visualization engine produced empty content, using markdown fallback
+renderAssistantContent @ message_renderer.js?v=20251121:247
+render @ message_renderer.js?v=20251121:108
+addChatMessage @ prime_ai_chat.js?v=20251122k:2290
+(anonymous) @ thread-manager-interactions.js:160
+loadThreadInPrime @ thread-manager-interactions.js:152
+await in loadThreadInPrime
+autoLoadPrimeThread @ thread-manager-core.js?v=20251128e:445
+(anonymous) @ thread-manager-core.js?v=20251128e:192
+await in (anonymous)
+init @ thread-manager-core.js?v=20251128e:222
+window.initializeMainApp @ ?token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoxNCwiZW1haWwiOiJwcmludGluZ0BpbmhvdXNlcHJpbnQuY29tLmF1IiwiZXhwIjoxNzY1MzMyODMwfQ.wc4zszg7AbX38R3sFcHkh0LDAlwSkO6r9Q2ey6OQABk:20921
+await in window.initializeMainApp
+showMainApp @ user_auth.js?v=20251128b:448
+await in showMainApp
+initializeApp @ account_profile.js?v=20251124j:2507
+await in initializeApp
+(anonymous) @ ?token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoxNCwiZW1haWwiOiJwcmludGluZ0BpbmhvdXNlcHJpbnQuY29tLmF1IiwiZXhwIjoxNzY1MzMyODMwfQ.wc4zszg7AbX38R3sFcHkh0LDAlwSkO6r9Q2ey6OQABk:21301Understand this warning
+message_renderer.js?v=20251121:269 [UnifiedMessageRenderer] 101 chars → markdown (fallback) → ✅ Success (0.10ms) [Debug mode OFF - use window.DEBUG_TWO_RULE=true for details]
+message_renderer.js?v=20251121:135 [UnifiedMessageRenderer] Rendered assistant message in ai-chat-messages
+message_store.js:64 [MessageStore] Message added: msg_1765246456053_41qad9lp7 to thread 1764795281265
+message_renderer.js?v=20251121:247 [UnifiedMessageRenderer] Visualization engine produced empty content, using markdown fallback
+renderAssistantContent @ message_renderer.js?v=20251121:247
+render @ message_renderer.js?v=20251121:108
+addChatMessage @ prime_ai_chat.js?v=20251122k:2290
+(anonymous) @ thread-manager-interactions.js:160
+loadThreadInPrime @ thread-manager-interactions.js:152
+await in loadThreadInPrime
+autoLoadPrimeThread @ thread-manager-core.js?v=20251128e:445
+(anonymous) @ thread-manager-core.js?v=20251128e:192
+await in (anonymous)
+init @ thread-manager-core.js?v=20251128e:222
+window.initializeMainApp @ ?token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoxNCwiZW1haWwiOiJwcmludGluZ0BpbmhvdXNlcHJpbnQuY29tLmF1IiwiZXhwIjoxNzY1MzMyODMwfQ.wc4zszg7AbX38R3sFcHkh0LDAlwSkO6r9Q2ey6OQABk:20921
+await in window.initializeMainApp
+showMainApp @ user_auth.js?v=20251128b:448
+await in showMainApp
+initializeApp @ account_profile.js?v=20251124j:2507
+await in initializeApp
+(anonymous) @ ?token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoxNCwiZW1haWwiOiJwcmludGluZ0BpbmhvdXNlcHJpbnQuY29tLmF1IiwiZXhwIjoxNzY1MzMyODMwfQ.wc4zszg7AbX38R3sFcHkh0LDAlwSkO6r9Q2ey6OQABk:21301Understand this warning
+message_renderer.js?v=20251121:269 [UnifiedMessageRenderer] 88 chars → markdown (fallback) → ✅ Success (0.10ms) [Debug mode OFF - use window.DEBUG_TWO_RULE=true for details]
+message_renderer.js?v=20251121:135 [UnifiedMessageRenderer] Rendered assistant message in ai-chat-messages
+message_store.js:64 [MessageStore] Message added: msg_1765246456053_pwm2coosd to thread 1764795281265
+streamingTwoRule.js?v=20251207-FINALIZE-FIX:668 🔍 TWO-RULE: New markdown block, marked available? object
+streamingTwoRule.js?v=20251207-FINALIZE-FIX:670 📝 TWO-RULE: Using renderEnhancedMarkdown
+codeBlockEnhancer.js:125 🎨 CodeBlockEnhancer: enhanced 12 code blocks
+streamingTwoRule.js?v=20251207-FINALIZE-FIX:706 📝 TWO-RULE: New markdown element created (3179 chars)
+message_renderer.js?v=20251121:269 [UnifiedMessageRenderer] 3369 chars → TwoRuleStreamProcessor → ✅ Success (1.20ms) [Debug mode OFF - use window.DEBUG_TWO_RULE=true for details]
+message_renderer.js?v=20251121:135 [UnifiedMessageRenderer] Rendered assistant message in ai-chat-messages
+message_store.js:64 [MessageStore] Message added: msg_1765246456055_3bn6mkrkf to thread 1764795281265
+message_renderer.js?v=20251121:135 [UnifiedMessageRenderer] Rendered user message in ai-chat-messages
+message_store.js:64 [MessageStore] Message added: msg_1765246456055_uokw36hhe to thread 1764795281265
+message_renderer.js?v=20251121:247 [UnifiedMessageRenderer] Visualization engine produced empty content, using markdown fallback
+renderAssistantContent @ message_renderer.js?v=20251121:247
+render @ message_renderer.js?v=20251121:108
+addChatMessage @ prime_ai_chat.js?v=20251122k:2290
+(anonymous) @ thread-manager-interactions.js:160
+loadThreadInPrime @ thread-manager-interactions.js:152
+await in loadThreadInPrime
+autoLoadPrimeThread @ thread-manager-core.js?v=20251128e:445
+(anonymous) @ thread-manager-core.js?v=20251128e:192
+await in (anonymous)
+init @ thread-manager-core.js?v=20251128e:222
+window.initializeMainApp @ ?token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoxNCwiZW1haWwiOiJwcmludGluZ0BpbmhvdXNlcHJpbnQuY29tLmF1IiwiZXhwIjoxNzY1MzMyODMwfQ.wc4zszg7AbX38R3sFcHkh0LDAlwSkO6r9Q2ey6OQABk:20921
+await in window.initializeMainApp
+showMainApp @ user_auth.js?v=20251128b:448
+await in showMainApp
+initializeApp @ account_profile.js?v=20251124j:2507
+await in initializeApp
+(anonymous) @ ?token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoxNCwiZW1haWwiOiJwcmludGluZ0BpbmhvdXNlcHJpbnQuY29tLmF1IiwiZXhwIjoxNzY1MzMyODMwfQ.wc4zszg7AbX38R3sFcHkh0LDAlwSkO6r9Q2ey6OQABk:21301Understand this warning
+message_renderer.js?v=20251121:269 [UnifiedMessageRenderer] 83 chars → markdown (fallback) → ✅ Success (0.20ms) [Debug mode OFF - use window.DEBUG_TWO_RULE=true for details]
+message_renderer.js?v=20251121:135 [UnifiedMessageRenderer] Rendered assistant message in ai-chat-messages
+message_store.js:64 [MessageStore] Message added: msg_1765246456055_omnsqg9dy to thread 1764795281265
+message_renderer.js?v=20251121:247 [UnifiedMessageRenderer] Visualization engine produced empty content, using markdown fallback
+renderAssistantContent @ message_renderer.js?v=20251121:247
+render @ message_renderer.js?v=20251121:108
+addChatMessage @ prime_ai_chat.js?v=20251122k:2290
+(anonymous) @ thread-manager-interactions.js:160
+loadThreadInPrime @ thread-manager-interactions.js:152
+await in loadThreadInPrime
+autoLoadPrimeThread @ thread-manager-core.js?v=20251128e:445
+(anonymous) @ thread-manager-core.js?v=20251128e:192
+await in (anonymous)
+init @ thread-manager-core.js?v=20251128e:222
+window.initializeMainApp @ ?token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoxNCwiZW1haWwiOiJwcmludGluZ0BpbmhvdXNlcHJpbnQuY29tLmF1IiwiZXhwIjoxNzY1MzMyODMwfQ.wc4zszg7AbX38R3sFcHkh0LDAlwSkO6r9Q2ey6OQABk:20921
+await in window.initializeMainApp
+showMainApp @ user_auth.js?v=20251128b:448
+await in showMainApp
+initializeApp @ account_profile.js?v=20251124j:2507
+await in initializeApp
+(anonymous) @ ?token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoxNCwiZW1haWwiOiJwcmludGluZ0BpbmhvdXNlcHJpbnQuY29tLmF1IiwiZXhwIjoxNzY1MzMyODMwfQ.wc4zszg7AbX38R3sFcHkh0LDAlwSkO6r9Q2ey6OQABk:21301Understand this warning
+message_renderer.js?v=20251121:269 [UnifiedMessageRenderer] 160 chars → markdown (fallback) → ✅ Success (0.10ms) [Debug mode OFF - use window.DEBUG_TWO_RULE=true for details]
+message_renderer.js?v=20251121:135 [UnifiedMessageRenderer] Rendered assistant message in ai-chat-messages
+message_store.js:64 [MessageStore] Message added: msg_1765246456055_ysw63b977 to thread 1764795281265
+message_renderer.js?v=20251121:247 [UnifiedMessageRenderer] Visualization engine produced empty content, using markdown fallback
+renderAssistantContent @ message_renderer.js?v=20251121:247
+render @ message_renderer.js?v=20251121:108
+addChatMessage @ prime_ai_chat.js?v=20251122k:2290
+(anonymous) @ thread-manager-interactions.js:160
+loadThreadInPrime @ thread-manager-interactions.js:152
+await in loadThreadInPrime
+autoLoadPrimeThread @ thread-manager-core.js?v=20251128e:445
+(anonymous) @ thread-manager-core.js?v=20251128e:192
+await in (anonymous)
+init @ thread-manager-core.js?v=20251128e:222
+window.initializeMainApp @ ?token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoxNCwiZW1haWwiOiJwcmludGluZ0BpbmhvdXNlcHJpbnQuY29tLmF1IiwiZXhwIjoxNzY1MzMyODMwfQ.wc4zszg7AbX38R3sFcHkh0LDAlwSkO6r9Q2ey6OQABk:20921
+await in window.initializeMainApp
+showMainApp @ user_auth.js?v=20251128b:448
+await in showMainApp
+initializeApp @ account_profile.js?v=20251124j:2507
+await in initializeApp
+(anonymous) @ ?token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoxNCwiZW1haWwiOiJwcmludGluZ0BpbmhvdXNlcHJpbnQuY29tLmF1IiwiZXhwIjoxNzY1MzMyODMwfQ.wc4zszg7AbX38R3sFcHkh0LDAlwSkO6r9Q2ey6OQABk:21301Understand this warning
+message_renderer.js?v=20251121:269 [UnifiedMessageRenderer] 82 chars → markdown (fallback) → ✅ Success (0.10ms) [Debug mode OFF - use window.DEBUG_TWO_RULE=true for details]
+message_renderer.js?v=20251121:135 [UnifiedMessageRenderer] Rendered assistant message in ai-chat-messages
+message_store.js:64 [MessageStore] Message added: msg_1765246456056_lrmz7uz0s to thread 1764795281265
+message_renderer.js?v=20251121:247 [UnifiedMessageRenderer] Visualization engine produced empty content, using markdown fallback
+renderAssistantContent @ message_renderer.js?v=20251121:247
+render @ message_renderer.js?v=20251121:108
+addChatMessage @ prime_ai_chat.js?v=20251122k:2290
+(anonymous) @ thread-manager-interactions.js:160
+loadThreadInPrime @ thread-manager-interactions.js:152
+await in loadThreadInPrime
+autoLoadPrimeThread @ thread-manager-core.js?v=20251128e:445
+(anonymous) @ thread-manager-core.js?v=20251128e:192
+await in (anonymous)
+init @ thread-manager-core.js?v=20251128e:222
+window.initializeMainApp @ ?token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoxNCwiZW1haWwiOiJwcmludGluZ0BpbmhvdXNlcHJpbnQuY29tLmF1IiwiZXhwIjoxNzY1MzMyODMwfQ.wc4zszg7AbX38R3sFcHkh0LDAlwSkO6r9Q2ey6OQABk:20921
+await in window.initializeMainApp
+showMainApp @ user_auth.js?v=20251128b:448
+await in showMainApp
+initializeApp @ account_profile.js?v=20251124j:2507
+await in initializeApp
+(anonymous) @ ?token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoxNCwiZW1haWwiOiJwcmludGluZ0BpbmhvdXNlcHJpbnQuY29tLmF1IiwiZXhwIjoxNzY1MzMyODMwfQ.wc4zszg7AbX38R3sFcHkh0LDAlwSkO6r9Q2ey6OQABk:21301Understand this warning
+message_renderer.js?v=20251121:269 [UnifiedMessageRenderer] 72 chars → markdown (fallback) → ✅ Success (0.10ms) [Debug mode OFF - use window.DEBUG_TWO_RULE=true for details]
+message_renderer.js?v=20251121:135 [UnifiedMessageRenderer] Rendered assistant message in ai-chat-messages
+message_store.js:64 [MessageStore] Message added: msg_1765246456056_4z9xppxu7 to thread 1764795281265
+streamingTwoRule.js?v=20251207-FINALIZE-FIX:668 🔍 TWO-RULE: New markdown block, marked available? object
+streamingTwoRule.js?v=20251207-FINALIZE-FIX:670 📝 TWO-RULE: Using renderEnhancedMarkdown
+codeBlockEnhancer.js:125 🎨 CodeBlockEnhancer: enhanced 28 code blocks
+streamingTwoRule.js?v=20251207-FINALIZE-FIX:706 📝 TWO-RULE: New markdown element created (5065 chars)
+message_renderer.js?v=20251121:269 [UnifiedMessageRenderer] 5267 chars → TwoRuleStreamProcessor → ✅ Success (1.50ms) [Debug mode OFF - use window.DEBUG_TWO_RULE=true for details]
+message_renderer.js?v=20251121:135 [UnifiedMessageRenderer] Rendered assistant message in ai-chat-messages
+message_store.js:64 [MessageStore] Message added: msg_1765246456058_xzv17kr04 to thread 1764795281265
+message_renderer.js?v=20251121:135 [UnifiedMessageRenderer] Rendered user message in ai-chat-messages
+message_store.js:64 [MessageStore] Message added: msg_1765246456058_6e3fqj4ea to thread 1764795281265
+message_renderer.js?v=20251121:247 [UnifiedMessageRenderer] Visualization engine produced empty content, using markdown fallback
+renderAssistantContent @ message_renderer.js?v=20251121:247
+render @ message_renderer.js?v=20251121:108
+addChatMessage @ prime_ai_chat.js?v=20251122k:2290
+(anonymous) @ thread-manager-interactions.js:160
+loadThreadInPrime @ thread-manager-interactions.js:152
+await in loadThreadInPrime
+autoLoadPrimeThread @ thread-manager-core.js?v=20251128e:445
+(anonymous) @ thread-manager-core.js?v=20251128e:192
+await in (anonymous)
+init @ thread-manager-core.js?v=20251128e:222
+window.initializeMainApp @ ?token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoxNCwiZW1haWwiOiJwcmludGluZ0BpbmhvdXNlcHJpbnQuY29tLmF1IiwiZXhwIjoxNzY1MzMyODMwfQ.wc4zszg7AbX38R3sFcHkh0LDAlwSkO6r9Q2ey6OQABk:20921
+await in window.initializeMainApp
+showMainApp @ user_auth.js?v=20251128b:448
+await in showMainApp
+initializeApp @ account_profile.js?v=20251124j:2507
+await in initializeApp
+(anonymous) @ ?token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoxNCwiZW1haWwiOiJwcmludGluZ0BpbmhvdXNlcHJpbnQuY29tLmF1IiwiZXhwIjoxNzY1MzMyODMwfQ.wc4zszg7AbX38R3sFcHkh0LDAlwSkO6r9Q2ey6OQABk:21301Understand this warning
+message_renderer.js?v=20251121:269 [UnifiedMessageRenderer] 127 chars → markdown (fallback) → ✅ Success (0.20ms) [Debug mode OFF - use window.DEBUG_TWO_RULE=true for details]
+message_renderer.js?v=20251121:135 [UnifiedMessageRenderer] Rendered assistant message in ai-chat-messages
+message_store.js:64 [MessageStore] Message added: msg_1765246456059_1z82oayf3 to thread 1764795281265
+message_renderer.js?v=20251121:247 [UnifiedMessageRenderer] Visualization engine produced empty content, using markdown fallback
+renderAssistantContent @ message_renderer.js?v=20251121:247
+render @ message_renderer.js?v=20251121:108
+addChatMessage @ prime_ai_chat.js?v=20251122k:2290
+(anonymous) @ thread-manager-interactions.js:160
+loadThreadInPrime @ thread-manager-interactions.js:152
+await in loadThreadInPrime
+autoLoadPrimeThread @ thread-manager-core.js?v=20251128e:445
+(anonymous) @ thread-manager-core.js?v=20251128e:192
+await in (anonymous)
+init @ thread-manager-core.js?v=20251128e:222
+window.initializeMainApp @ ?token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoxNCwiZW1haWwiOiJwcmludGluZ0BpbmhvdXNlcHJpbnQuY29tLmF1IiwiZXhwIjoxNzY1MzMyODMwfQ.wc4zszg7AbX38R3sFcHkh0LDAlwSkO6r9Q2ey6OQABk:20921
+await in window.initializeMainApp
+showMainApp @ user_auth.js?v=20251128b:448
+await in showMainApp
+initializeApp @ account_profile.js?v=20251124j:2507
+await in initializeApp
+(anonymous) @ ?token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoxNCwiZW1haWwiOiJwcmludGluZ0BpbmhvdXNlcHJpbnQuY29tLmF1IiwiZXhwIjoxNzY1MzMyODMwfQ.wc4zszg7AbX38R3sFcHkh0LDAlwSkO6r9Q2ey6OQABk:21301Understand this warning
+message_renderer.js?v=20251121:269 [UnifiedMessageRenderer] 86 chars → markdown (fallback) → ✅ Success (0.00ms) [Debug mode OFF - use window.DEBUG_TWO_RULE=true for details]
+message_renderer.js?v=20251121:135 [UnifiedMessageRenderer] Rendered assistant message in ai-chat-messages
+message_store.js:64 [MessageStore] Message added: msg_1765246456059_b13qjjwfv to thread 1764795281265
+message_renderer.js?v=20251121:247 [UnifiedMessageRenderer] Visualization engine produced empty content, using markdown fallback
+renderAssistantContent @ message_renderer.js?v=20251121:247
+render @ message_renderer.js?v=20251121:108
+addChatMessage @ prime_ai_chat.js?v=20251122k:2290
+(anonymous) @ thread-manager-interactions.js:160
+loadThreadInPrime @ thread-manager-interactions.js:152
+await in loadThreadInPrime
+autoLoadPrimeThread @ thread-manager-core.js?v=20251128e:445
+(anonymous) @ thread-manager-core.js?v=20251128e:192
+await in (anonymous)
+init @ thread-manager-core.js?v=20251128e:222
+window.initializeMainApp @ ?token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoxNCwiZW1haWwiOiJwcmludGluZ0BpbmhvdXNlcHJpbnQuY29tLmF1IiwiZXhwIjoxNzY1MzMyODMwfQ.wc4zszg7AbX38R3sFcHkh0LDAlwSkO6r9Q2ey6OQABk:20921
+await in window.initializeMainApp
+showMainApp @ user_auth.js?v=20251128b:448
+await in showMainApp
+initializeApp @ account_profile.js?v=20251124j:2507
+await in initializeApp
+(anonymous) @ ?token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoxNCwiZW1haWwiOiJwcmludGluZ0BpbmhvdXNlcHJpbnQuY29tLmF1IiwiZXhwIjoxNzY1MzMyODMwfQ.wc4zszg7AbX38R3sFcHkh0LDAlwSkO6r9Q2ey6OQABk:21301Understand this warning
+message_renderer.js?v=20251121:269 [UnifiedMessageRenderer] 94 chars → markdown (fallback) → ✅ Success (0.00ms) [Debug mode OFF - use window.DEBUG_TWO_RULE=true for details]
+message_renderer.js?v=20251121:135 [UnifiedMessageRenderer] Rendered assistant message in ai-chat-messages
+message_store.js:64 [MessageStore] Message added: msg_1765246456060_zajnc6vce to thread 1764795281265
+message_renderer.js?v=20251121:247 [UnifiedMessageRenderer] Visualization engine produced empty content, using markdown fallback
+renderAssistantContent @ message_renderer.js?v=20251121:247
+render @ message_renderer.js?v=20251121:108
+addChatMessage @ prime_ai_chat.js?v=20251122k:2290
+(anonymous) @ thread-manager-interactions.js:160
+loadThreadInPrime @ thread-manager-interactions.js:152
+await in loadThreadInPrime
+autoLoadPrimeThread @ thread-manager-core.js?v=20251128e:445
+(anonymous) @ thread-manager-core.js?v=20251128e:192
+await in (anonymous)
+init @ thread-manager-core.js?v=20251128e:222
+window.initializeMainApp @ ?token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoxNCwiZW1haWwiOiJwcmludGluZ0BpbmhvdXNlcHJpbnQuY29tLmF1IiwiZXhwIjoxNzY1MzMyODMwfQ.wc4zszg7AbX38R3sFcHkh0LDAlwSkO6r9Q2ey6OQABk:20921
+await in window.initializeMainApp
+showMainApp @ user_auth.js?v=20251128b:448
+await in showMainApp
+initializeApp @ account_profile.js?v=20251124j:2507
+await in initializeApp
+(anonymous) @ ?token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoxNCwiZW1haWwiOiJwcmludGluZ0BpbmhvdXNlcHJpbnQuY29tLmF1IiwiZXhwIjoxNzY1MzMyODMwfQ.wc4zszg7AbX38R3sFcHkh0LDAlwSkO6r9Q2ey6OQABk:21301Understand this warning
+message_renderer.js?v=20251121:269 [UnifiedMessageRenderer] 51 chars → markdown (fallback) → ✅ Success (0.00ms) [Debug mode OFF - use window.DEBUG_TWO_RULE=true for details]
+message_renderer.js?v=20251121:135 [UnifiedMessageRenderer] Rendered assistant message in ai-chat-messages
+message_store.js:64 [MessageStore] Message added: msg_1765246456060_720w7xtta to thread 1764795281265
+message_renderer.js?v=20251121:247 [UnifiedMessageRenderer] Visualization engine produced empty content, using markdown fallback
+renderAssistantContent @ message_renderer.js?v=20251121:247
+render @ message_renderer.js?v=20251121:108
+addChatMessage @ prime_ai_chat.js?v=20251122k:2290
+(anonymous) @ thread-manager-interactions.js:160
+loadThreadInPrime @ thread-manager-interactions.js:152
+await in loadThreadInPrime
+autoLoadPrimeThread @ thread-manager-core.js?v=20251128e:445
+(anonymous) @ thread-manager-core.js?v=20251128e:192
+await in (anonymous)
+init @ thread-manager-core.js?v=20251128e:222
+window.initializeMainApp @ ?token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoxNCwiZW1haWwiOiJwcmludGluZ0BpbmhvdXNlcHJpbnQuY29tLmF1IiwiZXhwIjoxNzY1MzMyODMwfQ.wc4zszg7AbX38R3sFcHkh0LDAlwSkO6r9Q2ey6OQABk:20921
+await in window.initializeMainApp
+showMainApp @ user_auth.js?v=20251128b:448
+await in showMainApp
+initializeApp @ account_profile.js?v=20251124j:2507
+await in initializeApp
+(anonymous) @ ?token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoxNCwiZW1haWwiOiJwcmludGluZ0BpbmhvdXNlcHJpbnQuY29tLmF1IiwiZXhwIjoxNzY1MzMyODMwfQ.wc4zszg7AbX38R3sFcHkh0LDAlwSkO6r9Q2ey6OQABk:21301Understand this warning
+message_renderer.js?v=20251121:269 [UnifiedMessageRenderer] 85 chars → markdown (fallback) → ✅ Success (0.10ms) [Debug mode OFF - use window.DEBUG_TWO_RULE=true for details]
+message_renderer.js?v=20251121:135 [UnifiedMessageRenderer] Rendered assistant message in ai-chat-messages
+message_store.js:64 [MessageStore] Message added: msg_1765246456060_dv6jsupu6 to thread 1764795281265
+message_renderer.js?v=20251121:247 [UnifiedMessageRenderer] Visualization engine produced empty content, using markdown fallback
+renderAssistantContent @ message_renderer.js?v=20251121:247
+render @ message_renderer.js?v=20251121:108
+addChatMessage @ prime_ai_chat.js?v=20251122k:2290
+(anonymous) @ thread-manager-interactions.js:160
+loadThreadInPrime @ thread-manager-interactions.js:152
+await in loadThreadInPrime
+autoLoadPrimeThread @ thread-manager-core.js?v=20251128e:445
+(anonymous) @ thread-manager-core.js?v=20251128e:192
+await in (anonymous)
+init @ thread-manager-core.js?v=20251128e:222
+window.initializeMainApp @ ?token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoxNCwiZW1haWwiOiJwcmludGluZ0BpbmhvdXNlcHJpbnQuY29tLmF1IiwiZXhwIjoxNzY1MzMyODMwfQ.wc4zszg7AbX38R3sFcHkh0LDAlwSkO6r9Q2ey6OQABk:20921
+await in window.initializeMainApp
+showMainApp @ user_auth.js?v=20251128b:448
+await in showMainApp
+initializeApp @ account_profile.js?v=20251124j:2507
+await in initializeApp
+(anonymous) @ ?token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoxNCwiZW1haWwiOiJwcmludGluZ0BpbmhvdXNlcHJpbnQuY29tLmF1IiwiZXhwIjoxNzY1MzMyODMwfQ.wc4zszg7AbX38R3sFcHkh0LDAlwSkO6r9Q2ey6OQABk:21301Understand this warning
+message_renderer.js?v=20251121:269 [UnifiedMessageRenderer] 116 chars → markdown (fallback) → ✅ Success (0.10ms) [Debug mode OFF - use window.DEBUG_TWO_RULE=true for details]
+message_renderer.js?v=20251121:135 [UnifiedMessageRenderer] Rendered assistant message in ai-chat-messages
+message_store.js:64 [MessageStore] Message added: msg_1765246456061_lydra7zkp to thread 1764795281265
+message_renderer.js?v=20251121:247 [UnifiedMessageRenderer] Visualization engine produced empty content, using markdown fallback
+renderAssistantContent @ message_renderer.js?v=20251121:247
+render @ message_renderer.js?v=20251121:108
+addChatMessage @ prime_ai_chat.js?v=20251122k:2290
+(anonymous) @ thread-manager-interactions.js:160
+loadThreadInPrime @ thread-manager-interactions.js:152
+await in loadThreadInPrime
+autoLoadPrimeThread @ thread-manager-core.js?v=20251128e:445
+(anonymous) @ thread-manager-core.js?v=20251128e:192
+await in (anonymous)
+init @ thread-manager-core.js?v=20251128e:222
+window.initializeMainApp @ ?token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoxNCwiZW1haWwiOiJwcmludGluZ0BpbmhvdXNlcHJpbnQuY29tLmF1IiwiZXhwIjoxNzY1MzMyODMwfQ.wc4zszg7AbX38R3sFcHkh0LDAlwSkO6r9Q2ey6OQABk:20921
+await in window.initializeMainApp
+showMainApp @ user_auth.js?v=20251128b:448
+await in showMainApp
+initializeApp @ account_profile.js?v=20251124j:2507
+await in initializeApp
+(anonymous) @ ?token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoxNCwiZW1haWwiOiJwcmludGluZ0BpbmhvdXNlcHJpbnQuY29tLmF1IiwiZXhwIjoxNzY1MzMyODMwfQ.wc4zszg7AbX38R3sFcHkh0LDAlwSkO6r9Q2ey6OQABk:21301Understand this warning
+message_renderer.js?v=20251121:269 [UnifiedMessageRenderer] 63 chars → markdown (fallback) → ✅ Success (0.20ms) [Debug mode OFF - use window.DEBUG_TWO_RULE=true for details]
+message_renderer.js?v=20251121:135 [UnifiedMessageRenderer] Rendered assistant message in ai-chat-messages
+message_store.js:64 [MessageStore] Message added: msg_1765246456062_8x0yt00wh to thread 1764795281265
+streamingTwoRule.js?v=20251207-FINALIZE-FIX:668 🔍 TWO-RULE: New markdown block, marked available? object
+streamingTwoRule.js?v=20251207-FINALIZE-FIX:670 📝 TWO-RULE: Using renderEnhancedMarkdown
+codeBlockEnhancer.js:125 🎨 CodeBlockEnhancer: enhanced 1 code blocks
+streamingTwoRule.js?v=20251207-FINALIZE-FIX:706 📝 TWO-RULE: New markdown element created (2701 chars)
+message_renderer.js?v=20251121:269 [UnifiedMessageRenderer] 2871 chars → TwoRuleStreamProcessor → ✅ Success (0.90ms) [Debug mode OFF - use window.DEBUG_TWO_RULE=true for details]
+message_renderer.js?v=20251121:135 [UnifiedMessageRenderer] Rendered assistant message in ai-chat-messages
+thread-manager-interactions.js:174 ✅ [Interactions] Rendered 65 messages, skipped 44
+thread-manager-assignment.js?v=20251128d:94 🔄 [Assignment] START: 1764795281265 → prime-loaded
+codeBlockEnhancer.js:125 🎨 CodeBlockEnhancer: enhanced 15 code blocks
+2codeBlockEnhancer.js:125 🎨 CodeBlockEnhancer: enhanced 1 code blocks
+codeBlockEnhancer.js:125 🎨 CodeBlockEnhancer: enhanced 5 code blocks
+codeBlockEnhancer.js:125 🎨 CodeBlockEnhancer: enhanced 1 code blocks
+codeBlockEnhancer.js:125 🎨 CodeBlockEnhancer: enhanced 2 code blocks
+codeBlockEnhancer.js:125 🎨 CodeBlockEnhancer: enhanced 7 code blocks
+codeBlockEnhancer.js:125 🎨 CodeBlockEnhancer: enhanced 12 code blocks
+codeBlockEnhancer.js:125 🎨 CodeBlockEnhancer: enhanced 28 code blocks
+codeBlockEnhancer.js:125 🎨 CodeBlockEnhancer: enhanced 1 code blocks
+streamingTwoRule.js?v=20251207-FINALIZE-FIX:588 🔍 TWO-RULE: Attempting markdown render, marked available? object
+streamingTwoRule.js?v=20251207-FINALIZE-FIX:595 📝 TWO-RULE: Using marked.parse for 1699 chars
+streamingTwoRule.js?v=20251207-FINALIZE-FIX:630 📝 TWO-RULE: Rendered HTML: <h2>✅ <strong>YES! Xero Connection is ACTIVE and WORKING!</strong></h2>
+<p><strong>Actions Taken:</strong></p>
+<ol>
+<li><strong>xero_get_data_metadata</strong> - Successfully executed<ul>
+<li>Status: 
+codeBlockEnhancer.js:125 🎨 CodeBlockEnhancer: enhanced 15 code blocks
+streamingTwoRule.js?v=20251207-FINALIZE-FIX:657 📝 TWO-RULE: Raw text concatenated and re-rendered (total: 1699 chars)
+streamingTwoRule.js?v=20251207-FINALIZE-FIX:588 🔍 TWO-RULE: Attempting markdown render, marked available? object
+streamingTwoRule.js?v=20251207-FINALIZE-FIX:595 📝 TWO-RULE: Using marked.parse for 700 chars
+streamingTwoRule.js?v=20251207-FINALIZE-FIX:630 📝 TWO-RULE: Rendered HTML: <h2>✅ <strong>Found Guy Kirk&#39;s Contact Information</strong></h2>
+<p><strong>Actions Taken:</strong></p>
+<ol>
+<li><strong>xero_get_contacts</strong> - Search for &quot;Guy Kirk&quot;<ul>
+<li>Busine
+codeBlockEnhancer.js:125 🎨 CodeBlockEnhancer: enhanced 1 code blocks
+streamingTwoRule.js?v=20251207-FINALIZE-FIX:657 📝 TWO-RULE: Raw text concatenated and re-rendered (total: 700 chars)
+streamingTwoRule.js?v=20251207-FINALIZE-FIX:588 🔍 TWO-RULE: Attempting markdown render, marked available? object
+streamingTwoRule.js?v=20251207-FINALIZE-FIX:595 📝 TWO-RULE: Using marked.parse for 3316 chars
+streamingTwoRule.js?v=20251207-FINALIZE-FIX:630 📝 TWO-RULE: Rendered HTML: <h2>✅ XERO TOOLS TEST COMPLETE - RESULTS SUMMARY</h2>
+<p><strong>Actions Taken:</strong>
+Systematically tested all 16 Xero tools with real API calls</p>
+<hr>
+<h3>TEST RESULTS BY TOOL:</h3>
+<table>
+<th
+codeBlockEnhancer.js:125 🎨 CodeBlockEnhancer: enhanced 12 code blocks
+streamingTwoRule.js?v=20251207-FINALIZE-FIX:657 📝 TWO-RULE: Raw text concatenated and re-rendered (total: 3316 chars)
+streamingTwoRule.js?v=20251207-FINALIZE-FIX:588 🔍 TWO-RULE: Attempting markdown render, marked available? object
+streamingTwoRule.js?v=20251207-FINALIZE-FIX:595 📝 TWO-RULE: Using marked.parse for 5214 chars
+streamingTwoRule.js?v=20251207-FINALIZE-FIX:630 📝 TWO-RULE: Rendered HTML: <h2>✅ COMPLETE XERO TOOLS TEST - ACTUAL EXECUTION RESULTS</h2>
+<p><strong>Actions Taken:</strong> 
+Executed all 16 Xero tools with real API calls and limited results where possible</p>
+<hr>
+<h3>DETAIL
+codeBlockEnhancer.js:125 🎨 CodeBlockEnhancer: enhanced 28 code blocks
+streamingTwoRule.js?v=20251207-FINALIZE-FIX:657 📝 TWO-RULE: Raw text concatenated and re-rendered (total: 5214 chars)
+streamingTwoRule.js?v=20251207-FINALIZE-FIX:588 🔍 TWO-RULE: Attempting markdown render, marked available? object
+streamingTwoRule.js?v=20251207-FINALIZE-FIX:595 📝 TWO-RULE: Using marked.parse for 2818 chars
+streamingTwoRule.js?v=20251207-FINALIZE-FIX:630 📝 TWO-RULE: Rendered HTML: <h2>✅ <strong>Synergy Session Created Successfully!</strong></h2>
+<p><strong>Actions Taken:</strong></p>
+<ol>
+<li><strong>synergy_smart_project_tracker</strong> - Created &quot;Xero Tool Testing - Com
+codeBlockEnhancer.js:125 🎨 CodeBlockEnhancer: enhanced 1 code blocks
+streamingTwoRule.js?v=20251207-FINALIZE-FIX:657 📝 TWO-RULE: Raw text concatenated and re-rendered (total: 2818 chars)
+codeBlockEnhancer.js:125 🎨 CodeBlockEnhancer: enhanced 5 code blocks
+codeBlockEnhancer.js:125 🎨 CodeBlockEnhancer: enhanced 4 code blocks
+codeBlockEnhancer.js:125 🎨 CodeBlockEnhancer: enhanced 2 code blocks
+codeBlockEnhancer.js:125 🎨 CodeBlockEnhancer: enhanced 1 code blocks
+codeBlockEnhancer.js:125 🎨 CodeBlockEnhancer: enhanced 3 code blocks
+codeBlockEnhancer.js:125 🎨 CodeBlockEnhancer: enhanced 1 code blocks
+codeBlockEnhancer.js:125 🎨 CodeBlockEnhancer: enhanced 3 code blocks
+2codeBlockEnhancer.js:125 🎨 CodeBlockEnhancer: enhanced 1 code blocks
+codeBlockEnhancer.js:125 🎨 CodeBlockEnhancer: enhanced 7 code blocks
+codeBlockEnhancer.js:125 🎨 CodeBlockEnhancer: enhanced 19 code blocks
+4codeBlockEnhancer.js:125 🎨 CodeBlockEnhancer: enhanced 1 code blocks
+codeBlockEnhancer.js:125 🎨 CodeBlockEnhancer: enhanced 4 code blocks
+2codeBlockEnhancer.js:125 🎨 CodeBlockEnhancer: enhanced 1 code blocks
+thread-manager-assignment.js?v=20251128d:482 ✅ [Assignment] Fetched assignments: {agent-1: '1764568408365', agent-2: '1765163909086', agent-4: '1765231491719', agent-5: '1765162926245', agent-6: '1765161883806', …}
+thread-manager-assignment.js?v=20251128d:684 ✅ [Assignment] AppState thread is correctly in prime-loaded, not overwriting
+thread-manager-assignment.js?v=20251128d:697 ✅ [Assignment] All thread assignments valid
+thread-manager-assignment.js?v=20251128d:159 ✅ [Assignment] API updated: {assignment: {…}, success: true}
+thread-manager-assignment.js?v=20251128d:195 🔄 [CASCADE] Starting UI updates for thread 1764795281265
+thread-manager-assignment.js?v=20251128d:207 ✅ [CASCADE] Updated thread object: location=prime-loaded
+thread-manager-ui.js:567 🔄 [refreshAllThreadInfoCards] Refreshing all cards for thread 1764795281265
+thread-manager-ui.js:397 🎨 [renderThreadInfoContainer] CALLED: location="prime-loaded", threadId="1764795281265", compact=false
+thread-manager-ui.js:408 ✅ [renderThreadInfoContainer] Thread found: {id: '1764795281265', title: 'Xero', location: 'prime-loaded', message_count: 109}
+thread-manager-ui.js:470 [renderThreadInfoContainer] Calling ThreadCardTemplates.compactCard() with: {location: 'prime-loaded', agent: 'Prime-Loaded', meta: {…}, slug: '17647952', currentLocation: 'prime-loaded'}
+thread-manager-ui.js:490 ✅ [renderThreadInfoContainer] Generated card HTML (10312 chars) for location="prime-loaded"
+thread-manager-ui.js:609 ✅ [refreshAllThreadInfoCards] Updated thread-info card at prime-loaded
+thread-manager-ui.js:397 🎨 [renderThreadInfoContainer] CALLED: location="thread-history", threadId="1764795281265", compact=false
+thread-manager-ui.js:408 ✅ [renderThreadInfoContainer] Thread found: {id: '1764795281265', title: 'Xero', location: 'prime-loaded', message_count: 109}
+thread-manager-ui.js:470 [renderThreadInfoContainer] Calling ThreadCardTemplates.compactCard() with: {location: 'thread-history', agent: 'Prime', meta: {…}, slug: '17647952', currentLocation: 'prime-loaded'}
+thread-manager-ui.js:490 ✅ [renderThreadInfoContainer] Generated card HTML (11790 chars) for location="thread-history"
+thread-manager-ui.js:609 ✅ [refreshAllThreadInfoCards] Updated thread-info card at thread-history
+thread-manager-assignment.js?v=20251128d:277 ⏭️ [CASCADE] Skipping backend verification (4/10)
+thread-manager-assignment.js?v=20251128d:280 ✅ [CASCADE] Complete for thread 1764795281265
+thread-manager-ui.js:397 🎨 [renderThreadInfoContainer] CALLED: location="prime-loaded", threadId="1764795281265", compact=false
+thread-manager-ui.js:408 ✅ [renderThreadInfoContainer] Thread found: {id: '1764795281265', title: 'Xero', location: 'prime-loaded', message_count: 109}
+thread-manager-ui.js:470 [renderThreadInfoContainer] Calling ThreadCardTemplates.compactCard() with: {location: 'prime-loaded', agent: 'Prime-Loaded', meta: {…}, slug: '17647952', currentLocation: 'prime-loaded'}
+thread-manager-ui.js:490 ✅ [renderThreadInfoContainer] Generated card HTML (10312 chars) for location="prime-loaded"
+thread-manager-ui.js:554 [updatePrimeHeader] Rendered thread card for Prime: 1764795281265
+thread-manager-messages.js:401 ✅ [Messages] AppState synced with thread: 1764795281265
+thread-manager-interactions.js:243 ✅ [Interactions] Thread loaded in Prime: 1764795281265
+thread-manager-ui.js:397 🎨 [renderThreadInfoContainer] CALLED: location="prime", threadId="1764795281265", compact=true
+thread-manager-ui.js:408 ✅ [renderThreadInfoContainer] Thread found: {id: '1764795281265', title: 'Xero', location: 'prime-loaded', message_count: 109}
+thread-manager-ui.js:470 [renderThreadInfoContainer] Calling ThreadCardTemplates.compactCard() with: {location: 'prime', agent: 'Prime', meta: {…}, slug: '17647952', currentLocation: 'prime-loaded'}
+thread-manager-ui.js:490 ✅ [renderThreadInfoContainer] Generated card HTML (9915 chars) for location="prime"
+thread-manager-core.js?v=20251128e:549 🎨 [ThreadManager] Initializing tooltips...
+thread-manager-core.js?v=20251128e:818 ✅ [ThreadManager] Tooltips initialized
+thread-manager-core.js?v=20251128e:823 🎯 [ThreadManager] Initializing menu handlers...
+thread-manager-core.js?v=20251128e:872 ✅ [ThreadManager] Menu handlers initialized
+thread-manager-core.js?v=20251128e:209 ✅ [ThreadManager] Initialization complete
+thread-manager-core.js?v=20251128e:210 📊 [ThreadManager] Loaded 50 threads
+?token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoxNCwiZW1haWwiOiJwcmludGluZ0BpbmhvdXNlcHJpbnQuY29tLmF1IiwiZXhwIjoxNzY1MzMyODMwfQ.wc4zszg7AbX38R3sFcHkh0LDAlwSkO6r9Q2ey6OQABk:20922 ✅ [INIT] ThreadManager.init() completed
+agent-js.js?v=20251122r:4990 [CHART] Displaying tool statistics...
+agent-js.js?v=20251122r:5003 [CHART] Tool Statistics:
+agent-js.js?v=20251122r:5004    Total Tools: 0
+agent-js.js?v=20251122r:5005    Platforms: 0
+agent-js.js?v=20251122r:5006    By Platform: {}
+agent-js.js?v=20251122r:5013 [CHART] Top 10 Platforms:
+?token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoxNCwiZW1haWwiOiJwcmludGluZ0BpbmhvdXNlcHJpbnQuY29tLmF1IiwiZXhwIjoxNzY1MzMyODMwfQ.wc4zszg7AbX38R3sFcHkh0LDAlwSkO6r9Q2ey6OQABk:21342 [DRAG-DROP] Setting up drop zones...
+?token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoxNCwiZW1haWwiOiJwcmludGluZ0BpbmhvdXNlcHJpbnQuY29tLmF1IiwiZXhwIjoxNzY1MzMyODMwfQ.wc4zszg7AbX38R3sFcHkh0LDAlwSkO6r9Q2ey6OQABk:21348 [DRAG-DROP] Drop zones delegated to ThreadManager (full container areas)
+?token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoxNCwiZW1haWwiOiJwcmludGluZ0BpbmhvdXNlcHJpbnQuY29tLmF1IiwiZXhwIjoxNzY1MzMyODMwfQ.wc4zszg7AbX38R3sFcHkh0LDAlwSkO6r9Q2ey6OQABk:21353 [WORKFLOW-DROP] Setting up workflow slug drop zones...
+?token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoxNCwiZW1haWwiOiJwcmludGluZ0BpbmhvdXNlcHJpbnQuY29tLmF1IiwiZXhwIjoxNzY1MzMyODMwfQ.wc4zszg7AbX38R3sFcHkh0LDAlwSkO6r9Q2ey6OQABk:21393 [WORKFLOW-DROP] Workflow slug drop zones configured successfully
+?token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoxNCwiZW1haWwiOiJwcmludGluZ0BpbmhvdXNlcHJpbnQuY29tLmF1IiwiZXhwIjoxNzY1MzMyODMwfQ.wc4zszg7AbX38R3sFcHkh0LDAlwSkO6r9Q2ey6OQABk:21398 [DRAG-THREAD-CARD] Initializing thread card dragging...
+?token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoxNCwiZW1haWwiOiJwcmludGluZ0BpbmhvdXNlcHJpbnQuY29tLmF1IiwiZXhwIjoxNzY1MzMyODMwfQ.wc4zszg7AbX38R3sFcHkh0LDAlwSkO6r9Q2ey6OQABk:21465 [DRAG-THREAD-CARD] Thread card dragging initialized successfully
+?token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoxNCwiZW1haWwiOiJwcmludGluZ0BpbmhvdXNlcHJpbnQuY29tLmF1IiwiZXhwIjoxNzY1MzMyODMwfQ.wc4zszg7AbX38R3sFcHkh0LDAlwSkO6r9Q2ey6OQABk:22915 [DRAG-WORKFLOW-CARD] Initializing workflow card dragging...
+?token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoxNCwiZW1haWwiOiJwcmludGluZ0BpbmhvdXNlcHJpbnQuY29tLmF1IiwiZXhwIjoxNzY1MzMyODMwfQ.wc4zszg7AbX38R3sFcHkh0LDAlwSkO6r9Q2ey6OQABk:22982 [DRAG-WORKFLOW-CARD] Workflow card dragging initialized successfully
+?token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoxNCwiZW1haWwiOiJwcmludGluZ0BpbmhvdXNlcHJpbnQuY29tLmF1IiwiZXhwIjoxNzY1MzMyODMwfQ.wc4zszg7AbX38R3sFcHkh0LDAlwSkO6r9Q2ey6OQABk:21512 [REALTIME] Header datetime update interval started
+?token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoxNCwiZW1haWwiOiJwcmludGluZ0BpbmhvdXNlcHJpbnQuY29tLmF1IiwiZXhwIjoxNzY1MzMyODMwfQ.wc4zszg7AbX38R3sFcHkh0LDAlwSkO6r9Q2ey6OQABk:20955 ? [SYNERGY] Lazy loading enabled - sessions will load on first use
+?token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoxNCwiZW1haWwiOiJwcmludGluZ0BpbmhvdXNlcHJpbnQuY29tLmF1IiwiZXhwIjoxNzY1MzMyODMwfQ.wc4zszg7AbX38R3sFcHkh0LDAlwSkO6r9Q2ey6OQABk:20962 ? Welcome message initialized with quick tip
+?token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoxNCwiZW1haWwiOiJwcmludGluZ0BpbmhvdXNlcHJpbnQuY29tLmF1IiwiZXhwIjoxNzY1MzMyODMwfQ.wc4zszg7AbX38R3sFcHkh0LDAlwSkO6r9Q2ey6OQABk:20967 Platform ready with full tool integration!
+?token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoxNCwiZW1haWwiOiJwcmludGluZ0BpbmhvdXNlcHJpbnQuY29tLmF1IiwiZXhwIjoxNzY1MzMyODMwfQ.wc4zszg7AbX38R3sFcHkh0LDAlwSkO6r9Q2ey6OQABk:20968 [CHART] Total Tools Available: 0
+?token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoxNCwiZW1haWwiOiJwcmludGluZ0BpbmhvdXNlcHJpbnQuY29tLmF1IiwiZXhwIjoxNzY1MzMyODMwfQ.wc4zszg7AbX38R3sFcHkh0LDAlwSkO6r9Q2ey6OQABk:20969 Platforms Connected: 0
+?token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoxNCwiZW1haWwiOiJwcmludGluZ0BpbmhvdXNlcHJpbnQuY29tLmF1IiwiZXhwIjoxNzY1MzMyODMwfQ.wc4zszg7AbX38R3sFcHkh0LDAlwSkO6r9Q2ey6OQABk:20972 
+ ==================== VISUALIZATION ENGINE STATUS ====================
+?token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoxNCwiZW1haWwiOiJwcmludGluZ0BpbmhvdXNlcHJpbnQuY29tLmF1IiwiZXhwIjoxNzY1MzMyODMwfQ.wc4zszg7AbX38R3sFcHkh0LDAlwSkO6r9Q2ey6OQABk:20973  TwoRuleStreamProcessor: LOADED
+?token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoxNCwiZW1haWwiOiJwcmludGluZ0BpbmhvdXNlcHJpbnQuY29tLmF1IiwiZXhwIjoxNzY1MzMyODMwfQ.wc4zszg7AbX38R3sFcHkh0LDAlwSkO6r9Q2ey6OQABk:20974  Global Visualization State: INITIALIZED
+?token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoxNCwiZW1haWwiOiJwcmludGluZ0BpbmhvdXNlcHJpbnQuY29tLmF1IiwiZXhwIjoxNzY1MzMyODMwfQ.wc4zszg7AbX38R3sFcHkh0LDAlwSkO6r9Q2ey6OQABk:20975 [CHART] Mermaid: Available
+?token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoxNCwiZW1haWwiOiJwcmludGluZ0BpbmhvdXNlcHJpbnQuY29tLmF1IiwiZXhwIjoxNzY1MzMyODMwfQ.wc4zszg7AbX38R3sFcHkh0LDAlwSkO6r9Q2ey6OQABk:20976  Plotly: Available
+?token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoxNCwiZW1haWwiOiJwcmludGluZ0BpbmhvdXNlcHJpbnQuY29tLmF1IiwiZXhwIjoxNzY1MzMyODMwfQ.wc4zszg7AbX38R3sFcHkh0LDAlwSkO6r9Q2ey6OQABk:20977 ?? Markdown Renderer: Available
+?token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoxNCwiZW1haWwiOiJwcmludGluZ0BpbmhvdXNlcHJpbnQuY29tLmF1IiwiZXhwIjoxNzY1MzMyODMwfQ.wc4zszg7AbX38R3sFcHkh0LDAlwSkO6r9Q2ey6OQABk:20978 [MAIN APP] Platform ready with full tool integration!
+
+user_auth.js?v=20251128b:449 ✅ [AUTH] initializeMainApp() complete
+user_auth.js?v=20251128b:314  [LOADING] 50% - Application initialized
+user_auth.js?v=20251128b:314  [LOADING] 52% - Loading modules...
+user_auth.js?v=20251128b:455 🔵 [UserAuth.showMainApp] CALLING window.initializeModuleSystem()...
+user_auth.js?v=20251128b:456 🔷 [AUTH] Triggering module system initialization...
+?token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoxNCwiZW1haWwiOiJwcmludGluZ0BpbmhvdXNlcHJpbnQuY29tLmF1IiwiZXhwIjoxNzY1MzMyODMwfQ.wc4zszg7AbX38R3sFcHkh0LDAlwSkO6r9Q2ey6OQABk:485 🔷 [initializeModuleSystem] Called (moduleLoaderReady: true , forceReload: false )
+?token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoxNCwiZW1haWwiOiJwcmludGluZ0BpbmhvdXNlcHJpbnQuY29tLmF1IiwiZXhwIjoxNzY1MzMyODMwfQ.wc4zszg7AbX38R3sFcHkh0LDAlwSkO6r9Q2ey6OQABk:496 🔷 [initializeModuleSystem] Initializing for user 14...
+module-loader-v4.js?v=20251130235959:79 [ModuleLoaderV4] Found 0 registered modules
+agent-column.js?v=20251122k:1220 🔄 [AgentColumn] refreshAllAgentThreadInfos called but DISABLED - threads load via initMultiAgent()
+thread-manager-core.js?v=20251128e:205 ✅ [ThreadManager] Thread selectors initialized
+module-loader-v4.js?v=20251130235959:564 [ModuleLoaderV4] Generated 0 sidebar buttons
+module-loader-v4.js?v=20251130235959:613 [ModuleLoaderV4] 🔧 generateMainTabs() called
+module-loader-v4.js?v=20251130235959:623 [ModuleLoaderV4] ✅ Main content found, has 15 children
+module-loader-v4.js?v=20251130235959:652 [ModuleLoaderV4] 🎉 Generated 0 new tabs. Total tabs now: 15
+module-loader-v4.js?v=20251130235959:101 [ModuleLoaderV4] ✅ Initialization complete
+?token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoxNCwiZW1haWwiOiJwcmludGluZ0BpbmhvdXNlcHJpbnQuY29tLmF1IiwiZXhwIjoxNzY1MzMyODMwfQ.wc4zszg7AbX38R3sFcHkh0LDAlwSkO6r9Q2ey6OQABk:498 ✅ [initializeModuleSystem] Complete
+user_auth.js?v=20251128b:459 ✅ [UserAuth.showMainApp] window.initializeModuleSystem() COMPLETED
+user_auth.js?v=20251128b:460 ✅ [AUTH] Module system initialization complete
+user_auth.js?v=20251128b:314  [LOADING] 60% - Modules loaded
+user_auth.js?v=20251128b:314  [LOADING] 65% - Pre-fetching features...
+user_auth.js?v=20251128b:484 🔮 [AUTH] Pre-fetching commonly-used features in background...
+lazy-loader.js:190 📦 Loading manifest: Background Pre-fetch
+lazy-loader.js:191 📊 Modules to load: 3
+lazy-loader.js:206 ⚡ Loading 3 modules in parallel...
+service-worker.js:192 [Service Worker] Cache MISS, fetching: /npm/tabulator-tables@6.2.5/dist/js/tabulator.min.js
+user_auth.js?v=20251128b:314  [LOADING] 90% - Resources loaded
+user_auth.js?v=20251128b:314  [LOADING] 95% - Almost ready...
+user_auth.js?v=20251128b:314  [LOADING] 100% - Ready!
+user_auth.js?v=20251128b:511 ✅ 🔓🔓 [AUTH] Main app initialization COMPLETE - Flag set to true
+account_profile.js?v=20251124j:2508 ✅ [AUTH] Main app initialized successfully
+service-worker.js:192 [Service Worker] Cache MISS, fetching: /npm/tabulator-tables@6.2.5/dist/css/tabulator_bootstrap5.min.css
+service-worker.js:192 [Service Worker] Cache MISS, fetching: /npm/chart.js@4.4.0/dist/chart.umd.min.js
+lazy-loader.js:91 ✅ Loaded: https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js
+lazy-loader.js:129 ✅ Loaded CSS: https://cdn.jsdelivr.net/npm/tabulator-tables@6.2.5/dist/css/tabulator_bootstrap5.min.css
+lazy-loader.js:91 ✅ Loaded: https://cdn.jsdelivr.net/npm/tabulator-tables@6.2.5/dist/js/tabulator.min.js
+lazy-loader.js:211 ✅ Manifest loaded: Background Pre-fetch
+user_auth.js?v=20251128b:490 ✅ [AUTH] Background pre-fetch complete
+2?token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoxNCwiZW1haWwiOiJwcmludGluZ0BpbmhvdXNlcHJpbnQuY29tLmF1IiwiZXhwIjoxNzY1MzMyODMwfQ.wc4zszg7AbX38R3sFcHkh0LDAlwSkO6r9Q2ey6OQABk:23646 [Circuit] Cycle 1 - regenerating 20% nodes
+?token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoxNCwiZW1haWwiOiJwcmludGluZ0BpbmhvdXNlcHJpbnQuY29tLmF1IiwiZXhwIjoxNzY1MzMyODMwfQ.wc4zszg7AbX38R3sFcHkh0LDAlwSkO6r9Q2ey6OQABk:23620 [Circuit] Both overlays hidden - stopping animation

@@ -1,0 +1,102 @@
+/**
+ * SYNERGY DESIGN TOKENS
+ * Generated from computed styles audit on December 8, 2025
+ * 
+ * PURPOSE: Single source of truth for all synergy typography
+ * SCOPE: Sidebar and Dashboard contexts
+ * 
+ * USAGE: Import BEFORE other synergy CSS files
+ */
+
+/* ==================== TYPOGRAPHY TOKENS ==================== */
+
+:root {
+    /* Font Sizes - Based on actual computed values */
+    --synergy-text-sm: 13px;
+    /* View tabs, small labels */
+    --synergy-text-base: 14px;
+    /* Buttons, search input, body text */
+    --synergy-text-md: 16px;
+    /* Sidebar container, session items */
+    --synergy-text-lg: 18px;
+    /* Titles, headings */
+
+    /* Font Weights - Minimal set */
+    --synergy-weight-normal: 400;
+    /* Default */
+    --synergy-weight-medium: 500;
+    /* Active tabs, emphasis */
+
+    /* Line Heights - For better readability */
+    --synergy-leading-normal: 1.5;
+    --synergy-leading-tight: 1.25;
+
+    /* Colors - From computed styles (using CSS variables) */
+    --synergy-text-primary: rgb(230, 237, 243);
+    /* #e6edf3 - Main text */
+    --synergy-text-secondary: rgb(125, 133, 144);
+    /* #7d8590 - Muted text */
+    --synergy-text-tertiary: rgb(177, 186, 196);
+    /* #b1bac4 - Between primary and secondary */
+    --synergy-text-active: rgb(255, 255, 255);
+    /* White - Active states */
+}
+
+/* ==================== UTILITY CLASSES ==================== */
+
+.synergy-text-sm {
+    font-size: var(--synergy-text-sm);
+}
+
+.synergy-text-base {
+    font-size: var(--synergy-text-base);
+}
+
+.synergy-text-md {
+    font-size: var(--synergy-text-md);
+}
+
+.synergy-text-lg {
+    font-size: var(--synergy-text-lg);
+}
+
+.synergy-weight-normal {
+    font-weight: var(--synergy-weight-normal);
+}
+
+.synergy-weight-medium {
+    font-weight: var(--synergy-weight-medium);
+}
+
+/* ==================== COMPONENT-SPECIFIC OVERRIDES ==================== */
+
+/* Override inconsistent icon button sizes */
+.synergy-icon-btn {
+    font-size: var(--synergy-text-base) !important;
+}
+
+/* Ensure consistent view tab styling */
+.synergy-view-tab {
+    font-size: var(--synergy-text-sm) !important;
+    font-weight: var(--synergy-weight-medium) !important;
+}
+
+.synergy-view-tab:not(.active) {
+    color: var(--synergy-text-secondary) !important;
+}
+
+.synergy-view-tab.active {
+    color: var(--synergy-text-active) !important;
+}
+
+/* Search input consistency */
+.synergy-search-input {
+    font-size: var(--synergy-text-base) !important;
+    color: var(--synergy-text-primary) !important;
+}
+
+/* Session items */
+.synergy-session-item {
+    font-size: var(--synergy-text-md) !important;
+    color: var(--synergy-text-primary) !important;
+}

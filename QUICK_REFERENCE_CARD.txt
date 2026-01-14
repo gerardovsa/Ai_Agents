@@ -1,0 +1,229 @@
+╔════════════════════════════════════════════════════════════════════════════╗
+║                   QUICK REFERENCE CARD                                      ║
+║              Prime Chat Panel Expansion & Agent Unload Issues                ║
+╚════════════════════════════════════════════════════════════════════════════╝
+
+═════════════════════════════════════════════════════════════════════════════════
+ ISSUE #1: Prime Card Won't Expand
+═════════════════════════════════════════════════════════════════════════════════
+
+SYMPTOM:
+  ❌ Logs show "[ThreadCardExpansion] Toggling at prime-loaded: expand"
+  ❌ But card doesn't visibly expand
+
+ROOT CAUSES:
+  1. Card HTML doesn't have expandable content (.thread-expand-on-hover)
+  2. JavaScript not adding .expanded class to card/container
+  3. CSS rules missing for #prime-thread-info.expanded
+  4. CSS selectors don't match DOM structure
+  5. CSS being overridden by other rules
+
+FILES INVOLVED:
+  📄 thread-card-expansion.js (line 200-235): getExpandableElement()
+  📄 thread-card-styles.css (line 290-315): Prime CSS rules
+  📄 business-ai-platform-v2.html (line 18136): Prime container
+
+DIAGNOSTIC STEPS:
+  1. Run MASTER_PRIME_DEBUGGER.js in console (F12)
+  2. It will tell you exactly which cause it is
+  3. Follow the "RECOMMENDED NEXT STEPS" in the output
+
+═════════════════════════════════════════════════════════════════════════════════
+ ISSUE #2: Agent Column Unload Button Doesn't Reset
+═════════════════════════════════════════════════════════════════════════════════
+
+SYMPTOM:
+  ❌ Click Unload button
+  ❌ Messages clear but no welcome screen appears
+  ❌ Column stays blank
+
+ROOT CAUSE:
+  Likely already fixed - code calls AgentColumn.unloadThread()
+  Need to verify it's working
+
+VERIFY:
+  Run Quick Debug #4 from QUICK_DEBUG_PRIME_AND_UNLOAD.md
+  It will show if welcome screen is being rendered
+
+FILES INVOLVED:
+  📄 agent-column.js (line 1903-1960): unloadThread() function
+  📄 thread-manager-interactions.js (line 410-430): Unload trigger
+
+═════════════════════════════════════════════════════════════════════════════════
+ HOW TO DEBUG
+═════════════════════════════════════════════════════════════════════════════════
+
+FASTEST METHOD:
+  1. Open http://localhost:5001
+  2. Press F12 → Console tab
+  3. Copy ENTIRE script from: MASTER_PRIME_DEBUGGER.js
+  4. Paste into console and press Enter
+  5. Read the colored output
+  6. It will tell you EXACTLY what's wrong
+
+OUTPUT WILL SHOW:
+  ✅ Or ❌ for each check
+  Colored sections explaining each issue
+  ROOT CAUSE DETERMINATION section
+  RECOMMENDED NEXT STEPS section
+
+═════════════════════════════════════════════════════════════════════════════════
+ QUICK COMMANDS
+═════════════════════════════════════════════════════════════════════════════════
+
+COMMAND 1 - Check Structure:
+  const p = document.getElementById('prime-thread-info');
+  const c = document.querySelector('[data-location*="prime"]');
+  console.log('Container:', !!p, 'Card:', !!c, 'Card in container:', p?.contains(c));
+
+COMMAND 2 - Check Classes:
+  const c = document.querySelector('[data-location*="prime"]');
+  console.log('Has .expanded?', c?.classList.contains('expanded'));
+  console.log('Content opacity:', window.getComputedStyle(c?.querySelector('.thread-expand-on-hover')).opacity);
+
+COMMAND 3 - Force Expansion (The Key Test):
+  const c = document.querySelector('[data-location*="prime"]');
+  c?.classList.add('expanded');
+  const s = window.getComputedStyle(c?.querySelector('.thread-expand-on-hover'));
+  console.log('After force - Opacity:', s.opacity, 'Max-height:', s.maxHeight);
+  // If now visible: JS problem | If still hidden: CSS problem
+
+COMMAND 4 - Check Unload:
+  const m = document.getElementById('agent-messages-1');
+  console.log('Has welcome?', m?.querySelector('.empty-state') ? 'YES' : 'NO');
+
+═════════════════════════════════════════════════════════════════════════════════
+ WHAT THE DIAGNOSTICS WILL TELL YOU
+═════════════════════════════════════════════════════════════════════════════════
+
+IF YOU SEE:
+  "CSS WORKS! Problem is JavaScript not adding .expanded class"
+  
+  THEN:
+  ✅ The CSS is fine
+  ❌ The JavaScript isn't firing or isn't adding the class
+  👉 CHECK: thread-card-expansion.js toggleCard() method
+  👉 FIX: Make sure getExpandableElement() returns the right element
+
+IF YOU SEE:
+  "CSS DOES NOT WORK! Even with forced .expanded class"
+  
+  THEN:
+  ❌ The CSS rules don't match the DOM or are being overridden
+  👉 CHECK: thread-card-styles.css lines 290-315
+  👉 FIX: Verify selectors match, add !important if needed
+
+IF YOU SEE:
+  "Prime Container (#prime-thread-info): NOT FOUND"
+  
+  THEN:
+  ❌ The HTML structure is wrong
+  👉 CHECK: business-ai-platform-v2.html line 18136
+  👉 FIX: Verify #prime-thread-info container exists
+
+═════════════════════════════════════════════════════════════════════════════════
+ FILES YOU'LL NEED TO READ
+═════════════════════════════════════════════════════════════════════════════════
+
+For Prime Expansion:
+  1. MASTER_PRIME_DEBUGGER.js (copy/paste this to console)
+  2. QUICK_DEBUG_PRIME_AND_UNLOAD.md (more quick commands)
+  3. CONSOLE_COMMANDS_READY_TO_USE.md (this file)
+
+For Detailed Debugging:
+  1. PRIME_ROOT_CAUSE_FINDER.js (alternate diagnostic)
+  2. PRIME_EXPANSION_DEBUG_COMMANDS.md (reference guide)
+  3. DEBUG_SUMMARY_AND_QUICK_START.md (overview)
+
+Source Code to Check:
+  1. thread-card-expansion.js (line 70-90 and 200-235)
+  2. thread-card-styles.css (line 290-315)
+  3. agent-column.js (line 1900-1960)
+
+═════════════════════════════════════════════════════════════════════════════════
+ STEP-BY-STEP DIAGNOSTIC FLOW
+═════════════════════════════════════════════════════════════════════════════════
+
+STEP 1: COLLECT INFORMATION
+  → Run MASTER_PRIME_DEBUGGER.js
+  → Note which checks fail (❌)
+  → Read the ROOT CAUSE DETERMINATION section
+
+STEP 2: IDENTIFY ROOT CAUSE
+  → Is it a DOM structure issue?
+  → Is it a JavaScript issue?
+  → Is it a CSS issue?
+  → The debugger will tell you
+
+STEP 3: APPLY FIX
+  → Go to the file the debugger recommends
+  → Check the specific line numbers
+  → Make the fix based on root cause
+
+STEP 4: VERIFY FIX
+  → Run MASTER_PRIME_DEBUGGER.js again
+  → All checks should now show ✅
+  → Try clicking expand button in browser
+  → Should now work
+
+═════════════════════════════════════════════════════════════════════════════════
+ EXPECTED OUTPUT WHEN EVERYTHING WORKS
+═════════════════════════════════════════════════════════════════════════════════
+
+When Prime Expansion Works:
+  ✅ Container found
+  ✅ Card found
+  ✅ Expandable content found
+  ✅ Has .expanded class
+  ✅ Opacity: 1
+  ✅ Max-height: 500px
+  ✅ Content visible? YES
+
+When Agent Unload Works:
+  ✅ Click Unload button
+  ✅ Welcome screen appears
+  ✅ "Agent-1 Ready" message visible
+  ✅ Quick action buttons shown
+  ✅ Input field cleared
+
+═════════════════════════════════════════════════════════════════════════════════
+ TROUBLESHOOTING
+═════════════════════════════════════════════════════════════════════════════════
+
+Problem: "Diagnostics show everything is ✅ but still doesn't work"
+  → Cache issue
+  → Solution: Hard refresh (Ctrl+Shift+R or Cmd+Shift+R)
+  → Or: Clear browser cache and reload
+
+Problem: "Getting 'ThreadCardExpansion is not defined' errors"
+  → The script hasn't loaded yet
+  → Solution: Wait for page to fully load, then try again
+  → Or: Put a 2-3 second delay in your script
+
+Problem: "Force expansion command shows CSS works but still won't expand"
+  → Race condition or async issue
+  → Solution: Add setTimeout in the click handler
+  → Check: If other locations work, copy their patterns
+
+Problem: "Only some threads expand, not all"
+  → DOM structure differs for different thread types
+  → Solution: Check each thread type with inspector
+  → Check: getExpandableElement() might need more logic
+
+═════════════════════════════════════════════════════════════════════════════════
+ CONTACT / NEXT STEPS
+═════════════════════════════════════════════════════════════════════════════════
+
+When you run MASTER_PRIME_DEBUGGER.js:
+  1. Screenshot the console output
+  2. Note the ROOT CAUSE DETERMINATION
+  3. Make the recommended fix
+  4. Re-run the debugger to verify
+  5. Test in browser
+
+Questions?
+  1. Re-read the ROOT CAUSE DETERMINATION section of the debugger
+  2. Check the RECOMMENDED NEXT STEPS in the debugger output
+  3. Look at the commented code in the source files
+
+═════════════════════════════════════════════════════════════════════════════════

@@ -1,0 +1,50 @@
+﻿|â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”
+â”‚         AI TOOL ECOSYSTEM ARCHITECTURE              â”‚
+â””â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”˜
+
+Layer 1: REGISTRY (Inventory & Loading)
+â”œâ”€ registry_v3.py: Discovers 646 tools from schemas/
+â”œâ”€ schemas/*.json: Tool definitions (parameters, descriptions)
+â””â”€ implementations/*.py: Actual code functions
+
+Layer 2: DISCOVERY (Runtime Intelligence)
+â”œâ”€ list_platform_tools(): "What tools exist for Gmail?"
+â”œâ”€ get_tool_schema(): "How do I use this tool?"
+â”œâ”€ intelligent_discovery.py: Learns patterns over time
+â””â”€ Tool Intelligence Logger: Silent learning system
+
+Layer 3: EXECUTION (Action Layer)
+â”œâ”€ execute_tool(): Runs tools with parameters
+â”œâ”€ Credential injection: Auto-adds user auth
+â”œâ”€ Error handling: Validates tool pairs, parameter formats
+â””â”€ Feedback loop: Tracks success/failure patterns
+
+Layer 4: ORCHESTRATION (Coordination)
+â”œâ”€ Guide tools: Teach workflows (inhouse_calculator_guide)
+â”œâ”€ Bridge tools: Connect systems (query_library_bridge)
+â”œâ”€ Plugin system: Auto-loads modules (quote_calculator)
+â””â”€ Agent routes: Manage conversation flow
+
+- The tool 
+
+Self-aware (tools discover other tools)
+Adaptive (learns from usage patterns)
+Interconnected (guide â†’ schema â†’ execute)
+Living (Intelligence Logger tracks and learn
+
+
+
+# STEP 2: SELECTING TOOLS - MANADATORY TOOLS & DISCOVER PLATFORM TOOLS
+â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”
+
+## YOU MUST USE the tools that are specific to the users MANADATORY PLATFORM 
+- Do not use Google Workspace Tools when the user is Microsoft 365 Suite and vice versa. 
+   
+   **If Microsoft 365 Suite:**
+   - Email: list_platform_tools("microsoft_outlook")
+   - Documents: list_platform_tools("microsoft_word")
+   - Spreadsheets: list_platform_tools("microsoft_excel")
+   - Calendar: list_platform_tools("microsoft_calendar")
+   - Storage: list_platform_tools("microsoft_onedrive")
+   - etc.. 
+   

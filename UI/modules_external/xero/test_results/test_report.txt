@@ -1,0 +1,167 @@
+╔══════════════════════════════════════════════════════════════════════════════════════════════════╗
+║                                                                                                  ║
+║                                      XERO TOOLS TEST REPORT                                      ║
+║                                                                                                  ║
+╚══════════════════════════════════════════════════════════════════════════════════════════════════╝
+
+📅 Generated: 2025-12-08 22:34:28
+🐍 Python: 3.13.2
+📦 Business: InHouse Print (ID: 1)
+
+────────────────────────────────────────────────────────────────────────────────────────────────────
+
+╔══════════════════════════════════════════════════════════════════════════════════════════════════╗
+║                                      TEST EXECUTION SUMMARY                                      ║
+╚══════════════════════════════════════════════════════════════════════════════════════════════════╝
+
+  📊 Tests Run:      8
+  ✅ Passed:         6
+  ❌ Failed:         2
+  📈 Pass Rate:    75.0%
+
+────────────────────────────────────────────────────────────────────────────────────────────────────
+
+╔══════════════════════════════════════════════════════════════════════════════════════════════════╗
+║                                      DETAILED TEST RESULTS                                       ║
+╚══════════════════════════════════════════════════════════════════════════════════════════════════╝
+
+
+┌─ Test #1: xero_get_contacts - List contacts
+│  Status: ✅ PASS
+│  Parameters:
+│    • business_id: 1
+│    • limit: 5
+│  Results:
+│    • Business: InHouse Print
+│    • Contact Count: 5
+│    • Sample Contact: CJ King Printing
+└──────────────────────────────────────────────────────────────────────────────────────────────────
+
+┌─ Test #2: xero_get_contact_by_id - Get contact details
+│  Status: ✅ PASS
+│  Parameters:
+│    • business_id: 1
+│    • contact_id: 996dfeab-0754-4d5c-881b-00740d6d12a2
+│  Results:
+│    • Business: InHouse Print
+│    • Contact Name: CJ King Printing
+│    • Status: ACTIVE
+│    • Addresses: 2
+│    • Phones: 4
+└──────────────────────────────────────────────────────────────────────────────────────────────────
+
+┌─ Test #3: xero_list_quotes - Get quotes for contact
+│  Status: ✅ PASS
+│  Parameters:
+│    • business_id: 1
+│    • contact_id: 996dfeab-0754-4d5c-881b-00740d6d12a2
+│    • page_size: 10
+│  Results:
+│    • Business: InHouse Print
+│    • Total Count: 100
+│    • Returned: 10
+│    • Sample Quote: QU-0001
+│    • Quote Status: DELETED
+│    • Quote Total: $110000.00
+└──────────────────────────────────────────────────────────────────────────────────────────────────
+
+┌─ Test #4: xero_get_quote_by_id - Get quote details
+│  Status: ✅ PASS
+│  Parameters:
+│    • business_id: 1
+│    • quote_id: 03e240e3-a3ca-4229-a3e1-dfa4620b8553
+│  Results:
+│    • Business: InHouse Print
+└──────────────────────────────────────────────────────────────────────────────────────────────────
+
+┌─ Test #5: xero_get_invoices - List invoices
+│  Status: ✅ PASS
+│  Parameters:
+│    • business_id: 1
+│    • status: AUTHORISED
+│  Results:
+│    • Business: InHouse Print
+│    • Invoice Count: 204
+└──────────────────────────────────────────────────────────────────────────────────────────────────
+
+┌─ Test #6: xero_get_payments - List payments
+│  Status: ✅ PASS
+│  Parameters:
+│    • business_id: 1
+│  Results:
+│    • Business: InHouse Print
+│    • Payment Count: 50
+└──────────────────────────────────────────────────────────────────────────────────────────────────
+
+┌─ Test #7: xero_get_accounts - Get chart of accounts
+│  Status: ❌ FAIL
+│  Parameters:
+│    • business_id: 1
+│    • limit: 10
+│  Error:
+│    • Xero API 401 Unauthorized for endpoint 'Accounts'. This may indicate missing OAuth scope. For 'Accounts' endpoint, ensure 'accounting.settings.read' scope is enabled in Xero Developer Portal. Business: InHouse Print (ID: 1). Error: 401 Client Error: Unauthorized for url: https://api.xero.com/api.xro/2.0/Accounts
+└──────────────────────────────────────────────────────────────────────────────────────────────────
+
+┌─ Test #8: xero_get_branding_themes - Get quote templates
+│  Status: ❌ FAIL
+│  Parameters:
+│    • business_id: 1
+│  Error:
+│    • Xero API 401 Unauthorized for endpoint 'BrandingThemes'. This may indicate missing OAuth scope. For 'Accounts' endpoint, ensure 'accounting.settings.read' scope is enabled in Xero Developer Portal. Business: InHouse Print (ID: 1). Error: 401 Client Error: Unauthorized for url: https://api.xero.com/api.xro/2.0/BrandingThemes
+└──────────────────────────────────────────────────────────────────────────────────────────────────
+
+────────────────────────────────────────────────────────────────────────────────────────────────────
+
+╔══════════════════════════════════════════════════════════════════════════════════════════════════╗
+║                                     COMPLETE WORKFLOW GUIDE                                      ║
+╚══════════════════════════════════════════════════════════════════════════════════════════════════╝
+
+🔄 Contact + Quotes Workflow:
+
+  Step 1: Find Contact
+    Tool: xero_get_contacts
+    Purpose: Search or list contacts to get contact_id
+    Returns: List of contacts with IDs
+
+  Step 2: Get Contact Details
+    Tool: xero_get_contact_by_id
+    Purpose: Retrieve full contact profile
+    Returns: Addresses, phones, contact persons, account details
+
+  Step 3: Get Contact's Quotes
+    Tool: xero_list_quotes
+    Purpose: List all quotes for specific contact
+    Returns: Quote list with numbers, status, totals
+
+  Step 4: Get Quote Details (Optional)
+    Tool: xero_get_quote_by_id
+    Purpose: Get full quote with line items
+    Returns: Complete quote breakdown
+
+────────────────────────────────────────────────────────────────────────────────────────────────────
+
+📊 Other Available Workflows:
+
+  • Invoice Management:
+    - xero_get_invoices: List invoices
+    - xero_get_invoice_by_id: Get invoice details
+
+  • Payment Tracking:
+    - xero_get_payments: List payments
+
+  • Account Management:
+    - xero_get_accounts: Chart of accounts
+
+  • Quote Templates:
+    - xero_get_branding_themes: Available templates
+
+────────────────────────────────────────────────────────────────────────────────────────────────────
+
+╔══════════════════════════════════════════════════════════════════════════════════════════════════╗
+║                                        END OF TEST REPORT                                        ║
+╚══════════════════════════════════════════════════════════════════════════════════════════════════╝
+
+Status: 2 TEST(S) FAILED ❌
+Generated: 2025-12-08 22:34:28
+
+════════════════════════════════════════════════════════════════════════════════════════════════════

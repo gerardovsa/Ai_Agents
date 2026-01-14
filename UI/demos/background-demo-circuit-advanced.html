@@ -1,0 +1,955 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Demo: Advanced Circuit Board</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            overflow: hidden;
+            height: 100vh;
+            background: #0d1117;
+        }
+
+        #circuitCanvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 1;
+        }
+
+        .gradient-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: radial-gradient(ellipse at center,
+                    rgba(13, 17, 23, 0.1) 0%,
+                    rgba(13, 17, 23, 0.3) 50%,
+                    rgba(13, 17, 23, 0.5) 100%);
+            z-index: 2;
+        }
+
+        .content-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 10;
+        }
+
+        .login-container {
+            background: linear-gradient(145deg, rgba(22, 27, 34, 0.95) 0%, rgba(13, 17, 23, 0.95) 100%);
+            border: 1px solid rgba(88, 166, 255, 0.3);
+            border-radius: 20px;
+            padding: 48px;
+            width: 90%;
+            max-width: 480px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.8);
+            backdrop-filter: blur(10px);
+            animation: slideUp 0.5s ease;
+        }
+
+        @keyframes slideUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .login-header {
+            text-align: center;
+            margin-bottom: 32px;
+        }
+
+        .login-header h1 {
+            color: #ffffff;
+            font-size: 28px;
+            /* font-weight: 600; */
+            margin-bottom: 8px;
+        }
+
+        .login-header p {
+            color: #8b949e;
+            font-size: 14px;
+        }
+
+        .spinner {
+            width: 60px;
+            height: 60px;
+            border: 4px solid rgba(48, 54, 61, 0.8);
+            border-top: 4px solid #58a6ff;
+            border-radius: 50%;
+            margin: 0 auto 24px;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% {
+                transform: rotate(0deg);
+            }
+
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+
+        .loading-text {
+            text-align: center;
+            color: #58a6ff;
+            font-size: 14px;
+        }
+
+        .toggle-container {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 100;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            background: rgba(22, 27, 34, 0.95);
+            border: 1px solid rgba(88, 166, 255, 0.3);
+            border-radius: 12px;
+            padding: 16px;
+            backdrop-filter: blur(10px);
+            min-width: 200px;
+        }
+
+        .toggle-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+        }
+
+        .color-filters {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            padding-top: 8px;
+            border-top: 1px solid rgba(88, 166, 255, 0.2);
+        }
+
+        .color-filter-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 8px;
+        }
+
+        .color-indicator {
+            width: 16px;
+            height: 16px;
+            border-radius: 3px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .toggle-label {
+            color: #8b949e;
+            font-size: 13px;
+            /* font-weight: 500; */
+            flex: 1;
+        }
+
+        .section-title {
+            color: #c9d1d9;
+            font-size: 12px;
+            /* font-weight: 600; */
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 4px;
+        }
+
+        .toggle-switch {
+            position: relative;
+            width: 40px;
+            height: 20px;
+            cursor: pointer;
+            flex-shrink: 0;
+        }
+
+        .toggle-switch input {
+            display: none;
+        }
+
+        .toggle-slider {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(48, 54, 61, 0.8);
+            border-radius: 24px;
+            transition: 0.3s;
+        }
+
+        .toggle-slider:before {
+            content: '';
+            position: absolute;
+            height: 14px;
+            width: 14px;
+            left: 3px;
+            bottom: 3px;
+            background: white;
+            border-radius: 50%;
+            transition: 0.3s;
+        }
+
+        .toggle-switch input:checked+.toggle-slider {
+            background: #58a6ff;
+        }
+
+        .toggle-switch input:checked+.toggle-slider:before {
+            transform: translateX(20px);
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 4px;
+            background: rgba(48, 54, 61, 0.5);
+            border-radius: 2px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #58a6ff, #3fb950);
+            border-radius: 2px;
+            width: 0%;
+            animation: progressGrow 3s ease-in-out infinite;
+        }
+
+        @keyframes progressGrow {
+
+            0%,
+            100% {
+                width: 0%;
+            }
+
+            50% {
+                width: 100%;
+            }
+        }
+
+        .demo-label {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            color: #58a6ff;
+            font-size: 14px;
+            /* font-weight: 600; */
+            z-index: 100;
+            background: rgba(13, 17, 23, 0.9);
+            padding: 8px 16px;
+            border-radius: 8px;
+            border: 1px solid rgba(88, 166, 255, 0.3);
+        }
+    </style>
+</head>
+
+<body>
+    <div class="toggle-container">
+        <div class="toggle-row">
+            <span class="toggle-label">All Colors</span>
+            <label class="toggle-switch">
+                <input type="checkbox" id="colorToggle" checked>
+                <span class="toggle-slider"></span>
+            </label>
+        </div>
+
+        <div class="color-filters">
+            <div class="section-title">Color Filters</div>
+
+            <div class="color-filter-row">
+                <div style="display: flex; align-items: center; gap: 8px;">
+                    <div class="color-indicator" style="background: rgb(88, 166, 255);"></div>
+                    <span class="toggle-label">Blue</span>
+                </div>
+                <label class="toggle-switch">
+                    <input type="checkbox" class="color-filter" data-color="primary" checked>
+                    <span class="toggle-slider"></span>
+                </label>
+            </div>
+
+            <div class="color-filter-row">
+                <div style="display: flex; align-items: center; gap: 8px;">
+                    <div class="color-indicator" style="background: rgb(255, 255, 255);"></div>
+                    <span class="toggle-label">White</span>
+                </div>
+                <label class="toggle-switch">
+                    <input type="checkbox" class="color-filter" data-color="white" checked>
+                    <span class="toggle-slider"></span>
+                </label>
+            </div>
+
+            <div class="color-filter-row">
+                <div style="display: flex; align-items: center; gap: 8px;">
+                    <div class="color-indicator" style="background: rgb(139, 148, 158);"></div>
+                    <span class="toggle-label">Grey</span>
+                </div>
+                <label class="toggle-switch">
+                    <input type="checkbox" class="color-filter" data-color="grey" checked>
+                    <span class="toggle-slider"></span>
+                </label>
+            </div>
+
+            <div class="color-filter-row">
+                <div style="display: flex; align-items: center; gap: 8px;">
+                    <div class="color-indicator" style="background: rgb(255, 159, 64);"></div>
+                    <span class="toggle-label">Orange</span>
+                </div>
+                <label class="toggle-switch">
+                    <input type="checkbox" class="color-filter" data-color="orange" checked>
+                    <span class="toggle-slider"></span>
+                </label>
+            </div>
+
+            <div class="color-filter-row">
+                <div style="display: flex; align-items: center; gap: 8px;">
+                    <div class="color-indicator" style="background: rgb(64, 200, 120);"></div>
+                    <span class="toggle-label">Green</span>
+                </div>
+                <label class="toggle-switch">
+                    <input type="checkbox" class="color-filter" data-color="green" checked>
+                    <span class="toggle-slider"></span>
+                </label>
+            </div>
+
+            <div class="color-filter-row">
+                <div style="display: flex; align-items: center; gap: 8px;">
+                    <div class="color-indicator" style="background: rgb(248, 81, 73);"></div>
+                    <span class="toggle-label">Red</span>
+                </div>
+                <label class="toggle-switch">
+                    <input type="checkbox" class="color-filter" data-color="red" checked>
+                    <span class="toggle-slider"></span>
+                </label>
+            </div>
+
+            <div class="color-filter-row">
+                <div style="display: flex; align-items: center; gap: 8px;">
+                    <div class="color-indicator" style="background: rgb(168, 85, 247);"></div>
+                    <span class="toggle-label">Purple</span>
+                </div>
+                <label class="toggle-switch">
+                    <input type="checkbox" class="color-filter" data-color="accent" checked>
+                    <span class="toggle-slider"></span>
+                </label>
+            </div>
+        </div>
+    </div>
+    <div class="demo-label">Circuit Board v2: Complex PCB Routing</div>
+
+    <canvas id="circuitCanvas"></canvas>
+    <div class="gradient-overlay"></div>
+
+    <div class="content-overlay">
+        <div class="login-container">
+            <div class="login-header">
+                <div class="spinner"></div>
+                <h1>Business AI Platform</h1>
+                <p>Loading your workspace...</p>
+            </div>
+            <div class="loading-text">Routing neural pathways...</div>
+            <div class="progress-bar">
+                <div class="progress-fill"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('circuitCanvas');
+        const ctx = canvas.getContext('2d');
+
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+
+        let centerX = canvas.width / 2;
+        let centerY = canvas.height / 2;
+
+        // Color toggle control
+        let useColors = true;
+        let enabledColors = {
+            primary: true,
+            white: true,
+            grey: true,
+            orange: true,
+            green: true,
+            red: true,
+            accent: true
+        };
+
+        // Main color toggle
+        document.getElementById('colorToggle').addEventListener('change', (e) => {
+            useColors = e.target.checked;
+            // Update existing particles
+            particles.forEach(particle => {
+                particle.color = useColors ? particle.colorData : particle.grayscaleData;
+            });
+        });
+
+        // Individual color filter toggles
+        document.querySelectorAll('.color-filter').forEach(toggle => {
+            toggle.addEventListener('change', (e) => {
+                const colorName = e.target.dataset.color;
+                enabledColors[colorName] = e.target.checked;
+            });
+        });
+
+        window.addEventListener('resize', () => {
+            const oldCenterX = centerX;
+            const oldCenterY = centerY;
+
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+
+            // Update center point
+            centerX = canvas.width / 2;
+            centerY = canvas.height / 2;
+
+            // Recreate neural network for new dimensions
+            createNeuralNetwork();
+
+            // Update all existing particle paths - recalculate targets relative to new center
+            particles.forEach(particle => {
+                if (particle.path && particle.path.length > 0 && particle.targetX && particle.targetY) {
+                    // Calculate offset from old center
+                    const offsetX = particle.targetX - oldCenterX;
+                    const offsetY = particle.targetY - oldCenterY;
+
+                    // Apply offset to new center
+                    particle.targetX = centerX + offsetX;
+                    particle.targetY = centerY + offsetY;
+
+                    // Update the final path point to new target
+                    particle.path[particle.path.length - 1] = { x: particle.targetX, y: particle.targetY };
+                }
+            });
+        });
+
+        // Complex circuit path with multiple waypoints (like PCB routing)
+        class ComplexCircuitPath {
+            constructor(startAngle) {
+                const distance = Math.max(canvas.width, canvas.height) * 0.7;
+                this.startX = centerX + Math.cos(startAngle) * distance;
+                this.startY = centerY + Math.sin(startAngle) * distance;
+                this.endX = centerX;
+                this.endY = centerY;
+
+                // Create waypoints for circuit routing (3-5 waypoints)
+                this.waypoints = [];
+                const waypointCount = 3 + Math.floor(Math.random() * 3);
+
+                for (let i = 0; i < waypointCount; i++) {
+                    const progress = (i + 1) / (waypointCount + 1);
+                    const baseDist = distance * (1 - progress);
+
+                    // Random offset perpendicular to angle
+                    const perpAngle = startAngle + Math.PI / 2;
+                    const offset = (Math.random() - 0.5) * 300;
+
+                    const x = centerX + Math.cos(startAngle) * baseDist + Math.cos(perpAngle) * offset;
+                    const y = centerY + Math.sin(startAngle) * baseDist + Math.sin(perpAngle) * offset;
+
+                    this.waypoints.push({ x, y });
+                }
+
+                // Add 90-degree turns at some waypoints (like real PCB traces)
+                this.segments = this.createSegments();
+            }
+
+            createSegments() {
+                const segments = [];
+                let prevX = this.startX;
+                let prevY = this.startY;
+
+                // Create L-shaped or Z-shaped segments
+                this.waypoints.forEach((wp, i) => {
+                    // Randomly choose horizontal-first or vertical-first
+                    if (Math.random() > 0.5) {
+                        // Horizontal then vertical
+                        segments.push({ x1: prevX, y1: prevY, x2: wp.x, y2: prevY });
+                        segments.push({ x1: wp.x, y1: prevY, x2: wp.x, y2: wp.y });
+                    } else {
+                        // Vertical then horizontal
+                        segments.push({ x1: prevX, y1: prevY, x2: prevX, y2: wp.y });
+                        segments.push({ x1: prevX, y1: wp.y, x2: wp.x, y2: wp.y });
+                    }
+                    prevX = wp.x;
+                    prevY = wp.y;
+                });
+
+                // Final connection to center
+                if (Math.random() > 0.5) {
+                    segments.push({ x1: prevX, y1: prevY, x2: this.endX, y2: prevY });
+                    segments.push({ x1: this.endX, y1: prevY, x2: this.endX, y2: this.endY });
+                } else {
+                    segments.push({ x1: prevX, y1: prevY, x2: prevX, y2: this.endY });
+                    segments.push({ x1: prevX, y1: this.endY, x2: this.endX, y2: this.endY });
+                }
+
+                return segments;
+            }
+
+            draw() {
+                ctx.strokeStyle = 'rgba(88, 166, 255, 0.2)';
+                ctx.lineWidth = 2;
+
+                this.segments.forEach(seg => {
+                    ctx.beginPath();
+                    ctx.moveTo(seg.x1, seg.y1);
+                    ctx.lineTo(seg.x2, seg.y2);
+                    ctx.stroke();
+                });
+
+                // Draw waypoint nodes
+                ctx.fillStyle = 'rgba(88, 166, 255, 0.3)';
+                this.waypoints.forEach(wp => {
+                    ctx.beginPath();
+                    ctx.arc(wp.x, wp.y, 3, 0, Math.PI * 2);
+                    ctx.fill();
+                });
+            }
+
+            getTotalLength() {
+                return this.segments.reduce((total, seg) => {
+                    const dx = seg.x2 - seg.x1;
+                    const dy = seg.y2 - seg.y1;
+                    return total + Math.sqrt(dx * dx + dy * dy);
+                }, 0);
+            }
+
+            getPointAtDistance(dist) {
+                let accumulated = 0;
+
+                for (const seg of this.segments) {
+                    const dx = seg.x2 - seg.x1;
+                    const dy = seg.y2 - seg.y1;
+                    const segLength = Math.sqrt(dx * dx + dy * dy);
+
+                    if (accumulated + segLength >= dist) {
+                        const t = (dist - accumulated) / segLength;
+                        return {
+                            x: seg.x1 + dx * t,
+                            y: seg.y1 + dy * t
+                        };
+                    }
+
+                    accumulated += segLength;
+                }
+
+                return { x: this.endX, y: this.endY };
+            }
+        }
+
+        // Circuit particle - moves in straight lines with right angles
+        class EnergyParticle {
+            constructor() {
+                // Start from random angle around screen perimeter for even distribution
+                const angle = Math.random() * Math.PI * 2; // Random angle 0-360 degrees
+
+                // Calculate which edge this angle intersects
+                const absX = Math.abs(Math.cos(angle));
+                const absY = Math.abs(Math.sin(angle));
+
+                if (absX > absY) {
+                    // Hits left or right edge
+                    if (Math.cos(angle) > 0) {
+                        // Right edge
+                        this.x = canvas.width;
+                        this.y = centerY + Math.tan(angle) * (canvas.width / 2);
+                    } else {
+                        // Left edge
+                        this.x = 0;
+                        this.y = centerY - Math.tan(angle) * (canvas.width / 2);
+                    }
+                } else {
+                    // Hits top or bottom edge
+                    if (Math.sin(angle) > 0) {
+                        // Bottom edge
+                        this.x = centerX + (canvas.height / 2) / Math.tan(angle);
+                        this.y = canvas.height;
+                    } else {
+                        // Top edge
+                        this.x = centerX - (canvas.height / 2) / Math.tan(angle);
+                        this.y = 0;
+                    }
+                }
+
+                // Create path with right angles toward center
+                this.createPath();
+
+                this.size = 1.5 + Math.random() * 1;
+
+                // Color system: primary, white, grey, orange, green, red, accent
+                const colors = [
+                    { r: 88, g: 166, b: 255, name: 'primary' },    // Primary blue
+                    { r: 255, g: 255, b: 255, name: 'white' },     // White
+                    { r: 139, g: 148, b: 158, name: 'grey' },      // Grey
+                    { r: 255, g: 159, b: 64, name: 'orange' },     // Orange
+                    { r: 64, g: 200, b: 120, name: 'green' },      // Green
+                    { r: 248, g: 81, b: 73, name: 'red' },         // Red
+                    { r: 168, g: 85, b: 247, name: 'accent' }      // Accent purple
+                ];
+
+                // Grayscale alternatives
+                const grayscaleColors = [
+                    { r: 180, g: 180, b: 180, name: 'light-gray' },
+                    { r: 220, g: 220, b: 220, name: 'white-gray' },
+                    { r: 150, g: 150, b: 150, name: 'medium-gray' },
+                    { r: 200, g: 200, b: 200, name: 'bright-gray' },
+                    { r: 160, g: 160, b: 160, name: 'neutral-gray' }
+                ];
+
+                this.colorData = colors[Math.floor(Math.random() * colors.length)];
+                this.grayscaleData = grayscaleColors[Math.floor(Math.random() * grayscaleColors.length)];
+                this.color = useColors ? this.colorData : this.grayscaleData;
+
+                this.hasTail = Math.random() > 0.3;
+                this.trail = [];
+                this.maxTrailLength = this.hasTail ? (30 + Math.floor(Math.random() * 30)) : 0;
+                this.pathIndex = 0;
+                this.speed = 3 + Math.random() * 3;
+            }
+
+            createPath() {
+                // Random target within modal box (380×150)
+                const modalWidth = 380;
+                const modalHeight = 150;
+                const targetX = centerX + (Math.random() - 0.5) * modalWidth;
+                const targetY = centerY + (Math.random() - 0.5) * modalHeight;
+
+                // Store target for this particle
+                this.targetX = targetX;
+                this.targetY = targetY;
+
+                // 70% straight lines (horizontal OR vertical only), 30% with turns
+                const useTurns = Math.random() > 0.7;
+
+                this.path = [{ x: this.x, y: this.y }];
+
+                // CRITICAL: Force first waypoint at least 100-250px inward from spawn (random)
+                // Calculate direction toward center
+                const minInwardDist = 100 + Math.random() * 150; // Random 100-250px
+                let firstWaypointX = this.x;
+                let firstWaypointY = this.y;
+
+                // Determine which edge we're on and move inward
+                if (this.x <= 10) {
+                    // Left edge - move right
+                    firstWaypointX = this.x + minInwardDist;
+                } else if (this.x >= canvas.width - 10) {
+                    // Right edge - move left
+                    firstWaypointX = this.x - minInwardDist;
+                } else if (this.y <= 10) {
+                    // Top edge - move down
+                    firstWaypointY = this.y + minInwardDist;
+                } else if (this.y >= canvas.height - 10) {
+                    // Bottom edge - move up
+                    firstWaypointY = this.y - minInwardDist;
+                }
+
+                // Add mandatory inward waypoint
+                this.path.push({ x: firstWaypointX, y: firstWaypointY });
+
+                if (!useTurns) {
+                    // STRAIGHT LINE - only horizontal OR vertical movement
+                    const distX = Math.abs(firstWaypointX - targetX);
+                    const distY = Math.abs(firstWaypointY - targetY);
+
+                    // Choose which axis to move on (the one with less distance for more variety)
+                    if (distX < distY) {
+                        // Move horizontally first, then vertically to target
+                        this.path.push({ x: targetX, y: firstWaypointY });
+                        this.path.push({ x: targetX, y: targetY });
+                    } else {
+                        // Move vertically first, then horizontally to target
+                        this.path.push({ x: firstWaypointX, y: targetY });
+                        this.path.push({ x: targetX, y: targetY });
+                    }
+                } else {
+                    // WITH TURNS - 2-3 right angle turns (starting from first inward waypoint)
+                    const distX = Math.abs(firstWaypointX - targetX);
+                    const distY = Math.abs(firstWaypointY - targetY);
+                    const horizontalFirst = distX > distY;
+
+                    const numTurns = Math.random() > 0.5 ? 3 : 2;
+
+                    let currentX = firstWaypointX;
+                    let currentY = firstWaypointY;
+
+                    // Wider spread for final approach - smaller safe zone
+                    const modalSafeZone = 200; // Reduced from 300 for wider entry angles
+
+                    for (let i = 0; i < numTurns; i++) {
+                        if ((i === 0 && horizontalFirst) || (i === 1 && !horizontalFirst) || (i === 2 && horizontalFirst)) {
+                            const distFromTarget = Math.abs(currentX - targetX);
+                            const waypointDist = Math.max(modalSafeZone, distFromTarget * (0.3 + Math.random() * 0.4));
+                            currentX = targetX + (currentX > targetX ? waypointDist : -waypointDist);
+                            this.path.push({ x: currentX, y: currentY });
+                        } else {
+                            const distFromTarget = Math.abs(currentY - targetY);
+                            const waypointDist = Math.max(modalSafeZone, distFromTarget * (0.3 + Math.random() * 0.4));
+                            currentY = targetY + (currentY > targetY ? waypointDist : -waypointDist);
+                            this.path.push({ x: currentX, y: currentY });
+                        }
+                    }
+
+                    // Always end at random target within modal
+                    this.path.push({ x: targetX, y: targetY });
+                }
+            } update() {
+                // Store position for trail
+                if (this.hasTail) {
+                    this.trail.push({ x: this.x, y: this.y });
+                    if (this.trail.length > this.maxTrailLength) {
+                        this.trail.shift();
+                    }
+                }
+
+                // Move along path segments
+                if (this.pathIndex >= this.path.length - 1) {
+                    // Reached end of path (center) - reset
+                    return false; // Signal for removal
+                }
+
+                const target = this.path[this.pathIndex + 1];
+                const dx = target.x - this.x;
+                const dy = target.y - this.y;
+                const dist = Math.sqrt(dx * dx + dy * dy);
+
+                if (dist < this.speed) {
+                    // Move to next segment
+                    this.pathIndex++;
+                    if (this.pathIndex >= this.path.length - 1) {
+                        return false; // Reached center
+                    }
+                } else {
+                    // Move toward current target
+                    this.x += (dx / dist) * this.speed;
+                    this.y += (dy / dist) * this.speed;
+                }
+
+                return true; // Still alive
+            }
+
+            draw() {
+                // Check if this particle's color is enabled
+                if (!enabledColors[this.colorData.name]) {
+                    return; // Skip drawing if color is disabled
+                }
+
+                // Draw fading line tail (simpler animation) - colored
+                if (this.hasTail && this.trail.length > 1) {
+                    for (let i = 0; i < this.trail.length - 1; i++) {
+                        const alpha = (i / this.trail.length) * 0.5;
+                        const nextPos = this.trail[i + 1];
+                        const pos = this.trail[i];
+
+                        ctx.strokeStyle = `rgba(${this.color.r}, ${this.color.g}, ${this.color.b}, ${alpha})`;
+                        ctx.lineWidth = 1;
+                        ctx.beginPath();
+                        ctx.moveTo(pos.x, pos.y);
+                        ctx.lineTo(nextPos.x, nextPos.y);
+                        ctx.stroke();
+                    }
+                }
+
+                // Draw tiny colored glow
+                const gradient = ctx.createRadialGradient(this.x, this.y, 0, this.x, this.y, this.size * 2);
+                gradient.addColorStop(0, `rgba(${this.color.r}, ${this.color.g}, ${this.color.b}, 0.4)`);
+                gradient.addColorStop(1, `rgba(${this.color.r}, ${this.color.g}, ${this.color.b}, 0)`);
+
+                ctx.fillStyle = gradient;
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.size * 2, 0, Math.PI * 2);
+                ctx.fill();
+
+                // Bright colored core
+                ctx.fillStyle = `rgba(${this.color.r}, ${this.color.g}, ${this.color.b}, 1)`;
+                ctx.shadowBlur = 6;
+                ctx.shadowColor = `rgba(${this.color.r}, ${this.color.g}, ${this.color.b}, 0.8)`;
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.shadowBlur = 0;
+            }
+        }
+
+        // Neural Network Background Layer
+        class NeuralNode {
+            constructor(x, y) {
+                this.x = x;
+                this.y = y;
+                this.connections = [];
+                this.pulse = Math.random() * Math.PI * 2; // Random starting phase
+            }
+
+            update() {
+                this.pulse += 0.02;
+            }
+
+            draw() {
+                const alpha = (Math.sin(this.pulse) * 0.5 + 0.5) * 0.15; // Pulse between 0-0.15
+
+                // Draw connections
+                this.connections.forEach(node => {
+                    const distance = Math.sqrt((node.x - this.x) ** 2 + (node.y - this.y) ** 2);
+                    const connectionAlpha = Math.max(0, (1 - distance / 400) * alpha * 0.4);
+
+                    ctx.strokeStyle = `rgba(88, 166, 255, ${connectionAlpha})`;
+                    ctx.lineWidth = 0.5;
+                    ctx.beginPath();
+                    ctx.moveTo(this.x, this.y);
+                    ctx.lineTo(node.x, node.y);
+                    ctx.stroke();
+                });
+
+                // Draw node
+                ctx.fillStyle = `rgba(88, 166, 255, ${alpha * 0.6})`;
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, 2, 0, Math.PI * 2);
+                ctx.fill();
+            }
+        }
+
+        // Create neural network grid
+        const neuralNodes = [];
+        const gridSpacingX = 120;
+        const gridSpacingY = 100;
+
+        function createNeuralNetwork() {
+            neuralNodes.length = 0;
+
+            // Create grid of nodes
+            for (let x = gridSpacingX; x < canvas.width; x += gridSpacingX) {
+                for (let y = gridSpacingY; y < canvas.height; y += gridSpacingY) {
+                    // Add some randomness to position
+                    const offsetX = (Math.random() - 0.5) * 40;
+                    const offsetY = (Math.random() - 0.5) * 40;
+                    neuralNodes.push(new NeuralNode(x + offsetX, y + offsetY));
+                }
+            }
+
+            // Connect nearby nodes (within ~350px)
+            neuralNodes.forEach(node => {
+                neuralNodes.forEach(otherNode => {
+                    if (node !== otherNode) {
+                        const distance = Math.sqrt((otherNode.x - node.x) ** 2 + (otherNode.y - node.y) ** 2);
+                        if (distance < 350 && Math.random() > 0.6) { // Connect 40% of nearby nodes
+                            node.connections.push(otherNode);
+                        }
+                    }
+                });
+            });
+        }
+
+        createNeuralNetwork();
+
+        // Create paths (lighter, for background reference only)
+        const paths = [];
+        const pathCount = 20;
+        for (let i = 0; i < pathCount; i++) {
+            const angle = (i / pathCount) * Math.PI * 2;
+            paths.push(new ComplexCircuitPath(angle));
+        }
+
+        // Create initial particles
+        const particles = [];
+        const maxParticles = 150;
+
+        // Spawn initial batch
+        for (let i = 0; i < 50; i++) {
+            particles.push(new EnergyParticle());
+        }
+
+        // Particle spawner - continuously create new particles from all sides
+        function spawnParticle() {
+            if (particles.length < maxParticles && Math.random() > 0.5) {
+                particles.push(new EnergyParticle());
+            }
+        }
+
+        // Central hub
+        function drawCentralHub() {
+            const pulse = Math.sin(Date.now() * 0.003) * 0.3 + 0.7;
+
+            ctx.strokeStyle = `rgba(88, 166, 255, ${0.5 * pulse})`;
+            ctx.lineWidth = 3;
+            ctx.shadowBlur = 20;
+            ctx.shadowColor = 'rgba(88, 166, 255, 0.5)';
+            ctx.beginPath();
+            ctx.arc(centerX, centerY, 80, 0, Math.PI * 2);
+            ctx.stroke();
+
+            const gradient = ctx.createRadialGradient(centerX, centerY, 0, centerX, centerY, 60);
+            gradient.addColorStop(0, `rgba(88, 166, 255, ${0.3 * pulse})`);
+            gradient.addColorStop(1, 'rgba(88, 166, 255, 0)');
+            ctx.fillStyle = gradient;
+            ctx.shadowBlur = 0;
+            ctx.beginPath();
+            ctx.arc(centerX, centerY, 60, 0, Math.PI * 2);
+            ctx.fill();
+        }
+
+        // Debug visualization (disabled by default)
+        let showDebug = false;
+
+        function animate() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // Draw neural network layer (very faint)
+            neuralNodes.forEach(node => {
+                node.update();
+                node.draw();
+            });
+
+            // Draw paths very faintly (background reference)
+            ctx.globalAlpha = 0.15;
+            paths.forEach(path => path.draw());
+            ctx.globalAlpha = 1;
+
+            drawCentralHub();
+
+            // Update particles and remove dead ones
+            for (let i = particles.length - 1; i >= 0; i--) {
+                const alive = particles[i].update();
+                if (!alive) {
+                    particles.splice(i, 1); // Remove particle that reached center
+                } else {
+                    particles[i].draw();
+                }
+            }
+
+            // Spawn new particles
+            spawnParticle();
+
+            requestAnimationFrame(animate);
+        }
+
+        animate();
+    </script>
+</body>
+
+</html>

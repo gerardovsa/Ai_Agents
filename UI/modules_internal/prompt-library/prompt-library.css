@@ -1,0 +1,1878 @@
+/**
+ * PROMPT LIBRARY MODULE - STYLES
+ * 
+ * Modular CSS for the prompt library feature
+ * Reuses CSS variables from main UI (business-ai-platform-v2.html)
+ * Matches existing button styling patterns (32px, transparent, hover effects)
+ * 
+ * NO EMOJIS - Font Awesome icons only
+ */
+
+/* ==================== PROMPT LIBRARY BUTTON (Main Trigger) ==================== */
+
+.ai-chat-prompt-library-btn {
+    width: 32px;
+    height: 32px;
+    padding: 0;
+    background: transparent;
+    color: rgba(139, 148, 158, 0.5);
+    border: 1px solid transparent;
+    border-radius: 6px;
+    font-size: 14px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.3s ease;
+    position: relative;
+}
+
+
+/* Show border on parent hover */
+.ai-chat-input-container:hover .ai-chat-prompt-library-btn {
+    border-color: var(--border-default, #30363d);
+    color: var(--text-primary);
+}
+
+/* Individual hover */
+.ai-chat-prompt-library-btn:hover {
+    background: transparent !important;
+    color: var(--accent-primary, #58a6ff) !important;
+    border-color: var(--accent-primary, #58a6ff) !important;
+    transform: scale(1.05);
+}
+
+/* Active state when dropdown is open */
+.ai-chat-prompt-library-btn.active {
+    color: white;
+    border-color: var(--accent-primary, #58a6ff);
+    background: var(--accent-primary, #58a6ff);
+}
+
+/* Keep active color on hover */
+.ai-chat-prompt-library-btn.active:hover {
+    color: white !important;
+    background: var(--accent-primary, #58a6ff) !important;
+}
+
+/* Badge for selected prompt count */
+.ai-chat-prompt-library-btn .prompt-count-badge {
+    position: absolute;
+    top: -4px;
+    right: -4px;
+    background: var(--accent-primary, #58a6ff);
+    color: white;
+    font-size: 9px;
+    font-weight: 600;
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    pointer-events: none;
+}
+
+/* ==================== ACTIVE PROMPTS BAR (Selected Prompts) ==================== */
+
+.active-prompts-bar {
+    display: none;
+    padding: var(--space-3, 12px);
+    background: rgba(88, 166, 255, 0.1);
+    border: 1px solid var(--accent-primary, #58a6ff);
+    border-radius: 8px;
+    margin-bottom: var(--space-3, 12px);
+    flex-wrap: wrap;
+    gap: var(--space-2, 8px);
+    align-items: center;
+    animation: slideDown 0.3s ease;
+}
+
+.active-prompts-bar.show {
+    display: flex;
+}
+
+@keyframes slideDown {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.active-prompt-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 7px 10px;
+    background: var(--bg-secondary, #161b22);
+    border: 1px solid var(--border-default, #30363d);
+    border-radius: 6px;
+    font-size: 13px;
+    color: var(--text-secondary, #d1d5db);
+    transition: all 0.2s ease;
+}
+
+.active-prompt-tag:hover {
+    border-color: var(--accent-primary, #58a6ff);
+}
+
+.active-prompt-tag .icon {
+    font-size: 12px;
+    color: var(--accent-primary, #58a6ff);
+}
+
+.active-prompt-tag .name {
+    font-weight: 500;
+}
+
+.active-prompt-tag .remove {
+    cursor: pointer;
+    color: var(--accent-error, #f85149);
+    font-weight: bold;
+    margin-left: 4px;
+    font-size: 14px;
+    line-height: 1;
+    transition: opacity 0.2s ease;
+}
+
+.active-prompt-tag .remove:hover {
+    opacity: 0.7;
+}
+
+.clear-all-prompts {
+    margin-left: auto;
+    padding: 4px 10px;
+    background: transparent;
+    border: 1px solid var(--border-default, #30363d);
+    border-radius: 6px;
+    color: var(--text-muted, #9ca3af);
+    font-size: 12px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.clear-all-prompts:hover {
+    border-color: var(--accent-error, #f85149);
+    color: var(--accent-error, #f85149);
+}
+
+/* ==================== INLINE PROMPT DROPDOWN ==================== */
+
+.inline-prompt-dropdown {
+    display: none;
+    position: absolute;
+    bottom: 100%;
+    left: 0;
+    right: 0;
+    margin-bottom: 8px;
+    background: var(--bg-tertiary, #1c2128);
+    border: 1px solid var(--border-default, #30363d);
+    border-radius: 12px;
+    z-index: 1000;
+    box-shadow: 0 -8px 32px rgba(0, 0, 0, 0.5),
+        0 -4px 16px rgba(0, 0, 0, 0.3),
+        0 0 0 1px rgba(88, 166, 255, 0.1);
+    animation: slideUp 0.3s ease;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    max-height: 600px;
+}
+
+.inline-prompt-dropdown.show {
+    display: flex;
+}
+
+@keyframes slideUp {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Dropdown Header */
+.prompt-dropdown-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: var(--space-3, 12px);
+    background: var(--bg-tertiary, #161b22);
+    border-bottom: 1px solid var(--border-default, #30363d);
+    flex-shrink: 0;
+}
+
+.prompt-dropdown-title {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2, 8px);
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--text-primary, #f3f4f6);
+}
+
+.prompt-dropdown-title i {
+    font-size: 20px;
+    color: var(--accent-primary, #58a6ff);
+}
+
+.prompt-dropdown-close {
+    width: 32px;
+    height: 32px;
+    background: transparent;
+    border: 1px solid var(--border-default, #30363d);
+    border-radius: 6px;
+    color: var(--text-muted, #9ca3af);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+}
+
+.prompt-dropdown-close:hover {
+    background: var(--accent-error, #f85149);
+    color: white;
+    border-color: var(--accent-error, #f85149);
+}
+
+/* Search Row (Search + Category Dropdown) */
+.prompt-dropdown-search-row {
+    display: flex;
+    gap: var(--space-3, 12px);
+    padding: var(--space-3, 12px) var(--space-4, 16px);
+    flex-shrink: 0;
+    background: var(--bg-tertiary);
+}
+
+.search-wrapper {
+    flex: 1;
+    position: relative;
+}
+
+.search-wrapper .search-icon {
+    position: absolute;
+    left: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--text-muted, #9ca3af);
+    font-size: 14px;
+    pointer-events: none;
+}
+
+.inline-search {
+    width: 100%;
+    padding: 10px 12px 10px 36px;
+    background: var(--bg-secondary, #161b22);
+    border: 1px solid var(--border-default, #30363d);
+    border-radius: 8px;
+    color: var(--text-primary, #f3f4f6);
+    font-size: 14px;
+    transition: all 0.2s ease;
+}
+
+.inline-search:focus {
+    outline: none;
+    border-color: var(--accent-primary, #58a6ff);
+    box-shadow: 0 0 0 3px rgba(88, 166, 255, 0.15);
+}
+
+.inline-search::placeholder {
+    color: var(--text-muted, #9ca3af);
+}
+
+/* Category Dropdown */
+.category-dropdown {
+    min-width: 180px;
+    padding: 10px 12px;
+    background: var(--bg-secondary, #161b22);
+    border: 1px solid var(--border-default, #30363d);
+    border-radius: 8px;
+    color: var(--text-primary, #f3f4f6);
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.category-dropdown:hover {
+    border-color: var(--accent-primary, #58a6ff);
+}
+
+.category-dropdown:focus {
+    outline: none;
+    border-color: var(--accent-primary, #58a6ff);
+    box-shadow: 0 0 0 3px rgba(88, 166, 255, 0.15);
+}
+
+/* Action Buttons Row (All/Quick/Detailed/Edit/Create) */
+.action-buttons-row {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2, 8px);
+    padding: var(--space-2, 12px) var(--space-2, 16px);
+    border-bottom: 1px solid var(--border-default, #30363d);
+    background: var(--bg-tertiary, #161b22);
+    flex-shrink: 0;
+    flex-wrap: wrap;
+}
+
+.action-btn {
+    width: 32px;
+    height: 32px;
+    padding: 0;
+    background: transparent;
+    border: 1px solid var(--border-default, #30363d);
+    border-radius: 6px;
+    color: var(--text-secondary, #8b949e);
+    font-size: 14px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    z-index: 30;
+    pointer-events: auto;
+    flex-shrink: 0;
+}
+
+.action-btn:hover {
+    border-color: var(--accent-primary, #58a6ff);
+    color: var(--accent-primary, #58a6ff);
+    background: transparent;
+}
+
+.action-btn.active {
+    background: rgba(88, 166, 255, 0.1);
+    border-color: var(--accent-primary, #58a6ff);
+    color: var(--accent-primary, #58a6ff);
+}
+
+.action-btn i {
+    font-size: 14px;
+}
+
+/* Tooltip styling */
+.action-btn::after {
+    content: attr(data-tooltip);
+    position: absolute;
+    bottom: -32px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(13, 17, 23, 0.95);
+    color: var(--text-primary, #f3f4f6);
+    padding: 6px 10px;
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: 500;
+    white-space: nowrap;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.2s ease;
+    border: 1px solid var(--border-default, #30363d);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+    z-index: 1000;
+}
+
+.action-btn:hover::after {
+    opacity: 1;
+}
+
+/* Special styling for Edit button */
+.action-btn-edit {
+    margin-left: auto;
+}
+
+.action-btn-edit.active {
+    background: transparent;
+    border-color: var(--accent-warning, #d29922);
+    color: var(--accent-warning, #d29922);
+}
+
+.action-btn-edit.active:hover {
+    border-color: var(--accent-warning, #d29922);
+    color: var(--accent-warning, #d29922);
+}
+
+/* Special styling for Create button */
+.action-btn-create {
+    background: transparent;
+    border-color: var(--accent-success, #3fb950);
+    color: var(--accent-success, #3fb950);
+}
+
+.action-btn-create:hover {
+    background: transparent;
+    border-color: var(--accent-success, #3fb950);
+    color: var(--accent-success, #3fb950);
+}
+
+/* Scrollable area for prompt list */
+.prompt-list-scroll-area {
+    flex: 1;
+    overflow-y: auto;
+    padding: 0;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+}
+
+.prompt-list-scroll-area::-webkit-scrollbar {
+    width: 8px;
+}
+
+.prompt-list-scroll-area::-webkit-scrollbar-track {
+    background: var(--bg-secondary, #161b22);
+    border-radius: 4px;
+}
+
+.prompt-list-scroll-area::-webkit-scrollbar-thumb {
+    background: var(--border-default, #30363d);
+    border-radius: 4px;
+}
+
+.prompt-list-scroll-area::-webkit-scrollbar-thumb:hover {
+    background: var(--accent-primary, #58a6ff);
+}
+
+/* Prompt list items */
+.prompt-list-item {
+    background: var(--bg-tertiary, #161b22);
+    border: 1px solid var(--border-default, #30363d);
+    border-left: 3px solid var(--border-default, #30363d);
+    border-radius: 8px;
+    margin-bottom: 12px;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    position: relative;
+    overflow: hidden;
+    padding: 10px 10px;
+    cursor: pointer;
+}
+
+.prompt-list-item:hover {
+    background: var(--bg-hover, #21262d);
+    border-color: var(--accent-primary, #58a6ff);
+    border-left-color: var(--accent-primary, #58a6ff);
+    box-shadow: 0 2px 8px rgba(88, 166, 255, 0.2);
+}
+
+.prompt-list-item.selected {
+    background: rgba(88, 166, 255, 0.15);
+    border-color: var(--accent-primary, #58a6ff);
+    border-left-color: var(--accent-primary, #58a6ff);
+    box-shadow: 0 0 0 2px rgba(88, 166, 255, 0.2);
+}
+
+/* Clickable area for selection */
+.prompt-clickable {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 7px 10px;
+    cursor: pointer;
+    min-width: 0;
+}
+
+.prompt-clickable:hover {
+    transform: translateX(4px);
+}
+
+.prompt-icon {
+    font-size: 15px;
+    flex-shrink: 0;
+    color: var(--accent-primary, #58a6ff);
+    width: 20px;
+    text-align: center;
+}
+
+.prompt-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.prompt-name {
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--text-primary, #f3f4f6);
+    margin-bottom: 4px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.prompt-description {
+    font-size: 13px;
+    color: var(--text-muted, #9ca3af);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.prompt-type-badge {
+    padding: 4px 10px;
+    border-radius: 6px;
+    font-size: 11px;
+    font-weight: 600;
+    background: var(--bg-tertiary, #1c2128);
+    color: var(--text-muted, #9ca3af);
+    flex-shrink: 0;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.prompt-type-badge.quick {
+    background: rgba(210, 153, 34, 0.2);
+    color: var(--accent-warning, #d29922);
+    border: 1px solid rgba(210, 153, 34, 0.3);
+}
+
+.prompt-type-badge.full {
+    background: rgba(88, 166, 255, 0.2);
+    color: var(--accent-primary, #58a6ff);
+    border: 1px solid rgba(88, 166, 255, 0.3);
+}
+
+/* Edit button */
+.prompt-edit-btn {
+    flex-shrink: 0;
+    width: 28px;
+    height: 28px;
+    border: 1px solid var(--border-default, #30363d);
+    background: var(--bg-secondary, #161b22);
+    color: var(--text-muted, #9ca3af);
+    border-radius: 6px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+    font-size: 12px;
+}
+
+.prompt-edit-btn:hover {
+    background: var(--accent-primary, #58a6ff);
+    color: white;
+    border-color: var(--accent-primary, #58a6ff);
+    transform: scale(1.1);
+    box-shadow: 0 2px 8px rgba(88, 166, 255, 0.4);
+}
+
+.prompt-edit-btn:active {
+    transform: scale(0.95);
+}
+
+/* Dropdown Footer - Simple 20px Border */
+.prompt-dropdown-footer-border {
+    height: 20px;
+    background: var(--bg-secondary, #161b22);
+    border-top: 1px solid var(--border-default, #30363d);
+    flex-shrink: 0;
+}
+
+/* Empty state */
+.prompt-empty-state {
+    text-align: center;
+    padding: var(--space-6, 32px) var(--space-4, 16px);
+    color: var(--text-muted, #9ca3af);
+}
+
+.prompt-empty-state i {
+    font-size: 48px;
+    color: var(--border-default, #30363d);
+    margin-bottom: var(--space-3, 12px);
+}
+
+.prompt-empty-state p {
+    font-size: 14px;
+    margin-bottom: var(--space-2, 8px);
+}
+
+/* ==================== UNIFIED SIDEBAR ==================== */
+
+.prompt-sidebar {
+    position: fixed;
+    top: 60px;
+    right: -450px;
+    width: 480px;
+    height: calc(100vh - 60px);
+    padding: 0;
+    background: var(--bg-tertiary);
+    border-left: 1px solid var(--border-default);
+    z-index: 25000;
+    /* Above module-sidebar (20000) */
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    transition: right 0.3s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.3s ease;
+    box-shadow: -4px 0 24px rgba(0, 0, 0, 0.3);
+    pointer-events: all;
+}
+
+.prompt-sidebar.show {
+    right: 60px;
+    display: flex !important;
+    visibility: visible;
+    pointer-events: all;
+}
+
+.prompt-sidebar-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: var(--space-4);
+    background: var(--bg-tertiary);
+    border-bottom: 1px solid var(--border-default);
+}
+
+.prompt-sidebar-title {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    font-size: 20px;
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.prompt-sidebar-title i {
+    color: var(--accent-primary);
+    font-size: 20px;
+}
+
+/* Close button now uses .synergy-icon-btn class from main styles */
+
+.prompt-sidebar-tabs {
+    display: flex;
+    gap: var(--space-1, 4px);
+    padding: 4px;
+    background: var(--bg-secondary);
+    border-radius: 4px;
+    margin: 0px 10px;
+}
+
+.sidebar-tab {
+    flex: 1;
+    padding: 8px 16px;
+    border: none;
+    background: var(--bg-tertiary);
+    color: var(--text-secondary);
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    border-radius: 6px;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+}
+
+.sidebar-tab:hover {
+    color: var(--text-primary);
+    background: var(--bg-hover);
+}
+
+.sidebar-tab.active {
+    background: var(--accent-primary);
+    color: white;
+}
+
+.prompt-sidebar-body {
+    flex: 1;
+    overflow-y: auto;
+    overflow-x: hidden;
+    background: var(--bg-tertiary);
+}
+
+.sidebar-tab-content {
+    display: none !important;
+    height: 100%;
+    animation: fadeIn 0.2s;
+}
+
+.sidebar-tab-content.active {
+    display: flex !important;
+    flex-direction: column;
+}
+
+#browse-tab {
+    flex-direction: column;
+    gap: 0;
+}
+
+#browse-tab>* {
+    flex-shrink: 0;
+}
+
+#browse-tab .prompt-list-scroll-area {
+    flex: 1;
+    overflow-y: auto;
+}
+
+#editor-tab {
+    flex: 1;
+    overflow-y: auto;
+    padding: 20px;
+}
+
+#editor-tab #prompt-form {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    width: 100%;
+}
+
+#prompt-list-container {
+    padding: 10px 10px;
+    flex: 1;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    background: var(--bg-tertiary) !important;
+    min-height: 0;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.prompt-sidebar-footer {
+    padding: 10px 10px;
+    border-top: 1px solid var(--border-default);
+    background: var(--bg-tertiary);
+}
+
+.footer-content {
+    display: none;
+    gap: 10px;
+    align-items: center;
+}
+
+.footer-content.active {
+    display: flex;
+}
+
+.prompt-edit-btn {
+    padding: 6px 10px;
+    background: transparent;
+    border: 1px solid var(--border-default);
+    border-radius: 4px;
+    color: var(--text-secondary);
+    cursor: pointer;
+    transition: all 0.2s;
+    font-size: 11px;
+}
+
+.prompt-edit-btn:hover {
+    border-color: var(--accent-primary);
+    color: var(--accent-primary);
+}
+
+.prompt-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+/* ==================== MODAL (Add/Edit Prompt) - OLD, KEEP FOR COMPAT ==================== */
+
+.prompt-modal-overlay {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.7);
+    z-index: 10000;
+    align-items: center;
+    justify-content: center;
+    animation: fadeIn 0.3s ease;
+}
+
+.prompt-modal-overlay.show {
+    display: flex;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+    }
+
+    to {
+        opacity: 1;
+    }
+}
+
+.prompt-modal {
+    background: var(--bg-secondary, #161b22);
+    border: 1px solid var(--border-default, #30363d);
+    border-radius: 12px;
+    width: 90%;
+    max-width: 600px;
+    max-height: 90vh;
+    overflow-y: auto;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+    animation: slideIn 0.3s ease;
+}
+
+@keyframes slideIn {
+    from {
+        opacity: 0;
+        transform: scale(0.95);
+    }
+
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+.prompt-modal-header {
+    padding: var(--space-5, 24px);
+    border-bottom: 1px solid var(--border-default, #30363d);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.prompt-modal-header h2 {
+    font-size: 18px;
+    font-weight: 600;
+    color: var(--text-primary, #f3f4f6);
+    display: flex;
+    align-items: center;
+    gap: var(--space-2, 8px);
+}
+
+.prompt-modal-header h2 i {
+    color: var(--accent-primary, #58a6ff);
+}
+
+.prompt-modal-close {
+    background: transparent;
+    border: none;
+    color: var(--text-muted, #9ca3af);
+    font-size: 24px;
+    cursor: pointer;
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 6px;
+    transition: all 0.2s ease;
+}
+
+.prompt-modal-close:hover {
+    background: var(--bg-hover, #21262d);
+    color: var(--text-primary, #f3f4f6);
+}
+
+.prompt-modal-body {
+    padding: var(--space-5, 24px);
+}
+
+/* Form elements */
+.form-group {
+    margin-bottom: var(--space-4, 16px);
+}
+
+.form-label {
+    display: block;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-secondary, #d1d5db);
+    margin-bottom: var(--space-2, 8px);
+}
+
+.form-label .required {
+    color: var(--accent-error, #f85149);
+    margin-left: 2px;
+}
+
+.form-input,
+.form-select,
+.form-textarea {
+    width: 100%;
+    padding: var(--space-3, 12px) var(--space-4, 16px);
+    background: var(--bg-tertiary, #1c2128);
+    border: 1px solid var(--border-default, #30363d);
+    border-radius: 8px;
+    color: var(--text-primary, #f3f4f6);
+    font-size: 14px;
+    font-family: var(--font-primary, 'Roboto', Arial, sans-serif);
+    transition: all 0.2s ease;
+}
+
+.form-input:focus,
+.form-select:focus,
+.form-textarea:focus {
+    outline: none;
+    border-color: var(--accent-primary, #58a6ff);
+    box-shadow: 0 0 0 3px rgba(88, 166, 255, 0.1);
+}
+
+.form-textarea {
+    resize: vertical;
+    min-height: 100px;
+    font-family: var(--font-mono, 'Fira Code', 'Consolas', monospace);
+}
+
+.form-textarea.large {
+    min-height: 200px;
+}
+
+.form-help {
+    font-size: 12px;
+    color: var(--text-muted, #9ca3af);
+    margin-top: var(--space-2, 8px);
+}
+
+/* Radio group */
+.radio-group {
+    display: flex;
+    gap: var(--space-4, 16px);
+    margin-top: var(--space-2, 8px);
+}
+
+.radio-option {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2, 8px);
+    cursor: pointer;
+}
+
+.radio-option input[type="radio"] {
+    accent-color: var(--accent-primary, #58a6ff);
+    cursor: pointer;
+}
+
+.radio-option label {
+    font-size: 14px;
+    color: var(--text-secondary, #d1d5db);
+    cursor: pointer;
+}
+
+/* Category management */
+.category-management {
+    display: flex;
+    gap: var(--space-2, 8px);
+    align-items: center;
+}
+
+.category-management .form-select {
+    flex: 1;
+}
+
+.icon-btn {
+    padding: var(--space-2, 8px) var(--space-3, 12px);
+    background: var(--bg-hover, #21262d);
+    border: 1px solid var(--border-default, #30363d);
+    border-radius: 6px;
+    color: var(--text-secondary, #d1d5db);
+    font-size: 12px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    white-space: nowrap;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.icon-btn:hover {
+    border-color: var(--accent-primary, #58a6ff);
+    color: var(--accent-primary, #58a6ff);
+}
+
+.icon-btn.success {
+    background: rgba(63, 185, 80, 0.1);
+    border-color: var(--accent-success, #3fb950);
+    color: var(--accent-success, #3fb950);
+}
+
+.icon-btn.success:hover {
+    background: rgba(63, 185, 80, 0.2);
+}
+
+/* Modal footer */
+.prompt-modal-footer {
+    padding: var(--space-4, 16px) var(--space-5, 24px);
+    border-top: 1px solid var(--border-default, #30363d);
+    display: flex;
+    justify-content: flex-end;
+    gap: var(--space-3, 12px);
+}
+
+.btn {
+    padding: var(--space-3, 12px) var(--space-5, 24px);
+    border: 1px solid var(--border-default, #30363d);
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    gap: var(--space-2, 8px);
+}
+
+.btn-secondary {
+    background: transparent;
+    color: var(--text-secondary, #d1d5db);
+}
+
+.btn-secondary:hover {
+    background: var(--bg-hover, #21262d);
+    color: var(--text-primary, #f3f4f6);
+}
+
+.btn-primary {
+    background: var(--accent-primary, #58a6ff);
+    border-color: var(--accent-primary, #58a6ff);
+    color: white;
+}
+
+.btn-primary:hover {
+    background: #1c5fa8;
+    transform: translateY(-1px);
+    box-shadow: 0 2px 8px rgba(88, 166, 255, 0.4);
+}
+
+.btn-danger {
+    background: var(--accent-error, #f85149);
+    border-color: var(--accent-error, #f85149);
+    color: white;
+}
+
+.btn-danger:hover {
+    background: #d33a32;
+    transform: translateY(-1px);
+}
+
+.btn i {
+    font-size: 12px;
+}
+
+/* ==================== SCROLLBAR ==================== */
+
+.inline-prompt-dropdown::-webkit-scrollbar,
+.prompt-modal::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+
+.inline-prompt-dropdown::-webkit-scrollbar-track,
+.prompt-modal::-webkit-scrollbar-track {
+    background: var(--bg-tertiary, #1c2128);
+    border-radius: 4px;
+}
+
+.inline-prompt-dropdown::-webkit-scrollbar-thumb,
+.prompt-modal::-webkit-scrollbar-thumb {
+    background: var(--border-default, #30363d);
+    border-radius: 4px;
+}
+
+.inline-prompt-dropdown::-webkit-scrollbar-thumb:hover,
+.prompt-modal::-webkit-scrollbar-thumb:hover {
+    background: var(--border-muted, #21262d);
+}
+
+/* ==================== UTILITIES ==================== */
+
+.hidden {
+    display: none !important;
+}
+
+.mt-3 {
+    margin-top: var(--space-3, 12px);
+}
+
+.text-success {
+    color: var(--accent-success, #3fb950);
+}
+
+.text-error {
+    color: var(--accent-error, #f85149);
+}
+
+.text-muted {
+    color: var(--text-muted, #9ca3af);
+}
+
+/* ==================== PROMPT MODAL ==================== */
+
+.prompt-modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: transparent;
+    display: none;
+    align-items: flex-start;
+    justify-content: flex-end;
+    z-index: 10000;
+    pointer-events: none;
+    animation: fadeIn 0.2s ease-out;
+}
+
+.prompt-modal-overlay.show {
+    display: flex;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+    }
+
+    to {
+        opacity: 1;
+    }
+}
+
+.prompt-modal {
+    background: var(--bg-primary, #0d1117);
+    border: 1px solid var(--border-default, #30363d);
+    border-radius: 12px 0 0 12px;
+    width: 480px;
+    height: 90vh;
+    margin-top: 5vh;
+    margin-right: 0;
+    display: flex;
+    flex-direction: column;
+    box-shadow: -4px 0 30px rgba(0, 0, 0, 0.5);
+    animation: slideInRight 0.3s ease-out;
+    pointer-events: auto;
+    position: relative;
+    resize: both;
+    overflow: hidden;
+    min-width: 400px;
+    min-height: 400px;
+    max-width: 90vw;
+    max-height: 95vh;
+}
+
+@keyframes slideInRight {
+    from {
+        transform: translateX(100%);
+        opacity: 0;
+    }
+
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+
+.prompt-modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 20px 24px;
+    border-bottom: 1px solid var(--border-default, #30363d);
+    cursor: move;
+    user-select: none;
+}
+
+.prompt-modal-header h3 {
+    margin: 0;
+    font-size: 18px;
+    font-weight: 600;
+    color: var(--text-primary, #f0f6fc);
+}
+
+/* Tabs */
+.prompt-modal-tabs {
+    display: flex;
+    border-bottom: 1px solid var(--border-default, #30363d);
+    background: var(--bg-secondary, #161b22);
+}
+
+.prompt-tab {
+    flex: 1;
+    padding: 14px 20px;
+    background: transparent;
+    border: none;
+    color: var(--text-secondary, #8b949e);
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    transition: all 0.2s ease;
+    border-bottom: 2px solid transparent;
+}
+
+.prompt-tab:hover {
+    color: var(--text-primary, #f0f6fc);
+    background: rgba(88, 166, 255, 0.05);
+}
+
+.prompt-tab.active {
+    color: var(--accent-primary, #58a6ff);
+    border-bottom-color: var(--accent-primary, #58a6ff);
+    background: rgba(88, 166, 255, 0.1);
+}
+
+/* Tab Content */
+.tab-content {
+    display: none;
+}
+
+.tab-content.active {
+    display: block;
+}
+
+/* Edit Tab Styles */
+.edit-prompt-selector {
+    margin-bottom: 16px;
+}
+
+.edit-search-box {
+    position: relative;
+    margin-bottom: 12px;
+}
+
+.edit-search-box i {
+    position: absolute;
+    left: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--text-muted, #6e7681);
+    pointer-events: none;
+}
+
+.edit-search-box .form-control {
+    padding-left: 36px;
+}
+
+.edit-prompts-scrollable {
+    max-height: 300px;
+    overflow-y: auto;
+    padding-right: 4px;
+    border: 1px solid var(--border-default);
+    border-radius: 6px;
+    padding: 8px;
+    background: var(--bg-secondary);
+}
+
+.edit-prompts-scrollable::-webkit-scrollbar {
+    width: 8px;
+}
+
+.edit-prompts-scrollable::-webkit-scrollbar-track {
+    background: var(--bg-secondary, #161b22);
+    border-radius: 4px;
+}
+
+.edit-prompts-scrollable::-webkit-scrollbar-thumb {
+    background: var(--border-default, #30363d);
+    border-radius: 4px;
+}
+
+.edit-prompts-scrollable::-webkit-scrollbar-thumb:hover {
+    background: var(--border-hover, #484f58);
+}
+
+.edit-prompt-item {
+    padding: 12px;
+    background: var(--bg-secondary, #161b22);
+    border: 1px solid var(--border-default, #30363d);
+    border-radius: 6px;
+    margin-bottom: 8px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.edit-prompt-item:hover {
+    border-color: var(--accent-primary, #58a6ff);
+    background: rgba(88, 166, 255, 0.05);
+}
+
+.edit-prompt-item.selected {
+    border-color: var(--accent-primary, #58a6ff);
+    background: rgba(88, 166, 255, 0.1);
+}
+
+.edit-prompt-item-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 4px;
+}
+
+.edit-prompt-item-icon {
+    color: var(--accent-primary, #58a6ff);
+    font-size: 14px;
+}
+
+.edit-prompt-item-name {
+    font-weight: 500;
+    color: var(--text-primary, #f0f6fc);
+    font-size: 14px;
+}
+
+.edit-prompt-item-type {
+    margin-left: auto;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 11px;
+    font-weight: 500;
+}
+
+.edit-prompt-item-type.quick {
+    background: rgba(255, 193, 7, 0.1);
+    color: #ffc107;
+}
+
+.edit-prompt-item-type.detailed {
+    background: rgba(88, 166, 255, 0.1);
+    color: var(--accent-primary, #58a6ff);
+}
+
+.edit-prompt-item-desc {
+    color: var(--text-muted, #6e7681);
+    font-size: 12px;
+    margin: 0;
+}
+
+.edit-prompt-item-category {
+    display: inline-block;
+    margin-top: 6px;
+    padding: 2px 6px;
+    background: var(--bg-tertiary, #21262d);
+    border-radius: 3px;
+    font-size: 11px;
+    color: var(--text-muted, #6e7681);
+}
+
+/* Footer Content */
+.footer-content {
+    display: none;
+    width: 100%;
+    gap: 12px;
+}
+
+.footer-content.active {
+    display: flex;
+}
+
+.prompt-modal-close {
+    background: transparent;
+    border: 1px solid var(--border-default, #30363d);
+    color: var(--text-secondary, #8b949e);
+    cursor: pointer;
+    padding: 0;
+    width: 32px;
+    height: 32px;
+    border-radius: 6px;
+    font-size: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+}
+
+.prompt-modal-close:hover {
+    background: var(--bg-tertiary, #161b22);
+    color: var(--text-primary, #f0f6fc);
+    border-color: var(--accent-primary, #58a6ff);
+}
+
+.prompt-modal-body {
+    padding: 24px;
+    overflow-y: auto;
+    flex: 1;
+    min-height: 0;
+}
+
+.prompt-modal-body::-webkit-scrollbar {
+    width: 8px;
+}
+
+.prompt-modal-body::-webkit-scrollbar-track {
+    background: var(--bg-secondary, #161b22);
+    border-radius: 4px;
+}
+
+.prompt-modal-body::-webkit-scrollbar-thumb {
+    background: var(--border-default, #30363d);
+    border-radius: 4px;
+}
+
+.prompt-modal-body::-webkit-scrollbar-thumb:hover {
+    background: var(--border-hover, #484f58);
+}
+
+.prompt-modal-footer {
+    display: flex;
+    gap: 12px;
+    padding: 16px 24px;
+    border-top: 1px solid var(--border-default, #30363d);
+}
+
+/* Form Styles */
+.form-group {
+    margin-bottom: 20px;
+}
+
+.form-group label {
+    display: block;
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--text-primary, #f0f6fc);
+    margin-bottom: 8px;
+}
+
+.form-group label i {
+    margin-right: 6px;
+    color: var(--accent-primary, #58a6ff);
+    font-size: 13px;
+}
+
+.form-control {
+    width: 100%;
+    padding: 10px 12px;
+    background: var(--bg-secondary, #161b22);
+    border: 1px solid var(--border-default, #30363d);
+    border-radius: 6px;
+    color: var(--text-primary, #f0f6fc);
+    font-size: 14px;
+    font-family: inherit;
+    transition: all 0.2s ease;
+}
+
+.form-control:focus {
+    outline: none;
+    border-color: var(--accent-primary, #58a6ff);
+    box-shadow: 0 0 0 3px rgba(88, 166, 255, 0.1);
+}
+
+.form-control::placeholder {
+    color: var(--text-muted, #6e7681);
+}
+
+textarea.form-control {
+    resize: vertical;
+    min-height: 100px;
+    font-family: 'Courier New', monospace;
+}
+
+select.form-control {
+    cursor: pointer;
+}
+
+/* Prompt Type Buttons */
+.prompt-type-buttons {
+    display: flex;
+    gap: 12px;
+}
+
+.prompt-type-btn {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    padding: 16px;
+    background: var(--bg-secondary, #161b22);
+    border: 2px solid var(--border-default, #30363d);
+    border-radius: 8px;
+    color: var(--text-primary, #f0f6fc);
+    cursor: pointer;
+    transition: all 0.2s ease;
+    text-align: left;
+}
+
+.prompt-type-btn:hover {
+    border-color: var(--accent-primary, #58a6ff);
+    background: var(--bg-hover, #1c2128);
+}
+
+.prompt-type-btn.active {
+    border-color: var(--accent-primary, #58a6ff);
+    background: rgba(88, 166, 255, 0.1);
+}
+
+.prompt-type-btn i {
+    font-size: 20px;
+    color: var(--accent-primary, #58a6ff);
+    margin-bottom: 8px;
+}
+
+.prompt-type-btn span {
+    font-size: 14px;
+    font-weight: 600;
+    margin-bottom: 4px;
+    display: block;
+}
+
+.prompt-type-btn small {
+    font-size: 12px;
+    color: var(--text-muted, #6e7681);
+    display: block;
+    line-height: 1.4;
+}
+
+/* Radio Group - DEPRECATED (keeping for backwards compatibility) */
+.radio-group {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.radio-label {
+    display: flex;
+    align-items: flex-start;
+    padding: 12px;
+    background: var(--bg-secondary, #161b22);
+    border: 1px solid var(--border-default, #30363d);
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.radio-label:hover {
+    border-color: var(--accent-primary, #58a6ff);
+    background: rgba(88, 166, 255, 0.05);
+}
+
+.radio-label input[type="radio"] {
+    margin: 2px 10px 0 0;
+    cursor: pointer;
+}
+
+.radio-label span {
+    display: block;
+    font-weight: 500;
+    color: var(--text-primary, #f0f6fc);
+    margin-bottom: 2px;
+}
+
+.radio-label small {
+    display: block;
+    color: var(--text-muted, #6e7681);
+    font-size: 12px;
+    margin-left: 22px;
+}
+
+/* Modal Buttons */
+.btn-primary,
+.btn-secondary,
+.btn-delete {
+    padding: 10px 20px;
+    border: none;
+    border-radius: 6px;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    transition: all 0.2s ease;
+}
+
+.btn-primary {
+    background: var(--accent-primary, #58a6ff);
+    color: #ffffff;
+}
+
+.btn-primary:hover {
+    background: #4a8fd8;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(88, 166, 255, 0.3);
+}
+
+.btn-secondary {
+    background: transparent;
+    color: var(--text-secondary, #8b949e);
+    border: 1px solid var(--border-default, #30363d);
+}
+
+.btn-secondary:hover {
+    background: var(--bg-tertiary, #161b22);
+    color: var(--text-primary, #f0f6fc);
+    border-color: var(--accent-primary, #58a6ff);
+}
+
+.btn-delete {
+    background: transparent;
+    color: var(--accent-error, #f85149);
+    border: 1px solid var(--accent-error, #f85149);
+}
+
+.btn-delete:hover {
+    background: rgba(248, 81, 73, 0.1);
+    transform: translateY(-1px);
+}
+
+.btn-delete.hidden {
+    display: none;
+}
+
+/* ==================== QUICK ACTIONS BAR (MERGED INTO ACTION BUTTONS) ==================== */
+/* Quick actions are now part of the action-buttons-row */
+/* See action-btn styles below */
+
+/* ==================== BREADCRUMB ==================== */
+.prompt-breadcrumb {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 20px;
+    background: var(--bg-primary, #0d1117);
+    border-bottom: 1px solid var(--border-default, #30363d);
+    font-size: 13px;
+    color: var(--text-secondary, #8b949e);
+    flex-shrink: 0;
+}
+
+.prompt-breadcrumb i.fa-bolt {
+    color: var(--accent-primary, #58a6ff);
+}
+
+.prompt-breadcrumb i.fa-chevron-right {
+    font-size: 10px;
+    opacity: 0.5;
+}
+
+.prompt-breadcrumb span {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.prompt-breadcrumb span:last-child {
+    color: var(--text-primary, #f0f6fc);
+    font-weight: 500;
+}
+
+/* ==================== CATEGORY GROUPING ==================== */
+.category-group {
+    margin-bottom: 16px;
+}
+
+.category-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 20px;
+    background: var(--bg-primary, #0d1117);
+    border-left: 3px solid var(--accent-primary, #58a6ff);
+    font-weight: 600;
+    font-size: 18px;
+    color: var(--text-primary, #f0f6fc);
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+.category-header::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: -10px;
+    height: 10px;
+    background: var(--bg-primary, #0d1117);
+    pointer-events: none;
+    z-index: 101;
+}
+
+.category-header i {
+    font-size: 16px;
+}
+
+.category-count {
+    margin-left: auto;
+    font-size: 14px;
+    font-weight: 500;
+    padding: 2px 8px;
+    background: var(--bg-secondary, #161b22);
+    border-radius: 12px;
+    color: var(--text-primary, #f0f6fc);
+}
+
+.category-items {
+    padding: 0;
+}
+
+.category-items .prompt-list-item {
+    margin-left: 0;
+    border-left: 3px solid transparent;
+    transition: border-left-color 0.2s ease;
+}
+
+.category-items .prompt-list-item:hover {
+    border-left-color: inherit;
+}
+
+/* ==================== PROMPT LIST ITEM ENHANCEMENTS ==================== */
+.prompt-list-item {
+    border-left: 3px solid transparent;
+}
+
+.prompt-star-btn {
+    padding: 6px 8px;
+    background: transparent;
+    border: none;
+    color: var(--text-muted, #6e7681);
+    cursor: pointer;
+    transition: all 0.2s ease;
+    font-size: 12px;
+}
+
+.prompt-star-btn:hover {
+    color: var(--accent-warning, #d29922);
+    transform: scale(1.1);
+}
+
+.prompt-star-btn.active {
+    color: var(--accent-warning, #d29922);
+}
+
+.prompt-star-btn.active i {
+    animation: starPulse 0.3s ease;
+}
+
+@keyframes starPulse {
+
+    0%,
+    100% {
+        transform: scale(1);
+    }
+
+    50% {
+        transform: scale(1.3);
+    }
+}
+
+.prompt-usage-count {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 4px 8px;
+    background: rgba(248, 129, 73, 0.1);
+    border-radius: 12px;
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--accent-warning, #d29922);
+}
+
+.prompt-usage-count i {
+    font-size: 12px;
+}
+
+/* ==================== Z-INDEX LAYERING SYSTEM ==================== */
+/* Chat interface - Base layer */
+.chat-container,
+.chat-input-wrapper {
+    z-index: 0;
+}
+
+/* Prompt sidebar - Layer 1 */
+.prompt-sidebar {
+    z-index: 1000;
+}
+
+/* Modals and overlays - Layer 2 */
+.prompt-modal,
+.overlay-panel {
+    z-index: 2000;
+}
+
+/* Notifications and tooltips - Layer 3 */
+.notification-toast,
+.tooltip {
+    z-index: 3000;
+}
+
+/* ==================== OVERLAY PANEL SUPPORT ==================== */
+.overlay-panel {
+    position: fixed;
+    top: 0;
+    right: 0;
+    width: 600px;
+    height: 100vh;
+    background: var(--bg-secondary, #161b22);
+    border-left: 1px solid var(--border-default, #30363d);
+    transform: translateX(100%);
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    display: flex;
+    flex-direction: column;
+}
+
+.overlay-panel.show {
+    transform: translateX(0);
+}
+
+/* When sidebar is open, overlay panel slides in next to it */
+.prompt-sidebar.show~.overlay-panel {
+    right: 450px;
+}
+
+.overlay-panel-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 20px;
+    border-bottom: 1px solid var(--border-default, #30363d);
+    background: var(--bg-primary, #0d1117);
+}
+
+.overlay-panel-title {
+    font-size: 18px;
+    font-weight: 600;
+    color: var(--text-primary, #f0f6fc);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.overlay-panel-close {
+    width: 36px;
+    height: 36px;
+    border: none;
+    background: transparent;
+    color: var(--text-secondary, #8b949e);
+    font-size: 20px;
+    cursor: pointer;
+    border-radius: 6px;
+    transition: all 0.2s;
+}
+
+.overlay-panel-close:hover {
+    background: var(--bg-hover, #1c2128);
+    color: var(--text-primary, #f0f6fc);
+}
+
+.overlay-panel-body {
+    flex: 1;
+    overflow-y: auto;
+    padding: 20px;
+}

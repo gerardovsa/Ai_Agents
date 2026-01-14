@@ -1,0 +1,579 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Message Persistence Diagnostic Test</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            max-width: 1200px;
+            margin: 20px auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+
+        .test-section {
+            background: white;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        h1 {
+            color: #2c3e50;
+            border-bottom: 3px solid #3498db;
+            padding-bottom: 10px;
+        }
+
+        h2 {
+            color: #34495e;
+            margin-top: 0;
+        }
+
+        .test-result {
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 4px;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+        }
+
+        .pass {
+            background: #d4edda;
+            border-left: 4px solid #28a745;
+            color: #155724;
+        }
+
+        .fail {
+            background: #f8d7da;
+            border-left: 4px solid #dc3545;
+            color: #721c24;
+        }
+
+        .warn {
+            background: #fff3cd;
+            border-left: 4px solid #ffc107;
+            color: #856404;
+        }
+
+        .info {
+            background: #d1ecf1;
+            border-left: 4px solid #17a2b8;
+            color: #0c5460;
+        }
+
+        button {
+            background: #3498db;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            font-size: 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+
+        button:hover {
+            background: #2980b9;
+        }
+
+        button:disabled {
+            background: #95a5a6;
+            cursor: not-allowed;
+        }
+
+        .code-block {
+            background: #2c3e50;
+            color: #ecf0f1;
+            padding: 15px;
+            border-radius: 4px;
+            overflow-x: auto;
+            margin: 10px 0;
+        }
+
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin: 20px 0;
+        }
+
+        .stat-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 8px;
+            text-align: center;
+        }
+
+        .stat-number {
+            font-size: 36px;
+            font-weight: bold;
+            margin: 10px 0;
+        }
+
+        .stat-label {
+            font-size: 14px;
+            opacity: 0.9;
+        }
+
+        #console-output {
+            background: #1e1e1e;
+            color: #d4d4d4;
+            padding: 15px;
+            border-radius: 4px;
+            max-height: 400px;
+            overflow-y: auto;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            white-space: pre-wrap;
+        }
+
+        .log-entry {
+            margin: 2px 0;
+            padding: 2px 5px;
+        }
+
+        .log-error {
+            color: #f48771;
+        }
+
+        .log-warn {
+            color: #dcdcaa;
+        }
+
+        .log-success {
+            color: #4ec9b0;
+        }
+
+        .log-info {
+            color: #9cdcfe;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>🔬 Message Persistence Diagnostic Test</h1>
+    <p><strong>Purpose:</strong> Identify why user messages are not appearing in thread exports</p>
+
+    <div class="test-section">
+        <h2>📊 Test Results</h2>
+        <div id="results"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>🎮 Manual Tests</h2>
+        <button onclick="testMessageStore()">Test MessageStore Persistence</button>
+        <button onclick="testRenderingPipeline()">Test Rendering Pipeline</button>
+        <button onclick="testBackendSync()">Test Backend Sync</button>
+        <button onclick="simulateConversation()">Simulate Full Conversation</button>
+        <button onclick="clearTests()">Clear Results</button>
+    </div>
+
+    <div class="test-section">
+        <h2>📈 Statistics</h2>
+        <div class="stats" id="stats"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>💻 Console Output</h2>
+        <div id="console-output"></div>
+    </div>
+
+    <script>
+        // Intercept console.log for display
+        const originalLog = console.log;
+        const originalError = console.error;
+        const originalWarn = console.warn;
+
+        function addToConsole(message, type = 'info') {
+            const output = document.getElementById('console-output');
+            const entry = document.createElement('div');
+            entry.className = `log-entry log-${type}`;
+            entry.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+            output.appendChild(entry);
+            output.scrollTop = output.scrollHeight;
+        }
+
+        console.log = function (...args) {
+            originalLog.apply(console, args);
+            addToConsole(args.join(' '), 'info');
+        };
+
+        console.error = function (...args) {
+            originalError.apply(console, args);
+            addToConsole('ERROR: ' + args.join(' '), 'error');
+        };
+
+        console.warn = function (...args) {
+            originalWarn.apply(console, args);
+            addToConsole('WARN: ' + args.join(' '), 'warn');
+        };
+
+        // Test results tracking
+        let testResults = [];
+
+        function addResult(test, status, message, details = null) {
+            const result = { test, status, message, details, timestamp: new Date() };
+            testResults.push(result);
+            renderResults();
+            updateStats();
+        }
+
+        function renderResults() {
+            const container = document.getElementById('results');
+            container.innerHTML = testResults.map(r => `
+                <div class="test-result ${r.status}">
+                    <strong>[${r.test}]</strong> ${r.message}
+                    ${r.details ? `<pre style="margin-top: 10px; font-size: 12px;">${JSON.stringify(r.details, null, 2)}</pre>` : ''}
+                </div>
+            `).join('');
+        }
+
+        function updateStats() {
+            const passed = testResults.filter(r => r.status === 'pass').length;
+            const failed = testResults.filter(r => r.status === 'fail').length;
+            const warnings = testResults.filter(r => r.status === 'warn').length;
+
+            document.getElementById('stats').innerHTML = `
+                <div class="stat-card">
+                    <div class="stat-label">Tests Run</div>
+                    <div class="stat-number">${testResults.length}</div>
+                </div>
+                <div class="stat-card" style="background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);">
+                    <div class="stat-label">Passed</div>
+                    <div class="stat-number">${passed}</div>
+                </div>
+                <div class="stat-card" style="background: linear-gradient(135deg, #eb3349 0%, #f45c43 100%);">
+                    <div class="stat-label">Failed</div>
+                    <div class="stat-number">${failed}</div>
+                </div>
+                <div class="stat-card" style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);">
+                    <div class="stat-label">Warnings</div>
+                    <div class="stat-number">${warnings}</div>
+                </div>
+            `;
+        }
+
+        function clearTests() {
+            testResults = [];
+            renderResults();
+            updateStats();
+            document.getElementById('console-output').innerHTML = '';
+            console.log('Tests cleared');
+        }
+
+        // ============================================================
+        // TEST 1: MessageStore Persistence
+        // ============================================================
+        async function testMessageStore() {
+            console.log('=== TEST 1: MessageStore Persistence ===');
+
+            // Check if MessageStore exists
+            if (typeof window.MessageStore === 'undefined') {
+                addResult('MessageStore', 'fail', 'MessageStore not loaded in window scope', {
+                    available: Object.keys(window).filter(k => k.toLowerCase().includes('message'))
+                });
+                return;
+            }
+
+            addResult('MessageStore', 'pass', 'MessageStore is loaded');
+
+            // Create test thread
+            const testThreadId = `test_${Date.now()}`;
+            console.log(`Creating test thread: ${testThreadId}`);
+
+            // Add user message
+            try {
+                const userMsg = await window.MessageStore.addMessage(testThreadId, {
+                    role: 'user',
+                    content: 'Test user message',
+                    created_at: new Date().toISOString()
+                }, { checkDuplicates: false, silent: false });
+
+                if (userMsg) {
+                    addResult('MessageStore.User', 'pass', 'User message saved to MessageStore', {
+                        id: userMsg.id,
+                        role: userMsg.role
+                    });
+                } else {
+                    addResult('MessageStore.User', 'fail', 'User message returned null/undefined');
+                }
+            } catch (error) {
+                addResult('MessageStore.User', 'fail', 'Failed to add user message', { error: error.message });
+            }
+
+            // Add assistant message
+            try {
+                const assistantMsg = await window.MessageStore.addMessage(testThreadId, {
+                    role: 'assistant',
+                    content: 'Test assistant message',
+                    created_at: new Date().toISOString()
+                }, { checkDuplicates: false, silent: false });
+
+                if (assistantMsg) {
+                    addResult('MessageStore.Assistant', 'pass', 'Assistant message saved to MessageStore', {
+                        id: assistantMsg.id,
+                        role: assistantMsg.role
+                    });
+                } else {
+                    addResult('MessageStore.Assistant', 'fail', 'Assistant message returned null/undefined');
+                }
+            } catch (error) {
+                addResult('MessageStore.Assistant', 'fail', 'Failed to add assistant message', { error: error.message });
+            }
+
+            // Verify retrieval
+            const messages = window.MessageStore.getMessages(testThreadId);
+            console.log(`Retrieved ${messages.length} messages from MessageStore`);
+
+            const userCount = messages.filter(m => m.role === 'user').length;
+            const assistantCount = messages.filter(m => m.role === 'assistant').length;
+
+            if (userCount === 0) {
+                addResult('MessageStore.Retrieval', 'fail', 'NO USER MESSAGES IN MESSAGESTORE!', {
+                    total: messages.length,
+                    user: userCount,
+                    assistant: assistantCount
+                });
+            } else if (userCount > 0 && assistantCount > 0) {
+                addResult('MessageStore.Retrieval', 'pass', 'Both message types retrieved successfully', {
+                    total: messages.length,
+                    user: userCount,
+                    assistant: assistantCount
+                });
+            } else {
+                addResult('MessageStore.Retrieval', 'warn', 'Partial retrieval success', {
+                    total: messages.length,
+                    user: userCount,
+                    assistant: assistantCount
+                });
+            }
+        }
+
+        // ============================================================
+        // TEST 2: Rendering Pipeline
+        // ============================================================
+        async function testRenderingPipeline() {
+            console.log('=== TEST 2: Rendering Pipeline ===');
+
+            // Check if UnifiedMessageRenderer exists
+            if (typeof UnifiedMessageRenderer === 'undefined') {
+                addResult('Renderer', 'fail', 'UnifiedMessageRenderer not loaded', {
+                    available: Object.keys(window).filter(k => k.toLowerCase().includes('render'))
+                });
+                return;
+            }
+
+            addResult('Renderer', 'pass', 'UnifiedMessageRenderer is loaded');
+
+            // Check if container exists
+            const container = document.querySelector('#ai-chat-messages');
+            if (!container) {
+                addResult('Renderer.Container', 'warn', 'Chat container #ai-chat-messages not found', {
+                    suggestion: 'Run this test on the actual platform page'
+                });
+                return;
+            }
+
+            // Test user message rendering
+            try {
+                const userDiv = UnifiedMessageRenderer.render(
+                    '#ai-chat-messages',
+                    'user',
+                    'Test user message rendering',
+                    { isThinking: false, scrollToBottom: false }
+                );
+
+                if (userDiv) {
+                    addResult('Renderer.User', 'pass', 'User message rendered successfully', {
+                        element: userDiv.tagName,
+                        className: userDiv.className
+                    });
+                } else {
+                    addResult('Renderer.User', 'fail', 'User message render returned null');
+                }
+            } catch (error) {
+                addResult('Renderer.User', 'fail', 'User message render threw error', { error: error.message });
+            }
+
+            // Test assistant message rendering
+            try {
+                const assistantDiv = UnifiedMessageRenderer.render(
+                    '#ai-chat-messages',
+                    'assistant',
+                    'Test assistant message rendering',
+                    { isThinking: false, scrollToBottom: false }
+                );
+
+                if (assistantDiv) {
+                    addResult('Renderer.Assistant', 'pass', 'Assistant message rendered successfully', {
+                        element: assistantDiv.tagName,
+                        className: assistantDiv.className
+                    });
+                } else {
+                    addResult('Renderer.Assistant', 'fail', 'Assistant message render returned null');
+                }
+            } catch (error) {
+                addResult('Renderer.Assistant', 'fail', 'Assistant message render threw error', { error: error.message });
+            }
+
+            // Check if messages are actually in DOM
+            const userMessages = document.querySelectorAll('.ai-message.user');
+            const assistantMessages = document.querySelectorAll('.ai-message.assistant');
+
+            addResult('Renderer.DOM', 'info', `DOM contains ${userMessages.length} user, ${assistantMessages.length} assistant messages`);
+        }
+
+        // ============================================================
+        // TEST 3: Backend Sync
+        // ============================================================
+        async function testBackendSync() {
+            console.log('=== TEST 3: Backend Sync ===');
+
+            const API_URL = window.API_BASE_URL || 'http://localhost:5001';
+
+            // Check API connectivity
+            try {
+                const response = await fetch(`${API_URL}/api/health`, {
+                    method: 'GET',
+                    headers: { 'Content-Type': 'application/json' }
+                });
+
+                if (response.ok) {
+                    addResult('Backend.Health', 'pass', 'Backend is reachable', { url: API_URL });
+                } else {
+                    addResult('Backend.Health', 'warn', `Backend returned ${response.status}`, { url: API_URL });
+                }
+            } catch (error) {
+                addResult('Backend.Health', 'fail', 'Cannot reach backend', { error: error.message, url: API_URL });
+                return;
+            }
+
+            // Test message save endpoint
+            const testThreadId = `backend_test_${Date.now()}`;
+            const testMessages = [
+                { role: 'user', content: 'Test user message for backend' },
+                { role: 'assistant', content: 'Test assistant response' }
+            ];
+
+            try {
+                const response = await fetch(`${API_URL}/api/threads/messages/save`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        thread_id: testThreadId,
+                        user_id: 1,
+                        messages: testMessages
+                    })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    const savedCount = data.data?.messages_saved || 0;
+                    if (savedCount === testMessages.length) {
+                        addResult('Backend.Save', 'pass', `Backend saved ${savedCount}/${testMessages.length} messages`, data);
+                    } else {
+                        addResult('Backend.Save', 'warn', `Backend only saved ${savedCount}/${testMessages.length} messages`, data);
+                    }
+                } else {
+                    addResult('Backend.Save', 'fail', 'Backend save failed', data);
+                }
+            } catch (error) {
+                addResult('Backend.Save', 'fail', 'Backend save request failed', { error: error.message });
+            }
+        }
+
+        // ============================================================
+        // TEST 4: Full Conversation Simulation
+        // ============================================================
+        async function simulateConversation() {
+            console.log('=== TEST 4: Full Conversation Simulation ===');
+
+            const testThreadId = `simulation_${Date.now()}`;
+            console.log(`Simulating conversation in thread: ${testThreadId}`);
+
+            const conversation = [
+                { role: 'user', content: 'Find last order for Neilson Design' },
+                { role: 'assistant', content: 'I will search the database...' },
+                { role: 'user', content: 'What is the total cost?' },
+                { role: 'assistant', content: 'The total cost is $1,098.90' }
+            ];
+
+            let messageStoreCount = 0;
+            let renderedCount = 0;
+
+            for (const msg of conversation) {
+                // Add to MessageStore
+                if (window.MessageStore) {
+                    try {
+                        await window.MessageStore.addMessage(testThreadId, {
+                            ...msg,
+                            created_at: new Date().toISOString()
+                        }, { checkDuplicates: false, silent: false });
+                        messageStoreCount++;
+                    } catch (error) {
+                        console.error(`Failed to add ${msg.role} message to MessageStore:`, error);
+                    }
+                }
+
+                // Render if container exists
+                if (document.querySelector('#ai-chat-messages') && typeof UnifiedMessageRenderer !== 'undefined') {
+                    try {
+                        const div = UnifiedMessageRenderer.render(
+                            '#ai-chat-messages',
+                            msg.role,
+                            msg.content,
+                            { isThinking: false, scrollToBottom: false }
+                        );
+                        if (div) renderedCount++;
+                    } catch (error) {
+                        console.error(`Failed to render ${msg.role} message:`, error);
+                    }
+                }
+
+                // Small delay between messages
+                await new Promise(resolve => setTimeout(resolve, 100));
+            }
+
+            // Verify results
+            const storedMessages = window.MessageStore ? window.MessageStore.getMessages(testThreadId) : [];
+            const userInStore = storedMessages.filter(m => m.role === 'user').length;
+            const assistantInStore = storedMessages.filter(m => m.role === 'assistant').length;
+
+            addResult('Simulation.MessageStore', 'info', `MessageStore: ${userInStore} user, ${assistantInStore} assistant`, {
+                expected: { user: 2, assistant: 2 },
+                actual: { user: userInStore, assistant: assistantInStore }
+            });
+
+            if (userInStore === 0) {
+                addResult('Simulation.Critical', 'fail', '🚨 CRITICAL: NO USER MESSAGES IN MESSAGESTORE!', {
+                    expected: 2,
+                    actual: 0,
+                    diagnosis: 'User messages are not being persisted to MessageStore'
+                });
+            }
+
+            if (userInStore < 2 || assistantInStore < 2) {
+                addResult('Simulation.Result', 'fail', 'Not all messages persisted', {
+                    expected: 4,
+                    actual: storedMessages.length
+                });
+            } else {
+                addResult('Simulation.Result', 'pass', 'All messages persisted successfully');
+            }
+
+            addResult('Simulation.Rendering', 'info', `Rendered ${renderedCount}/4 messages to DOM`);
+        }
+
+        // Auto-run on load
+        console.log('Diagnostic test page loaded. Click buttons to run tests.');
+        updateStats();
+    </script>
+</body>
+
+</html>

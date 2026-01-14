@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Agent Column Message Loading Test</title>
+    <style>
+        body {
+            font-family: monospace;
+            padding: 20px;
+            background: #1e1e1e;
+            color: #d4d4d4;
+        }
+
+        .test {
+            margin: 20px 0;
+            padding: 15px;
+            background: #2d2d2d;
+            border-left: 4px solid #007acc;
+        }
+
+        .pass {
+            border-left-color: #4ec9b0;
+        }
+
+        .fail {
+            border-left-color: #f48771;
+        }
+
+        .result {
+            margin-top: 10px;
+            padding: 10px;
+            background: #1e1e1e;
+        }
+
+        pre {
+            overflow-x: auto;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>🧪 Agent Column Message Loading Test - Thread 2112</h1>
+    <button onclick="runTest()">▶️ Run Test</button>
+    <button onclick="location.reload()">🔄 Reset</button>
+    <div id="results"></div>
+
+    <script>
+        async function runTest() {
+            const results = document.getElementById('results');
+            results.innerHTML = '<p>Running tests...</p>';
+
+            const tests = [];
+
+            // Test 1: Fetch thread 2112 data
+            try {
+                const response = await fetch('/api/threads/messages/2112');
+                const data = await response.json();
+
+                tests.push({
+                    name: 'Fetch Thread 2112',
+                    pass: true,
+                    data: {
+                        total_messages: data.messages?.length || 0,
+                        user_messages: data.messages?.filter(m => m.role === 'user').length || 0,
+                        assistant_messages: data.messages?.filter(m => m.role === 'assistant').length || 0
+                    }
+                });
+
+                // Test 2: Check assistant message structure
+                const assistantMessages = data.messages.filter(m => m.role === 'assistant');
+                const firstAssistant = assistantMessages[0];
+
+                let hasTextBlock = false;
+                let hasThinkingBlock = false;
+
+                if (Array.isArray(firstAssistant.content)) {
+                    for (const block of firstAssistant.content) {
+                        if (block.type === 'text') hasTextBlock = true;
+                        if (block.type === 'thinking') hasThinkingBlock = true;
+                    }
+                }
+
+                tests.push({
+                    name: 'Assistant Message Structure',
+                    pass: hasTextBlock,
+                    data: {
+                        first_msg_id: firstAssistant.id,
+                        is_array: Array.isArray(firstAssistant.content),
+                        has_text_block: hasTextBlock,
+                        has_thinking_block: hasThinkingBlock,
+                        sample_content: JSON.stringify(firstAssistant.content).substring(0, 200)
+                    }
+                });
+
+                // Test 3: Check MessageStore after load
+                if (typeof window.MessageStore !== 'undefined') {
+                    window.MessageStore.clearMessages(2112);
+
+                    // Simulate loading like agent column does
+                    for (const msg of data.messages) {
+                        window.MessageStore.addMessage(2112, msg, {
+                            checkDuplicates: false,
+                            silent: true
+                        });
+                    }
+
+                    const stored = window.MessageStore.getMessages(2112);
+
+                    tests.push({
+                        name: 'MessageStore Loading',
+                        pass: stored.length === data.messages.length,
+                        data: {
+                            fetched: data.messages.length,
+                            stored: stored.length,
+                            match: stored.length === data.messages.length
+                        }
+                    });
+                } else {
+                    tests.push({
+                        name: 'MessageStore Loading',
+                        pass: false,
+                        data: { error: 'MessageStore not available' }
+                    });
+                }
+
+                // Test 4: Check UnifiedMessageRenderer
+                if (typeof window.UnifiedMessageRenderer !== 'undefined') {
+                    const testDiv = document.createElement('div');
+                    testDiv.style.display = 'none';
+                    document.body.appendChild(testDiv);
+
+                    const testMsg = assistantMessages[0];
+
+                    try {
+                        await window.UnifiedMessageRenderer.render(
+                            testDiv,
+                            testMsg.role,
+                            testMsg.content,
+                            {
+                                threadId: 2112,
+                                checkDuplicates: false,
+                                syncToBackend: false
+                            }
+                        );
+
+                        const hasAiMessage = testDiv.querySelector('.ai-message') !== null;
+                        const hasContentBlocks = testDiv.querySelectorAll('.content-block-text, .thinking-block').length;
+
+                        tests.push({
+                            name: 'UnifiedMessageRenderer',
+                            pass: hasAiMessage && hasContentBlocks > 0,
+                            data: {
+                                rendered_ai_message: hasAiMessage,
+                                content_blocks: hasContentBlocks,
+                                html_length: testDiv.innerHTML.length
+                            }
+                        });
+
+                        testDiv.remove();
+                    } catch (error) {
+                        tests.push({
+                            name: 'UnifiedMessageRenderer',
+                            pass: false,
+                            data: { error: error.message }
+                        });
+                    }
+                } else {
+                    tests.push({
+                        name: 'UnifiedMessageRenderer',
+                        pass: false,
+                        data: { error: 'UnifiedMessageRenderer not available' }
+                    });
+                }
+
+            } catch (error) {
+                tests.push({
+                    name: 'Fetch Thread 2112',
+                    pass: false,
+                    data: { error: error.message }
+                });
+            }
+
+            // Display results
+            let html = '<h2>Test Results</h2>';
+            let passed = 0;
+
+            tests.forEach(test => {
+                if (test.pass) passed++;
+
+                html += `
+                    <div class="test ${test.pass ? 'pass' : 'fail'}">
+                        <h3>${test.pass ? '✅' : '❌'} ${test.name}</h3>
+                        <div class="result">
+                            <pre>${JSON.stringify(test.data, null, 2)}</pre>
+                        </div>
+                    </div>
+                `;
+            });
+
+            html = `<h2>Summary: ${passed}/${tests.length} tests passed</h2>` + html;
+            results.innerHTML = html;
+        }
+    </script>
+</body>
+
+</html>

@@ -1,0 +1,475 @@
+{
+    "platform": "quote_calculator",
+    "description": "Calculator Pricing Database Tools - Query and modify 8-table Supabase system for pricing constants and product options",
+    "tools": [
+        {
+            "name": "calculator_database_query",
+            "short_description": "Execute SELECT query against Calculator Pricing Database (read-only, safe)",
+            "description": "Execute SELECT queries against the Calculator Pricing Database (Supabase PostgreSQL with 8 tables, 690+ rows). Read-only operation - safe to use for data retrieval. BEFORE using this tool: Call calculator_database_get_schema_guide() to understand table structures, column names, JSONB field access patterns, and see 20+ example queries. This tool accepts raw SQL SELECT statements and returns results as list of dicts. Supports: Basic SELECT, JOINs, subqueries, CTEs (WITH), JSONB queries, aggregations. Includes: Safety validation (blocks non-SELECT queries), parameterized queries (prevents SQL injection), execution time tracking, automatic dataframe conversion. Common use cases: Get pricing parameters with variance analysis, retrieve calculator configurations, query product options with choices, find high-variance items, audit trail queries, cross-system analysis (pricing + options). Remember to: Cast JSONB fields to types (value_statistics->>'variance_pct')::numeric, check is_active=TRUE for current overrides, use array_agg() for one-to-many joins, include ORDER BY with LIMIT for consistent results.",
+            "platform": "quote_calculator",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "sql": {
+                        "type": "string",
+                        "description": "SQL SELECT query string (or WITH...SELECT for CTEs). Must start with SELECT or WITH. Can include: WHERE, JOIN, GROUP BY, HAVING, ORDER BY, LIMIT. JSONB access: Use ->> for text, ::numeric for numbers, @> for contains, jsonb_array_length() for array size. Table names: calculator_pricing_parameters, calculator_parameter_overrides, calculator_parameter_history, calculators_registry, product_options, product_option_choices, product_option_overrides, product_option_history. Always cast JSONB fields before sorting or numeric comparisons."
+                    },
+                    "params": {
+                        "type": "array",
+                        "description": "Optional tuple of parameter values for safe SQL parameterization. Use placeholders in sql string. Prevents SQL injection. Recommended for all queries with user input or variable values."
+                    }
+                },
+                "required": [
+                    "sql"
+                ]
+            },
+            "returns": {
+                "type": "object",
+                "description": "Query result with success status, data array (list of row dicts), row_count, executed query string, and execution_time_ms. On error: success=False with error message and error_type"
+            },
+            "examples": [
+                {
+                    "description": "Get high variance parameters (>100%)",
+                    "parameters": {
+                        "sql": "SELECT parameter_name, base_value, (value_statistics->>'variance_pct')::numeric as variance FROM calculator_pricing_parameters WHERE (value_statistics->>'variance_pct')::numeric > 100 ORDER BY variance DESC LIMIT 5"
+                    },
+                    "expected_result": "Returns 5 parameters with highest price variance across calculators. Data includes parameter name, base value, and variance percentage."
+                },
+                {
+                    "description": "Get calculator's complete config with overrides",
+                    "parameters": {
+                        "sql": "SELECT c.calculator_name, c.parameters_used, array_agg(json_build_object('param', p.parameter_name, 'value', o.value)) as overrides FROM calculators_registry c LEFT JOIN calculator_parameter_overrides o ON c.calculator_name = o.calculator_name AND o.is_active = TRUE LEFT JOIN calculator_pricing_parameters p ON o.parameter_id = p.id WHERE c.calculator_name = %s GROUP BY c.id",
+                        "params": [
+                            "BollardSigns"
+                        ]
+                    },
+                    "expected_result": "Returns BollardSigns calculator with full parameter config and all active overrides"
+                },
+                {
+                    "description": "Get product options with all choices for a calculator",
+                    "parameters": {
+                        "sql": "SELECT po.option_name, po.is_required, array_agg(json_build_object('title', poc.choice_title, 'price', poc.price, 'price_type', poc.price_type) ORDER BY poc.display_order) as choices FROM product_options po LEFT JOIN product_option_choices poc ON po.id = poc.option_id WHERE po.calculator_name = %s GROUP BY po.id ORDER BY po.display_order",
+                        "params": [
+                            "NotepadsA4"
+                        ]
+                    },
+                    "expected_result": "Returns all product options for NotepadsA4 with nested choices array for each option"
+                }
+            ],
+            "usage_guide": {
+                "when_to_use": [
+                    "Need to retrieve data from calculator pricing database",
+                    "Writing custom queries for specific analysis needs",
+                    "No pre-built query exists for your specific requirement",
+                    "Exploratory data analysis or ad-hoc reporting",
+                    "Combining data from multiple tables in unique ways"
+                ],
+                "workflow": [
+                    "Step 1: Call calculator_database_get_schema_guide() first to learn table structures",
+                    "Step 2: Check example_queries in guide for similar patterns",
+                    "Step 3: Write SELECT query using correct table and column names",
+                    "Step 4: Use JSONB access patterns from guide (->>, ::numeric, etc.)",
+                    "Step 5: Add WHERE, JOIN, GROUP BY, ORDER BY as needed",
+                    "Step 6: Use params array for any variable values (prevents SQL injection)",
+                    "Step 7: Execute query with calculator_database_query(sql, params)",
+                    "Step 8: Check success status and handle data or error"
+                ],
+                "best_practices": [
+                    "ALWAYS get schema guide first before writing queries",
+                    "ALWAYS use parameterized queries (%s placeholders) for variable values",
+                    "ALWAYS cast JSONB fields to types: (field)::numeric for numbers",
+                    "Check is_active=TRUE when querying overrides for current values",
+                    "Use array_agg() and json_build_object() for one-to-many relationships",
+                    "Include ORDER BY when using LIMIT for consistent results",
+                    "Use LEFT JOIN for optional relationships (overrides, choices)",
+                    "Test queries with LIMIT first before running on full dataset"
+                ],
+                "error_handling": [
+                    "Error: Only SELECT queries allowed - Use calculator_database_query for reads, calculator_database_modify for writes",
+                    "Error: syntax error at or near - Check SQL syntax, JSONB access patterns, table/column names",
+                    "Error: column does not exist - Verify column name in schema guide, check JSONB field access",
+                    "Error: invalid input syntax for type - Cast JSONB fields to correct type: (field)::numeric",
+                    "Error: cannot cast - Check data type in schema guide, verify JSONB field exists"
+                ],
+                "related_tools": [
+                    "calculator_database_get_schema_guide",
+                    "calculator_database_modify",
+                    "calculator_database_list_queries",
+                    "execute_query_library"
+                ]
+            },
+            "tool_intelligence": {
+                "category": "data_processing",
+                "typical_workflow_patterns": [
+                    "calculator_database_get_schema_guide -> calculator_database_query",
+                    "calculator_database_list_queries -> calculator_database_query"
+                ],
+                "success_indicators": {
+                    "keywords": [
+                        "success: true",
+                        "data",
+                        "row_count"
+                    ],
+                    "behavioral": [
+                        "User reviews returned data",
+                        "User references data in follow-up questions"
+                    ]
+                },
+                "failure_indicators": {
+                    "keywords": [
+                        "success: false",
+                        "error",
+                        "syntax error"
+                    ],
+                    "behavioral": [
+                        "User asks to fix query",
+                        "User requests schema guide again"
+                    ]
+                },
+                "performance_expectations": {
+                    "typical_duration_ms": 500,
+                    "rate_limit_per_minute": null,
+                    "max_retries": 3
+                }
+            },
+            "memory_context": {
+                "vectorization_fields": [
+                    "sql",
+                    "query_results"
+                ],
+                "search_keywords": [
+                    "calculator pricing query",
+                    "SELECT",
+                    "database read"
+                ],
+                "related_synergy_platforms": [
+                    "quote_calculator"
+                ],
+                "typical_use_cases": [
+                    "Retrieve pricing parameters with variance analysis",
+                    "Get calculator configurations with overrides",
+                    "Query product options and choices",
+                    "Analyze price variance across calculators",
+                    "Audit trail queries for change history",
+                    "Cross-system analysis combining pricing constants and product options"
+                ],
+                "conversation_memory_hints": {
+                    "what_to_remember": "Query SQL, returned row count, key findings from data",
+                    "search_context": "When user asks about pricing data, calculator configs, or database content"
+                }
+            }
+        },
+        {
+            "name": "calculator_database_modify",
+            "short_description": "Execute INSERT/UPDATE/DELETE on Calculator Pricing Database (with safety checks)",
+            "description": "Execute INSERT, UPDATE, or DELETE queries against the Calculator Pricing Database (Supabase PostgreSQL). Write operations with safety validations. BEFORE using: Call calculator_database_get_schema_guide() to understand table structures and constraints. ALWAYS include reason parameter for audit trail. Safety features: Blocks SELECT queries (use calculator_database_query instead), blocks dangerous operations (DROP TABLE, TRUNCATE, DROP DATABASE), auto-commits changes, validates query types, tracks execution time. Common use cases: Update pricing parameter override values, insert new calculator parameter overrides, update product option choice prices, delete inactive overrides, bulk update pricing constants, modify calculator configurations. Automatic history logging: Changes to overrides and choices are automatically logged to history tables via database triggers. Remember to: Always include reason parameter for audit trail, use parameterized queries to prevent SQL injection, check constraints before inserting (UNIQUE, FOREIGN KEY, CHECK), verify is_active flags for current values, test with SELECT first to preview changes.",
+            "platform": "quote_calculator",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "sql": {
+                        "type": "string",
+                        "description": "SQL INSERT, UPDATE, or DELETE query string. Cannot be SELECT (use calculator_database_query for reads). Cannot include DROP TABLE, TRUNCATE, or DROP DATABASE (blocked for safety). Can modify: calculator_parameter_overrides (update override values), product_option_choices (update prices), calculator_pricing_parameters (update base values), product_options (update option configs). Use WHERE clause carefully to target specific rows. Always use %s placeholders for variable values."
+                    },
+                    "params": {
+                        "type": "array",
+                        "description": "Optional tuple of parameter values for safe SQL parameterization. Use placeholders in sql string. REQUIRED for security - prevents SQL injection."
+                    },
+                    "reason": {
+                        "type": "string",
+                        "description": "REQUIRED: Explanation of why this modification is being made. Used for audit trail and compliance. Examples: 'Price increase due to supplier cost change', 'Correcting data entry error from Dec 15', 'Seasonal discount for holiday promotion', 'Updating to match current market rates'. Be specific and include context."
+                    }
+                },
+                "required": [
+                    "sql",
+                    "reason"
+                ]
+            },
+            "returns": {
+                "type": "object",
+                "description": "Modification result with success status, rows_affected count, executed query string, execution_time_ms, committed flag, and reason. On error: success=False with error message and error_type"
+            },
+            "examples": [
+                {
+                    "description": "Update calculator parameter override value",
+                    "parameters": {
+                        "sql": "UPDATE calculator_parameter_overrides SET value = %s, updated_at = NOW() WHERE calculator_name = %s AND parameter_id = (SELECT id FROM calculator_pricing_parameters WHERE parameter_name = %s) AND is_active = TRUE",
+                        "params": [
+                            50.00,
+                            "BollardSigns",
+                            "impos_setup"
+                        ],
+                        "reason": "Price increase due to supplier cost change effective Dec 17 2025"
+                    },
+                    "expected_result": "Updates impos_setup value for BollardSigns calculator to $50.00, returns rows_affected=1"
+                },
+                {
+                    "description": "Update product option choice price",
+                    "parameters": {
+                        "sql": "UPDATE product_option_choices SET price = %s, updated_at = NOW() WHERE id = (SELECT poc.id FROM product_option_choices poc JOIN product_options po ON poc.option_id = po.id WHERE po.calculator_name = %s AND po.option_name = %s AND poc.choice_title = %s)",
+                        "params": [
+                            0.035,
+                            "NotepadsA4",
+                            "Stock Type",
+                            "Bond 80GSM"
+                        ],
+                        "reason": "Stock price increase from supplier effective Dec 17 2025"
+                    },
+                    "expected_result": "Updates Bond 80GSM stock price to $0.035 per sheet, database trigger automatically logs change to history"
+                },
+                {
+                    "description": "Insert new calculator parameter override",
+                    "parameters": {
+                        "sql": "INSERT INTO calculator_parameter_overrides (parameter_id, calculator_name, value, is_active, notes, created_at, updated_at) VALUES ((SELECT id FROM calculator_pricing_parameters WHERE parameter_name = %s), %s, %s, TRUE, %s, NOW(), NOW())",
+                        "params": [
+                            "extra_arts",
+                            "CustomVinylStickers",
+                            25.00,
+                            "New override for seasonal promotion"
+                        ],
+                        "reason": "Adding holiday season override for CustomVinylStickers extra arts fee"
+                    },
+                    "expected_result": "Inserts new override row, returns rows_affected=1, history automatically logged"
+                }
+            ],
+            "usage_guide": {
+                "when_to_use": [
+                    "Need to update pricing parameter values",
+                    "Inserting new calculator parameter overrides",
+                    "Updating product option choice prices",
+                    "Deleting inactive or obsolete overrides",
+                    "Bulk updating pricing constants",
+                    "Modifying calculator configurations"
+                ],
+                "workflow": [
+                    "Step 1: Call calculator_database_get_schema_guide() to understand table structures and constraints",
+                    "Step 2: Use calculator_database_query() to SELECT current values first (preview)",
+                    "Step 3: Write INSERT, UPDATE, or DELETE query with correct table and column names",
+                    "Step 4: Use %s placeholders for all variable values",
+                    "Step 5: Prepare params array with values in correct order",
+                    "Step 6: Write clear reason explaining why change is needed",
+                    "Step 7: Execute with calculator_database_modify(sql, params, reason)",
+                    "Step 8: Check success status and rows_affected count",
+                    "Step 9: Query again to verify changes if needed"
+                ],
+                "best_practices": [
+                    "ALWAYS include reason parameter for audit trail and compliance",
+                    "ALWAYS use parameterized queries (%s placeholders) to prevent SQL injection",
+                    "ALWAYS query current values first with SELECT to preview changes",
+                    "Use WHERE clause carefully to target specific rows (avoid accidental bulk updates)",
+                    "Check UNIQUE constraints before inserting (parameter_id + calculator_name for overrides)",
+                    "Verify FOREIGN KEY references exist before inserting",
+                    "Set updated_at = NOW() in UPDATE queries for tracking",
+                    "Use is_active = TRUE/FALSE instead of DELETE for soft deletes",
+                    "Test query logic with SELECT first, then convert to UPDATE/INSERT"
+                ],
+                "error_handling": [
+                    "Error: Only INSERT/UPDATE/DELETE allowed - Use calculator_database_modify for writes, calculator_database_query for reads",
+                    "Error: DANGEROUS OPERATION BLOCKED - DROP TABLE, TRUNCATE not allowed via this method for safety",
+                    "Error: duplicate key value violates unique constraint - Check UNIQUE constraints in schema guide, verify row doesn't already exist",
+                    "Error: violates foreign key constraint - Verify referenced record exists (parameter_id, option_id, choice_id)",
+                    "Error: violates check constraint - Review CHECK constraints in schema guide, ensure value meets requirements",
+                    "Error: cannot cast - Check data types in schema guide, ensure params match column types"
+                ],
+                "related_tools": [
+                    "calculator_database_get_schema_guide",
+                    "calculator_database_query",
+                    "calculator_database_list_queries"
+                ]
+            },
+            "tool_intelligence": {
+                "category": "data_processing",
+                "typical_workflow_patterns": [
+                    "calculator_database_get_schema_guide -> calculator_database_query -> calculator_database_modify",
+                    "calculator_database_query -> calculator_database_modify -> calculator_database_query"
+                ],
+                "success_indicators": {
+                    "keywords": [
+                        "success: true",
+                        "rows_affected"
+                    ],
+                    "behavioral": [
+                        "User queries to verify changes",
+                        "User proceeds to related modifications"
+                    ]
+                },
+                "failure_indicators": {
+                    "keywords": [
+                        "success: false",
+                        "error",
+                        "constraint violation"
+                    ],
+                    "behavioral": [
+                        "User asks to fix query",
+                        "User requests schema guide again"
+                    ]
+                },
+                "performance_expectations": {
+                    "typical_duration_ms": 200,
+                    "rate_limit_per_minute": null,
+                    "max_retries": 2
+                }
+            },
+            "memory_context": {
+                "vectorization_fields": [
+                    "sql",
+                    "reason",
+                    "rows_affected"
+                ],
+                "search_keywords": [
+                    "calculator pricing update",
+                    "INSERT",
+                    "UPDATE",
+                    "DELETE",
+                    "database write"
+                ],
+                "related_synergy_platforms": [
+                    "quote_calculator"
+                ],
+                "typical_use_cases": [
+                    "Update pricing parameter override values after supplier price changes",
+                    "Insert new calculator parameter overrides for seasonal pricing",
+                    "Update product option choice prices for stock cost adjustments",
+                    "Delete inactive overrides that are no longer needed",
+                    "Bulk update pricing constants across multiple parameters",
+                    "Modify calculator configurations for new product offerings"
+                ],
+                "conversation_memory_hints": {
+                    "what_to_remember": "What was modified, rows_affected count, reason provided",
+                    "search_context": "When user asks about recent pricing changes, update history, or modification results"
+                }
+            }
+        },
+        {
+            "name": "calculator_database_list_queries",
+            "short_description": "List available pre-built queries from QueryLibrary for Calculator Pricing Management",
+            "description": "List all available pre-built queries from QueryLibrary specifically for Calculator Pricing Management category. Pre-built queries are tested, optimized, and consistent alternatives to writing custom SQL. BEFORE writing custom SQL: Check this list to see if a pre-built query already exists for your task. Pre-built queries include: Get pricing constant with all overrides, get calculator complete config, get product options for calculator, find high variance parameters, search product options, get option price variance, validate calculator config, bulk operations. Each query includes: name (to use with execute_query_library), description, parameters (required and optional with defaults), returns (column names and data structure), best_for (use case guidance), validated flag (tested and production-ready). Filter by category: 'Calculator Pricing Management' returns only calculator pricing queries, 'all' returns all categories including business intelligence queries. After getting list: Use execute_query_library(query_name, parameters) to run the pre-built query.",
+            "platform": "quote_calculator",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "category": {
+                        "type": "string",
+                        "enum": [
+                            "Calculator Pricing Management",
+                            "all"
+                        ],
+                        "description": "Filter queries by category. Use 'Calculator Pricing Management' to see only calculator pricing queries (recommended), or 'all' to see all available queries across all categories. Default: 'all'",
+                        "default": "all"
+                    }
+                },
+                "required": []
+            },
+            "returns": {
+                "type": "object",
+                "description": "Success status, category filter applied, query_count, and queries array with name, description, parameters, returns, best_for, and validated flag for each query"
+            },
+            "examples": [
+                {
+                    "description": "Get calculator pricing queries only",
+                    "parameters": {
+                        "category": "Calculator Pricing Management"
+                    },
+                    "expected_result": "Returns 7+ pre-built queries: get_pricing_constant, get_calculator_config, get_product_options_for_calculator, find_high_variance_parameters, etc. with full metadata"
+                },
+                {
+                    "description": "Get all available queries across all categories",
+                    "parameters": {
+                        "category": "all"
+                    },
+                    "expected_result": "Returns 50+ queries including Calculator Pricing Management, Sales and Revenue, Customer Analytics, Production Planning, etc."
+                }
+            ],
+            "usage_guide": {
+                "when_to_use": [
+                    "BEFORE writing custom SQL to check if pre-built query exists",
+                    "Want to see what common calculator pricing operations are available",
+                    "Need to understand query parameters and return structures",
+                    "Building reports or dashboards with consistent queries",
+                    "Want tested and optimized queries instead of writing from scratch"
+                ],
+                "workflow": [
+                    "Step 1: Call calculator_database_list_queries(category='Calculator Pricing Management')",
+                    "Step 2: Review returned queries list for match to your task",
+                    "Step 3: If match found note the query name and required parameters",
+                    "Step 4: Use execute_query_library(query_name, parameters) to run it",
+                    "Step 5: If no match write custom SQL with calculator_database_query()"
+                ],
+                "best_practices": [
+                    "ALWAYS check this list BEFORE writing custom SQL queries",
+                    "Use category='Calculator Pricing Management' to filter noise",
+                    "Read best_for field to understand intended use case",
+                    "Check validated=True for production-ready queries",
+                    "Note required vs optional parameters for each query",
+                    "Pre-built queries are faster than writing custom SQL"
+                ],
+                "error_handling": [
+                    "Error: QueryLibrary not available - QueryLibrary import failed, pre-built queries unavailable, use calculator_database_query for custom SQL",
+                    "Success but empty queries array - No queries exist in specified category yet"
+                ],
+                "related_tools": [
+                    "execute_query_library",
+                    "calculator_database_query",
+                    "calculator_database_get_schema_guide"
+                ]
+            },
+            "tool_intelligence": {
+                "category": "data_processing",
+                "typical_workflow_patterns": [
+                    "calculator_database_list_queries -> execute_query_library",
+                    "calculator_database_get_schema_guide -> calculator_database_list_queries"
+                ],
+                "success_indicators": {
+                    "keywords": [
+                        "success: true",
+                        "query_count",
+                        "queries"
+                    ],
+                    "behavioral": [
+                        "User proceeds to execute_query_library",
+                        "User references query names"
+                    ]
+                },
+                "failure_indicators": {
+                    "keywords": [
+                        "success: false",
+                        "QueryLibrary not available"
+                    ],
+                    "behavioral": [
+                        "User writes custom SQL instead"
+                    ]
+                },
+                "performance_expectations": {
+                    "typical_duration_ms": 50,
+                    "rate_limit_per_minute": null,
+                    "max_retries": 1
+                }
+            },
+            "memory_context": {
+                "vectorization_fields": [
+                    "query_names",
+                    "query_descriptions"
+                ],
+                "search_keywords": [
+                    "pre-built queries",
+                    "query library",
+                    "available queries"
+                ],
+                "related_synergy_platforms": [
+                    "quote_calculator"
+                ],
+                "typical_use_cases": [
+                    "Check what pre-built queries exist before writing custom SQL",
+                    "Discover common calculator pricing operations",
+                    "Find tested queries for reports and dashboards",
+                    "Learn query parameters and return structures",
+                    "Identify validated production-ready queries"
+                ],
+                "conversation_memory_hints": {
+                    "what_to_remember": "Query names, query_count, category filter used",
+                    "search_context": "When user asks about available queries, pre-built operations, or query library"
+                }
+            }
+        }
+    ]
+}

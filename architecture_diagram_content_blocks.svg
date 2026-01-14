@@ -1,0 +1,123 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1400 1100">
+  <!-- Title -->
+  <text x="700" y="40" font-size="28" font-weight="bold" text-anchor="middle" fill="#2c3e50">
+    File Processing Architecture - Content Blocks Flow
+  </text>
+  <text x="700" y="70" font-size="16" text-anchor="middle" fill="#7f8c8d">
+    How files go from email attachments to Claude's AI context without token overflow
+  </text>
+  
+  <!-- Layer 1: AI Agent -->
+  <rect x="100" y="120" width="1200" height="120" rx="10" fill="#3498db" stroke="#2980b9" stroke-width="3"/>
+  <text x="700" y="155" font-size="20" font-weight="bold" text-anchor="middle" fill="white">
+    Layer 1: AI Agent (Claude)
+  </text>
+  <text x="700" y="185" font-size="16" text-anchor="middle" fill="white">
+    Calls: email_process_attachment_for_ai(source='outlook', message_id='...', attachment_id='...')
+  </text>
+  <text x="700" y="215" font-size="16" text-anchor="middle" fill="white">
+    Receives: "✅ Processed report.pdf (707KB)" + PDF content block (auto-accessible)
+  </text>
+  
+  <!-- Arrow -->
+  <path d="M 700 240 L 700 280" stroke="#2c3e50" stroke-width="3" fill="none" marker-end="url(#arrowhead)"/>
+  
+  <!-- Layer 2: Tool Executor -->
+  <rect x="100" y="280" width="1200" height="120" rx="10" fill="#9b59b6" stroke="#8e44ad" stroke-width="3"/>
+  <text x="700" y="315" font-size="20" font-weight="bold" text-anchor="middle" fill="white">
+    Layer 2: Tool Executor (Registry V3)
+  </text>
+  <text x="700" y="345" font-size="16" text-anchor="middle" fill="white">
+    Executes: email_attachment_tools.py → email_process_attachment_for_ai()
+  </text>
+  <text x="700" y="375" font-size="14" text-anchor="middle" fill="white" font-family="monospace">
+    Returns: {'content_block': {...}, 'metadata': {'token_estimate': 800}}
+  </text>
+  
+  <!-- Arrow -->
+  <path d="M 700 400 L 700 440" stroke="#2c3e50" stroke-width="3" fill="none" marker-end="url(#arrowhead)"/>
+  
+  <!-- Layer 3: Universal File Handler -->
+  <rect x="100" y="440" width="1200" height="140" rx="10" fill="#e74c3c" stroke="#c0392b" stroke-width="3"/>
+  <text x="700" y="475" font-size="20" font-weight="bold" text-anchor="middle" fill="white">
+    Layer 3: Universal File Handler
+  </text>
+  <text x="700" y="505" font-size="16" text-anchor="middle" fill="white">
+    1. Downloads file from Outlook/Gmail API
+  </text>
+  <text x="700" y="535" font-size="16" text-anchor="middle" fill="white">
+    2. Checks size (707KB &lt; 5MB) → Choose 'direct' method
+  </text>
+  <text x="700" y="565" font-size="16" text-anchor="middle" fill="white">
+    3. Creates: {'type': 'document', 'source': {'type': 'base64', 'data': '...'}}
+  </text>
+  
+  <!-- Arrow -->
+  <path d="M 700 580 L 700 620" stroke="#2c3e50" stroke-width="3" fill="none" marker-end="url(#arrowhead)"/>
+  
+  <!-- Layer 4: Tool Processor (THE FIX!) -->
+  <rect x="100" y="620" width="1200" height="160" rx="10" fill="#f39c12" stroke="#e67e22" stroke-width="3"/>
+  <text x="700" y="655" font-size="20" font-weight="bold" text-anchor="middle" fill="white">
+    Layer 4: Tool Processor ⚡ NEW FIX! ⚡
+  </text>
+  <text x="700" y="685" font-size="16" text-anchor="middle" fill="white">
+    1. Detects 'content_block' in tool result
+  </text>
+  <text x="700" y="715" font-size="16" text-anchor="middle" fill="white">
+    2. Preserves structure (doesn't stringify!)
+  </text>
+  <text x="700" y="745" font-size="14" text-anchor="middle" fill="white" font-family="monospace">
+    3. Builds: [{type: "text", text: "✅ Success"}, {type: "document", source: {...}}]
+  </text>
+  <text x="700" y="770" font-size="14" text-anchor="middle" fill="#2ecc71" font-weight="bold">
+    ✓ Content block remains structured (not JSON string!)
+  </text>
+  
+  <!-- Arrow -->
+  <path d="M 700 780 L 700 820" stroke="#2c3e50" stroke-width="3" fill="none" marker-end="url(#arrowhead)"/>
+  
+  <!-- Layer 5: Anthropic API -->
+  <rect x="100" y="820" width="1200" height="140" rx="10" fill="#27ae60" stroke="#229954" stroke-width="3"/>
+  <text x="700" y="855" font-size="20" font-weight="bold" text-anchor="middle" fill="white">
+    Layer 5: Anthropic Messages API
+  </text>
+  <text x="700" y="885" font-size="16" text-anchor="middle" fill="white">
+    Receives: conversation with structured content blocks
+  </text>
+  <text x="700" y="915" font-size="16" text-anchor="middle" fill="white">
+    Claude natively reads PDF/image content
+  </text>
+  <text x="700" y="945" font-size="18" text-anchor="middle" fill="#f1c40f" font-weight="bold">
+    Token cost: ~800 tokens (vs 230,000 for base64 in text!) 🎉
+  </text>
+  
+  <!-- Side panel: Before vs After -->
+  <rect x="50" y="1000" width="600" height="80" rx="5" fill="#ecf0f1" stroke="#95a5a6" stroke-width="2"/>
+  <text x="350" y="1025" font-size="16" font-weight="bold" text-anchor="middle" fill="#e74c3c">
+    ❌ Before (Broken):
+  </text>
+  <text x="350" y="1050" font-size="14" text-anchor="middle" fill="#34495e">
+    json.dumps(result) → Stringifies content_block → 230,000 tokens → Overflow
+  </text>
+  <text x="350" y="1070" font-size="14" text-anchor="middle" fill="#34495e">
+    AI tries python_exec to read file manually
+  </text>
+  
+  <rect x="750" y="1000" width="600" height="80" rx="5" fill="#d5f4e6" stroke="#27ae60" stroke-width="2"/>
+  <text x="1050" y="1025" font-size="16" font-weight="bold" text-anchor="middle" fill="#27ae60">
+    ✅ After (Fixed):
+  </text>
+  <text x="1050" y="1050" font-size="14" text-anchor="middle" fill="#34495e">
+    Preserves content_block structure → ~800 tokens → Success!
+  </text>
+  <text x="1050" y="1070" font-size="14" text-anchor="middle" fill="#34495e">
+    AI can natively analyze file content
+  </text>
+  
+  <!-- Arrow marker definition -->
+  <defs>
+    <marker id="arrowhead" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto">
+      <polygon points="0 0, 10 3, 0 6" fill="#2c3e50"/>
+    </marker>
+  </defs>
+</svg>

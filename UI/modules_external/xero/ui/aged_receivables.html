@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Xero Aged Receivables Report</title>
+
+    <!-- Font Awesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css"
+        crossorigin="anonymous" />
+
+    <!-- ApexCharts -->
+    <script src="https://cdn.jsdelivr.net/npm/apexcharts@3.45.1/dist/apexcharts.min.js"></script>
+
+    <!-- Tabulator -->
+    <link href="https://unpkg.com/tabulator-tables@5.5.2/dist/css/tabulator_midnight.min.css" rel="stylesheet">
+    <script src="https://unpkg.com/tabulator-tables@5.5.2/dist/js/tabulator.min.js"></script>
+
+    <!-- SheetJS for Excel export -->
+    <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
+
+    <!-- UI Standardization System -->
+    <link rel="stylesheet" href="../../../shared/css/ui-standardization.css">
+
+    <!-- Xero Reports Styles -->
+    <link rel="stylesheet" href="xero-reports.css">
+</head>
+
+<body class="xero-report-container">
+    <!-- Loading Overlay -->
+    <div id="loadingOverlay" class="xero-loading-overlay hidden">
+        <div class="xero-loading-spinner"></div>
+    </div>
+
+    <!-- Header -->
+    <div class="xero-report-header">
+        <h1><i class="fas fa-file-invoice-dollar"></i> Aged Receivables Report</h1>
+        <div class="xero-last-updated">Last updated: <span id="lastUpdated">2 mins ago</span></div>
+    </div>
+
+    <!-- Filters Bar -->
+    <div class="xero-filters-bar">
+        <div class="xero-filter-group">
+            <label>Date Range</label>
+            <select id="dateRange" onchange="updateReport()">
+                <option value="30" selected>Last 30 Days</option>
+                <option value="60">Last 60 Days</option>
+                <option value="90">Last 90 Days</option>
+                <option value="180">Last 6 Months</option>
+                <option value="365">Last Year</option>
+            </select>
+        </div>
+
+        <div class="xero-filter-group">
+            <label>Business</label>
+            <select id="businessFilter" onchange="updateReport()">
+                <option value="all" selected>All Businesses</option>
+                <option value="1">Print Business</option>
+                <option value="2">Publishing Business</option>
+                <option value="3">Signs Business</option>
+            </select>
+        </div>
+
+        <button class="xero-btn-refresh" onclick="updateReport()">
+            <i class="fas fa-sync-alt"></i> Refresh
+        </button>
+        <button class="xero-btn-settings" onclick="showSettings()">
+            <i class="fas fa-cog"></i> Settings
+        </button>
+    </div>
+
+    <!-- Main Content -->
+    <div class="xero-content">
+        <!-- KPI Cards Grid -->
+        <div class="xero-kpi-grid">
+            <div class="xero-kpi-card">
+                <div class="xero-kpi-icon primary">
+                    <i class="fas fa-dollar-sign"></i>
+                </div>
+                <div class="xero-kpi-content">
+                    <div class="xero-kpi-value" id="kpiTotalOutstanding">$0</div>
+                    <div class="xero-kpi-label">Total Outstanding</div>
+                    <div class="xero-kpi-trend up" id="kpiTotalTrend">
+                        <i class="fas fa-arrow-up"></i> 12% vs last month
+                    </div>
+                </div>
+            </div>
+
+            <div class="xero-kpi-card">
+                <div class="xero-kpi-icon primary">
+                    <i class="fas fa-file-invoice"></i>
+                </div>
+                <div class="xero-kpi-content">
+                    <div class="xero-kpi-value" id="kpiTotalInvoices">0</div>
+                    <div class="xero-kpi-label">Total Invoices</div>
+                    <div class="xero-kpi-trend down" id="kpiInvoicesTrend">
+                        <i class="fas fa-arrow-down"></i> 5% vs last month
+                    </div>
+                </div>
+            </div>
+
+            <div class="xero-kpi-card alert">
+                <div class="xero-kpi-icon alert">
+                    <i class="fas fa-exclamation-triangle"></i>
+                </div>
+                <div class="xero-kpi-content">
+                    <div class="xero-kpi-value" id="kpiOverdueCritical">0</div>
+                    <div class="xero-kpi-label">Overdue Critical (90+ Days)</div>
+                    <div class="xero-kpi-trend up" id="kpiCriticalTrend">
+                        <i class="fas fa-arrow-up"></i> 8% vs last month
+                    </div>
+                </div>
+            </div>
+
+            <div class="xero-kpi-card">
+                <div class="xero-kpi-icon primary">
+                    <i class="fas fa-calendar-alt"></i>
+                </div>
+                <div class="xero-kpi-content">
+                    <div class="xero-kpi-value" id="kpiAvgDays">0</div>
+                    <div class="xero-kpi-label">Avg Days Outstanding</div>
+                    <div class="xero-kpi-trend neutral" id="kpiAvgDaysTrend">
+                        <i class="fas fa-equals"></i> No change
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Chart Section -->
+        <div class="xero-chart-section">
+            <h2><i class="fas fa-chart-bar"></i> Aging Breakdown</h2>
+            <div class="xero-chart-controls">
+                <select id="chartType" onchange="changeChartType()">
+                    <option value="bar" selected>Bar Chart</option>
+                    <option value="pie">Pie Chart</option>
+                    <option value="donut">Donut Chart</option>
+                </select>
+                <button onclick="exportChartPNG()"><i class="fas fa-image"></i> Export PNG</button>
+                <button onclick="exportChartSVG()"><i class="fas fa-file-image"></i> Export SVG</button>
+            </div>
+            <div id="xeroReportChart"></div>
+        </div>
+
+        <!-- Table Section -->
+        <div class="xero-table-section">
+            <h2><i class="fas fa-table"></i> Detailed Invoice List</h2>
+            <div class="xero-table-controls">
+                <input type="text" class="xero-table-search" id="tableSearch" placeholder="🔍 Search invoices...">
+                <div class="xero-table-actions">
+                    <button class="xero-btn-export" onclick="exportToCSV()">
+                        <i class="fas fa-file-csv"></i> Export CSV
+                    </button>
+                    <button class="xero-btn-export" onclick="exportToExcel()">
+                        <i class="fas fa-file-excel"></i> Export Excel
+                    </button>
+                </div>
+            </div>
+            <div id="xeroReportTable"></div>
+        </div>
+    </div>
+
+    <script src="xero-reports.js"></script>
+</body>
+
+</html>

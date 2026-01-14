@@ -1,0 +1,244 @@
+{
+  "id": "quote-calculator",
+  "name": "Quote Calculator",
+  "version": "1.0.0",
+  "description": "InHouse Print quote generation and pricing tools with AI integration",
+  "author": "InHouse Print",
+  "license": "Proprietary",
+  "html_file": "quote-calculator.html",
+  "js_file": "quote-calculator.js",
+  "css_file": "quote-calculator.css",
+  "main_tab": true,
+  "main_tab_id": "quote-calculator",
+  "module": {
+    "main": "quote-calculator.js",
+    "class": "QuoteCalculatorModule",
+    "styles": "quote-calculator.css",
+    "html": "quote-calculator.html"
+  },
+  "ui": {
+    "icon": "fas fa-calculator",
+    "colors": {
+      "primary": "#ffb347",
+      "secondary": "#ffd699",
+      "hover": "#ffaa33",
+      "gradient": "linear-gradient(135deg, #ffb347 0%, #ffd699 100%)"
+    },
+    "position": 4
+  },
+  "tabs": [
+    {
+      "id": "business-cards",
+      "name": "Business Cards",
+      "icon": "fas fa-id-card",
+      "default": true,
+      "description": "Calculate quotes for business card printing (1,000 - 10,000 cards)",
+      "features": [
+        "Real-time quote calculation",
+        "Multiple stock options (350gsm Satin, 400gsm Uncoated, 350gsm Gloss)",
+        "Cellophane finish options",
+        "Single or double-sided printing",
+        "Detailed cost breakdown"
+      ],
+      "status": "ready"
+    },
+    {
+      "id": "flyers",
+      "name": "Flyers",
+      "icon": "fas fa-file-alt",
+      "description": "Digital printing flyer quotes (A4, A5, A6, DL sizes)",
+      "features": [
+        "Multiple size options",
+        "Database-driven stock selection",
+        "Color and B&W printing",
+        "Quantity-based pricing"
+      ],
+      "status": "pending_database"
+    },
+    {
+      "id": "perfect-bound-books",
+      "name": "Perfect Bound Books",
+      "icon": "fas fa-book",
+      "description": "Perfect bound book quotes with glued spine",
+      "features": [
+        "Page count selector",
+        "Separate cover and interior stock selection",
+        "Bulk pricing tiers",
+        "Turnaround time display"
+      ],
+      "status": "pending_database"
+    },
+    {
+      "id": "booklets",
+      "name": "Booklets",
+      "icon": "fas fa-book-open",
+      "description": "Saddle-stitched booklet quotes",
+      "features": [
+        "4-48 page options (divisible by 4)",
+        "Stock selection",
+        "Quantity-based pricing"
+      ],
+      "status": "pending_database"
+    },
+    {
+      "id": "advanced",
+      "name": "Query Library",
+      "icon": "fas fa-chart-line",
+      "description": "Historical quote analysis and business intelligence",
+      "features": [
+        "50+ pre-built SQL queries",
+        "Sales trend analysis",
+        "Customer analytics",
+        "Production planning",
+        "Stock usage reports",
+        "Revenue analysis"
+      ],
+      "status": "ready"
+    }
+  ],
+  "tools": {
+    "enabled": true,
+    "manifestPath": "tools/manifest.json",
+    "categories": [
+      {
+        "id": "calculator",
+        "name": "Calculator Tools",
+        "description": "Quote calculation for various print products",
+        "toolsFile": "calculator-tools.json",
+        "toolCount": 7
+      },
+      {
+        "id": "query-library",
+        "name": "Query Library",
+        "description": "Historical data analysis and business intelligence",
+        "toolsFile": "query-library-tools.json",
+        "toolCount": 15
+      },
+      {
+        "id": "smart-tools",
+        "name": "Smart Tools",
+        "description": "Bundled multi-operation tools for efficiency",
+        "toolsFile": "smart-tools.json",
+        "toolCount": 5
+      }
+    ],
+    "totalTools": 27
+  },
+  "api": {
+    "baseUrl": "/api/quote-calculator",
+    "endpoints": [
+      {
+        "path": "/business-cards",
+        "method": "POST",
+        "description": "Calculate business card quote",
+        "backend": "shopify_calculators/business_card_calculator_shopify.py"
+      },
+      {
+        "path": "/flyers",
+        "method": "POST",
+        "description": "Calculate flyer quote",
+        "backend": "complete_calculator_implementation.py",
+        "requires_database": true
+      },
+      {
+        "path": "/perfect-bound-books",
+        "method": "POST",
+        "description": "Calculate perfect bound book quote",
+        "backend": "complete_calculator_implementation.py",
+        "requires_database": true
+      },
+      {
+        "path": "/booklets",
+        "method": "POST",
+        "description": "Calculate booklet quote",
+        "backend": "complete_calculator_implementation.py",
+        "requires_database": true
+      },
+      {
+        "path": "/stock-list",
+        "method": "GET",
+        "description": "Get available paper stocks"
+      },
+      {
+        "path": "/query/:queryName",
+        "method": "POST",
+        "description": "Execute pre-built query",
+        "backend": "query_library.py",
+        "requires_database": true
+      }
+    ]
+  },
+  "database": {
+    "required": false,
+    "preferredType": "SQL Server",
+    "fallback": "SQLite",
+    "notes": "Business Cards calculator works without database (Shopify pricing). Other calculators require SQL Server connection for GOD pricing."
+  },
+  "dependencies": {
+    "python": {
+      "modules": [
+        "complete_calculator_implementation",
+        "shopify_calculators",
+        "query_library",
+        "db_connector"
+      ],
+      "path": "../calculator-module/ORIGINAL/"
+    },
+    "frontend": {
+      "libraries": [
+        "chart.js (for query visualizations)",
+        "datatables (for query results)"
+      ]
+    }
+  },
+  "configuration": {
+    "cacheStockList": true,
+    "stockListTTL": 3600,
+    "maxQuoteHistory": 100,
+    "defaultQuantity": 1000,
+    "currencySymbol": "$",
+    "taxRate": 0.10
+  },
+  "features": {
+    "aiIntegration": {
+      "enabled": true,
+      "capabilities": [
+        "Natural language quote requests",
+        "Bulk quote generation",
+        "Historical quote analysis",
+        "Dashboard data export for AI consumption",
+        "Smart bundled operations"
+      ]
+    },
+    "dashboardExport": {
+      "enabled": true,
+      "formats": [
+        "json"
+      ],
+      "includedData": [
+        "Recent quotes",
+        "Stock list",
+        "Query results",
+        "Price trends"
+      ]
+    },
+    "realTimeCalculation": true,
+    "quoteHistory": true,
+    "priceComparison": true,
+    "costBreakdown": true
+  },
+  "metadata": {
+    "tags": [
+      "printing",
+      "quotes",
+      "calculator",
+      "business",
+      "pricing"
+    ],
+    "category": "Business Operations",
+    "documentation": "README_INTEGRATION.md",
+    "sourceRepository": "In_House_SQL/Quote_Calculator",
+    "lastUpdated": "2025-10-30",
+    "status": "active"
+  }
+}

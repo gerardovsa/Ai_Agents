@@ -1,0 +1,94 @@
+<!-- ==================== SETTINGS BUTTON INTEGRATION GUIDE ==================== -->
+
+<!-- 
+STEP 1: Add this CSS link to your main HTML file's <head>
+Location: Wherever you load prime_ai_chat.js
+-->
+<link rel="stylesheet" href="UI/modules/agents/settings_sidebar.css">
+
+<!-- 
+STEP 2: Add this JavaScript before closing </body>
+-->
+<script src="UI/modules/agents/settings_sidebar.js"></script>
+
+<!-- 
+STEP 3: Include the settings sidebar HTML
+Option A: Copy entire settings_sidebar.html content into your main HTML
+Option B: Load dynamically (shown below)
+-->
+<script>
+    // Load settings sidebar dynamically
+    fetch('UI/modules/agents/settings_sidebar.html')
+        .then(response => response.text())
+        .then(html => {
+            document.body.insertAdjacentHTML('beforeend', html);
+            console.log('[Settings] Sidebar HTML loaded');
+        });
+</script>
+
+<!-- 
+STEP 4: Add settings button to your sidebar icons
+Find where you have other sidebar buttons (like the one you showed):
+-->
+
+<!-- BEFORE (your example): -->
+<button class="sidebar-icon-btn" data-action="some-action" title="Some Action">
+    <i class="fas fa-some-icon"></i>
+</button>
+
+<!-- AFTER (add this button): -->
+<button class="sidebar-icon-btn" data-action="settings" onclick="window.openSettingsSidebar()" title="Settings">
+    <i class="fas fa-cog"></i>
+</button>
+
+<!-- 
+EXAMPLE: Complete sidebar with all buttons
+-->
+<div class="sidebar-icons">
+    <!-- Existing buttons -->
+    <button class="sidebar-icon-btn" data-action="prompts" title="Prompts">
+        <i class="fas fa-bolt"></i>
+    </button>
+
+    <button class="sidebar-icon-btn" data-action="automations" title="Automations">
+        <i class="fas fa-robot"></i>
+    </button>
+
+    <button class="sidebar-icon-btn" data-action="synergy" title="Synergy">
+        <i class="fas fa-network-wired"></i>
+    </button>
+
+    <!-- NEW: Settings button -->
+    <button class="sidebar-icon-btn" data-action="settings" onclick="window.openSettingsSidebar()" title="Settings">
+        <i class="fas fa-cog"></i>
+    </button>
+</div>
+
+<!-- 
+TESTING:
+1. Reload page with hard refresh (Ctrl+Shift+R)
+2. Click settings icon (⚙️)
+3. Should see settings sidebar slide in from right
+4. Toggle "Enable Auto-Recovery" OFF
+5. Check console: localStorage.getItem('aiAgentSettings')
+6. Should see JSON with enabled: false
+-->
+
+<!-- 
+STYLE MATCHING:
+If your sidebar icons use different classes, update the button:
+-->
+<button class="your-custom-btn-class" onclick="window.openSettingsSidebar()" title="Settings">
+    <i class="fas fa-cog"></i>
+</button>
+
+<!-- 
+The settings sidebar will automatically match the prompt sidebar styling
+because it uses the same CSS classes:
+- .prompt-sidebar (main container)
+- .prompt-sidebar-header
+- .prompt-sidebar-tabs
+- .sidebar-tab
+- .prompt-sidebar-body
+- .prompt-sidebar-footer
+-->

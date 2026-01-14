@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Modern Framework V4 ES6 Module Test</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #0d1117;
+            color: #c9d1d9;
+            padding: 20px;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .test-section {
+            background: #161b22;
+            border: 1px solid #30363d;
+            border-radius: 6px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+
+        .test-section h2 {
+            margin-top: 0;
+            color: #58a6ff;
+        }
+
+        .success {
+            color: #3fb950;
+        }
+
+        .error {
+            color: #f85149;
+        }
+
+        .warning {
+            color: #d29922;
+        }
+
+        pre {
+            background: #0d1117;
+            border: 1px solid #30363d;
+            border-radius: 6px;
+            padding: 16px;
+            overflow-x: auto;
+        }
+
+        button {
+            background: #238636;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            margin-right: 10px;
+        }
+
+        button:hover {
+            background: #2ea043;
+        }
+
+        #test-container {
+            min-height: 300px;
+            border: 2px dashed #30363d;
+            border-radius: 6px;
+            padding: 20px;
+            margin-top: 20px;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>🔷 Modern Framework V4 - ES6 Module Loading Test</h1>
+
+    <div class="test-section">
+        <h2>Test Controls</h2>
+        <button onclick="testES6Import()">1. Test ES6 Dynamic Import</button>
+        <button onclick="testModuleLoader()">2. Test Module Loader</button>
+        <button onclick="testUtilitiesInjection()">3. Test Utilities Injection</button>
+        <button onclick="clearResults()">Clear Results</button>
+    </div>
+
+    <div class="test-section">
+        <h2>Test Results</h2>
+        <div id="results"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>Module Container (for testing)</h2>
+        <div id="communication-hub-main-container"></div>
+        <div id="tab-communication-hub"></div>
+    </div>
+
+    <script>
+        // Test results container
+        const results = document.getElementById('results');
+
+        function log(message, type = 'info') {
+            const className = type === 'success' ? 'success' : type === 'error' ? 'error' : type === 'warning' ? 'warning' : '';
+            results.innerHTML += `<div class="${className}">[${new Date().toLocaleTimeString()}] ${message}</div>`;
+            console.log(message);
+        }
+
+        function clearResults() {
+            results.innerHTML = '';
+        }
+
+        // Test 1: Direct ES6 import
+        async function testES6Import() {
+            log('━━━ Test 1: ES6 Dynamic Import ━━━');
+
+            try {
+                log('Attempting to import communication-hub-v4-modern.js as ES6 module...');
+
+                const modulePath = './UI/modules_external/communication-hub/communication-hub-v4-modern.js';
+                const moduleExport = await import(modulePath);
+
+                if (moduleExport.default) {
+                    log('✅ SUCCESS: ES6 module loaded with default export', 'success');
+                    log(`Module has onDashboardLoad: ${typeof moduleExport.default.onDashboardLoad === 'function'}`, 'success');
+                    log(`Module has onUnload: ${typeof moduleExport.default.onUnload === 'function'}`, 'success');
+                    log(`Module has state object: ${typeof moduleExport.default.state === 'object'}`, 'success');
+                } else {
+                    log('❌ ERROR: No default export found', 'error');
+                }
+            } catch (error) {
+                log(`❌ ERROR: ${error.message}`, 'error');
+                console.error(error);
+            }
+        }
+
+        // Test 2: Module Loader integration
+        async function testModuleLoader() {
+            log('━━━ Test 2: Module Loader Integration ━━━');
+
+            try {
+                // Check if ModuleLoader exists
+                if (!window.ModuleLoader) {
+                    log('⚠️ WARNING: ModuleLoader not found, loading it...', 'warning');
+
+                    // Load module loader
+                    await new Promise((resolve, reject) => {
+                        const script = document.createElement('script');
+                        script.src = './UI/modules_internal/module_loader.js';
+                        script.onload = resolve;
+                        script.onerror = reject;
+                        document.head.appendChild(script);
+                    });
+
+                    log('✅ Module Loader loaded', 'success');
+                }
+
+                // Test loading communication-hub
+                log('Attempting to load communication-hub module...');
+                const loaded = await window.ModuleLoader.loadModule('communication-hub');
+
+                if (loaded) {
+                    log('✅ SUCCESS: Module loaded via ModuleLoader', 'success');
+
+                    // Check if registered
+                    if (window.ModuleRegistry && window.ModuleRegistry['communication-hub']) {
+                        log('✅ Module registered in window.ModuleRegistry', 'success');
+                        const mod = window.ModuleRegistry['communication-hub'];
+                        log(`Has onDashboardLoad: ${typeof mod.onDashboardLoad === 'function'}`, 'success');
+                    } else {
+                        log('⚠️ Module not found in window.ModuleRegistry', 'warning');
+                    }
+                } else {
+                    log('❌ ERROR: Module failed to load', 'error');
+                }
+            } catch (error) {
+                log(`❌ ERROR: ${error.message}`, 'error');
+                console.error(error);
+            }
+        }
+
+        // Test 3: Utilities injection
+        async function testUtilitiesInjection() {
+            log('━━━ Test 3: Utilities Injection ━━━');
+
+            try {
+                if (!window.ModuleRegistry || !window.ModuleRegistry['communication-hub']) {
+                    log('⚠️ Module not loaded yet, run Test 2 first', 'warning');
+                    return;
+                }
+
+                const moduleDefinition = window.ModuleRegistry['communication-hub'];
+
+                log('Testing utilities injection pattern...');
+
+                // Create mock utilities
+                const mockUtilities = {
+                    dom: {
+                        getContainer: () => document.getElementById('communication-hub-main-container'),
+                        createElement: (tag) => document.createElement(tag)
+                    },
+                    api: { get: () => Promise.resolve({}) },
+                    storage: { get: () => null, set: () => { } },
+                    events: { on: () => { }, emit: () => { } },
+                    log: {
+                        info: (...args) => console.log('[TEST]', ...args),
+                        error: (...args) => console.error('[TEST]', ...args),
+                        success: (...args) => console.log('[TEST] ✅', ...args)
+                    }
+                };
+
+                // Test if onDashboardLoad accepts utilities
+                if (typeof moduleDefinition.onDashboardLoad === 'function') {
+                    log('Calling onDashboardLoad with mock utilities...');
+
+                    try {
+                        await moduleDefinition.onDashboardLoad(mockUtilities);
+                        log('✅ SUCCESS: onDashboardLoad executed without errors', 'success');
+
+                        // Check if utilities were assigned
+                        if (moduleDefinition.dom && moduleDefinition.api) {
+                            log('✅ Utilities successfully injected into module', 'success');
+                        } else {
+                            log('⚠️ Utilities may not have been properly assigned', 'warning');
+                        }
+                    } catch (error) {
+                        log(`⚠️ onDashboardLoad threw error (may be expected): ${error.message}`, 'warning');
+                    }
+                } else {
+                    log('❌ ERROR: onDashboardLoad not found', 'error');
+                }
+            } catch (error) {
+                log(`❌ ERROR: ${error.message}`, 'error');
+                console.error(error);
+            }
+        }
+
+        // Auto-run first test on load
+        window.addEventListener('load', () => {
+            log('🔷 Modern Framework V4 ES6 Test Suite Ready');
+            log('Run tests in order: 1 → 2 → 3');
+        });
+    </script>
+</body>
+
+</html>

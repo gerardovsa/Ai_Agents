@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Communication Hub - Simple Test</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #0B0E13;
+            color: #E5E7EB;
+        }
+
+        .test-header {
+            background: #1a1f2e;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+
+        .test-header h1 {
+            margin: 0;
+            color: #6366f1;
+        }
+
+        .btn {
+            padding: 10px 20px;
+            background: #6366f1;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            margin: 5px;
+        }
+
+        .btn:hover {
+            background: #4f46e5;
+        }
+
+        .console {
+            background: #000;
+            padding: 15px;
+            border-radius: 4px;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            max-height: 400px;
+            overflow-y: auto;
+            margin: 20px 0;
+            white-space: pre-wrap;
+        }
+
+        .success {
+            color: #10b981;
+        }
+
+        .error {
+            color: #ef4444;
+        }
+
+        .warning {
+            color: #f59e0b;
+        }
+
+        /* Module container styling */
+        #tab-communication {
+            background: #1a1f2e;
+            border-radius: 8px;
+            padding: 20px;
+            min-height: 600px;
+            margin-top: 20px;
+        }
+
+        .module-header {
+            padding: 20px;
+            border-bottom: 1px solid #2a3142;
+            margin-bottom: 20px;
+        }
+
+        .module-title {
+            font-size: 24px;
+            margin: 0;
+            color: #e5e7eb;
+        }
+
+        .module-subtabs-nav {
+            display: flex;
+            gap: 10px;
+            padding: 10px 20px;
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+
+        .module-subtab-btn {
+            padding: 10px 20px;
+            background: #2a3142;
+            color: #9ca3af;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .module-subtab-btn.active {
+            background: #6366f1;
+            color: white;
+        }
+
+        .module-subtab-content {
+            display: none;
+            padding: 20px;
+        }
+
+        .module-subtab-content.active {
+            display: block;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="test-header">
+        <h1><i class="fas fa-comments"></i> Communication Hub - Simple Direct Test</h1>
+        <p>Direct module initialization without complex test harness</p>
+    </div>
+
+    <div>
+        <button class="btn" onclick="initModule()">
+            <i class="fas fa-play"></i> Initialize Module
+        </button>
+        <button class="btn" onclick="clearConsole()">
+            <i class="fas fa-eraser"></i> Clear Console
+        </button>
+        <button class="btn" onclick="inspectDOM()">
+            <i class="fas fa-search"></i> Inspect DOM
+        </button>
+    </div>
+
+    <div class="console" id="console"></div>
+
+    <!-- THIS IS THE MODULE CONTAINER -->
+    <h2 style="color: #818cf8; margin: 20px 0;">Module Container (#tab-communication):</h2>
+    <div id="tab-communication">
+        <p style="text-align: center; color: #6b7280; padding: 40px;">
+            <i class="fas fa-info-circle" style="font-size: 32px; display: block; margin-bottom: 10px;"></i>
+            Waiting for module initialization...
+        </p>
+    </div>
+
+    <script>
+        // Console capture
+        function log(message, type = 'log') {
+            const consoleEl = document.getElementById('console');
+            const color = type === 'error' ? 'error' : type === 'warn' ? 'warning' : 'success';
+            consoleEl.innerHTML += `<span class="${color}">${message}</span>\n`;
+            consoleEl.scrollTop = consoleEl.scrollHeight;
+
+            // Also log to real console
+            if (type === 'error') console.error(message);
+            else if (type === 'warn') console.warn(message);
+            else console.log(message);
+        }
+
+        function clearConsole() {
+            document.getElementById('console').innerHTML = '';
+            log('✓ Console cleared');
+        }
+
+        function inspectDOM() {
+            log('\n=== DOM INSPECTION ===', 'log');
+
+            const container = document.getElementById('tab-communication');
+            log(`Container exists: ${!!container}`);
+            log(`Container ID: ${container?.id}`);
+            log(`Inner HTML length: ${container?.innerHTML.length}`);
+            log(`Has .module-header: ${!!container?.querySelector('.module-header')}`);
+            log(`Has .module-subtabs-nav: ${!!container?.querySelector('.module-subtabs-nav')}`);
+            log(`Sub-tab buttons: ${container?.querySelectorAll('.module-subtab-btn').length}`);
+            log(`Sub-tab content areas: ${container?.querySelectorAll('.module-subtab-content').length}`);
+
+            log('\nModule Registry:');
+            if (window.ModuleRegistry && window.ModuleRegistry['communication-hub']) {
+                log('✓ Module registered');
+                log(`  Has instance: ${!!window.ModuleRegistry['communication-hub'].instance}`);
+                log(`  Has init: ${typeof window.ModuleRegistry['communication-hub'].init === 'function'}`);
+
+                const instance = window.ModuleRegistry['communication-hub'].instance;
+                if (instance) {
+                    log(`  Module ID: ${instance.moduleId}`);
+                    log(`  Has manifest: ${!!instance.manifest}`);
+                    if (instance.manifest) {
+                        log(`    - name: ${instance.manifest.name}`);
+                        log(`    - main_tab_id: ${instance.manifest.main_tab_id}`);
+                        log(`    - tabs: ${instance.manifest.tabs?.length}`);
+                    }
+                    log(`  Container: ${instance.container ? '#' + instance.container.id : 'NOT SET'}`);
+                }
+            } else {
+                log('✗ Module NOT registered', 'error');
+            }
+        }
+
+        async function initModule() {
+            log('\n🚀 Starting module initialization...');
+
+            try {
+                // Check if module is loaded
+                if (!window.ModuleRegistry || !window.ModuleRegistry['communication-hub']) {
+                    log('✗ ERROR: Module not registered in window.ModuleRegistry', 'error');
+                    log('  Make sure communication-hub.js is loaded!', 'warn');
+                    return;
+                }
+
+                log('✓ Module found in registry');
+
+                // Clear any existing instance
+                if (window.ModuleRegistry['communication-hub'].instance) {
+                    log('⚠ Clearing existing instance', 'warn');
+                    window.ModuleRegistry['communication-hub'].instance = null;
+                }
+
+                // Initialize
+                log('📧 Calling init()...');
+                const module = await window.ModuleRegistry['communication-hub'].init();
+
+                log('✓ init() completed');
+                log(`✓ Instance created: ${!!module}`);
+
+                // Wait a bit for DOM to update
+                await new Promise(resolve => setTimeout(resolve, 500));
+
+                // Check results
+                inspectDOM();
+
+                log('\n✅ MODULE INITIALIZATION COMPLETE!', 'log');
+
+            } catch (error) {
+                log(`\n✗ INITIALIZATION FAILED: ${error.message}`, 'error');
+                log(`Stack: ${error.stack}`, 'error');
+            }
+        }
+
+        // Auto-load after script loads
+        window.addEventListener('load', () => {
+            log('✓ Page loaded');
+            log('✓ Waiting for module script...');
+
+            // Check if module script is loaded
+            setTimeout(() => {
+                if (window.ModuleRegistry && window.ModuleRegistry['communication-hub']) {
+                    log('✓ Module script loaded!');
+                    log('💡 Click "Initialize Module" to start');
+                } else {
+                    log('⚠ Module script not detected', 'warn');
+                    log('  Attempting to load...', 'warn');
+                }
+            }, 100);
+        });
+    </script>
+
+    <!-- Load the module script -->
+    <script src="UI/external/modules/communication-hub/communication-hub.js"></script>
+
+    <script>
+        // Verify script loaded
+        setTimeout(() => {
+            if (window.ModuleRegistry && window.ModuleRegistry['communication-hub']) {
+                log('✓ Module script loaded successfully!');
+            } else {
+                log('✗ Module script failed to load!', 'error');
+            }
+        }, 200);
+    </script>
+</body>
+
+</html>

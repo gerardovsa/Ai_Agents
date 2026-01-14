@@ -1,0 +1,1256 @@
+/**
+ * CHAT SIDEBAR - WhatsApp-Style Messaging with Voice Calls
+ * Modern chat interface with message bubbles, voice calling, and rich interactions
+ */
+
+window.ChatSidebar = {
+    // State
+    isOpen: false,
+    currentView: 'chat-list', // 'chat-list', 'conversation', 'call'
+    currentTab: 'chats', // 'chats', 'contacts', 'calls'
+    activeConversation: null,
+    conversations: new Map(),
+    unreadCount: 0,
+    currentSide: localStorage.getItem('chat-sidebar-side') || 'right', // 'left' or 'right'
+
+    // Voice call state
+    currentCall: null,
+    localStream: null,
+    remoteStream: null,
+    peerConnection: null,
+
+    // Configuration
+    config: {
+        iceServers: [
+            { urls: 'stun:stun.l.google.com:19302' },
+            { urls: 'stun:stun1.l.google.com:19302' }
+        ]
+    },
+
+    /**
+     * Initialize chat sidebar (called by SidebarManager on first open)
+     */
+    async init() {
+        console.log('[CHAT SIDEBAR] Initializing...');
+
+        // Apply saved side preference
+        this.applySidePreference();
+
+        // Setup drag listeners for toggle button
+        this.setupDragListeners();
+
+        // Wait for WebSocket connection
+        if (typeof SynergyRealtime !== 'undefined' && SynergyRealtime.isConnected()) {
+            this.setupWebSocketListeners();
+        } else {
+            console.warn('[CHAT SIDEBAR] WebSocket not ready, will retry...');
+            // Retry after WebSocket connects
+            setTimeout(() => this.setupWebSocketListeners(), 1000);
+        }
+
+        // Load conversation history
+        await this.loadConversationHistory();
+
+        // Setup UI event listeners
+        this.setupUIListeners();
+
+        console.log('[CHAT SIDEBAR] Initialized successfully');
+    },
+
+    /**
+     * Setup WebSocket event listeners
+     */
+    setupWebSocketListeners() {
+        if (!SynergyRealtime.socket) return;
+
+        // Direct messages
+        window.addEventListener('synergy:direct_message', (e) => {
+            this.handleIncomingMessage(e.detail, 'direct');
+        });
+
+        // Broadcast messages
+        window.addEventListener('synergy:broadcast_message', (e) => {
+            this.handleIncomingMessage(e.detail, 'broadcast');
+        });
+
+        // Typing indicators
+        SynergyRealtime.socket.on('user_typing_start', (data) => {
+            this.showTypingIndicator(data.user_name, data.user_id);
+        });
+
+        SynergyRealtime.socket.on('user_typing_stop', (data) => {
+            this.hideTypingIndicator(data.user_id);
+        });
+
+        // Voice call signaling
+        SynergyRealtime.socket.on('voice_call_offer', (data) => {
+            this.handleCallOffer(data);
+        });
+
+        SynergyRealtime.socket.on('voice_call_answer', (data) => {
+            this.handleCallAnswer(data);
+        });
+
+        SynergyRealtime.socket.on('voice_call_ice_candidate', (data) => {
+            this.handleIceCandidate(data);
+        });
+
+        SynergyRealtime.socket.on('voice_call_ended', (data) => {
+            this.handleCallEnded(data);
+        });
+
+        // User presence
+        SynergyRealtime.socket.on('user_joined', (data) => {
+            this.updateOnlineStatus(data.user_id, true);
+        });
+
+        SynergyRealtime.socket.on('user_session_left', (data) => {
+            this.updateOnlineStatus(data.user_id, false);
+        });
+    },
+
+    /**
+     * Setup UI event listeners
+     */
+    setupUIListeners() {
+        // Escape key to close sidebar
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' && this.isOpen) {
+                if (this.currentView === 'conversation') {
+                    this.showChatList();
+                } else {
+                    this.close();
+                }
+            }
+        });
+
+        // Message input - Enter to send
+        const messageInput = document.getElementById('chat-message-input');
+        if (messageInput) {
+            messageInput.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    this.sendMessage();
+                }
+            });
+
+            // Typing indicators
+            let typingTimeout;
+            messageInput.addEventListener('input', () => {
+                if (this.activeConversation) {
+                    SynergyRealtime.socket.emit('typing_start', {
+                        user_id: SynergyRealtime._getUserId(),
+                        user_name: SynergyRealtime._getUserName(),
+                        recipient_id: this.activeConversation
+                    });
+
+                    clearTimeout(typingTimeout);
+                    typingTimeout = setTimeout(() => {
+                        SynergyRealtime.socket.emit('typing_stop', {
+                            user_id: SynergyRealtime._getUserId(),
+                            recipient_id: this.activeConversation
+                        });
+                    }, 2000);
+                }
+            });
+        }
+    },
+
+    /**
+     * Toggle sidebar open/close (backwards compatibility)
+     */
+    toggle() {
+        this.toggleSidebar();
+    },
+
+    /**
+     * Open sidebar (called by SidebarManager)
+     */
+    open() {
+        console.log('[CHAT SIDEBAR] Opening...');
+        this.isOpen = true;
+
+        // Load initial data
+        this.refreshChatList();
+
+        console.log('[CHAT SIDEBAR] Opened');
+    },
+
+    /**
+     * Close sidebar (called by SidebarManager)
+     */
+    close() {
+        console.log('[CHAT SIDEBAR] Closing...');
+        this.isOpen = false;
+
+        // End any active call
+        if (this.currentCall) {
+            this.endCall();
+        }
+
+        console.log('[CHAT SIDEBAR] Closed');
+    },
+
+    /**
+     * Show chat list view
+     */
+    showChatList() {
+        this.currentView = 'chat-list';
+        document.getElementById('chat-list-view').style.display = 'flex';
+        document.getElementById('chat-conversation-view').style.display = 'none';
+        document.getElementById('chat-call-view').style.display = 'none';
+        this.activeConversation = null;
+    },
+
+    /**
+     * Switch between tabs (Chats, Contacts, Calls)
+     */
+    switchTab(tabName) {
+        console.log(`[CHAT SIDEBAR] Switching to tab: ${tabName}`);
+        this.currentTab = tabName;
+
+        // Update tab buttons
+        document.querySelectorAll('.chat-tab').forEach(tab => {
+            if (tab.getAttribute('data-tab') === tabName) {
+                tab.classList.add('active');
+            } else {
+                tab.classList.remove('active');
+            }
+        });
+
+        // Update tab content
+        document.querySelectorAll('.chat-tab-content').forEach(content => {
+            content.classList.remove('active');
+        });
+
+        const activeContent = document.getElementById(`chat-tab-${tabName}`);
+        if (activeContent) {
+            activeContent.classList.add('active');
+        }
+
+        // Load data based on tab
+        switch (tabName) {
+            case 'chats':
+                this.refreshChatList();
+                break;
+            case 'contacts':
+                this.loadContacts();
+                break;
+            case 'calls':
+                this.loadCallHistory();
+                break;
+        }
+    },
+
+    /**
+     * Load contacts list
+     */
+    async loadContacts() {
+        const container = document.getElementById('chat-contacts-container');
+        if (!container) return;
+
+        try {
+            const currentUserId = localStorage.getItem('user_id');
+            const response = await fetch(`/api/users/team-members?user_id=${currentUserId}`);
+            const data = await response.json();
+
+            if (data.users && data.users.length > 0) {
+                let html = '';
+                data.users.forEach(user => {
+                    const isOnline = user.is_online || false;
+                    html += `
+                        <div class="chat-contact-item">
+                            <div class="chat-contact-avatar">
+                                <img src="/api/user/avatar/${user.user_id}" alt="${user.name}">
+                                <span class="chat-online-indicator ${isOnline ? 'online' : ''}"></span>
+                            </div>
+                            <div class="chat-contact-info">
+                                <div class="chat-contact-name">${user.name}</div>
+                                <div class="chat-contact-status">
+                                    <i class="fas fa-circle" style="font-size: 8px; color: ${isOnline ? '#4CAF50' : '#9e9e9e'};"></i>
+                                    ${isOnline ? 'Online' : 'Offline'}
+                                </div>
+                            </div>
+                            <div class="chat-contact-actions">
+                                <button class="chat-contact-action-btn" onclick="ChatSidebar.startChatWith('${user.user_id}', '${user.name}')" title="Start Chat">
+                                    <i class="fas fa-comment"></i>
+                                </button>
+                                <button class="chat-contact-action-btn" onclick="ChatSidebar.callUser('${user.user_id}', '${user.name}')" title="Call">
+                                    <i class="fas fa-phone"></i>
+                                </button>
+                            </div>
+                        </div>
+                    `;
+                });
+                container.innerHTML = html;
+            } else {
+                container.innerHTML = `
+                    <div class="chat-list-empty">
+                        <i class="fas fa-user-friends"></i>
+                        <p>No contacts yet</p>
+                        <small>Team members will appear here</small>
+                    </div>
+                `;
+            }
+        } catch (error) {
+            console.error('[CHAT SIDEBAR] Error loading contacts:', error);
+        }
+    },
+
+    /**
+     * Load call history
+     */
+    async loadCallHistory() {
+        const container = document.getElementById('chat-calls-container');
+        if (!container) return;
+
+        try {
+            const currentUserId = localStorage.getItem('user_id');
+            const response = await fetch(`/api/calls/history?user_id=${currentUserId}`);
+            const data = await response.json();
+
+            if (data.calls && data.calls.length > 0) {
+                let html = '';
+                data.calls.forEach(call => {
+                    const type = call.type; // 'outgoing', 'incoming', 'missed'
+                    const icon = type === 'outgoing' ? 'phone-alt' : 'phone';
+                    const iconClass = call.type;
+
+                    html += `
+                        <div class="chat-call-item ${iconClass}">
+                            <div class="chat-call-icon ${iconClass}">
+                                <i class="fas fa-${icon}"></i>
+                            </div>
+                            <div class="chat-call-details">
+                                <div class="chat-call-name">${call.user_name}</div>
+                                <div class="chat-call-info">
+                                    <span>${call.duration || 'Not answered'}</span>
+                                    <span>•</span>
+                                    <span>${call.timestamp}</span>
+                                </div>
+                            </div>
+                            <button class="chat-call-redial-btn" onclick="ChatSidebar.callUser('${call.user_id}', '${call.user_name}')" title="Call Back">
+                                <i class="fas fa-phone"></i>
+                            </button>
+                        </div>
+                    `;
+                });
+                container.innerHTML = html;
+            } else {
+                container.innerHTML = `
+                    <div class="chat-list-empty">
+                        <i class="fas fa-phone-slash"></i>
+                        <p>No call history</p>
+                        <small>Your call history will appear here</small>
+                    </div>
+                `;
+            }
+        } catch (error) {
+            console.error('[CHAT SIDEBAR] Error loading call history:', error);
+        }
+    },
+
+    /**
+     * Start chat with user from contacts
+     */
+    startChatWith(userId, userName) {
+        this.switchTab('chats');
+        setTimeout(() => {
+            this.openConversation(userId, userName, 'Online');
+        }, 300);
+    },
+
+    /**
+     * Call user
+     */
+    callUser(userId, userName) {
+        this.startVoiceCall(userId, userName);
+    },
+
+    /**
+     * Clear call history
+     */
+    async clearCallHistory() {
+        if (!confirm('Are you sure you want to clear your call history?')) return;
+
+        try {
+            const currentUserId = localStorage.getItem('user_id');
+            await fetch(`/api/calls/clear-history?user_id=${currentUserId}`, {
+                method: 'DELETE'
+            });
+            this.loadCallHistory();
+        } catch (error) {
+            console.error('[CHAT SIDEBAR] Error clearing call history:', error);
+        }
+    },
+
+    /**
+     * Open conversation with user
+     */
+    openConversation(userId, userName, userDevice) {
+        this.currentView = 'conversation';
+        this.activeConversation = userId;
+
+        // Update header
+        document.getElementById('conv-user-name').textContent = userName;
+        document.getElementById('conv-user-device').textContent = userDevice || '';
+
+        // Load messages
+        this.loadConversationMessages(userId);
+
+        // Show conversation view
+        document.getElementById('chat-list-view').style.display = 'none';
+        document.getElementById('chat-conversation-view').style.display = 'flex';
+
+        // Mark messages as read
+        this.markConversationRead(userId);
+
+        console.log(`[CHAT SIDEBAR] Opened conversation with user ${userId}`);
+    },
+
+    /**
+     * Load conversation messages
+     */
+    async loadConversationMessages(userId) {
+        try {
+            const currentUserId = localStorage.getItem('user_id');
+            const response = await fetch(`/api/messages/conversation/${userId}?user_id=${currentUserId}&limit=50`);
+            const data = await response.json();
+
+            const messagesContainer = document.getElementById('chat-messages-container');
+            messagesContainer.innerHTML = '';
+
+            if (data.messages && data.messages.length > 0) {
+                data.messages.forEach(msg => {
+                    this.appendMessageBubble(msg);
+                });
+
+                // Scroll to bottom
+                messagesContainer.scrollTop = messagesContainer.scrollHeight;
+            }
+        } catch (error) {
+            console.error('[CHAT SIDEBAR] Error loading messages:', error);
+        }
+    },
+
+    /**
+     * Append message bubble to conversation
+     */
+    appendMessageBubble(message) {
+        const messagesContainer = document.getElementById('chat-messages-container');
+        const currentUserId = SynergyRealtime._getUserId();
+        const isSent = message.from_user_id === currentUserId;
+
+        const bubble = document.createElement('div');
+        bubble.className = `chat-message-bubble ${isSent ? 'sent' : 'received'}`;
+        bubble.dataset.messageId = message.message_id;
+
+        bubble.innerHTML = `
+            <div class="chat-message-content">
+                ${this.escapeHtml(message.message)}
+            </div>
+            <div class="chat-message-meta">
+                <span class="chat-message-time">${this.formatTime(message.timestamp)}</span>
+                ${isSent ? this.getReadStatus(message) : ''}
+            </div>
+            <div class="chat-message-actions">
+                <button class="chat-msg-action-btn" onclick="ChatSidebar.copyMessage('${message.message_id}')" title="Copy">
+                    <i class="fas fa-copy"></i>
+                </button>
+                <button class="chat-msg-action-btn" onclick="ChatSidebar.replyToMessage('${message.message_id}')" title="Reply">
+                    <i class="fas fa-reply"></i>
+                </button>
+                ${isSent ? `
+                    <button class="chat-msg-action-btn" onclick="ChatSidebar.deleteMessage('${message.message_id}')" title="Delete">
+                        <i class="fas fa-trash"></i>
+                    </button>
+                ` : ''}
+            </div>
+        `;
+
+        messagesContainer.appendChild(bubble);
+    },
+
+    /**
+     * Get read status icon
+     */
+    getReadStatus(message) {
+        if (!message.delivered_to || message.delivered_to.length === 0) {
+            return '<i class="fas fa-clock chat-msg-status pending"></i>';
+        } else if (!message.read_by || message.read_by.length === 0) {
+            return '<i class="fas fa-check chat-msg-status delivered"></i>';
+        } else {
+            return '<i class="fas fa-check-double chat-msg-status read"></i>';
+        }
+    },
+
+    /**
+     * Send message
+     */
+    sendMessage() {
+        const input = document.getElementById('chat-message-input');
+        const message = input.value.trim();
+
+        if (!message || !this.activeConversation) return;
+
+        // Send via WebSocket
+        SynergyRealtime.sendDirectMessage(this.activeConversation, message);
+
+        // Add to UI immediately (optimistic update)
+        const messageData = {
+            message_id: `temp_${Date.now()}`,
+            from_user_id: SynergyRealtime._getUserId(),
+            to_user_id: this.activeConversation,
+            message: message,
+            timestamp: new Date().toISOString(),
+            delivered_to: [],
+            read_by: []
+        };
+
+        this.appendMessageBubble(messageData);
+
+        // Clear input
+        input.value = '';
+        input.style.height = 'auto';
+
+        // Scroll to bottom
+        const container = document.getElementById('chat-messages-container');
+        container.scrollTop = container.scrollHeight;
+    },
+
+    /**
+     * Copy message text
+     */
+    copyMessage(messageId) {
+        const bubble = document.querySelector(`[data-message-id="${messageId}"]`);
+        if (!bubble) return;
+
+        const messageText = bubble.querySelector('.chat-message-content').textContent;
+
+        navigator.clipboard.writeText(messageText).then(() => {
+            // Show toast
+            if (typeof EnhancedToast !== 'undefined') {
+                EnhancedToast.show('Message copied to clipboard', 'success', 2000);
+            }
+        }).catch(err => {
+            console.error('[CHAT SIDEBAR] Copy failed:', err);
+        });
+    },
+
+    /**
+     * Reply to message
+     */
+    replyToMessage(messageId) {
+        const bubble = document.querySelector(`[data-message-id="${messageId}"]`);
+        if (!bubble) return;
+
+        const messageText = bubble.querySelector('.chat-message-content').textContent;
+        const input = document.getElementById('chat-message-input');
+
+        // Add reply context
+        input.value = `> ${messageText.substring(0, 50)}${messageText.length > 50 ? '...' : ''}\n\n`;
+        input.focus();
+    },
+
+    /**
+     * Delete message
+     */
+    async deleteMessage(messageId) {
+        if (!confirm('Delete this message?')) return;
+
+        try {
+            const userId = localStorage.getItem('user_id');
+            const response = await fetch(`/api/messages/delete/${messageId}?user_id=${userId}`, {
+                method: 'DELETE',
+                headers: { 'Content-Type': 'application/json' }
+            });
+
+            if (response.ok) {
+                // Remove from UI
+                const bubble = document.querySelector(`[data-message-id="${messageId}"]`);
+                if (bubble) {
+                    bubble.remove();
+                }
+            }
+        } catch (error) {
+            console.error('[CHAT SIDEBAR] Error deleting message:', error);
+        }
+    },
+
+    /**
+     * Handle incoming message
+     */
+    handleIncomingMessage(messageData, type) {
+        console.log('[CHAT SIDEBAR] Incoming message:', messageData);
+
+        // If conversation is open and message is from active user, append it
+        if (this.activeConversation === messageData.from_user_id) {
+            this.appendMessageBubble(messageData);
+
+            // Scroll to bottom
+            const container = document.getElementById('chat-messages-container');
+            container.scrollTop = container.scrollHeight;
+
+            // Mark as read
+            this.markMessageRead(messageData.message_id);
+        } else {
+            // Update unread count
+            this.unreadCount++;
+            this.updateUnreadBadge();
+        }
+
+        // Refresh chat list
+        this.refreshChatList();
+    },
+
+    /**
+     * Mark message as read
+     */
+    markMessageRead(messageId) {
+        if (SynergyRealtime.isConnected()) {
+            SynergyRealtime.socket.emit('mark_message_read', {
+                message_id: messageId,
+                user_id: SynergyRealtime._getUserId()
+            });
+        }
+    },
+
+    /**
+     * Mark entire conversation as read
+     */
+    async markConversationRead(userId) {
+        try {
+            await fetch('/api/messages/mark-read', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ user_id: userId })
+            });
+
+            this.updateUnreadBadge();
+        } catch (error) {
+            console.error('[CHAT SIDEBAR] Error marking conversation read:', error);
+        }
+    },
+
+    /**
+     * Update unread badge
+     */
+    updateUnreadBadge() {
+        const badge = document.getElementById('chat-unread-badge');
+        if (badge) {
+            badge.textContent = this.unreadCount;
+            badge.style.display = this.unreadCount > 0 ? 'block' : 'none';
+        }
+    },
+
+    /**
+     * Refresh chat list
+     */
+    async refreshChatList() {
+        try {
+            const userId = localStorage.getItem('user_id');
+            if (!userId) return;
+
+            const response = await fetch(`/api/messages/conversations?user_id=${userId}`);
+            const data = await response.json();
+
+            const listContainer = document.getElementById('chat-list-container');
+            listContainer.innerHTML = '';
+
+            if (data.conversations && data.conversations.length > 0) {
+                data.conversations.forEach(conv => {
+                    this.appendChatListItem(conv);
+                });
+            } else {
+                listContainer.innerHTML = `
+                    <div class="chat-empty-state">
+                        <i class="fas fa-comments"></i>
+                        <p>No conversations yet</p>
+                        <p class="chat-empty-hint">Start chatting with online users</p>
+                    </div>
+                `;
+            }
+        } catch (error) {
+            console.error('[CHAT SIDEBAR] Error loading conversations:', error);
+        }
+    },
+
+    /**
+     * Append chat list item
+     */
+    appendChatListItem(conversation) {
+        const listContainer = document.getElementById('chat-list-container');
+
+        const item = document.createElement('div');
+        item.className = `chat-list-item ${conversation.unread_count > 0 ? 'unread' : ''}`;
+        item.onclick = () => this.openConversation(
+            conversation.user_id,
+            conversation.user_name,
+            conversation.device
+        );
+
+        item.innerHTML = `
+            <div class="chat-list-avatar">
+                <img src="/api/user/avatar/${conversation.user_id}" alt="${conversation.user_name}">
+                <span class="chat-online-indicator ${conversation.is_online ? 'online' : ''}"></span>
+            </div>
+            <div class="chat-list-info">
+                <div class="chat-list-header">
+                    <span class="chat-list-name">${this.escapeHtml(conversation.user_name)}</span>
+                    <span class="chat-list-time">${this.formatTime(conversation.last_message_time)}</span>
+                </div>
+                <div class="chat-list-preview">
+                    <span class="chat-list-last-message">${this.escapeHtml(conversation.last_message || 'No messages')}</span>
+                    ${conversation.unread_count > 0 ? `<span class="chat-unread-count">${conversation.unread_count}</span>` : ''}
+                </div>
+            </div>
+        `;
+
+        listContainer.appendChild(item);
+    },
+
+    /**
+     * Load conversation history from database
+     */
+    async loadConversationHistory() {
+        try {
+            const userId = localStorage.getItem('user_id');
+            if (!userId) return;
+
+            const response = await fetch(`/api/messages/conversations?user_id=${userId}`);
+            const data = await response.json();
+
+            if (data.conversations) {
+                this.conversations = new Map(
+                    data.conversations.map(c => [c.user_id, c])
+                );
+            }
+        } catch (error) {
+            console.error('[CHAT SIDEBAR] Error loading conversation history:', error);
+        }
+    },
+
+    // ==================== VOICE CALLING ====================
+
+    /**
+     * Start voice call
+     */
+    async startVoiceCall() {
+        if (!this.activeConversation) return;
+
+        try {
+            // Get user media
+            this.localStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+
+            // Create peer connection
+            this.peerConnection = new RTCPeerConnection(this.config);
+
+            // Add local stream
+            this.localStream.getTracks().forEach(track => {
+                this.peerConnection.addTrack(track, this.localStream);
+            });
+
+            // Handle ICE candidates
+            this.peerConnection.onicecandidate = (event) => {
+                if (event.candidate) {
+                    SynergyRealtime.socket.emit('voice_call_ice_candidate', {
+                        to_user_id: this.activeConversation,
+                        candidate: event.candidate
+                    });
+                }
+            };
+
+            // Handle remote stream
+            this.peerConnection.ontrack = (event) => {
+                this.remoteStream = event.streams[0];
+                const remoteAudio = document.getElementById('chat-remote-audio');
+                if (remoteAudio) {
+                    remoteAudio.srcObject = this.remoteStream;
+                }
+            };
+
+            // Create offer
+            const offer = await this.peerConnection.createOffer();
+            await this.peerConnection.setLocalDescription(offer);
+
+            // Send offer
+            SynergyRealtime.socket.emit('voice_call_offer', {
+                to_user_id: this.activeConversation,
+                offer: offer
+            });
+
+            // Show call UI
+            this.showCallUI('outgoing');
+
+            console.log('[CHAT SIDEBAR] Voice call started');
+
+        } catch (error) {
+            console.error('[CHAT SIDEBAR] Error starting call:', error);
+            alert('Could not access microphone. Please check permissions.');
+        }
+    },
+
+    /**
+     * Handle incoming call offer
+     */
+    async handleCallOffer(data) {
+        // Show incoming call UI
+        const accept = confirm(`Incoming call from ${data.from_user_name}. Accept?`);
+
+        if (!accept) {
+            // Reject call
+            SynergyRealtime.socket.emit('voice_call_ended', {
+                to_user_id: data.from_user_id,
+                reason: 'rejected'
+            });
+            return;
+        }
+
+        try {
+            // Get user media
+            this.localStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+
+            // Create peer connection
+            this.peerConnection = new RTCPeerConnection(this.config);
+
+            // Add local stream
+            this.localStream.getTracks().forEach(track => {
+                this.peerConnection.addTrack(track, this.localStream);
+            });
+
+            // Handle ICE candidates
+            this.peerConnection.onicecandidate = (event) => {
+                if (event.candidate) {
+                    SynergyRealtime.socket.emit('voice_call_ice_candidate', {
+                        to_user_id: data.from_user_id,
+                        candidate: event.candidate
+                    });
+                }
+            };
+
+            // Handle remote stream
+            this.peerConnection.ontrack = (event) => {
+                this.remoteStream = event.streams[0];
+                const remoteAudio = document.getElementById('chat-remote-audio');
+                if (remoteAudio) {
+                    remoteAudio.srcObject = this.remoteStream;
+                }
+            };
+
+            // Set remote description
+            await this.peerConnection.setRemoteDescription(new RTCSessionDescription(data.offer));
+
+            // Create answer
+            const answer = await this.peerConnection.createAnswer();
+            await this.peerConnection.setLocalDescription(answer);
+
+            // Send answer
+            SynergyRealtime.socket.emit('voice_call_answer', {
+                to_user_id: data.from_user_id,
+                answer: answer
+            });
+
+            // Show call UI
+            this.activeConversation = data.from_user_id;
+            this.showCallUI('incoming');
+
+            console.log('[CHAT SIDEBAR] Call accepted');
+
+        } catch (error) {
+            console.error('[CHAT SIDEBAR] Error accepting call:', error);
+        }
+    },
+
+    /**
+     * Handle call answer
+     */
+    async handleCallAnswer(data) {
+        try {
+            await this.peerConnection.setRemoteDescription(new RTCSessionDescription(data.answer));
+            console.log('[CHAT SIDEBAR] Call connected');
+            this.updateCallUI('connected');
+        } catch (error) {
+            console.error('[CHAT SIDEBAR] Error handling call answer:', error);
+        }
+    },
+
+    /**
+     * Handle ICE candidate
+     */
+    async handleIceCandidate(data) {
+        try {
+            await this.peerConnection.addIceCandidate(new RTCIceCandidate(data.candidate));
+        } catch (error) {
+            console.error('[CHAT SIDEBAR] Error adding ICE candidate:', error);
+        }
+    },
+
+    /**
+     * End voice call
+     */
+    endCall() {
+        // Stop local stream
+        if (this.localStream) {
+            this.localStream.getTracks().forEach(track => track.stop());
+            this.localStream = null;
+        }
+
+        // Close peer connection
+        if (this.peerConnection) {
+            this.peerConnection.close();
+            this.peerConnection = null;
+        }
+
+        // Notify other user
+        if (this.activeConversation) {
+            SynergyRealtime.socket.emit('voice_call_ended', {
+                to_user_id: this.activeConversation,
+                reason: 'ended'
+            });
+        }
+
+        // Hide call UI
+        this.hideCallUI();
+
+        console.log('[CHAT SIDEBAR] Call ended');
+    },
+
+    /**
+     * Handle call ended
+     */
+    handleCallEnded(data) {
+        this.endCall();
+        alert(`Call ended: ${data.reason}`);
+    },
+
+    /**
+     * Show call UI
+     */
+    showCallUI(type) {
+        document.getElementById('chat-conversation-view').style.display = 'none';
+        const callView = document.getElementById('chat-call-view');
+        callView.style.display = 'flex';
+
+        document.getElementById('chat-call-status').textContent =
+            type === 'outgoing' ? 'Calling...' : 'Call connected';
+    },
+
+    /**
+     * Update call UI
+     */
+    updateCallUI(status) {
+        const statusText = {
+            'connecting': 'Connecting...',
+            'connected': 'Call connected',
+            'ended': 'Call ended'
+        };
+
+        document.getElementById('chat-call-status').textContent = statusText[status] || status;
+    },
+
+    /**
+     * Hide call UI
+     */
+    hideCallUI() {
+        document.getElementById('chat-call-view').style.display = 'none';
+        document.getElementById('chat-conversation-view').style.display = 'flex';
+    },
+
+    /**
+     * Toggle mute
+     */
+    toggleMute() {
+        if (!this.localStream) return;
+
+        const audioTrack = this.localStream.getAudioTracks()[0];
+        if (audioTrack) {
+            audioTrack.enabled = !audioTrack.enabled;
+            const muteBtn = document.getElementById('chat-mute-btn');
+            muteBtn.innerHTML = audioTrack.enabled
+                ? '<i class="fas fa-microphone"></i>'
+                : '<i class="fas fa-microphone-slash"></i>';
+        }
+    },
+
+    // ==================== UTILITY FUNCTIONS ====================
+
+    /**
+     * Show typing indicator
+     */
+    showTypingIndicator(userName, userId) {
+        if (this.activeConversation !== userId) return;
+
+        const container = document.getElementById('chat-typing-indicator');
+        if (container) {
+            container.style.display = 'flex';
+            container.innerHTML = `
+                <span class="chat-typing-text">${this.escapeHtml(userName)} is typing</span>
+                <span class="chat-typing-dots">
+                    <span>.</span><span>.</span><span>.</span>
+                </span>
+            `;
+        }
+    },
+
+    /**
+     * Hide typing indicator
+     */
+    hideTypingIndicator(userId) {
+        if (this.activeConversation !== userId) return;
+
+        const container = document.getElementById('chat-typing-indicator');
+        if (container) {
+            container.style.display = 'none';
+        }
+    },
+
+    /**
+     * Update online status
+     */
+    updateOnlineStatus(userId, isOnline) {
+        const indicator = document.querySelector(`[data-user-id="${userId}"] .chat-online-indicator`);
+        if (indicator) {
+            indicator.classList.toggle('online', isOnline);
+        }
+    },
+
+    /**
+     * Format timestamp
+     */
+    formatTime(timestamp) {
+        if (!timestamp) return '';
+
+        const date = new Date(timestamp);
+        const now = new Date();
+        const diff = now - date;
+
+        // Less than 1 minute
+        if (diff < 60000) {
+            return 'Just now';
+        }
+
+        // Less than 1 hour
+        if (diff < 3600000) {
+            const mins = Math.floor(diff / 60000);
+            return `${mins}m ago`;
+        }
+
+        // Less than 24 hours
+        if (diff < 86400000) {
+            return date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+        }
+
+        // Less than 7 days
+        if (diff < 604800000) {
+            const days = Math.floor(diff / 86400000);
+            return `${days}d ago`;
+        }
+
+        // Older
+        return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    },
+
+    /**
+     * Escape HTML
+     */
+    escapeHtml(text) {
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+    },
+
+    // ==================== SIDEBAR SIDE MANAGEMENT ====================
+
+    /**
+     * Apply saved side preference
+     */
+    applySidePreference() {
+        const sidebar = document.getElementById('chat-sidebar');
+        const toggle = document.getElementById('chat-sidebar-toggle');
+
+        if (sidebar && toggle) {
+            sidebar.setAttribute('data-side', this.currentSide);
+            toggle.setAttribute('data-side', this.currentSide);
+        }
+    },
+
+    /**
+     * Set sidebar side (left or right)
+     */
+    setSide(side) {
+        if (side !== 'left' && side !== 'right') {
+            console.error(`[CHAT SIDEBAR] Invalid side: ${side}`);
+            return;
+        }
+
+        this.currentSide = side;
+        localStorage.setItem('chat-sidebar-side', side);
+
+        const sidebar = document.getElementById('chat-sidebar');
+        const toggle = document.getElementById('chat-sidebar-toggle');
+
+        if (sidebar) {
+            sidebar.setAttribute('data-side', side);
+        }
+
+        if (toggle) {
+            toggle.setAttribute('data-side', side);
+        }
+
+        console.log(`[CHAT SIDEBAR] Switched to ${side} side`);
+    },
+
+    /**
+     * Toggle sidebar (delegates to SidebarManager for consistency)
+     */
+    toggleSidebar() {
+        // Check if SidebarManager is available
+        if (window.SidebarManager && window.SidebarManager.sidebars.has('chat-sidebar')) {
+            window.SidebarManager.toggle('chat-sidebar');
+        } else {
+            // Fallback to manual toggle if SidebarManager not ready
+            console.warn('[CHAT SIDEBAR] SidebarManager not available, using manual toggle');
+            if (this.isOpen) {
+                this.close();
+            } else {
+                this.open();
+            }
+        }
+    },
+
+    // ==================== DRAG TO REPOSITION ====================
+
+    /**
+     * Setup drag listeners for toggle button
+     */
+    setupDragListeners() {
+        const toggle = document.getElementById('chat-sidebar-toggle');
+        if (!toggle) {
+            console.warn('[CHAT SIDEBAR] Toggle button not found, skipping drag setup');
+            return;
+        }
+
+        let isDragging = false;
+        let startX = 0;
+        let startY = 0;
+        let currentY = 0;
+
+        // Load saved Y position
+        const savedY = localStorage.getItem('chat-sidebar-toggle-y');
+        if (savedY) {
+            currentY = parseInt(savedY);
+            toggle.style.top = `${currentY}px`;
+        }
+
+        toggle.addEventListener('mousedown', (e) => {
+            if (e.target.classList.contains('chat-unread-badge')) return;
+
+            isDragging = true;
+            startX = e.clientX;
+            startY = e.clientY - currentY;
+
+            toggle.classList.add('dragging');
+            toggle.style.cursor = 'grabbing';
+            e.preventDefault();
+        });
+
+        document.addEventListener('mousemove', (e) => {
+            if (!isDragging) return;
+
+            currentY = e.clientY - startY;
+
+            const minY = 60;
+            const maxY = window.innerHeight - 64;
+            currentY = Math.max(minY, Math.min(currentY, maxY));
+
+            toggle.style.top = `${currentY}px`;
+            e.preventDefault();
+        });
+
+        document.addEventListener('mouseup', (e) => {
+            if (!isDragging) return;
+
+            isDragging = false;
+            toggle.classList.remove('dragging');
+            toggle.style.cursor = 'grab';
+
+            const viewportMidpoint = window.innerWidth / 2;
+            const targetSide = e.clientX < viewportMidpoint ? 'left' : 'right';
+
+            if (this.currentSide !== targetSide) {
+                this.setSide(targetSide);
+
+                if (this.isOpen) {
+                    setTimeout(() => {
+                        const sidebar = document.getElementById('chat-sidebar');
+                        if (sidebar) {
+                            sidebar.classList.remove('collapsed');
+                        }
+                    }, 100);
+                }
+            }
+
+            localStorage.setItem('chat-sidebar-toggle-y', currentY);
+            e.preventDefault();
+        });
+
+        // Touch support
+        toggle.addEventListener('touchstart', (e) => {
+            if (e.target.classList.contains('chat-unread-badge')) return;
+
+            isDragging = true;
+            const touch = e.touches[0];
+            startX = touch.clientX;
+            startY = touch.clientY - currentY;
+
+            toggle.classList.add('dragging');
+            e.preventDefault();
+        });
+
+        document.addEventListener('touchmove', (e) => {
+            if (!isDragging) return;
+
+            const touch = e.touches[0];
+            currentY = touch.clientY - startY;
+
+            const minY = 60;
+            const maxY = window.innerHeight - 64;
+            currentY = Math.max(minY, Math.min(currentY, maxY));
+
+            toggle.style.top = `${currentY}px`;
+            e.preventDefault();
+        });
+
+        document.addEventListener('touchend', (e) => {
+            if (!isDragging) return;
+
+            isDragging = false;
+            toggle.classList.remove('dragging');
+
+            const touch = e.changedTouches[0];
+            const viewportMidpoint = window.innerWidth / 2;
+            const targetSide = touch.clientX < viewportMidpoint ? 'left' : 'right';
+
+            if (this.currentSide !== targetSide) {
+                this.setSide(targetSide);
+
+                if (this.isOpen) {
+                    setTimeout(() => {
+                        const sidebar = document.getElementById('chat-sidebar');
+                        if (sidebar) {
+                            sidebar.classList.remove('collapsed');
+                        }
+                    }, 100);
+                }
+            }
+
+            localStorage.setItem('chat-sidebar-toggle-y', currentY);
+            e.preventDefault();
+        });
+    }
+};
+
+// Initialize when page loads
+document.addEventListener('DOMContentLoaded', () => {
+    ChatSidebar.init();
+});

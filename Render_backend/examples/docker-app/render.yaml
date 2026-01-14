@@ -1,0 +1,431 @@
+# ==============================================================================
+# DOCKER APPLICATION - RENDER.COM DEPLOYMENT CONFIGURATION
+# ==============================================================================
+#
+# This configuration file deploys a Dockerized application to Render.com.
+# Docker allows you to package your application with all dependencies.
+#
+# WHAT THIS CONFIGURES:
+# - Web service running from Docker container
+# - Automatic Docker image build from Dockerfile
+# - Support for multi-stage builds
+# - Environment variable injection into container
+#
+# PREREQUISITES:
+# 1. Dockerfile in project root (or specify path)
+# 2. Application exposes port specified in EXPOSE directive
+# 3. Container accepts PORT environment variable
+# 4. Health check endpoint (optional but recommended)
+#
+# ==============================================================================
+
+services:
+  # ----------------------------------------------------------------------------
+  # DOCKER WEB SERVICE
+  # ----------------------------------------------------------------------------
+  - type: web
+    name: my-docker-app
+    runtime: docker  # IMPORTANT: Use 'docker' runtime
+    env: docker
+    region: oregon  # Options: oregon, frankfurt, singapore, ohio, virginia
+    
+    # Docker Configuration
+    # Path to Dockerfile relative to repository root
+    # Default: ./Dockerfile
+    # For monorepos: ./services/api/Dockerfile
+    dockerfilePath: ./Dockerfile
+    
+    # Docker Context (optional)
+    # Build context directory, default is repository root
+    # dockerContext: ./
+    
+    # Docker Command (optional)
+    # Override CMD in Dockerfile
+    # dockerCommand: npm start
+    
+    # Plan Configuration
+    # Starter: Free tier, sleeps after inactivity
+    # Standard: $7/month, always on
+    # Pro: $25/month, 2GB RAM, 2 CPUs
+    plan: starter
+    
+    # Auto-Deploy
+    # Rebuild and redeploy container on git push
+    autoDeploy: true
+    
+    # Health Check
+    # Your container must expose this endpoint
+    healthCheckPath: /health
+    
+    # Environment Variables
+    # These are injected into the container at runtime
+    envVars:
+      # Port Configuration
+      # CRITICAL: Container MUST listen on this port
+      # Use ARG PORT in Dockerfile and EXPOSE $PORT
+      - key: PORT
+        value: "10000"
+      
+      # Application Environment
+      - key: APP_ENV
+        value: production
+      
+      # Application Secrets
+      - key: APP_SECRET
+        generateValue: true  # Render generates random value
+      
+      # Database Connection (if needed)
+      # - key: DATABASE_URL
+      #   fromDatabase:
+      #     name: my-postgres-db
+      #     property: connectionString
+      
+      # Redis Connection (if needed)
+      # - key: REDIS_URL
+      #   fromDatabase:
+      #     name: my-redis-db
+      #     property: connectionString
+      
+      # API Keys (examples)
+      # - key: AWS_ACCESS_KEY_ID
+      #   sync: false
+      # - key: AWS_SECRET_ACCESS_KEY
+      #   sync: false
+
+# ==============================================================================
+# DOCKERFILE REQUIREMENTS
+# ==============================================================================
+# Your Dockerfile must meet these requirements:
+#
+# 1. ACCEPT PORT ENVIRONMENT VARIABLE:
+#    Use ARG and ENV to accept PORT from Render
+#    
+#    ARG PORT=10000
+#    ENV PORT=$PORT
+#    EXPOSE $PORT
+#
+# 2. BIND TO 0.0.0.0:
+#    Don't use localhost or 127.0.0.1
+#    Must listen on 0.0.0.0 to accept external connections
+#
+# 3. RUN AS NON-ROOT USER (recommended):
+#    Create and switch to non-root user for security
+#    
+#    RUN addgroup -g 1001 -S appuser && adduser -u 1001 -S appuser -G appuser
+#    USER appuser
+#
+# ==============================================================================
+# EXAMPLE DOCKERFILE - PYTHON/FLASK
+# ==============================================================================
+#
+# # Multi-stage build for optimized image size
+# FROM python:3.11-slim AS builder
+# 
+# WORKDIR /app
+# 
+# # Install dependencies
+# COPY requirements.txt .
+# RUN pip install --no-cache-dir -r requirements.txt
+# 
+# # Final stage
+# FROM python:3.11-slim
+# 
+# WORKDIR /app
+# 
+# # Copy dependencies from builder
+# COPY --from=builder /usr/local/lib/python3.11/site-packages /usr/local/lib/python3.11/site-packages
+# COPY --from=builder /usr/local/bin /usr/local/bin
+# 
+# # Copy application code
+# COPY . .
+# 
+# # Create non-root user
+# RUN addgroup -g 1001 -S appuser && adduser -u 1001 -S appuser -G appuser
+# RUN chown -R appuser:appuser /app
+# USER appuser
+# 
+# # Port configuration
+# ARG PORT=10000
+# ENV PORT=$PORT
+# EXPOSE $PORT
+# 
+# # Start application
+# CMD gunicorn app:app --bind 0.0.0.0:$PORT --workers 4
+#
+# ==============================================================================
+# EXAMPLE DOCKERFILE - NODE.JS/EXPRESS
+# ==============================================================================
+#
+# # Multi-stage build
+# FROM node:20-alpine AS builder
+# 
+# WORKDIR /app
+# 
+# # Install dependencies
+# COPY package*.json ./
+# RUN npm ci --only=production
+# 
+# # Final stage
+# FROM node:20-alpine
+# 
+# WORKDIR /app
+# 
+# # Copy dependencies and code
+# COPY --from=builder /app/node_modules ./node_modules
+# COPY . .
+# 
+# # Create non-root user
+# RUN addgroup -g 1001 -S nodejs && adduser -u 1001 -S nodejs -G nodejs
+# RUN chown -R nodejs:nodejs /app
+# USER nodejs
+# 
+# # Port configuration
+# ARG PORT=10000
+# ENV PORT=$PORT
+# EXPOSE $PORT
+# 
+# # Start application
+# CMD ["npm", "start"]
+#
+# ==============================================================================
+# EXAMPLE DOCKERFILE - GO
+# ==============================================================================
+#
+# # Build stage
+# FROM golang:1.21-alpine AS builder
+# 
+# WORKDIR /app
+# 
+# # Copy go mod files
+# COPY go.mod go.sum ./
+# RUN go mod download
+# 
+# # Copy source code
+# COPY . .
+# 
+# # Build binary
+# RUN CGO_ENABLED=0 GOOS=linux go build -o main .
+# 
+# # Final stage - minimal image
+# FROM alpine:latest
+# 
+# WORKDIR /app
+# 
+# # Install ca-certificates for HTTPS
+# RUN apk --no-cache add ca-certificates
+# 
+# # Copy binary from builder
+# COPY --from=builder /app/main .
+# 
+# # Create non-root user
+# RUN addgroup -g 1001 -S appuser && adduser -u 1001 -S appuser -G appuser
+# RUN chown -R appuser:appuser /app
+# USER appuser
+# 
+# # Port configuration
+# ARG PORT=10000
+# ENV PORT=$PORT
+# EXPOSE $PORT
+# 
+# # Start application
+# CMD ["./main"]
+#
+# ==============================================================================
+# DEPLOYMENT CHECKLIST
+# ==============================================================================
+# Before deploying, ensure:
+#
+# 1. DOCKERFILE EXISTS:
+#    - Located at project root or path specified in dockerfilePath
+#    - Builds successfully locally: docker build -t myapp .
+#    - Runs successfully locally: docker run -p 8080:10000 myapp
+#
+# 2. PORT CONFIGURATION:
+#    - Dockerfile accepts PORT as ARG
+#    - Application reads PORT from environment
+#    - Container exposes the port
+#    - Application binds to 0.0.0.0, not localhost
+#
+# 3. MULTI-STAGE BUILD (recommended):
+#    - Reduces final image size
+#    - Separates build dependencies from runtime
+#    - Faster deployments and lower costs
+#
+# 4. SECURITY:
+#    - Run as non-root user
+#    - Don't include secrets in image layers
+#    - Use .dockerignore to exclude files
+#    - Keep base images updated
+#
+# 5. .DOCKERIGNORE FILE:
+#    Create .dockerignore to exclude unnecessary files:
+#    
+#    node_modules
+#    npm-debug.log
+#    .git
+#    .env
+#    .env.local
+#    *.md
+#    .vscode
+#    .idea
+#    __pycache__
+#    *.pyc
+#    .pytest_cache
+#    dist
+#    build
+#
+# 6. HEALTH CHECK IN APPLICATION:
+#    Implement /health endpoint:
+#    
+#    # Python/Flask
+#    @app.route('/health')
+#    def health():
+#        return {'status': 'healthy'}, 200
+#    
+#    # Node.js/Express
+#    app.get('/health', (req, res) => {
+#        res.json({ status: 'healthy' })
+#    })
+#    
+#    # Go
+#    http.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
+#        w.WriteHeader(http.StatusOK)
+#        json.NewEncoder(w).Encode(map[string]string{"status": "healthy"})
+#    })
+#
+# ==============================================================================
+# POST-DEPLOYMENT STEPS
+# ==============================================================================
+# After first deployment:
+#
+# 1. VERIFY CONTAINER IS RUNNING:
+#    python render_universal_cli.py services list
+#    # Check status is "available"
+#
+# 2. CHECK BUILD LOGS:
+#    python render_universal_cli.py logs tail <service-id>
+#    # Look for successful Docker build output
+#
+# 3. TEST HEALTH ENDPOINT:
+#    curl https://your-app.onrender.com/health
+#    # Should return: {"status":"healthy"}
+#
+# 4. VERIFY ENVIRONMENT VARIABLES:
+#    python render_universal_cli.py env list <service-id>
+#    # Ensure all required variables are set
+#
+# 5. MONITOR CONTAINER METRICS:
+#    python render_universal_cli.py metrics all <service-id>
+#    # Check CPU, memory, request rates
+#
+# ==============================================================================
+# COMMON ISSUES & SOLUTIONS
+# ==============================================================================
+#
+# ISSUE: Build fails with "Cannot find Dockerfile"
+# SOLUTION: Verify dockerfilePath in render.yaml
+#           Ensure Dockerfile is committed to git
+#           Check file name is exactly "Dockerfile" (case-sensitive)
+#
+# ISSUE: Container starts but returns 502 Bad Gateway
+# SOLUTION: Container must bind to 0.0.0.0, not localhost
+#           Verify PORT environment variable is used
+#           Check application logs for startup errors
+#
+# ISSUE: Build timeout
+# SOLUTION: Optimize Dockerfile with multi-stage builds
+#           Use .dockerignore to exclude large files
+#           Cache dependencies in separate layer
+#           Upgrade to larger plan for more build resources
+#
+# ISSUE: Large image size
+# SOLUTION: Use multi-stage builds
+#           Use alpine base images (python:3.11-alpine)
+#           Remove build dependencies in final stage
+#           Combine RUN commands to reduce layers
+#
+# ISSUE: Environment variables not accessible in container
+# SOLUTION: Ensure variables are defined in render.yaml envVars
+#           Don't use ENV in Dockerfile for secrets
+#           Use ARG for build-time variables only
+#
+# ==============================================================================
+# SCALING & PERFORMANCE
+# ==============================================================================
+#
+# IMAGE SIZE OPTIMIZATION:
+# - Use multi-stage builds (can reduce size by 80%)
+# - Use alpine base images when possible
+# - Remove unnecessary dependencies
+# - Combine RUN commands to reduce layers
+# - Use .dockerignore to exclude files
+#
+# BUILD OPTIMIZATION:
+# - Cache dependencies in separate layer
+# - Order Dockerfile commands from least to most frequently changed
+# - Use --mount=type=cache for package managers
+# - Use BuildKit for parallel builds
+#
+# RUNTIME OPTIMIZATION:
+# - Run as non-root user
+# - Use production-ready web servers (gunicorn, nginx)
+# - Enable compression
+# - Implement connection pooling
+# - Use environment variables for configuration
+#
+# HORIZONTAL SCALING:
+# - Upgrade to Standard or Pro plan
+# - Use multiple instances (Pro plan required)
+# - Implement stateless architecture
+# - Use external cache (Redis)
+# - Use external database (PostgreSQL)
+#
+# MONITORING:
+# - Use python render_universal_cli.py metrics all <service-id>
+# - Implement custom health checks
+# - Add logging with proper log levels
+# - Use APM tools (New Relic, DataDog)
+# - Monitor container resource usage
+#
+# ==============================================================================
+# ADVANCED DOCKER FEATURES
+# ==============================================================================
+#
+# BUILDKIT FEATURES:
+# Add to Dockerfile for advanced caching:
+# 
+# # syntax=docker/dockerfile:1.4
+# FROM python:3.11-slim
+# 
+# # Cache pip downloads
+# RUN --mount=type=cache,target=/root/.cache/pip \
+#     pip install -r requirements.txt
+#
+# HEALTH CHECK IN DOCKERFILE:
+# Add health check instruction:
+# 
+# HEALTHCHECK --interval=30s --timeout=3s --start-period=10s --retries=3 \
+#   CMD curl -f http://localhost:$PORT/health || exit 1
+#
+# DOCKER COMPOSE (LOCAL TESTING):
+# Create docker-compose.yml for local testing:
+# 
+# version: '3.8'
+# services:
+#   app:
+#     build: .
+#     ports:
+#       - "8080:10000"
+#     environment:
+#       PORT: 10000
+#       DATABASE_URL: postgresql://localhost/mydb
+#     depends_on:
+#       - db
+#   db:
+#     image: postgres:15
+#     environment:
+#       POSTGRES_DB: mydb
+#       POSTGRES_USER: user
+#       POSTGRES_PASSWORD: password
+#
+# ==============================================================================

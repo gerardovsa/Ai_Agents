@@ -1,0 +1,139 @@
+{
+  "module_name": "inhouse-kanban",
+  "module_path": "C:\\Users\\gpoli\\GIT\\AI_agents\\UI\\modules_external\\inhouse-kanban",
+  "timestamp": "2025-11-29T17:43:20.628949",
+  "checks": {
+    "file_structure": {
+      "has_manifest": true,
+      "js_files": 6,
+      "css_files": 3,
+      "html_files": 1,
+      "doc_files": 13,
+      "backup_files": 2,
+      "test_files": 1,
+      "status": "PASS"
+    },
+    "manifest_compliance": {
+      "version": "3.0",
+      "has_all_required": true,
+      "missing_required": [],
+      "has_optional": [
+        "loading",
+        "capabilities"
+      ],
+      "capabilities_defined": true,
+      "status": "PASS"
+    },
+    "architecture_pattern": {
+      "architecture": "Architecture 1 (Separate Files)",
+      "confidence": 80,
+      "js_files": 8,
+      "html_files": 1,
+      "status": "PASS"
+    },
+    "sidebar_integration": {
+      "uses_sidebar": true,
+      "uses_sidebar_manager": true,
+      "custom_implementation": false,
+      "sidebar_files": [
+        "inhouse-kanban-SIDEBAR.html"
+      ],
+      "status": "PASS"
+    },
+    "api_endpoints": {
+      "total_endpoints": 1,
+      "api_routes": 0,
+      "has_backend_url": true,
+      "endpoints": [
+        "external/modules/inhouse-kanban/manifest.json"
+      ],
+      "status": "PASS"
+    },
+    "ui_rendering": {
+      "has_initialize": true,
+      "has_render_method": false,
+      "has_container_helper": true,
+      "has_event_listeners": true,
+      "rendering_issues": [],
+      "status": "PARTIAL"
+    },
+    "connections": {
+      "databases": [
+        "Supabase",
+        "SQL Server"
+      ],
+      "external_apis": [],
+      "websockets": [],
+      "requires_credentials": false,
+      "total_connections": 2,
+      "status": "PASS"
+    },
+    "documentation": {
+      "has_readme": true,
+      "has_integration_guide": true,
+      "total_docs": 13,
+      "doc_files": [
+        "CARD_LAYOUT_UPDATE_NOV29.md",
+        "COLUMN_LAYOUT_FIX.md",
+        "DUAL_ACCESS_COMPLETE.md",
+        "INTEGRATION_GUIDE.md",
+        "KANBAN_CARD_FIELDS.md",
+        "README.md",
+        "SIDEBAR_TOGGLE_VERIFICATION_NOV29.md",
+        "SUPABASE_INTEGRATION_COMPLETE.md",
+        "SUPABASE_QUICK_START.md",
+        "SUPABASE_UI_INTEGRATION_GUIDE.md",
+        "TEST_SIDEBAR_TOGGLE.md",
+        "TEST_SUPABASE_UI.md",
+        "V3_SIDEBAR_ALIGNMENT_PLAN.md"
+      ],
+      "status": "PASS"
+    },
+    "best_practices": {
+      "good_practices": 23,
+      "issues": 5,
+      "practices_list": [
+        "Uses logging (41 instances)",
+        "Uses logging (39 instances)",
+        "Uses try-catch error handling",
+        "Uses modern async/await",
+        "Uses logging (6 instances)",
+        "Uses try-catch error handling",
+        "Uses modern async/await",
+        "Uses class-based architecture",
+        "Uses try-catch error handling",
+        "Uses modern async/await",
+        "Uses class-based architecture",
+        "Uses logging (12 instances)",
+        "Uses logging (13 instances)",
+        "Uses try-catch error handling",
+        "Uses modern async/await",
+        "Uses class-based architecture",
+        "Uses logging (6 instances)",
+        "Uses try-catch error handling",
+        "Uses modern async/await",
+        "Uses class-based architecture",
+        "Uses logging (49 instances)",
+        "Uses try-catch error handling",
+        "Uses modern async/await"
+      ],
+      "issues_list": [
+        "Limited error handling detected",
+        "Excessive console.log usage (137 instances)",
+        "Excessive inline styles (260) - use CSS instead",
+        "Limited error handling detected",
+        "Excessive inline styles (21) - use CSS instead"
+      ],
+      "status": "NEEDS_IMPROVEMENT"
+    }
+  },
+  "issues": [],
+  "warnings": [],
+  "recommendations": [
+    "Many documentation files (13), consider consolidation",
+    "Architecture 1 detected - verify HTML templates are properly structured",
+    "Many documentation files (13) - consider consolidation"
+  ],
+  "metrics": {},
+  "compliance_score": 93
+}

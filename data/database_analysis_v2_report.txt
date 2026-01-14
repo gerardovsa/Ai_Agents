@@ -1,0 +1,3768 @@
+
+====================================================================================================
+SQLITE DATABASES (LOCAL)
+====================================================================================================
+
+
+DATABASE: ai_infrastructure.db
+Location: C:\Users\gpoli\GIT\AI_agents\data\ai_infrastructure.db
+Size: 638,976 bytes
+Tables: 16
+----------------------------------------------------------------------------------------------------
+
+  TABLE: account_link_requests - 0 rows
+    id                             INTEGER         [PK]
+    user_id                        INTEGER         [NOT NULL]
+    target_email                   TEXT            [NOT NULL]
+    link_token                     TEXT            [NOT NULL]
+    request_type                   TEXT            [NOT NULL]
+    status                         TEXT           
+    created_at                     TIMESTAMP      
+    expires_at                     TIMESTAMP       [NOT NULL]
+
+  Foreign Keys:
+    user_id -> users.id
+
+  TABLE: device_registry - 4 rows
+    device_id                      TEXT            [PK]
+      Examples: "browser-a-1763090731323", "browser-b-1763090760753", "test-device-1-macbook"
+    user_id                        INTEGER         [NOT NULL]
+      Examples: 1
+    device_name                    TEXT            [NOT NULL]
+      Examples: "MacBook Pro (Test)", "Windows PC (Test)", "Chrome Browser"
+    device_fingerprint             TEXT           
+      Examples: "", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) Apple..."
+    last_seen_at                   TIMESTAMP      
+      Examples: "2025-11-14 02:36:49", "2025-11-14 02:36:51", "2025-11-15 00:37:08"
+    created_at                     TIMESTAMP      
+      Examples: "2025-11-14 02:35:34", "2025-11-14 02:35:36", "2025-11-14 03:25:31"
+
+  Foreign Keys:
+    user_id -> users.user_id
+
+  TABLE: oauth_tokens - 5 rows
+    id                             INTEGER         [PK]
+      Examples: 15, 8, 99
+    user_id                        INTEGER         [NOT NULL]
+      Examples: 3, 5, 12
+    platform                       TEXT            [NOT NULL]
+      Examples: "google", "microsoft"
+    access_token                   TEXT            [NOT NULL]
+      Examples: "ya29.a0ATi6K2vd3IKqWwWc2d7LtzYwqDjuEejbCI8bgFTh...", "ya29.a0ATi6K2sQAS3P8I5WHeqHZHnqSMUnvevGfqOefaD2...", "ya29.A0ATi6K2tkEMYIERFABmSs9yRPcCeo0eLgDb_jwMLQ..."
+    refresh_token                  TEXT           
+      Examples: "1//0g9mekHrIb5_6CgYIARAAGBASNwF-L9IrwPHM-bbA1fZ...", "1//0gX5sCFi8tcbRCgYIARAAGBASNwF-L9IrLTdzfPh47R7...", "1//0g8yXOXdgqLI_CgYIARAAGBASNwF-L9IrpJYnVpNw-xN..."
+    token_type                     TEXT           
+      Examples: "Bearer"
+    expires_at                     TIMESTAMP      
+      Examples: "2025-10-30 10:49:21", "2025-11-11 03:26:26", "2025-11-13 03:31:43"
+    scope                          TEXT           
+      Examples: "openid email profile https://www.googleapis.com...", "offline_access User.Read User.ReadWrite Mail.Re..."
+    created_at                     TIMESTAMP      
+      Examples: "2025-10-29 13:19:36", "2025-10-30 09:49:23", "2025-11-05 08:18:59"
+    updated_at                     TIMESTAMP      
+      Examples: "2025-10-29 13:19:36", "2025-10-30 09:49:23", "2025-11-11 02:26:28"
+    last_refreshed_at              TIMESTAMP      
+      Examples: "2025-10-30 09:49:23", "2025-11-11 02:26:28", "2025-11-13 02:31:43"
+    metadata                       TEXT           
+      Examples: "{"google_id": "106194727360309483287", "picture...", "{"google_id": "110838374146942315926", "email":...", "{"microsoft_id": "c7e77a9f-f08c-49fb-addc-05689..."
+    account_identifier             TEXT           
+      Examples: "inhouse@vetsuccessacademy.com"
+    account_name                   TEXT           
+      Examples: "Print Inhouse"
+    is_primary_account             BOOLEAN        
+      Examples: 0, 1
+    is_valid                       BOOLEAN        
+      Examples: 1
+    is_active                      BOOLEAN        
+      Examples: 1
+    refresh_attempts               INTEGER        
+      Examples: 0
+    last_refresh_error             TEXT           
+    auto_refresh_enabled           BOOLEAN        
+      Examples: 1
+    granted_scopes                 TEXT           
+      Examples: "https://www.googleapis.com/auth/spreadsheets ht...", "https://www.googleapis.com/auth/userinfo.profil...", "offline_access User.Read User.ReadWrite Mail.Re..."
+    issued_at                      TIMESTAMP      
+      Examples: "2025-10-29 13:19:36"
+    revoked_at                     TIMESTAMP      
+    ip_address_granted             TEXT           
+    email                          TEXT           
+      Examples: "Gerardo@minivetguide.onmicrosoft.com", "printing@inhouseprint.com.au"
+    profile_name                   TEXT           
+      Examples: ""
+    error_count                    INTEGER        
+      Examples: 0
+    last_error                     TEXT           
+    profile_picture_url            TEXT           
+    profile_data                   TEXT           
+
+  Foreign Keys:
+    user_id -> users.id
+
+  TABLE: prompt_library - 76 rows
+    id                             INTEGER         [PK]
+      Examples: 1, 2, 3
+    user_id                        INTEGER         [NOT NULL]
+      Examples: 1, 3, 5
+    workspace_id                   INTEGER        
+    name                           VARCHAR(200)    [NOT NULL]
+      Examples: "Expert Coder", "Code Reviewer", "Debugger"
+    category                       VARCHAR(50)     [NOT NULL]
+      Examples: "analysis", "customer_service", "data"
+    type                           VARCHAR(20)     [NOT NULL]
+      Examples: "quick_action", "full_prompt"
+    description                    TEXT           
+      Examples: "Production-ready code with error handling and b...", "Analyze code for bugs, security issues, and imp...", "Step-by-step debugging and issue resolution"
+    prompt_text                    TEXT            [NOT NULL]
+      Examples: "CODING EXPERT MODE ACTIVATED:
+- Write productio...", "CODE REVIEW MODE ACTIVATED:
+- Systematically an...", "DEBUG MODE ACTIVATED:
+- Analyze the issue syste..."
+    tags                           TEXT           
+      Examples: "coding,python,javascript,best-practices", "review,security,quality,refactoring", "debug,troubleshooting,errors"
+    visibility                     VARCHAR(20)     [NOT NULL]
+      Examples: "public"
+    usage_count                    INTEGER        
+      Examples: 0
+    created_at                     TIMESTAMP      
+      Examples: "2025-11-12 09:07:42", "2025-11-12T20:54:43.150600", "2025-11-12T20:55:54.269924"
+    updated_at                     TIMESTAMP      
+      Examples: "2025-11-12 09:07:42", "2025-11-12T20:54:43.150600", "2025-11-12T20:55:54.269924"
+
+  Foreign Keys:
+    workspace_id -> workspaces.id
+    user_id -> users.id
+
+  TABLE: sqlite_sequence - 8 rows
+    name                                          
+      Examples: "users", "workspaces", "user_sessions"
+    seq                                           
+      Examples: 14, 12, 567
+
+  TABLE: thread_lock_history - 11 rows
+    lock_id                        INTEGER         [PK]
+      Examples: 1, 2, 3
+    thread_id                      INTEGER         [NOT NULL]
+      Examples: 42
+    device_id                      TEXT            [NOT NULL]
+      Examples: "test-device-1-macbook", "test-device-2-windows"
+    action                         TEXT            [NOT NULL]
+      Examples: "locked", "unlocked"
+    timestamp                      TIMESTAMP      
+      Examples: "2025-11-14 02:35:38", "2025-11-14 02:35:44", "2025-11-14 02:35:46"
+
+  Foreign Keys:
+    device_id -> device_registry.device_id
+    thread_id -> threads.thread_id
+
+  TABLE: user_account_links - 0 rows
+    id                             INTEGER         [PK]
+    primary_user_id                INTEGER         [NOT NULL]
+    linked_user_id                 INTEGER         [NOT NULL]
+    linked_email                   TEXT            [NOT NULL]
+    link_type                      TEXT            [NOT NULL]
+    link_status                    TEXT           
+    link_token                     TEXT           
+    created_at                     TIMESTAMP      
+    confirmed_at                   TIMESTAMP      
+
+  Foreign Keys:
+    linked_user_id -> users.id
+    primary_user_id -> users.id
+
+  TABLE: user_gmail_accounts - 0 rows
+    id                             INTEGER         [PK]
+    user_id                        INTEGER         [NOT NULL]
+    gmail_address                  TEXT            [NOT NULL]
+    display_name                   TEXT           
+    access_token                   TEXT           
+    refresh_token                  TEXT           
+    token_expiry                   TIMESTAMP      
+    is_primary                     BOOLEAN        
+    created_at                     TIMESTAMP      
+
+  Foreign Keys:
+    user_id -> users.id
+
+  TABLE: user_platform_credentials - 0 rows
+    id                             INTEGER         [PK]
+    user_id                        INTEGER         [NOT NULL]
+    platform                       TEXT            [NOT NULL]
+    credential_type                TEXT            [NOT NULL]
+    credential_key                 TEXT            [NOT NULL]
+    credential_value               TEXT            [NOT NULL]
+    is_active                      BOOLEAN        
+    created_at                     TIMESTAMP      
+    updated_at                     TIMESTAMP      
+    metadata                       TEXT           
+
+  Foreign Keys:
+    user_id -> users.id
+
+  TABLE: user_preferences - 4 rows
+    user_id                        INTEGER         [PK]
+      Examples: 1, 12, 13
+    communication_style            TEXT           
+      Examples: "professional", "casual"
+    detail_level                   TEXT           
+      Examples: "standard", "comprehensive"
+    auth_platform                  TEXT           
+      Examples: "auto", "microsoft"
+    preferred_tools                TEXT           
+      Examples: "["USE ONLY GOOGLE WORKSPACE"]", "["USE ONLY MICROSOFT 365 PLATFORMS - NO GOOGLE"]", "["USE ONLY MICROSOFT PLATFORMS - NO GOOGLE","DO..."
+    custom_preferences             TEXT           
+      Examples: ""[]""
+    created_at                     TIMESTAMP      
+      Examples: "2025-11-06T00:00:22.591779", "2025-11-08 15:54:05", "2025-11-06 14:52:08"
+    updated_at                     TIMESTAMP      
+      Examples: "2025-11-06T00:03:09.384969", "2025-11-08 15:54:05", "2025-11-06 14:52:08"
+    nickname                       TEXT           
+      Examples: "", "G"
+    detected_country               TEXT           
+      Examples: "Australia"
+    detected_city                  TEXT           
+      Examples: "Brisbane"
+    detected_timezone              TEXT           
+      Examples: "Australia/Brisbane"
+    detected_ip_address            TEXT           
+      Examples: "2405:6e00:640:23b3:9cb9:67f2:155d:b49c", "127.0.0.1"
+    manual_location_override       TEXT           
+      Examples: ""
+    manual_timezone_override       TEXT           
+      Examples: ""
+    use_manual_location            INTEGER        
+      Examples: 0
+    use_manual_timezone            INTEGER        
+      Examples: 0
+    last_location_check            TIMESTAMP      
+      Examples: "2025-11-06T00:03:09.384964", "2025-11-08 15:54:05", "2025-11-06 14:52:08"
+    ai_memories                    TEXT           
+      Examples: "[]"
+    memory_updated_at              TIMESTAMP      
+      Examples: "2025-11-08 15:54:05", "2025-11-06 14:52:08", "2025-11-11 13:25:06"
+    ai_model                       TEXT           
+      Examples: "claude-sonnet-4-5-20250929"
+    ai_temperature                 REAL           
+      Examples: 1.0, 0.7
+    ai_top_p                       REAL           
+      Examples: 1.0, 0.9
+    ai_max_tokens                  INTEGER        
+      Examples: 4096, 8000
+    ai_thinking_enabled            INTEGER        
+      Examples: 0, 1
+    ai_thinking_budget             INTEGER        
+      Examples: 10000, 15000
+    ai_streaming_enabled           INTEGER        
+      Examples: 1
+
+  Foreign Keys:
+    user_id -> users.id
+
+  TABLE: user_prompt_preferences - 0 rows
+    id                             INTEGER         [PK]
+    user_id                        INTEGER         [NOT NULL]
+    preference_name                TEXT            [NOT NULL]
+    quick_actions                  TEXT           
+    library_prompts                TEXT           
+    custom_prompt                  TEXT           
+    created_at                     TEXT           
+
+  Foreign Keys:
+    user_id -> users.id
+
+  TABLE: user_sessions - 466 rows
+    id                             INTEGER         [PK]
+      Examples: 86, 114, 115
+    user_id                        INTEGER         [NOT NULL]
+      Examples: 1, 3, 4
+    token                          TEXT            [NOT NULL]
+      Examples: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2...", "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2...", "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2..."
+    ip_address                     TEXT           
+    user_agent                     TEXT           
+    created_at                     TIMESTAMP      
+      Examples: "2025-10-28 23:44:58", "2025-10-29 01:53:07", "2025-10-29 07:59:15"
+    expires_at                     TIMESTAMP       [NOT NULL]
+      Examples: "2025-10-29 23:44:58", "2025-11-28 01:53:07", "2025-11-28 07:59:15"
+
+  Foreign Keys:
+    user_id -> users.id
+
+  TABLE: users - 7 rows
+    id                             INTEGER         [PK]
+      Examples: 13, 12, 5
+    username                       TEXT            [NOT NULL]
+      Examples: "Gerardo", "gerardo", "google_test"
+    email                          TEXT            [NOT NULL]
+      Examples: "Gerardo@minivetguide.onmicrosoft.com", "gerardo@vetsuccessacademy.com", "google_test@example.com"
+    password_hash                  TEXT            [NOT NULL]
+      Examples: "SYSTEM_USER", "OAUTH_USER_NO_PASSWORD", "$2b$12$tkIIyMdqSDRBDkWwCKEKNePyFmwjIzy/SAeVbjCb..."
+    role                           TEXT           
+      Examples: "user"
+    primary_gmail                  TEXT           
+      Examples: "google_test@example.com", "microsoft_test@example.com"
+    created_at                     TIMESTAMP      
+      Examples: "2025-11-14 02:55:17", "2025-10-28 15:51:12", "2025-10-29 13:19:36"
+    last_active                    TIMESTAMP      
+      Examples: "2025-11-14 02:55:18", "2025-10-28 15:51:12", "2025-10-29 13:57:43"
+    metadata                       TEXT           
+      Examples: "{"thread_assignments": {"agent-1": "17630038669...", "{}", "{"thread_assignments": {"agent-1": "17626904040..."
+    is_primary                     BOOLEAN        
+      Examples: 1
+    allowed_dashboards             TEXT           
+      Examples: "[]", "["main", "analytics", "ai_chat"]"
+    has_google_oauth               BOOLEAN        
+      Examples: 0, 1
+    has_microsoft_oauth            BOOLEAN        
+      Examples: 0, 1
+    is_active                      BOOLEAN        
+      Examples: 1
+    parent_user_id                 INTEGER        
+    is_sub_user                    BOOLEAN        
+      Examples: 0
+    permissions                    TEXT           
+    allowed_tools                  TEXT           
+    allowed_agents                 TEXT           
+    data_access_scope              TEXT           
+      Examples: "own"
+    usage_limit_daily              INTEGER        
+      Examples: 1000
+    access_start_time              TEXT           
+    access_end_time                TEXT           
+    account_expires_at             TIMESTAMP      
+
+  TABLE: workspace_invitations - 1 rows
+    id                             INTEGER         [PK]
+      Examples: 4
+    workspace_id                   INTEGER         [NOT NULL]
+      Examples: 12
+    invited_user_id                INTEGER        
+    invited_email                  TEXT            [NOT NULL]
+      Examples: "newuser@example.com"
+    role                           TEXT            [NOT NULL]
+      Examples: "member"
+    token                          TEXT            [NOT NULL]
+      Examples: "zAgDqPcOhMNZUMPWfqoRa_WkvHxeWIbP8qVtL1ZHjAY"
+    status                         TEXT            [NOT NULL]
+      Examples: "pending"
+    invited_by_user_id             INTEGER         [NOT NULL]
+      Examples: 3
+    created_at                     TEXT            [NOT NULL]
+      Examples: "2025-11-10 00:36:10.102169"
+    expires_at                     TEXT            [NOT NULL]
+      Examples: "2025-11-17 00:36:10.102148"
+    responded_at                   TEXT           
+
+  Foreign Keys:
+    invited_by_user_id -> users.id
+    invited_user_id -> users.id
+    workspace_id -> workspaces.id
+
+  TABLE: workspace_users - 2 rows
+    id                             INTEGER         [PK]
+      Examples: 11, 12
+    workspace_id                   INTEGER         [NOT NULL]
+      Examples: 12
+    user_id                        INTEGER         [NOT NULL]
+      Examples: 3, 5
+    role                           TEXT            [NOT NULL]
+      Examples: "owner", "member"
+    added_by_user_id               INTEGER         [NOT NULL]
+      Examples: 3
+    added_at                       TEXT            [NOT NULL]
+      Examples: "2025-11-09T14:36:10.073329", "2025-11-09T14:36:10.096034"
+    removed_at                     TEXT           
+
+  Foreign Keys:
+    added_by_user_id -> users.id
+    user_id -> users.id
+    workspace_id -> workspaces.id
+
+  TABLE: workspaces - 4 rows
+    id                             INTEGER         [PK]
+      Examples: 1, 2, 3
+    user_id                        INTEGER         [NOT NULL]
+      Examples: 1, 5, 6
+    name                           TEXT            [NOT NULL]
+      Examples: "admin's Workspace", "google_test's Workspace", "microsoft_test's Workspace"
+    description                    TEXT           
+      Examples: "Default workspace", "Testing workspace system"
+    created_at                     TIMESTAMP      
+      Examples: "2025-10-27 10:19:19", "2025-10-29 13:19:36", "2025-11-09T14:36:10.073329"
+    metadata                       TEXT           
+      Examples: "{}"
+    slug                           TEXT           
+      Examples: "test-workspace-alpha"
+    owner_id                       INTEGER        
+      Examples: 3
+    status                         TEXT           
+      Examples: "active", "archived"
+    visibility                     TEXT           
+      Examples: "private"
+    settings                       TEXT           
+    updated_at                     TEXT           
+      Examples: "2025-11-09T14:36:10.108794"
+    archived_at                    TEXT           
+      Examples: "2025-11-09T14:36:10.108794"
+
+  Foreign Keys:
+    user_id -> users.id
+
+DATABASE: kanban_analytics.db
+Location: C:\Users\gpoli\GIT\AI_agents\data\kanban_analytics.db
+Size: 655,360 bytes
+Tables: 15
+----------------------------------------------------------------------------------------------------
+
+  TABLE: ai_predictions - 0 rows
+    prediction_id                  INTEGER         [PK]
+    ticket_id                      INTEGER         [NOT NULL]
+    predicted_completion_date      TEXT           
+    predicted_total_hours          REAL           
+    confidence_score               REAL           
+    late_delivery_risk             TEXT           
+    quality_risk                   TEXT           
+    cost_overrun_risk              TEXT           
+    recommended_actions            TEXT           
+    optimization_suggestions       TEXT           
+    model_version                  TEXT           
+    predicted_at                   TEXT            [NOT NULL]
+    actual_outcome                 TEXT           
+
+  Foreign Keys:
+    ticket_id -> job_tickets.ticket_id
+
+  TABLE: clients - 629 rows
+    client_id                      INTEGER         [PK]
+      Examples: 1, 2, 8
+    client_name                    TEXT            [NOT NULL]
+      Examples: "4 Real Estate (Brad Scott)", "A Tech Plumbing", "AES Carrara"
+    total_orders                   INTEGER        
+      Examples: 1, 3, 2
+    total_value                    REAL           
+      Examples: 402.5, 190.95, 161.7
+    first_order_date               TEXT           
+      Examples: "2025-01-13", "2024-11-19", "2025-07-04"
+    last_order_date                TEXT           
+      Examples: "2025-01-13", "2024-11-19", "2025-07-04"
+    customer_tier                  TEXT           
+      Examples: "New", "Regular", "VIP"
+    synced_at                      TEXT            [NOT NULL]
+      Examples: "2025-11-06 14:22:44"
+    last_updated                   TEXT            [NOT NULL]
+      Examples: "2025-11-06 14:22:44"
+
+  TABLE: custom_job_notes - 0 rows
+    note_id                        INTEGER         [PK]
+    ticket_id                      INTEGER         [NOT NULL]
+    note_text                      TEXT            [NOT NULL]
+    note_type                      TEXT           
+    priority                       TEXT           
+    created_by                     TEXT           
+    created_at                     TEXT            [NOT NULL]
+    resolved                       INTEGER        
+    resolved_at                    TEXT           
+
+  Foreign Keys:
+    ticket_id -> job_tickets.ticket_id
+
+  TABLE: custom_tags - 10 rows
+    tag_id                         INTEGER         [PK]
+      Examples: 4, 3, 7
+    tag_name                       TEXT            [NOT NULL]
+      Examples: "Complex Job", "Customer VIP", "Equipment Issue"
+    tag_category                   TEXT           
+      Examples: "priority", "issue", "customer"
+    tag_color                      TEXT           
+      Examples: "#ef4444", "#f97316", "#a855f7"
+    created_at                     TEXT            [NOT NULL]
+      Examples: "2025-11-06 14:22:44"
+
+  TABLE: customer_analytics - 31 rows
+    analytics_id                   INTEGER         [PK]
+      Examples: 1, 2, 3
+    client_name                    TEXT            [NOT NULL]
+      Examples: "ASC Print & Promotional Brokers", "Carol Libke", "Citipointe Christian College"
+    analysis_period                TEXT            [NOT NULL]
+      Examples: "monthly"
+    period_start                   TEXT            [NOT NULL]
+      Examples: "2025-10-08"
+    period_end                     TEXT            [NOT NULL]
+      Examples: "2025-11-07"
+    total_orders                   INTEGER        
+      Examples: 1, 2, 3
+    total_revenue                  REAL           
+      Examples: 136.09, 11650.0, 1662.38
+    avg_order_value                REAL           
+      Examples: 136.09, 11650.0, 1662.38
+    on_time_delivery_rate          REAL           
+    avg_turnaround_days            REAL           
+      Examples: 1.0, 0.0, 7.0
+    avg_quality_score              REAL           
+    rework_rate                    REAL           
+    total_profit                   REAL           
+    avg_profit_margin              REAL           
+    orders_per_month               REAL           
+    days_since_last_order          INTEGER        
+    customer_health_score          INTEGER        
+    calculated_at                  TEXT            [NOT NULL]
+      Examples: "2025-11-06 14:22:45"
+
+  Foreign Keys:
+    client_name -> clients.client_name
+
+  TABLE: job_performance - 0 rows
+    performance_id                 INTEGER         [PK]
+    ticket_id                      INTEGER         [NOT NULL]
+    estimated_hours                REAL           
+    actual_hours                   REAL           
+    setup_time_hours               REAL           
+    production_time_hours          REAL           
+    finishing_time_hours           REAL           
+    quality_score                  INTEGER        
+    rework_required                INTEGER        
+    rework_hours                   REAL           
+    defect_count                   INTEGER        
+    material_waste_percentage      REAL           
+    on_time_delivery               INTEGER        
+    customer_satisfaction          INTEGER        
+    material_cost                  REAL           
+    labor_cost                     REAL           
+    overhead_cost                  REAL           
+    total_actual_cost              REAL           
+    profit_margin                  REAL           
+    recorded_by                    TEXT           
+    recorded_at                    TEXT            [NOT NULL]
+    updated_at                     TEXT           
+
+  Foreign Keys:
+    ticket_id -> job_tickets.ticket_id
+
+  TABLE: job_stages - 15 rows
+    stage_id                       INTEGER         [PK]
+      Examples: 1, 2, 3
+    stage_description              TEXT            [NOT NULL]
+      Examples: "ArtOnly", "ArtAndPrint", "OnHold"
+    stage_order                    INTEGER        
+      Examples: 0, 1, 2
+    synced_at                      TEXT            [NOT NULL]
+      Examples: "2025-11-06 14:22:44"
+
+  TABLE: job_tags - 0 rows
+    assignment_id                  INTEGER         [PK]
+    ticket_id                      INTEGER         [NOT NULL]
+    tag_id                         INTEGER         [NOT NULL]
+    assigned_by                    TEXT           
+    assigned_at                    TEXT            [NOT NULL]
+
+  Foreign Keys:
+    tag_id -> custom_tags.tag_id
+    ticket_id -> job_tickets.ticket_id
+
+  TABLE: job_tickets - 119 rows
+    ticket_id                      INTEGER         [PK]
+      Examples: 68374, 68375, 70398
+    order_id                       INTEGER         [NOT NULL]
+      Examples: 53238, 54844, 55463
+    stage_id                       INTEGER         [NOT NULL]
+      Examples: 1, 3, 4
+    stage_description              TEXT           
+      Examples: "Digital - OutSource", "OnHold", "TicketComplete"
+    client_name                    TEXT            [NOT NULL]
+      Examples: "ASC Print & Promotional Brokers", "AntMan", "Carol Libke"
+    order_date                     TEXT            [NOT NULL]
+      Examples: "2025-01-16", "2025-05-19", "2025-07-02"
+    short_job_desc                 TEXT           
+      Examples: "Radiology Flash Cards 42pp SEE NOTES", "1000 x PATHOLOGY FLASH CARDS 24pp CELLO", "Emergency VG  - (INVOICED FOR 1000)"
+    date_required                  TEXT           
+      Examples: "2025-01-31", "2025-05-19", "2025-07-02"
+    qty                            INTEGER        
+      Examples: 1000, 300, 500
+    cost                           REAL           
+      Examples: 6200.0, 5100.0, 10527.0
+    paper_type                     TEXT           
+      Examples: "Satin", "Mixed", "White Bond"
+    gsm                            TEXT           
+      Examples: "400gsm", "Mixed", "100"
+    paper_size                     TEXT           
+      Examples: "Custom", "A6", "BC - 90x55"
+    pages                          INTEGER        
+      Examples: 0, 50, 100
+    job_type                       TEXT           
+      Examples: "Flyers - Double Sided", "Spiral Bound Book", "Corflute"
+    bind_type                      TEXT           
+      Examples: "", "Plastic Spiral", "Perfect Bound"
+    cello_yes                      INTEGER        
+      Examples: 0, 1
+    fold_yes                       INTEGER        
+      Examples: 0, 1
+    stitch_yes                     INTEGER        
+      Examples: 0, 1
+    production_notes               TEXT           
+      Examples: "Last price: $5710 Inc GST - Review Required
+
+Fl...", "Last price: $4723 Inc GST - Review Required
+SIZ...", "
+Trim size: A6 (scale file down from A4) Conten..."
+    client_order_num               TEXT           
+      Examples: "Flash Cards Jan-25 INV-43346", "Emergency VG - INV-44466", "Standard MVG - INV-44797"
+    shipping_desc                  TEXT           
+      Examples: "Customer Pickup", "N/A", "Courier"
+    invoicing_business             TEXT           
+      Examples: "InHouse Print & Design", "InHouse Signs", "InHouse Publishing"
+    priority                       TEXT           
+      Examples: "Overdue", "Low Priority", "Urgent"
+    days_until_due                 INTEGER        
+      Examples: -279, -171, -127
+    days_in_system                 INTEGER        
+      Examples: 294, 171, 127
+    urgency_level                  TEXT           
+      Examples: "OVERDUE", "LOW", "CRITICAL"
+    customer_order_count           INTEGER        
+      Examples: 23, 273, 1
+    customer_lifetime_value        REAL           
+      Examples: 66804.04, 99543.15, 0.0
+    ai_priority_score              INTEGER        
+      Examples: 700, 600, 550
+    priority_label                 TEXT           
+      Examples: "HIGH", "URGENT", "LOW"
+    priority_color                 TEXT           
+      Examples: "orange", "yellow", "blue"
+    synced_at                      TEXT            [NOT NULL]
+      Examples: "2025-11-06 14:22:45", "2025-11-06 15:57:22"
+    last_updated                   TEXT            [NOT NULL]
+      Examples: "2025-11-06 14:22:45", "2025-11-06 15:57:22"
+
+  Foreign Keys:
+    order_id -> orders.order_id
+
+  TABLE: orders - 2,457 rows
+    order_id                       INTEGER         [PK]
+      Examples: 54665, 54666, 54667
+    client_name                    TEXT            [NOT NULL]
+      Examples: "All Properties Group Gold Coast", "Red Rocket Realty Springwood", "LSKD"
+    order_date                     TEXT            [NOT NULL]
+      Examples: "2025-05-07", "2025-05-08", "2025-05-09"
+    date_required                  TEXT           
+      Examples: "2025-05-07", "2025-05-08", "2025-05-09"
+    shipping_type                  TEXT           
+      Examples: "Customer Pickup", "InHouse Delivery", "Freight"
+    invoicing_business_id          INTEGER        
+      Examples: 1, 3, 2
+    client_order_num               TEXT           
+      Examples: "A1 Poster", "Just Sold 59 Narelle Crescent", "Sold Stickers"
+    synced_at                      TEXT            [NOT NULL]
+      Examples: "2025-11-06 14:22:44"
+    last_updated                   TEXT            [NOT NULL]
+      Examples: "2025-11-06 14:22:44"
+
+  TABLE: production_log - 98 rows
+    log_id                         INTEGER         [PK]
+      Examples: 98, 94, 95
+    ticket_id                      INTEGER         [NOT NULL]
+      Examples: 68374, 68375, 70398
+    log_date                       TEXT            [NOT NULL]
+      Examples: "2025-11-11 04:41:43", "2025-11-06 16:28:31", "2025-11-06 15:57:22"
+    log_time                       TEXT            [NOT NULL]
+      Examples: "00:00:00", "02:28:31", "14:41:43"
+    user_initials                  TEXT           
+      Examples: "AUTO", "JD", "SM"
+    entry_type                     TEXT            [NOT NULL]
+      Examples: "client_notification", "delay", "note"
+    from_stage_id                  INTEGER        
+    to_stage_id                    INTEGER        
+      Examples: 1, 3, 4
+    from_stage_name                TEXT           
+      Examples: "Start"
+    to_stage_name                  TEXT           
+      Examples: "ArtOnly", "OnHold", "Digital - 9110"
+    note_text                      TEXT           
+      Examples: "Auto-migrated: 0.0h work (0.0h total)", "Client requested color adjustment - updating files", "Wastage: 50 sheets for color calibration"
+    wastage_amount                 REAL           
+      Examples: 50.0
+    wastage_unit                   TEXT           
+      Examples: "sheets"
+    wastage_type                   TEXT           
+      Examples: "paper"
+    wastage_reason                 TEXT           
+      Examples: "Color calibration test prints"
+    stock_item                     TEXT           
+    stock_quantity_change          REAL           
+    stock_reason                   TEXT           
+    delay_hours                    REAL           
+      Examples: 2.5
+    delay_reason                   TEXT           
+      Examples: "equipment_failure"
+    delay_resolved                 INTEGER        
+      Examples: 0
+    notification_type              TEXT           
+      Examples: "email"
+    notification_recipient         TEXT           
+      Examples: "client@example.com"
+    notification_subject           TEXT           
+      Examples: "Your print job is ready for review"
+    notification_message           TEXT           
+      Examples: "Hi, your business cards are ready. Please revie..."
+    notification_status            TEXT           
+      Examples: "pending", "sent"
+    notification_sent_at           TEXT           
+      Examples: "2025-11-07T14:30:00"
+    notification_method_details    TEXT           
+    created_at                     TEXT            [NOT NULL]
+      Examples: "2025-11-06 16:28:31", "2025-11-11 04:41:43"
+    updated_at                     TEXT           
+    is_edited                      INTEGER        
+      Examples: 0
+    created_by_user                TEXT           
+      Examples: "GK"
+
+  Foreign Keys:
+    to_stage_id -> job_stages.stage_id
+    from_stage_id -> job_stages.stage_id
+    ticket_id -> job_tickets.ticket_id
+
+  TABLE: sqlite_sequence - 7 rows
+    name                                          
+      Examples: "custom_tags", "sync_history", "clients"
+    seq                                           
+      Examples: 10, 2, 629
+
+  TABLE: stage_analytics - 15 rows
+    analytics_id                   INTEGER         [PK]
+      Examples: 16, 17, 18
+    stage_id                       INTEGER         [NOT NULL]
+      Examples: 1, 2, 3
+    date                           TEXT            [NOT NULL]
+      Examples: "2025-11-07"
+    jobs_entered                   INTEGER        
+      Examples: 0
+    jobs_completed                 INTEGER        
+      Examples: 0
+    jobs_in_progress               INTEGER        
+      Examples: 1, 0, 14
+    avg_time_in_stage_hours        REAL           
+      Examples: 0.0
+    min_time_in_stage_hours        REAL           
+      Examples: 0.0
+    max_time_in_stage_hours        REAL           
+      Examples: 0.0
+    total_time_hours               REAL           
+      Examples: 0.0
+    is_bottleneck                  INTEGER        
+      Examples: 0
+    bottleneck_severity            TEXT           
+      Examples: "none"
+    queue_depth                    INTEGER        
+      Examples: 1, 0, 14
+    calculated_at                  TEXT            [NOT NULL]
+      Examples: "2025-11-06 15:57:22"
+
+  Foreign Keys:
+    stage_id -> job_stages.stage_id
+
+  TABLE: stage_transitions - 93 rows
+    transition_id                  INTEGER         [PK]
+      Examples: 1, 2, 3
+    ticket_id                      INTEGER         [NOT NULL]
+      Examples: 68374, 68375, 70398
+    from_stage_id                  INTEGER        
+    to_stage_id                    INTEGER         [NOT NULL]
+      Examples: 1, 3, 4
+    transition_date                TEXT            [NOT NULL]
+      Examples: "2025-11-06 15:57:22"
+    transition_time_hours          REAL           
+    notes                          TEXT           
+    business_hours                 REAL           
+      Examples: 0.0
+    total_hours                    REAL           
+      Examples: 0.0
+
+  Foreign Keys:
+    to_stage_id -> job_stages.stage_id
+    from_stage_id -> job_stages.stage_id
+    ticket_id -> job_tickets.ticket_id
+
+  TABLE: sync_history - 2 rows
+    sync_id                        INTEGER         [PK]
+      Examples: 1, 2
+    sync_type                      TEXT            [NOT NULL]
+      Examples: "full", "incremental"
+    sync_start                     TEXT            [NOT NULL]
+      Examples: "2025-11-07T00:22:44.336170", "2025-11-07T01:57:20.906747"
+    sync_end                       TEXT           
+      Examples: "2025-11-07T00:22:45.211170", "2025-11-07T01:57:22.398818"
+    records_synced                 INTEGER        
+      Examples: 3205, 0
+    records_added                  INTEGER        
+      Examples: 0
+    records_updated                INTEGER        
+      Examples: 0, 41
+    records_deleted                INTEGER        
+      Examples: 0
+    sync_status                    TEXT           
+      Examples: "success"
+    error_message                  TEXT           
+    sync_duration_seconds          REAL           
+      Examples: 0.875, 1.492071
+
+DATABASE: sessions.db
+Location: C:\Users\gpoli\GIT\AI_agents\data\sessions.db
+Size: 745,472 bytes
+Tables: 11
+----------------------------------------------------------------------------------------------------
+
+  TABLE: api_sessions - 0 rows
+    id                             INTEGER         [PK]
+    api_session_id                 TEXT            [NOT NULL]
+    workspace_id                   INTEGER        
+    created_at                     TIMESTAMP      
+    last_active                    TIMESTAMP      
+    metadata                       TEXT           
+
+  TABLE: messages - 219 rows
+    id                             INTEGER         [PK]
+      Examples: 1, 2, 3
+    workspace_id                   INTEGER        
+      Examples: 1
+    thread_id                      INTEGER         [NOT NULL]
+      Examples: 1, 3, 5
+    session_id                     TEXT           
+    role                           TEXT            [NOT NULL]
+      Examples: "user", "assistant"
+    content                        TEXT            [NOT NULL]
+      Examples: "Hello, how are you?", "I'm doing well, thank you!", "What's the weather like?"
+    prompt                         TEXT           
+      Examples: "what was the last message we had", "I need a summary of the emsails that caem throu...", "2 use outlook"
+    response_data                  TEXT           
+    user_id                        INTEGER        
+      Examples: 12, 14
+    api_session_id                 TEXT           
+    include                        BOOLEAN        
+      Examples: 1
+    feedback_score                 INTEGER        
+    tool_calls                     TEXT           
+      Examples: "[]"
+    tokens_used                    INTEGER        
+    model                          TEXT           
+    timestamp                      TIMESTAMP      
+      Examples: "2025-11-09 10:33:06", "2025-11-09 10:33:08", "2025-11-09 10:33:10"
+    created_at                     TIMESTAMP      
+      Examples: "2025-11-10 02:51:09", "2025-11-11T03:03:54.306135", "2025-11-11T03:03:54.314019"
+    metadata                       TEXT           
+      Examples: "{}"
+    updated_at                     TIMESTAMP      
+      Examples: "2025-11-11T03:03:54.306135", "2025-11-11T03:03:54.314019", "2025-11-11T12:37:59.974275"
+
+  Foreign Keys:
+    thread_id -> threads.id
+
+  TABLE: saved_threads - 27 rows
+    thread_id                      TEXT            [PK]
+      Examples: "Charlie-3_1763054845234", "Charlie-3_1763063985938", "Prime_1762828476509"
+    agent_id                       TEXT            [NOT NULL]
+      Examples: "prime", "agent-2", "Prime"
+    session_id                     TEXT            [NOT NULL]
+      Examples: "1762867151065", "1762851232975", "1762902784331"
+    user_id                        INTEGER        
+      Examples: 14
+    location                       TEXT           
+      Examples: "prime", "agent-3"
+    thread_name                    TEXT           
+      Examples: "G TEST 11 - 11pm", "TEST 11th 7pm Bravo", "G test 12th Nov"
+    conversation                   TEXT            [NOT NULL]
+      Examples: "[{"content": "can you find the synergy session ...", "[{"role": "user", "content": "hello", "timestam...", "[{"content": "hellol", "id": 56, "metadata": {}..."
+    message_count                  INTEGER        
+      Examples: 4, 2, 7
+    context                        TEXT           
+      Examples: "{}"
+    created_at                     TEXT           
+    saved_at                       TEXT           
+      Examples: "2025-11-11 14:10:44", "2025-11-11 23:25:56", "2025-11-11 23:55:34"
+    last_updated                   TEXT           
+      Examples: "2025-11-11 14:10:44", "2025-11-11 23:25:56", "2025-11-11 23:55:34"
+    tags                           TEXT           
+      Examples: "[]"
+    synergy_card_id                TEXT           
+    parent_thread_id               TEXT           
+    branch_point_message_id        TEXT           
+    branch_name                    TEXT           
+    summary                        TEXT           
+    summary_generated_at           TEXT           
+
+  TABLE: sessions - 0 rows
+    session_id                     TEXT            [PK]
+    ui_context                     TEXT            [NOT NULL]
+    agent_id                       TEXT           
+    created_at                     TIMESTAMP      
+    last_active                    TIMESTAMP      
+    conversation                   TEXT           
+    metadata                       TEXT           
+
+  TABLE: sqlite_sequence - 3 rows
+    name                                          
+      Examples: "threads", "messages", "users"
+    seq                                           
+      Examples: 82, 219, 14
+
+  TABLE: thread_shares - 0 rows
+    id                             INTEGER         [PK]
+    thread_id                      INTEGER         [NOT NULL]
+    shared_by                      INTEGER         [NOT NULL]
+    shared_with                    INTEGER         [NOT NULL]
+    permission                     TEXT           
+    share_type                     TEXT           
+    shared_at                      TIMESTAMP      
+    expires_at                     TIMESTAMP      
+    access_count                   INTEGER        
+    last_accessed                  TIMESTAMP      
+    revoked                        INTEGER        
+    revoked_at                     TIMESTAMP      
+    revoked_by                     INTEGER        
+    share_link                     TEXT           
+    notes                          TEXT           
+
+  Foreign Keys:
+    thread_id -> threads.id
+
+  TABLE: thread_users - 0 rows
+    id                             INTEGER         [PK]
+    thread_id                      INTEGER         [NOT NULL]
+    user_id                        INTEGER         [NOT NULL]
+    permission                     TEXT           
+    added_at                       TIMESTAMP      
+    added_by                       INTEGER        
+    is_owner                       INTEGER        
+
+  Foreign Keys:
+    thread_id -> threads.id
+
+  TABLE: threads - 82 rows
+    id                             INTEGER         [PK]
+      Examples: 1, 2, 3
+    thread_slug                    TEXT            [NOT NULL]
+      Examples: "1762663889170", "1762664086386", "1762664406832"
+    workspace_id                   INTEGER        
+      Examples: 1
+    user_id                        INTEGER        
+      Examples: 1, 12, 14
+    name                           TEXT            [NOT NULL]
+      Examples: "Smart toot test", "Smart toot test 3- agnet", "Smart tool test 4 - Google Forms"
+    created_at                     TIMESTAMP      
+      Examples: "2025-11-09T14:51:29.170321", "2025-11-09T14:54:46.386637", "2025-11-09T15:00:06.832454"
+    updated_at                     TIMESTAMP      
+      Examples: "2025-11-09 07:19:33", "2025-11-09 13:41:15", "2025-11-09 14:57:24"
+    metadata                       TEXT           
+      Examples: "{}"
+    location                       TEXT           
+      Examples: "prime", "agent-3", "agent-2"
+    tags                           TEXT           
+      Examples: "[]"
+    synergy_card_id                INTEGER        
+      Examples: "sess_20251101_1410_alex_content_workflow_system", "sess_20251111_0219_manuscript_formatting_research", "sess_20251107_2211_email_thread_quote_generation_"
+    parent_thread_id               INTEGER        
+    branch_name                    TEXT           
+    archived                       INTEGER        
+      Examples: 0
+    branch_point_message_id        TEXT           
+    token_count                    INTEGER        
+      Examples: 0
+    locked_to_device_id            TEXT           
+    locked_at                      TIMESTAMP      
+      Examples: "2025-11-14 03:25:31"
+    lock_mode                      TEXT           
+      Examples: "unlocked", "locked"
+
+  TABLE: user_sessions - 0 rows
+    id                             INTEGER         [PK]
+    user_id                        INTEGER         [NOT NULL]
+    token                          TEXT            [NOT NULL]
+    session_token                  TEXT           
+    ip_address                     TEXT           
+    user_agent                     TEXT           
+    created_at                     TIMESTAMP      
+    expires_at                     TIMESTAMP      
+    last_activity                  TIMESTAMP      
+
+  TABLE: users - 3 rows
+    id                             INTEGER         [PK]
+      Examples: 12, 13, 14
+    username                       TEXT            [NOT NULL]
+      Examples: "user_12", "user_13", "user_14"
+    email                          TEXT            [NOT NULL]
+      Examples: "user_12@ai-platform.local", "user_13@ai-platform.local", "user_14@ai-platform.local"
+    password_hash                  TEXT            [NOT NULL]
+      Examples: "SYSTEM_USER"
+    role                           TEXT           
+      Examples: "user"
+    primary_gmail                  TEXT           
+    created_at                     TIMESTAMP      
+      Examples: "2025-11-10 03:04:45", "2025-11-13 02:31:45", "2025-11-11 02:33:27"
+    last_active                    TIMESTAMP      
+      Examples: "2025-11-11 02:52:19", "2025-11-13 02:31:45", "2025-11-13 20:39:31"
+    metadata                       TEXT           
+      Examples: "{"thread_assignments": {"agent-1": "17628280698...", "{"thread_assignments": {"agent-2": "17629361315...", "{"thread_assignments": {"agent-1": "17630038669..."
+
+  TABLE: workspaces - 0 rows
+    id                             INTEGER         [PK]
+    name                           TEXT            [NOT NULL]
+    description                    TEXT           
+    owner_id                       INTEGER        
+    created_at                     TIMESTAMP      
+    updated_at                     TIMESTAMP      
+    metadata                       TEXT           
+
+DATABASE: stock_data.db
+Location: C:\Users\gpoli\GIT\AI_agents\data\stock_data.db
+Size: 8,994,816 bytes
+Tables: 36
+----------------------------------------------------------------------------------------------------
+
+  TABLE: ClickCostHistory - 0 rows
+    HistoryID                      INTEGER         [PK]
+    ClickDesc                      TEXT            [NOT NULL]
+    OldPrice                       REAL            [NOT NULL]
+    NewPrice                       REAL            [NOT NULL]
+    ChangePercent                  REAL           
+    ChangedBy                      TEXT           
+    ChangedDate                    TEXT           
+
+  TABLE: ClickCosts - 5 rows
+    ClickID                        INTEGER         [PK]
+      Examples: 6, 7, 8
+    ClickDesc                      TEXT            [NOT NULL]
+      Examples: "B&W A4 Click", "Color A4 Click (Low Coverage 0-10%)", "Color A4 Click (Medium Coverage 11-30%)"
+    ClickPricePerA4                REAL            [NOT NULL]
+      Examples: 0.006, 0.05, 0.08
+    LastUpdated                    TEXT           
+      Examples: "2025-10-15T00:37:40.891834", "2025-10-15T00:37:40.892056", "2025-10-15T00:37:40.892064"
+
+  TABLE: ConsumableInventory - 7 rows
+    ConsumableID                   INTEGER         [PK]
+      Examples: 1, 2, 3
+    ConsumableType                 TEXT            [NOT NULL]
+      Examples: "celloglaze_gloss", "celloglaze_matt", "celloglaze_silk"
+    Description                    TEXT            [NOT NULL]
+      Examples: "Celloglaze Film - Gloss", "Celloglaze Film - Matt", "Celloglaze Film - Silk Feel"
+    Unit                           TEXT            [NOT NULL]
+      Examples: "meters", "boxes", "sheets"
+    CurrentStock                   REAL           
+      Examples: 500.0, 400.0, 300.0
+    ReorderPoint                   REAL           
+      Examples: 100.0, 80.0, 5.0
+    CriticalLevel                  REAL           
+      Examples: 50.0, 40.0, 2.0
+    CostPerUnit                    REAL           
+      Examples: 2.5, 2.75, 3.2
+    SupplierName                   TEXT           
+      Examples: "Film Supplies Inc", "Binding Solutions", "Plastics Warehouse"
+    IsActive                       INTEGER        
+      Examples: 1
+    LastUpdated                    TEXT           
+      Examples: "2025-10-10 00:27:30"
+
+  TABLE: ConsumableTransactions - 0 rows
+    TransactionID                  INTEGER         [PK]
+    ConsumableID                   INTEGER         [NOT NULL]
+    TransactionType                TEXT            [NOT NULL]
+    Quantity                       REAL            [NOT NULL]
+    OrderID                        INTEGER        
+    TransactionDate                TEXT           
+    Notes                          TEXT           
+    BalanceAfter                   REAL           
+
+  Foreign Keys:
+    ConsumableID -> ConsumableInventory.ConsumableID
+
+  TABLE: CorfluteMaterialTransactions - 1 rows
+    TransactionID                  INTEGER         [PK]
+      Examples: 1
+    MaterialID                     INTEGER         [NOT NULL]
+      Examples: 1
+    TransactionType                TEXT            [NOT NULL]
+      Examples: "CONSUMPTION"
+    Sheets                         INTEGER         [NOT NULL]
+      Examples: -1
+    SqmUsed                        REAL            [NOT NULL]
+      Examples: 0.54
+    OrderID                        INTEGER        
+      Examples: 12345
+    TransactionDate                TEXT           
+      Examples: "2025-10-10 00:46:28"
+    Notes                          TEXT           
+      Examples: "Consumed 1 sheets (0.54 sqm) for order #12345"
+
+  Foreign Keys:
+    MaterialID -> CorfluteMaterials.MaterialID
+
+  TABLE: CorfluteMaterials - 4 rows
+    MaterialID                     INTEGER         [PK]
+      Examples: 1, 2, 3
+    Thickness                      INTEGER         [NOT NULL]
+      Examples: 5, 3, 10
+    SheetWidth                     INTEGER         [NOT NULL]
+      Examples: 2440, 1830
+    SheetHeight                    INTEGER         [NOT NULL]
+      Examples: 1220
+    Colour                         TEXT           
+      Examples: "White"
+    SheetsInStock                  INTEGER        
+      Examples: 49, 30, 20
+    TotalSqmInStock                REAL           
+      Examples: 2.4368, 2.2326, 2.9768
+    ReorderPoint                   INTEGER        
+      Examples: 10, 5
+    CostPerSheet                   REAL           
+      Examples: 35.0, 28.0, 25.0
+    CostPerSqm                     REAL           
+      Examples: 11.76, 12.54, 8.4
+    SupplierName                   TEXT           
+      Examples: "Signage Plastics"
+    SupplierPartNumber             TEXT           
+      Examples: "5MM-STD-WH", "5MM-MED-WH", "3MM-STD-WH"
+    IsActive                       INTEGER        
+      Examples: 1
+    LastUpdated                    TEXT           
+      Examples: "2025-10-10 00:46:28"
+
+  TABLE: EventProcessingLog - 0 rows
+    log_id                         INTEGER         [PK]
+    event_type                     TEXT            [NOT NULL]
+    order_id                       TEXT            [NOT NULL]
+    order_number                   TEXT           
+    handler_name                   TEXT            [NOT NULL]
+    success                        INTEGER         [NOT NULL]
+    message                        TEXT           
+    processing_time_ms             INTEGER        
+    created_at                     TEXT            [NOT NULL]
+
+  TABLE: JobTickets - 0 rows
+    job_ticket_id                  INTEGER         [PK]
+    order_source                   TEXT           
+    external_order_id              TEXT           
+    customer_email                 TEXT           
+    product_title                  TEXT           
+    quantity                       INTEGER        
+    total_price                    REAL           
+    job_stage                      TEXT           
+    created_date                   TEXT            [NOT NULL]
+    completed_date                 TEXT           
+    notes                          TEXT           
+    stock_ids_used                 TEXT           
+
+  TABLE: ProfitMargins - 27 rows
+    MarginID                       INTEGER         [PK]
+      Examples: 10, 11, 12
+    ProductType                    TEXT            [NOT NULL]
+      Examples: "Flyers", "Perfect Bound Books", "Business Cards"
+    MinJobValue                    REAL            [NOT NULL]
+      Examples: 0.0, 51.0, 101.0
+    MaxJobValue                    REAL           
+      Examples: 50.0, 100.0, 200.0
+    MarginPercentage               REAL            [NOT NULL]
+      Examples: 150.0, 100.0, 75.0
+    IsActive                       INTEGER        
+      Examples: 1
+
+  TABLE: PurchaseOrderItems - 0 rows
+    POItemID                       INTEGER         [PK]
+    POID                           INTEGER         [NOT NULL]
+    StockID                        INTEGER        
+    ConsumableID                   INTEGER        
+    Description                    TEXT            [NOT NULL]
+    QuantityOrdered                INTEGER         [NOT NULL]
+    QuantityReceived               INTEGER        
+    UnitPrice                      REAL            [NOT NULL]
+    LineTotal                      REAL            [NOT NULL]
+
+  Foreign Keys:
+    ConsumableID -> ConsumableInventory.ConsumableID
+    StockID -> StockLevels.StockID
+    POID -> PurchaseOrders.POID
+
+  TABLE: PurchaseOrders - 0 rows
+    POID                           INTEGER         [PK]
+    PONumber                       TEXT            [NOT NULL]
+    SupplierName                   TEXT            [NOT NULL]
+    OrderDate                      TEXT           
+    ExpectedDeliveryDate           TEXT           
+    ActualDeliveryDate             TEXT           
+    Status                         TEXT           
+    TotalValue                     REAL           
+    Notes                          TEXT           
+    CreatedBy                      TEXT           
+    CreatedDate                    TEXT           
+
+  TABLE: QuoteMaterialRequirements - 0 rows
+    RequirementID                  INTEGER         [PK]
+    QuoteID                        TEXT            [NOT NULL]
+    StockID                        INTEGER        
+    RequiredQuantity               INTEGER         [NOT NULL]
+    StockSpec                      TEXT            [NOT NULL]
+    MaterialType                   TEXT            [NOT NULL]
+    IsReserved                     INTEGER        
+    ReservedDate                   TEXT           
+    ConsumedOrderID                INTEGER        
+    ConsumedDate                   TEXT           
+    CreatedDate                    TEXT           
+
+  Foreign Keys:
+    StockID -> StockLevels.StockID
+
+  TABLE: ReorderAlerts - 0 rows
+    AlertID                        INTEGER         [PK]
+    StockID                        INTEGER        
+    ConsumableID                   INTEGER        
+    AlertLevel                     TEXT            [NOT NULL]
+    CurrentLevel                   REAL            [NOT NULL]
+    ReorderPoint                   REAL            [NOT NULL]
+    RecommendedOrderQty            INTEGER        
+    IsAcknowledged                 INTEGER        
+    IsSuppressed                   INTEGER        
+    GeneratedDate                  TEXT           
+    AcknowledgedBy                 TEXT           
+    AcknowledgedDate               TEXT           
+
+  Foreign Keys:
+    ConsumableID -> ConsumableInventory.ConsumableID
+    StockID -> StockLevels.StockID
+
+  TABLE: StockLevels - 183 rows
+    StockID                        INTEGER         [PK]
+      Examples: 16, 19, 22
+    StockTypeID                    INTEGER         [NOT NULL]
+      Examples: 20, 24, 29
+    StockTypeDesc                  TEXT            [NOT NULL]
+      Examples: "45mm Circles 24up Gloss", "ADESTOR CAST GLOSS OPAQUE", "ADESTOR CAST GLOSS Solid Back"
+    Length                         INTEGER        
+      Examples: 450, 483, 660
+    Width                          INTEGER        
+      Examples: 320, 330, 210
+    GSM                            INTEGER        
+      Examples: 0, 80, 90
+    Colour                         TEXT           
+      Examples: "White"
+    CostPerThousand                REAL            [NOT NULL]
+      Examples: 36.0, 34.0, 46.0
+    Markup                         REAL           
+      Examples: 10.0, 15.0, 35.0
+    CurrentStockLevel              INTEGER        
+      Examples: 0
+    ReorderPoint                   INTEGER        
+      Examples: 1000
+    CriticalLevel                  INTEGER        
+      Examples: 500
+    MaxStockLevel                  INTEGER        
+      Examples: 5000
+    SupplierName                   TEXT           
+      Examples: "TBD - Update in UI"
+    SupplierPartNumber             TEXT           
+    LocationCode                   TEXT           
+    BinNumber                      TEXT           
+    IsActive                       INTEGER        
+      Examples: 1
+    LastUpdated                    TEXT           
+      Examples: "2025-10-15T00:37:27.490812", "2025-10-15T00:37:27.491450", "2025-10-15T00:37:27.491466"
+    CreatedDate                    TEXT           
+      Examples: "2025-10-15T00:37:27.490863", "2025-10-15T00:37:27.491455", "2025-10-15T00:37:27.491467"
+
+  TABLE: StockMarkupRules - 11 rows
+    RuleID                         INTEGER         [PK]
+      Examples: 1, 2, 3
+    RuleName                       TEXT            [NOT NULL]
+      Examples: "Premium Cover Stock", "Economy Flyer Stock", "Book Interior Stock"
+    StockTypePattern               TEXT           
+      Examples: "Satin", "Matt", "Gloss"
+    GSMMin                         INTEGER        
+      Examples: 300, 128, 80
+    GSMMax                         INTEGER        
+      Examples: 400, 150, 100
+    MarkupPercent                  REAL            [NOT NULL]
+      Examples: 40.0, 45.0, 25.0
+    Priority                       INTEGER        
+      Examples: 10, 5, 8
+    IsActive                       INTEGER        
+      Examples: 1
+    CreatedDate                    TEXT           
+      Examples: "2025-10-15T00:37:35.635222", "2025-10-15T00:37:35.636877", "2025-10-15T00:37:35.636905"
+
+  TABLE: StockTransactions - 13 rows
+    TransactionID                  INTEGER         [PK]
+      Examples: 1, 2, 3
+    StockID                        INTEGER         [NOT NULL]
+      Examples: 1, 2, 5
+    TransactionType                TEXT            [NOT NULL]
+      Examples: "CONSUMPTION", "PURCHASE", "ADJUSTMENT"
+    Quantity                       INTEGER         [NOT NULL]
+      Examples: -2000, 5000, -500
+    OrderID                        INTEGER        
+      Examples: 12345, 12346, 2995
+    QuoteID                        TEXT           
+    POID                           INTEGER        
+    TransactionDate                TEXT           
+      Examples: "2025-10-10 00:27:30", "2025-10-10 00:27:35", "2025-10-10 00:28:44"
+    Notes                          TEXT           
+      Examples: "Test order - 1000 books", "Supplier delivery - Invoice #INV-2024-001", "Test consumption"
+    PerformedBy                    TEXT           
+      Examples: "Test User", "Warehouse Team", "System"
+    BalanceAfter                   INTEGER        
+      Examples: 13000, 18000, 17500
+
+  Foreign Keys:
+    POID -> PurchaseOrders.POID
+    StockID -> StockLevels.StockID
+
+  TABLE: custom_events - 0 rows
+    event_id                       INTEGER         [PK]
+    event_type                     TEXT            [NOT NULL]
+    event_data                     TEXT            [NOT NULL]
+    customer_email                 TEXT           
+    session_id                     TEXT           
+    order_id                       TEXT           
+    product_id                     TEXT           
+    stock_id                       TEXT           
+    source                         TEXT           
+    created_at                     TEXT            [NOT NULL]
+    processed                      INTEGER        
+
+  Foreign Keys:
+    stock_id -> unified_stocks.stock_id
+    order_id -> shopify_orders.order_number
+
+  TABLE: extracted_jobs - 1,336 rows
+    id                             INTEGER         [PK]
+      Examples: 542, 543, 544
+    ticket_id                      INTEGER         [NOT NULL]
+      Examples: 71346, 71347, 71348
+    order_id                       INTEGER        
+      Examples: 56803, 56804, 56805
+    order_date                     TEXT           
+      Examples: "2025-07-15", "2025-07-16", "2025-07-17"
+    client_name                    TEXT           
+      Examples: "2ML", "A.M.G Pest Management", "AMA Products"
+    stock_type                     TEXT           
+      Examples: "corflute", "linen", "vinyl"
+    stock_description              TEXT           
+      Examples: "White Corflute 5mm 2440x1220mm", "Knight Linen 350GSM 450x320mm", "Monomeric Vinyl"
+    gsm                            INTEGER        
+      Examples: 80, 90, 100
+    paper_finish                   TEXT           
+      Examples: "corflute", "linen", "vinyl"
+    sheet_size                     TEXT           
+      Examples: "1220x2440", "320x450", "330x483"
+    length_mm                      INTEGER        
+      Examples: 1220, 320, 330
+    width_mm                       INTEGER        
+      Examples: 2440, 450, 483
+    quantity_ordered               INTEGER        
+      Examples: 100, 4, 250
+    total_sheets_consumed          INTEGER        
+      Examples: 100, 4, 250
+    sheets_per_item                REAL           
+      Examples: 1.0, 3.0, 0.5
+    job_description                TEXT           
+      Examples: "** INV - 45688 **
+
+Size: A5 Portrait
+Black wiro...", "5mm Corflute
+2440mm x 1220mm
+NO PRINT, BLANK SH...", "*Ready by morning of Wed 15th at the latest*
+
+F..."
+    product_type                   TEXT           
+      Examples: "booklets", "corflute", "brochures"
+    finishing_notes                TEXT           
+    total_estimated_value          REAL           
+    estimated_profit               REAL           
+    profit_margin_percent          REAL           
+    stock_cost_estimate            REAL           
+    industry                       TEXT           
+      Examples: "automotive", "construction", "education"
+    client_type                    TEXT           
+      Examples: "small_business", "medium_business", "non_profit"
+    suburb                         TEXT           
+      Examples: "Maylands", "Tamborine Mountain", "Broadbeach"
+    extraction_confidence          REAL           
+      Examples: 0.95, 0.98, 0.92
+    ai_model                       TEXT           
+      Examples: "claude-sonnet-4-20250514", "pattern-matching-v1"
+    extraction_timestamp           TEXT           
+      Examples: "2025-10-12T18:00:13.105371", "2025-10-12T18:00:13.106256", "2025-10-12T18:00:13.106366"
+    json_data                      TEXT           
+      Examples: "{"ticket_id": 72783, "order_id": 56803, "order_...", "{"ticket_id": 72784, "order_id": 56804, "order_...", "{"ticket_id": 72785, "order_id": 56805, "order_..."
+    created_at                     TEXT           
+      Examples: "2025-10-12 02:35:23", "2025-10-12 03:52:59", "2025-10-12 05:48:58"
+    updated_at                     TEXT           
+      Examples: "2025-10-13 15:24:12", "2025-10-12 08:00:13", "2025-10-14T01:41:12.676969"
+    job_value                      REAL           
+      Examples: 796.61, 80.0, 541.35
+    stock_id                       INTEGER        
+      Examples: "TEMP_unknown_0", "T1", 94
+    mixed_stock_flag               INTEGER        
+      Examples: 0, 1
+    cover_stock_id                 TEXT           
+      Examples: "28"
+    content_stock_id               TEXT           
+    thickness_mm                   REAL           
+      Examples: 5.0, 1.0, 2.0
+    standard_format                TEXT           
+      Examples: "A5", "standard_sheet", "A4"
+    orientation                    TEXT           
+      Examples: "portrait", "landscape", "square"
+    product_category               TEXT           
+      Examples: "booklets", "corflute", "brochures"
+    product_sub_category           TEXT           
+      Examples: "wire_bound", "signage", "saddle_stitched"
+    sides                          TEXT           
+      Examples: "double_sided", "no_print", "single_sided"
+    color_type                     TEXT           
+      Examples: "full_color", "no_print", "mixed"
+    page_count                     INTEGER        
+      Examples: 84, 24, 136
+    binding_type                   TEXT           
+      Examples: "wire_bound", "saddle_stitch", "perfect_bound"
+    stock_role_primary             TEXT           
+      Examples: "single"
+    fluting_direction              TEXT           
+      Examples: "landscape_flute", "portrait_flute"
+    print_method                   TEXT           
+      Examples: "digital", "wide_format", "direct_print"
+    color_pages                    INTEGER        
+      Examples: "9 pages color, 231 pages B&W", "295, 296, 297", "13, 16, 17, 34, 35, 37, 43, 50, 58, 63, 64, 71,..."
+    bw_pages                       INTEGER        
+      Examples: 272
+    special_effects                TEXT           
+      Examples: "white_ink", "foiling", "variable_data, numbering"
+    color_sides                    TEXT           
+      Examples: "both", "front_only", "none"
+    binding_edge                   TEXT           
+      Examples: "long_edge", "top", "long"
+    cellophane                     TEXT           
+      Examples: "gloss", "matte", "soft_touch"
+    lamination                     TEXT           
+      Examples: "gloss", "whiteboard", "anti_graffiti"
+    coating                        TEXT           
+      Examples: "poly_vinyl"
+    folding_type                   TEXT           
+      Examples: "roll_fold", "half_fold", "tri_fold"
+    drilling                       BOOLEAN        
+      Examples: 0, 1
+    perforation                    BOOLEAN        
+      Examples: 0, 1
+    die_cutting                    BOOLEAN        
+      Examples: 0, 1
+    creasing                       BOOLEAN        
+      Examples: 0
+    uv_coating                     BOOLEAN        
+      Examples: 0, 1
+    address                        TEXT           
+      Examples: "9b Hardey Road", "Level 2 Oracle West 19 Elizabeth Avenue", "8 Gould Street"
+    state                          TEXT           
+      Examples: "WA", "QLD", "NSW"
+    postcode                       TEXT           
+      Examples: "6051", "4127", "2136"
+    business_description           TEXT           
+      Examples: "Graphic design studio specializing in website d...", "Queensland-based commercial construction and sh...", "Christian women's ministry organization - Annua..."
+    industry_sub_category          TEXT           
+      Examples: "graphic_design", "contractor", "religious"
+    delivery_method                TEXT           
+      Examples: "courier", "pickup", "hand_delivery"
+    urgent                         BOOLEAN        
+      Examples: 0, 1
+    rush_job                       BOOLEAN        
+      Examples: 0, 1
+    due_date                       TEXT           
+    quality_tier                   TEXT           
+      Examples: "standard", "premium", "economy"
+    use_case                       TEXT           
+      Examples: "recipe_book", "construction_material", "convention_program"
+    complexity_score               INTEGER        
+      Examples: 4, 1, 3
+    typical_turnaround_days        INTEGER        
+      Examples: 5, 1, 3
+    price_sensitivity              TEXT           
+      Examples: "medium", "high", "low"
+    production_difficulty          TEXT           
+    total_products_count           INTEGER        
+      Examples: 1, 2, 5
+    multi_product_order            BOOLEAN        
+      Examples: 0, 1
+    rush_order                     BOOLEAN        
+      Examples: 0, 1
+    file_path                      TEXT           
+      Examples: "P:\Danica Studios 10 10 2025", "P:\CWCI (Mt Tamborine) 10 10 25", "W:\Ray White Commercial 10 10 25"
+    artwork_supplied               BOOLEAN        
+      Examples: 1, 0
+    job_type_from_db               TEXT           
+      Examples: "Wire Bound Book", "Corflute", "Saddle Stitched Book"
+
+  TABLE: job_stocks - 126 rows
+    id                             INTEGER         [PK]
+      Examples: 128, 129, 130
+    ticket_id                      INTEGER         [NOT NULL]
+      Examples: 71452, 71457, 71467
+    stock_id                       TEXT            [NOT NULL]
+      Examples: "105", "127", "21"
+    stock_role                     TEXT           
+      Examples: "interior", "cover"
+    quantity_sheets                INTEGER        
+      Examples: 13, 1, 6
+    notes                          TEXT           
+      Examples: "128GSM Satin interior", "300GSM Satin cover", "115GSM Satin interior"
+    created_at                     TIMESTAMP      
+      Examples: "2025-10-14 13:53:24", "2025-10-14 14:12:47", "2025-10-14 14:34:37"
+
+  Foreign Keys:
+    ticket_id -> extracted_jobs.ticket_id
+
+  TABLE: shopify_abandoned_checkouts - 4 rows
+    id                             INTEGER         [PK]
+      Examples: 6, 5, 7
+    shopify_checkout_id            TEXT            [NOT NULL]
+      Examples: "28758575087811", "28784365568195", "28946423677123"
+    token                          TEXT            [NOT NULL]
+      Examples: "1099377b7b7e32111fc55e8564474615", "382e1aebde0b674f184f03cf63c49f40", "8b9d1364900e8f613a05d319be9112aa"
+    cart_token                     TEXT           
+      Examples: "hWN369ooJCDXuLHji48vK7KW", "hWN2Lf4npTCgpOSxrwzzLsNF", "hWN41hxsGQP2uN0xLCQqqYJ2"
+    email                          TEXT           
+      Examples: "info@glorealestate.com.au", "juhakinnunen311@gmail.com", "lirapal535@forexru.com"
+    gateway                        TEXT           
+    buyer_accepts_marketing        BOOLEAN        
+      Examples: 0
+    created_at                     TEXT           
+      Examples: "2025-10-15T01:44:32+10:00", "2025-10-12T20:47:07+10:00", "2025-09-26T15:52:32+10:00"
+    updated_at                     TEXT           
+      Examples: "2025-09-18T09:54:04+10:00", "2025-09-26T15:52:32+10:00", "2025-10-12T20:47:07+10:00"
+    completed_at                   TEXT           
+    closed_at                      TEXT           
+    customer_id                    TEXT           
+      Examples: "8356640424131", "8328824062147", "8382222827715"
+    customer_email                 TEXT           
+      Examples: "info@glorealestate.com.au", "siyun.marketing@gmail.com", "juhakinnunen311@gmail.com"
+    customer_first_name            TEXT           
+      Examples: "Sarah", "Siyun", "Juha"
+    customer_last_name             TEXT           
+      Examples: "Hsieh", "Yang", "Kinnunen"
+    customer_phone                 TEXT           
+    subtotal_price                 REAL           
+      Examples: 209.39, 365.67, 53.9
+    total_price                    REAL           
+      Examples: 365.67, 209.39, 68.85
+    total_tax                      REAL           
+      Examples: 19.04, 33.24, 6.26
+    total_discounts                REAL           
+      Examples: 0.0
+    currency                       TEXT           
+      Examples: "AUD"
+    abandoned_checkout_url         TEXT           
+      Examples: "https://inhouseprint.com.au/63883116739/checkou...", "https://inhouseprint.com.au/63883116739/checkou...", "https://inhouseprint.com.au/63883116739/checkou..."
+    discount_codes                 TEXT           
+      Examples: "[]"
+    recovery_email_sent            BOOLEAN        
+      Examples: 0
+    recovery_email_sent_at         TEXT           
+    recovered                      BOOLEAN        
+      Examples: 0
+    recovered_order_id             TEXT           
+    note                           TEXT           
+      Examples: "Much appreciated if we can have them by end of ...", "The PDF's supplied for print include a 2mm blee..."
+    referring_site                 TEXT           
+      Examples: "https://www.google.com/", "https://inhouseprint.com.au/"
+    landing_site                   TEXT           
+      Examples: "/?gad_source=1&gad_campaignid=21585434101&gclid...", "/checkout/63883116739/cn/hWN2Lf4npTCgpOSxrwzzLs...", "/"
+    source_name                    TEXT           
+      Examples: "web"
+    synced_at                      TEXT           
+      Examples: "2025-10-16T16:17:54.026133", "2025-10-16T16:17:54.027865", "2025-10-16T16:17:54.027919"
+
+  Foreign Keys:
+    recovered_order_id -> shopify_orders.shopify_order_id
+    customer_id -> shopify_customers.shopify_customer_id
+
+  TABLE: shopify_abandoned_line_items - 10 rows
+    id                             INTEGER         [PK]
+      Examples: 2, 3, 7
+    checkout_id                    TEXT            [NOT NULL]
+      Examples: "1099377b7b7e32111fc55e8564474615", "382e1aebde0b674f184f03cf63c49f40", "8b9d1364900e8f613a05d319be9112aa"
+    shopify_product_id             TEXT           
+      Examples: "7731107496131", "7731109331139", "7729184374979"
+    shopify_variant_id             TEXT           
+      Examples: "44870924140739", "44879076425923", "44878958493891"
+    title                          TEXT           
+      Examples: "Printed Flyers", "Folded Printed Flyers", "Corflute Signs"
+    variant_title                  TEXT           
+      Examples: "(D#0DKLIJG)", "(D#MD157RL)", "(D#CKENBEK)"
+    quantity                       INTEGER        
+      Examples: 1
+    price                          REAL           
+      Examples: 209.39, 217.17, 148.5
+    sku                            TEXT           
+      Examples: "ssp|colp|psdl|pSAT150|art", "dsp|colp|psa3|pSAT128|art", "q|art|size6x9|ssPrint"
+    vendor                         TEXT           
+      Examples: "InHouse Print & Design"
+    product_type                   TEXT           
+    properties                     TEXT           
+      Examples: "[{"name": "Quantity", "value": "3000"}, {"name"...", "[{"name": "Quantity", "value": "500"}, {"name":...", "[{"name": "Quantity", "value": "6"}, {"name": "..."
+
+  Foreign Keys:
+    checkout_id -> shopify_abandoned_checkouts.token
+
+  TABLE: shopify_analytics_cache - 0 rows
+    id                             INTEGER         [PK]
+    metric_name                    TEXT            [NOT NULL]
+    metric_date                    DATE            [NOT NULL]
+    metric_value                   REAL           
+    metric_data                    TEXT           
+    created_at                     TEXT           
+
+  TABLE: shopify_customer_addresses - 272 rows
+    id                             INTEGER         [PK]
+      Examples: 270, 539, 540
+    shopify_address_id             TEXT            [NOT NULL]
+      Examples: "8807357055171", "8808530378947", "8809371238595"
+    customer_id                    TEXT            [NOT NULL]
+      Examples: "7650533310659", "7659327553731", "7671678009539"
+    first_name                     TEXT           
+      Examples: "Michelle", "Elias", "Paul"
+    last_name                      TEXT           
+      Examples: "Deaves", "Esber", "Audi"
+    company                        TEXT           
+      Examples: "Hive Conveyancing", "Urban coatings pressure washing", "KPS Australia"
+    address1                       TEXT           
+      Examples: "21 Bungaree Street", "24 Lindsay Street", "3 Regatta Way"
+    address2                       TEXT           
+      Examples: "Graceville", "Shop 6", ""
+    city                           TEXT           
+      Examples: "Wyee", "Campsie", "Cabarita"
+    province                       TEXT           
+      Examples: "New South Wales", "Victoria", "Queensland"
+    province_code                  TEXT           
+      Examples: "NSW", "VIC", "QLD"
+    country                        TEXT           
+      Examples: "Australia", "United States"
+    country_code                   TEXT           
+      Examples: "AU", "US"
+    zip                            TEXT           
+      Examples: "2259", "2194", "2137"
+    phone                          TEXT           
+      Examples: "+61402449500", "+61498634037", "0422102003"
+    is_default                     BOOLEAN        
+      Examples: 1, 0
+
+  Foreign Keys:
+    customer_id -> shopify_customers.shopify_customer_id
+
+  TABLE: shopify_customers - 251 rows
+    id                             INTEGER         [PK]
+      Examples: 371, 471, 281
+    shopify_customer_id            TEXT            [NOT NULL]
+      Examples: "7650533310659", "7659327553731", "7671678009539"
+    email                          TEXT           
+      Examples: "Aydin.Areta@gmail.com", "Blair@insightbranding.com.au", "a.little.splash.of.colour2@gmail.com"
+    first_name                     TEXT           
+      Examples: "Michelle", "Elias", "jose"
+    last_name                      TEXT           
+      Examples: "Deaves", "Esber", "baez"
+    phone                          TEXT           
+      Examples: "+61422102003", "+61484900754", "+61431249447"
+    orders_count                   INTEGER        
+      Examples: 12, 5, 4
+    total_spent                    REAL           
+      Examples: 3013.56, 2962.55, 1899.22
+    average_order_value            REAL           
+      Examples: 129.0, 355.64, 0.0
+    state                          TEXT           
+      Examples: "disabled", "enabled"
+    verified_email                 BOOLEAN        
+      Examples: 1
+    accepts_marketing              BOOLEAN        
+      Examples: 0
+    tags                           TEXT           
+      Examples: "", "Login with Shop, Shop", "newsletter"
+    note                           TEXT           
+      Examples: ""
+    currency                       TEXT           
+      Examples: "AUD"
+    created_at                     TEXT           
+      Examples: "2024-09-23T18:22:48+10:00", "2025-10-16T06:26:27+10:00", "2025-10-15T01:31:41+10:00"
+    updated_at                     TEXT           
+      Examples: "2024-09-23T18:22:51+10:00", "2025-10-16T06:26:32+10:00", "2025-10-15T01:44:32+10:00"
+    last_order_id                  TEXT           
+      Examples: "5786411008195", "6263402627267", "6261741781187"
+    last_order_name                TEXT           
+      Examples: "#1027", "#1279", "#1278"
+    last_order_date                TEXT           
+    default_address_id             TEXT           
+    marketing_opt_in_level         TEXT           
+    tax_exempt                     BOOLEAN        
+      Examples: 0
+    synced_at                      TEXT           
+      Examples: "2025-10-16T03:00:36.892660", "2025-10-16T16:17:47.838660", "2025-10-16T16:17:47.857531"
+
+  Foreign Keys:
+    last_order_id -> shopify_orders.shopify_order_id
+
+  TABLE: shopify_line_items - 59 rows
+    id                             INTEGER         [PK]
+      Examples: 3, 7, 11
+    shopify_order_id               TEXT            [NOT NULL]
+      Examples: "6153174220995", "6156133433539", "6156181668035"
+    line_item_id                   TEXT            [NOT NULL]
+      Examples: "14701518192835", "14706913902787", "14707003130051"
+    product_id                     TEXT           
+      Examples: "7729184374979", "7731078693059", "7731079086275"
+    variant_id                     TEXT           
+      Examples: "44900927373507", "44900923375811", "44900570497219"
+    title                          TEXT           
+      Examples: "Construction Signs", "Corflute Signs", "Notepads A5"
+    variant_title                  TEXT           
+      Examples: "(D#8HIIKGP)", "(D#0XFVV1B)", "(D#1BU8M8W)"
+    sku                            TEXT           
+      Examples: "q|art|size6x9|ssPrint", "q|art|size6x4|ssPrint", "art"
+    quantity                       INTEGER        
+      Examples: 1
+    price                          REAL           
+      Examples: 200.1, 250.13, 311.9
+    total_discount                 REAL           
+      Examples: 0.0
+    tax_lines                      TEXT           
+    raw_json                       TEXT           
+      Examples: "{"id": 14914801828035, "admin_graphql_api_id": ...", "{"id": 14914801860803, "admin_graphql_api_id": ...", "{"id": 14914172190915, "admin_graphql_api_id": ..."
+
+  Foreign Keys:
+    shopify_order_id -> shopify_orders.shopify_order_id
+
+  TABLE: shopify_line_properties - 617 rows
+    id                             INTEGER         [PK]
+      Examples: 17, 43, 53
+    line_item_id                   TEXT            [NOT NULL]
+      Examples: "14701518192835", "14706913902787", "14707003130051"
+    name                           TEXT            [NOT NULL]
+      Examples: "Artwork Upload", "Artwork Upload 1", "Artwork Upload 10"
+    value                          TEXT           
+      Examples: "20", "1", "600mm x 900mm"
+
+  Foreign Keys:
+    line_item_id -> shopify_line_items.line_item_id
+
+  TABLE: shopify_orders - 54 rows
+    id                             INTEGER         [PK]
+      Examples: 31, 24, 48
+    shopify_order_id               TEXT            [NOT NULL]
+      Examples: "6153174220995", "6156133433539", "6156181668035"
+    order_number                   TEXT           
+      Examples: "1225", "1226", "1227"
+    email                          TEXT           
+      Examples: "", "Aydin.Areta@gmail.com", "aaron.mohtar@gmail.com"
+    created_at                     TEXT           
+      Examples: "2025-07-18T20:48:49+10:00", "2025-07-21T13:50:30+10:00", "2025-07-21T15:38:21+10:00"
+    updated_at                     TEXT           
+      Examples: "2025-10-14T21:28:49+10:00", "2025-10-14T10:33:48+10:00", "2025-10-10T10:44:16+10:00"
+    financial_status               TEXT           
+      Examples: "paid", "refunded", "pending"
+    fulfillment_status             TEXT           
+      Examples: "fulfilled"
+    total_price                    REAL           
+      Examples: 450.23, 311.9, 260.54
+    subtotal_price                 REAL           
+      Examples: 450.23, 311.9, 260.54
+    total_tax                      REAL           
+      Examples: 40.93, 28.35, 23.69
+    currency                       TEXT           
+      Examples: "AUD"
+    customer_id                    TEXT           
+      Examples: "8384140312771", "8155347189955", "8341076181187"
+    customer_name                  TEXT           
+      Examples: "Bobby Backman", "Tristan Cargill", "Edward Dilleen"
+    tags                           TEXT           
+      Examples: "DPO, sb_product_personalize", "sb_product_personalize", "DPO"
+    note                           TEXT           
+      Examples: "", "hello cam you please delivery to 4 thiele st Sp...", "I need these delivered by Friday at the latest ..."
+    raw_json                       TEXT           
+      Examples: "{"id": 6261741781187, "admin_graphql_api_id": "...", "{"id": 6261359280323, "admin_graphql_api_id": "...", "{"id": 6257161633987, "admin_graphql_api_id": "..."
+    created_in_db_at               TEXT           
+      Examples: "2025-10-15 11:38:51"
+
+  TABLE: shopify_price_parity - 0 rows
+    id                             INTEGER         [PK]
+    shopify_order_id               TEXT            [NOT NULL]
+    line_item_id                   TEXT            [NOT NULL]
+    shopify_price                  REAL            [NOT NULL]
+    backend_price                  REAL           
+    difference                     REAL           
+    pct_difference                 REAL           
+    calculator_inputs              TEXT           
+    notes                          TEXT           
+    checked_at                     TEXT           
+
+  Foreign Keys:
+    line_item_id -> shopify_line_items.line_item_id
+    shopify_order_id -> shopify_orders.shopify_order_id
+
+  TABLE: shopify_product_images - 620 rows
+    id                             INTEGER         [PK]
+      Examples: 1096, 1097, 1098
+    shopify_image_id               TEXT            [NOT NULL]
+      Examples: "42559593742531", "42559614288067", "42559812042947"
+    product_id                     TEXT            [NOT NULL]
+      Examples: "7729184374979", "7731078693059", "7731109331139"
+    position                       INTEGER        
+      Examples: 1, 2, 3
+    src                            TEXT            [NOT NULL]
+      Examples: "https://cdn.shopify.com/s/files/1/0638/8311/673...", "https://cdn.shopify.com/s/files/1/0638/8311/673...", "https://cdn.shopify.com/s/files/1/0638/8311/673..."
+    alt                            TEXT           
+      Examples: "Construction signs"
+    width                          INTEGER        
+      Examples: 800, 600, 300
+    height                         INTEGER        
+      Examples: 800, 600, 300
+    variant_ids                    TEXT           
+      Examples: ""
+    created_at                     TEXT           
+      Examples: "2025-06-11T14:34:00+10:00", "2025-06-11T14:38:23+10:00", "2025-06-12T10:41:37+10:00"
+    updated_at                     TEXT           
+      Examples: "2025-06-11T14:34:02+10:00", "2025-06-11T14:38:25+10:00", "2025-06-12T10:41:39+10:00"
+
+  Foreign Keys:
+    product_id -> shopify_products.shopify_product_id
+
+  TABLE: shopify_product_mapping - 0 rows
+    id                             INTEGER         [PK]
+    storefront_option              TEXT            [NOT NULL]
+    mapped_stock_id                TEXT           
+    notes                          TEXT           
+    created_at                     TEXT           
+    updated_at                     TEXT           
+
+  TABLE: shopify_product_variants - 250 rows
+    id                             INTEGER         [PK]
+      Examples: 395, 482, 251
+    shopify_variant_id             TEXT            [NOT NULL]
+      Examples: "42910742839491", "42915370664131", "42915410542787"
+    product_id                     TEXT            [NOT NULL]
+      Examples: "7729184374979", "7731078693059", "7731109331139"
+    title                          TEXT           
+      Examples: "Default", "Default Title"
+    price                          REAL           
+      Examples: 358.88, 330.0, 474.38
+    compare_at_price               REAL           
+    sku                            TEXT           
+      Examples: "", "BIN6898", "CAR14050"
+    barcode                        TEXT           
+      Examples: ""
+    position                       INTEGER        
+      Examples: 1, 2
+    inventory_policy               TEXT           
+      Examples: "deny"
+    fulfillment_service            TEXT           
+      Examples: "manual"
+    inventory_management           TEXT           
+    option1                        TEXT           
+      Examples: "Default", "Default Title"
+    option2                        TEXT           
+    option3                        TEXT           
+    taxable                        BOOLEAN        
+      Examples: 1
+    grams                          INTEGER        
+      Examples: 0
+    weight                         REAL           
+      Examples: 0.0
+    weight_unit                    TEXT           
+      Examples: "kg"
+    inventory_item_id              TEXT           
+      Examples: "46549694283971", "46549693169859", "46549580611779"
+    inventory_quantity             INTEGER        
+      Examples: -1, 0
+    old_inventory_quantity         INTEGER        
+      Examples: 0, -1
+    requires_shipping              BOOLEAN        
+      Examples: 1
+    created_at                     TEXT           
+      Examples: "2025-06-30T17:27:30+10:00", "2025-06-30T17:26:30+10:00", "2025-06-30T16:23:14+10:00"
+    updated_at                     TEXT           
+      Examples: "2025-06-30T17:27:30+10:00", "2025-06-30T17:26:30+10:00", "2025-06-30T16:23:14+10:00"
+
+  Foreign Keys:
+    product_id -> shopify_products.shopify_product_id
+
+  TABLE: shopify_products - 250 rows
+    id                             INTEGER         [PK]
+      Examples: 251, 252, 253
+    shopify_product_id             TEXT            [NOT NULL]
+      Examples: "7729184374979", "7731078693059", "7731109331139"
+    title                          TEXT            [NOT NULL]
+      Examples: "100 x 140mm House Shaped Fridge Magnet", "100 x 93mm Shield Shaped Magnet", "105 x 148mm Clip Fridge Magnet"
+    body_html                      TEXT           
+      Examples: "<p data-end="161" data-start="119">100 x 140mm ...", "<p data-start="114" data-end="216"><strong data...", "<p data-start="174" data-end="272"><strong data..."
+    vendor                         TEXT           
+      Examples: "InHouse Print & Design"
+    product_type                   TEXT           
+      Examples: "", "Business Cards", "Corflute"
+    handle                         TEXT           
+      Examples: "100-x-140mm-house-shaped-fridge-magnet", "100-x-140mm-house-shaped-fridge-magnet-1", "100-x-140mm-house-shaped-fridge-magnet-2"
+    published_at                   TEXT           
+      Examples: "2025-06-26T15:23:25+10:00", "2025-06-26T15:23:04+10:00", "2025-06-26T14:59:04+10:00"
+    template_suffix                TEXT           
+      Examples: "productnoqtyselector", "fridge-magnets", "productcorflute"
+    published_scope                TEXT           
+      Examples: "global", "web"
+    tags                           TEXT           
+      Examples: "Business Card Magnets, gloss laminated magnet, ...", "Business Card Magnets, Fridge Magnets, house ma...", "Gloss Finish, High-Quality Fridge Magnet Printi..."
+    status                         TEXT           
+      Examples: "active", "draft"
+    admin_graphql_api_id           TEXT           
+      Examples: "gid://shopify/Product/8175236251843", "gid://shopify/Product/8175236939971", "gid://shopify/Product/8175597519043"
+    metafields_global_title_tag    TEXT           
+    metafields_global_description_tag TEXT           
+    image_src                      TEXT           
+      Examples: "https://cdn.shopify.com/s/files/1/0638/8311/673...", "https://cdn.shopify.com/s/files/1/0638/8311/673...", "https://cdn.shopify.com/s/files/1/0638/8311/673..."
+    image_alt                      TEXT           
+      Examples: "Construction signs"
+    created_at                     TEXT           
+      Examples: "2025-06-11T14:37:35+10:00", "2025-06-11T14:41:17+10:00", "2025-06-12T10:42:57+10:00"
+    updated_at                     TEXT           
+      Examples: "2025-10-15T00:36:50+10:00", "2025-10-15T00:36:51+10:00", "2025-10-15T00:37:04+10:00"
+    synced_at                      TEXT           
+      Examples: "2025-10-16T16:17:53.052092", "2025-10-16T16:17:53.053899", "2025-10-16T16:17:53.053954"
+
+  TABLE: shopify_stock_usage - 0 rows
+    id                             INTEGER         [PK]
+    shopify_order_id               TEXT            [NOT NULL]
+    line_item_id                   TEXT            [NOT NULL]
+    stock_id                       TEXT           
+    sheets_consumed                INTEGER        
+    sqm_consumed                   REAL           
+    stock_cost                     REAL           
+    recorded_at                    TEXT           
+
+  Foreign Keys:
+    line_item_id -> shopify_line_items.line_item_id
+    shopify_order_id -> shopify_orders.shopify_order_id
+
+  TABLE: shopify_webhook_events - 0 rows
+    id                             INTEGER         [PK]
+    topic                          TEXT            [NOT NULL]
+    shopify_id                     TEXT           
+    received_at                    TEXT           
+    payload_hash                   TEXT            [NOT NULL]
+    raw_json                       TEXT            [NOT NULL]
+    processed                      BOOLEAN        
+    processed_at                   TEXT           
+    error                          TEXT           
+
+  TABLE: sqlite_sequence - 20 rows
+    name                                          
+      Examples: "StockLevels", "ConsumableInventory", "ClickCosts"
+    seq                                           
+      Examples: 261, 7, 10
+
+  TABLE: unified_stocks - 264 rows
+    stock_id                       TEXT            [PK]
+      Examples: "103", "105", "114"
+    stock_category                 TEXT            [NOT NULL]
+      Examples: "digital", "digital_coated", "digital_poster"
+    stock_type_id                  INTEGER        
+      Examples: 20, 24, 29
+    stock_type_name                TEXT            [NOT NULL]
+      Examples: "45mm Circles 24up Gloss", "ACM", "ADESTOR CAST GLOSS OPAQUE"
+    stock_description              TEXT           
+      Examples: "• Lightweight coated satin paper with semi-glos...", "• Lightweight coated satin paper with semi-glos...", "• Lightweight coated satin paper with semi-glos..."
+    gsm                            INTEGER        
+      Examples: 90, 115, 128
+    length_mm                      INTEGER        
+      Examples: 450, 483, 660
+    width_mm                       INTEGER        
+      Examples: 320, 330, 210
+    cost_per_thousand              REAL           
+      Examples: 36.0, 42.0, 55.0
+    thickness_mm                   REAL           
+      Examples: 5.0, 3.0, 2.0
+    cost_per_sqm                   REAL           
+      Examples: 8.3, 16.2, 2.5
+    roll_width_mm                  INTEGER        
+      Examples: 1370, 1600, 1524
+    roll_length_mm                 INTEGER        
+      Examples: 50000, 2000
+    cost_per_roll                  REAL           
+      Examples: 240.0, 280.0, 320.0
+    cost_per_lm                    REAL           
+      Examples: 9.0, 5.6, 6.4
+    markup                         REAL           
+      Examples: 10.0, 15.0, 20.0
+    sheet_sqm                      REAL           
+      Examples: 0.144, 0.15939, 0.15456
+    is_temp_stock                  BOOLEAN        
+      Examples: 0, 1
+    source                         TEXT           
+      Examples: "sql_server", "manual_temp", "invoice_import"
+    notes                          TEXT           
+      Examples: "Standard corflute signage
+Price updated from in...", "Lightweight corflute
+Price updated from invoice...", "A4 corflute sheet"
+    created_at                     TIMESTAMP      
+      Examples: "2025-10-14 01:03:01", "2025-10-17 04:06:16", "2025-10-18T00:44:51.294847"
+    supplier_name                  TEXT           
+      Examples: "Spicers Paper", "Multicor", "Palight"
+    product_code                   TEXT           
+      Examples: "110219", "170893", "97088026"
+    unit_type                      TEXT           
+      Examples: "Sheet", "Roll"
+    last_purchased_date            DATE           
+    last_purchase_cost             REAL           
+    average_cost                   REAL           
+    purchase_count                 INTEGER        
+      Examples: 0, 1
+    colour                         TEXT           
+      Examples: "White", "Clear", "Yellow"
+    finish                         TEXT           
+      Examples: "Satin", "Uncoated", "Synthetic"
+    material_type                  TEXT           
+      Examples: "Satin", "Precut Jack", "Uncoated"
+    is_active                      BOOLEAN        
+      Examples: 1, 0
+    product_type                   TEXT           
+      Examples: "Paper", "Poster", "Synthetic Poster"
+    brand_name                     TEXT           
+      Examples: "Pacesetter Satin", "Multicor Corflute", "Palight PVC"
+    supplier_notes                 TEXT           
+      Examples: "Properties: Satin", "Properties: Fire Retardant", "Supplier changed from Digistar to Spicers Paper..."
+    last_supplier_update           TEXT           
+      Examples: "2025-10-17T20:29:13.787467", "2025-10-17T20:29:13.803225", "2025-10-17T20:29:13.795715"
+    marketing_description          TEXT           
+      Examples: "Premium satin paper delivers professional resul...", "Premium lightweight satin paper delivers profes...", "Premium satin paper delivers professional resul..."
+    recommended_uses               TEXT           
+      Examples: "Flyers, Posters, Brochures, Direct mail, Magazi...", "Flyers, Brochures, Booklet internals, Direct ma...", "Flyers, Brochures, Booklets, Direct mail, Magaz..."
+    not_recommended                TEXT           
+      Examples: "Business cards, Outdoor signage, Packaging, Pre...", "Business cards, Outdoor signage, Packaging, Pre...", "High-resolution photography, Premium brochures ..."
+    material_class                 TEXT           
+      Examples: "", "Paper"
+    usage_category                 TEXT           
+      Examples: "digital_coated", "digital_uncoated", "digital_poster"
+    durability_rating              INTEGER        
+      Examples: "2 - Medium-term Indoor (6-24 months typical for...", "2 - Medium-term Indoor (6-24 months typical for...", "1 - Short-term Indoor (3-12 months typical for ..."
+    finish_type_enhanced           TEXT           
+      Examples: "C2S Satin Semi-gloss coating", "C2S Satin Semi-gloss", "Natural Smooth Uncoated Woodfree"
+    technical_specs_formatted      TEXT           
+      Examples: "HP Indigo Certified: 320x450mm and 530x750mm si...", "Coating Type: C2S (95%) - Both sides printable ...", "Coating Type: C2S (95%) - Both sides printable ..."
+    updated_at                     TEXT           
+      Examples: "2025-10-25 00:28:57"
+
+DATABASE: synergy_sessions.db
+Location: C:\Users\gpoli\GIT\AI_agents\data\synergy_sessions.db
+Size: 225,280 bytes
+Tables: 2
+----------------------------------------------------------------------------------------------------
+
+  TABLE: synergy_internal_docs - 16 rows
+    doc_id                         TEXT            [PK]
+      Examples: "int_doc_1763096878807", "int_doc_1763123292825", "int_doc_1763123320829"
+    session_id                     TEXT            [NOT NULL]
+      Examples: "sess_20251114_0558_ap:_anthropic_invoice_#3iu1ijh", "sess_20251114_0558_orders:_100_windscreen_banners", "sess_20251114_1507_internal_docs_test_session"
+    title                          TEXT            [NOT NULL]
+      Examples: "Meeting Notes", "New Document", "New Spreadsheet"
+    content                        TEXT            [NOT NULL]
+      Examples: "## Meeting with client
+
+Date: 2025-11-14", "", "
+                                <p><i>ok so wa..."
+    format                         TEXT            [NOT NULL]
+      Examples: "markdown", "json"
+    created_at                     TEXT           
+      Examples: "2025-11-14T15:07:58.808374", "2025-11-14T22:28:12.825941", "2025-11-14T22:28:40.830394"
+    updated_at                     TEXT           
+      Examples: "2025-11-14T15:07:58.808381", "2025-11-14T22:28:12.825946", "2025-11-14T22:28:40.830405"
+    created_by                     TEXT           
+      Examples: "system"
+    version                        INTEGER        
+      Examples: 1, 13, 6
+    content_json                   TEXT           
+      Examples: "{"type":"doc","content":[]}", "[]", "[["","","","","","","","","","",null],["","",""..."
+    doc_type                       TEXT           
+      Examples: "richtext", "spreadsheet"
+    linked_to_ai                   BOOLEAN        
+      Examples: 0
+    share_url                      TEXT           
+      Examples: "/internal-docs/test-g", "/internal-docs/test-doic-sheets", "/internal-docs/test-doic"
+    description                    TEXT           
+    tags                           TEXT           
+    slug                           TEXT           
+      Examples: "test-g", "test-doic-sheets", "test-doic"
+
+  Foreign Keys:
+    session_id -> synergy_sessions.session_id
+
+  TABLE: synergy_sessions - 13 rows
+    session_id                     TEXT            [PK]
+      Examples: "sess_20251101_1410_sarah_customer_onboarding_sy...", "sess_20251111_0219_manuscript_formatting_research", "sess_20251111_1237_yesterday's_email_processing_&"
+    title                          TEXT            [NOT NULL]
+      Examples: "Customer Onboarding System", "Manuscript Formatting Research & Documentation ...", "Yesterday's Outlook Email Processing - Word Doc..."
+    description                    TEXT           
+      Examples: "Multi-platform customer onboarding workflow wit...", "Multi-platform project involving: docs, researc...", "Multi-platform project involving: Microsoft Out..."
+    platforms_involved             TEXT           
+      Examples: "[]", "["microsoft_outlook", "microsoft_word", "micros...", "["microsoft_outlook", "inhouse_print", "calcula..."
+    status                         TEXT           
+      Examples: "active", "in_progress"
+    priority                       TEXT           
+      Examples: "high", "medium"
+    kanban_column                  TEXT           
+      Examples: "in_progress", "done", "backlog"
+    tags                           TEXT           
+      Examples: "["gmail", "google_forms", "google_sheets", "aut...", "["docs", "research", "synergy", "web_search", "...", "["microsoft_outlook", "microsoft_word", "micros..."
+    documents                      TEXT           
+      Examples: "[]", "[{"title": "Manuscript Formatting Research Guid...", "[{"title": "MBE Eight Mile Plains - Formal Quot..."
+    links                          TEXT           
+      Examples: "[]"
+    next_steps                     TEXT           
+      Examples: "[{"description": "[", "completed": false, "due_...", "[{"description": "Document book formatting fund...", "[{"description": "Retrieve yesterday's emails",..."
+    assignees                      TEXT           
+      Examples: "["Sarah Johnson", "AI Assistant"]", "["AI Agent"]", "[]"
+    recent_activity                TEXT           
+      Examples: "[]", "[{"type": "moved", "timestamp": "2025-11-11T02:...", "[{"type": "created", "timestamp": "2025-11-11T1..."
+    checklist                      TEXT           
+      Examples: "[]", "[{"task": "\ud83d\udd0d OUTLOOK - Email Listing...", "[{"task": "Aaron Woods - Quote Approval & Turna..."
+    due_date                       TEXT           
+      Examples: "2025-11-20", "2025-11-13", "2024-11-13"
+    created_at                     TEXT           
+      Examples: "2025-11-01T14:10:10.973274", "2025-11-11T02:19:41.374757", "2025-11-11T12:37:04.360093"
+    last_active                    TEXT           
+      Examples: "2025-11-10T12:35:07.000254", "2025-11-11T02:49:45.448497", "2025-11-11T23:25:25.767138"
+    completed_at                   TEXT           
+    google_task_id                 TEXT           
+    google_calendar_id             TEXT           
+    microsoft_todo_id              TEXT           
+    thread_ids                     TEXT           
+      Examples: "["1762663889170"]", "["1762789269210"]", "["1762851232975"]"
+    assigned_agents                TEXT           
+      Examples: "[]"
+    project_name                   TEXT           
+      Examples: "Customer Success Platform"
+    notes                          TEXT           
+      Examples: "Created welcome email template, signup form liv..."
+    session_data                   TEXT           
+      Examples: "{}"
+    google_calendar_event_id       TEXT           
+    updated_at                     TEXT           
+      Examples: "2025-11-01T14:10:10.973274"
+    shared_with_users              TEXT           
+      Examples: "[]"
+    owner_user_id                  INTEGER        
+      Examples: 1
+    column_position                INTEGER        
+      Examples: 1, 0
+
+====================================================================================================
+SUPABASE SCHEMAS (PRODUCTION)
+====================================================================================================
+
+
+SCHEMA: ai_infrastructure
+Tables: 16
+----------------------------------------------------------------------------------------------------
+
+  TABLE: account_link_requests - 0 rows
+    id                             integer         [PK] [NOT NULL]
+    user_id                        integer         [NOT NULL]
+    target_email                   text            [NOT NULL]
+    link_token                     text            [NOT NULL]
+    request_type                   text            [NOT NULL]
+    status                         text           
+    created_at                     timestamp without time zone
+    expires_at                     timestamp without time zone [NOT NULL]
+
+  TABLE: device_registry - 4 rows
+    device_id                      text            [PK] [NOT NULL]
+    user_id                        integer         [NOT NULL]
+    device_name                    text            [NOT NULL]
+    device_fingerprint             text           
+    last_seen_at                   timestamp without time zone
+    created_at                     timestamp without time zone
+
+  TABLE: oauth_tokens - 5 rows
+    id                             integer         [PK] [NOT NULL]
+    user_id                        integer         [NOT NULL]
+    platform                       text            [NOT NULL]
+    access_token                   text            [NOT NULL]
+    refresh_token                  text           
+    token_type                     text           
+    expires_at                     timestamp without time zone
+    scope                          text           
+    created_at                     timestamp without time zone
+    updated_at                     timestamp without time zone
+    last_refreshed_at              timestamp without time zone
+    metadata                       text           
+    account_identifier             text           
+    account_name                   text           
+    is_primary_account             boolean        
+    is_valid                       boolean        
+    is_active                      boolean        
+    refresh_attempts               integer        
+    last_refresh_error             text           
+    auto_refresh_enabled           boolean        
+    granted_scopes                 text           
+    issued_at                      timestamp without time zone
+    revoked_at                     timestamp without time zone
+    ip_address_granted             text           
+    email                          text           
+    profile_name                   text           
+    error_count                    integer        
+    last_error                     text           
+    profile_picture_url            text           
+    profile_data                   text           
+
+  TABLE: prompt_library - 76 rows
+    id                             integer         [PK] [NOT NULL]
+    user_id                        integer         [NOT NULL]
+    workspace_id                   integer        
+    name                           text            [NOT NULL]
+    category                       text            [NOT NULL]
+    type                           text            [NOT NULL]
+    description                    text           
+    prompt_text                    text            [NOT NULL]
+    tags                           text           
+    visibility                     text            [NOT NULL]
+    usage_count                    integer        
+    created_at                     timestamp without time zone
+    updated_at                     timestamp without time zone
+
+  TABLE: thread_assignments - 0 rows
+    id                             integer         [PK] [NOT NULL]
+    user_id                        integer         [NOT NULL]
+    session_id                     text            [NOT NULL]
+    location                       text            [NOT NULL]
+    agent_name                     text           
+    created_at                     timestamp without time zone
+    updated_at                     timestamp without time zone
+
+  TABLE: thread_lock_history - 11 rows
+    lock_id                        integer         [PK] [NOT NULL]
+    thread_id                      integer         [NOT NULL]
+    device_id                      text            [NOT NULL]
+    action                         text            [NOT NULL]
+    timestamp                      timestamp without time zone
+
+  TABLE: user_account_links - 0 rows
+    id                             integer         [PK] [NOT NULL]
+    primary_user_id                integer         [NOT NULL]
+    linked_user_id                 integer         [NOT NULL]
+    linked_email                   text            [NOT NULL]
+    link_type                      text            [NOT NULL]
+    link_status                    text           
+    link_token                     text           
+    created_at                     timestamp without time zone
+    confirmed_at                   timestamp without time zone
+
+  TABLE: user_gmail_accounts - 0 rows
+    id                             integer         [PK] [NOT NULL]
+    user_id                        integer         [NOT NULL]
+    gmail_address                  text            [NOT NULL]
+    display_name                   text           
+    access_token                   text           
+    refresh_token                  text           
+    token_expiry                   timestamp without time zone
+    is_primary                     boolean        
+    created_at                     timestamp without time zone
+
+  TABLE: user_platform_credentials - 0 rows
+    id                             integer         [PK] [NOT NULL]
+    user_id                        integer         [NOT NULL]
+    platform                       text            [NOT NULL]
+    credential_type                text            [NOT NULL]
+    credential_key                 text            [NOT NULL]
+    credential_value               text            [NOT NULL]
+    is_active                      boolean        
+    created_at                     timestamp without time zone
+    updated_at                     timestamp without time zone
+    metadata                       text           
+
+  TABLE: user_preferences - 4 rows
+    user_id                        integer         [PK] [NOT NULL]
+    communication_style            text           
+    detail_level                   text           
+    auth_platform                  text           
+    preferred_tools                text           
+    custom_preferences             text           
+    created_at                     timestamp without time zone
+    updated_at                     timestamp without time zone
+    nickname                       text           
+    detected_country               text           
+    detected_city                  text           
+    detected_timezone              text           
+    detected_ip_address            text           
+    manual_location_override       text           
+    manual_timezone_override       text           
+    use_manual_location            integer        
+    use_manual_timezone            integer        
+    last_location_check            timestamp without time zone
+    ai_memories                    text           
+    memory_updated_at              timestamp without time zone
+    ai_model                       text           
+    ai_temperature                 real           
+    ai_top_p                       real           
+    ai_max_tokens                  integer        
+    ai_thinking_enabled            integer        
+    ai_thinking_budget             integer        
+    ai_streaming_enabled           integer        
+
+  TABLE: user_prompt_preferences - 0 rows
+    id                             integer         [PK] [NOT NULL]
+    user_id                        integer         [NOT NULL]
+    preference_name                text            [NOT NULL]
+    quick_actions                  text           
+    library_prompts                text           
+    custom_prompt                  text           
+    created_at                     text           
+
+  TABLE: user_sessions - 466 rows
+    id                             integer         [PK] [NOT NULL]
+    user_id                        integer         [NOT NULL]
+    token                          text            [NOT NULL]
+    ip_address                     text           
+    user_agent                     text           
+    created_at                     timestamp without time zone
+    expires_at                     timestamp without time zone [NOT NULL]
+
+  TABLE: users - 7 rows
+    id                             integer         [PK] [NOT NULL]
+    username                       text            [NOT NULL]
+    email                          text            [NOT NULL]
+    password_hash                  text            [NOT NULL]
+    role                           text           
+    primary_gmail                  text           
+    created_at                     timestamp without time zone
+    last_active                    timestamp without time zone
+    metadata                       text           
+    is_primary                     boolean        
+    allowed_dashboards             text           
+    has_google_oauth               boolean        
+    has_microsoft_oauth            boolean        
+    is_active                      boolean        
+    parent_user_id                 integer        
+    is_sub_user                    boolean        
+    permissions                    text           
+    allowed_tools                  text           
+    allowed_agents                 text           
+    data_access_scope              text           
+    usage_limit_daily              integer        
+    access_start_time              text           
+    access_end_time                text           
+    account_expires_at             timestamp without time zone
+
+  TABLE: workspace_invitations - 1 rows
+    id                             integer         [PK] [NOT NULL]
+    workspace_id                   integer         [NOT NULL]
+    invited_user_id                integer        
+    invited_email                  text            [NOT NULL]
+    role                           text            [NOT NULL]
+    token                          text            [NOT NULL]
+    status                         text            [NOT NULL]
+    invited_by_user_id             integer         [NOT NULL]
+    created_at                     text            [NOT NULL]
+    expires_at                     text            [NOT NULL]
+    responded_at                   text           
+
+  TABLE: workspace_users - 2 rows
+    id                             integer         [PK] [NOT NULL]
+    workspace_id                   integer         [NOT NULL]
+    user_id                        integer         [NOT NULL]
+    role                           text            [NOT NULL]
+    added_by_user_id               integer         [NOT NULL]
+    added_at                       text            [NOT NULL]
+    removed_at                     text           
+
+  TABLE: workspaces - 4 rows
+    id                             integer         [PK] [NOT NULL]
+    user_id                        integer         [NOT NULL]
+    name                           text            [NOT NULL]
+    description                    text           
+    created_at                     timestamp without time zone
+    metadata                       text           
+    slug                           text           
+    owner_id                       integer        
+    status                         text           
+    visibility                     text           
+    settings                       text           
+    updated_at                     text           
+    archived_at                    text           
+
+SCHEMA: kanban_analytics
+Tables: 14
+----------------------------------------------------------------------------------------------------
+
+  TABLE: ai_predictions - 0 rows
+    prediction_id                  integer         [PK] [NOT NULL]
+    ticket_id                      integer         [NOT NULL]
+    predicted_completion_date      text           
+    predicted_total_hours          real           
+    confidence_score               real           
+    late_delivery_risk             text           
+    quality_risk                   text           
+    cost_overrun_risk              text           
+    recommended_actions            text           
+    optimization_suggestions       text           
+    model_version                  text           
+    predicted_at                   text            [NOT NULL]
+    actual_outcome                 text           
+
+  TABLE: clients - 629 rows
+    client_id                      integer         [PK] [NOT NULL]
+    client_name                    text            [NOT NULL]
+    total_orders                   integer        
+    total_value                    real           
+    first_order_date               text           
+    last_order_date                text           
+    customer_tier                  text           
+    synced_at                      text            [NOT NULL]
+    last_updated                   text            [NOT NULL]
+
+  TABLE: custom_job_notes - 0 rows
+    note_id                        integer         [PK] [NOT NULL]
+    ticket_id                      integer         [NOT NULL]
+    note_text                      text            [NOT NULL]
+    note_type                      text           
+    priority                       text           
+    created_by                     text           
+    created_at                     text            [NOT NULL]
+    resolved                       integer        
+    resolved_at                    text           
+
+  TABLE: custom_tags - 10 rows
+    tag_id                         integer         [PK] [NOT NULL]
+    tag_name                       text            [NOT NULL]
+    tag_category                   text           
+    tag_color                      text           
+    created_at                     text            [NOT NULL]
+
+  TABLE: customer_analytics - 31 rows
+    analytics_id                   integer         [PK] [NOT NULL]
+    client_name                    text            [NOT NULL]
+    analysis_period                text            [NOT NULL]
+    period_start                   text            [NOT NULL]
+    period_end                     text            [NOT NULL]
+    total_orders                   integer        
+    total_revenue                  real           
+    avg_order_value                real           
+    on_time_delivery_rate          real           
+    avg_turnaround_days            real           
+    avg_quality_score              real           
+    rework_rate                    real           
+    total_profit                   real           
+    avg_profit_margin              real           
+    orders_per_month               real           
+    days_since_last_order          integer        
+    customer_health_score          integer        
+    calculated_at                  text            [NOT NULL]
+
+  TABLE: job_performance - 0 rows
+    performance_id                 integer         [PK] [NOT NULL]
+    ticket_id                      integer         [NOT NULL]
+    estimated_hours                real           
+    actual_hours                   real           
+    setup_time_hours               real           
+    production_time_hours          real           
+    finishing_time_hours           real           
+    quality_score                  integer        
+    rework_required                integer        
+    rework_hours                   real           
+    defect_count                   integer        
+    material_waste_percentage      real           
+    on_time_delivery               integer        
+    customer_satisfaction          integer        
+    material_cost                  real           
+    labor_cost                     real           
+    overhead_cost                  real           
+    total_actual_cost              real           
+    profit_margin                  real           
+    recorded_by                    text           
+    recorded_at                    text            [NOT NULL]
+    updated_at                     text           
+
+  TABLE: job_stages - 15 rows
+    stage_id                       integer         [PK] [NOT NULL]
+    stage_description              text            [NOT NULL]
+    stage_order                    integer        
+    synced_at                      text            [NOT NULL]
+
+  TABLE: job_tags - 0 rows
+    assignment_id                  integer         [PK] [NOT NULL]
+    ticket_id                      integer         [NOT NULL]
+    tag_id                         integer         [NOT NULL]
+    assigned_by                    text           
+    assigned_at                    text            [NOT NULL]
+
+  TABLE: job_tickets - 119 rows
+    ticket_id                      integer         [PK] [NOT NULL]
+    order_id                       integer         [NOT NULL]
+    stage_id                       integer         [NOT NULL]
+    stage_description              text           
+    client_name                    text            [NOT NULL]
+    order_date                     text            [NOT NULL]
+    short_job_desc                 text           
+    date_required                  text           
+    qty                            integer        
+    cost                           real           
+    paper_type                     text           
+    gsm                            text           
+    paper_size                     text           
+    pages                          integer        
+    job_type                       text           
+    bind_type                      text           
+    cello_yes                      integer        
+    fold_yes                       integer        
+    stitch_yes                     integer        
+    production_notes               text           
+    client_order_num               text           
+    shipping_desc                  text           
+    invoicing_business             text           
+    priority                       text           
+    days_until_due                 integer        
+    days_in_system                 integer        
+    urgency_level                  text           
+    customer_order_count           integer        
+    customer_lifetime_value        real           
+    ai_priority_score              integer        
+    priority_label                 text           
+    priority_color                 text           
+    synced_at                      text            [NOT NULL]
+    last_updated                   text            [NOT NULL]
+
+  TABLE: orders - 2,457 rows
+    order_id                       integer         [PK] [NOT NULL]
+    client_name                    text            [NOT NULL]
+    order_date                     text            [NOT NULL]
+    date_required                  text           
+    shipping_type                  text           
+    invoicing_business_id          integer        
+    client_order_num               text           
+    synced_at                      text            [NOT NULL]
+    last_updated                   text            [NOT NULL]
+
+  TABLE: production_log - 98 rows
+    log_id                         integer         [PK] [NOT NULL]
+    ticket_id                      integer         [NOT NULL]
+    log_date                       text            [NOT NULL]
+    log_time                       text            [NOT NULL]
+    user_initials                  text           
+    entry_type                     text            [NOT NULL]
+    from_stage_id                  integer        
+    to_stage_id                    integer        
+    from_stage_name                text           
+    to_stage_name                  text           
+    note_text                      text           
+    wastage_amount                 real           
+    wastage_unit                   text           
+    wastage_type                   text           
+    wastage_reason                 text           
+    stock_item                     text           
+    stock_quantity_change          real           
+    stock_reason                   text           
+    delay_hours                    real           
+    delay_reason                   text           
+    delay_resolved                 integer        
+    notification_type              text           
+    notification_recipient         text           
+    notification_subject           text           
+    notification_message           text           
+    notification_status            text           
+    notification_sent_at           text           
+    notification_method_details    text           
+    created_at                     text            [NOT NULL]
+    updated_at                     text           
+    is_edited                      integer        
+    created_by_user                text           
+
+  TABLE: stage_analytics - 15 rows
+    analytics_id                   integer         [PK] [NOT NULL]
+    stage_id                       integer         [NOT NULL]
+    date                           text            [NOT NULL]
+    jobs_entered                   integer        
+    jobs_completed                 integer        
+    jobs_in_progress               integer        
+    avg_time_in_stage_hours        real           
+    min_time_in_stage_hours        real           
+    max_time_in_stage_hours        real           
+    total_time_hours               real           
+    is_bottleneck                  integer        
+    bottleneck_severity            text           
+    queue_depth                    integer        
+    calculated_at                  text            [NOT NULL]
+
+  TABLE: stage_transitions - 93 rows
+    transition_id                  integer         [PK] [NOT NULL]
+    ticket_id                      integer         [NOT NULL]
+    from_stage_id                  integer        
+    to_stage_id                    integer         [NOT NULL]
+    transition_date                text            [NOT NULL]
+    transition_time_hours          real           
+    notes                          text           
+    business_hours                 real           
+    total_hours                    real           
+
+  TABLE: sync_history - 2 rows
+    sync_id                        integer         [PK] [NOT NULL]
+    sync_type                      text            [NOT NULL]
+    sync_start                     text            [NOT NULL]
+    sync_end                       text           
+    records_synced                 integer        
+    records_added                  integer        
+    records_updated                integer        
+    records_deleted                integer        
+    sync_status                    text           
+    error_message                  text           
+    sync_duration_seconds          real           
+
+SCHEMA: pg_temp_10
+Tables: 0
+----------------------------------------------------------------------------------------------------
+
+SCHEMA: pg_temp_15
+Tables: 0
+----------------------------------------------------------------------------------------------------
+
+SCHEMA: pg_temp_22
+Tables: 0
+----------------------------------------------------------------------------------------------------
+
+SCHEMA: pg_temp_29
+Tables: 0
+----------------------------------------------------------------------------------------------------
+
+SCHEMA: pg_temp_33
+Tables: 0
+----------------------------------------------------------------------------------------------------
+
+SCHEMA: pg_temp_36
+Tables: 0
+----------------------------------------------------------------------------------------------------
+
+SCHEMA: pg_toast_temp_10
+Tables: 0
+----------------------------------------------------------------------------------------------------
+
+SCHEMA: pg_toast_temp_15
+Tables: 0
+----------------------------------------------------------------------------------------------------
+
+SCHEMA: pg_toast_temp_22
+Tables: 0
+----------------------------------------------------------------------------------------------------
+
+SCHEMA: pg_toast_temp_29
+Tables: 0
+----------------------------------------------------------------------------------------------------
+
+SCHEMA: pg_toast_temp_33
+Tables: 0
+----------------------------------------------------------------------------------------------------
+
+SCHEMA: pg_toast_temp_36
+Tables: 0
+----------------------------------------------------------------------------------------------------
+
+SCHEMA: pgbouncer
+Tables: 0
+----------------------------------------------------------------------------------------------------
+
+SCHEMA: public
+Tables: 0
+----------------------------------------------------------------------------------------------------
+
+SCHEMA: sessions
+Tables: 11
+----------------------------------------------------------------------------------------------------
+
+  TABLE: api_sessions - 0 rows
+    id                             integer         [PK] [NOT NULL]
+    api_session_id                 text            [NOT NULL]
+    workspace_id                   integer        
+    created_at                     timestamp without time zone
+    last_active                    timestamp without time zone
+    metadata                       text           
+
+  TABLE: messages - 219 rows
+    id                             integer         [PK] [NOT NULL]
+    workspace_id                   integer        
+    thread_id                      integer         [NOT NULL]
+    session_id                     text           
+    role                           text            [NOT NULL]
+    content                        text            [NOT NULL]
+    prompt                         text           
+    response_data                  text           
+    user_id                        integer        
+    api_session_id                 text           
+    include                        boolean        
+    feedback_score                 integer        
+    tool_calls                     text           
+    tokens_used                    integer        
+    model                          text           
+    timestamp                      timestamp without time zone
+    created_at                     timestamp without time zone
+    metadata                       text           
+    updated_at                     timestamp without time zone
+
+  TABLE: saved_threads - 27 rows
+    thread_id                      text            [PK] [NOT NULL]
+    agent_id                       text            [NOT NULL]
+    session_id                     text            [NOT NULL]
+    user_id                        integer        
+    location                       text           
+    thread_name                    text           
+    conversation                   text            [NOT NULL]
+    message_count                  integer        
+    context                        text           
+    created_at                     text           
+    saved_at                       text           
+    last_updated                   text           
+    tags                           text           
+    synergy_card_id                text           
+    parent_thread_id               text           
+    branch_point_message_id        text           
+    branch_name                    text           
+    summary                        text           
+    summary_generated_at           text           
+
+  TABLE: sessions - 0 rows
+    session_id                     text            [PK] [NOT NULL]
+    ui_context                     text            [NOT NULL]
+    agent_id                       text           
+    created_at                     timestamp without time zone
+    last_active                    timestamp without time zone
+    conversation                   text           
+    metadata                       text           
+
+  TABLE: thread_assignments - 0 rows
+    id                             integer         [PK] [NOT NULL]
+    user_id                        integer         [NOT NULL]
+    thread_slug                    text            [NOT NULL]
+    location                       text            [NOT NULL]
+    assigned_at                    timestamp without time zone
+    updated_at                     timestamp without time zone
+    metadata                       text           
+
+  TABLE: thread_shares - 0 rows
+    id                             integer         [PK] [NOT NULL]
+    thread_id                      integer         [NOT NULL]
+    shared_by                      integer         [NOT NULL]
+    shared_with                    integer         [NOT NULL]
+    permission                     text           
+    share_type                     text           
+    shared_at                      timestamp without time zone
+    expires_at                     timestamp without time zone
+    access_count                   integer        
+    last_accessed                  timestamp without time zone
+    revoked                        integer        
+    revoked_at                     timestamp without time zone
+    revoked_by                     integer        
+    share_link                     text           
+    notes                          text           
+
+  TABLE: thread_users - 0 rows
+    id                             integer         [PK] [NOT NULL]
+    thread_id                      integer         [NOT NULL]
+    user_id                        integer         [NOT NULL]
+    permission                     text           
+    added_at                       timestamp without time zone
+    added_by                       integer        
+    is_owner                       integer        
+
+  TABLE: threads - 82 rows
+    id                             integer         [PK] [NOT NULL]
+    thread_slug                    text            [NOT NULL]
+    workspace_id                   integer        
+    user_id                        integer        
+    name                           text            [NOT NULL]
+    created_at                     timestamp without time zone
+    updated_at                     timestamp without time zone
+    metadata                       text           
+    location                       text           
+    tags                           text           
+    synergy_card_id                text           
+    parent_thread_id               integer        
+    branch_name                    text           
+    archived                       integer        
+    branch_point_message_id        text           
+    token_count                    integer        
+    locked_to_device_id            text           
+    locked_at                      timestamp without time zone
+    lock_mode                      text           
+
+  TABLE: user_sessions - 0 rows
+    id                             integer         [PK] [NOT NULL]
+    user_id                        integer         [NOT NULL]
+    token                          text            [NOT NULL]
+    session_token                  text           
+    ip_address                     text           
+    user_agent                     text           
+    created_at                     timestamp without time zone
+    expires_at                     timestamp without time zone
+    last_activity                  timestamp without time zone
+
+  TABLE: users - 3 rows
+    id                             integer         [PK] [NOT NULL]
+    username                       text            [NOT NULL]
+    email                          text            [NOT NULL]
+    password_hash                  text            [NOT NULL]
+    role                           text           
+    primary_gmail                  text           
+    created_at                     timestamp without time zone
+    last_active                    timestamp without time zone
+    metadata                       text           
+
+  TABLE: workspaces - 0 rows
+    id                             integer         [PK] [NOT NULL]
+    name                           text            [NOT NULL]
+    description                    text           
+    owner_id                       integer        
+    created_at                     timestamp without time zone
+    updated_at                     timestamp without time zone
+    metadata                       text           
+
+SCHEMA: stock_data
+Tables: 51
+----------------------------------------------------------------------------------------------------
+
+  TABLE: ClickCostHistory - 0 rows
+    HistoryID                      integer         [PK] [NOT NULL]
+    ClickDesc                      text            [NOT NULL]
+    OldPrice                       real            [NOT NULL]
+    NewPrice                       real            [NOT NULL]
+    ChangePercent                  real           
+    ChangedBy                      text           
+    ChangedDate                    text           
+
+  TABLE: ClickCosts - 5 rows
+    ClickID                        integer         [PK] [NOT NULL]
+    ClickDesc                      text            [NOT NULL]
+    ClickPricePerA4                real            [NOT NULL]
+    LastUpdated                    text           
+
+  TABLE: ConsumableInventory - 7 rows
+    ConsumableID                   integer         [PK] [NOT NULL]
+    ConsumableType                 text            [NOT NULL]
+    Description                    text            [NOT NULL]
+    Unit                           text            [NOT NULL]
+    CurrentStock                   real           
+    ReorderPoint                   real           
+    CriticalLevel                  real           
+    CostPerUnit                    real           
+    SupplierName                   text           
+    IsActive                       integer        
+    LastUpdated                    text           
+
+  TABLE: ConsumableTransactions - 0 rows
+    TransactionID                  integer         [PK] [NOT NULL]
+    ConsumableID                   integer         [NOT NULL]
+    TransactionType                text            [NOT NULL]
+    Quantity                       real            [NOT NULL]
+    OrderID                        integer        
+    TransactionDate                text           
+    Notes                          text           
+    BalanceAfter                   real           
+
+  TABLE: CorfluteMaterialTransactions - 1 rows
+    TransactionID                  integer         [PK] [NOT NULL]
+    MaterialID                     integer         [NOT NULL]
+    TransactionType                text            [NOT NULL]
+    Sheets                         integer         [NOT NULL]
+    SqmUsed                        real            [NOT NULL]
+    OrderID                        integer        
+    TransactionDate                text           
+    Notes                          text           
+
+  TABLE: CorfluteMaterials - 4 rows
+    MaterialID                     integer         [PK] [NOT NULL]
+    Thickness                      integer         [NOT NULL]
+    SheetWidth                     integer         [NOT NULL]
+    SheetHeight                    integer         [NOT NULL]
+    Colour                         text           
+    SheetsInStock                  integer        
+    TotalSqmInStock                real           
+    ReorderPoint                   integer        
+    CostPerSheet                   real           
+    CostPerSqm                     real           
+    SupplierName                   text           
+    SupplierPartNumber             text           
+    IsActive                       integer        
+    LastUpdated                    text           
+
+  TABLE: EventProcessingLog - 0 rows
+    log_id                         integer         [PK] [NOT NULL]
+    event_type                     text            [NOT NULL]
+    order_id                       text            [NOT NULL]
+    order_number                   text           
+    handler_name                   text            [NOT NULL]
+    success                        integer         [NOT NULL]
+    message                        text           
+    processing_time_ms             integer        
+    created_at                     text            [NOT NULL]
+
+  TABLE: JobTickets - 0 rows
+    job_ticket_id                  integer         [PK] [NOT NULL]
+    order_source                   text           
+    external_order_id              text           
+    customer_email                 text           
+    product_title                  text           
+    quantity                       integer        
+    total_price                    real           
+    job_stage                      text           
+    created_date                   text            [NOT NULL]
+    completed_date                 text           
+    notes                          text           
+    stock_ids_used                 text           
+
+  TABLE: ProfitMargins - 27 rows
+    MarginID                       integer         [PK] [NOT NULL]
+    ProductType                    text            [NOT NULL]
+    MinJobValue                    real            [NOT NULL]
+    MaxJobValue                    real           
+    MarginPercentage               real            [NOT NULL]
+    IsActive                       integer        
+
+  TABLE: PurchaseOrderItems - 0 rows
+    POItemID                       integer         [PK] [NOT NULL]
+    POID                           integer         [NOT NULL]
+    StockID                        integer        
+    ConsumableID                   integer        
+    Description                    text            [NOT NULL]
+    QuantityOrdered                integer         [NOT NULL]
+    QuantityReceived               integer        
+    UnitPrice                      real            [NOT NULL]
+    LineTotal                      real            [NOT NULL]
+
+  TABLE: PurchaseOrders - 0 rows
+    POID                           integer         [PK] [NOT NULL]
+    PONumber                       text            [NOT NULL]
+    SupplierName                   text            [NOT NULL]
+    OrderDate                      text           
+    ExpectedDeliveryDate           text           
+    ActualDeliveryDate             text           
+    Status                         text           
+    TotalValue                     real           
+    Notes                          text           
+    CreatedBy                      text           
+    CreatedDate                    text           
+
+  TABLE: QuoteMaterialRequirements - 0 rows
+    RequirementID                  integer         [PK] [NOT NULL]
+    QuoteID                        text            [NOT NULL]
+    StockID                        integer        
+    RequiredQuantity               integer         [NOT NULL]
+    StockSpec                      text            [NOT NULL]
+    MaterialType                   text            [NOT NULL]
+    IsReserved                     integer        
+    ReservedDate                   text           
+    ConsumedOrderID                integer        
+    ConsumedDate                   text           
+    CreatedDate                    text           
+
+  TABLE: ReorderAlerts - 0 rows
+    AlertID                        integer         [PK] [NOT NULL]
+    StockID                        integer        
+    ConsumableID                   integer        
+    AlertLevel                     text            [NOT NULL]
+    CurrentLevel                   real            [NOT NULL]
+    ReorderPoint                   real            [NOT NULL]
+    RecommendedOrderQty            integer        
+    IsAcknowledged                 integer        
+    IsSuppressed                   integer        
+    GeneratedDate                  text           
+    AcknowledgedBy                 text           
+    AcknowledgedDate               text           
+
+  TABLE: StockLevels - 183 rows
+    StockID                        integer         [PK] [NOT NULL]
+    StockTypeID                    integer         [NOT NULL]
+    StockTypeDesc                  text            [NOT NULL]
+    Length                         integer        
+    Width                          integer        
+    GSM                            integer        
+    Colour                         text           
+    CostPerThousand                real            [NOT NULL]
+    Markup                         real           
+    CurrentStockLevel              integer        
+    ReorderPoint                   integer        
+    CriticalLevel                  integer        
+    MaxStockLevel                  integer        
+    SupplierName                   text           
+    SupplierPartNumber             text           
+    LocationCode                   text           
+    BinNumber                      text           
+    IsActive                       integer        
+    LastUpdated                    text           
+    CreatedDate                    text           
+
+  TABLE: StockMarkupRules - 11 rows
+    RuleID                         integer         [PK] [NOT NULL]
+    RuleName                       text            [NOT NULL]
+    StockTypePattern               text           
+    GSMMin                         integer        
+    GSMMax                         integer        
+    MarkupPercent                  real            [NOT NULL]
+    Priority                       integer        
+    IsActive                       integer        
+    CreatedDate                    text           
+
+  TABLE: StockTransactions - 13 rows
+    TransactionID                  integer         [PK] [NOT NULL]
+    StockID                        integer         [NOT NULL]
+    TransactionType                text            [NOT NULL]
+    Quantity                       integer         [NOT NULL]
+    OrderID                        integer        
+    QuoteID                        text           
+    POID                           integer        
+    TransactionDate                text           
+    Notes                          text           
+    PerformedBy                    text           
+    BalanceAfter                   integer        
+
+  TABLE: clickcosthistory - 0 rows
+    HistoryID                      integer         [PK] [NOT NULL]
+    ClickDesc                      text            [NOT NULL]
+    OldPrice                       real            [NOT NULL]
+    NewPrice                       real            [NOT NULL]
+    ChangePercent                  real           
+    ChangedBy                      text           
+    ChangedDate                    text           
+
+  TABLE: clickcosts - 0 rows
+    ClickID                        integer         [PK] [NOT NULL]
+    ClickDesc                      text            [NOT NULL]
+    ClickPricePerA4                real            [NOT NULL]
+    LastUpdated                    text           
+
+  TABLE: consumableinventory - 0 rows
+    ConsumableID                   integer         [PK] [NOT NULL]
+    ConsumableType                 text            [NOT NULL]
+    Description                    text            [NOT NULL]
+    Unit                           text            [NOT NULL]
+    CurrentStock                   real           
+    ReorderPoint                   real           
+    CriticalLevel                  real           
+    CostPerUnit                    real           
+    SupplierName                   text           
+    IsActive                       integer        
+    LastUpdated                    text           
+
+  TABLE: consumabletransactions - 0 rows
+    TransactionID                  integer         [PK] [NOT NULL]
+    ConsumableID                   integer         [NOT NULL]
+    TransactionType                text            [NOT NULL]
+    Quantity                       real            [NOT NULL]
+    OrderID                        integer        
+    TransactionDate                text           
+    Notes                          text           
+    BalanceAfter                   real           
+
+  TABLE: corflutematerials - 0 rows
+    MaterialID                     integer         [PK] [NOT NULL]
+    Thickness                      integer         [NOT NULL]
+    SheetWidth                     integer         [NOT NULL]
+    SheetHeight                    integer         [NOT NULL]
+    Colour                         text           
+    SheetsInStock                  integer        
+    TotalSqmInStock                real           
+    ReorderPoint                   integer        
+    CostPerSheet                   real           
+    CostPerSqm                     real           
+    SupplierName                   text           
+    SupplierPartNumber             text           
+    IsActive                       integer        
+    LastUpdated                    text           
+
+  TABLE: corflutematerialtransactions - 0 rows
+    TransactionID                  integer         [PK] [NOT NULL]
+    MaterialID                     integer         [NOT NULL]
+    TransactionType                text            [NOT NULL]
+    Sheets                         integer         [NOT NULL]
+    SqmUsed                        real            [NOT NULL]
+    OrderID                        integer        
+    TransactionDate                text           
+    Notes                          text           
+
+  TABLE: custom_events - 0 rows
+    event_id                       integer         [PK] [NOT NULL]
+    event_type                     text            [NOT NULL]
+    event_data                     text            [NOT NULL]
+    customer_email                 text           
+    session_id                     text           
+    order_id                       text           
+    product_id                     text           
+    stock_id                       text           
+    source                         text           
+    created_at                     text            [NOT NULL]
+    processed                      integer        
+
+  TABLE: eventprocessinglog - 0 rows
+    log_id                         integer         [PK] [NOT NULL]
+    event_type                     text            [NOT NULL]
+    order_id                       text            [NOT NULL]
+    order_number                   text           
+    handler_name                   text            [NOT NULL]
+    success                        integer         [NOT NULL]
+    message                        text           
+    processing_time_ms             integer        
+    created_at                     text            [NOT NULL]
+
+  TABLE: extracted_jobs - 1,336 rows
+    id                             integer         [PK] [NOT NULL]
+    ticket_id                      integer         [NOT NULL]
+    order_id                       integer        
+    order_date                     text           
+    client_name                    text           
+    stock_type                     text           
+    stock_description              text           
+    gsm                            text           
+    paper_finish                   text           
+    sheet_size                     text           
+    length_mm                      integer        
+    width_mm                       integer        
+    quantity_ordered               integer        
+    total_sheets_consumed          integer        
+    sheets_per_item                real           
+    job_description                text           
+    product_type                   text           
+    finishing_notes                text           
+    total_estimated_value          real           
+    estimated_profit               real           
+    profit_margin_percent          real           
+    stock_cost_estimate            real           
+    industry                       text           
+    client_type                    text           
+    suburb                         text           
+    extraction_confidence          real           
+    ai_model                       text           
+    extraction_timestamp           text           
+    json_data                      text           
+    created_at                     text           
+    updated_at                     text           
+    job_value                      real           
+    stock_id                       text           
+    mixed_stock_flag               integer        
+    cover_stock_id                 text           
+    content_stock_id               text           
+    thickness_mm                   real           
+    standard_format                text           
+    orientation                    text           
+    product_category               text           
+    product_sub_category           text           
+    sides                          text           
+    color_type                     text           
+    page_count                     integer        
+    binding_type                   text           
+    stock_role_primary             text           
+    fluting_direction              text           
+    print_method                   text           
+    color_pages                    text           
+    bw_pages                       text           
+    special_effects                text           
+    color_sides                    text           
+    binding_edge                   text           
+    cellophane                     text           
+    lamination                     text           
+    coating                        text           
+    folding_type                   text           
+    drilling                       boolean        
+    perforation                    boolean        
+    die_cutting                    boolean        
+    creasing                       boolean        
+    uv_coating                     boolean        
+    address                        text           
+    state                          text           
+    postcode                       text           
+    business_description           text           
+    industry_sub_category          text           
+    delivery_method                text           
+    urgent                         boolean        
+    rush_job                       boolean        
+    due_date                       text           
+    quality_tier                   text           
+    use_case                       text           
+    complexity_score               integer        
+    typical_turnaround_days        integer        
+    price_sensitivity              text           
+    production_difficulty          text           
+    total_products_count           integer        
+    multi_product_order            boolean        
+    rush_order                     boolean        
+    file_path                      text           
+    artwork_supplied               boolean        
+    job_type_from_db               text           
+
+  TABLE: job_stocks - 126 rows
+    id                             integer         [PK] [NOT NULL]
+    ticket_id                      integer         [NOT NULL]
+    stock_id                       text            [NOT NULL]
+    stock_role                     text           
+    quantity_sheets                integer        
+    notes                          text           
+    created_at                     timestamp without time zone
+
+  TABLE: jobtickets - 0 rows
+    job_ticket_id                  integer         [PK] [NOT NULL]
+    order_source                   text           
+    external_order_id              text           
+    customer_email                 text           
+    product_title                  text           
+    quantity                       integer        
+    total_price                    real           
+    job_stage                      text           
+    created_date                   text            [NOT NULL]
+    completed_date                 text           
+    notes                          text           
+    stock_ids_used                 text           
+
+  TABLE: profitmargins - 0 rows
+    MarginID                       integer         [PK] [NOT NULL]
+    ProductType                    text            [NOT NULL]
+    MinJobValue                    real            [NOT NULL]
+    MaxJobValue                    real           
+    MarginPercentage               real            [NOT NULL]
+    IsActive                       integer        
+
+  TABLE: purchaseorderitems - 0 rows
+    POItemID                       integer         [PK] [NOT NULL]
+    POID                           integer         [NOT NULL]
+    StockID                        integer        
+    ConsumableID                   integer        
+    Description                    text            [NOT NULL]
+    QuantityOrdered                integer         [NOT NULL]
+    QuantityReceived               integer        
+    UnitPrice                      real            [NOT NULL]
+    LineTotal                      real            [NOT NULL]
+
+  TABLE: purchaseorders - 0 rows
+    POID                           integer         [PK] [NOT NULL]
+    PONumber                       text            [NOT NULL]
+    SupplierName                   text            [NOT NULL]
+    OrderDate                      text           
+    ExpectedDeliveryDate           text           
+    ActualDeliveryDate             text           
+    Status                         text           
+    TotalValue                     real           
+    Notes                          text           
+    CreatedBy                      text           
+    CreatedDate                    text           
+
+  TABLE: quotematerialrequirements - 0 rows
+    RequirementID                  integer         [PK] [NOT NULL]
+    QuoteID                        text            [NOT NULL]
+    StockID                        integer        
+    RequiredQuantity               integer         [NOT NULL]
+    StockSpec                      text            [NOT NULL]
+    MaterialType                   text            [NOT NULL]
+    IsReserved                     integer        
+    ReservedDate                   text           
+    ConsumedOrderID                integer        
+    ConsumedDate                   text           
+    CreatedDate                    text           
+
+  TABLE: reorderalerts - 0 rows
+    AlertID                        integer         [PK] [NOT NULL]
+    StockID                        integer        
+    ConsumableID                   integer        
+    AlertLevel                     text            [NOT NULL]
+    CurrentLevel                   real            [NOT NULL]
+    ReorderPoint                   real            [NOT NULL]
+    RecommendedOrderQty            integer        
+    IsAcknowledged                 integer        
+    IsSuppressed                   integer        
+    GeneratedDate                  text           
+    AcknowledgedBy                 text           
+    AcknowledgedDate               text           
+
+  TABLE: shopify_abandoned_checkouts - 4 rows
+    id                             integer         [PK] [NOT NULL]
+    shopify_checkout_id            text            [NOT NULL]
+    token                          text            [NOT NULL]
+    cart_token                     text           
+    email                          text           
+    gateway                        text           
+    buyer_accepts_marketing        boolean        
+    created_at                     text           
+    updated_at                     text           
+    completed_at                   text           
+    closed_at                      text           
+    customer_id                    text           
+    customer_email                 text           
+    customer_first_name            text           
+    customer_last_name             text           
+    customer_phone                 text           
+    subtotal_price                 real           
+    total_price                    real           
+    total_tax                      real           
+    total_discounts                real           
+    currency                       text           
+    abandoned_checkout_url         text           
+    discount_codes                 text           
+    recovery_email_sent            boolean        
+    recovery_email_sent_at         text           
+    recovered                      boolean        
+    recovered_order_id             text           
+    note                           text           
+    referring_site                 text           
+    landing_site                   text           
+    source_name                    text           
+    synced_at                      text           
+
+  TABLE: shopify_abandoned_line_items - 10 rows
+    id                             integer         [PK] [NOT NULL]
+    checkout_id                    text            [NOT NULL]
+    shopify_product_id             text           
+    shopify_variant_id             text           
+    title                          text           
+    variant_title                  text           
+    quantity                       integer        
+    price                          real           
+    sku                            text           
+    vendor                         text           
+    product_type                   text           
+    properties                     text           
+
+  TABLE: shopify_analytics_cache - 0 rows
+    id                             integer         [PK] [NOT NULL]
+    metric_name                    text            [NOT NULL]
+    metric_date                    date            [NOT NULL]
+    metric_value                   real           
+    metric_data                    text           
+    created_at                     text           
+
+  TABLE: shopify_customer_addresses - 272 rows
+    id                             integer         [PK] [NOT NULL]
+    shopify_address_id             text            [NOT NULL]
+    customer_id                    text            [NOT NULL]
+    first_name                     text           
+    last_name                      text           
+    company                        text           
+    address1                       text           
+    address2                       text           
+    city                           text           
+    province                       text           
+    province_code                  text           
+    country                        text           
+    country_code                   text           
+    zip                            text           
+    phone                          text           
+    is_default                     boolean        
+
+  TABLE: shopify_customers - 251 rows
+    id                             integer         [PK] [NOT NULL]
+    shopify_customer_id            text            [NOT NULL]
+    email                          text           
+    first_name                     text           
+    last_name                      text           
+    phone                          text           
+    orders_count                   integer        
+    total_spent                    real           
+    average_order_value            real           
+    state                          text           
+    verified_email                 boolean        
+    accepts_marketing              boolean        
+    tags                           text           
+    note                           text           
+    currency                       text           
+    created_at                     text           
+    updated_at                     text           
+    last_order_id                  text           
+    last_order_name                text           
+    last_order_date                text           
+    default_address_id             text           
+    marketing_opt_in_level         text           
+    tax_exempt                     boolean        
+    synced_at                      text           
+
+  TABLE: shopify_line_items - 59 rows
+    id                             integer         [PK] [NOT NULL]
+    shopify_order_id               text            [NOT NULL]
+    line_item_id                   text            [NOT NULL]
+    product_id                     text           
+    variant_id                     text           
+    title                          text           
+    variant_title                  text           
+    sku                            text           
+    quantity                       integer        
+    price                          real           
+    total_discount                 real           
+    tax_lines                      text           
+    raw_json                       text           
+
+  TABLE: shopify_line_properties - 617 rows
+    id                             integer         [PK] [NOT NULL]
+    line_item_id                   text            [NOT NULL]
+    name                           text            [NOT NULL]
+    value                          text           
+
+  TABLE: shopify_orders - 54 rows
+    id                             integer         [PK] [NOT NULL]
+    shopify_order_id               text            [NOT NULL]
+    order_number                   text           
+    email                          text           
+    created_at                     text           
+    updated_at                     text           
+    financial_status               text           
+    fulfillment_status             text           
+    total_price                    real           
+    subtotal_price                 real           
+    total_tax                      real           
+    currency                       text           
+    customer_id                    text           
+    customer_name                  text           
+    tags                           text           
+    note                           text           
+    raw_json                       text           
+    created_in_db_at               text           
+
+  TABLE: shopify_price_parity - 0 rows
+    id                             integer         [PK] [NOT NULL]
+    shopify_order_id               text            [NOT NULL]
+    line_item_id                   text            [NOT NULL]
+    shopify_price                  real            [NOT NULL]
+    backend_price                  real           
+    difference                     real           
+    pct_difference                 real           
+    calculator_inputs              text           
+    notes                          text           
+    checked_at                     text           
+
+  TABLE: shopify_product_images - 620 rows
+    id                             integer         [PK] [NOT NULL]
+    shopify_image_id               text            [NOT NULL]
+    product_id                     text            [NOT NULL]
+    position                       integer        
+    src                            text            [NOT NULL]
+    alt                            text           
+    width                          integer        
+    height                         integer        
+    variant_ids                    text           
+    created_at                     text           
+    updated_at                     text           
+
+  TABLE: shopify_product_mapping - 0 rows
+    id                             integer         [PK] [NOT NULL]
+    storefront_option              text            [NOT NULL]
+    mapped_stock_id                text           
+    notes                          text           
+    created_at                     text           
+    updated_at                     text           
+
+  TABLE: shopify_product_variants - 250 rows
+    id                             integer         [PK] [NOT NULL]
+    shopify_variant_id             text            [NOT NULL]
+    product_id                     text            [NOT NULL]
+    title                          text           
+    price                          real           
+    compare_at_price               real           
+    sku                            text           
+    barcode                        text           
+    position                       integer        
+    inventory_policy               text           
+    fulfillment_service            text           
+    inventory_management           text           
+    option1                        text           
+    option2                        text           
+    option3                        text           
+    taxable                        boolean        
+    grams                          integer        
+    weight                         real           
+    weight_unit                    text           
+    inventory_item_id              text           
+    inventory_quantity             integer        
+    old_inventory_quantity         integer        
+    requires_shipping              boolean        
+    created_at                     text           
+    updated_at                     text           
+
+  TABLE: shopify_products - 250 rows
+    id                             integer         [PK] [NOT NULL]
+    shopify_product_id             text            [NOT NULL]
+    title                          text            [NOT NULL]
+    body_html                      text           
+    vendor                         text           
+    product_type                   text           
+    handle                         text           
+    published_at                   text           
+    template_suffix                text           
+    published_scope                text           
+    tags                           text           
+    status                         text           
+    admin_graphql_api_id           text           
+    metafields_global_title_tag    text           
+    metafields_global_description_tag text           
+    image_src                      text           
+    image_alt                      text           
+    created_at                     text           
+    updated_at                     text           
+    synced_at                      text           
+
+  TABLE: shopify_stock_usage - 0 rows
+    id                             integer         [PK] [NOT NULL]
+    shopify_order_id               text            [NOT NULL]
+    line_item_id                   text            [NOT NULL]
+    stock_id                       text           
+    sheets_consumed                integer        
+    sqm_consumed                   real           
+    stock_cost                     real           
+    recorded_at                    text           
+
+  TABLE: shopify_webhook_events - 0 rows
+    id                             integer         [PK] [NOT NULL]
+    topic                          text            [NOT NULL]
+    shopify_id                     text           
+    received_at                    text           
+    payload_hash                   text            [NOT NULL]
+    raw_json                       text            [NOT NULL]
+    processed                      boolean        
+    processed_at                   text           
+    error                          text           
+
+  TABLE: stocklevels - 0 rows
+    StockID                        integer         [PK] [NOT NULL]
+    StockTypeID                    integer         [NOT NULL]
+    StockTypeDesc                  text            [NOT NULL]
+    Length                         integer        
+    Width                          integer        
+    GSM                            integer        
+    Colour                         text           
+    CostPerThousand                real            [NOT NULL]
+    Markup                         real           
+    CurrentStockLevel              integer        
+    ReorderPoint                   integer        
+    CriticalLevel                  integer        
+    MaxStockLevel                  integer        
+    SupplierName                   text           
+    SupplierPartNumber             text           
+    LocationCode                   text           
+    BinNumber                      text           
+    IsActive                       integer        
+    LastUpdated                    text           
+    CreatedDate                    text           
+
+  TABLE: stockmarkuprules - 0 rows
+    RuleID                         integer         [PK] [NOT NULL]
+    RuleName                       text            [NOT NULL]
+    StockTypePattern               text           
+    GSMMin                         integer        
+    GSMMax                         integer        
+    MarkupPercent                  real            [NOT NULL]
+    Priority                       integer        
+    IsActive                       integer        
+    CreatedDate                    text           
+
+  TABLE: stocktransactions - 0 rows
+    TransactionID                  integer         [PK] [NOT NULL]
+    StockID                        integer         [NOT NULL]
+    TransactionType                text            [NOT NULL]
+    Quantity                       integer         [NOT NULL]
+    OrderID                        integer        
+    QuoteID                        text           
+    POID                           integer        
+    TransactionDate                text           
+    Notes                          text           
+    PerformedBy                    text           
+    BalanceAfter                   integer        
+
+  TABLE: unified_stocks - 264 rows
+    stock_id                       text            [PK] [NOT NULL]
+    stock_category                 text            [NOT NULL]
+    stock_type_id                  integer        
+    stock_type_name                text            [NOT NULL]
+    stock_description              text           
+    gsm                            text           
+    length_mm                      integer        
+    width_mm                       integer        
+    cost_per_thousand              real           
+    thickness_mm                   real           
+    cost_per_sqm                   real           
+    roll_width_mm                  integer        
+    roll_length_mm                 integer        
+    cost_per_roll                  real           
+    cost_per_lm                    real           
+    markup                         real           
+    sheet_sqm                      real           
+    is_temp_stock                  boolean        
+    source                         text           
+    notes                          text           
+    created_at                     timestamp without time zone
+    supplier_name                  text           
+    product_code                   text           
+    unit_type                      text           
+    last_purchased_date            date           
+    last_purchase_cost             real           
+    average_cost                   real           
+    purchase_count                 integer        
+    colour                         text           
+    finish                         text           
+    material_type                  text           
+    is_active                      boolean        
+    product_type                   text           
+    brand_name                     text           
+    supplier_notes                 text           
+    last_supplier_update           text           
+    marketing_description          text           
+    recommended_uses               text           
+    not_recommended                text           
+    material_class                 text           
+    usage_category                 text           
+    durability_rating              text           
+    finish_type_enhanced           text           
+    technical_specs_formatted      text           
+    updated_at                     text           
+
+SCHEMA: synergy_sessions
+Tables: 2
+----------------------------------------------------------------------------------------------------
+
+  TABLE: synergy_internal_docs - 16 rows
+    doc_id                         text            [PK] [NOT NULL]
+    session_id                     text            [NOT NULL]
+    title                          text            [NOT NULL]
+    content                        text            [NOT NULL]
+    format                         text            [NOT NULL]
+    created_at                     text           
+    updated_at                     text           
+    created_by                     text           
+    version                        integer        
+    content_json                   text           
+    doc_type                       text           
+    linked_to_ai                   boolean        
+    share_url                      text           
+    description                    text           
+    tags                           text           
+    slug                           text           
+
+  TABLE: synergy_sessions - 13 rows
+    session_id                     text            [PK] [NOT NULL]
+    title                          text            [NOT NULL]
+    description                    text           
+    platforms_involved             text           
+    status                         text           
+    priority                       text           
+    kanban_column                  text           
+    tags                           text           
+    documents                      text           
+    links                          text           
+    next_steps                     text           
+    assignees                      text           
+    recent_activity                text           
+    checklist                      text           
+    due_date                       text           
+    created_at                     text           
+    last_active                    text           
+    completed_at                   text           
+    google_task_id                 text           
+    google_calendar_id             text           
+    microsoft_todo_id              text           
+    thread_ids                     text           
+    assigned_agents                text           
+    project_name                   text           
+    notes                          text           
+    session_data                   text           
+    google_calendar_event_id       text           
+    updated_at                     text           
+    shared_with_users              text           
+    owner_user_id                  integer        
+    column_position                integer        
+
+====================================================================================================
+SCHEMA COMPARISON (SQLite vs Supabase)
+====================================================================================================
+
+WARNING - Found 7 differences
+
+
+HIGH SEVERITY (4 issues)
+----------------------------------------------------------------------------------------------------
+
+  MISSING_IN_SUPABASE: 1 tables missing in Supabase
+  Database: ai_infrastructure.db
+  Schema: ai_infrastructure
+  Tables: sqlite_sequence
+
+  MISSING_IN_SUPABASE: 1 tables missing in Supabase
+  Database: sessions.db
+  Schema: sessions
+  Tables: sqlite_sequence
+
+  MISSING_IN_SUPABASE: 1 tables missing in Supabase
+  Database: kanban_analytics.db
+  Schema: kanban_analytics
+  Tables: sqlite_sequence
+
+  MISSING_IN_SUPABASE: 1 tables missing in Supabase
+  Database: stock_data.db
+  Schema: stock_data
+  Tables: sqlite_sequence
+
+LOW SEVERITY (3 issues)
+----------------------------------------------------------------------------------------------------
+
+  EXTRA_IN_SUPABASE: 1 extra tables in Supabase
+  Database: ai_infrastructure.db
+  Schema: ai_infrastructure
+  Tables: thread_assignments
+
+  EXTRA_IN_SUPABASE: 1 extra tables in Supabase
+  Database: sessions.db
+  Schema: sessions
+  Tables: thread_assignments
+
+  EXTRA_IN_SUPABASE: 16 extra tables in Supabase
+  Database: stock_data.db
+  Schema: stock_data
+  Tables: corflutematerialtransactions, stocklevels, corflutematerials, clickcosthistory, stockmarkuprules, eventprocessinglog, reorderalerts, quotematerialrequirements, jobtickets, stocktransactions
+
+====================================================================================================
+SCRIPT DATABASE ACCESS ANALYSIS
+====================================================================================================
+
+Total scripts with database access: 453
+Scripts using get_database_connection(): 25
+Scripts using direct sqlite3.connect(): 428
+
+
+SCRIPTS NEEDING UPDATE (direct sqlite3.connect):
+----------------------------------------------------------------------------------------------------
+
+  FILE: AI_infrastructure\auth\credential_injector.py
+
+  FILE: AI_infrastructure\auth\permission_checker.py
+
+  FILE: AI_infrastructure\auth\user_auth.py
+
+  FILE: AI_infrastructure\builders\credential_fetcher.py
+
+  FILE: AI_infrastructure\builders\system_prompt_builder.py
+
+  FILE: AI_infrastructure\builders\tool_schema_converter.py
+
+  FILE: AI_infrastructure\builders\user_profile_builder.py
+
+  FILE: AI_infrastructure\check_db_locations.py
+
+  FILE: AI_infrastructure\check_db_schema.py
+    Line 7: ai_infrastructure.db
+
+  FILE: AI_infrastructure\check_oauth_temp.py
+
+  FILE: AI_infrastructure\check_schema.py
+
+  FILE: AI_infrastructure\config\__init__.py
+
+  FILE: AI_infrastructure\config\constants.py
+    Line 95: data/ai_infrastructure.db
+    Line 96: data/sessions.db
+
+  FILE: AI_infrastructure\config\logging_config.py
+
+  FILE: AI_infrastructure\config\oauth_config.py
+
+  FILE: AI_infrastructure\core\__init__.py
+
+  FILE: AI_infrastructure\core\agent_state_manager.py
+
+  FILE: AI_infrastructure\core\combined_agent_worker.py
+
+  FILE: AI_infrastructure\core\confirmation_manager.py
+
+  FILE: AI_infrastructure\core\context_aware_ai.py
+
+====================================================================================================
+ANALYSIS COMPLETE
+Generated: 2025-11-15 12:25:46
+====================================================================================================

@@ -1,0 +1,459 @@
+# ==============================================================================
+# CRON JOB - RENDER.COM DEPLOYMENT CONFIGURATION
+# ==============================================================================
+#
+# This configuration file deploys a scheduled cron job to Render.com.
+# Cron jobs run on a schedule and execute a command at specified intervals.
+#
+# WHAT THIS CONFIGURES:
+# - Cron job service that runs on a schedule
+# - Automatic execution at specified times
+# - No HTTP server or continuous process required
+# - Just runs command and exits
+#
+# COMMON USE CASES:
+# - Database backups
+# - Sending scheduled emails/reports
+# - Data cleanup/maintenance tasks
+# - API data synchronization
+# - Cache warming
+# - Report generation
+# - Health checks
+# - Log rotation
+#
+# PREREQUISITES:
+# 1. Script/command that executes task
+# 2. Task completes and exits (doesn't run continuously)
+# 3. Appropriate error handling and logging
+# 4. Dependencies installed via buildCommand
+#
+# ==============================================================================
+
+services:
+  # ----------------------------------------------------------------------------
+  # CRON JOB SERVICE
+  # ----------------------------------------------------------------------------
+  - type: cron  # IMPORTANT: Use 'cron' type
+    name: my-cron-job
+    runtime: python  # Options: python, node, ruby, go, shell, etc.
+    region: oregon  # Options: oregon, frankfurt, singapore, ohio, virginia
+    
+    # Build Configuration
+    # Install dependencies needed for cron job
+    buildCommand: pip install -r requirements.txt
+    
+    # Schedule
+    # Cron expression: minute hour day month weekday
+    # Examples:
+    # - "0 2 * * *" = Daily at 2:00 AM UTC
+    # - "*/15 * * * *" = Every 15 minutes
+    # - "0 */6 * * *" = Every 6 hours
+    # - "0 0 * * 0" = Weekly on Sunday at midnight
+    # - "0 0 1 * *" = Monthly on 1st at midnight
+    # 
+    # IMPORTANT: All times are in UTC
+    schedule: "0 2 * * *"  # Daily at 2:00 AM UTC
+    
+    # Command
+    # Command that runs on schedule
+    # IMPORTANT: Command should complete and exit
+    # 
+    # Examples:
+    # - python backup.py
+    # - node scripts/cleanup.js
+    # - python manage.py send_reports
+    # - ./scripts/maintenance.sh
+    command: python cron_task.py
+    
+    # Plan Configuration
+    # Starter: FREE (limited to 400 build minutes/month)
+    # Note: Cron jobs on free tier work great for most use cases
+    plan: starter
+    
+    # Auto-Deploy
+    # Automatically redeploy on git push
+    autoDeploy: true
+    
+    # Environment Variables
+    envVars:
+      # Python Version (if using Python)
+      - key: PYTHON_VERSION
+        value: "3.11"
+      
+      # Cron Environment
+      - key: CRON_ENV
+        value: production
+      
+      # Database Connection (if needed)
+      # - key: DATABASE_URL
+      #   fromDatabase:
+      #     name: my-postgres-db
+      #     property: connectionString
+      
+      # Redis Connection (if needed)
+      # - key: REDIS_URL
+      #   fromDatabase:
+      #     name: my-redis-db
+      #     property: connectionString
+      
+      # API Keys (for external services)
+      # - key: SENDGRID_API_KEY
+      #   sync: false
+      # - key: AWS_ACCESS_KEY_ID
+      #   sync: false
+      # - key: AWS_SECRET_ACCESS_KEY
+      #   sync: false
+      
+      # Timezone (for display purposes, schedule is always UTC)
+      - key: TZ
+        value: America/New_York
+      
+      # Logging Level
+      - key: LOG_LEVEL
+        value: info
+
+# ==============================================================================
+# CRON SCHEDULE EXAMPLES
+# ==============================================================================
+#
+# EVERY MINUTE:
+# schedule: "* * * * *"
+# Use case: Frequent monitoring, real-time sync
+#
+# EVERY 5 MINUTES:
+# schedule: "*/5 * * * *"
+# Use case: Regular polling, cache updates
+#
+# EVERY 15 MINUTES:
+# schedule: "*/15 * * * *"
+# Use case: API sync, health checks
+#
+# EVERY HOUR:
+# schedule: "0 * * * *"
+# Use case: Hourly reports, cleanup tasks
+#
+# EVERY 6 HOURS:
+# schedule: "0 */6 * * *"
+# Use case: Database maintenance, backups
+#
+# DAILY AT 2:00 AM UTC:
+# schedule: "0 2 * * *"
+# Use case: Daily reports, backups, cleanup
+#
+# DAILY AT NOON UTC:
+# schedule: "0 12 * * *"
+# Use case: Midday reports, data sync
+#
+# WEEKDAYS AT 9:00 AM UTC:
+# schedule: "0 9 * * 1-5"
+# Use case: Business day tasks, weekly reports
+#
+# WEEKLY ON MONDAY AT MIDNIGHT:
+# schedule: "0 0 * * 1"
+# Use case: Weekly cleanup, summary reports
+#
+# MONTHLY ON 1ST AT MIDNIGHT:
+# schedule: "0 0 1 * *"
+# Use case: Monthly billing, reports, archives
+#
+# FIRST SUNDAY OF MONTH AT 3:00 AM:
+# schedule: "0 3 1-7 * 0"
+# Use case: Monthly maintenance on weekend
+#
+# ==============================================================================
+# CRON SYNTAX REFERENCE
+# ==============================================================================
+#
+# Format: minute hour day month weekday
+# 
+# FIELD       VALUES          SPECIAL CHARACTERS
+# -----       ------          ------------------
+# minute      0-59            * , - /
+# hour        0-23            * , - /
+# day         1-31            * , - / L W
+# month       1-12 or JAN-DEC * , - /
+# weekday     0-7 or SUN-SAT  * , - / L #
+#             (0 and 7 = Sunday)
+#
+# SPECIAL CHARACTERS:
+# * = Any value (every)
+# , = Multiple values (1,15 = 1st and 15th)
+# - = Range (1-5 = 1 through 5)
+# / = Step values (*/5 = every 5)
+#
+# EXAMPLES:
+# "0 0 * * *"     = Midnight every day
+# "30 2 * * *"    = 2:30 AM every day
+# "0 */2 * * *"   = Every 2 hours
+# "15,45 * * * *" = :15 and :45 of every hour
+# "0 0 * * 0"     = Midnight every Sunday
+# "0 0 1 1 *"     = Midnight on January 1st
+#
+# ==============================================================================
+# DEPLOYMENT CHECKLIST
+# ==============================================================================
+# Before deploying, ensure:
+#
+# 1. SCRIPT COMPLETES AND EXITS:
+#    # Cron job must finish and exit, not run continuously
+#    # Bad: while True loop
+#    # Good: do_task(); exit(0)
+#
+# 2. ERROR HANDLING:
+#    # Handle errors gracefully and exit with appropriate code
+#    
+#    try:
+#        result = do_task()
+#        print(f"Task completed: {result}")
+#        sys.exit(0)  # Success
+#    except Exception as e:
+#        print(f"Task failed: {e}", file=sys.stderr)
+#        sys.exit(1)  # Failure
+#
+# 3. LOGGING CONFIGURED:
+#    # Use print() or logging for output
+#    # Logs available in Render dashboard
+#    
+#    import logging
+#    logging.basicConfig(
+#        level=os.getenv('LOG_LEVEL', 'INFO'),
+#        format='%(asctime)s %(levelname)s: %(message)s'
+#    )
+#    logging.info("Cron job started")
+#
+# 4. SCHEDULE IS IN UTC:
+#    # IMPORTANT: All cron schedules use UTC time
+#    # Convert your local time to UTC
+#    # Example: 6 AM PST = 2 PM UTC (8 hours ahead)
+#    # Use: https://www.worldtimebuddy.com/ for conversion
+#
+# 5. DEPENDENCIES INSTALLED:
+#    # All required packages in requirements.txt
+#    # Test script runs successfully locally
+#
+# 6. EXTERNAL SERVICES CONFIGURED:
+#    # API keys set as environment variables
+#    # Database connections tested
+#    # Email service configured if sending emails
+#
+# ==============================================================================
+# POST-DEPLOYMENT STEPS
+# ==============================================================================
+# After first deployment:
+#
+# 1. VERIFY CRON JOB CREATED:
+#    python render_universal_cli.py services list
+#    # Should show your cron job with schedule
+#
+# 2. TRIGGER MANUAL RUN (TESTING):
+#    # Render Dashboard > Cron Job > Trigger Run
+#    # Or via API: POST /services/:serviceId/jobs
+#
+# 3. CHECK EXECUTION LOGS:
+#    python render_universal_cli.py logs tail <service-id>
+#    # Look for successful completion message
+#
+# 4. VERIFY OUTPUT:
+#    # Check database for expected changes
+#    # Verify email was sent
+#    # Check S3 for backup files
+#    # etc.
+#
+# 5. WAIT FOR SCHEDULED RUN:
+#    # Wait for next scheduled time
+#    # Verify cron job runs automatically
+#    # Check logs again
+#
+# 6. SET UP ALERTS (OPTIONAL):
+#    # Render doesn't have built-in alerts for cron jobs
+#    # Add error notification to your script:
+#    # - Send email on failure
+#    # - Post to Slack
+#    # - Log to monitoring service
+#
+# ==============================================================================
+# COMMON ISSUES & SOLUTIONS
+# ==============================================================================
+#
+# ISSUE: Cron job doesn't run at expected time
+# SOLUTION: Schedule is in UTC, not local time
+#           Convert your desired time to UTC
+#           Use: https://www.worldtimebuddy.com/
+#
+# ISSUE: Script runs locally but fails on Render
+# SOLUTION: Check for hardcoded paths
+#           Verify all dependencies in requirements.txt
+#           Check environment variables are set
+#           Review logs for specific error
+#
+# ISSUE: Script timeout
+# SOLUTION: Cron jobs have execution time limits
+#           Break large tasks into smaller chunks
+#           Consider using background worker instead
+#
+# ISSUE: Can't connect to database
+# SOLUTION: Verify DATABASE_URL is set correctly
+#           Ensure database is in same region
+#           Check database plan has available connections
+#           Test connection string locally
+#
+# ISSUE: No logs visible
+# SOLUTION: Use print() for output (goes to stdout)
+#           Or use logging module
+#           Avoid writing to files (ephemeral storage)
+#           Check correct time window in dashboard
+#
+# ISSUE: Cron job runs but nothing happens
+# SOLUTION: Check script has execute permissions
+#           Verify command path is correct
+#           Check for silent errors (add more logging)
+#           Ensure task actually completes (not hanging)
+#
+# ==============================================================================
+# BEST PRACTICES
+# ==============================================================================
+#
+# IDEMPOTENCY:
+# - Design tasks to be idempotent (safe to run multiple times)
+# - Use transaction IDs or timestamps to prevent duplicates
+# - Check if work already done before processing
+#
+# MONITORING:
+# - Add logging at start and end of task
+# - Log key metrics (records processed, time taken)
+# - Send notifications on failure
+#
+# ERROR HANDLING:
+# - Catch and log all exceptions
+# - Return appropriate exit codes (0 = success, 1 = failure)
+# - Don't let task fail silently
+#
+# PERFORMANCE:
+# - Process data in batches
+# - Use connection pooling for databases
+# - Optimize queries and operations
+# - Consider using worker for long-running tasks
+#
+# SECURITY:
+# - Never hardcode credentials
+# - Use environment variables for secrets
+# - Validate input data
+# - Use least privilege for database access
+#
+# ==============================================================================
+# EXAMPLE CRON SCRIPTS
+# ==============================================================================
+#
+# DATABASE BACKUP (Python):
+# import os
+# import subprocess
+# from datetime import datetime
+# 
+# def backup_database():
+#     db_url = os.getenv('DATABASE_URL')
+#     backup_file = f"backup_{datetime.now().strftime('%Y%m%d_%H%M%S')}.sql"
+#     
+#     # Export to S3 or other storage
+#     cmd = f"pg_dump {db_url} | aws s3 cp - s3://my-bucket/{backup_file}"
+#     result = subprocess.run(cmd, shell=True, capture_output=True)
+#     
+#     if result.returncode == 0:
+#         print(f"Backup successful: {backup_file}")
+#         return 0
+#     else:
+#         print(f"Backup failed: {result.stderr}", file=sys.stderr)
+#         return 1
+# 
+# if __name__ == '__main__':
+#     sys.exit(backup_database())
+#
+# SEND DAILY REPORT (Python):
+# import os
+# from sendgrid import SendGridAPIClient
+# from sendgrid.helpers.mail import Mail
+# 
+# def send_daily_report():
+#     # Generate report
+#     report = generate_report()
+#     
+#     # Send via email
+#     message = Mail(
+#         from_email='reports@myapp.com',
+#         to_emails='team@myapp.com',
+#         subject='Daily Report',
+#         html_content=report
+#     )
+#     
+#     try:
+#         sg = SendGridAPIClient(os.getenv('SENDGRID_API_KEY'))
+#         response = sg.send(message)
+#         print(f"Report sent successfully: {response.status_code}")
+#         return 0
+#     except Exception as e:
+#         print(f"Failed to send report: {e}", file=sys.stderr)
+#         return 1
+# 
+# if __name__ == '__main__':
+#     sys.exit(send_daily_report())
+#
+# DATA CLEANUP (Python):
+# import os
+# import psycopg2
+# from datetime import datetime, timedelta
+# 
+# def cleanup_old_data():
+#     # Connect to database
+#     conn = psycopg2.connect(os.getenv('DATABASE_URL'))
+#     cur = conn.cursor()
+#     
+#     # Delete records older than 90 days
+#     cutoff = datetime.now() - timedelta(days=90)
+#     
+#     try:
+#         cur.execute("""
+#             DELETE FROM logs
+#             WHERE created_at < %s
+#         """, (cutoff,))
+#         
+#         deleted = cur.rowcount
+#         conn.commit()
+#         
+#         print(f"Deleted {deleted} old records")
+#         return 0
+#     
+#     except Exception as e:
+#         conn.rollback()
+#         print(f"Cleanup failed: {e}", file=sys.stderr)
+#         return 1
+#     
+#     finally:
+#         cur.close()
+#         conn.close()
+# 
+# if __name__ == '__main__':
+#     sys.exit(cleanup_old_data())
+#
+# API SYNC (Node.js):
+# const axios = require('axios');
+# 
+# async function syncData() {
+#   try {
+#     // Fetch data from external API
+#     const response = await axios.get('https://api.example.com/data', {
+#       headers: { 'Authorization': `Bearer ${process.env.API_KEY}` }
+#     });
+#     
+#     // Store in database
+#     await storeInDatabase(response.data);
+#     
+#     console.log(`Synced ${response.data.length} records`);
+#     process.exit(0);
+#   } catch (error) {
+#     console.error(`Sync failed: ${error.message}`);
+#     process.exit(1);
+#   }
+# }
+# 
+# syncData();
+#
+# ==============================================================================

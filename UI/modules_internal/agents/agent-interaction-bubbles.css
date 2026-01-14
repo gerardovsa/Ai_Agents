@@ -1,0 +1,441 @@
+/**
+ * AGENT INTERACTION BUBBLES - INLINE STYLES
+ * Styling for AI-human two-way interaction message bubbles
+ * 
+ * Features:
+ * - Input request bubbles (text, password, 2FA, CAPTCHA, choice)
+ * - Progress update bubbles
+ * - Visual states: waiting (orange pulsing), responded (green), timeout (red)
+ * - Screenshot display
+ * - Quick-nav badge states
+ * 
+ * Date: December 16, 2025
+ */
+
+/* ==================== BASE INTERACTION BUBBLE ==================== */
+
+.ai-interaction-request {
+    background: var(--bg-secondary, #252837);
+    border: 2px solid var(--accent-orange, #ff9800);
+    border-radius: 12px;
+    padding: 16px;
+    margin: 16px 0;
+    box-shadow: 0 4px 12px rgba(255, 152, 0, 0.2);
+    animation: slide-in-up 0.3s ease;
+}
+
+.ai-interaction-request.waiting {
+    border-color: var(--accent-orange, #ff9800);
+    animation: pulse-border-orange 2s infinite;
+}
+
+.ai-interaction-request.responded {
+    border-color: var(--accent-green, #4caf50);
+    box-shadow: 0 4px 12px rgba(76, 175, 80, 0.2);
+}
+
+.ai-interaction-request.timeout {
+    border-color: var(--accent-red, #f44336);
+    box-shadow: 0 4px 12px rgba(244, 67, 54, 0.2);
+    opacity: 0.7;
+}
+
+.ai-interaction-request.cancelled {
+    border-color: var(--text-secondary, #8b949e);
+    opacity: 0.6;
+}
+
+/* ==================== INTERACTION HEADER ==================== */
+
+.ai-interaction-request .ai-message-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 12px;
+}
+
+.ai-interaction-request .ai-message-avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--accent-orange, #ff9800);
+    color: white;
+    font-size: 18px;
+}
+
+.ai-interaction-request .ai-message-avatar.pulsing-orange {
+    animation: pulse-scale 1.5s infinite;
+}
+
+.interaction-status-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 12px;
+    border-radius: 20px;
+    font-size: 13px;
+    font-weight: 600;
+}
+
+.interaction-status-badge.waiting {
+    background: rgba(255, 152, 0, 0.1);
+    color: var(--accent-orange, #ff9800);
+    border: 1px solid var(--accent-orange, #ff9800);
+}
+
+.interaction-status-badge.responded {
+    background: rgba(76, 175, 80, 0.1);
+    color: var(--accent-green, #4caf50);
+    border: 1px solid var(--accent-green, #4caf50);
+}
+
+.interaction-status-badge.timeout {
+    background: rgba(244, 67, 54, 0.1);
+    color: var(--accent-red, #f44336);
+    border: 1px solid var(--accent-red, #f44336);
+}
+
+/* ==================== PROMPT & CONTENT ==================== */
+
+.interaction-prompt {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 12px;
+    background: rgba(255, 255, 255, 0.03);
+    border-radius: 8px;
+    margin-bottom: 16px;
+    border-left: 3px solid var(--accent-orange, #ff9800);
+}
+
+.interaction-prompt i {
+    color: var(--accent-orange, #ff9800);
+    font-size: 16px;
+    margin-top: 2px;
+}
+
+.interaction-prompt span {
+    flex: 1;
+    font-size: 14px;
+    line-height: 1.5;
+    color: var(--text-primary, #e1e4e8);
+}
+
+/* ==================== SCREENSHOT DISPLAY ==================== */
+
+.interaction-screenshot {
+    margin: 12px 0;
+    border-radius: 8px;
+    overflow: hidden;
+    border: 1px solid var(--border-default, rgba(255, 255, 255, 0.1));
+}
+
+.interaction-screenshot img {
+    width: 100%;
+    height: auto;
+    display: block;
+}
+
+/* ==================== INPUT FIELDS ==================== */
+
+.interaction-input-wrapper {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.interaction-input-field {
+    width: 100%;
+    padding: 12px 16px;
+    background: var(--bg-tertiary, #1a1d2e);
+    border: 2px solid var(--border-default, rgba(255, 255, 255, 0.1));
+    border-radius: 8px;
+    color: var(--text-primary, #e1e4e8);
+    font-size: 14px;
+    transition: all 0.3s ease;
+}
+
+.interaction-input-field:focus {
+    outline: none;
+    border-color: var(--accent-primary, #257bdd);
+    box-shadow: 0 0 0 3px rgba(37, 123, 221, 0.1);
+}
+
+.interaction-input-field.error {
+    border-color: var(--accent-red, #f44336);
+    animation: shake 0.3s;
+}
+
+.interaction-input-field:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+/* ==================== CHOICE BUTTONS ==================== */
+
+.interaction-choices {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.interaction-choice-btn {
+    padding: 12px 16px;
+    background: var(--bg-tertiary, #1a1d2e);
+    border: 2px solid var(--border-default, rgba(255, 255, 255, 0.1));
+    border-radius: 8px;
+    color: var(--text-primary, #e1e4e8);
+    font-size: 14px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    text-align: left;
+}
+
+.interaction-choice-btn:hover {
+    background: var(--bg-hover, rgba(255, 255, 255, 0.05));
+    border-color: var(--accent-primary, #257bdd);
+    transform: translateX(4px);
+}
+
+.interaction-choice-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+/* ==================== ACTION BUTTONS ==================== */
+
+.interaction-actions {
+    display: flex;
+    gap: 8px;
+    justify-content: flex-end;
+}
+
+.interaction-cancel-btn,
+.interaction-submit-btn {
+    padding: 10px 20px;
+    border-radius: 6px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    border: none;
+}
+
+.interaction-cancel-btn {
+    background: transparent;
+    border: 1px solid var(--border-default, rgba(255, 255, 255, 0.1));
+    color: var(--text-secondary, #8b949e);
+}
+
+.interaction-cancel-btn:hover {
+    background: var(--bg-hover, rgba(255, 255, 255, 0.05));
+    border-color: var(--accent-red, #f44336);
+    color: var(--accent-red, #f44336);
+}
+
+.interaction-submit-btn {
+    background: var(--accent-primary, #257bdd);
+    color: white;
+}
+
+.interaction-submit-btn:hover {
+    background: var(--accent-secondary, #1565c0);
+    transform: scale(1.05);
+    box-shadow: 0 4px 12px rgba(37, 123, 221, 0.3);
+}
+
+.interaction-cancel-btn:disabled,
+.interaction-submit-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    transform: none;
+}
+
+/* ==================== TIMEOUT DISPLAY ==================== */
+
+.interaction-timeout {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 12px;
+    padding: 8px 12px;
+    background: rgba(255, 255, 255, 0.03);
+    border-radius: 6px;
+    font-size: 12px;
+    color: var(--text-secondary, #8b949e);
+}
+
+.interaction-timeout i {
+    color: var(--accent-orange, #ff9800);
+}
+
+/* ==================== RESPONSE DISPLAY ==================== */
+
+.interaction-response-display {
+    margin-top: 12px;
+    padding: 12px;
+    background: rgba(76, 175, 80, 0.1);
+    border: 1px solid var(--accent-green, #4caf50);
+    border-radius: 8px;
+    color: var(--accent-green, #4caf50);
+    font-size: 14px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.interaction-response-display strong {
+    color: white;
+}
+
+/* ==================== PROGRESS BUBBLE ==================== */
+
+.ai-progress-update {
+    background: var(--bg-secondary, #252837);
+    border: 1px solid var(--border-default, rgba(255, 255, 255, 0.1));
+    border-radius: 12px;
+    padding: 16px;
+    margin: 16px 0;
+}
+
+.ai-progress-update .ai-message-avatar {
+    width: 36px;
+    height: 36px;
+    background: var(--accent-primary, #257bdd);
+}
+
+.progress-status-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 10px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 600;
+    background: rgba(37, 123, 221, 0.1);
+    color: var(--accent-primary, #257bdd);
+    border: 1px solid var(--accent-primary, #257bdd);
+}
+
+.progress-message {
+    margin: 12px 0;
+    font-size: 14px;
+    color: var(--text-primary, #e1e4e8);
+}
+
+.progress-bar-container {
+    position: relative;
+    width: 100%;
+    height: 32px;
+    background: var(--bg-tertiary, #1a1d2e);
+    border-radius: 16px;
+    overflow: hidden;
+    border: 1px solid var(--border-default, rgba(255, 255, 255, 0.1));
+}
+
+.progress-bar-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--accent-primary, #257bdd), var(--accent-secondary, #1565c0));
+    transition: width 0.5s ease;
+    border-radius: 16px;
+}
+
+.progress-bar-text {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 12px;
+    font-weight: 600;
+    color: white;
+    text-shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
+}
+
+/* ==================== QUICK NAV BADGE STATES ==================== */
+
+.agent-quick-nav-badge.waiting {
+    background: var(--accent-orange, #ff9800);
+    animation: pulse-scale 1.5s infinite;
+}
+
+.agent-quick-nav-badge.responded {
+    background: var(--accent-green, #4caf50);
+}
+
+/* ==================== ANIMATIONS ==================== */
+
+@keyframes pulse-border-orange {
+
+    0%,
+    100% {
+        border-color: var(--accent-orange, #ff9800);
+        box-shadow: 0 4px 12px rgba(255, 152, 0, 0.2);
+    }
+
+    50% {
+        border-color: rgba(255, 152, 0, 0.6);
+        box-shadow: 0 4px 20px rgba(255, 152, 0, 0.4);
+    }
+}
+
+@keyframes pulse-scale {
+
+    0%,
+    100% {
+        transform: scale(1);
+    }
+
+    50% {
+        transform: scale(1.1);
+    }
+}
+
+@keyframes slide-in-up {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes shake {
+
+    0%,
+    100% {
+        transform: translateX(0);
+    }
+
+    25% {
+        transform: translateX(-10px);
+    }
+
+    75% {
+        transform: translateX(10px);
+    }
+}
+
+/* ==================== DISABLED INPUT STATE ==================== */
+
+#agent-input-textarea.disabled {
+    background: var(--bg-tertiary, #1a1d2e);
+    color: var(--text-secondary, #8b949e);
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+.agent-send-btn.disabled {
+    background: var(--bg-hover, rgba(255, 255, 255, 0.05));
+    color: var(--text-secondary, #8b949e);
+    opacity: 0.5;
+    cursor: not-allowed;
+}

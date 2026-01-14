@@ -1,0 +1,443 @@
+/**
+ * SYNERGY SIDEBAR MODULE - Standalone CSS
+ * Matches Automations sidebar structure (450px width)
+ * Created: November 20, 2025
+ */
+
+/* ==================== SYNERGY SIDEBAR CONTAINER ==================== */
+.synergy-sidebar {
+    position: fixed;
+    left: 0;
+    top: 60px;
+    height: calc(100vh - 60px);
+    width: 450px;
+    /* Match Automations sidebar */
+    background: var(--bg-secondary);
+    border-right: 1px solid var(--border-default);
+    display: flex;
+    flex-direction: column;
+    z-index: 9999;
+    transform: translateX(-100%);
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+    box-shadow: 4px 0 24px rgba(0, 0, 0, 0.3);
+}
+
+.synergy-sidebar:not(.hidden) {
+    transform: translateX(0);
+}
+
+/* ==================== SIDEBAR HEADER ==================== */
+.synergy-sidebar-header {
+    padding: var(--space-3);
+    border-bottom: 1px solid var(--border-default);
+    background: var(--bg-tertiary);
+    flex-shrink: 0;
+}
+
+.synergy-header-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: var(--space-3);
+}
+
+.synergy-sidebar-title {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    font-size: 16px;
+    /* font-weight: 600; */
+    color: var(--text-primary);
+}
+
+.synergy-sidebar-title i {
+    color: var(--accent-primary, #6366f1);
+    font-size: 18px;
+}
+
+.synergy-header-actions {
+    display: flex;
+    gap: var(--space-1);
+}
+
+.synergy-icon-btn {
+    width: 32px;
+    height: 32px;
+    background: transparent;
+    border: 1px solid var(--border-default);
+    border-radius: 6px;
+    color: var(--text-secondary);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+    font-size: 14px;
+}
+
+.synergy-icon-btn:hover {
+    background: var(--bg-hover);
+    border-color: var(--accent-primary);
+    color: var(--accent-primary);
+}
+
+/* ==================== STATS ROW ==================== */
+.synergy-stats {
+    display: flex;
+    gap: var(--space-2);
+    margin-bottom: var(--space-3);
+}
+
+.synergy-stat {
+    flex: 1;
+    padding: 10px;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-default);
+    border-radius: 8px;
+    text-align: center;
+}
+
+.synergy-stat-value {
+    font-size: 20px;
+    /* font-weight: 700; */
+    color: var(--text-primary);
+    display: block;
+}
+
+.synergy-stat-label {
+    font-size: 10px;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-top: 4px;
+    display: block;
+}
+
+/* ==================== SEARCH BAR ==================== */
+.synergy-search-bar {
+    position: relative;
+    margin-bottom: var(--space-3);
+}
+
+.synergy-search-icon {
+    position: absolute;
+    left: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--text-muted);
+    font-size: 14px;
+}
+
+.synergy-search-input {
+    width: 100%;
+    padding: 10px 12px 10px 36px;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-default);
+    border-radius: 8px;
+    color: var(--text-primary);
+    font-size: 13px;
+    transition: all 0.2s ease;
+}
+
+.synergy-search-input:focus {
+    outline: none;
+    border-color: var(--accent-primary);
+    background: var(--bg-primary);
+}
+
+.synergy-search-input::placeholder {
+    color: var(--text-muted);
+}
+
+/* ==================== CATEGORY FILTERS ==================== */
+.synergy-category-filter {
+    display: flex;
+    gap: var(--space-1);
+    margin-bottom: var(--space-2);
+    flex-wrap: wrap;
+}
+
+.synergy-category-chip {
+    padding: 6px 12px;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-default);
+    border-radius: 20px;
+    color: var(--text-secondary);
+    font-size: 11px;
+    white-space: nowrap;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.synergy-category-chip:hover {
+    background: var(--bg-hover);
+    border-color: var(--accent-primary);
+}
+
+.synergy-category-chip.active {
+    background: var(--accent-primary);
+    color: white;
+    border-color: var(--accent-primary);
+}
+
+.synergy-category-chip i {
+    font-size: 8px;
+}
+
+/* ==================== SIDEBAR CONTENT (Scrollable List) ==================== */
+.synergy-sidebar-content {
+    flex: 1;
+    overflow-y: auto;
+    padding: var(--space-3);
+}
+
+/* ==================== SESSION CARD (Sidebar Version - 100px height) ==================== */
+.synergy-session-card {
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border-default);
+    border-radius: 12px;
+    margin-bottom: var(--space-3);
+    overflow: hidden;
+    transition: all 0.2s ease;
+    cursor: pointer;
+}
+
+.synergy-session-card:hover {
+    border-color: var(--accent-primary);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    transform: translateY(-2px);
+}
+
+/* Card Header - Always visible (collapsed state) */
+.synergy-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 16px;
+    min-height: 100px;
+    /* Collapsed height */
+    transition: background 0.2s ease;
+}
+
+.synergy-card-header:hover {
+    background: var(--bg-hover);
+}
+
+.synergy-card-header-left {
+    flex: 1;
+    min-width: 0;
+}
+
+.synergy-card-title {
+    /* font-weight: 600; */
+    font-size: 14px;
+    color: var(--text-primary);
+    margin-bottom: 8px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.synergy-card-meta {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+.synergy-priority-badge {
+    padding: 3px 10px;
+    border-radius: 12px;
+    font-size: 10px;
+    /* font-weight: 700; */
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: white;
+}
+
+.synergy-priority-badge.critical {
+    background: #dc2626;
+}
+
+.synergy-priority-badge.high {
+    background: #ef4444;
+}
+
+.synergy-priority-badge.medium {
+    background: #fbbf24;
+}
+
+.synergy-priority-badge.low {
+    background: #22c55e;
+}
+
+.synergy-status-badge {
+    padding: 3px 10px;
+    border-radius: 12px;
+    font-size: 10px;
+    /* font-weight: 600; */
+    background: var(--bg-quaternary);
+    color: var(--text-secondary);
+}
+
+.synergy-card-actions {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+}
+
+.synergy-card-btn {
+    background: none;
+    border: none;
+    color: var(--text-tertiary);
+    cursor: pointer;
+    font-size: 14px;
+    padding: 6px;
+    transition: all 0.2s;
+    border-radius: 4px;
+}
+
+.synergy-card-btn:hover {
+    background: var(--bg-quaternary);
+    color: var(--accent-primary);
+}
+
+.synergy-card-btn-primary {
+    background: var(--accent-primary);
+    color: white;
+    padding: 6px 12px;
+    border-radius: 6px;
+    font-size: 11px;
+    /* font-weight: 600; */
+}
+
+.synergy-card-btn-primary:hover {
+    background: var(--accent-primary-hover, #4f46e5);
+}
+
+/* Card Content - Expanded view (hidden by default) */
+.synergy-card-content {
+    padding: 16px;
+    border-top: 1px solid var(--border-default);
+    display: none;
+    /* Hidden by default */
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 0.3s ease;
+}
+
+.synergy-session-card.expanded .synergy-card-content {
+    display: block;
+    max-height: 600px;
+    /* Allow scrolling for very tall content */
+    overflow-y: auto;
+}
+
+/* Expanded Card Sections */
+.synergy-card-section {
+    margin-bottom: var(--space-3);
+}
+
+.synergy-card-section-title {
+    font-size: 12px;
+    /* font-weight: 600; */
+    color: var(--text-secondary);
+    margin-bottom: var(--space-2);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.synergy-card-section-title i {
+    color: var(--accent-primary);
+}
+
+.synergy-card-description {
+    font-size: 13px;
+    color: var(--text-secondary);
+    line-height: 1.5;
+}
+
+.synergy-card-field {
+    display: flex;
+    justify-content: space-between;
+    padding: 8px 0;
+    border-bottom: 1px solid var(--border-subtle);
+    font-size: 12px;
+}
+
+.synergy-card-field-label {
+    color: var(--text-muted);
+    /* font-weight: 500; */
+}
+
+.synergy-card-field-value {
+    color: var(--text-primary);
+    /* font-weight: 600; */
+}
+
+/* Loading State */
+.synergy-loading {
+    text-align: center;
+    padding: 40px 20px;
+    color: var(--text-muted);
+}
+
+.synergy-loading i {
+    font-size: 32px;
+    margin-bottom: 12px;
+    color: var(--accent-primary);
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    from {
+        transform: rotate(0deg);
+    }
+
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+/* Empty State */
+.synergy-empty {
+    text-align: center;
+    padding: 60px 20px;
+    color: var(--text-muted);
+}
+
+.synergy-empty i {
+    font-size: 48px;
+    margin-bottom: 16px;
+    opacity: 0.5;
+}
+
+.synergy-empty-text {
+    font-size: 14px;
+    margin-bottom: 8px;
+}
+
+.synergy-empty-subtext {
+    font-size: 12px;
+    opacity: 0.7;
+}
+
+/* ==================== RESPONSIVE ==================== */
+@media (max-width: 1024px) {
+    .synergy-sidebar {
+        width: 380px;
+    }
+}
+
+@media (max-width: 768px) {
+    .synergy-sidebar {
+        width: 100%;
+        left: 0;
+    }
+}

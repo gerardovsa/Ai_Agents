@@ -1,0 +1,28 @@
+{
+  "name": "ai_agents",
+  "version": "1.0.0",
+  "description": "This is a **professional AI orchestration platform** designed to revolutionize how people work with AI. Instead of one AI conversation that gets lost or forgotten, this system enables:",
+  "main": "console_inspector.js",
+  "directories": {
+    "doc": "docs",
+    "test": "tests"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/gerardovsa/AI_agents.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/gerardovsa/AI_agents/issues"
+  },
+  "homepage": "https://github.com/gerardovsa/AI_agents#readme",
+  "dependencies": {
+    "manifold-3d": "^3.3.2",
+    "three": "^0.160.0"
+  }
+}

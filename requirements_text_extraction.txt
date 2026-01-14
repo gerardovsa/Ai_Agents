@@ -1,0 +1,17 @@
+# Text Extraction Dependencies (Nov 2025)
+# For Universal File Handler v2.0 - Office document support
+
+# DOCX extraction
+python-docx>=0.8.11
+
+# XLSX extraction
+openpyxl>=3.1.2
+
+# PPTX extraction
+python-pptx>=0.6.21
+
+# HTML extraction (optional, improves quality)
+beautifulsoup4>=4.12.0
+lxml>=4.9.3
+
+# Note: CSV, JSON, XML, TXT, MD supported without additional dependencies

@@ -1,0 +1,43 @@
+{
+    "id": "inhouse-kanban",
+    "name": "Production Workflow",
+    "version": "4.0.0",
+    "description": "InHousePrint production workflow Kanban board - Modern composition pattern",
+    "type": "external",
+    "category": "business",
+    "author": "InHouse Print",
+    "icon": "fas fa-industry",
+    "color": "#00509E",
+    "capabilities": {
+        "dashboard": {
+            "enabled": true,
+            "html_file": null,
+            "replaces_chat": true
+        },
+        "sidebar": {
+            "enabled": true,
+            "position": "right",
+            "default_width": "480px",
+            "html_file": "inhouse-kanban-SIDEBAR.html"
+        }
+    },
+    "dependencies": {
+        "utilities": [
+            "dom",
+            "api",
+            "storage",
+            "events",
+            "log"
+        ]
+    },
+    "loading": {
+        "strategy": "lazy",
+        "priority": 50
+    },
+    "settings": {
+        "api_endpoint": "/api/inhouse-kanban",
+        "backend_url": "http://localhost:5001",
+        "default_timeframe": -6,
+        "refresh_interval": 300
+    }
+}

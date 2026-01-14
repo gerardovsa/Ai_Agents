@@ -1,0 +1,518 @@
+/**
+ * Xero Reports Styling
+ * Matches UI Standardization System v1.0.0
+ * Uses existing design tokens and component patterns
+ */
+
+/* ==================== XERO REPORT CONTAINER ==================== */
+.xero-report-container {
+    background: var(--bg-primary);
+    min-height: 100vh;
+    font-family: var(--font-family);
+    color: var(--text-primary);
+}
+
+/* ==================== REPORT HEADER ==================== */
+.xero-report-header {
+    background: var(--card-background);
+    border-bottom: 1px solid var(--border-default);
+    padding: var(--space-5) var(--space-6);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.xero-report-header h1 {
+    font-size: var(--font-size-xxl);
+    font-weight: 600;
+    color: var(--text-primary);
+    margin: 0;
+}
+
+.xero-last-updated {
+    font-size: var(--font-size-sm);
+    color: var(--text-secondary);
+}
+
+/* ==================== FILTERS BAR ==================== */
+.xero-filters-bar {
+    background: var(--bg-secondary);
+    padding: var(--space-4) var(--space-6);
+    display: flex;
+    gap: var(--space-4);
+    align-items: flex-end;
+    flex-wrap: wrap;
+    border-bottom: 1px solid var(--border-default);
+}
+
+.xero-filter-group {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-1);
+}
+
+.xero-filter-group label {
+    font-size: var(--font-size-sm);
+    font-weight: 600;
+    color: var(--text-secondary);
+}
+
+.xero-filter-group select,
+.xero-filter-group input {
+    padding: var(--space-2) var(--space-3);
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border-default);
+    border-radius: var(--border-radius-sm);
+    color: var(--text-primary);
+    font-size: var(--font-size-md);
+    min-width: 150px;
+}
+
+.xero-filter-group select:focus,
+.xero-filter-group input:focus {
+    outline: none;
+    border-color: var(--primary-color);
+}
+
+.xero-btn-refresh,
+.xero-btn-settings {
+    padding: var(--space-2) var(--space-4);
+    background: var(--primary-color);
+    color: white;
+    border: none;
+    border-radius: var(--border-radius-sm);
+    cursor: pointer;
+    font-weight: 600;
+    font-size: var(--font-size-md);
+    transition: all 0.2s ease;
+}
+
+.xero-btn-refresh:hover,
+.xero-btn-settings:hover {
+    background: #2563eb;
+    transform: translateY(-1px);
+}
+
+/* ==================== MAIN CONTENT ==================== */
+.xero-content {
+    padding: var(--space-6);
+    max-width: 1600px;
+    margin: 0 auto;
+}
+
+/* ==================== KPI CARDS (Using existing metric-card system) ==================== */
+.xero-kpi-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: var(--space-4);
+    margin-bottom: var(--space-6);
+}
+
+/* Reuse existing .metric-card styles from ui-standardization.css */
+.xero-kpi-card {
+    background: var(--card-background);
+    border: 1px solid var(--border-default);
+    border-radius: var(--border-radius-md);
+    padding: 0;
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    transition: all 0.2s ease;
+    position: relative;
+    overflow: hidden;
+    min-height: 85px;
+}
+
+.xero-kpi-card::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 3px;
+    background: var(--primary-color);
+}
+
+.xero-kpi-card.alert::before {
+    background: var(--error-color);
+}
+
+.xero-kpi-card:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-md);
+}
+
+.xero-kpi-icon {
+    width: 40px;
+    height: 40px;
+    border-radius: var(--border-radius-sm);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 20px;
+    flex-shrink: 0;
+    margin-left: var(--space-3);
+}
+
+.xero-kpi-icon.primary {
+    background: rgba(59, 130, 246, 0.15);
+    color: var(--primary-color);
+}
+
+.xero-kpi-icon.alert {
+    background: rgba(220, 53, 69, 0.15);
+    color: var(--error-color);
+}
+
+.xero-kpi-content {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-1);
+    padding-right: var(--space-3);
+}
+
+.xero-kpi-value {
+    font-size: var(--font-size-xl);
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.xero-kpi-label {
+    font-size: var(--font-size-sm);
+    color: var(--text-secondary);
+}
+
+.xero-kpi-trend {
+    font-size: var(--font-size-xs);
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.xero-kpi-trend.up {
+    color: var(--success-color);
+}
+
+.xero-kpi-trend.down {
+    color: var(--error-color);
+}
+
+.xero-kpi-trend.neutral {
+    color: var(--text-tertiary);
+}
+
+/* ==================== CHART SECTION ==================== */
+.xero-chart-section {
+    background: var(--card-background);
+    border: 1px solid var(--border-default);
+    border-radius: var(--border-radius-md);
+    padding: var(--space-5);
+    margin-bottom: var(--space-6);
+}
+
+.xero-chart-section h2 {
+    font-size: var(--font-size-xl);
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: var(--space-4);
+}
+
+.xero-chart-controls {
+    display: flex;
+    gap: var(--space-3);
+    margin-bottom: var(--space-4);
+    flex-wrap: wrap;
+}
+
+.xero-chart-controls select {
+    padding: var(--space-2) var(--space-3);
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border-default);
+    border-radius: var(--border-radius-sm);
+    color: var(--text-primary);
+    font-size: var(--font-size-sm);
+    cursor: pointer;
+}
+
+.xero-chart-controls button {
+    padding: var(--space-2) var(--space-3);
+    background: var(--success-color);
+    color: white;
+    border: none;
+    border-radius: var(--border-radius-sm);
+    cursor: pointer;
+    font-weight: 600;
+    font-size: var(--font-size-sm);
+    transition: all 0.2s ease;
+}
+
+.xero-chart-controls button:hover {
+    background: #218838;
+    transform: translateY(-1px);
+}
+
+#xeroReportChart {
+    width: 100%;
+    height: 450px;
+}
+
+/* ==================== TABLE SECTION ==================== */
+.xero-table-section {
+    background: var(--card-background);
+    border: 1px solid var(--border-default);
+    border-radius: var(--border-radius-md);
+    padding: var(--space-5);
+}
+
+.xero-table-section h2 {
+    font-size: var(--font-size-xl);
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: var(--space-4);
+}
+
+.xero-table-controls {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: var(--space-4);
+    flex-wrap: wrap;
+    gap: var(--space-3);
+}
+
+.xero-table-search {
+    flex: 1;
+    min-width: 250px;
+    padding: var(--space-2) var(--space-3);
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border-default);
+    border-radius: var(--border-radius-sm);
+    color: var(--text-primary);
+    font-size: var(--font-size-md);
+}
+
+.xero-table-search:focus {
+    outline: none;
+    border-color: var(--primary-color);
+}
+
+.xero-table-actions {
+    display: flex;
+    gap: var(--space-2);
+}
+
+.xero-btn-export {
+    padding: var(--space-2) var(--space-4);
+    background: var(--success-color);
+    color: white;
+    border: none;
+    border-radius: var(--border-radius-sm);
+    cursor: pointer;
+    font-weight: 600;
+    font-size: var(--font-size-sm);
+    transition: all 0.2s ease;
+}
+
+.xero-btn-export:hover {
+    background: #218838;
+    transform: translateY(-1px);
+}
+
+.xero-btn-action {
+    padding: 6px 12px;
+    background: var(--primary-color);
+    color: white;
+    border: none;
+    border-radius: var(--border-radius-sm);
+    cursor: pointer;
+    font-weight: 600;
+    font-size: var(--font-size-xs);
+    transition: all 0.2s ease;
+}
+
+.xero-btn-action:hover {
+    background: #2563eb;
+}
+
+/* ==================== TABULATOR CUSTOMIZATION ==================== */
+.xero-table-section .tabulator {
+    font-size: var(--font-size-sm);
+    border: 1px solid var(--border-default);
+    border-radius: var(--border-radius-sm);
+    background: var(--bg-tertiary);
+}
+
+.xero-table-section .tabulator-header {
+    background: var(--bg-secondary);
+    border-bottom: 2px solid var(--primary-color);
+    color: var(--text-primary);
+}
+
+.xero-table-section .tabulator-col {
+    background: var(--bg-secondary);
+    border-right: 1px solid var(--border-default);
+}
+
+.xero-table-section .tabulator-col-title {
+    color: var(--text-primary);
+    font-weight: 600;
+}
+
+.xero-table-section .tabulator-row {
+    background: var(--bg-tertiary);
+    border-bottom: 1px solid var(--border-default);
+    color: var(--text-primary);
+}
+
+.xero-table-section .tabulator-row.tabulator-row-even {
+    background: var(--card-background);
+}
+
+.xero-table-section .tabulator-row:hover {
+    background: var(--hover-overlay) !important;
+}
+
+.xero-table-section .tabulator-cell {
+    border-right: 1px solid var(--border-default);
+}
+
+/* ==================== BADGES ==================== */
+.xero-badge {
+    display: inline-block;
+    padding: 4px 10px;
+    border-radius: var(--border-radius-sm);
+    font-size: var(--font-size-xs);
+    font-weight: 600;
+}
+
+.xero-badge-green {
+    background: rgba(40, 167, 69, 0.2);
+    color: var(--success-color);
+    border: 1px solid rgba(40, 167, 69, 0.3);
+}
+
+.xero-badge-yellow {
+    background: rgba(255, 193, 7, 0.2);
+    color: var(--warning-color);
+    border: 1px solid rgba(255, 193, 7, 0.3);
+}
+
+.xero-badge-orange {
+    background: rgba(253, 126, 20, 0.2);
+    color: #fd7e14;
+    border: 1px solid rgba(253, 126, 20, 0.3);
+}
+
+.xero-badge-red {
+    background: rgba(220, 53, 69, 0.2);
+    color: var(--error-color);
+    border: 1px solid rgba(220, 53, 69, 0.3);
+}
+
+.xero-badge-gray {
+    background: rgba(102, 102, 102, 0.2);
+    color: var(--text-tertiary);
+    border: 1px solid rgba(102, 102, 102, 0.3);
+}
+
+/* ==================== LOADING STATE ==================== */
+.xero-loading-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(10, 10, 10, 0.9);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 9999;
+}
+
+.xero-loading-spinner {
+    width: 60px;
+    height: 60px;
+    border: 5px solid var(--border-default);
+    border-top: 5px solid var(--primary-color);
+    border-radius: 50%;
+    animation: xero-spin 1s linear infinite;
+}
+
+@keyframes xero-spin {
+    0% {
+        transform: rotate(0deg);
+    }
+
+    100% {
+        transform: rotate(360deg);
+    }
+}
+
+.hidden {
+    display: none !important;
+}
+
+/* ==================== RESPONSIVE ==================== */
+@media (max-width: 768px) {
+    .xero-filters-bar {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .xero-kpi-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .xero-table-controls {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .xero-table-search {
+        width: 100%;
+    }
+
+    #xeroReportChart {
+        height: 300px;
+    }
+}
+
+/* ==================== APEXCHARTS THEME OVERRIDE ==================== */
+.apexcharts-canvas {
+    background: transparent !important;
+}
+
+.apexcharts-tooltip {
+    background: var(--card-background) !important;
+    border: 1px solid var(--border-default) !important;
+    color: var(--text-primary) !important;
+}
+
+.apexcharts-tooltip-title {
+    background: var(--bg-secondary) !important;
+    border-bottom: 1px solid var(--border-default) !important;
+    color: var(--text-primary) !important;
+}
+
+.apexcharts-legend-text {
+    color: var(--text-primary) !important;
+}
+
+.apexcharts-xaxistooltip,
+.apexcharts-yaxistooltip {
+    background: var(--card-background) !important;
+    border: 1px solid var(--border-default) !important;
+    color: var(--text-primary) !important;
+}
+
+.apexcharts-menu {
+    background: var(--card-background) !important;
+    border: 1px solid var(--border-default) !important;
+}
+
+.apexcharts-menu-item:hover {
+    background: var(--hover-overlay) !important;
+}

@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Message Rendering Test</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            padding: 20px;
+            max-width: 800px;
+            margin: 0 auto;
+            background: #f5f5f5;
+        }
+
+        h1 {
+            color: #333;
+        }
+
+        .test-section {
+            background: white;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        .test-output {
+            border: 1px solid #ddd;
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 4px;
+            background: #fafafa;
+            min-height: 50px;
+        }
+
+        .content-block {
+            margin: 10px 0;
+            padding: 10px;
+            border-left: 3px solid #4a90e2;
+            background: #f9f9f9;
+        }
+
+        .thinking-block {
+            border-left-color: #888;
+        }
+
+        .tool-use-block {
+            border-left-color: #4a90e2;
+        }
+
+        .text-block {
+            border-left-color: #28a745;
+        }
+
+        button {
+            background: #4a90e2;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            margin: 5px;
+        }
+
+        button:hover {
+            background: #357abd;
+        }
+
+        .result {
+            margin-top: 10px;
+            padding: 10px;
+            background: #e8f5e9;
+            border-radius: 4px;
+            font-family: monospace;
+        }
+
+        .error {
+            background: #ffebee;
+            color: #c62828;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>🧪 Message Rendering Test</h1>
+    <p>This page tests how assistant messages with structured content blocks are rendered.</p>
+
+    <!-- Test 1: Array Content with Thinking, Text, Tool Use -->
+    <div class="test-section">
+        <h2>Test 1: Complete Message (Thinking + Text + Tool Use)</h2>
+        <p>Message with all content block types</p>
+        <button onclick="testCompleteMessage()">Run Test</button>
+        <div id="test1-output" class="test-output"></div>
+    </div>
+
+    <!-- Test 2: Thinking + Tool Use (No Text) -->
+    <div class="test-section">
+        <h2>Test 2: Message WITHOUT Text Block</h2>
+        <p>This simulates Message #6 from Thread 2111 (thinking + tool_use only)</p>
+        <button onclick="testNoTextMessage()">Run Test</button>
+        <div id="test2-output" class="test-output"></div>
+    </div>
+
+    <!-- Test 3: Multiple Tool Use Blocks -->
+    <div class="test-section">
+        <h2>Test 3: Multiple Tool Calls</h2>
+        <p>This simulates Message #8 from Thread 2111 (3 tool_use blocks)</p>
+        <button onclick="testMultipleToolsMessage()">Run Test</button>
+        <div id="test3-output" class="test-output"></div>
+    </div>
+
+    <!-- Test 4: Text with Single Space -->
+    <div class="test-section">
+        <h2>Test 4: Minimal Text Content</h2>
+        <p>Text block with only a single space character</p>
+        <button onclick="testMinimalTextMessage()">Run Test</button>
+        <div id="test4-output" class="test-output"></div>
+    </div>
+
+    <script>
+        // Simulated rendering function (based on UnifiedMessageRenderer logic)
+        function renderAssistantContent(contentDiv, content) {
+            console.log('[TEST] renderAssistantContent called with:', content);
+
+            // Handle array of content blocks
+            if (Array.isArray(content)) {
+                let hasRenderedContent = false;
+                let hasVisibleText = false;
+
+                content.forEach((block, idx) => {
+                    console.log(`[TEST] Processing block ${idx}:`, block.type);
+
+                    if (block.type === 'thinking' && block.thinking) {
+                        const thinkingDiv = document.createElement('div');
+                        thinkingDiv.className = 'content-block thinking-block';
+                        thinkingDiv.innerHTML = `
+                            <div style="display: flex; align-items: center; gap: 8px; color: #888; font-weight: 500;">
+                                🧠 Extended Thinking
+                            </div>
+                            <div style="font-size: 0.9em; color: #666; margin-top: 8px;">
+                                ${block.thinking.substring(0, 200)}${block.thinking.length > 200 ? '...' : ''}
+                            </div>
+                        `;
+                        contentDiv.appendChild(thinkingDiv);
+                        hasRenderedContent = true;
+
+                    } else if (block.type === 'text' && block.text) {
+                        const textDiv = document.createElement('div');
+                        textDiv.className = 'content-block text-block';
+
+                        const textContent = block.text.trim();
+
+                        // Check if text is meaningful
+                        if (textContent.length > 0) {
+                            hasVisibleText = true;
+                            textDiv.innerHTML = `
+                                <div style="color: #28a745; font-weight: 500;">📝 Text Content</div>
+                                <div style="margin-top: 8px;">${textContent}</div>
+                            `;
+                        } else {
+                            textDiv.innerHTML = `
+                                <div style="color: #999; font-style: italic;">📝 Text Content (empty)</div>
+                            `;
+                        }
+
+                        contentDiv.appendChild(textDiv);
+                        hasRenderedContent = true;
+
+                    } else if (block.type === 'tool_use' && block.name) {
+                        const toolDiv = document.createElement('div');
+                        toolDiv.className = 'content-block tool-use-block';
+                        toolDiv.innerHTML = `
+                            <div style="display: flex; align-items: center; gap: 8px; color: #4a90e2; font-weight: 500;">
+                                ⚙️ Tool: ${block.name}
+                            </div>
+                            <div style="font-size: 0.85em; color: #666; margin-top: 8px;">
+                                <pre style="margin: 0;">${JSON.stringify(block.input || {}, null, 2).substring(0, 150)}...</pre>
+                            </div>
+                        `;
+                        contentDiv.appendChild(toolDiv);
+                        hasRenderedContent = true;
+                    }
+                });
+
+                if (hasRenderedContent && !hasVisibleText) {
+                    console.log('[TEST] ✅ Message has only thinking/tool blocks (no visible text)');
+                    const note = document.createElement('div');
+                    note.style.cssText = 'margin-top: 10px; padding: 10px; background: #fff3cd; border-radius: 4px; color: #856404;';
+                    note.textContent = 'ℹ️ This message contains no visible text content (only thinking/tool blocks)';
+                    contentDiv.appendChild(note);
+                }
+
+                if (!hasRenderedContent) {
+                    console.error('[TEST] ❌ No renderable content blocks found!');
+                    contentDiv.innerHTML = '<div style="color: red;">❌ ERROR: No renderable content</div>';
+                }
+
+                return;
+            }
+
+            // String content
+            contentDiv.textContent = String(content);
+        }
+
+        // Test Cases
+        function testCompleteMessage() {
+            const output = document.getElementById('test1-output');
+            output.innerHTML = '';
+
+            const content = [
+                {
+                    type: 'thinking',
+                    thinking: 'Let me analyze this request carefully. The user wants to understand how message rendering works with structured content blocks...'
+                },
+                {
+                    type: 'text',
+                    text: 'I\'ll help you with that! Let me check the database for that information.'
+                },
+                {
+                    type: 'tool_use',
+                    id: 'toolu_123',
+                    name: 'query_database',
+                    input: {
+                        query: 'SELECT * FROM users WHERE id = ?',
+                        params: [123]
+                    }
+                }
+            ];
+
+            renderAssistantContent(output, content);
+
+            const result = document.createElement('div');
+            result.className = 'result';
+            result.textContent = content.length > 0 ? '✅ SUCCESS: All blocks rendered' : '❌ FAILED';
+            output.appendChild(result);
+        }
+
+        function testNoTextMessage() {
+            const output = document.getElementById('test2-output');
+            output.innerHTML = '';
+
+            // This simulates Message #6 from Thread 2111
+            const content = [
+                {
+                    type: 'thinking',
+                    thinking: 'I need to calculate the shipping costs for this order. Let me gather the necessary information...'
+                },
+                {
+                    type: 'text',
+                    text: ' '  // Single space - nearly invisible!
+                },
+                {
+                    type: 'tool_use',
+                    id: 'toolu_456',
+                    name: 'calculate_shipping',
+                    input: {
+                        weight: 10,
+                        destination: 'US'
+                    }
+                }
+            ];
+
+            renderAssistantContent(output, content);
+
+            const result = document.createElement('div');
+            result.className = 'result';
+            result.textContent = '✅ Test completed - Check if thinking and tool are visible';
+            output.appendChild(result);
+        }
+
+        function testMultipleToolsMessage() {
+            const output = document.getElementById('test3-output');
+            output.innerHTML = '';
+
+            // This simulates Message #8 from Thread 2111
+            const content = [
+                {
+                    type: 'tool_use',
+                    id: 'toolu_789',
+                    name: 'get_product_price',
+                    input: { product_id: 'ABC123' }
+                },
+                {
+                    type: 'tool_use',
+                    id: 'toolu_790',
+                    name: 'calculate_tax',
+                    input: { amount: 100, state: 'CA' }
+                },
+                {
+                    type: 'tool_use',
+                    id: 'toolu_791',
+                    name: 'apply_discount',
+                    input: { code: 'SAVE20' }
+                }
+            ];
+
+            renderAssistantContent(output, content);
+
+            const result = document.createElement('div');
+            result.className = 'result';
+            result.textContent = `✅ Rendered ${content.length} tool_use blocks`;
+            output.appendChild(result);
+        }
+
+        function testMinimalTextMessage() {
+            const output = document.getElementById('test4-output');
+            output.innerHTML = '';
+
+            const content = [
+                {
+                    type: 'thinking',
+                    thinking: 'Analyzing the data structure...'
+                },
+                {
+                    type: 'text',
+                    text: ' '  // Single space
+                }
+            ];
+
+            renderAssistantContent(output, content);
+
+            const result = document.createElement('div');
+            result.className = 'result';
+            result.textContent = 'ℹ️ Text block with single space - should show as empty';
+            output.appendChild(result);
+        }
+
+        // Auto-run all tests on load
+        window.addEventListener('load', () => {
+            console.log('[TEST] Page loaded, ready for testing');
+        });
+    </script>
+</body>
+
+</html>

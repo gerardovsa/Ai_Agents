@@ -1,0 +1,895 @@
+{
+    "platform": "quote_calculator",
+    "description": "Custom Calculator Query Tools - Discover, search, and analyze TIER 2E custom calculators (6 query tools for calculator management)",
+    "tools": [
+        {
+            "name": "custom_calculator_list",
+            "short_description": "List all custom calculators with usage statistics and filters",
+            "description": "List custom calculators from the database with optional filtering by category, active status, and minimum usage count. Returns calculator metadata including usage statistics, parameter count, and performance metrics. Use this to discover available custom calculators, identify popular calculators, or filter by category. BEFORE creating new calculator: Check this list to see if similar calculator exists. Returns: calculator_id, name, short_description, category, usage_count, last_used_at, is_active, is_template, parameter_count, avg_calculation_time_ms. Results ordered by active status (active first), then usage count (most used first), then name alphabetically. Draft calculators (is_active=false) only shown when explicitly filtered.",
+            "platform": "quote_calculator",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "category": {
+                        "type": "string",
+                        "description": "Optional: Filter by category. Common categories: 'custom_quote', 'specialty_substrate', 'rush_job', 'large_format', 'complex_finishing', 'seasonal_pricing', 'customer_specific', 'what_if_scenario'. Matches exact category name. Null returns all categories.",
+                        "default": null
+                    },
+                    "is_active": {
+                        "type": "boolean",
+                        "description": "Optional: Filter by active status. true = production-ready calculators only, false = draft calculators only, null = all calculators (both active and draft). Default: null (show all).",
+                        "default": null
+                    },
+                    "min_usage_count": {
+                        "type": "integer",
+                        "description": "Optional: Minimum usage count to include. Use to find popular calculators. Example: min_usage_count=10 shows calculators used 10+ times. Default: 0 (all calculators).",
+                        "default": 0
+                    }
+                },
+                "required": []
+            },
+            "returns": {
+                "type": "object",
+                "description": "Success status, filters_applied (category, is_active, min_usage_count), calculator_count, and calculators array with calculator_id, name, short_description, category, usage_count, last_used_at, is_active, is_template, parameter_count, avg_calculation_time_ms, created_at, updated_at. On error: success=False with error message"
+            },
+            "examples": [
+                {
+                    "description": "List all active production calculators",
+                    "parameters": {
+                        "is_active": true
+                    },
+                    "expected_result": "Returns all production-ready custom calculators with usage stats and metadata"
+                },
+                {
+                    "description": "Find rush job calculators",
+                    "parameters": {
+                        "category": "rush_job",
+                        "is_active": true
+                    },
+                    "expected_result": "Returns active rush job calculators for expedited pricing"
+                },
+                {
+                    "description": "Find popular calculators (used 50+ times)",
+                    "parameters": {
+                        "min_usage_count": 50,
+                        "is_active": true
+                    },
+                    "expected_result": "Returns frequently-used calculators sorted by usage_count descending"
+                },
+                {
+                    "description": "List all calculators including drafts",
+                    "parameters": {},
+                    "expected_result": "Returns all custom calculators (active and draft) ordered by active status then usage"
+                }
+            ],
+            "usage_guide": {
+                "when_to_use": [
+                    "BEFORE creating new calculator - check if similar calculator exists",
+                    "Discovering available custom calculators for specific category",
+                    "Finding popular calculators by usage count",
+                    "Identifying template calculators for cloning (is_template=true)",
+                    "Auditing draft vs active calculators",
+                    "Monitoring calculator usage and performance"
+                ],
+                "workflow": [
+                    "Step 1: Decide what you're looking for (category? active only? popular?)",
+                    "Step 2: Set filters accordingly (category, is_active, min_usage_count)",
+                    "Step 3: Call custom_calculator_list() with filters",
+                    "Step 4: Review returned calculators array",
+                    "Step 5: Note calculator_id for detailed queries with custom_calculator_get_detail()",
+                    "Step 6: If creating new calculator, check if listed calculator can be cloned instead"
+                ],
+                "best_practices": [
+                    "Check this list BEFORE creating new custom calculator to avoid duplicates",
+                    "Use is_active=true filter to see only production calculators",
+                    "Use category filter to narrow search for specific job types",
+                    "Use min_usage_count to identify proven, popular calculators",
+                    "Review is_template=true calculators as starting points for new calculators",
+                    "Monitor avg_calculation_time_ms to identify slow calculators needing optimization",
+                    "Check last_used_at to identify unused calculators for archival"
+                ],
+                "error_handling": [
+                    "Error: Database connection failed - Check Supabase connectivity",
+                    "Success but empty calculators array - No calculators match filters or none exist yet",
+                    "Error: Invalid category - Category can be any string, typo in filter value"
+                ],
+                "related_tools": [
+                    "custom_calculator_get_detail",
+                    "custom_calculator_search",
+                    "calculator_builder_start"
+                ]
+            },
+            "tool_intelligence": {
+                "category": "data_processing",
+                "typical_workflow_patterns": [
+                    "custom_calculator_list -> custom_calculator_get_detail",
+                    "custom_calculator_list (is_active=true) -> execute calculator via API"
+                ],
+                "success_indicators": {
+                    "keywords": [
+                        "success: true",
+                        "calculator_count",
+                        "calculators"
+                    ],
+                    "behavioral": [
+                        "User reviews calculator list",
+                        "User queries specific calculator for details"
+                    ]
+                },
+                "failure_indicators": {
+                    "keywords": [
+                        "success: false",
+                        "database error"
+                    ],
+                    "behavioral": [
+                        "User checks database connectivity"
+                    ]
+                },
+                "performance_expectations": {
+                    "typical_duration_ms": 300,
+                    "rate_limit_per_minute": null,
+                    "max_retries": 2
+                }
+            },
+            "memory_context": {
+                "vectorization_fields": [
+                    "calculator_names",
+                    "categories",
+                    "usage_stats"
+                ],
+                "search_keywords": [
+                    "list calculators",
+                    "custom calculators",
+                    "calculator inventory"
+                ],
+                "related_synergy_platforms": [
+                    "quote_calculator"
+                ],
+                "typical_use_cases": [
+                    "Discovering available custom calculators before creating new one",
+                    "Finding rush job calculators for expedited pricing",
+                    "Identifying popular calculators by usage count",
+                    "Auditing draft vs production calculators",
+                    "Finding template calculators for cloning"
+                ],
+                "conversation_memory_hints": {
+                    "what_to_remember": "Calculator count, categories found, most popular calculators",
+                    "search_context": "When user asks about available calculators or calculator inventory"
+                }
+            }
+        },
+        {
+            "name": "custom_calculator_get_detail",
+            "short_description": "Get complete calculator definition including JSON, parameters, and components",
+            "description": "Retrieve complete details for a specific custom calculator including full JSON definition, usage statistics, and metadata. Returns everything about the calculator: inputs structure, calculation steps (formulas and components), parameter tracking, component tracking, usage instructions, and performance metrics. Use this to: inspect calculator logic, debug calculation issues, clone calculator structure, understand how calculator works, verify calculator configuration. BEFORE using: Get calculator_id from custom_calculator_list() or custom_calculator_search(). Returns: Full calculator record with json_definition (complete calculator configuration), parameter tracking (which pricing parameters used), component tracking (which components used), usage stats, and metadata.",
+            "platform": "quote_calculator",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "calculator_id": {
+                        "type": "string",
+                        "description": "REQUIRED: Calculator UUID from custom_calculator_list() or custom_calculator_search(). Must be valid UUID for existing calculator (active or draft)."
+                    }
+                },
+                "required": [
+                    "calculator_id"
+                ]
+            },
+            "returns": {
+                "type": "object",
+                "description": "Success status, calculator record with: calculator_id, name, description, short_description, category, tags, json_definition (full JSONB), usage_instructions, is_active, is_template, usage_count, last_used_at, avg_calculation_time_ms, created_at, updated_at, parameter_count, step_count, component_count, parameters_used (array of parameter objects), components_used (array of component objects). On error: success=False with error message"
+            },
+            "examples": [
+                {
+                    "description": "Get complete calculator details",
+                    "parameters": {
+                        "calculator_id": "550e8400-e29b-41d4-a716-446655440000"
+                    },
+                    "expected_result": "Returns full calculator record with json_definition showing inputs and calculation_steps, plus tracking arrays for parameters and components"
+                }
+            ],
+            "usage_guide": {
+                "when_to_use": [
+                    "Need to inspect calculator's complete JSON definition",
+                    "Debugging calculator calculation logic",
+                    "Want to clone calculator structure for new calculator",
+                    "Understanding how specific calculator works",
+                    "Verifying calculator configuration after building",
+                    "Checking which parameters and components calculator uses"
+                ],
+                "workflow": [
+                    "Step 1: Get calculator_id from custom_calculator_list() or custom_calculator_search()",
+                    "Step 2: Call custom_calculator_get_detail() with calculator_id",
+                    "Step 3: Review json_definition for inputs and calculation_steps",
+                    "Step 4: Check parameters_used to see pricing parameter dependencies",
+                    "Step 5: Check components_used to see which components are called",
+                    "Step 6: Review usage_instructions for calculator usage guidance",
+                    "Step 7: Check usage_count and avg_calculation_time_ms for performance"
+                ],
+                "best_practices": [
+                    "Use this to inspect calculator BEFORE cloning with calculator_builder_start(based_on_calculator)",
+                    "Review json_definition to understand calculation logic flow",
+                    "Check parameters_used for impact analysis before changing global parameters",
+                    "Verify step_count and component_count match expectations",
+                    "Use for documentation - json_definition is complete calculator spec",
+                    "Check avg_calculation_time_ms to identify performance issues"
+                ],
+                "error_handling": [
+                    "Error: Calculator not found - Verify calculator_id is correct UUID",
+                    "Error: Invalid UUID format - calculator_id must be valid UUID string",
+                    "Error: Database connection failed - Check Supabase connectivity"
+                ],
+                "related_tools": [
+                    "custom_calculator_list",
+                    "custom_calculator_search",
+                    "calculator_builder_start",
+                    "custom_calculator_get_schema_guide"
+                ]
+            },
+            "tool_intelligence": {
+                "category": "data_processing",
+                "typical_workflow_patterns": [
+                    "custom_calculator_list -> custom_calculator_get_detail",
+                    "custom_calculator_search -> custom_calculator_get_detail -> calculator_builder_start (clone)"
+                ],
+                "success_indicators": {
+                    "keywords": [
+                        "success: true",
+                        "json_definition",
+                        "parameters_used",
+                        "components_used"
+                    ],
+                    "behavioral": [
+                        "User reviews JSON definition",
+                        "User clones calculator"
+                    ]
+                },
+                "failure_indicators": {
+                    "keywords": [
+                        "success: false",
+                        "not found",
+                        "invalid uuid"
+                    ],
+                    "behavioral": [
+                        "User checks calculator_id",
+                        "User lists calculators again"
+                    ]
+                },
+                "performance_expectations": {
+                    "typical_duration_ms": 200,
+                    "rate_limit_per_minute": null,
+                    "max_retries": 2
+                }
+            },
+            "memory_context": {
+                "vectorization_fields": [
+                    "calculator_name",
+                    "json_definition",
+                    "parameters_used"
+                ],
+                "search_keywords": [
+                    "calculator detail",
+                    "calculator definition",
+                    "inspect calculator"
+                ],
+                "related_synergy_platforms": [
+                    "quote_calculator"
+                ],
+                "typical_use_cases": [
+                    "Inspecting calculator logic for debugging",
+                    "Cloning calculator structure for new variant",
+                    "Understanding calculator inputs and calculation steps",
+                    "Verifying calculator after building",
+                    "Documenting calculator configuration"
+                ],
+                "conversation_memory_hints": {
+                    "what_to_remember": "Calculator name, json_definition structure, parameters and components used",
+                    "search_context": "When user references specific calculator or asks about calculator logic"
+                }
+            }
+        },
+        {
+            "name": "custom_calculator_search",
+            "short_description": "Search custom calculators by name, description, or tags (text search)",
+            "description": "Search custom calculators using text search across name, description, and tags. Returns ranked results by relevance score. Use this when you know what you're looking for but don't know exact calculator name. Search terms are case-insensitive and use partial matching (ILIKE '%term%'). Can also filter by specific tags. Relevance scoring: name match = 100 points, short_description match = 75 points, description match = 50 points, tag match = 25 points. Results ordered by relevance score (highest first), then usage_count (most used first). Returns: calculator_id, name, short_description, description, category, tags, usage_count, is_active, is_template, relevance_score. Use to discover calculators for specific materials, finishes, urgencies, or job types.",
+            "platform": "quote_calculator",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "search_term": {
+                        "type": "string",
+                        "description": "REQUIRED: Search term for name/description text search. Partial match, case-insensitive. Examples: 'vinyl' finds all vinyl calculators, 'rush' finds rush job calculators, '24' finds 24-hour calculators. Searches across name, short_description, and description fields."
+                    },
+                    "search_tags": {
+                        "type": "array",
+                        "description": "Optional: Filter by specific tags. Array of tag strings. Matches if calculator has ANY of the provided tags (OR logic). Examples: ['rush', '24-hour'], ['vinyl', 'outdoor'], ['laminate', 'die-cut']. Combine with search_term for refined search.",
+                        "items": {
+                            "type": "string"
+                        },
+                        "default": null
+                    },
+                    "limit": {
+                        "type": "integer",
+                        "description": "Optional: Maximum results to return. Default: 20. Use lower limit for quick searches, higher for comprehensive discovery. Max recommended: 100.",
+                        "default": 20
+                    }
+                },
+                "required": [
+                    "search_term"
+                ]
+            },
+            "returns": {
+                "type": "object",
+                "description": "Success status, search_term used, tags_filter applied, result_count, and results array with: calculator_id, name, short_description, description, category, tags, usage_count, is_active, is_template, relevance_score (100=name match, 75=short_description, 50=description, 25=tag). Results ordered by relevance_score DESC, usage_count DESC. On error: success=False with error message"
+            },
+            "examples": [
+                {
+                    "description": "Search for vinyl calculators",
+                    "parameters": {
+                        "search_term": "vinyl"
+                    },
+                    "expected_result": "Returns calculators with 'vinyl' in name/description/tags, ordered by relevance and usage"
+                },
+                {
+                    "description": "Search for rush calculators with 24-hour tag",
+                    "parameters": {
+                        "search_term": "rush",
+                        "search_tags": [
+                            "24-hour",
+                            "same-day"
+                        ]
+                    },
+                    "expected_result": "Returns rush calculators that have 24-hour or same-day tags, ranked by relevance"
+                },
+                {
+                    "description": "Find large format calculators (top 10)",
+                    "parameters": {
+                        "search_term": "large",
+                        "limit": 10
+                    },
+                    "expected_result": "Returns top 10 calculators matching 'large' in name/description"
+                },
+                {
+                    "description": "Search for laminated products",
+                    "parameters": {
+                        "search_term": "laminate",
+                        "search_tags": [
+                            "laminated",
+                            "outdoor"
+                        ]
+                    },
+                    "expected_result": "Returns calculators for laminated products, especially outdoor applications"
+                }
+            ],
+            "usage_guide": {
+                "when_to_use": [
+                    "Know what type of calculator you need but not exact name",
+                    "Searching for calculators by material (vinyl, canvas, corflute)",
+                    "Finding calculators by urgency (rush, same-day, overnight)",
+                    "Discovering calculators by finish (laminate, die-cut, grommet)",
+                    "Finding calculators by size (large-format, small-run)",
+                    "Tag-based discovery for specific features"
+                ],
+                "workflow": [
+                    "Step 1: Identify key search term (material, urgency, finish, size)",
+                    "Step 2: Optionally prepare relevant tags for filtering",
+                    "Step 3: Call custom_calculator_search() with search_term and optional search_tags",
+                    "Step 4: Review results ordered by relevance_score",
+                    "Step 5: Note calculator_id for detailed inspection with custom_calculator_get_detail()",
+                    "Step 6: Refine search with different terms or tags if needed"
+                ],
+                "best_practices": [
+                    "Start with broad search term, narrow with tags if too many results",
+                    "Use material names for material-specific calculators (vinyl, canvas, corflute)",
+                    "Use urgency terms for time-sensitive pricing (rush, 24-hour, overnight)",
+                    "Combine search_term with search_tags for precise discovery",
+                    "Review relevance_score - higher scores are better matches",
+                    "Check is_active flag - false means draft calculator",
+                    "Look at usage_count - higher means proven calculator"
+                ],
+                "error_handling": [
+                    "Success but empty results - No calculators match search criteria, try broader search term",
+                    "Error: Database connection failed - Check Supabase connectivity",
+                    "Too many results - Use search_tags to filter or lower limit parameter"
+                ],
+                "related_tools": [
+                    "custom_calculator_list",
+                    "custom_calculator_get_detail"
+                ]
+            },
+            "tool_intelligence": {
+                "category": "data_processing",
+                "typical_workflow_patterns": [
+                    "custom_calculator_search -> custom_calculator_get_detail",
+                    "custom_calculator_search (broad) -> custom_calculator_search (refined with tags)"
+                ],
+                "success_indicators": {
+                    "keywords": [
+                        "success: true",
+                        "result_count",
+                        "relevance_score"
+                    ],
+                    "behavioral": [
+                        "User reviews results",
+                        "User queries best match for details"
+                    ]
+                },
+                "failure_indicators": {
+                    "keywords": [
+                        "result_count: 0",
+                        "no matches"
+                    ],
+                    "behavioral": [
+                        "User tries different search term",
+                        "User uses custom_calculator_list instead"
+                    ]
+                },
+                "performance_expectations": {
+                    "typical_duration_ms": 300,
+                    "rate_limit_per_minute": null,
+                    "max_retries": 2
+                }
+            },
+            "memory_context": {
+                "vectorization_fields": [
+                    "search_term",
+                    "results",
+                    "tags"
+                ],
+                "search_keywords": [
+                    "search calculator",
+                    "find calculator",
+                    "calculator discovery"
+                ],
+                "related_synergy_platforms": [
+                    "quote_calculator"
+                ],
+                "typical_use_cases": [
+                    "Finding vinyl sticker calculators",
+                    "Discovering rush job pricing calculators",
+                    "Searching for laminated product calculators",
+                    "Finding large-format printing calculators",
+                    "Tag-based discovery for specific features"
+                ],
+                "conversation_memory_hints": {
+                    "what_to_remember": "Search term used, result_count, top matches found",
+                    "search_context": "When user asks about calculator search or discovery"
+                }
+            }
+        },
+        {
+            "name": "custom_calculator_get_parameters",
+            "short_description": "Show which pricing parameters are used by calculators (impact analysis)",
+            "description": "Show which pricing parameters from calculator_pricing_parameters table are used by custom calculators. Critical for impact analysis before changing global parameters. Can filter by specific calculator or specific parameter. Returns parameter usage with override information: which calculators use which parameters, whether calculator has custom override, current global value, override value if exists. Use this BEFORE changing global pricing parameters to understand impact. Also useful for understanding calculator dependencies on pricing constants. Returns: calculator_name, parameter_name, source_table, formula_variable_name, is_overridden (true if custom override exists), current_value (global), override_value (calculator-specific), override_updated_at.",
+            "platform": "quote_calculator",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "calculator_id": {
+                        "type": "string",
+                        "description": "Optional: Filter to specific calculator UUID. Shows only parameters used by that calculator. Useful when inspecting single calculator's parameter dependencies. Null returns all calculators.",
+                        "default": null
+                    },
+                    "parameter_name": {
+                        "type": "string",
+                        "description": "Optional: Filter to specific parameter name (e.g., 'labor_rate_trade', 'gst_rate', 'profit_margin_standard'). Shows all calculators using that parameter. Critical for impact analysis before changing parameter. Null returns all parameters.",
+                        "default": null
+                    }
+                },
+                "required": []
+            },
+            "returns": {
+                "type": "object",
+                "description": "Success status, filters_applied (calculator_id, parameter_name), usage_count, and parameter_usage array with: calculator_name, parameter_name, source_table, formula_variable_name, is_overridden (boolean), current_value (global default), override_value (calculator-specific if exists), override_updated_at. Ordered by calculator_name, parameter_name. On error: success=False with error message"
+            },
+            "examples": [
+                {
+                    "description": "Check which calculators use labor_rate_trade parameter",
+                    "parameters": {
+                        "parameter_name": "labor_rate_trade"
+                    },
+                    "expected_result": "Returns all calculators using labor_rate_trade with override info. Shows impact of changing labor rate globally."
+                },
+                {
+                    "description": "Get all parameters for specific calculator",
+                    "parameters": {
+                        "calculator_id": "550e8400-e29b-41d4-a716-446655440000"
+                    },
+                    "expected_result": "Returns all pricing parameters used by that calculator with current values and overrides"
+                },
+                {
+                    "description": "Get all parameter usage across all calculators",
+                    "parameters": {},
+                    "expected_result": "Returns complete parameter dependency map showing which calculators use which parameters"
+                }
+            ],
+            "usage_guide": {
+                "when_to_use": [
+                    "BEFORE changing global pricing parameters - impact analysis",
+                    "Understanding calculator dependencies on pricing constants",
+                    "Checking if calculator has custom parameter overrides",
+                    "Auditing which calculators affected by parameter change",
+                    "Verifying parameter resolution for calculator",
+                    "Finding calculators using specific parameter"
+                ],
+                "workflow": [
+                    "Step 1: Identify parameter you want to check (e.g., labor_rate_trade)",
+                    "Step 2: Call custom_calculator_get_parameters() with parameter_name filter",
+                    "Step 3: Review parameter_usage array to see affected calculators",
+                    "Step 4: Check is_overridden flag - true means calculator has custom value",
+                    "Step 5: Compare current_value (global) vs override_value (calculator-specific)",
+                    "Step 6: Assess impact before changing global parameter value"
+                ],
+                "best_practices": [
+                    "ALWAYS check this BEFORE changing global pricing parameters",
+                    "Filter by parameter_name for impact analysis of specific parameter",
+                    "Filter by calculator_id to understand single calculator's dependencies",
+                    "Review is_overridden flag - overridden calculators unaffected by global changes",
+                    "Check usage_count to understand parameter usage breadth",
+                    "Use for documentation - shows parameter dependency map"
+                ],
+                "error_handling": [
+                    "Success but empty parameter_usage - No calculators use specified parameter or calculator doesn't exist",
+                    "Error: Invalid calculator_id - Verify calculator_id is correct UUID",
+                    "Error: Database connection failed - Check Supabase connectivity"
+                ],
+                "related_tools": [
+                    "custom_calculator_get_detail",
+                    "calculator_database_query",
+                    "calculator_database_modify"
+                ]
+            },
+            "tool_intelligence": {
+                "category": "data_processing",
+                "typical_workflow_patterns": [
+                    "custom_calculator_get_parameters (parameter filter) -> calculator_database_modify (update parameter)",
+                    "custom_calculator_list -> custom_calculator_get_parameters (calculator filter)"
+                ],
+                "success_indicators": {
+                    "keywords": [
+                        "success: true",
+                        "usage_count",
+                        "parameter_usage"
+                    ],
+                    "behavioral": [
+                        "User reviews parameter dependencies",
+                        "User proceeds with parameter update"
+                    ]
+                },
+                "failure_indicators": {
+                    "keywords": [
+                        "usage_count: 0",
+                        "empty results"
+                    ],
+                    "behavioral": [
+                        "User checks parameter name spelling",
+                        "User checks if calculators exist"
+                    ]
+                },
+                "performance_expectations": {
+                    "typical_duration_ms": 250,
+                    "rate_limit_per_minute": null,
+                    "max_retries": 2
+                }
+            },
+            "memory_context": {
+                "vectorization_fields": [
+                    "parameter_usage",
+                    "calculator_names",
+                    "parameter_names"
+                ],
+                "search_keywords": [
+                    "parameter usage",
+                    "parameter dependencies",
+                    "impact analysis"
+                ],
+                "related_synergy_platforms": [
+                    "quote_calculator"
+                ],
+                "typical_use_cases": [
+                    "Impact analysis before changing labor rates",
+                    "Checking which calculators use GST rate parameter",
+                    "Understanding profit margin dependencies",
+                    "Auditing parameter overrides across calculators",
+                    "Documenting calculator parameter dependencies"
+                ],
+                "conversation_memory_hints": {
+                    "what_to_remember": "Parameter dependencies found, affected calculator count, override status",
+                    "search_context": "When user asks about parameter dependencies or impact analysis"
+                }
+            }
+        },
+        {
+            "name": "custom_calculator_get_usage_stats",
+            "short_description": "Get usage statistics over time period (by calculator, category, or day)",
+            "description": "Retrieve usage statistics for custom calculators over specified time period with flexible grouping. Three grouping options: by calculator (per-calculator stats), by category (category rollups), by day (time-series data). Shows: quote count, average quote value, total revenue, usage trends. Use for: monitoring calculator adoption, identifying popular calculators, analyzing revenue by category, tracking usage over time, identifying underutilized calculators. Data from quote_history_archive table (auto-populated when calculators execute). Returns aggregated statistics with flexible time window (default 30 days). Critical for business intelligence and calculator ROI analysis.",
+            "platform": "quote_calculator",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "days": {
+                        "type": "integer",
+                        "description": "Optional: Number of days to analyze. Default: 30 (last 30 days). Examples: 7 (last week), 90 (last quarter), 365 (last year). Analyzes from NOW() - INTERVAL 'X days' to NOW().",
+                        "default": 30
+                    },
+                    "group_by": {
+                        "type": "string",
+                        "enum": [
+                            "calculator",
+                            "category",
+                            "day"
+                        ],
+                        "description": "REQUIRED: How to group statistics. 'calculator' = per-calculator breakdown, 'category' = category rollups, 'day' = daily time-series. Default: 'calculator'. Choose based on analysis need.",
+                        "default": "calculator"
+                    }
+                },
+                "required": []
+            },
+            "returns": {
+                "type": "object",
+                "description": "Success status, time_period (days analyzed), group_by used, and stats array. If group_by='calculator': calculator_name, category, total_quotes, avg_quote_value, total_revenue, usage_trend. If group_by='category': category, calculator_count, total_quotes, avg_quote_value, total_revenue. If group_by='day': quote_date, total_quotes, unique_calculators, avg_quote_value, total_revenue. On error: success=False with error message"
+            },
+            "examples": [
+                {
+                    "description": "Get per-calculator stats for last 30 days",
+                    "parameters": {
+                        "days": 30,
+                        "group_by": "calculator"
+                    },
+                    "expected_result": "Returns stats for each calculator: quote count, average value, total revenue, usage trend (increasing/stable)"
+                },
+                {
+                    "description": "Get category rollup for last quarter",
+                    "parameters": {
+                        "days": 90,
+                        "group_by": "category"
+                    },
+                    "expected_result": "Returns stats by category: rush_job, specialty_substrate, etc. with calculator_count and revenue per category"
+                },
+                {
+                    "description": "Get daily time-series for last 2 weeks",
+                    "parameters": {
+                        "days": 14,
+                        "group_by": "day"
+                    },
+                    "expected_result": "Returns daily stats: quotes per day, unique calculators used, average quote value, daily revenue"
+                }
+            ],
+            "usage_guide": {
+                "when_to_use": [
+                    "Monitoring calculator adoption and usage trends",
+                    "Identifying most popular calculators for optimization",
+                    "Analyzing revenue contribution by calculator or category",
+                    "Tracking daily usage patterns over time",
+                    "Finding underutilized calculators for review or retirement",
+                    "Business intelligence reporting on custom calculator ROI"
+                ],
+                "workflow": [
+                    "Step 1: Decide analysis period (days: 7, 30, 90, 365)",
+                    "Step 2: Decide grouping (calculator, category, or day)",
+                    "Step 3: Call custom_calculator_get_usage_stats() with parameters",
+                    "Step 4: Review returned stats array",
+                    "Step 5: Identify top performers (high usage, high revenue)",
+                    "Step 6: Identify underperformers (low usage, consider retirement)",
+                    "Step 7: Use insights for business decisions"
+                ],
+                "best_practices": [
+                    "Use group_by='calculator' for per-calculator performance analysis",
+                    "Use group_by='category' for category-level business intelligence",
+                    "Use group_by='day' for trend analysis and time-series charts",
+                    "Start with days=30 for monthly review, adjust as needed",
+                    "Monitor usage_trend (increasing/stable) for adoption tracking",
+                    "Compare avg_quote_value across calculators for pricing insights",
+                    "Use total_revenue for ROI analysis and prioritization"
+                ],
+                "error_handling": [
+                    "Success but empty stats - No calculator usage in specified time period",
+                    "Error: Invalid group_by - Must be 'calculator', 'category', or 'day'",
+                    "Error: Database connection failed - Check Supabase connectivity"
+                ],
+                "related_tools": [
+                    "custom_calculator_list",
+                    "custom_calculator_get_detail"
+                ]
+            },
+            "tool_intelligence": {
+                "category": "data_processing",
+                "typical_workflow_patterns": [
+                    "custom_calculator_get_usage_stats (calculator) -> custom_calculator_get_detail (top performer)",
+                    "custom_calculator_get_usage_stats (day) -> visualize time-series chart"
+                ],
+                "success_indicators": {
+                    "keywords": [
+                        "success: true",
+                        "stats",
+                        "total_revenue"
+                    ],
+                    "behavioral": [
+                        "User reviews top performers",
+                        "User visualizes trends"
+                    ]
+                },
+                "failure_indicators": {
+                    "keywords": [
+                        "empty stats",
+                        "no usage"
+                    ],
+                    "behavioral": [
+                        "User adjusts time period",
+                        "User checks if calculators are active"
+                    ]
+                },
+                "performance_expectations": {
+                    "typical_duration_ms": 400,
+                    "rate_limit_per_minute": null,
+                    "max_retries": 2
+                }
+            },
+            "memory_context": {
+                "vectorization_fields": [
+                    "usage_stats",
+                    "top_calculators",
+                    "revenue_data"
+                ],
+                "search_keywords": [
+                    "usage statistics",
+                    "calculator analytics",
+                    "revenue analysis"
+                ],
+                "related_synergy_platforms": [
+                    "quote_calculator"
+                ],
+                "typical_use_cases": [
+                    "Monthly calculator performance review",
+                    "Category-level revenue analysis",
+                    "Daily usage trend tracking",
+                    "Identifying top-performing calculators",
+                    "Finding underutilized calculators for retirement"
+                ],
+                "conversation_memory_hints": {
+                    "what_to_remember": "Time period analyzed, top performers, total revenue, usage trends",
+                    "search_context": "When user asks about calculator usage, performance, or analytics"
+                }
+            }
+        },
+        {
+            "name": "custom_calculator_get_components",
+            "short_description": "List component usage across calculators (which logic is most reused)",
+            "description": "List reusable components usage across all custom calculators. Shows which of the 11 pre-built components (tiered_pricing_lookup, calculate_gst, quantity_break_discount, etc.) are most commonly used. Returns: component_name, component_type, calculator_count (how many calculators use it), total_usage (sum of usage across all calculators), avg_usage_per_calculator, calculator_list (which calculators use it), avg_performance_impact_ms. Use for: understanding component popularity, identifying most valuable components, documenting component dependencies, analyzing performance impact of components, discovering reusable patterns. Can filter to specific component for detailed usage analysis.",
+            "platform": "quote_calculator",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "component_name": {
+                        "type": "string",
+                        "description": "Optional: Filter to specific component name. Must match one of 11 available components: 'tiered_pricing_lookup', 'quantity_break_discount', 'calculate_profit_margin', 'apply_complexity_multiplier', 'calculate_gst', 'calculate_double_gst_shopify', 'calculate_area_m2', 'calculate_labor_cost', 'calculate_material_waste', 'calculate_setup_cost', 'minimum_order_check'. Null returns all components.",
+                        "default": null
+                    }
+                },
+                "required": []
+            },
+            "returns": {
+                "type": "object",
+                "description": "Success status, component_filter applied, component_count, and components array with: component_name, component_type, calculator_count (unique calculators using it), total_usage (sum across all calculators), avg_usage_per_calculator, calculator_list (JSONB array of calculator names), avg_performance_impact_ms. Ordered by total_usage DESC, calculator_count DESC. On error: success=False with error message"
+            },
+            "examples": [
+                {
+                    "description": "Get all component usage statistics",
+                    "parameters": {},
+                    "expected_result": "Returns usage stats for all components used across calculators, ordered by total usage"
+                },
+                {
+                    "description": "Get usage details for tiered_pricing_lookup component",
+                    "parameters": {
+                        "component_name": "tiered_pricing_lookup"
+                    },
+                    "expected_result": "Returns detailed usage for tiered_pricing_lookup: which calculators use it, how many times, performance impact"
+                },
+                {
+                    "description": "Check GST calculation usage",
+                    "parameters": {
+                        "component_name": "calculate_gst"
+                    },
+                    "expected_result": "Returns calculators using standard GST calculation with usage frequency and performance"
+                }
+            ],
+            "usage_guide": {
+                "when_to_use": [
+                    "Understanding which components are most valuable (heavily used)",
+                    "Documenting component dependencies across calculators",
+                    "Analyzing performance impact of specific components",
+                    "Identifying reusable patterns in calculator designs",
+                    "Checking which calculators would be affected by component changes",
+                    "Business intelligence on component library usage"
+                ],
+                "workflow": [
+                    "Step 1: Decide if checking all components or specific component",
+                    "Step 2: Call custom_calculator_get_components() with optional component_name filter",
+                    "Step 3: Review components array ordered by usage",
+                    "Step 4: Check calculator_count to see breadth of usage",
+                    "Step 5: Check total_usage to see depth of usage",
+                    "Step 6: Review calculator_list to see which calculators use component",
+                    "Step 7: Check avg_performance_impact_ms for performance insights"
+                ],
+                "best_practices": [
+                    "Call without filter first to see overall component usage landscape",
+                    "High calculator_count indicates valuable, reusable component",
+                    "High total_usage indicates heavily relied-upon component",
+                    "Use calculator_list to find examples of component usage",
+                    "Monitor avg_performance_impact_ms to identify slow components",
+                    "Use for documentation of component adoption",
+                    "Identify underused components for promotion or retirement"
+                ],
+                "error_handling": [
+                    "Success but empty components - No calculators use specified component or component doesn't exist",
+                    "Error: Component not found - Verify component_name against 11 available components",
+                    "Error: Database connection failed - Check Supabase connectivity"
+                ],
+                "related_tools": [
+                    "custom_calculator_get_detail",
+                    "calculator_builder_add_component",
+                    "custom_calculator_get_schema_guide"
+                ]
+            },
+            "tool_intelligence": {
+                "category": "data_processing",
+                "typical_workflow_patterns": [
+                    "custom_calculator_get_components -> custom_calculator_get_detail (high usage calculator)",
+                    "custom_calculator_get_components (specific) -> review calculator_list"
+                ],
+                "success_indicators": {
+                    "keywords": [
+                        "success: true",
+                        "component_count",
+                        "calculator_list"
+                    ],
+                    "behavioral": [
+                        "User reviews component usage",
+                        "User checks calculator examples"
+                    ]
+                },
+                "failure_indicators": {
+                    "keywords": [
+                        "component_count: 0",
+                        "empty results"
+                    ],
+                    "behavioral": [
+                        "User checks component name",
+                        "User lists all components"
+                    ]
+                },
+                "performance_expectations": {
+                    "typical_duration_ms": 300,
+                    "rate_limit_per_minute": null,
+                    "max_retries": 2
+                }
+            },
+            "memory_context": {
+                "vectorization_fields": [
+                    "component_usage",
+                    "calculator_list",
+                    "component_names"
+                ],
+                "search_keywords": [
+                    "component usage",
+                    "component analytics",
+                    "reusable logic"
+                ],
+                "related_synergy_platforms": [
+                    "quote_calculator"
+                ],
+                "typical_use_cases": [
+                    "Understanding which components are most valuable",
+                    "Finding calculators using specific component",
+                    "Analyzing component performance impact",
+                    "Documenting component adoption across calculators",
+                    "Identifying reusable patterns in calculator designs"
+                ],
+                "conversation_memory_hints": {
+                    "what_to_remember": "Most used components, calculator_count per component, performance impacts",
+                    "search_context": "When user asks about component usage or reusable logic"
+                }
+            }
+        }
+    ]
+}

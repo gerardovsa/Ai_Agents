@@ -1,0 +1,543 @@
+/**
+ * FILE: UI/external/modules/synergy/synergy-doc-picker.css
+ * PURPOSE: Styles for internal document picker modal
+ * LAST MODIFIED: 2025-11-24 - Initial implementation
+ */
+
+/* Modal Overlay */
+.synergy-doc-picker-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.7);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 10000;
+    animation: fadeIn 0.2s ease;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+    }
+
+    to {
+        opacity: 1;
+    }
+}
+
+/* Modal Container */
+.synergy-doc-picker-modal {
+    background: var(--bg-secondary, #1e1e2e);
+    border: 1px solid var(--border-default, rgba(255, 255, 255, 0.1));
+    border-radius: 12px;
+    width: 90%;
+    max-width: 900px;
+    max-height: 85vh;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+    animation: slideUp 0.3s ease;
+}
+
+@keyframes slideUp {
+    from {
+        transform: translateY(30px);
+        opacity: 0;
+    }
+
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+/* Header */
+.synergy-doc-picker-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 20px 24px;
+    border-bottom: 1px solid var(--border-default, rgba(255, 255, 255, 0.1));
+}
+
+.synergy-doc-picker-title {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-size: 18px;
+    /* font-weight: 600; */
+    color: var(--text-primary, #ffffff);
+}
+
+.synergy-doc-picker-title i {
+    color: var(--accent-primary, #4f6cff);
+    font-size: 20px;
+}
+
+.synergy-doc-picker-close {
+    background: transparent;
+    border: none;
+    color: var(--text-secondary, rgba(255, 255, 255, 0.6));
+    cursor: pointer;
+    padding: 8px;
+    border-radius: 6px;
+    transition: all 0.2s ease;
+    font-size: 20px;
+}
+
+.synergy-doc-picker-close:hover {
+    background: var(--bg-hover, rgba(255, 255, 255, 0.1));
+    color: var(--text-primary, #ffffff);
+}
+
+/* Filters Section */
+.synergy-doc-picker-filters {
+    padding: 20px 24px;
+    border-bottom: 1px solid var(--border-default, rgba(255, 255, 255, 0.1));
+    background: var(--bg-tertiary, rgba(0, 0, 0, 0.2));
+}
+
+.synergy-doc-picker-search {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    background: var(--bg-secondary, #1e1e2e);
+    border: 1px solid var(--border-default, rgba(255, 255, 255, 0.1));
+    border-radius: 8px;
+    padding: 12px 16px;
+    margin-bottom: 16px;
+}
+
+.synergy-doc-picker-search i {
+    color: var(--text-secondary, rgba(255, 255, 255, 0.6));
+    font-size: 16px;
+}
+
+.synergy-doc-picker-search input {
+    flex: 1;
+    background: transparent;
+    border: none;
+    outline: none;
+    color: var(--text-primary, #ffffff);
+    font-size: 14px;
+}
+
+.synergy-doc-picker-search input::placeholder {
+    color: var(--text-muted, rgba(255, 255, 255, 0.4));
+}
+
+.synergy-doc-picker-filter-row {
+    display: flex;
+    gap: 16px;
+    flex-wrap: wrap;
+}
+
+.synergy-doc-filter-group {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    flex: 1;
+    min-width: 140px;
+}
+
+.synergy-doc-filter-group label {
+    font-size: 12px;
+    /* font-weight: 600; */
+    color: var(--text-secondary, rgba(255, 255, 255, 0.6));
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.synergy-doc-filter-group select,
+.synergy-doc-filter-group input[type="date"] {
+    background: var(--bg-secondary, #1e1e2e);
+    border: 1px solid var(--border-default, rgba(255, 255, 255, 0.1));
+    border-radius: 6px;
+    padding: 8px 12px;
+    color: var(--text-primary, #ffffff);
+    font-size: 14px;
+    outline: none;
+    transition: border-color 0.2s ease;
+}
+
+.synergy-doc-filter-group select:hover,
+.synergy-doc-filter-group input[type="date"]:hover {
+    border-color: var(--accent-primary, #4f6cff);
+}
+
+.synergy-doc-filter-group select:focus,
+.synergy-doc-filter-group input[type="date"]:focus {
+    border-color: var(--accent-primary, #4f6cff);
+    box-shadow: 0 0 0 2px rgba(79, 108, 255, 0.2);
+}
+
+/* Results Count */
+.synergy-doc-picker-results-count {
+    padding: 12px 24px;
+    background: var(--bg-tertiary, rgba(0, 0, 0, 0.2));
+    border-bottom: 1px solid var(--border-default, rgba(255, 255, 255, 0.1));
+    font-size: 13px;
+    /* font-weight: 600; */
+    color: var(--text-secondary, rgba(255, 255, 255, 0.6));
+}
+
+/* Document List */
+.synergy-doc-picker-list {
+    flex: 1;
+    overflow-y: auto;
+    padding: 16px 24px;
+}
+
+.synergy-doc-picker-list::-webkit-scrollbar {
+    width: 8px;
+}
+
+.synergy-doc-picker-list::-webkit-scrollbar-track {
+    background: var(--bg-tertiary, rgba(0, 0, 0, 0.2));
+    border-radius: 4px;
+}
+
+.synergy-doc-picker-list::-webkit-scrollbar-thumb {
+    background: var(--border-default, rgba(255, 255, 255, 0.2));
+    border-radius: 4px;
+}
+
+.synergy-doc-picker-list::-webkit-scrollbar-thumb:hover {
+    background: var(--border-hover, rgba(255, 255, 255, 0.3));
+}
+
+/* Document Item */
+.synergy-doc-picker-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 16px;
+    padding: 16px;
+    background: var(--bg-tertiary, rgba(0, 0, 0, 0.2));
+    border: 2px solid transparent;
+    border-radius: 8px;
+    margin-bottom: 12px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.synergy-doc-picker-item:hover {
+    background: var(--bg-hover, rgba(255, 255, 255, 0.05));
+    border-color: var(--accent-primary, #4f6cff);
+    transform: translateX(4px);
+}
+
+.synergy-doc-picker-item.selected {
+    background: rgba(79, 108, 255, 0.1);
+    border-color: var(--accent-primary, #4f6cff);
+}
+
+.synergy-doc-item-icon {
+    width: 48px;
+    height: 48px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--accent-primary, #4f6cff);
+    border-radius: 8px;
+    color: #ffffff;
+    font-size: 20px;
+    flex-shrink: 0;
+}
+
+.synergy-doc-item-content {
+    flex: 1;
+    min-width: 0;
+}
+
+.synergy-doc-item-title {
+    font-size: 16px;
+    /* font-weight: 600; */
+    color: var(--text-primary, #ffffff);
+    margin-bottom: 4px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.synergy-doc-item-desc {
+    font-size: 13px;
+    color: var(--text-secondary, rgba(255, 255, 255, 0.6));
+    margin-bottom: 8px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.synergy-doc-item-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    font-size: 12px;
+    color: var(--text-muted, rgba(255, 255, 255, 0.4));
+}
+
+.synergy-doc-item-meta span {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.synergy-doc-item-meta i {
+    font-size: 11px;
+}
+
+.synergy-doc-item-select {
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    background: var(--bg-secondary, #1e1e2e);
+    border: 2px solid var(--border-default, rgba(255, 255, 255, 0.1));
+    color: var(--text-muted, rgba(255, 255, 255, 0.4));
+    font-size: 16px;
+    flex-shrink: 0;
+    transition: all 0.2s ease;
+}
+
+.synergy-doc-picker-item.selected .synergy-doc-item-select {
+    background: var(--accent-primary, #4f6cff);
+    border-color: var(--accent-primary, #4f6cff);
+    color: #ffffff;
+}
+
+/* Empty/Loading/Error States */
+.synergy-doc-picker-loading,
+.synergy-doc-picker-empty,
+.synergy-doc-picker-error {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 16px;
+    padding: 60px 20px;
+    text-align: center;
+    color: var(--text-secondary, rgba(255, 255, 255, 0.6));
+}
+
+.synergy-doc-picker-loading i {
+    font-size: 48px;
+    color: var(--accent-primary, #4f6cff);
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    from {
+        transform: rotate(0deg);
+    }
+
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+.synergy-doc-picker-empty i {
+    font-size: 64px;
+    color: var(--text-muted, rgba(255, 255, 255, 0.3));
+}
+
+.synergy-doc-picker-empty small {
+    font-size: 13px;
+    color: var(--text-muted, rgba(255, 255, 255, 0.4));
+}
+
+.synergy-doc-picker-error i {
+    font-size: 48px;
+    color: #ef4444;
+}
+
+.synergy-doc-retry-btn {
+    background: var(--accent-primary, #4f6cff);
+    border: none;
+    border-radius: 6px;
+    padding: 10px 20px;
+    color: #ffffff;
+    font-size: 14px;
+    /* font-weight: 600; */
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.synergy-doc-retry-btn:hover {
+    background: #3d5cff;
+    transform: translateY(-2px);
+}
+
+/* Footer */
+.synergy-doc-picker-footer {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 12px;
+    padding: 20px 24px;
+    border-top: 1px solid var(--border-default, rgba(255, 255, 255, 0.1));
+}
+
+.synergy-doc-picker-btn {
+    padding: 12px 24px;
+    border: none;
+    border-radius: 8px;
+    font-size: 14px;
+    /* font-weight: 600; */
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.synergy-doc-picker-btn.cancel {
+    background: transparent;
+    border: 1px solid var(--border-default, rgba(255, 255, 255, 0.2));
+    color: var(--text-secondary, rgba(255, 255, 255, 0.6));
+}
+
+.synergy-doc-picker-btn.cancel:hover {
+    background: var(--bg-hover, rgba(255, 255, 255, 0.05));
+    color: var(--text-primary, #ffffff);
+}
+
+.synergy-doc-picker-btn.select {
+    background: var(--accent-primary, #4f6cff);
+    color: #ffffff;
+}
+
+.synergy-doc-picker-btn.select:hover:not(:disabled) {
+    background: #3d5cff;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(79, 108, 255, 0.4);
+}
+
+.synergy-doc-picker-btn.select:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+/* ========================================
+   DOCUMENT CHOICE MODAL (Create vs Link)
+   ======================================== */
+
+.synergy-doc-choice-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.7);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 10000;
+    animation: fadeIn 0.2s ease;
+}
+
+.synergy-doc-choice-modal {
+    background: var(--bg-secondary, #1e1e2e);
+    border: 1px solid var(--border-default, rgba(255, 255, 255, 0.1));
+    border-radius: 12px;
+    width: 90%;
+    max-width: 500px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+    animation: slideUp 0.3s ease;
+}
+
+.synergy-doc-choice-header {
+    padding: 20px 24px;
+    border-bottom: 1px solid var(--border-default, rgba(255, 255, 255, 0.1));
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.synergy-doc-choice-header h3 {
+    margin: 0;
+    font-size: 18px;
+    font-weight: 600;
+    color: var(--text-primary, #ffffff);
+}
+
+.synergy-doc-choice-header button {
+    background: transparent;
+    border: none;
+    color: var(--text-secondary, rgba(255, 255, 255, 0.6));
+    cursor: pointer;
+    padding: 8px;
+    border-radius: 6px;
+    transition: all 0.2s ease;
+}
+
+.synergy-doc-choice-header button:hover {
+    background: var(--bg-hover, rgba(255, 255, 255, 0.05));
+    color: var(--text-primary, #ffffff);
+}
+
+.synergy-doc-choice-buttons {
+    padding: 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.synergy-doc-choice-btn {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 20px;
+    background: var(--bg-tertiary, rgba(255, 255, 255, 0.03));
+    border: 2px solid var(--border-default, rgba(255, 255, 255, 0.1));
+    border-radius: 10px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    width: 100%;
+    text-align: left;
+}
+
+.synergy-doc-choice-btn:hover {
+    background: var(--bg-hover, rgba(255, 255, 255, 0.06));
+    border-color: var(--accent-primary, #4f6cff);
+    transform: translateX(4px);
+}
+
+.synergy-doc-choice-btn i {
+    font-size: 32px;
+    color: var(--accent-primary, #4f6cff);
+    width: 48px;
+    text-align: center;
+}
+
+.synergy-doc-choice-btn.create i {
+    color: #10b981;
+}
+
+.synergy-doc-choice-btn.existing i {
+    color: #3b82f6;
+}
+
+.synergy-doc-choice-btn div {
+    flex: 1;
+}
+
+.synergy-doc-choice-btn strong {
+    display: block;
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--text-primary, #ffffff);
+    margin-bottom: 4px;
+}
+
+.synergy-doc-choice-btn small {
+    display: block;
+    font-size: 13px;
+    color: var(--text-secondary, rgba(255, 255, 255, 0.6));
+    line-height: 1.4;
+}

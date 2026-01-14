@@ -1,0 +1,631 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>STT + TTS Module Demo - AI Agents Platform</title>
+    
+    <!-- Font Awesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css">
+    
+    <!-- Module CSS -->
+    <link rel="stylesheet" href="stt-module.css">
+    <link rel="stylesheet" href="tts-module.css">
+    
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --bg-primary: #0d1117;
+            --bg-secondary: #1c1f26;
+            --bg-tertiary: #161921;
+            --bg-hover: #292e36;
+            --text-primary: #c9d1d9;
+            --text-muted: #8b949e;
+            --border-default: #30363d;
+            --accent-primary: #58a6ff;
+            --accent-hover: #4a93e0;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            padding: 24px;
+            line-height: 1.6;
+        }
+
+        .demo-container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .demo-header {
+            text-align: center;
+            margin-bottom: 32px;
+        }
+
+        .demo-header h1 {
+            font-size: 36px;
+            margin-bottom: 8px;
+            background: linear-gradient(135deg, #58a6ff, #7c3aed);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .demo-header p {
+            color: var(--text-muted);
+            font-size: 16px;
+        }
+
+        .demo-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 24px;
+            margin-bottom: 24px;
+        }
+
+        .demo-section {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-default);
+            border-radius: 12px;
+            padding: 24px;
+        }
+
+        .demo-section h2 {
+            font-size: 20px;
+            margin-bottom: 16px;
+            color: var(--accent-primary);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .control-group {
+            margin-bottom: 16px;
+        }
+
+        .control-group:last-child {
+            margin-bottom: 0;
+        }
+
+        .control-group label {
+            display: block;
+            margin-bottom: 8px;
+            /* font-weight: 500; */
+            color: var(--text-primary);
+        }
+
+        .control-group input,
+        .control-group select {
+            width: 100%;
+            padding: 8px;
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-default);
+            border-radius: 6px;
+            color: var(--text-primary);
+            font-size: 14px;
+        }
+
+        .demo-btn {
+            width: 100%;
+            padding: 12px 20px;
+            background: var(--accent-primary);
+            border: none;
+            border-radius: 8px;
+            color: white;
+            font-size: 14px;
+            /* font-weight: 500; */
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .demo-btn:hover {
+            background: var(--accent-hover);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(88, 166, 255, 0.3);
+        }
+
+        .demo-btn-secondary {
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-default);
+        }
+
+        .demo-btn-secondary:hover {
+            background: var(--bg-hover);
+        }
+
+        .chat-simulation {
+            grid-column: 1 / -1;
+        }
+
+        .chat-messages {
+            height: 300px;
+            overflow-y: auto;
+            padding: 16px;
+            background: var(--bg-tertiary);
+            border-radius: 8px;
+            margin-bottom: 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .chat-message {
+            padding: 12px;
+            border-radius: 8px;
+            max-width: 80%;
+            animation: message-slide-in 0.3s ease;
+        }
+
+        @keyframes message-slide-in {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .chat-message.user {
+            background: rgba(88, 166, 255, 0.2);
+            border-left: 3px solid #58a6ff;
+            align-self: flex-end;
+        }
+
+        .chat-message.ai {
+            background: rgba(124, 58, 237, 0.2);
+            border-left: 3px solid #7c3aed;
+            align-self: flex-start;
+        }
+
+        .chat-message-header {
+            font-size: 12px;
+            color: var(--text-muted);
+            margin-bottom: 4px;
+        }
+
+        .chat-message-content {
+            font-size: 14px;
+            line-height: 1.5;
+        }
+
+        .chat-input-area {
+            display: flex;
+            gap: 12px;
+            align-items: flex-end;
+        }
+
+        #ai-chat-input {
+            flex: 1;
+            padding: 12px;
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-default);
+            border-radius: 8px;
+            color: var(--text-primary);
+            font-family: inherit;
+            font-size: 14px;
+            resize: vertical;
+            min-height: 60px;
+        }
+
+        .record-button-container {
+            display: flex;
+            gap: 8px;
+        }
+
+        .info-box {
+            background: rgba(88, 166, 255, 0.1);
+            border: 1px solid var(--accent-primary);
+            border-radius: 8px;
+            padding: 16px;
+            margin-top: 24px;
+        }
+
+        .info-box h3 {
+            font-size: 16px;
+            margin-bottom: 12px;
+            color: var(--accent-primary);
+        }
+
+        .info-box ul {
+            margin-left: 20px;
+            color: var(--text-muted);
+        }
+
+        .info-box li {
+            margin-bottom: 6px;
+        }
+
+        .status-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 16px;
+            margin-top: 16px;
+        }
+
+        .status-card {
+            background: var(--bg-tertiary);
+            padding: 16px;
+            border-radius: 8px;
+            border: 1px solid var(--border-default);
+        }
+
+        .status-card h4 {
+            font-size: 14px;
+            color: var(--text-muted);
+            margin-bottom: 8px;
+        }
+
+        .status-card .status-value {
+            font-size: 24px;
+            /* font-weight: 600; */
+            color: var(--accent-primary);
+        }
+
+        @media (max-width: 1024px) {
+            .demo-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .status-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="demo-container">
+        <!-- Header -->
+        <div class="demo-header">
+            <h1><i class="fas fa-microphone"></i> + <i class="fas fa-volume-up"></i> STT + TTS Demo</h1>
+            <p>Complete Speech-to-Text and Text-to-Speech integration for AI Agents Platform</p>
+        </div>
+
+        <!-- Main Grid -->
+        <div class="demo-grid">
+            <!-- STT Controls -->
+            <div class="demo-section">
+                <h2><i class="fas fa-microphone"></i> Speech-to-Text (STT)</h2>
+                
+                <div class="control-group">
+                    <label>Whisper Backend URL:</label>
+                    <input type="text" id="whisper-endpoint" value="http://localhost:3001/api/v1/transcribe">
+                </div>
+
+                <div class="control-group">
+                    <label>API Key (optional):</label>
+                    <input type="password" id="api-key" placeholder="Your API key">
+                </div>
+
+                <div class="control-group">
+                    <label>Insert Mode:</label>
+                    <select id="insert-mode">
+                        <option value="append">Append to chat input</option>
+                        <option value="replace">Replace chat input</option>
+                        <option value="none">Display only (no insert)</option>
+                    </select>
+                </div>
+
+                <div class="control-group">
+                    <button class="demo-btn demo-btn-secondary" id="clear-stt-btn">
+                        <i class="fas fa-eraser"></i> Clear STT Transcript
+                    </button>
+                </div>
+
+                <div id="stt-transcript-display"></div>
+            </div>
+
+            <!-- TTS Controls -->
+            <div class="demo-section">
+                <h2><i class="fas fa-volume-up"></i> Text-to-Speech (TTS)</h2>
+                
+                <div class="control-group">
+                    <label for="voice-select">Voice:</label>
+                    <select id="voice-select">
+                        <option>Loading voices...</option>
+                    </select>
+                </div>
+
+                <div class="control-group">
+                    <label for="rate-slider">Speed: <span id="rate-value">1.0x</span></label>
+                    <input type="range" id="rate-slider" min="0.5" max="2" step="0.1" value="1.0">
+                </div>
+
+                <div class="control-group">
+                    <button class="demo-btn demo-btn-secondary" id="clear-tts-btn">
+                        <i class="fas fa-eraser"></i> Clear TTS Transcript
+                    </button>
+                </div>
+
+                <div id="tts-transcript-container"></div>
+            </div>
+        </div>
+
+        <!-- Chat Simulation -->
+        <div class="demo-section chat-simulation">
+            <h2><i class="fas fa-comments"></i> Chat Simulation (Try it!)</h2>
+            
+            <div class="chat-messages" id="chat-messages">
+                <div class="chat-message ai">
+                    <div class="chat-message-header">AI Agent</div>
+                    <div class="chat-message-content">
+                        Hello! Try speaking into the microphone or typing a message. I'll echo your input using Text-to-Speech.
+                    </div>
+                </div>
+            </div>
+
+            <div class="chat-input-area">
+                <textarea id="ai-chat-input" placeholder="Type or speak your message..."></textarea>
+                
+                <div class="record-button-container">
+                    <button id="stt-record-btn" title="Record voice">
+                        <i class="fas fa-microphone"></i>
+                    </button>
+                    
+                    <button class="demo-btn" id="send-btn" style="width: auto; padding: 12px 24px;">
+                        <i class="fas fa-paper-plane"></i> Send
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Status Dashboard -->
+        <div class="demo-section">
+            <h2><i class="fas fa-chart-line"></i> Module Status</h2>
+            
+            <div class="status-grid">
+                <div class="status-card">
+                    <h4>STT Status</h4>
+                    <div class="status-value" id="stt-status">Idle</div>
+                </div>
+                <div class="status-card">
+                    <h4>TTS Status</h4>
+                    <div class="status-value" id="tts-status">Idle</div>
+                </div>
+                <div class="status-card">
+                    <h4>STT Chunks Processed</h4>
+                    <div class="status-value" id="stt-chunks">0</div>
+                </div>
+                <div class="status-card">
+                    <h4>TTS Utterances</h4>
+                    <div class="status-value" id="tts-utterances">0</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Info Box -->
+        <div class="info-box">
+            <h3><i class="fas fa-lightbulb"></i> How It Works</h3>
+            <ul>
+                <li><strong>STT (Speech-to-Text):</strong>
+                    <ul>
+                        <li>Click microphone button to start recording</li>
+                        <li>Speak into your microphone</li>
+                        <li>Audio is sent to Whisper backend in 5-second chunks</li>
+                        <li>Transcript appears in real-time and inserts into chat input</li>
+                        <li>Click microphone again to stop recording</li>
+                    </ul>
+                </li>
+                <li><strong>TTS (Text-to-Speech):</strong>
+                    <ul>
+                        <li>AI responses are automatically spoken</li>
+                        <li>Transcript streams into TTS container with visual effects</li>
+                        <li>Adjust voice, speed, pitch, and volume as needed</li>
+                        <li>Pause/resume/stop controls available</li>
+                    </ul>
+                </li>
+                <li><strong>Complete Workflow:</strong>
+                    <ul>
+                        <li>1️⃣ Speak your question (STT converts to text)</li>
+                        <li>2️⃣ AI processes and responds</li>
+                        <li>3️⃣ Response is spoken back to you (TTS)</li>
+                        <li>4️⃣ Both transcripts are preserved for reference</li>
+                    </ul>
+                </li>
+            </ul>
+        </div>
+    </div>
+
+    <!-- Status Indicators (fixed position) -->
+    <div id="stt-status-indicator"></div>
+    <div id="tts-status-indicator"></div>
+
+    <!-- Module JavaScript -->
+    <script src="stt-module.js"></script>
+    <script src="tts-module.js"></script>
+
+    <!-- Demo Script -->
+    <script>
+        let sttModule, ttsModule;
+        let messageCount = 0;
+
+        document.addEventListener('DOMContentLoaded', () => {
+            console.log('🚀 Initializing STT + TTS Demo...');
+
+            // Initialize STT Module
+            sttModule = new STTModule({
+                recordButton: 'stt-record-btn',
+                transcriptDisplay: 'stt-transcript-display',
+                statusIndicator: 'stt-status-indicator',
+                insertTarget: 'ai-chat-input',
+                insertMode: 'append',
+                whisperEndpoint: document.getElementById('whisper-endpoint').value,
+                apiKey: null,
+                
+                onStart: () => {
+                    updateStatusCard('stt-status', 'Recording');
+                },
+                onStop: () => {
+                    updateStatusCard('stt-status', 'Processing');
+                },
+                onTranscript: (event) => {
+                    console.log('📝 STT Transcript:', event.transcript);
+                    const chunks = parseInt(document.getElementById('stt-chunks').textContent) + 1;
+                    updateStatusCard('stt-chunks', chunks);
+                    updateStatusCard('stt-status', 'Complete');
+                },
+                onError: (event) => {
+                    console.error('❌ STT Error:', event);
+                    updateStatusCard('stt-status', 'Error');
+                }
+            });
+
+            // Initialize TTS Module
+            ttsModule = new TTSModule({
+                transcriptContainer: 'tts-transcript-container',
+                statusIndicator: 'tts-status-indicator',
+                autoScroll: true,
+                showTimestamps: true,
+                
+                onStart: () => {
+                    updateStatusCard('tts-status', 'Speaking');
+                },
+                onEnd: () => {
+                    updateStatusCard('tts-status', 'Complete');
+                    const utterances = parseInt(document.getElementById('tts-utterances').textContent) + 1;
+                    updateStatusCard('tts-utterances', utterances);
+                },
+                onError: () => {
+                    updateStatusCard('tts-status', 'Error');
+                }
+            });
+
+            // Populate voice select
+            populateVoiceSelect();
+
+            // Event Listeners
+            document.getElementById('send-btn').addEventListener('click', sendMessage);
+            document.getElementById('clear-stt-btn').addEventListener('click', () => sttModule.clearTranscript());
+            document.getElementById('clear-tts-btn').addEventListener('click', () => ttsModule.clearTranscript());
+            
+            // Whisper endpoint change
+            document.getElementById('whisper-endpoint').addEventListener('change', (e) => {
+                sttModule.options.whisperEndpoint = e.target.value;
+            });
+
+            // API key change
+            document.getElementById('api-key').addEventListener('change', (e) => {
+                sttModule.options.apiKey = e.target.value || null;
+            });
+
+            // Insert mode change
+            document.getElementById('insert-mode').addEventListener('change', (e) => {
+                sttModule.options.insertMode = e.target.value;
+            });
+
+            // Voice selection
+            document.getElementById('voice-select').addEventListener('change', (e) => {
+                ttsModule.setVoice(parseInt(e.target.value));
+            });
+
+            // Rate slider
+            document.getElementById('rate-slider').addEventListener('input', (e) => {
+                const value = parseFloat(e.target.value);
+                ttsModule.setRate(value);
+                document.getElementById('rate-value').textContent = `${value}x`;
+            });
+
+            // Enter key to send
+            document.getElementById('ai-chat-input').addEventListener('keydown', (e) => {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    sendMessage();
+                }
+            });
+
+            console.log('✅ Demo initialized');
+        });
+
+        function populateVoiceSelect() {
+            const select = document.getElementById('voice-select');
+            const voices = ttsModule.getVoices();
+
+            if (voices.length === 0) {
+                setTimeout(populateVoiceSelect, 100);
+                return;
+            }
+
+            select.innerHTML = '';
+            voices.forEach((voice, index) => {
+                const option = document.createElement('option');
+                option.value = index;
+                option.textContent = `${voice.name} (${voice.lang})`;
+                if (voice === ttsModule.options.voice) {
+                    option.selected = true;
+                }
+                select.appendChild(option);
+            });
+        }
+
+        function sendMessage() {
+            const input = document.getElementById('ai-chat-input');
+            const text = input.value.trim();
+
+            if (!text) {
+                alert('Please enter a message');
+                return;
+            }
+
+            // Display user message
+            addChatMessage(text, 'user');
+
+            // Clear input
+            input.value = '';
+
+            // Simulate AI response
+            setTimeout(() => {
+                const aiResponse = generateAIResponse(text);
+                addChatMessage(aiResponse, 'ai');
+                
+                // Speak AI response
+                ttsModule.speak(aiResponse);
+            }, 500);
+        }
+
+        function addChatMessage(text, sender) {
+            const messagesContainer = document.getElementById('chat-messages');
+            
+            const message = document.createElement('div');
+            message.className = `chat-message ${sender}`;
+            
+            message.innerHTML = `
+                <div class="chat-message-header">${sender === 'user' ? 'You' : 'AI Agent'}</div>
+                <div class="chat-message-content">${text}</div>
+            `;
+            
+            messagesContainer.appendChild(message);
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+        }
+
+        function generateAIResponse(userMessage) {
+            const responses = [
+                `I heard you say: "${userMessage}". That's interesting!`,
+                `Thanks for your message: "${userMessage}". Let me process that.`,
+                `Received your input: "${userMessage}". I'm analyzing it now.`,
+                `You said: "${userMessage}". Great question!`,
+                `Message received: "${userMessage}". Here's my response.`
+            ];
+            
+            return responses[Math.floor(Math.random() * responses.length)];
+        }
+
+        function updateStatusCard(id, value) {
+            const element = document.getElementById(id);
+            if (element) {
+                element.textContent = value;
+            }
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,362 @@
+/**
+ * ================================================================
+ * CODE BLOCK ENHANCEMENT STYLES
+ * ================================================================
+ * Enhanced styling for code blocks with:
+ * - Syntax highlighting support (Prism.js tokens)
+ * - Copy button styling
+ * - Language labels
+ * - Line numbers support
+ * - Dark/Light theme support
+ * - Responsive design
+ * 
+ * Adapted for AI_agents from V7_MustCare implementation
+ * ================================================================
+ */
+
+/* Enhanced code block container */
+.code-block-enhanced {
+    position: relative;
+    border-radius: 6px;
+    background: var(--bg-secondary, #f6f8fa);
+    border: 1px solid var(--border-primary, #d0d7de);
+    margin: 16px 0;
+    overflow: hidden;
+}
+
+.code-block-enhanced.code-block-dark {
+    background: #1e1e1e;
+    border-color: #444444;
+}
+
+/* Code element styling */
+.code-block-enhanced code {
+    display: block;
+    padding: 16px;
+    font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', 'Courier New', monospace;
+    font-size: 13px;
+    line-height: 1.5;
+    color: var(--text-primary, #1f2937);
+    overflow-x: auto;
+    white-space: pre;
+    word-wrap: normal;
+    background: transparent;
+    border: none;
+    border-radius: 0;
+}
+
+.code-block-enhanced.code-block-dark code {
+    color: #e6edf3;
+}
+
+/* Inline code (not in pre) - don't interfere with existing styles */
+.two-rule-markdown-content code:not(.code-block-enhanced code) {
+    /* Keep existing inline code styling */
+}
+
+/* Copy button styling - Icon only */
+.code-copy-btn {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    width: 32px;
+    height: 32px;
+    padding: 0;
+    background: rgba(88, 166, 255, 0.15);
+    color: #58a6ff;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+    z-index: 10;
+    opacity: 0.8;
+}
+
+.code-copy-btn:hover {
+    opacity: 1;
+    background: #58a6ff;
+    color: white;
+    transform: translateY(-1px);
+    box-shadow: 0 2px 8px rgba(88, 166, 255, 0.3);
+}
+
+.code-copy-btn.copied {
+    background: rgba(63, 185, 80, 0.2);
+    color: #3fb950;
+}
+
+.code-copy-btn.copied:hover {
+    background: #3fb950;
+    color: white;
+}
+
+.code-copy-btn i {
+    font-size: 14px;
+}
+
+/* Dark mode copy button */
+.code-block-enhanced.code-block-dark .code-copy-btn {
+    background: rgba(88, 166, 255, 0.2);
+    color: #79c0ff;
+}
+
+.code-block-enhanced.code-block-dark .code-copy-btn:hover {
+    background: #58a6ff;
+    color: white;
+}
+
+/* Language label styling - Top right next to copy button */
+.code-language-label {
+    position: absolute;
+    top: 8px;
+    right: 48px;
+    padding: 6px 10px;
+    background: rgba(88, 166, 255, 0.15);
+    color: #58a6ff;
+    border-radius: 4px;
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    opacity: 0.8;
+    z-index: 9;
+    line-height: 1;
+}
+
+.code-block-enhanced.code-block-dark .code-language-label {
+    background: rgba(88, 166, 255, 0.2);
+    color: #79c0ff;
+}
+
+/* Line numbers plugin support */
+.code-block-enhanced.line-numbers {
+    padding-left: 2.8em;
+}
+
+.code-block-enhanced.line-numbers code {
+    position: relative;
+}
+
+.line-numbers .line-numbers-rows {
+    position: absolute;
+    pointer-events: none;
+    top: 16px;
+    font-size: 100%;
+    left: 0;
+    width: 2.8em;
+    letter-spacing: -1px;
+    border-right: 1px solid var(--border-primary, #d0d7de);
+    user-select: none;
+    background: rgba(0, 0, 0, 0.03);
+}
+
+.line-numbers .line-numbers-rows>span {
+    display: block;
+    counter-increment: linenumber;
+    color: #6e7681;
+    font-weight: 500;
+    padding-right: 0.8em;
+    text-align: right;
+}
+
+.code-block-enhanced.code-block-dark.line-numbers .line-numbers-rows {
+    border-right-color: #444444;
+    background: rgba(255, 255, 255, 0.03);
+}
+
+.code-block-enhanced.code-block-dark .line-numbers-rows>span {
+    color: #8b949e;
+}
+
+/* ================================================================
+ * PRISM.JS SYNTAX HIGHLIGHTING TOKENS
+ * ================================================================ */
+
+/* Light mode syntax highlighting */
+.code-block-enhanced .token.comment,
+.code-block-enhanced .token.prolog,
+.code-block-enhanced .token.doctype,
+.code-block-enhanced .token.cdata {
+    color: #6b7280;
+    font-style: italic;
+}
+
+.code-block-enhanced .token.punctuation {
+    color: #374151;
+}
+
+.code-block-enhanced .token.property,
+.code-block-enhanced .token.tag,
+.code-block-enhanced .token.boolean,
+.code-block-enhanced .token.number,
+.code-block-enhanced .token.constant,
+.code-block-enhanced .token.symbol,
+.code-block-enhanced .token.deleted {
+    color: #dc2626;
+}
+
+.code-block-enhanced .token.selector,
+.code-block-enhanced .token.attr-name,
+.code-block-enhanced .token.string,
+.code-block-enhanced .token.char,
+.code-block-enhanced .token.builtin,
+.code-block-enhanced .token.inserted {
+    color: #059669;
+}
+
+.code-block-enhanced .token.operator,
+.code-block-enhanced .token.entity,
+.code-block-enhanced .token.url,
+.language-css .token.string,
+.style .token.string {
+    color: #0891b2;
+}
+
+.code-block-enhanced .token.atrule,
+.code-block-enhanced .token.attr-value,
+.code-block-enhanced .token.keyword {
+    color: #4f46e5;
+}
+
+.code-block-enhanced .token.function,
+.code-block-enhanced .token.class-name {
+    color: #7c3aed;
+}
+
+.code-block-enhanced .token.regex,
+.code-block-enhanced .token.important,
+.code-block-enhanced .token.variable {
+    color: #ea580c;
+}
+
+/* Dark mode syntax highlighting (GitHub-inspired) */
+.code-block-enhanced.code-block-dark .token.comment,
+.code-block-enhanced.code-block-dark .token.prolog,
+.code-block-enhanced.code-block-dark .token.doctype,
+.code-block-enhanced.code-block-dark .token.cdata {
+    color: #8b949e;
+    font-style: italic;
+}
+
+.code-block-enhanced.code-block-dark .token.punctuation {
+    color: #c9d1d9;
+}
+
+.code-block-enhanced.code-block-dark .token.property,
+.code-block-enhanced.code-block-dark .token.tag,
+.code-block-enhanced.code-block-dark .token.boolean,
+.code-block-enhanced.code-block-dark .token.number,
+.code-block-enhanced.code-block-dark .token.constant,
+.code-block-enhanced.code-block-dark .token.symbol,
+.code-block-enhanced.code-block-dark .token.deleted {
+    color: #ff7b72;
+}
+
+.code-block-enhanced.code-block-dark .token.selector,
+.code-block-enhanced.code-block-dark .token.attr-name,
+.code-block-enhanced.code-block-dark .token.string,
+.code-block-enhanced.code-block-dark .token.char,
+.code-block-enhanced.code-block-dark .token.builtin,
+.code-block-enhanced.code-block-dark .token.inserted {
+    color: #3fb950;
+}
+
+.code-block-enhanced.code-block-dark .token.operator,
+.code-block-enhanced.code-block-dark .token.entity,
+.code-block-enhanced.code-block-dark .token.url,
+.code-block-enhanced.code-block-dark.language-css .token.string,
+.code-block-enhanced.code-block-dark.style .token.string {
+    color: #79c0ff;
+}
+
+.code-block-enhanced.code-block-dark .token.atrule,
+.code-block-enhanced.code-block-dark .token.attr-value,
+.code-block-enhanced.code-block-dark .token.keyword {
+    color: #ff7b72;
+}
+
+.code-block-enhanced.code-block-dark .token.function,
+.code-block-enhanced.code-block-dark .token.class-name {
+    color: #d2a8ff;
+}
+
+.code-block-enhanced.code-block-dark .token.regex,
+.code-block-enhanced.code-block-dark .token.important,
+.code-block-enhanced.code-block-dark .token.variable {
+    color: #ffa657;
+}
+
+/* Scrollbar styling for code blocks */
+.code-block-enhanced::-webkit-scrollbar {
+    height: 8px;
+    width: 8px;
+}
+
+.code-block-enhanced::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.code-block-enhanced::-webkit-scrollbar-thumb {
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: 4px;
+}
+
+.code-block-enhanced::-webkit-scrollbar-thumb:hover {
+    background: rgba(0, 0, 0, 0.3);
+}
+
+.code-block-enhanced.code-block-dark::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.2);
+}
+
+.code-block-enhanced.code-block-dark::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 255, 255, 0.3);
+}
+
+/* Responsive adjustments */
+@media (max-width: 600px) {
+    .code-copy-btn {
+        padding: 4px 8px;
+        font-size: 11px;
+    }
+
+    .code-copy-btn i {
+        font-size: 12px;
+    }
+
+    .code-copy-btn .copy-text {
+        display: none;
+        /* Hide text on mobile, show icon only */
+    }
+
+    .code-block-enhanced code {
+        font-size: 12px;
+        padding: 12px;
+    }
+
+    .code-language-label {
+        font-size: 10px;
+        padding: 3px 6px;
+    }
+}
+
+/* Accessibility */
+.code-copy-btn:focus {
+    outline: 2px solid #58a6ff;
+    outline-offset: 2px;
+}
+
+.code-copy-btn:focus:not(:focus-visible) {
+    outline: none;
+}
+
+/* Prevent code block overflow in chat bubbles */
+.agent-message-bubble .code-block-enhanced,
+.user-message-bubble .code-block-enhanced,
+.two-rule-markdown-content .code-block-enhanced {
+    max-width: 100%;
+    overflow-x: auto;
+}
