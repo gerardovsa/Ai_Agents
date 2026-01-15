@@ -53,6 +53,15 @@
                         "icon":  "fab fa-shopify",
                         "manifestPath":  "external/modules/shopify/manifest.json",
                         "enabled":  true
+                    },
+                    {
+                        "id":  "local-filesystem",
+                        "name":  "Local Filesystem",
+                        "color":  "#FFA726",
+                        "description":  "Local filesystem access and management",
+                        "icon":  "fas fa-folder-open",
+                        "manifestPath":  "external/modules/local-filesystem/manifest.json",
+                        "enabled":  true
                     }
                 ],
     "created":  "2026-01-15",
