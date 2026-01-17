@@ -55,6 +55,7 @@ class XeroModule extends BaseModule {
             contacts: [],
             payments: [],
             accounts: [],
+            quotes: [],
             stats: {}
         };
         this.tables = {};
@@ -66,14 +67,16 @@ class XeroModule extends BaseModule {
             invoices: new Set(),
             contacts: new Set(),
             payments: new Set(),
-            accounts: new Set()
+            accounts: new Set(),
+            quotes: new Set()
         };
         // Date range filters (default to 3 months)
         this.dateRanges = {
             invoices: 3,
             contacts: 3,
             payments: 3,
-            accounts: null // No date filter for accounts
+            accounts: null, // No date filter for accounts
+            quotes: 3
         };
     }
 
@@ -1246,6 +1249,9 @@ class XeroModule extends BaseModule {
                 <button class="module-subtab-btn" data-subtab="invoices">
                     <i class="fas fa-file-invoice"></i> Invoices
                 </button>
+                <button class="module-subtab-btn" data-subtab="quotes">
+                    <i class="fas fa-file-alt"></i> Quotes
+                </button>
                 <button class="module-subtab-btn" data-subtab="contacts">
                     <i class="fas fa-address-book"></i> Contacts
                 </button>
@@ -1284,6 +1290,11 @@ class XeroModule extends BaseModule {
         this.subTabs.set('invoices', {
             render: () => this.renderInvoices(),
             load: () => this.loadInvoices()
+        });
+
+        this.subTabs.set('quotes', {
+            render: () => this.renderQuotes(),
+            load: () => this.loadQuotes()
         });
 
         this.subTabs.set('contacts', {
@@ -3041,6 +3052,956 @@ class XeroModule extends BaseModule {
                 bulkActions.style.display = rows.length > 0 ? 'block' : 'none';
             }
         });
+    }
+
+    // ========================================================================
+    // QUOTES TAB
+    // ========================================================================
+
+    renderQuotes() {
+        console.log('[Xero] 📄 renderQuotes() STARTED');
+        const container = this.container.querySelector('.xero-tab-content-area');
+        if (!container) {
+            console.error('[Xero] ❌ Tab content area not found for quotes!');
+            return;
+        }
+
+        container.innerHTML = `
+            <div class="xero-quotes-page">
+                <!-- Header with Actions -->
+                <div class="xero-page-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
+                    <div>
+                        <h2 style="color: var(--text-primary); margin: 0 0 8px 0; font-size: 24px; font-weight: 600;">
+                            <i class="fas fa-file-alt" style="color: #3b82f6;"></i> Quotes
+                        </h2>
+                        <p style="color: var(--text-secondary); margin: 0; font-size: 14px;">
+                            Create, manage, and convert quotes to invoices and production orders
+                        </p>
+                    </div>
+                    <div class="xero-quotes-actions" style="display: flex; gap: 12px;">
+                        <button class="xero-btn xero-btn-primary" id="xero-create-quote-btn" style="background: #3b82f6; color: white; padding: 10px 20px; border: none; border-radius: 6px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 8px;">
+                            <i class="fas fa-plus"></i> Create Quote
+                        </button>
+                        <button class="xero-btn xero-btn-secondary" id="xero-refresh-quotes-btn" style="background: var(--bg-secondary); color: var(--text-primary); padding: 10px 20px; border: 1px solid var(--border-color); border-radius: 6px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 8px;">
+                            <i class="fas fa-sync"></i> Refresh
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Filters Section -->
+                <div class="xero-quotes-filters" style="background: var(--bg-secondary); padding: 20px; border-radius: 8px; margin-bottom: 20px; border: 1px solid var(--border-color);">
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px;">
+                        <!-- Date Range Filter -->
+                        <div>
+                            <label style="display: block; color: var(--text-secondary); font-size: 12px; font-weight: 600; margin-bottom: 6px; text-transform: uppercase;">
+                                Date Range
+                            </label>
+                            <select id="xero-quotes-date-filter" style="width: 100%; padding: 8px 12px; background: var(--bg-primary); color: var(--text-primary); border: 1px solid var(--border-color); border-radius: 6px; font-size: 14px;">
+                                <option value="1">Last 1 Month</option>
+                                <option value="3" selected>Last 3 Months</option>
+                                <option value="6">Last 6 Months</option>
+                                <option value="12">Last 12 Months</option>
+                                <option value="null">All Time</option>
+                            </select>
+                        </div>
+
+                        <!-- Status Filter -->
+                        <div>
+                            <label style="display: block; color: var(--text-secondary); font-size: 12px; font-weight: 600; margin-bottom: 6px; text-transform: uppercase;">
+                                Status
+                            </label>
+                            <select id="xero-quotes-status-filter" style="width: 100%; padding: 8px 12px; background: var(--bg-primary); color: var(--text-primary); border: 1px solid var(--border-color); border-radius: 6px; font-size: 14px;">
+                                <option value="">All Statuses</option>
+                                <option value="DRAFT">Draft</option>
+                                <option value="SENT">Sent</option>
+                                <option value="ACCEPTED">Accepted</option>
+                                <option value="DECLINED">Declined</option>
+                                <option value="INVOICED">Invoiced</option>
+                            </select>
+                        </div>
+
+                        <!-- Business Filter -->
+                        <div>
+                            <label style="display: block; color: var(--text-secondary); font-size: 12px; font-weight: 600; margin-bottom: 6px; text-transform: uppercase;">
+                                Business
+                            </label>
+                            <select id="xero-quotes-business-filter" style="width: 100%; padding: 8px 12px; background: var(--bg-primary); color: var(--text-primary); border: 1px solid var(--border-color); border-radius: 6px; font-size: 14px;">
+                                <option value="1">InHouse Print</option>
+                                <option value="2">InHouse Publishing</option>
+                                <option value="3">InHouse Signs</option>
+                            </select>
+                        </div>
+
+                        <!-- Search Filter -->
+                        <div>
+                            <label style="display: block; color: var(--text-secondary); font-size: 12px; font-weight: 600; margin-bottom: 6px; text-transform: uppercase;">
+                                Search
+                            </label>
+                            <input type="text" id="xero-quotes-search-input" placeholder="Customer name, quote number..." style="width: 100%; padding: 8px 12px; background: var(--bg-primary); color: var(--text-primary); border: 1px solid var(--border-color); border-radius: 6px; font-size: 14px;">
+                        </div>
+                    </div>
+
+                    <!-- Quick Stats -->
+                    <div id="xero-quotes-quick-stats" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--border-color);">
+                        <div style="text-align: center;">
+                            <div style="color: var(--text-secondary); font-size: 11px; font-weight: 600; text-transform: uppercase; margin-bottom: 4px;">Total Quotes</div>
+                            <div id="xero-quotes-stat-total" style="color: var(--text-primary); font-size: 20px; font-weight: 700;">-</div>
+                        </div>
+                        <div style="text-align: center;">
+                            <div style="color: var(--text-secondary); font-size: 11px; font-weight: 600; text-transform: uppercase; margin-bottom: 4px;">Sent (Pending)</div>
+                            <div id="xero-quotes-stat-sent" style="color: #f59e0b; font-size: 20px; font-weight: 700;">-</div>
+                        </div>
+                        <div style="text-align: center;">
+                            <div style="color: var(--text-secondary); font-size: 11px; font-weight: 600; text-transform: uppercase; margin-bottom: 4px;">Accepted</div>
+                            <div id="xero-quotes-stat-accepted" style="color: #10b981; font-size: 20px; font-weight: 700;">-</div>
+                        </div>
+                        <div style="text-align: center;">
+                            <div style="color: var(--text-secondary); font-size: 11px; font-weight: 600; text-transform: uppercase; margin-bottom: 4px;">Total Value</div>
+                            <div id="xero-quotes-stat-value" style="color: #3b82f6; font-size: 20px; font-weight: 700;">-</div>
+                        </div>
+                        <div style="text-align: center;">
+                            <div style="color: var(--text-secondary); font-size: 11px; font-weight: 600; text-transform: uppercase; margin-bottom: 4px;">Win Rate</div>
+                            <div id="xero-quotes-stat-winrate" style="color: #8b5cf6; font-size: 20px; font-weight: 700;">-</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Quotes Table -->
+                <div id="xero-quotes-table-container" style="background: var(--bg-secondary); border-radius: 8px; border: 1px solid var(--border-color); overflow: hidden;">
+                    <!-- Tabulator table will be injected here -->
+                </div>
+
+                <!-- Create/Edit Quote Modal -->
+                <div id="xero-quote-modal" class="xero-modal" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.75); z-index: 10000; align-items: center; justify-content: center;">
+                    <div class="xero-modal-content" style="background: var(--bg-primary); border: 1px solid var(--border-color); border-radius: 12px; max-width: 900px; width: 90%; max-height: 85vh; overflow-y: auto; box-shadow: 0 20px 50px rgba(0,0,0,0.5);">
+                        <!-- Modal Header -->
+                        <div class="xero-modal-header" style="display: flex; justify-content: space-between; align-items: center; padding: 24px; border-bottom: 1px solid var(--border-color);">
+                            <h3 style="margin: 0; color: var(--text-primary); font-size: 20px; font-weight: 600;">
+                                <i class="fas fa-file-alt" style="color: #3b82f6;"></i> <span id="xero-quote-modal-title">Create Quote</span>
+                            </h3>
+                            <button id="xero-quote-modal-close" style="background: none; border: none; color: var(--text-secondary); font-size: 24px; cursor: pointer; padding: 0; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; border-radius: 6px;">
+                                <i class="fas fa-times"></i>
+                            </button>
+                        </div>
+
+                        <!-- Modal Body -->
+                        <div class="xero-modal-body" style="padding: 24px;">
+                            <form id="xero-quote-form">
+                                <!-- Customer Selection -->
+                                <div style="margin-bottom: 20px;">
+                                    <label style="display: block; color: var(--text-primary); font-weight: 600; margin-bottom: 8px;">
+                                        Customer <span style="color: #ef4444;">*</span>
+                                    </label>
+                                    <select id="xero-quote-customer" required style="width: 100%; padding: 10px 12px; background: var(--bg-secondary); color: var(--text-primary); border: 1px solid var(--border-color); border-radius: 6px; font-size: 14px;">
+                                        <option value="">Select a customer...</option>
+                                        <!-- Customers loaded dynamically -->
+                                    </select>
+                                    <small style="color: var(--text-secondary); font-size: 12px; margin-top: 4px; display: block;">
+                                        Search by name or email
+                                    </small>
+                                </div>
+
+                                <!-- Quote Details Row -->
+                                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 20px;">
+                                    <div>
+                                        <label style="display: block; color: var(--text-primary); font-weight: 600; margin-bottom: 8px;">
+                                            Quote Title
+                                        </label>
+                                        <input type="text" id="xero-quote-title" value="Printing Quote" style="width: 100%; padding: 10px 12px; background: var(--bg-secondary); color: var(--text-primary); border: 1px solid var(--border-color); border-radius: 6px; font-size: 14px;">
+                                    </div>
+                                    <div>
+                                        <label style="display: block; color: var(--text-primary); font-weight: 600; margin-bottom: 8px;">
+                                            Date
+                                        </label>
+                                        <input type="date" id="xero-quote-date" style="width: 100%; padding: 10px 12px; background: var(--bg-secondary); color: var(--text-primary); border: 1px solid var(--border-color); border-radius: 6px; font-size: 14px;">
+                                    </div>
+                                </div>
+
+                                <!-- Expiry Date -->
+                                <div style="margin-bottom: 20px;">
+                                    <label style="display: block; color: var(--text-primary); font-weight: 600; margin-bottom: 8px;">
+                                        Expiry Date
+                                    </label>
+                                    <input type="date" id="xero-quote-expiry" style="width: 100%; padding: 10px 12px; background: var(--bg-secondary); color: var(--text-primary); border: 1px solid var(--border-color); border-radius: 6px; font-size: 14px;">
+                                    <small style="color: var(--text-secondary); font-size: 12px; margin-top: 4px; display: block;">
+                                        Quote valid until this date (typically 30 days)
+                                    </small>
+                                </div>
+
+                                <!-- Line Items Section -->
+                                <div style="margin-bottom: 20px;">
+                                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                                        <label style="color: var(--text-primary); font-weight: 600; margin: 0;">
+                                            Line Items <span style="color: #ef4444;">*</span>
+                                        </label>
+                                        <button type="button" id="xero-quote-use-calculator-btn" style="background: #8b5cf6; color: white; padding: 6px 12px; border: none; border-radius: 6px; font-size: 13px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 6px;">
+                                            <i class="fas fa-calculator"></i> Use Quote Calculator
+                                        </button>
+                                    </div>
+                                    <div id="xero-quote-line-items-container" style="border: 1px solid var(--border-color); border-radius: 6px; overflow: hidden;">
+                                        <!-- Line items table -->
+                                        <table style="width: 100%; border-collapse: collapse;">
+                                            <thead style="background: var(--bg-tertiary);">
+                                                <tr>
+                                                    <th style="padding: 10px; text-align: left; color: var(--text-secondary); font-size: 12px; font-weight: 600; text-transform: uppercase; border-bottom: 1px solid var(--border-color);">Description</th>
+                                                    <th style="padding: 10px; text-align: center; color: var(--text-secondary); font-size: 12px; font-weight: 600; text-transform: uppercase; border-bottom: 1px solid var(--border-color); width: 80px;">Qty</th>
+                                                    <th style="padding: 10px; text-align: right; color: var(--text-secondary); font-size: 12px; font-weight: 600; text-transform: uppercase; border-bottom: 1px solid var(--border-color); width: 120px;">Unit Price</th>
+                                                    <th style="padding: 10px; text-align: right; color: var(--text-secondary); font-size: 12px; font-weight: 600; text-transform: uppercase; border-bottom: 1px solid var(--border-color); width: 120px;">Total</th>
+                                                    <th style="padding: 10px; text-align: center; color: var(--text-secondary); font-size: 12px; font-weight: 600; text-transform: uppercase; border-bottom: 1px solid var(--border-color); width: 50px;"></th>
+                                                </tr>
+                                            </thead>
+                                            <tbody id="xero-quote-line-items-body" style="background: var(--bg-secondary);">
+                                                <!-- Line items will be added here -->
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                    <button type="button" id="xero-quote-add-line-btn" style="width: 100%; margin-top: 12px; padding: 10px; background: var(--bg-tertiary); color: var(--text-primary); border: 1px dashed var(--border-color); border-radius: 6px; font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px;">
+                                        <i class="fas fa-plus"></i> Add Line Item
+                                    </button>
+                                </div>
+
+                                <!-- Totals Section -->
+                                <div style="background: var(--bg-tertiary); padding: 16px; border-radius: 6px; margin-bottom: 20px;">
+                                    <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+                                        <span style="color: var(--text-secondary); font-size: 14px;">Subtotal:</span>
+                                        <span id="xero-quote-subtotal" style="color: var(--text-primary); font-size: 14px; font-weight: 600;">$0.00</span>
+                                    </div>
+                                    <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+                                        <span style="color: var(--text-secondary); font-size: 14px;">GST (10%):</span>
+                                        <span id="xero-quote-gst" style="color: var(--text-primary); font-size: 14px; font-weight: 600;">$0.00</span>
+                                    </div>
+                                    <div style="display: flex; justify-content: space-between; padding-top: 8px; border-top: 1px solid var(--border-color);">
+                                        <span style="color: var(--text-primary); font-size: 16px; font-weight: 700;">Total:</span>
+                                        <span id="xero-quote-total" style="color: #3b82f6; font-size: 18px; font-weight: 700;">$0.00</span>
+                                    </div>
+                                </div>
+
+                                <!-- Terms & Notes -->
+                                <div style="margin-bottom: 20px;">
+                                    <label style="display: block; color: var(--text-primary); font-weight: 600; margin-bottom: 8px;">
+                                        Terms & Conditions
+                                    </label>
+                                    <textarea id="xero-quote-terms" rows="3" style="width: 100%; padding: 10px 12px; background: var(--bg-secondary); color: var(--text-primary); border: 1px solid var(--border-color); border-radius: 6px; font-size: 14px; font-family: inherit; resize: vertical;">Payment due within 30 days. All prices include GST. Quote valid for 30 days from date of issue.</textarea>
+                                </div>
+                            </form>
+                        </div>
+
+                        <!-- Modal Footer -->
+                        <div class="xero-modal-footer" style="display: flex; justify-content: flex-end; gap: 12px; padding: 20px 24px; border-top: 1px solid var(--border-color); background: var(--bg-secondary);">
+                            <button id="xero-quote-save-draft-btn" type="button" style="background: var(--bg-tertiary); color: var(--text-primary); padding: 10px 20px; border: 1px solid var(--border-color); border-radius: 6px; font-weight: 600; cursor: pointer;">
+                                Save as Draft
+                            </button>
+                            <button id="xero-quote-save-send-btn" type="button" style="background: #3b82f6; color: white; padding: 10px 20px; border: none; border-radius: 6px; font-weight: 600; cursor: pointer;">
+                                <i class="fas fa-paper-plane"></i> Save & Send to Customer
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Calculator Modal (Separate) -->
+                <div id="xero-calculator-modal" class="xero-modal" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.75); z-index: 10001; align-items: center; justify-content: center;">
+                    <div class="xero-modal-content" style="background: var(--bg-primary); border: 1px solid var(--border-color); border-radius: 12px; max-width: 700px; width: 90%; max-height: 85vh; overflow-y: auto; box-shadow: 0 20px 50px rgba(0,0,0,0.5);">
+                        <div class="xero-modal-header" style="display: flex; justify-content: space-between; align-items: center; padding: 24px; border-bottom: 1px solid var(--border-color);">
+                            <h3 style="margin: 0; color: var(--text-primary); font-size: 20px; font-weight: 600;">
+                                <i class="fas fa-calculator" style="color: #8b5cf6;"></i> Quote Calculator
+                            </h3>
+                            <button id="xero-calculator-modal-close" style="background: none; border: none; color: var(--text-secondary); font-size: 24px; cursor: pointer; padding: 0; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; border-radius: 6px;">
+                                <i class="fas fa-times"></i>
+                            </button>
+                        </div>
+                        <div class="xero-modal-body" style="padding: 24px;">
+                            <p style="color: var(--text-secondary); margin-bottom: 20px;">
+                                Select a product type to calculate pricing:
+                            </p>
+                            <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px;">
+                                <button class="xero-calculator-product-btn" data-product="business_cards" style="padding: 16px; background: var(--bg-secondary); color: var(--text-primary); border: 1px solid var(--border-color); border-radius: 8px; font-weight: 600; cursor: pointer; text-align: left; display: flex; align-items: center; gap: 12px;">
+                                    <i class="fas fa-id-card" style="font-size: 24px; color: #3b82f6;"></i>
+                                    <span>Business Cards</span>
+                                </button>
+                                <button class="xero-calculator-product-btn" data-product="flyers" style="padding: 16px; background: var(--bg-secondary); color: var(--text-primary); border: 1px solid var(--border-color); border-radius: 8px; font-weight: 600; cursor: pointer; text-align: left; display: flex; align-items: center; gap: 12px;">
+                                    <i class="fas fa-file-alt" style="font-size: 24px; color: #10b981;"></i>
+                                    <span>Flyers</span>
+                                </button>
+                                <button class="xero-calculator-product-btn" data-product="booklets" style="padding: 16px; background: var(--bg-secondary); color: var(--text-primary); border: 1px solid var(--border-color); border-radius: 8px; font-weight: 600; cursor: pointer; text-align: left; display: flex; align-items: center; gap: 12px;">
+                                    <i class="fas fa-book" style="font-size: 24px; color: #f59e0b;"></i>
+                                    <span>Booklets</span>
+                                </button>
+                                <button class="xero-calculator-product-btn" data-product="signage" style="padding: 16px; background: var(--bg-secondary); color: var(--text-primary); border: 1px solid var(--border-color); border-radius: 8px; font-weight: 600; cursor: pointer; text-align: left; display: flex; align-items: center; gap: 12px;">
+                                    <i class="fas fa-sign" style="font-size: 24px; color: #ef4444;"></i>
+                                    <span>Signage</span>
+                                </button>
+                            </div>
+                            <div style="margin-top: 20px; padding: 16px; background: var(--bg-tertiary); border-radius: 6px; border-left: 3px solid #3b82f6;">
+                                <p style="color: var(--text-secondary); margin: 0; font-size: 13px;">
+                                    <i class="fas fa-info-circle" style="color: #3b82f6;"></i>
+                                    Calculator will open the Quote Calculator module to get pricing, then return here with the calculated line items.
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+
+        console.log('[Xero] ✅ Quotes UI rendered');
+
+        // Attach event listeners
+        this.attachQuotesEventListeners();
+    }
+
+    attachQuotesEventListeners() {
+        // Create Quote button
+        const createBtn = document.getElementById('xero-create-quote-btn');
+        if (createBtn) {
+            createBtn.addEventListener('click', () => this.openQuoteModal());
+        }
+
+        // Refresh button
+        const refreshBtn = document.getElementById('xero-refresh-quotes-btn');
+        if (refreshBtn) {
+            refreshBtn.addEventListener('click', () => this.loadQuotes());
+        }
+
+        // Filter changes
+        const dateFilter = document.getElementById('xero-quotes-date-filter');
+        if (dateFilter) {
+            dateFilter.addEventListener('change', (e) => {
+                this.dateRanges.quotes = e.target.value === 'null' ? null : parseInt(e.target.value);
+                this.loadQuotes();
+            });
+        }
+
+        const statusFilter = document.getElementById('xero-quotes-status-filter');
+        if (statusFilter) {
+            statusFilter.addEventListener('change', () => this.applyQuoteFilters());
+        }
+
+        const businessFilter = document.getElementById('xero-quotes-business-filter');
+        if (businessFilter) {
+            businessFilter.value = this.currentBusiness;
+            businessFilter.addEventListener('change', (e) => {
+                this.currentBusiness = parseInt(e.target.value);
+                this.loadQuotes();
+            });
+        }
+
+        const searchInput = document.getElementById('xero-quotes-search-input');
+        if (searchInput) {
+            searchInput.addEventListener('input', () => this.applyQuoteFilters());
+        }
+
+        // Modal close buttons
+        const modalClose = document.getElementById('xero-quote-modal-close');
+        if (modalClose) {
+            modalClose.addEventListener('click', () => this.closeQuoteModal());
+        }
+
+        const calcModalClose = document.getElementById('xero-calculator-modal-close');
+        if (calcModalClose) {
+            calcModalClose.addEventListener('click', () => this.closeCalculatorModal());
+        }
+
+        // Add line item button
+        const addLineBtn = document.getElementById('xero-quote-add-line-btn');
+        if (addLineBtn) {
+            addLineBtn.addEventListener('click', () => this.addQuoteLineItem());
+        }
+
+        // Use calculator button
+        const useCalcBtn = document.getElementById('xero-quote-use-calculator-btn');
+        if (useCalcBtn) {
+            useCalcBtn.addEventListener('click', () => this.openCalculatorModal());
+        }
+
+        // Save buttons
+        const saveDraftBtn = document.getElementById('xero-quote-save-draft-btn');
+        if (saveDraftBtn) {
+            saveDraftBtn.addEventListener('click', () => this.saveQuote('DRAFT'));
+        }
+
+        const saveSendBtn = document.getElementById('xero-quote-save-send-btn');
+        if (saveSendBtn) {
+            saveSendBtn.addEventListener('click', () => this.saveQuote('SENT'));
+        }
+
+        // Calculator product buttons
+        const calcButtons = document.querySelectorAll('.xero-calculator-product-btn');
+        calcButtons.forEach(btn => {
+            btn.addEventListener('click', () => {
+                const product = btn.dataset.product;
+                this.openQuoteCalculator(product);
+            });
+        });
+    }
+
+    async loadQuotes() {
+        console.log('[Xero] 📊 loadQuotes() STARTED');
+        
+        try {
+            const dateFrom = this.getDateRangeStart(this.dateRanges.quotes);
+            const params = new URLSearchParams({
+                business_id: this.currentBusiness
+            });
+            
+            if (dateFrom) {
+                params.append('date_from', dateFrom);
+            }
+
+            const response = await fetch(`${this.API_BASE_URL}/api/xero/quotes?${params}`);
+            if (!response.ok) {
+                throw new Error(`Failed to load quotes: ${response.statusText}`);
+            }
+
+            const data = await response.json();
+            this.data.quotes = data.quotes || [];
+            
+            console.log(`[Xero] ✅ Loaded ${this.data.quotes.length} quotes`);
+            
+            // Update quick stats
+            this.updateQuotesStats();
+            
+            // Render table
+            this.renderQuotesTable();
+            
+        } catch (error) {
+            console.error('[Xero] ❌ Error loading quotes:', error);
+            this.showNotification('Failed to load quotes', 'error');
+        }
+    }
+
+    updateQuotesStats() {
+        const quotes = this.data.quotes;
+        const total = quotes.length;
+        const sent = quotes.filter(q => q.status === 'SENT').length;
+        const accepted = quotes.filter(q => q.status === 'ACCEPTED').length;
+        const totalValue = quotes.reduce((sum, q) => sum + (parseFloat(q.total) || 0), 0);
+        const winRate = total > 0 ? ((accepted / total) * 100).toFixed(1) : 0;
+
+        document.getElementById('xero-quotes-stat-total').textContent = total;
+        document.getElementById('xero-quotes-stat-sent').textContent = sent;
+        document.getElementById('xero-quotes-stat-accepted').textContent = accepted;
+        document.getElementById('xero-quotes-stat-value').textContent = `$${totalValue.toFixed(2)}`;
+        document.getElementById('xero-quotes-stat-winrate').textContent = `${winRate}%`;
+    }
+
+    renderQuotesTable() {
+        console.log('[Xero] 📊 renderQuotesTable() STARTED');
+        
+        const container = document.getElementById('xero-quotes-table-container');
+        if (!container) {
+            console.error('[Xero] ❌ Quotes table container not found');
+            return;
+        }
+
+        // Initialize Tabulator table
+        this.tables.quotes = new Tabulator(container, {
+            data: this.data.quotes,
+            layout: 'fitColumns',
+            height: '600px',
+            pagination: true,
+            paginationSize: 50,
+            paginationSizeSelector: [25, 50, 100, 200],
+            placeholder: 'No quotes found',
+            rowFormatter: (row) => {
+                row.getElement().style.cursor = 'pointer';
+            },
+            columns: [
+                {
+                    title: '<input type="checkbox" id="xero-quotes-select-all">',
+                    field: 'selected',
+                    width: 40,
+                    headerSort: false,
+                    formatter: 'rowSelection',
+                    titleFormatter: 'rowSelection',
+                    hozAlign: 'center',
+                    headerHozAlign: 'center'
+                },
+                {
+                    title: 'Quote #',
+                    field: 'quote_number',
+                    minWidth: 120,
+                    headerFilter: 'input',
+                    formatter: (cell) => {
+                        const quoteNumber = cell.getValue();
+                        return `<span style="color: #3b82f6; font-weight: 600;">${quoteNumber || 'N/A'}</span>`;
+                    }
+                },
+                {
+                    title: 'Customer',
+                    field: 'contact_name',
+                    minWidth: 200,
+                    headerFilter: 'input'
+                },
+                {
+                    title: 'Date',
+                    field: 'date',
+                    minWidth: 110,
+                    sorter: 'date',
+                    formatter: (cell) => {
+                        const date = cell.getValue();
+                        return this.formatDate(this.parseXeroDate(date));
+                    }
+                },
+                {
+                    title: 'Expiry Date',
+                    field: 'expiry_date',
+                    minWidth: 110,
+                    sorter: 'date',
+                    formatter: (cell) => {
+                        const date = cell.getValue();
+                        if (!date) return '<span style="color: #8b949e;">-</span>';
+                        const expiryDate = this.parseXeroDate(date);
+                        const today = new Date();
+                        const isExpired = expiryDate < today;
+                        const color = isExpired ? '#ef4444' : '#8b949e';
+                        return `<span style="color: ${color};">${this.formatDate(expiryDate)}</span>`;
+                    }
+                },
+                {
+                    title: 'Status',
+                    field: 'status',
+                    minWidth: 100,
+                    headerFilter: 'select',
+                    headerFilterParams: {
+                        values: ['', 'DRAFT', 'SENT', 'ACCEPTED', 'DECLINED', 'INVOICED']
+                    },
+                    formatter: (cell) => {
+                        const status = cell.getValue();
+                        const statusColors = {
+                            DRAFT: { bg: '#374151', text: '#9ca3af' },
+                            SENT: { bg: '#1e3a8a', text: '#60a5fa' },
+                            ACCEPTED: { bg: '#065f46', text: '#34d399' },
+                            DECLINED: { bg: '#7f1d1d', text: '#f87171' },
+                            INVOICED: { bg: '#581c87', text: '#c084fc' }
+                        };
+                        const colors = statusColors[status] || statusColors.DRAFT;
+                        return `<span style="background: ${colors.bg}; color: ${colors.text}; padding: 4px 10px; border-radius: 12px; font-size: 11px; font-weight: 700; text-transform: uppercase;">${status || 'N/A'}</span>`;
+                    }
+                },
+                {
+                    title: 'Total',
+                    field: 'total',
+                    minWidth: 110,
+                    hozAlign: 'right',
+                    headerHozAlign: 'right',
+                    sorter: 'number',
+                    formatter: (cell) => {
+                        const total = parseFloat(cell.getValue()) || 0;
+                        return `<span style="color: #3b82f6; font-weight: 600;">$${total.toFixed(2)}</span>`;
+                    }
+                },
+                {
+                    title: 'Actions',
+                    field: 'actions',
+                    minWidth: 200,
+                    headerSort: false,
+                    hozAlign: 'center',
+                    formatter: (cell) => {
+                        const rowData = cell.getRow().getData();
+                        const status = rowData.status;
+                        
+                        let buttons = `
+                            <button class="xero-btn-small" onclick="window.xeroModule.viewQuote('${rowData.quote_id}')" style="background: #3b82f6; color: white; padding: 4px 8px; border: none; border-radius: 4px; font-size: 11px; cursor: pointer; margin-right: 4px;">
+                                <i class="fas fa-eye"></i> View
+                            </button>
+                        `;
+                        
+                        if (status === 'ACCEPTED') {
+                            buttons += `
+                                <button class="xero-btn-small" onclick="window.xeroModule.convertQuoteToInvoice('${rowData.quote_id}')" style="background: #10b981; color: white; padding: 4px 8px; border: none; border-radius: 4px; font-size: 11px; cursor: pointer; margin-right: 4px;">
+                                    <i class="fas fa-file-invoice"></i> Invoice
+                                </button>
+                                <button class="xero-btn-small" onclick="window.xeroModule.convertQuoteToProduction('${rowData.quote_id}')" style="background: #f59e0b; color: white; padding: 4px 8px; border: none; border-radius: 4px; font-size: 11px; cursor: pointer;">
+                                    <i class="fas fa-cogs"></i> Production
+                                </button>
+                            `;
+                        } else if (status === 'DRAFT' || status === 'SENT') {
+                            buttons += `
+                                <button class="xero-btn-small" onclick="window.xeroModule.editQuote('${rowData.quote_id}')" style="background: #8b5cf6; color: white; padding: 4px 8px; border: none; border-radius: 4px; font-size: 11px; cursor: pointer;">
+                                    <i class="fas fa-edit"></i> Edit
+                                </button>
+                            `;
+                        }
+                        
+                        return buttons;
+                    }
+                }
+            ]
+        });
+
+        console.log('[Xero] ✅ Quotes table rendered');
+    }
+
+    applyQuoteFilters() {
+        if (!this.tables.quotes) return;
+        
+        const statusFilter = document.getElementById('xero-quotes-status-filter')?.value;
+        const searchText = document.getElementById('xero-quotes-search-input')?.value.toLowerCase();
+        
+        this.tables.quotes.setFilter((data) => {
+            // Status filter
+            if (statusFilter && data.status !== statusFilter) {
+                return false;
+            }
+            
+            // Search filter
+            if (searchText) {
+                const searchableText = [
+                    data.quote_number,
+                    data.contact_name,
+                    data.title
+                ].join(' ').toLowerCase();
+                
+                if (!searchableText.includes(searchText)) {
+                    return false;
+                }
+            }
+            
+            return true;
+        });
+    }
+
+    openQuoteModal(quoteId = null) {
+        const modal = document.getElementById('xero-quote-modal');
+        if (!modal) return;
+        
+        modal.style.display = 'flex';
+        
+        // Load customers for dropdown
+        this.loadCustomersForQuoteModal();
+        
+        // Set default dates
+        const today = new Date().toISOString().split('T')[0];
+        const expiry = new Date();
+        expiry.setDate(expiry.getDate() + 30);
+        const expiryDate = expiry.toISOString().split('T')[0];
+        
+        document.getElementById('xero-quote-date').value = today;
+        document.getElementById('xero-quote-expiry').value = expiryDate;
+        
+        // Clear existing line items
+        document.getElementById('xero-quote-line-items-body').innerHTML = '';
+        
+        // Add one default line item
+        this.addQuoteLineItem();
+        
+        if (quoteId) {
+            // Load existing quote
+            document.getElementById('xero-quote-modal-title').textContent = 'Edit Quote';
+            // TODO: Load quote data
+        } else {
+            document.getElementById('xero-quote-modal-title').textContent = 'Create Quote';
+        }
+    }
+
+    closeQuoteModal() {
+        const modal = document.getElementById('xero-quote-modal');
+        if (modal) {
+            modal.style.display = 'none';
+        }
+    }
+
+    openCalculatorModal() {
+        const modal = document.getElementById('xero-calculator-modal');
+        if (modal) {
+            modal.style.display = 'flex';
+        }
+    }
+
+    closeCalculatorModal() {
+        const modal = document.getElementById('xero-calculator-modal');
+        if (modal) {
+            modal.style.display = 'none';
+        }
+    }
+
+    async loadCustomersForQuoteModal() {
+        try {
+            const response = await fetch(`${this.API_BASE_URL}/api/xero/contacts?business_id=${this.currentBusiness}`);
+            const data = await response.json();
+            
+            const select = document.getElementById('xero-quote-customer');
+            if (!select) return;
+            
+            select.innerHTML = '<option value="">Select a customer...</option>';
+            
+            (data.contacts || []).forEach(contact => {
+                const option = document.createElement('option');
+                option.value = contact.contact_id;
+                option.textContent = `${contact.name}${contact.email ? ' (' + contact.email + ')' : ''}`;
+                select.appendChild(option);
+            });
+        } catch (error) {
+            console.error('[Xero] Error loading customers:', error);
+        }
+    }
+
+    addQuoteLineItem(description = '', quantity = 1, unitPrice = 0) {
+        const tbody = document.getElementById('xero-quote-line-items-body');
+        if (!tbody) return;
+        
+        const lineId = `line-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+        
+        const row = document.createElement('tr');
+        row.id = lineId;
+        row.style.borderBottom = '1px solid var(--border-color)';
+        
+        row.innerHTML = `
+            <td style="padding: 10px;">
+                <input type="text" class="quote-line-description" value="${description}" placeholder="Description" style="width: 100%; padding: 6px 10px; background: var(--bg-primary); color: var(--text-primary); border: 1px solid var(--border-color); border-radius: 4px; font-size: 13px;">
+            </td>
+            <td style="padding: 10px; text-align: center;">
+                <input type="number" class="quote-line-quantity" value="${quantity}" min="1" style="width: 60px; padding: 6px 10px; background: var(--bg-primary); color: var(--text-primary); border: 1px solid var(--border-color); border-radius: 4px; font-size: 13px; text-align: center;">
+            </td>
+            <td style="padding: 10px; text-align: right;">
+                <input type="number" class="quote-line-unit-price" value="${unitPrice}" min="0" step="0.01" style="width: 100px; padding: 6px 10px; background: var(--bg-primary); color: var(--text-primary); border: 1px solid var(--border-color); border-radius: 4px; font-size: 13px; text-align: right;">
+            </td>
+            <td style="padding: 10px; text-align: right;">
+                <span class="quote-line-total" style="color: var(--text-primary); font-weight: 600;">$0.00</span>
+            </td>
+            <td style="padding: 10px; text-align: center;">
+                <button type="button" class="quote-line-remove" style="background: #ef4444; color: white; padding: 4px 8px; border: none; border-radius: 4px; font-size: 11px; cursor: pointer;">
+                    <i class="fas fa-trash"></i>
+                </button>
+            </td>
+        `;
+        
+        tbody.appendChild(row);
+        
+        // Add event listeners
+        const inputs = row.querySelectorAll('input');
+        inputs.forEach(input => {
+            input.addEventListener('input', () => this.updateQuoteTotals());
+        });
+        
+        const removeBtn = row.querySelector('.quote-line-remove');
+        removeBtn.addEventListener('click', () => {
+            row.remove();
+            this.updateQuoteTotals();
+        });
+        
+        this.updateQuoteTotals();
+    }
+
+    updateQuoteTotals() {
+        const lines = document.querySelectorAll('#xero-quote-line-items-body tr');
+        let subtotal = 0;
+        
+        lines.forEach(line => {
+            const qty = parseFloat(line.querySelector('.quote-line-quantity')?.value || 0);
+            const price = parseFloat(line.querySelector('.quote-line-unit-price')?.value || 0);
+            const total = qty * price;
+            
+            const totalSpan = line.querySelector('.quote-line-total');
+            if (totalSpan) {
+                totalSpan.textContent = `$${total.toFixed(2)}`;
+            }
+            
+            subtotal += total;
+        });
+        
+        const gst = subtotal * 0.1;
+        const total = subtotal + gst;
+        
+        document.getElementById('xero-quote-subtotal').textContent = `$${subtotal.toFixed(2)}`;
+        document.getElementById('xero-quote-gst').textContent = `$${gst.toFixed(2)}`;
+        document.getElementById('xero-quote-total').textContent = `$${total.toFixed(2)}`;
+    }
+
+    async saveQuote(status = 'DRAFT') {
+        console.log(`[Xero] Saving quote with status: ${status}`);
+        
+        // Validate form
+        const customerId = document.getElementById('xero-quote-customer')?.value;
+        if (!customerId) {
+            this.showNotification('Please select a customer', 'error');
+            return;
+        }
+        
+        const lineItems = [];
+        const lines = document.querySelectorAll('#xero-quote-line-items-body tr');
+        
+        if (lines.length === 0) {
+            this.showNotification('Please add at least one line item', 'error');
+            return;
+        }
+        
+        lines.forEach(line => {
+            const description = line.querySelector('.quote-line-description')?.value;
+            const quantity = parseFloat(line.querySelector('.quote-line-quantity')?.value || 0);
+            const unitPrice = parseFloat(line.querySelector('.quote-line-unit-price')?.value || 0);
+            
+            if (description && quantity > 0) {
+                lineItems.push({
+                    description,
+                    quantity,
+                    unit_amount: unitPrice,
+                    tax_type: 'OUTPUT',
+                    account_code: '200'
+                });
+            }
+        });
+        
+        if (lineItems.length === 0) {
+            this.showNotification('Please add valid line items', 'error');
+            return;
+        }
+        
+        try {
+            const quoteData = {
+                business_id: this.currentBusiness,
+                contact_id: customerId,
+                title: document.getElementById('xero-quote-title')?.value || 'Printing Quote',
+                date: document.getElementById('xero-quote-date')?.value,
+                expiry_date: document.getElementById('xero-quote-expiry')?.value,
+                line_items: lineItems,
+                terms: document.getElementById('xero-quote-terms')?.value,
+                status: status
+            };
+            
+            const response = await fetch(`${this.API_BASE_URL}/api/xero/quotes`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(quoteData)
+            });
+            
+            if (!response.ok) {
+                throw new Error('Failed to save quote');
+            }
+            
+            const result = await response.json();
+            
+            this.showNotification(
+                status === 'SENT' ? 'Quote saved and sent to customer' : 'Quote saved as draft',
+                'success'
+            );
+            
+            this.closeQuoteModal();
+            this.loadQuotes();
+            
+        } catch (error) {
+            console.error('[Xero] Error saving quote:', error);
+            this.showNotification('Failed to save quote', 'error');
+        }
+    }
+
+    async viewQuote(quoteId) {
+        console.log(`[Xero] Viewing quote: ${quoteId}`);
+        // TODO: Open quote detail view
+        this.showNotification('Quote detail view coming soon', 'info');
+    }
+
+    async editQuote(quoteId) {
+        console.log(`[Xero] Editing quote: ${quoteId}`);
+        this.openQuoteModal(quoteId);
+    }
+
+    async convertQuoteToInvoice(quoteId) {
+        console.log(`[Xero] Converting quote ${quoteId} to invoice`);
+        
+        if (!confirm('Convert this quote to an invoice?')) {
+            return;
+        }
+        
+        try {
+            const response = await fetch(`${this.API_BASE_URL}/api/xero/quotes/${quoteId}/convert-to-invoice`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ business_id: this.currentBusiness })
+            });
+            
+            if (!response.ok) {
+                throw new Error('Failed to convert quote');
+            }
+            
+            const result = await response.json();
+            
+            this.showNotification('Quote converted to invoice successfully', 'success');
+            this.loadQuotes();
+            
+            // Ask if user wants to view the invoice
+            if (confirm('View the invoice now?')) {
+                this.switchSubTab('invoices');
+            }
+            
+        } catch (error) {
+            console.error('[Xero] Error converting quote:', error);
+            this.showNotification('Failed to convert quote to invoice', 'error');
+        }
+    }
+
+    async convertQuoteToProduction(quoteId) {
+        console.log(`[Xero] Converting quote ${quoteId} to production order`);
+        
+        if (!confirm('Create a production order in FRED for this quote?')) {
+            return;
+        }
+        
+        try {
+            const response = await fetch(`${this.API_BASE_URL}/api/xero/quotes/${quoteId}/convert-to-production`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ business_id: this.currentBusiness })
+            });
+            
+            if (!response.ok) {
+                throw new Error('Failed to create production order');
+            }
+            
+            const result = await response.json();
+            
+            this.showNotification(
+                `Production order created: ${result.order_id} with ${result.ticket_count} job tickets`,
+                'success'
+            );
+            this.loadQuotes();
+            
+        } catch (error) {
+            console.error('[Xero] Error creating production order:', error);
+            this.showNotification('Failed to create production order', 'error');
+        }
+    }
+
+    openQuoteCalculator(productType) {
+        console.log(`[Xero] Opening calculator for: ${productType}`);
+        this.closeCalculatorModal();
+        
+        // TODO: Integration with Quote Calculator module
+        // For now, show placeholder
+        this.showNotification(`Calculator for ${productType} coming soon`, 'info');
+    }
+
+    showNotification(message, type = 'info') {
+        // Create notification element
+        const notification = document.createElement('div');
+        notification.style.cssText = `
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: ${type === 'error' ? '#ef4444' : type === 'success' ? '#10b981' : '#3b82f6'};
+            color: white;
+            padding: 16px 24px;
+            border-radius: 8px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.3);
+            z-index: 10002;
+            font-weight: 600;
+            max-width: 400px;
+        `;
+        notification.textContent = message;
+        
+        document.body.appendChild(notification);
+        
+        setTimeout(() => {
+            notification.style.opacity = '0';
+            notification.style.transition = 'opacity 0.3s';
+            setTimeout(() => notification.remove(), 300);
+        }, 3000);
     }
 
     // ========================================================================

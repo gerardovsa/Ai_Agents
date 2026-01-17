@@ -600,22 +600,23 @@ def inhouse_query_stock_levels(filters: Optional[Dict[str, Any]] = None, **kwarg
         
         where_sql = f"WHERE {' AND '.join(where_clauses)}" if where_clauses else ""
         
-        # Query Supabase stock_data schema
+        # Query Supabase stock_data schema (MixedCase columns)
         query = f"""
             SELECT 
-                stock_id,
-                stock_description AS description,
-                current_level,
-                reorder_point,
-                critical_level,
+                "StockID" as stock_id,
+                ("StockTypeDesc" || ' ' || "GSM" || 'GSM') AS description,
+                "CurrentStockLevel" as current_level,
+                "ReorderPoint" as reorder_point,
+                "CriticalLevel" as critical_level,
                 CASE 
-                    WHEN current_level <= critical_level THEN 'critical'
-                    WHEN current_level <= reorder_point THEN 'low'
+                    WHEN "CurrentStockLevel" <= "CriticalLevel" THEN 'critical'
+                    WHEN "CurrentStockLevel" <= "ReorderPoint" THEN 'low'
                     ELSE 'ok'
                 END AS status
             FROM stock_data.stocklevels
-            {where_sql}
-            ORDER BY current_level ASC
+            WHERE "IsActive" = 1
+            {('AND ' + ' AND '.join(where_clauses)) if where_clauses else ''}
+            ORDER BY "CurrentStockLevel" ASC
             LIMIT 50
         """
         
@@ -688,28 +689,31 @@ def inhouse_get_reorder_alerts(**kwargs) -> Dict[str, Any]:
                 "note": "Reorder alerts require stocklevels table with current_level, reorder_point, critical_level columns"
             }
         
-        # Query Supabase stock_data schema for reorder alerts
+        # Query Supabase stock_data schema for reorder alerts (MixedCase columns)
         query = """
             SELECT 
-                stock_id,
-                stock_description AS description,
-                current_level,
-                reorder_point,
-                critical_level,
+                "StockID" as stock_id,
+                ("StockTypeDesc" || ' ' || "GSM" || 'GSM') AS description,
+                "CurrentStockLevel" as current_level,
+                "ReorderPoint" as reorder_point,
+                "CriticalLevel" as critical_level,
                 CASE 
-                    WHEN current_level <= critical_level THEN 'CRITICAL'
-                    WHEN current_level <= reorder_point THEN 'WARNING'
+                    WHEN "CurrentStockLevel" <= "CriticalLevel" THEN 'CRITICAL'
+                    WHEN "CurrentStockLevel" <= "ReorderPoint" THEN 'WARNING'
                     ELSE 'OK'
                 END AS alert_level,
                 CURRENT_DATE AS alert_date
             FROM stock_data.stocklevels
-            WHERE current_level <= reorder_point
+            WHERE "IsActive" = 1 
+              AND "CurrentStockLevel" IS NOT NULL
+              AND "ReorderPoint" IS NOT NULL
+              AND "CurrentStockLevel" <= "ReorderPoint"
             ORDER BY 
                 CASE 
-                    WHEN current_level <= critical_level THEN 1
+                    WHEN "CurrentStockLevel" <= "CriticalLevel" THEN 1
                     ELSE 2
                 END,
-                current_level ASC
+                "CurrentStockLevel" ASC
             LIMIT 50
         """
         

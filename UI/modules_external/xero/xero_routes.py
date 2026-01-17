@@ -832,6 +832,303 @@ def xero_invoice_detail(invoice_id):
 
 
 # ============================================================================
+# QUOTES ENDPOINTS
+# ============================================================================
+
+@cross_origin()
+def xero_quotes():
+    """Get or create quotes"""
+    if request.method == 'POST':
+        return create_quote()
+    else:
+        return get_quotes()
+
+
+def get_quotes():
+    """Get quotes from Xero"""
+    try:
+        business_id = int(request.args.get('business_id', 1))
+        status = request.args.get('status')
+        contact_id = request.args.get('contact_id')
+        date_from = request.args.get('date_from')  # YYYY-MM-DD format
+        date_to = request.args.get('date_to')      # YYYY-MM-DD format
+        
+        # Import xero_list_quotes tool
+        sys.path.insert(0, str(Path(__file__).parent.parent.parent.parent / 'tools' / 'implementations'))
+        from xero_quotes import xero_list_quotes
+        
+        # Use existing xero_list_quotes tool
+        result = xero_list_quotes(
+            business_id=business_id,
+            status=status,
+            contact_id=contact_id,
+            date_from=date_from,
+            date_to=date_to,
+            page=1,
+            page_size=1000
+        )
+        
+        if not result.get('success'):
+            return jsonify(result), 500
+        
+        return jsonify({
+            'success': True,
+            'business': BUSINESS_CONFIGS[business_id]['name'],
+            'quote_count': result.get('total_count', 0),
+            'quotes': result.get('quotes', [])
+        })
+    
+    except Exception as e:
+        print(f"Error in get_quotes: {e}")
+        traceback.print_exc()
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+
+def create_quote():
+    """Create new quote in Xero"""
+    try:
+        data = request.json
+        business_id = int(data.get('business_id', 1))
+        
+        # Import xero_create_quote tool
+        sys.path.insert(0, str(Path(__file__).parent.parent.parent.parent / 'tools' / 'implementations'))
+        from xero_quotes import xero_create_quote
+        
+        # Use existing xero_create_quote tool
+        result = xero_create_quote(
+            business_id=business_id,
+            contact_id=data.get('contact_id'),
+            line_items=data.get('line_items', []),
+            title=data.get('title', 'Printing Quote'),
+            date=data.get('date'),
+            expiry_date=data.get('expiry_date'),
+            terms=data.get('terms'),
+            status=data.get('status', 'DRAFT'),
+            branding_theme_id=data.get('branding_theme_id')
+        )
+        
+        if not result.get('success'):
+            return jsonify(result), 500
+        
+        return jsonify({
+            'success': True,
+            'business': BUSINESS_CONFIGS[business_id]['name'],
+            'quote': result.get('quote')
+        })
+    
+    except Exception as e:
+        print(f"Error in create_quote: {e}")
+        traceback.print_exc()
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+
+@cross_origin()
+def xero_quote_detail(quote_id):
+    """Get specific quote by ID"""
+    try:
+        business_id = int(request.args.get('business_id', 1))
+        
+        # Import xero_get_quote_by_id tool
+        sys.path.insert(0, str(Path(__file__).parent.parent.parent.parent / 'tools' / 'implementations'))
+        from xero_quotes import xero_get_quote_by_id
+        
+        result = xero_get_quote_by_id(
+            business_id=business_id,
+            quote_id=quote_id
+        )
+        
+        if not result.get('success'):
+            return jsonify(result), 404 if 'not found' in result.get('error', '').lower() else 500
+        
+        return jsonify({
+            'success': True,
+            'business': BUSINESS_CONFIGS[business_id]['name'],
+            'quote': result.get('quote')
+        })
+    
+    except Exception as e:
+        print(f"Error in xero_quote_detail: {e}")
+        traceback.print_exc()
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+
+@cross_origin()
+def xero_convert_quote_to_invoice():
+    """Convert accepted quote to invoice"""
+    try:
+        data = request.json
+        business_id = int(data.get('business_id', 1))
+        quote_id = data.get('quote_id')
+        
+        # Import tools
+        sys.path.insert(0, str(Path(__file__).parent.parent.parent.parent / 'tools' / 'implementations'))
+        from xero_quotes import xero_get_quote_by_id, xero_update_quote
+        
+        # Get quote details
+        quote_result = xero_get_quote_by_id(business_id=business_id, quote_id=quote_id)
+        if not quote_result.get('success'):
+            return jsonify(quote_result), 404
+        
+        quote = quote_result.get('quote')
+        
+        # Create invoice from quote data
+        client = XeroAPIClient(business_id)
+        
+        invoice_data = {
+            'Type': 'ACCREC',
+            'Contact': {'ContactID': quote.get('contact_id')},
+            'Date': datetime.now().strftime('%Y-%m-%d'),
+            'DueDate': (datetime.now() + timedelta(days=30)).strftime('%Y-%m-%d'),
+            'LineItems': quote.get('line_items', []),
+            'Status': 'AUTHORISED',
+            'Reference': f"Quote: {quote.get('quote_number')}"
+        }
+        
+        invoice_response = client.make_request('PUT', 'Invoices', json_data={'Invoices': [invoice_data]})
+        created_invoice = invoice_response.get('Invoices', [{}])[0]
+        
+        # Update quote status to INVOICED
+        xero_update_quote(
+            business_id=business_id,
+            quote_id=quote_id,
+            status='INVOICED'
+        )
+        
+        return jsonify({
+            'success': True,
+            'invoice_id': created_invoice.get('InvoiceID'),
+            'invoice_number': created_invoice.get('InvoiceNumber'),
+            'quote_id': quote_id
+        })
+    
+    except Exception as e:
+        print(f"Error in xero_convert_quote_to_invoice: {e}")
+        traceback.print_exc()
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+
+@cross_origin()
+def xero_convert_quote_to_production():
+    """Convert accepted quote to FRED production order"""
+    try:
+        data = request.json
+        business_id = int(data.get('business_id', 1))
+        quote_id = data.get('quote_id')
+        
+        # Import tools
+        sys.path.insert(0, str(Path(__file__).parent.parent.parent.parent / 'tools' / 'implementations'))
+        from xero_quotes import xero_get_quote_by_id
+        
+        # Get quote details
+        quote_result = xero_get_quote_by_id(business_id=business_id, quote_id=quote_id)
+        if not quote_result.get('success'):
+            return jsonify(quote_result), 404
+        
+        quote = quote_result.get('quote')
+        
+        # Import FRED database tools
+        sys.path.insert(0, str(Path(__file__).parent.parent.parent / 'AI_infrastructure' / 'shared'))
+        from database_utils import execute_query
+        
+        # Get Xero contact ID to find FRED customer
+        contact_id = quote.get('contact_id')
+        
+        # Find customer in FRED by Xero contact ID (stored in CustomerMYOB_ID)
+        customer_query = """
+            SELECT TOP 1 ContactID, Name
+            FROM Clients
+            WHERE CustomerMYOB_ID = ?
+        """
+        customers = execute_query(customer_query, (contact_id,), fetch_mode='all')
+        
+        if not customers:
+            return jsonify({
+                'success': False,
+                'error': 'Customer not found in FRED database. Please link Xero contact to FRED customer first.'
+            }), 404
+        
+        fred_customer = customers[0]
+        
+        # Create order in FRED
+        order_query = """
+            INSERT INTO Orders (
+                CustomerMYOB_ID, ClientName, OrderDate, DateRequired, 
+                InvoicingBusinessID, Status, Notes
+            )
+            OUTPUT INSERTED.OrderID
+            VALUES (?, ?, GETDATE(), DATEADD(day, 7, GETDATE()), ?, 'New', ?)
+        """
+        
+        order_result = execute_query(
+            order_query,
+            (
+                contact_id,
+                fred_customer['Name'],
+                business_id,
+                f"Created from Xero Quote: {quote.get('quote_number')}"
+            ),
+            fetch_mode='one'
+        )
+        
+        order_id = order_result['OrderID'] if order_result else None
+        
+        if not order_id:
+            raise Exception("Failed to create order in FRED")
+        
+        # Create job tickets from quote line items
+        ticket_count = 0
+        for idx, line_item in enumerate(quote.get('line_items', []), start=1):
+            ticket_query = """
+                INSERT INTO JobTickets (
+                    OrderID, TicketNumber, Description, Quantity, 
+                    UnitPrice, TotalPrice, Status
+                )
+                VALUES (?, ?, ?, ?, ?, ?, 'Pending')
+            """
+            
+            execute_query(
+                ticket_query,
+                (
+                    order_id,
+                    idx,
+                    line_item.get('description', 'Line Item'),
+                    line_item.get('quantity', 1),
+                    line_item.get('unit_amount', 0),
+                    line_item.get('quantity', 1) * line_item.get('unit_amount', 0)
+                )
+            )
+            ticket_count += 1
+        
+        return jsonify({
+            'success': True,
+            'order_id': order_id,
+            'ticket_count': ticket_count,
+            'customer_name': fred_customer['Name'],
+            'quote_id': quote_id
+        })
+    
+    except Exception as e:
+        print(f"Error in xero_convert_quote_to_production: {e}")
+        traceback.print_exc()
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+
+# ============================================================================
 # CONTACTS ENDPOINTS
 # ============================================================================
 
