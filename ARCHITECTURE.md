@@ -1,10 +1,16 @@
 # AI Agents Platform - System Architecture
 
-**Last Updated:** January 14, 2026  
+**Last Updated:** January 18, 2026  
 **Production Branch:** `v10`  
 **Deployment Target:** Render.com (Docker)  
 **Database:** Supabase PostgreSQL  
 **Region:** Singapore (optimized for Australia, ~100-150ms latency)
+
+> **📘 CONSOLIDATED DOCUMENTATION**  
+> This is the **master architecture document** consolidating system design, multi-tenant patterns, deployment architecture, and development guidelines. For specific subsystems, see:
+> - [DATABASE.md](DATABASE.md) - Database schemas, migrations, connection pooling
+> - [MODULES.md](MODULES.md) - Plugin system architecture
+> - [DEPLOYMENT.md](DEPLOYMENT.md) - Deployment procedures and troubleshooting
 
 ---
 

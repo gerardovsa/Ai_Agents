@@ -36,7 +36,16 @@ from datetime import datetime, timedelta
 from flask import jsonify, request
 from flask_cors import cross_origin
 from pathlib import Path
-from woocommerce import API
+
+# Conditional WooCommerce import - makes module work without WooCommerce dependency
+try:
+    from woocommerce import API
+    WOOCOMMERCE_AVAILABLE = True
+except ImportError:
+    WOOCOMMERCE_AVAILABLE = False
+    API = None
+    print("[SHOPIFY] ⚠️  WooCommerce module not installed - some features will be unavailable")
+    print("[SHOPIFY] Install with: pip install WooCommerce")
 
 # Add shared utilities to path
 sys.path.insert(0, str(Path(__file__).parent.parent.parent.parent / 'AI_infrastructure' / 'shared'))
@@ -52,6 +61,10 @@ def init_shopify_routes(app, config_path=None, db_available=True):
         config_path: Unused (legacy parameter)
         db_available: Unused (legacy parameter)
     """
+    
+    if not WOOCOMMERCE_AVAILABLE:
+        print(f"   ⚠️  WooCommerce/Shopify routes SKIPPED - woocommerce module not installed")
+        return
     
     print(f"   Registering WooCommerce/Shopify endpoints...")
     

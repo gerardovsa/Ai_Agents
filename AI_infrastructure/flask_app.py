@@ -2142,13 +2142,59 @@ def ws_synergy_mark_message_read(data):
     except Exception as e:
         log_error(logger, f"[WS ERROR] mark_message_read failed: {e}")
 
-# Initialize AI client
-print(f"[DEBUG] Using config path: {Config.DB_CONFIG_PATH}")
-ai_client = initialize_ai_client(str(Config.DB_CONFIG_PATH))
+# Lazy-load AI client with fallback paths (prevents startup crash)
+def get_ai_client():
+    """
+    Lazy-load AI client with multiple fallback config paths.
+    This prevents startup crashes when database-config.json is not yet copied to persistent disk.
+    """
+    if not hasattr(app, '_ai_client_instance'):
+        # Try multiple config locations (Render deployment copies config during startup)
+        config_paths = [
+            Path('/data/database-config.json'),  # Render persistent disk (primary)
+            Path('/app/config/database-config.json'),  # startup.sh copies here
+            Path('/app/data/database-config.json'),  # Docker COPY destination
+            Config.DB_CONFIG_PATH  # Original fallback
+        ]
+        
+        config_path = None
+        for path in config_paths:
+            if path.exists():
+                config_path = str(path)
+                print(f"[AI_CLIENT] ✅ Found config at: {config_path}")
+                break
+        
+        if not config_path:
+            # Create default config if none found
+            print(f"[AI_CLIENT] ⚠️  No database-config.json found, creating default")
+            config_path = str(config_paths[1])  # /app/config/database-config.json
+            config_paths[1].parent.mkdir(parents=True, exist_ok=True)
+            import json
+            default_config = {
+                "database": {"type": "sqlite", "path": "ai_infrastructure.db"},
+                "AI": {
+                    "AnthropicAPIKey": os.getenv('ANTHROPIC_API_KEY', ''),
+                    "Model": "claude-sonnet-4-20250514",
+                    "MaxTokens": 8096,
+                    "DeepSeekAPIKey": os.getenv('DEEPSEEK_API_KEY_1', ''),
+                    "OpenAIAPIKey": os.getenv('OPENAI_API_KEY', '')
+                }
+            }
+            config_paths[1].write_text(json.dumps(default_config, indent=2))
+            print(f"[AI_CLIENT] ✅ Created default config at: {config_path}")
+        
+        print(f"[AI_CLIENT] 🔄 Initializing UnifiedAIClient with config: {config_path}")
+        app._ai_client_instance = initialize_ai_client(config_path)
+        print(f"[AI_CLIENT] ✅ AI client initialized successfully")
+    
+    return app._ai_client_instance
 
-# Store AI client and session manager in app config for blueprints to access
-app.config['AI_CLIENT'] = ai_client
+# Store getter function and session manager in app config
+app.config['GET_AI_CLIENT'] = get_ai_client
+app.config['AI_CLIENT'] = None  # Will be lazy-loaded via get_ai_client()
 app.config['SESSION_MANAGER'] = session_manager
+
+print("[AI_CLIENT] 🔧 Lazy initialization configured - will initialize on first request")
 
 print("=" * 80)
 print("AI INFRASTRUCTURE - CLEANED & READY FOR 281 TOOLS")

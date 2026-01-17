@@ -878,15 +878,20 @@ def start_agent(agent_id):
         
         lock.acquire()
         
-        ai_client = current_app.config.get('AI_CLIENT')
-        if ai_client is None:
-            from core.unified_ai_client import initialize_ai_client
-            import sys
-            from pathlib import Path
-            sys.path.insert(0, str(Path(__file__).parent.parent))
-            from config import Config
-            ai_client = initialize_ai_client(str(Config.DB_CONFIG_PATH))
-            current_app.config['AI_CLIENT'] = ai_client
+        # Use lazy-loading getter (new pattern) or fallback initialization
+        getter = current_app.config.get('GET_AI_CLIENT')
+        if getter:
+            ai_client = getter()
+        else:
+            ai_client = current_app.config.get('AI_CLIENT')
+            if ai_client is None:
+                from core.unified_ai_client import initialize_ai_client
+                import sys
+                from pathlib import Path
+                sys.path.insert(0, str(Path(__file__).parent.parent))
+                from config import Config
+                ai_client = initialize_ai_client(str(Config.DB_CONFIG_PATH))
+                current_app.config['AI_CLIENT'] = ai_client
         
         if file_data:
             threading.Thread(
@@ -1314,7 +1319,9 @@ def stream_agent(agent_id):
     # SYSTEM PROMPT WITH ALL INJECTIONS (Retained)
     # ============================================
     from core.unified_ai_client import UnifiedAIClient
-    ai_client = current_app.config.get('AI_CLIENT')
+    # Use lazy-loading getter
+    getter = current_app.config.get('GET_AI_CLIENT')
+    ai_client = getter() if getter else current_app.config.get('AI_CLIENT')
     if ai_client:
         system_prompt = ai_client.get_system_prompt('data_agent_chat')
         print(f"[STREAM] 🔍 DEBUG: System prompt after get_system_prompt: {len(system_prompt):,} characters")
@@ -2151,15 +2158,20 @@ def data_agent_chat():
         queue = agent_state_manager.get_queue('data_agent', session_id)
         agent_state_manager.update_status('data_agent', session_id, 'processing')
         
-        ai_client = current_app.config.get('AI_CLIENT')
-        if ai_client is None:
-            from core.unified_ai_client import initialize_ai_client
-            import sys
-            from pathlib import Path
-            sys.path.insert(0, str(Path(__file__).parent.parent))
-            from config import Config
-            ai_client = initialize_ai_client(str(Config.DB_CONFIG_PATH))
-            current_app.config['AI_CLIENT'] = ai_client
+        # Use lazy-loading getter (new pattern) or fallback initialization
+        getter = current_app.config.get('GET_AI_CLIENT')
+        if getter:
+            ai_client = getter()
+        else:
+            ai_client = current_app.config.get('AI_CLIENT')
+            if ai_client is None:
+                from core.unified_ai_client import initialize_ai_client
+                import sys
+                from pathlib import Path
+                sys.path.insert(0, str(Path(__file__).parent.parent))
+                from config import Config
+                ai_client = initialize_ai_client(str(Config.DB_CONFIG_PATH))
+                current_app.config['AI_CLIENT'] = ai_client
         
         user_id = g.get('user_id', 1)
         
@@ -2202,15 +2214,20 @@ def single_viewer_chat():
         queue = agent_state_manager.get_queue('single_viewer', session_id)
         agent_state_manager.update_status('single_viewer', session_id, 'processing')
         
-        ai_client = current_app.config.get('AI_CLIENT')
-        if ai_client is None:
-            from core.unified_ai_client import initialize_ai_client
-            import sys
-            from pathlib import Path
-            sys.path.insert(0, str(Path(__file__).parent.parent))
-            from config import Config
-            ai_client = initialize_ai_client(str(Config.DB_CONFIG_PATH))
-            current_app.config['AI_CLIENT'] = ai_client
+        # Use lazy-loading getter (new pattern) or fallback initialization
+        getter = current_app.config.get('GET_AI_CLIENT')
+        if getter:
+            ai_client = getter()
+        else:
+            ai_client = current_app.config.get('AI_CLIENT')
+            if ai_client is None:
+                from core.unified_ai_client import initialize_ai_client
+                import sys
+                from pathlib import Path
+                sys.path.insert(0, str(Path(__file__).parent.parent))
+                from config import Config
+                ai_client = initialize_ai_client(str(Config.DB_CONFIG_PATH))
+                current_app.config['AI_CLIENT'] = ai_client
         
         user_id = g.get('user_id', 1)
         
@@ -2252,15 +2269,20 @@ def agent_chat_with_document():
         from datetime import datetime
         session_id = f"doc_session_{int(datetime.now().timestamp()*1000)}_{secrets.token_urlsafe(8)}"
         
-        ai_client = current_app.config.get('AI_CLIENT')
-        if ai_client is None:
-            from core.unified_ai_client import initialize_ai_client
-            import sys
-            from pathlib import Path
-            sys.path.insert(0, str(Path(__file__).parent.parent))
-            from config import Config
-            ai_client = initialize_ai_client(str(Config.DB_CONFIG_PATH))
-            current_app.config['AI_CLIENT'] = ai_client
+        # Use lazy-loading getter (new pattern) or fallback initialization
+        getter = current_app.config.get('GET_AI_CLIENT')
+        if getter:
+            ai_client = getter()
+        else:
+            ai_client = current_app.config.get('AI_CLIENT')
+            if ai_client is None:
+                from core.unified_ai_client import initialize_ai_client
+                import sys
+                from pathlib import Path
+                sys.path.insert(0, str(Path(__file__).parent.parent))
+                from config import Config
+                ai_client = initialize_ai_client(str(Config.DB_CONFIG_PATH))
+                current_app.config['AI_CLIENT'] = ai_client
         
         full_content = []
         for block in content_blocks:
@@ -2358,15 +2380,20 @@ def simple_chat():
         
         session_id = f"cli_{int(datetime.now().timestamp()*1000)}_{secrets.token_urlsafe(8)}"
         
-        ai_client = current_app.config.get('AI_CLIENT')
-        if ai_client is None:
-            from core.unified_ai_client import initialize_ai_client
-            import sys
-            from pathlib import Path
-            sys.path.insert(0, str(Path(__file__).parent.parent))
-            from config import Config
-            ai_client = initialize_ai_client(str(Config.DB_CONFIG_PATH))
-            current_app.config['AI_CLIENT'] = ai_client
+        # Use lazy-loading getter (new pattern) or fallback initialization
+        getter = current_app.config.get('GET_AI_CLIENT')
+        if getter:
+            ai_client = getter()
+        else:
+            ai_client = current_app.config.get('AI_CLIENT')
+            if ai_client is None:
+                from core.unified_ai_client import initialize_ai_client
+                import sys
+                from pathlib import Path
+                sys.path.insert(0, str(Path(__file__).parent.parent))
+                from config import Config
+                ai_client = initialize_ai_client(str(Config.DB_CONFIG_PATH))
+                current_app.config['AI_CLIENT'] = ai_client
         
         response_text = None
         tool_calls_list = []
@@ -2513,15 +2540,20 @@ def quote_chat():
         
         session_id = f"quote_{int(datetime.now().timestamp()*1000)}_{secrets.token_urlsafe(8)}"
         
-        ai_client = current_app.config.get('AI_CLIENT')
-        if ai_client is None:
-            from core.unified_ai_client import initialize_ai_client
-            import sys
-            from pathlib import Path
-            sys.path.insert(0, str(Path(__file__).parent.parent))
-            from config import Config
-            ai_client = initialize_ai_client(str(Config.DB_CONFIG_PATH))
-            current_app.config['AI_CLIENT'] = ai_client
+        # Use lazy-loading getter (new pattern) or fallback initialization
+        getter = current_app.config.get('GET_AI_CLIENT')
+        if getter:
+            ai_client = getter()
+        else:
+            ai_client = current_app.config.get('AI_CLIENT')
+            if ai_client is None:
+                from core.unified_ai_client import initialize_ai_client
+                import sys
+                from pathlib import Path
+                sys.path.insert(0, str(Path(__file__).parent.parent))
+                from config import Config
+                ai_client = initialize_ai_client(str(Config.DB_CONFIG_PATH))
+                current_app.config['AI_CLIENT'] = ai_client
         
         response_text = None
         tool_calls_list = []

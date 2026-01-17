@@ -31,7 +31,12 @@ def get_session_manager():
     return current_app.config.get('SESSION_MANAGER') or UnifiedSessionManager()
 
 def get_ai_client():
-    """Get AI client from Flask app config"""
+    """Get AI client from Flask app config (lazy-loaded)"""
+    # Try lazy-loading getter first (new pattern)
+    getter = current_app.config.get('GET_AI_CLIENT')
+    if getter:
+        return getter()
+    # Fallback to direct config access (legacy pattern)
     return current_app.config.get('AI_CLIENT')
 
 
