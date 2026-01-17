@@ -26,7 +26,8 @@ services:
     #   Layer 3: Node deps (cached unless package.json changes)
     #   Layer 4: App code (rebuilds on every push)
     repo: https://github.com/gerardovsa/AI_agents
-    branch: v11  # âœ… Updated to v10 branch
+    branch: v11  # âœ… Updated to v11 branch
+    dockerfilePath: ./Dockerfile  # âœ… Explicitly specify Dockerfile location
     
     # Deployment settings
     autoDeploy: true  # Auto-deploy on git push
