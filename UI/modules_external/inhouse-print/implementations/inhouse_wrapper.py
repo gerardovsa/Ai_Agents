@@ -558,6 +558,26 @@ def inhouse_query_stock_levels(filters: Optional[Dict[str, Any]] = None, **kwarg
         # Import Supabase query utility
         from AI_infrastructure.shared.database_utils import execute_query
         
+        # ⚠️ FIRST: Check if stock_data.stocklevels table exists
+        # If it doesn't, fall back to unified_stocks table
+        check_query = """
+            SELECT EXISTS (
+                SELECT FROM information_schema.tables 
+                WHERE table_schema = 'stock_data' 
+                AND table_name = 'stocklevels'
+            )
+        """
+        table_exists = execute_query(check_query, (), fetch_mode='value')
+        
+        if not table_exists:
+            # Fallback: Use unified_stocks table instead
+            return {
+                "success": False,
+                "error": "stock_data.stocklevels table does not exist",
+                "suggestion": "Use supabase_execute_query tool to query stock_data.unified_stocks instead",
+                "available_tables": ["stock_data.unified_stocks", "stock_data.extracted_jobs"]
+            }
+        
         # Build WHERE clause from filters
         where_clauses = []
         params = []
@@ -611,7 +631,8 @@ def inhouse_query_stock_levels(filters: Optional[Dict[str, Any]] = None, **kwarg
         return {
             "success": False,
             "error": f"Stock query failed: {e}",
-            "details": traceback.format_exc()
+            "details": traceback.format_exc(),
+            "note": "Stock tables may not exist yet - use supabase_execute_query to check stock_data schema"
         }
 
 
@@ -646,6 +667,26 @@ def inhouse_get_reorder_alerts(**kwargs) -> Dict[str, Any]:
     try:
         # Import Supabase query utility
         from AI_infrastructure.shared.database_utils import execute_query
+        
+        # ⚠️ FIRST: Check if stock_data.stocklevels table exists
+        check_query = """
+            SELECT EXISTS (
+                SELECT FROM information_schema.tables 
+                WHERE table_schema = 'stock_data' 
+                AND table_name = 'stocklevels'
+            )
+        """
+        table_exists = execute_query(check_query, (), fetch_mode='value')
+        
+        if not table_exists:
+            # Fallback: Provide helpful error
+            return {
+                "success": False,
+                "error": "stock_data.stocklevels table does not exist",
+                "suggestion": "Stock inventory tracking not set up yet",
+                "available_tables": ["stock_data.unified_stocks (stock master data)", "stock_data.extracted_jobs (job history)"],
+                "note": "Reorder alerts require stocklevels table with current_level, reorder_point, critical_level columns"
+            }
         
         # Query Supabase stock_data schema for reorder alerts
         query = """
@@ -690,5 +731,6 @@ def inhouse_get_reorder_alerts(**kwargs) -> Dict[str, Any]:
         return {
             "success": False,
             "error": f"Reorder alerts query failed: {e}",
-            "details": traceback.format_exc()
+            "details": traceback.format_exc(),
+            "note": "Stock tables may not exist yet - use supabase_execute_query to inspect stock_data schema"
         }

@@ -1,154 +1,212 @@
-# Shopify E-Commerce Integration - Complete Technical Documentation
-**E-Commerce Platform Integration - Product Management & Order Sync**
+# WooCommerce E-Commerce Integration - Complete Technical Documentation
+**Live WooCommerce API Integration - Real-Time Order Management & Analytics**
 
 **Created:** January 18, 2026  
 **Module Version:** 1.2.1  
-**Status:** ✅ Production Ready
+**Last Refactor:** January 4, 2026 (Removed SQLite, Added WooCommerce REST API)  
+**Status:** ✅ Production Ready  
+**Platform:** InHouse Print (https://inhouseprint.com.au)
 
 ---
 
 ## Table of Contents
 1. [Executive Summary](#executive-summary)
 2. [System Architecture](#system-architecture)
-3. [Shopify Module (Dashboard)](#shopify-module-dashboard)
-4. [Calculator Integration](#calculator-integration)
-5. [Database Schema](#database-schema)
-6. [API Endpoints](#api-endpoints)
+3. [WooCommerce Dashboard Module](#woocommerce-dashboard-module)
+4. [API Integration](#api-integration)
+5. [Calculator System](#calculator-system)
+6. [Credential Management](#credential-management)
 7. [Critical Issues & Fixes](#critical-issues--fixes)
-8. [Calculator Wrappers](#calculator-wrappers)
+8. [Frontend Implementation](#frontend-implementation)
 9. [Testing & Deployment](#testing--deployment)
 
 ---
 
 ## Executive Summary
 
-### What Is Shopify Integration?
+### What Is This Module?
 
-The Shopify Integration connects the AI agent platform to your WooCommerce/Shopify e-commerce store. It provides:
+**NOT Shopify - It's WooCommerce Integration!**
 
-- **Dashboard Module** for order management, customer analytics, product tracking
-- **35+ Calculator Tools** for e-commerce pricing (WooCommerce DPO exact pricing)
-- **Webhook Integration** for real-time order synchronization
-- **SQL Database** storing orders, line items, customers, and webhook events
+Despite the name "Shopify" (legacy naming), this module connects to **WooCommerce REST API** (not Shopify). It provides real-time e-commerce data from inhouseprint.com.au without any local database storage.
+
+### Key Features
+
+- **Live WooCommerce API Integration** - Fetches orders, customers, products directly from WooCommerce
+- **6-Tab Dashboard Module** - Real-time analytics and management interface
+- **35 Standalone Calculator Classes** - Exact WooCommerce DPO pricing replication
+- **Supabase Credential Storage** - Secure API key management in PostgreSQL
+- **Zero Local Storage** - No SQLite, no webhook tables, 100% live data
 
 ### Key Statistics
 
 | Component | Count | Status |
 |-----------|-------|--------|
 | Dashboard Tabs | 6 | ✅ Working |
-| API Endpoints | 11 | ✅ Fixed (Dec 7, 2025) |
-| Calculator Classes | 35 | ✅ Implemented |
-| Calculator Wrappers | 27 | 🚧 Planned |
-| Database Tables | 5 | ✅ Structured |
-| Product Categories | 5 | ✅ Categorized |
+| API Endpoints | 10 | ✅ Active (WooCommerce API) |
+| Calculator Classes | 35 | ✅ Standalone (No DB) |
+| Local Database Tables | 0 | ❌ None (Removed Jan 4, 2026) |
+| Data Source | WooCommerce REST API | ✅ Live |
+| Credential Storage | Supabase PostgreSQL | ✅ Secure |
 
 ### Business Impact
 
-**E-Commerce Metrics:**
-- Real-time order tracking
-- Customer segmentation (VIP, Regular, Repeat, New)
-- Product performance analytics
-- Revenue breakdown by product
-- Webhook event monitoring
+**Real-Time E-Commerce Analytics:**
+- Live order tracking from WooCommerce store
+- Customer spending analysis (top customers, order counts)
+- Product performance metrics (best sellers, revenue)
+- Revenue charts and trends
+- Order management with filters
 
-**Calculator Coverage:**
-- Stationery: Letterheads, notepads, compliments slips
-- Signage: Election signs, corflute, A-frames, bollards
-- Books: Wire-bound, spiral-bound, perfect-bound, saddle stitch
-- Promotional: Posters, stickers, bookmarks, banners, selfie frames
-- Business Cards: Economical, premium, flexible quantities
+**AI Calculator Tools:**
+- 35 standalone pricing calculators
+- Exact WooCommerce DPO formula replication
+- No database required for calculations
+- Used by AI agents for instant quotes
 
 ---
 
 ## System Architecture
 
-### Component Overview
+### Actual Architecture (January 4, 2026 Refactor)
+
+**IMPORTANT:** The module name is "Shopify" but it connects to **WooCommerce**, not Shopify.
 
 ```
-┌─────────────────────────────────────────────────────────────────┐
-│                 SHOPIFY INTEGRATION SYSTEM                      │
-├─────────────────────────────────────────────────────────────────┤
-│                                                                 │
-│  ┌──────────────────────┐    ┌──────────────────────────┐     │
-│  │ SHOPIFY DASHBOARD    │    │ CALCULATOR TOOLS         │     │
-│  │ (Module UI)          │    │ (35+ Classes)            │     │
-│  │                      │    │                          │     │
-│  │ - Orders             │    │ - Stationery (5)         │     │
-│  │ - Customers          │    │ - Signs (9)              │     │
-│  │ - Products           │    │ - Books (5)              │     │
-│  │ - Webhooks           │    │ - Promotional (8)        │     │
-│  │ - Dashboard          │    │ - Business Cards (2)     │     │
-│  │ - SQL Viewer         │    │ - Other (6)              │     │
-│  └──────────┬───────────┘    └──────────┬───────────────┘     │
-│             │                           │                      │
-│             ↓                           ↓                      │
-│  ┌──────────────────────────────────────────────────────┐     │
-│  │          FLASK API (11 Endpoints)                    │     │
-│  │          shopify_routes.py (1,155 lines)             │     │
-│  └──────────────────────┬───────────────────────────────┘     │
-│                         │                                      │
-│                         ↓                                      │
-│  ┌──────────────────────────────────────────────────────┐     │
-│  │          SQLITE DATABASE (stock_data.db)             │     │
-│  │          5 Tables: orders, line_items, properties,   │     │
-│  │                    webhook_events, product_mapping   │     │
-│  └──────────────────────────────────────────────────────┘     │
-└─────────────────────────────────────────────────────────────────┘
-                         ↑
-                         │ Webhook Events
-                         │
-            ┌────────────────────────┐
-            │  WOOCOMMERCE/SHOPIFY   │
-            │  E-Commerce Platform   │
-            └────────────────────────┘
+┌─────────────────────────────────────────────────────────────────────┐
+│             WOOCOMMERCE INTEGRATION (ACTUAL ARCHITECTURE)            │
+├─────────────────────────────────────────────────────────────────────┤
+│                                                                      │
+│  ┌──────────────────────────┐      ┌──────────────────────────┐   │
+│  │  FRONTEND MODULE         │      │  CALCULATOR CLASSES      │   │
+│  │  shopify.js (1,576 L)    │      │  (35 Files - Standalone) │   │
+│  │                          │      │                          │   │
+│  │  6 Tabs:                 │      │  ✓ Stationery (5)        │   │
+│  │  • Dashboard             │      │  ✓ Signage (9)           │   │
+│  │  • Orders                │      │  ✓ Books (5)             │   │
+│  │  • Customers             │      │  ✓ Promotional (8)       │   │
+│  │  • Products              │      │  ✓ Business Cards (2)    │   │
+│  │  • Webhooks              │      │  ✓ Other (6)             │   │
+│  │  • SQL Viewer*           │      │                          │   │
+│  │                          │      │  Pure Python Classes     │   │
+│  │  *UI exists but          │      │  No Database Required    │   │
+│  │   backend disabled       │      │                          │   │
+│  └────────────┬─────────────┘      └──────────────────────────┘   │
+│               │                                                     │
+│               ↓                                                     │
+│  ┌────────────────────────────────────────────────────────┐       │
+│  │         FLASK API - shopify_routes.py (807 lines)       │       │
+│  │         10 Endpoints (SQL Viewer endpoint removed)      │       │
+│  └────────────┬───────────────────────────┬────────────────┘       │
+│               │                           │                         │
+│               ↓                           ↓                         │
+│  ┌────────────────────────┐  ┌──────────────────────────────┐     │
+│  │ SUPABASE POSTGRESQL    │  │   WOOCOMMERCE REST API       │     │
+│  │ (Credentials Only)     │  │   (Live Order Data)          │     │
+│  │                        │  │                              │     │
+│  │ Table:                 │  │   https://inhouseprint       │     │
+│  │ ai_infrastructure.     │  │      .com.au/wp-json/        │     │
+│  │   user_platform_       │  │      wc/v3/                  │     │
+│  │   credentials          │  │                              │     │
+│  │                        │  │   Endpoints:                 │     │
+│  │ Fields:                │  │   • GET /orders              │     │
+│  │ • platform='shopify'   │  │   • GET /products            │     │
+│  │ • consumer_key         │  │   • GET /customers           │     │
+│  │ • consumer_secret      │  │   • GET /reports             │     │
+│  │ • base_url             │  │                              │     │
+│  │ • is_active            │  │   Returns: JSON              │     │
+│  └────────────────────────┘  └──────────────────────────────┘     │
+│                                                                     │
+│  ❌ NO LOCAL DATABASE - All data fetched live from WooCommerce     │
+│  ❌ NO WEBHOOK STORAGE - Webhook endpoints return empty data       │
+│  ❌ NO SQL VIEWER BACKEND - UI tab exists but endpoint disabled    │
+└─────────────────────────────────────────────────────────────────────┘
 ```
+
+### Data Flow
+
+**Dashboard Request Flow:**
+1. User opens Shopify module → `shopify.js` loads
+2. JavaScript calls `/api/shopify/dashboard/metrics`
+3. Flask endpoint calls `get_woocommerce_credentials()` → Queries Supabase
+4. Creates WooCommerce API client with credentials
+5. Calls `wcapi.get("orders", params={...})` → **Live WooCommerce API request**
+6. Receives JSON response from WooCommerce
+7. Processes data (calculate totals, filter, format)
+8. Returns JSON to frontend
+9. Frontend renders charts with Plotly.js
+
+**Calculator Usage:**
+1. AI agent needs quote for wire bound books
+2. Imports `WireBoundShopifyCalculator` class
+3. Calls `calculate(quantity=3, pages=316, ...)`
+4. Calculator runs pricing logic (no database access)
+5. Returns `{'total_price': 450.50, 'unit_price': 150.17, ...}`
+6. AI agent provides quote to user
 
 ### Module Structure
 
+**Current Files (As of January 18, 2026):**
+
 ```
 UI/modules_external/shopify/
-├── manifest.json                      # Module configuration (v1.2.1)
-├── shopify.js                         # Main module (1,576 lines)
-├── shopify.css                        # Styling (432 lines)
+├── manifest.json                      # Module config (v1.2.1, 6 tabs defined)
+├── shopify.js                         # Frontend module (1,576 lines)
+├── shopify.css                        # Styling (custom colors)
+├── shopify_routes.py                  # ✅ CURRENT Flask API (807 lines, WooCommerce)
+├── shopify_routes_backup.py           # ❌ OLD SQLite version (deprecated)
 └── routes/
-    └── shopify_routes.py              # Flask API (1,155 lines)
+    └── shopify_routes.py              # ❌ OLD SQLite version (1,155 lines, not loaded)
 
 UI/modules_external/quote-calculator/backend/shopify_calculators/
-├── BollardSigns_Shopify_Calculator.py
-├── ConstructionSigns_Shopify_Calculator.py
-├── CorfluteInsertA_Frame_Shopify_Calculator.py
-├── CustomPosterPrinting_Shopify_Calculator.py
-├── CustomVinylStickers_Shopify_Calculator.py
-├── EconomicalBusinessCards_Shopify_Calculator.py
-├── ElectionSigns_Shopify_Calculator.py
-├── FoldedFlyers_Shopify_Calculator.py
-├── LuxuryClassicPullUpBanners_Shopify_Calculator.py
-├── MetalFaceA_Frame_Shopify_Calculator.py
-├── NotepadsA4_Shopify_Calculator.py
-├── NotepadsA5_Shopify_Calculator.py
-├── NotepadsA6_Shopify_Calculator.py
-├── PerfectBound_Shopify_Calculator.py
-├── PremiumBookmarks_Shopify_Calculator.py
-├── PremiumBusinessCards_Shopify_Calculator.py
-├── PrintedLetterheads_Shopify_Calculator.py
-├── SaddleStitchBooks_Shopify_Calculator.py
-├── SelfieFrames_Shopify_Calculator.py
-├── SpiralBoundBooks_Shopify_Calculator.py
-├── SpiralBound_Shopify_Calculator.py
-├── StackableCubes_Shopify_Calculator.py
-├── StrutCardsA3_Shopify_Calculator.py
-├── StrutCardsA4_Shopify_Calculator.py
-├── WireBound_Shopify_Calculator.py
-├── WithComplimentsSlips_Shopify_Calculator.py
-├── business_card_calculator_shopify.py
-├── config_manager.py
-├── corflute_calculator_shopify.py
+├── BollardSigns_Shopify_Calculator.py            # Signage
+├── business_card_calculator_shopify.py           # Legacy business cards
+├── config_manager.py                             # ✅ Pricing config loader
+├── ConstructionSigns_Shopify_Calculator.py       # Signage
+├── CorfluteInsertA_Frame_Shopify_Calculator.py   # Signage
+├── CorfluteInsertA-Frame_Shopify_Calculator.py   # Duplicate (different naming)
+├── corflute_calculator_shopify.py                # Generic corflute
+├── CustomPosterPrinting_Shopify_Calculator.py    # Promotional
+├── CustomVinylStickers_Shopify_Calculator.py     # Promotional
+├── EconomicalBusinessCards_Shopify_Calculator.py # ✅ Business cards
+├── ElectionSigns_Shopify_Calculator.py           # Signage
+├── FoldedFlyers_Shopify_Calculator.py            # Promotional
+├── LuxuryClassicPullUpBanners_Shopify_Calculator.py # Promotional
+├── MetalFaceA_Frame_Shopify_Calculator.py        # Signage
+├── MetalFaceA-Frame_Shopify_Calculator.py        # Duplicate
+├── NotepadsA4_Shopify_Calculator.py              # Stationery
+├── NotepadsA5_Shopify_Calculator.py              # Stationery
+├── NotepadsA6_Shopify_Calculator.py              # Stationery
+├── PerfectBound_Shopify_Calculator.py            # ✅ Books (F1-F14)
+├── PremiumBookmarks_Shopify_Calculator.py        # Promotional
+├── PremiumBusinessCards_Shopify_Calculator.py    # ✅ Business cards
+├── PrintedLetterheads_Shopify_Calculator.py      # Stationery
+├── SaddleStitchBooks_Shopify_Calculator.py       # Books
+├── SelfieFrames_Shopify_Calculator.py            # Promotional
+├── SpiralBoundBooks_Shopify_Calculator.py        # Books (simplified)
+├── SpiralBound_Shopify_Calculator.py             # ✅ Books (F1-F14)
+├── StackableCubes_Shopify_Calculator.py          # Promotional
+├── StrutCardsA3_Shopify_Calculator.py            # Signage
+├── StrutCardsA4_Shopify_Calculator.py            # Signage
+├── WireBound_Shopify_Calculator.py               # ✅ Books (F1-F14)
+├── WithComplimentsSlips_Shopify_Calculator.py    # Stationery
+├── test_flexible_quantity.py                     # Unit tests
+├── FLEXIBLE_QUANTITY_IMPLEMENTATION_COMPLETE.md  # Feature doc
+├── PHASE_2_ANALYSIS_COMPLETE.md                  # Analysis doc
 └── __init__.py
+
+Total: 35 calculator classes (31 unique + 4 duplicates)
 ```
+
+**Important Notes:**
+- `shopify_routes.py` in root directory is the **CURRENT** implementation (WooCommerce API)
+- `routes/shopify_routes.py` is the **OLD** implementation (SQLite, not loaded)
+- Calculator files are **standalone** - no database connections
+- Some duplicates exist due to filename variations (hyphen vs underscore)
 
 ---
 
-## Shopify Module (Dashboard)
+## WooCommerce Dashboard Module
 
 ### Overview
 
