@@ -172,18 +172,19 @@ def get_connection_pool(schema_name: str):
             cprint(f" [POOL] Using {connection_mode} for '{schema_name}'", Colors.DB)
             
             # Create thread-safe connection pool
-            # OPTIMIZED for Supabase Micro Plan (Jan 11, 2026):
+            # OPTIMIZED for Supabase Micro Plan (Jan 18, 2026):
             # - Transaction Mode pooler supports 200 concurrent CLIENT connections
             # - Backend limit is 60 connections (Supabase Micro plan limit)
             # - UI makes 10-15 concurrent requests on page load
             # - 3 schemas (ai_infrastructure, sessions, synergy_sessions)
-            # - minconn=6: Keep 6 connections ready per schema (18 total baseline)
-            # - maxconn=20: Allow up to 20 per schema during bursts (60 total = exactly at limit)
+            # - minconn=3: Keep 3 connections ready per schema (9 total baseline)
+            # - maxconn=15: Allow up to 15 per schema during bursts (45 total, 15 buffer for safety)
             # - Each connection is short-lived in transaction mode (seconds, not minutes)
-            # - Pool auto-scales: 18 connections normally, up to 60 during traffic spikes
+            # - Pool auto-scales: 9 connections normally, up to 45 during traffic spikes
+            # - REDUCED from 20 to 15 to prevent pool exhaustion with ML queries (34s duration)
             _connection_pools[schema_name] = pool.ThreadedConnectionPool(
-                minconn=6,      # Keep 6 connections ready (increased from 4)
-                maxconn=20,     # Allow up to 20 concurrent connections (increased from 12 to use full Micro plan capacity)
+                minconn=3,      # Keep 3 connections ready (reduced from 6 for headroom)
+                maxconn=15,     # Allow up to 15 concurrent connections (reduced from 20 to avoid exhaustion)
                 dsn=db_url,
                 sslmode='require',
                 connect_timeout=30,  # Increased from 10 to 30 seconds to handle network latency
@@ -196,10 +197,10 @@ def get_connection_pool(schema_name: str):
             _pool_stats['pools_created'] += 1
             _pool_stats['pool_misses'] += 1
             
-            cprint(f" [POOL] Created connection pool for '{schema_name}' (6-20 connections)", Colors.SUCCESS)
+            cprint(f" [POOL] Created connection pool for '{schema_name}' (3-15 connections)", Colors.SUCCESS)
             cprint(f" [POOL] Total pools: {_pool_stats['pools_created']}", Colors.INFO)
-            cprint(f" [POOL] Total potential connections: {_pool_stats['pools_created'] * 20} (Supabase Micro limit: 60)", Colors.INFO)
-            cprint(f" [POOL] Pool configuration: minconn=6, maxconn=20 (uses full Micro plan capacity)", Colors.INFO)
+            cprint(f" [POOL] Total potential connections: {_pool_stats['pools_created'] * 15} (Supabase Micro limit: 60)", Colors.INFO)
+            cprint(f" [POOL] Pool configuration: minconn=3, maxconn=15 (45 max total, 15 buffer)", Colors.INFO)
         else:
             _pool_stats['pool_hits'] += 1
         
