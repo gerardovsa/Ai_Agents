@@ -909,17 +909,6 @@ except Exception as e:
     log_warning(logger, f"[MESSAGE SERVICE] Failed to initialize: {e}")
 
 # ============================================================================
-# PROFESSIONAL VERIFICATION SYSTEM
-# ============================================================================
-# Register verification dashboard and WebSocket handlers (AFTER socketio init)
-try:
-    from routes.verification_routes import register_verification_routes
-    register_verification_routes(app, socketio)
-except Exception as e:
-    log_error(logger, f"Failed to register verification routes: {e}")
-    print(f"⚠️  Verification system not available: {e}")
-
-# ============================================================================
 # VAN LAYOUT DESIGNER - REMOVED (NOW STANDALONE)
 # ============================================================================
 # Van Thermal Manager now runs on its own standalone Flask server (port 5002)

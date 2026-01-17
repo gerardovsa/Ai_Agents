@@ -43,14 +43,16 @@ class MessageService:
     def _connect(self):
         """Establish database connection"""
         try:
-            from config import SUPABASE_DB_CONFIG
+            # Use shared database connection utilities (already handles Supabase)
+            from shared.supabase_client import get_supabase_config
             
+            config = get_supabase_config()
             self.db_conn = psycopg2.connect(
-                host=SUPABASE_DB_CONFIG['host'],
-                port=SUPABASE_DB_CONFIG['port'],
-                database=SUPABASE_DB_CONFIG['database'],
-                user=SUPABASE_DB_CONFIG['user'],
-                password=SUPABASE_DB_CONFIG['password']
+                host=config['host'],
+                port=config['port'],
+                database=config['database'],
+                user=config['user'],
+                password=config['password']
             )
             print(f"[MESSAGE SERVICE] Connected to database")
         except Exception as e:
