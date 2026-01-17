@@ -43,17 +43,15 @@ class MessageService:
     def _connect(self):
         """Establish database connection"""
         try:
-            # Use shared database connection utilities (already handles Supabase)
-            from shared.supabase_client import get_supabase_config
+            # Use environment variables directly (same as database_utils.py)
+            import os
+            supabase_url = os.getenv('SUPABASE_DB_URL')
             
-            config = get_supabase_config()
-            self.db_conn = psycopg2.connect(
-                host=config['host'],
-                port=config['port'],
-                database=config['database'],
-                user=config['user'],
-                password=config['password']
-            )
+            if not supabase_url:
+                raise ValueError("SUPABASE_DB_URL not found in environment")
+            
+            # Parse connection string or use direct connection
+            self.db_conn = psycopg2.connect(supabase_url)
             print(f"[MESSAGE SERVICE] Connected to database")
         except Exception as e:
             print(f"[MESSAGE SERVICE ERROR] Failed to connect: {e}")

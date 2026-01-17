@@ -34,13 +34,11 @@ quote_calc_backend = os.path.abspath(os.path.join(current_dir, '..', '..', 'quot
 if quote_calc_backend not in sys.path:
     sys.path.insert(0, quote_calc_backend)
 
-try:
-    from tool_use_agent import ToolUseAgent
-except ImportError as e:
-    print(f"[InHouse Wrapper] WARNING: Could not import ToolUseAgent: {e}")
-    print(f"[InHouse Wrapper] Quote calc backend path: {quote_calc_backend}")
-    # Don't raise - let module load without implementations
-    ToolUseAgent = None
+# ⚠️ DISABLED: ToolUseAgent import causes circular dependencies on Render
+# InHouse Print tools use direct database access via db_connector.py instead
+# See INHOUSE_TOOLS_COMPLETE_FIX_JAN13_2026.md for architecture details
+ToolUseAgent = None
+print("[InHouse Wrapper] ℹ️ Using direct database access (ToolUseAgent disabled)")
 
 # Singleton instance
 _agent_instance = None
