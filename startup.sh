@@ -32,19 +32,22 @@ if [ "$RENDER" = "true" ]; then
         exit 1
     fi
     
-    # Copy database-config.json to persistent disk if it doesn't exist
+    # OPTIONAL: Copy database-config.json to persistent disk if available
+    # NOTE: This file is NO LONGER REQUIRED - Flask auto-creates from environment variables
+    # Only needed for legacy compatibility (quote-calculator module, disabled in production)
     if [ ! -f "/data/database-config.json" ]; then
-        echo "→ Initializing persistent disk..."
+        echo "→ Checking for database-config.json (optional)..."
         
         # Try multiple possible locations for the config file
         if [ -f "/app/data/database-config.json" ]; then
-            echo "  Copying database-config.json from /app/data to /data"
+            echo "  ✓ Found database-config.json in /app/data, copying to /data"
             cp /app/data/database-config.json /data/database-config.json
         elif [ -f "./data/database-config.json" ]; then
-            echo "  Copying database-config.json from ./data to /data"
+            echo "  ✓ Found database-config.json in ./data, copying to /data"
             cp ./data/database-config.json /data/database-config.json
         else
-            echo "  Creating default database-config.json in /data"
+            echo "  ℹ️  database-config.json not found (OK - will be auto-created from environment variables)"
+            echo "  Creating minimal placeholder in /data"
             cat > /data/database-config.json << 'EOF'
 {
     "database": {
@@ -61,9 +64,9 @@ if [ "$RENDER" = "true" ]; then
 }
 EOF
         fi
-        echo "✓ Persistent disk initialized"
+        echo "  ✓ Config placeholder created (Flask will populate from environment variables)"
     else
-        echo "✓ Persistent disk already initialized"
+        echo "  ✓ database-config.json already exists in /data"
     fi
     
     # List persistent disk contents

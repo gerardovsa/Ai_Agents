@@ -76,17 +76,11 @@ COPY . .
 
 # Ensure persistent disk mount point exists
 # /data - for Render persistent disk mount point (10GB)
-# /app/data - already contains database-config.json from COPY . .
 RUN mkdir -p /data
 
-# Verify database-config.json exists in /app/data (copied from COPY . .)
-# Startup script will copy this to persistent disk (/data) on first run
-RUN if [ -f /app/data/database-config.json ]; then \
-    echo "✓ database-config.json found in /app/data"; \
-    ls -lh /app/data/database-config.json; \
-    else \
-    echo "⚠ Warning: database-config.json not found, will be created at runtime"; \
-    fi
+# NOTE: database-config.json is OPTIONAL (auto-created from environment variables)
+# Legacy modules (quote-calculator, disabled in production) may reference it
+# Flask lazy-loading will create default config if missing
 
 # Make startup script executable
 RUN chmod +x startup.sh

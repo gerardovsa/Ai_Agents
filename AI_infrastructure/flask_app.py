@@ -128,7 +128,9 @@ class Config:
         SECRET_KEY = os.getenv('SECRET_KEY', 'dev-secret-key-change-in-production')
         DEBUG = os.getenv('DEBUG', 'True').lower() == 'true'
         TESTING = False
-        DB_CONFIG_PATH = DATA_DIR / 'database-config.json'
+        # DEPRECATED: database-config.json no longer required (uses environment variables)
+        # Kept for backward compatibility with legacy modules (disabled in production)
+        DB_CONFIG_PATH = DATA_DIR / 'database-config.json'  # OPTIONAL - auto-created if missing
         SESSION_DB_PATH = DATA_DIR / 'sessions.db'
         
         # Session configuration - OAuth state stored in database (oauth_states table)
@@ -2204,10 +2206,9 @@ print(f"Core Infrastructure: Session Manager + AI Clients")
 print(f"Testing Framework: 22 tests passing (100% coverage)")
 print("=" * 80)
 print(f"Base Directory: {Config.BASE_DIR}")
-print(f"Config Path: {Config.DB_CONFIG_PATH}")
 print(f"Session DB: {Config.SESSION_DB_PATH}")
 print(f"UnifiedSessionManager loaded")
-print(f"UnifiedAIClient loaded (Anthropic + DeepSeek + OpenAI)")
+print(f"UnifiedAIClient: Lazy-loaded (uses environment variables)")
 print("=" * 80)
 print("CURRENT API ENDPOINTS (CLEANED UP):")
 print("   • Agent Routes:      8 endpoints (/api/agent/*)")
