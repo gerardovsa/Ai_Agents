@@ -529,7 +529,7 @@ def inhouse_query_stock_levels(filters: Optional[Dict[str, Any]] = None, **kwarg
     """
     Quick inventory check
     
-    Faster than SQL for common stock queries.
+    Queries Supabase stock_data.stocklevels table (not InHouse Fred database).
     Returns current levels, reorder points, critical levels, and status.
     
     Args:
@@ -554,14 +554,72 @@ def inhouse_query_stock_levels(filters: Optional[Dict[str, Any]] = None, **kwarg
             ]
         }
     """
-    agent = _get_agent()
-    return agent._execute_client_tool('query_stock_levels', {'filters': filters or {}})
+    try:
+        # Import Supabase query utility
+        from AI_infrastructure.shared.database_utils import execute_query
+        
+        # Build WHERE clause from filters
+        where_clauses = []
+        params = []
+        
+        filters = filters or {}
+        if filters.get('stock_type'):
+            where_clauses.append("stock_description ILIKE %s")
+            params.append(f"%{filters['stock_type']}%")
+        if filters.get('gsm'):
+            where_clauses.append("stock_description ILIKE %s")
+            params.append(f"%{filters['gsm']}%")
+        if filters.get('status'):
+            status = filters['status'].lower()
+            if status == 'critical':
+                where_clauses.append("current_level <= critical_level")
+            elif status == 'low':
+                where_clauses.append("current_level <= reorder_point AND current_level > critical_level")
+            elif status == 'ok':
+                where_clauses.append("current_level > reorder_point")
+        
+        where_sql = f"WHERE {' AND '.join(where_clauses)}" if where_clauses else ""
+        
+        # Query Supabase stock_data schema
+        query = f"""
+            SELECT 
+                stock_id,
+                stock_description AS description,
+                current_level,
+                reorder_point,
+                critical_level,
+                CASE 
+                    WHEN current_level <= critical_level THEN 'critical'
+                    WHEN current_level <= reorder_point THEN 'low'
+                    ELSE 'ok'
+                END AS status
+            FROM stock_data.stocklevels
+            {where_sql}
+            ORDER BY current_level ASC
+            LIMIT 50
+        """
+        
+        results = execute_query(query, tuple(params), fetch_mode='all')
+        
+        return {
+            "success": True,
+            "stocks": results or []
+        }
+        
+    except Exception as e:
+        import traceback
+        return {
+            "success": False,
+            "error": f"Stock query failed: {e}",
+            "details": traceback.format_exc()
+        }
 
 
 def inhouse_get_reorder_alerts(**kwargs) -> Dict[str, Any]:
     """
     Quick stock shortage alerts
     
+    Queries Supabase stock_data.reorderalerts table (not InHouse Fred database).
     Returns stocks below reorder point with alert levels.
     Use for proactive stock management dashboard.
     
@@ -585,5 +643,52 @@ def inhouse_get_reorder_alerts(**kwargs) -> Dict[str, Any]:
             "warning_count": 5
         }
     """
-    agent = _get_agent()
-    return agent._execute_client_tool('get_reorder_alerts', {})
+    try:
+        # Import Supabase query utility
+        from AI_infrastructure.shared.database_utils import execute_query
+        
+        # Query Supabase stock_data schema for reorder alerts
+        query = """
+            SELECT 
+                stock_id,
+                stock_description AS description,
+                current_level,
+                reorder_point,
+                critical_level,
+                CASE 
+                    WHEN current_level <= critical_level THEN 'CRITICAL'
+                    WHEN current_level <= reorder_point THEN 'WARNING'
+                    ELSE 'OK'
+                END AS alert_level,
+                CURRENT_DATE AS alert_date
+            FROM stock_data.stocklevels
+            WHERE current_level <= reorder_point
+            ORDER BY 
+                CASE 
+                    WHEN current_level <= critical_level THEN 1
+                    ELSE 2
+                END,
+                current_level ASC
+            LIMIT 50
+        """
+        
+        results = execute_query(query, (), fetch_mode='all')
+        
+        # Count alerts by level
+        critical_count = len([r for r in results if r.get('alert_level') == 'CRITICAL'])
+        warning_count = len([r for r in results if r.get('alert_level') == 'WARNING'])
+        
+        return {
+            "success": True,
+            "alerts": results or [],
+            "critical_count": critical_count,
+            "warning_count": warning_count
+        }
+        
+    except Exception as e:
+        import traceback
+        return {
+            "success": False,
+            "error": f"Reorder alerts query failed: {e}",
+            "details": traceback.format_exc()
+        }
