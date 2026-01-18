@@ -1056,19 +1056,45 @@ const MultiAgent = {
             return;
         }
 
-        // Show progress notification
-        if (typeof showNotification === 'function') {
-            showNotification(`Refreshing ${agentIds.length} agent${agentIds.length > 1 ? 's' : ''}...`, 'info', 2000);
+        // Get refresh button and add spinning animation
+        const refreshBtn = document.querySelector('button[onclick*="refreshAllAgents"]');
+        const refreshIcon = refreshBtn?.querySelector('i');
+        if (refreshIcon) {
+            refreshIcon.classList.add('fa-spin');
         }
+
+        // Track scroll positions before refresh
+        const scrollPositions = {};
+        agentIds.forEach(agentIdStr => {
+            const agentId = parseInt(agentIdStr);
+            const messagesContainer = document.querySelector(`#agent-column-${agentId} .agent-messages-container`);
+            if (messagesContainer) {
+                scrollPositions[agentId] = messagesContainer.scrollTop;
+                console.log(`[Refresh] Saved scroll position for agent ${agentId}: ${scrollPositions[agentId]}px`);
+            }
+        });
+
+        let successCount = 0;
+        let errorCount = 0;
+        const totalCount = agentIds.length;
 
         try {
             // Reload each agent's thread and messages
-            for (const agentIdStr of agentIds) {
+            for (let i = 0; i < agentIds.length; i++) {
+                const agentIdStr = agentIds[i];
+                const currentIndex = i + 1;
+
+                // Update progress indicator
+                if (typeof showNotification === 'function') {
+                    showNotification(`Refreshing agent ${currentIndex}/${totalCount}...`, 'info', 1000);
+                }
+
                 const agentId = parseInt(agentIdStr);
                 const threadInfo = this.loadedThreads[agentId];
 
                 if (!threadInfo || !threadInfo.threadId) {
                     console.warn(`[Command Center] Agent ${agentId} has no thread loaded, skipping`);
+                    errorCount++;
                     continue;
                 }
 
@@ -1142,17 +1168,20 @@ const MultiAgent = {
                                 }
                             }
 
-                            // Scroll to bottom after all messages rendered
-                            if (messagesContainer) {
+                            // Restore scroll position after messages rendered
+                            if (messagesContainer && scrollPositions[agentId] !== undefined) {
                                 setTimeout(() => {
-                                    messagesContainer.scrollTop = messagesContainer.scrollHeight;
-                                }, 100);
+                                    messagesContainer.scrollTop = scrollPositions[agentId];
+                                    console.log(`[Refresh] ✅ Restored scroll position for agent ${agentId}: ${scrollPositions[agentId]}px`);
+                                }, 150);
                             }
 
                             console.log(`[Command Center] ✅ Agent ${agentId} refreshed successfully`);
+                            successCount++;
                         } else {
                             removeProcessingIndicator(agentId);
                             console.log(`[Command Center] No messages to render for agent ${agentId}`);
+                            successCount++;
                         }
                     }
 
@@ -1162,21 +1191,36 @@ const MultiAgent = {
                 } catch (error) {
                     console.error(`[Command Center] Error refreshing agent ${agentId}:`, error);
                     removeProcessingIndicator(agentId);
+                    errorCount++;
+                    // Continue with next agent (don't stop entire refresh)
                 }
             }
 
             // Update dashboard stats
             this.updateDashboardStats();
 
-            // Success notification
-            if (typeof showNotification === 'function') {
-                showNotification(`✅ Refreshed ${agentIds.length} agent${agentIds.length > 1 ? 's' : ''}`, 'success', 3000);
+            // Remove spinning animation
+            if (refreshIcon) {
+                refreshIcon.classList.remove('fa-spin');
             }
 
-            console.log('[Command Center] ✅ All agents refreshed successfully');
+            // Success notification with count
+            if (typeof showNotification === 'function') {
+                if (errorCount === 0) {
+                    showNotification(`✅ Refreshed ${successCount}/${totalCount} agents`, 'success', 3000);
+                } else {
+                    showNotification(`⚠️ Refreshed ${successCount}/${totalCount} agents (${errorCount} failed)`, 'warning', 4000);
+                }
+            }
+
+            console.log(`[Command Center] ✅ Refresh complete: ${successCount} success, ${errorCount} failed`);
 
         } catch (error) {
             console.error('[Command Center] Error during refresh:', error);
+            // Remove spinning animation on error
+            if (refreshIcon) {
+                refreshIcon.classList.remove('fa-spin');
+            }
             if (typeof showNotification === 'function') {
                 showNotification('Error refreshing agents', 'error', 3000);
             }
@@ -1224,13 +1268,15 @@ const MultiAgent = {
             }
         });
 
-        // Update button icon and tooltip
+        // Update button icon and tooltip (FIXED: swapped icons)
         if (icon && btn) {
             if (newState) {
-                icon.className = 'fas fa-compress-alt';
-                btn.title = `Expand ${collapsedCount} collapsed empty agents`;
+                // Empty agents ARE collapsed, show expand icon
+                icon.className = 'fas fa-expand';
+                btn.title = 'Expand empty agents';
             } else {
-                icon.className = 'fas fa-expand-alt';
+                // Empty agents ARE expanded, show collapse icon
+                icon.className = 'fas fa-compress';
                 btn.title = 'Collapse empty agents';
             }
         }

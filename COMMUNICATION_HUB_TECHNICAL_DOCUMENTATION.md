@@ -1,8 +1,8 @@
 # Communication Hub - Technical Documentation
 
-**Version:** 4.2.0  
+**Version:** 4.3.0  
 **Status:** ✅ Production Ready  
-**Last Updated:** January 18, 2026  
+**Last Updated:** January 19, 2026  
 **Module Type:** Internal Dashboard Module
 
 ---
@@ -742,7 +742,82 @@ def parse_mime_parts(parts, attachments=[]):
 - `tools/implementations/microsoft_outlook_tools.py` (Line ~200)
 - `google_workspace/gmail.py` (Line ~450)
 
-### 3. 502 Bad Gateway (Jan 11, 2026)
+### 3. Sent Emails Missing from Threads (Jan 18, 2026)
+
+**Problem:** Gmail threads only showed RECEIVED emails, not SENT replies from user
+
+**Root Cause:** Using `messages().list()` API which only returns inbox messages
+
+**Solution:**
+```python
+# File: communication_routes.py, Line ~260
+# BEFORE (WRONG):
+emails_result = gmail_service.users().messages().list(
+    userId='me',
+    q=f'in:inbox after:{timestamp}'
+).execute()
+
+# AFTER (FIXED):
+emails_result = gmail_service.users().threads().get(
+    userId='me',
+    id=thread_id,
+    format='full'  # ✅ Gets ALL messages in thread (received + sent)
+).execute()
+```
+
+**Impact:**
+- Complete conversation history visible (both directions)
+- AI agents see full context including user's previous responses
+- Thread view matches Gmail web interface
+
+**Files Modified:**
+- `AI_infrastructure/routes/communication_routes.py` (Line ~260)
+- `UI/modules_internal/communication-hub/communication-hub-v4-modern.js` (Line ~1850)
+
+**Status:** ✅ COMPLETE
+
+---
+
+### 4. Assigned Agent Column Not Updating (Jan 18, 2026)
+
+**Problem:** After assigning email to agent, table column showed "No agent" until manual refresh
+
+**Root Cause:** Premature `cell.getRow().update()` calls before ThreadManager state sync
+
+**Solution:**
+```javascript
+// File: communication-hub-v4-modern.js, Line ~1850
+// BEFORE (WRONG):
+async function handleEmailToAgentDrop(emailId, agentId) {
+    await saveEmailToAgent(emailId, agentId);
+    cell.getRow().update({assigned_agent: agentId}); // ❌ Too early!
+}
+
+// AFTER (FIXED):
+async function handleEmailToAgentDrop(emailId, agentId) {
+    await saveEmailToAgent(emailId, agentId);
+    
+    // ✅ Wait for ThreadManager to sync state
+    await ThreadManager.refreshThreads();
+    
+    // ✅ Then redraw table from fresh state
+    communicationTable.replaceData();
+}
+```
+
+**Impact:**
+- Immediate visual feedback when assigning emails
+- No page refresh required
+- Consistent state across all UI components
+
+**Files Modified:**
+- `UI/modules_internal/communication-hub/communication-hub-v4-modern.js` (Line ~1850)
+
+**Status:** ✅ COMPLETE
+
+---
+
+### 5. 502 Bad Gateway (Jan 11, 2026)
 
 **Problem:** Connection pool exhaustion → 502 errors
 

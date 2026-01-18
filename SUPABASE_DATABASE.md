@@ -1,8 +1,10 @@
 # Supabase Database Architecture
 
-**Last Updated:** January 18, 2026  
+**Last Updated:** January 19, 2026  
+**Version:** 2.1.0  
 **Database:** Supabase PostgreSQL 15+  
 **Connection Pooler:** PgBouncer (Transaction Mode, Port 6543)  
+**Pool Size:** 3-15 per schema (reduced Jan 18, 2026)  
 **Region:** Singapore (ap-southeast-1)  
 **Total Schemas:** 4 (ai_infrastructure, sessions, synergy_sessions, public)
 
@@ -1193,6 +1195,49 @@ threads_with_messages = execute_query("""
 """, (user_id,))
 # Total queries: 1
 ```
+
+---
+
+### Connection Pool Size Reduction (January 18, 2026)
+
+**Problem:** Connection pool exhaustion on Render deployment with 4 schemas × 30 connections = 120 total
+
+**Root Cause:** Supabase free tier limits connections, excessive pool sizes caused failures
+
+**Solution:** Reduced pool sizes to prevent exhaustion:
+
+```python
+# File: AI_infrastructure/shared/database_utils.py, Line ~80
+# BEFORE (BROKEN):
+POOL_CONFIG = {
+    'minconn': 5,
+    'maxconn': 30  # ❌ 4 schemas × 30 = 120 connections
+}
+
+# AFTER (FIXED):
+POOL_CONFIG = {
+    'minconn': 3,   # ✅ Conservative minimum
+    'maxconn': 15   # ✅ 4 schemas × 15 = 60 total (safe)
+}
+```
+
+**Pool Sizes by Schema:**
+- `ai_infrastructure`: 3-15 connections
+- `sessions`: 3-15 connections  
+- `synergy_sessions`: 3-15 connections
+- `public`: 3-15 connections
+- **Total:** 12-60 connections (was 20-120)
+
+**Impact:**
+- Eliminated 502 Bad Gateway errors
+- Improved connection reuse (less overhead)
+- More stable production deployment
+- Better resource utilization
+
+**Files Modified:**
+- `AI_infrastructure/shared/database_utils.py` (Line ~80)
+
+**Status:** ✅ COMPLETE (Jan 18, 2026)
 
 ---
 

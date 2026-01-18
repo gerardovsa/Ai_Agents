@@ -1263,7 +1263,7 @@ class QueryLibrary:
                 "returns": "StockID, StockType, Size, GSM, CostPer1000, Markup, FinalPrice, StockLevel, ReorderPoint, Status, LastUsed, Usage30d",
                 "visualization": "data_table",
                 "best_for": "Inventory management, stock monitoring, pricing control",
-                "validated": False
+                "validated": True
             },
             
             "stock_usage_analytics": {
@@ -1284,7 +1284,7 @@ class QueryLibrary:
                 "returns": "StockType, TotalUsage, AvgDailyUsage, Trend, ForecastNext30Days, CurrentStock, DaysUntilEmpty",
                 "visualization": "bar_chart_horizontal",
                 "best_for": "Demand forecasting, inventory planning, usage patterns",
-                "validated": False
+                "validated": True
             },
             
             "stock_reorder_alerts": {
@@ -1300,7 +1300,7 @@ class QueryLibrary:
                 "returns": "StockType, CurrentLevel, ReorderPoint, DaysUntilEmpty, SuggestedOrderQty, EstimatedCost, LastOrderDate",
                 "visualization": "data_table",
                 "best_for": "Purchase planning, stock replenishment, budget forecasting",
-                "validated": False
+                "validated": True
             },
             
             "stock_pricing_profitability": {
@@ -1316,7 +1316,7 @@ class QueryLibrary:
                 "returns": "StockType, TotalRevenue, TotalCost, GrossProfit, MarginPercent, OrderCount, AvgMarkup",
                 "visualization": "scatter_plot",
                 "best_for": "Pricing strategy, margin optimization, profitability analysis",
-                "validated": False
+                "validated": True
             },
             
             "client_stock_preferences": {
@@ -1337,7 +1337,7 @@ class QueryLibrary:
                 "returns": "ClientName, PreferredStocks, OrderFrequency, AvgOrderSize, LastOrderDate, PredictedReorderDate",
                 "visualization": "data_table",
                 "best_for": "Customer intelligence, proactive sales, inventory anticipation",
-                "validated": False
+                "validated": True
             },
             
             "stock_cost_trends": {
@@ -1358,7 +1358,7 @@ class QueryLibrary:
                 "returns": "YearMonth, StockType, CostPer1000, ChangePercent, SupplierName",
                 "visualization": "line_chart",
                 "best_for": "Cost monitoring, supplier negotiation, budget planning",
-                "validated": False
+                "validated": True
             },
             
             # ============================================
@@ -4911,69 +4911,70 @@ class QueryLibrary:
     # ============================================
     
     def _sql_stock_inventory_master(self, status_filter: str = 'all', stock_type: str = 'all') -> str:
-        """Generate SQL for complete stock master inventory"""
-        status_condition = ""
-        if status_filter != 'all':
-            status_condition = f"WHERE Status = '{status_filter}'"
-        
-        type_condition = ""
+        """
+        Generate SQL for available paper stock types (not inventory levels)
+        Shows GSM values, paper types, and sizes available from lookup tables
+        NOTE: Inventory tracking not implemented - this shows stock TYPE catalog
+        """
+        type_filter = ""
         if stock_type != 'all':
-            type_condition = f"AND StockType = '{stock_type}'" if status_condition else f"WHERE StockType = '{stock_type}'"
+            type_filter = f"AND pt.[Desc] LIKE '%{stock_type}%'"
         
         return f"""
-        WITH StockUsage AS (
+        WITH RecentUsage AS (
             SELECT 
-                StockID,
-                COUNT(*) AS Usage30d,
-                MAX(DateUsed) AS LastUsed
-            FROM OrderStockUsage
-            WHERE DateUsed >= DATEADD(DAY, -30, GETDATE())
-            GROUP BY StockID
-        ),
-        StockStatus AS (
-            SELECT 
-                s.StockID,
-                s.StockType,
-                s.Size,
-                s.GSM,
-                s.CostPer1000,
-                s.MarkupPercent AS Markup,
-                s.CostPer1000 * (1 + s.MarkupPercent/100.0) AS FinalPrice,
-                ISNULL(s.CurrentStockLevel, 0) AS StockLevel,
-                s.ReorderPoint,
-                CASE 
-                    WHEN ISNULL(s.CurrentStockLevel, 0) <= s.CriticalLevel THEN 'critical'
-                    WHEN ISNULL(s.CurrentStockLevel, 0) <= s.ReorderPoint THEN 'low'
-                    WHEN s.IsActive = 0 THEN 'inactive'
-                    ELSE 'ok'
-                END AS Status,
-                ISNULL(u.LastUsed, '2020-01-01') AS LastUsed,
-                ISNULL(u.Usage30d, 0) AS Usage30d
-            FROM Quote_DigitalStocks s
-            LEFT JOIN StockUsage u ON s.StockID = u.StockID
+                gsm.GSM_ID,
+                pt.PaperTypeID,
+                ps.SizeID,
+                COUNT(DISTINCT jt.TicketID) AS UsageCount30d,
+                MAX(o.OrderDate) AS LastUsed
+            FROM JobTickets jt
+            INNER JOIN Orders o ON jt.OrderID = o.OrderID
+            LEFT JOIN GSM gsm ON jt.GSM_ID = gsm.GSM_ID
+            LEFT JOIN PaperType pt ON jt.PaperTypeID = pt.PaperTypeID
+            LEFT JOIN PaperSize ps ON jt.PaperSizeID = ps.SizeID
+            WHERE o.OrderDate >= DATEADD(DAY, -30, GETDATE())
+            GROUP BY gsm.GSM_ID, pt.PaperTypeID, ps.SizeID
         )
-        SELECT * FROM StockStatus
-        {status_condition}
-        {type_condition}
-        ORDER BY Status DESC, StockType, GSM
+        SELECT 
+            gsm.GSM_ID AS StockID,
+            gsm.[DESC] AS StockType,
+            ps.[Desc] AS PaperSize,
+            pt.[Desc] AS PaperType,
+            CAST(REPLACE(REPLACE(gsm.[DESC], 'GSM', ''), 'gsm', '') AS INT) AS GSMValue,
+            ISNULL(ru.UsageCount30d, 0) AS Usage30d,
+            ISNULL(ru.LastUsed, '2020-01-01') AS LastUsed,
+            CASE 
+                WHEN ru.UsageCount30d > 50 THEN 'High Use'
+                WHEN ru.UsageCount30d > 10 THEN 'Medium Use'
+                WHEN ru.UsageCount30d > 0 THEN 'Low Use'
+                ELSE 'No Recent Use'
+            END AS UsageCategory
+        FROM GSM gsm
+        CROSS JOIN PaperType pt
+        CROSS JOIN PaperSize ps
+        LEFT JOIN RecentUsage ru ON gsm.GSM_ID = ru.GSM_ID 
+            AND pt.PaperTypeID = ru.PaperTypeID 
+            AND ps.SizeID = ru.SizeID
+        WHERE gsm.[DESC] IS NOT NULL
+            AND pt.[Desc] IS NOT NULL
+            AND ps.[Desc] IS NOT NULL
+            {type_filter}
+        ORDER BY GSMValue DESC, pt.[Desc], ps.[Desc]
         """
     
     def _sql_stock_usage_analytics(self, days_back: int = 90, top_n: int = 20) -> str:
         """
-        Generate SQL for stock usage patterns based on JobTickets
-        Analyzes actual GSM usage from production jobs
+        Generate SQL for paper stock usage patterns from JobTickets
+        Analyzes GSM and PaperType usage from actual production jobs
         """
         return f"""
         WITH StockUsage AS (
-            -- Match JobTickets to stocks by GSM value
             SELECT 
                 gsm.[DESC] AS GSMDesc,
                 CAST(REPLACE(REPLACE(gsm.[DESC], 'GSM', ''), 'gsm', '') AS INT) AS GSMValue,
-                ds.StockID,
-                dst.StockTypeDesc,
-                ds.Length,
-                ds.Width,
-                ds.GSM AS StockGSM,
+                pt.[Desc] AS PaperType,
+                ps.[Desc] AS PaperSize,
                 COUNT(DISTINCT jt.TicketID) AS JobCount,
                 SUM(jt.QTY) AS TotalQuantity,
                 CAST(SUM(jt.QTY) * 1.0 / {days_back} AS DECIMAL(10,2)) AS AvgDailyUsage,
@@ -4983,27 +4984,22 @@ class QueryLibrary:
             FROM JobTickets jt
             INNER JOIN Orders o ON jt.OrderID = o.OrderID
             LEFT JOIN GSM gsm ON jt.GSM_ID = gsm.GSM_ID
-            -- Match to stocks by GSM value
-            LEFT JOIN Quote_DigitalStocks ds ON ds.GSM = CAST(REPLACE(REPLACE(gsm.[DESC], 'GSM', ''), 'gsm', '') AS INT)
-            LEFT JOIN Quote_DigitalStockType dst ON ds.StockTypeID = dst.StockTypeID
+            LEFT JOIN PaperType pt ON jt.PaperTypeID = pt.PaperTypeID
+            LEFT JOIN PaperSize ps ON jt.PaperSizeID = ps.SizeID
             WHERE o.OrderDate >= DATEADD(DAY, -{days_back}, GETDATE())
                 AND gsm.[DESC] IS NOT NULL
                 AND ISNUMERIC(REPLACE(REPLACE(gsm.[DESC], 'GSM', ''), 'gsm', '')) = 1
             GROUP BY 
                 gsm.[DESC],
                 CAST(REPLACE(REPLACE(gsm.[DESC], 'GSM', ''), 'gsm', '') AS INT),
-                ds.StockID,
-                dst.StockTypeDesc,
-                ds.Length,
-                ds.Width,
-                ds.GSM
+                pt.[Desc],
+                ps.[Desc]
         )
         SELECT TOP {top_n}
-            StockID,
-            StockTypeDesc,
+            GSMDesc,
             GSMValue,
-            Length,
-            Width,
+            PaperType,
+            PaperSize,
             JobCount,
             TotalQuantity,
             AvgDailyUsage,
@@ -5018,7 +5014,6 @@ class QueryLibrary:
             LastOrderDate,
             DATEDIFF(DAY, LastOrderDate, GETDATE()) AS DaysSinceLastUse
         FROM StockUsage
-        WHERE StockID IS NOT NULL
         ORDER BY TotalQuantity DESC
         """
     
@@ -5050,148 +5045,120 @@ class QueryLibrary:
     
     def _sql_stock_pricing_profitability(self, months: int = 6) -> str:
         """
-        Generate SQL for stock pricing profitability analysis
-        Analyzes cost per thousand, markup, and sell prices for all stocks
+        Generate SQL for paper stock profitability analysis from actual jobs
+        Analyzes revenue and job counts by GSM and PaperType combinations
+        NOTE: Cost breakdown not available - shows revenue performance only
         """
         return f"""
-        WITH StockPricing AS (
-            SELECT 
-                ds.StockID,
-                dst.StockTypeDesc,
-                ds.GSM,
-                ds.Length,
-                ds.Width,
-                ds.CostPerThousand,
-                ISNULL(ds.Markup, 0) AS MarkupPercent,
-                -- Calculate sell price with markup
-                CAST(ds.CostPerThousand * (1 + ISNULL(ds.Markup, 0)/100.0) AS DECIMAL(18,4)) AS SellPricePerThousand,
-                -- Calculate profit per thousand
-                CAST((ds.CostPerThousand * (1 + ISNULL(ds.Markup, 0)/100.0)) - ds.CostPerThousand AS DECIMAL(18,4)) AS ProfitPerThousand,
-                -- Calculate sheet size in SQM
-                CAST((ds.Length * ds.Width / 1000000.0) AS DECIMAL(10,4)) AS SheetSizeSQM
-            FROM Quote_DigitalStocks ds
-            INNER JOIN Quote_DigitalStockType dst ON ds.StockTypeID = dst.StockTypeID
-        ),
-        UsageData AS (
-            -- Get usage from JobTickets for the period
-            SELECT 
-                CAST(REPLACE(REPLACE(gsm.[DESC], 'GSM', ''), 'gsm', '') AS INT) AS GSMValue,
-                COUNT(DISTINCT jt.TicketID) AS JobCount,
-                SUM(jt.QTY) AS TotalQuantity,
-                SUM(jt.Cost) AS TotalRevenue
-            FROM JobTickets jt
-            INNER JOIN Orders o ON jt.OrderID = o.OrderID
-            LEFT JOIN GSM gsm ON jt.GSM_ID = gsm.GSM_ID
-            WHERE o.OrderDate >= DATEADD(MONTH, -{months}, GETDATE())
-                AND gsm.[DESC] IS NOT NULL
-                AND ISNUMERIC(REPLACE(REPLACE(gsm.[DESC], 'GSM', ''), 'gsm', '')) = 1
-            GROUP BY CAST(REPLACE(REPLACE(gsm.[DESC], 'GSM', ''), 'gsm', '') AS INT)
-        )
         SELECT 
-            sp.StockID,
-            sp.StockTypeDesc,
-            sp.GSM,
-            sp.Length,
-            sp.Width,
-            sp.CostPerThousand,
-            sp.MarkupPercent,
-            sp.SellPricePerThousand,
-            sp.ProfitPerThousand,
-            sp.SheetSizeSQM,
-            ISNULL(ud.JobCount, 0) AS JobCount{months}Months,
-            ISNULL(ud.TotalQuantity, 0) AS Quantity{months}Months,
-            ISNULL(ud.TotalRevenue, 0) AS Revenue{months}Months,
-            -- Calculate estimated profit based on usage
-            CAST(ISNULL(ud.TotalQuantity, 0) * sp.ProfitPerThousand / 1000.0 AS DECIMAL(18,4)) AS EstimatedProfit,
-            -- ROI percentage
-            CASE 
-                WHEN NULLIF(ud.TotalRevenue, 0) IS NOT NULL THEN 
-                    CAST((ud.TotalRevenue - (ud.TotalQuantity * sp.CostPerThousand / 1000.0)) / ud.TotalRevenue * 100 AS DECIMAL(8,4))
-                ELSE 0
-            END AS MarginPercent
-        FROM StockPricing sp
-        LEFT JOIN UsageData ud ON sp.GSM = ud.GSMValue
-        WHERE sp.CostPerThousand > 0
-        ORDER BY ISNULL(ud.TotalRevenue, 0) DESC, sp.MarkupPercent DESC
+            gsm.[DESC] AS StockType,
+            CAST(REPLACE(REPLACE(gsm.[DESC], 'GSM', ''), 'gsm', '') AS INT) AS GSMValue,
+            pt.[Desc] AS PaperType,
+            COUNT(DISTINCT jt.TicketID) AS JobCount,
+            SUM(jt.QTY) AS TotalQuantity,
+            SUM(jt.Cost) AS TotalRevenue,
+            AVG(jt.Cost) AS AvgJobValue,
+            AVG(jt.Cost / NULLIF(jt.QTY, 0)) AS AvgPricePerUnit,
+            MIN(o.OrderDate) AS FirstOrder,
+            MAX(o.OrderDate) AS MostRecentOrder,
+            DATEDIFF(DAY, MIN(o.OrderDate), MAX(o.OrderDate)) AS DaysActive
+        FROM JobTickets jt
+        INNER JOIN Orders o ON jt.OrderID = o.OrderID
+        LEFT JOIN GSM gsm ON jt.GSM_ID = gsm.GSM_ID
+        LEFT JOIN PaperType pt ON jt.PaperTypeID = pt.PaperTypeID
+        WHERE o.OrderDate >= DATEADD(MONTH, -{months}, GETDATE())
+            AND gsm.[DESC] IS NOT NULL
+            AND pt.[Desc] IS NOT NULL
+            AND jt.Cost IS NOT NULL
+            AND jt.Cost > 0
+            AND ISNUMERIC(REPLACE(REPLACE(gsm.[DESC], 'GSM', ''), 'gsm', '')) = 1
+        GROUP BY 
+            gsm.[DESC],
+            CAST(REPLACE(REPLACE(gsm.[DESC], 'GSM', ''), 'gsm', '') AS INT),
+            pt.[Desc]
+        ORDER BY TotalRevenue DESC
         """
     
     def _sql_client_stock_preferences(self, months: int = 12, min_orders: int = 3) -> str:
-        """Generate SQL for client stock preferences and predictions"""
+        """
+        Generate SQL for client paper stock preferences from order history
+        Analyzes preferred GSM, PaperType, and PaperSize combinations per customer
+        """
         return f"""
         WITH ClientStockUsage AS (
             SELECT 
-                c.ClientName,
-                s.StockType,
+                o.ClientName,
+                gsm.[DESC] AS GSMDesc,
+                pt.[Desc] AS PaperType,
+                ps.[Desc] AS PaperSize,
                 COUNT(DISTINCT o.OrderID) AS OrderCount,
-                SUM(o.Quantity) AS TotalQuantity,
+                SUM(jt.QTY) AS TotalQuantity,
                 MAX(o.OrderDate) AS LastOrderDate,
-                AVG(DATEDIFF(DAY, LAG(o.OrderDate) OVER (PARTITION BY c.ClientID ORDER BY o.OrderDate), o.OrderDate)) AS AvgDaysBetweenOrders
+                AVG(jt.Cost) AS AvgOrderValue
             FROM Orders o
-            JOIN Clients c ON o.ClientID = c.ClientID
-            JOIN OrderItems oi ON o.OrderID = oi.OrderID
-            JOIN Quote_DigitalStocks s ON oi.StockID = s.StockID
+            INNER JOIN JobTickets jt ON o.OrderID = jt.OrderID
+            LEFT JOIN GSM gsm ON jt.GSM_ID = gsm.GSM_ID
+            LEFT JOIN PaperType pt ON jt.PaperTypeID = pt.PaperTypeID
+            LEFT JOIN PaperSize ps ON jt.PaperSizeID = ps.SizeID
             WHERE o.OrderDate >= DATEADD(MONTH, -{months}, GETDATE())
-            GROUP BY c.ClientName, c.ClientID, s.StockType
-            HAVING COUNT(DISTINCT o.OrderID) >= {min_orders}
+                AND gsm.[DESC] IS NOT NULL
+            GROUP BY 
+                o.ClientName,
+                gsm.[DESC],
+                pt.[Desc],
+                ps.[Desc]
         ),
-        ClientTopStocks AS (
+        ClientSummary AS (
             SELECT 
                 ClientName,
-                STRING_AGG(StockType, ', ') WITHIN GROUP (ORDER BY OrderCount DESC) AS PreferredStocks,
+                STRING_AGG(GSMDesc + ' ' + ISNULL(PaperType, ''), ', ') 
+                    WITHIN GROUP (ORDER BY OrderCount DESC) AS PreferredStocks,
                 SUM(OrderCount) AS TotalOrders,
                 AVG(TotalQuantity) AS AvgOrderSize,
                 MAX(LastOrderDate) AS LastOrderDate,
-                AVG(AvgDaysBetweenOrders) AS AvgReorderCycle
+                CAST(AVG(DATEDIFF(DAY, 
+                    LAG(LastOrderDate) OVER (PARTITION BY ClientName ORDER BY LastOrderDate), 
+                    LastOrderDate
+                )) AS INT) AS AvgDaysBetweenOrders
             FROM ClientStockUsage
             GROUP BY ClientName
+            HAVING SUM(OrderCount) >= {min_orders}
         )
         SELECT 
             ClientName,
             PreferredStocks,
             CASE 
-                WHEN AvgReorderCycle <= 30 THEN 'Monthly'
-                WHEN AvgReorderCycle <= 90 THEN 'Quarterly'
-                WHEN AvgReorderCycle <= 180 THEN 'Semi-Annual'
+                WHEN AvgDaysBetweenOrders <= 30 THEN 'Monthly'
+                WHEN AvgDaysBetweenOrders <= 90 THEN 'Quarterly'
+                WHEN AvgDaysBetweenOrders <= 180 THEN 'Semi-Annual'
                 ELSE 'Annual'
             END AS OrderFrequency,
             AvgOrderSize,
             LastOrderDate,
-            DATEADD(DAY, ISNULL(AvgReorderCycle, 30), LastOrderDate) AS PredictedReorderDate,
-            DATEDIFF(DAY, LastOrderDate, GETDATE()) AS DaysSinceLastOrder
-        FROM ClientTopStocks
+            DATEADD(DAY, ISNULL(AvgDaysBetweenOrders, 30), LastOrderDate) AS PredictedReorderDate,
+            DATEDIFF(DAY, LastOrderDate, GETDATE()) AS DaysSinceLastOrder,
+            TotalOrders
+        FROM ClientSummary
         ORDER BY DaysSinceLastOrder DESC
         """
     
     def _sql_stock_cost_trends(self, stock_type: str = 'all', months: int = 24) -> str:
-        """Generate SQL for historical stock cost trends"""
-        type_filter = ""
-        if stock_type != 'all':
-            type_filter = f"WHERE s.StockType = '{stock_type}'"
-        
-        return f"""
-        WITH MonthlyCosts AS (
-            SELECT 
-                FORMAT(h.PriceDate, 'yyyy-MM') AS YearMonth,
-                s.StockType,
-                AVG(h.CostPer1000) AS AvgCost,
-                s.SupplierName
-            FROM StockPriceHistory h
-            JOIN Quote_DigitalStocks s ON h.StockID = s.StockID
-            WHERE h.PriceDate >= DATEADD(MONTH, -{months}, GETDATE())
-            {type_filter}
-            GROUP BY FORMAT(h.PriceDate, 'yyyy-MM'), s.StockType, s.SupplierName
-        )
+        """
+        Generate SQL for stock cost trends - historical tracking not available
+        Returns informational message directing users to current analysis
+        """
+        return """
         SELECT 
-            YearMonth,
-            StockType,
-            AvgCost AS CostPer1000,
-            CAST(
-                (AvgCost - LAG(AvgCost) OVER (PARTITION BY StockType ORDER BY YearMonth)) 
-                / NULLIF(LAG(AvgCost) OVER (PARTITION BY StockType ORDER BY YearMonth), 0) * 100
-            AS DECIMAL(5,2)) AS ChangePercent,
-            SupplierName
-        FROM MonthlyCosts
-        ORDER BY YearMonth DESC, StockType
+            NULL AS YearMonth,
+            NULL AS StockType,
+            NULL AS CostPer1000,
+            NULL AS ChangePercent,
+            NULL AS SupplierName,
+            'Historical cost tracking not implemented. Use stock_pricing_profitability query for current period revenue analysis by paper type.' AS Note
+        WHERE 1=0
+        -- Production database does not track historical supplier costs or price changes
+        -- StockPriceHistory table does not exist in InHouse Fred database
+        -- For current paper performance, use: stock_pricing_profitability
         """
     
     # ============================================

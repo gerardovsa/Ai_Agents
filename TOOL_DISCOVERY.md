@@ -1214,6 +1214,126 @@ def get_registry() -> RegistryV3:
 
 ## Critical Fixes
 
+### Fix 0: Meta Tools for Tool Discovery (Jan 18, 2026)
+
+**Problem:** AI agents couldn't discover tool capabilities or parameter requirements dynamically
+
+**Solution:** Added 3 meta-tools for introspection of the tool registry
+
+**New Tools:**
+
+#### 1. `meta_get_tool_info`
+Get complete schema for a specific tool including parameters, descriptions, examples.
+
+```python
+# Usage:
+info = meta_get_tool_info(tool_name="xero_get_invoices")
+# Returns: Full JSON schema with parameter types, descriptions, examples
+```
+
+#### 2. `meta_list_tool_parameters`
+List all parameters for a tool with their types and requirements.
+
+```python
+# Usage:
+params = meta_list_tool_parameters(tool_name="inhouse_calculate_quote")
+# Returns:
+{
+  "required": ["product_type"],
+  "optional": ["quantity", "stock_type", "sides"],
+  "parameter_details": {
+    "product_type": {"type": "string", "description": "Product to quote"},
+    "quantity": {"type": "integer", "default": 1000}
+  }
+}
+```
+
+#### 3. `meta_validate_tool_parameters`
+Validate parameter values before tool execution (prevents errors).
+
+```python
+# Usage:
+result = meta_validate_tool_parameters(
+  tool_name="xero_get_invoices_by_date_range",
+  parameters={"from_date": "2026-01-01", "limit": "100"}  # Note: limit is string
+)
+# Returns:
+{
+  "valid": true,
+  "type_corrections": {"limit": 100},  # Auto-converted string to int
+  "warnings": []
+}
+```
+
+**Implementation:**
+
+```python
+# File: UI/modules_external/quote-calculator/implementations/meta_tools_wrapper.py (224 lines)
+
+@tool_executor()
+def meta_get_tool_info(tool_name: str, **kwargs) -> Dict[str, Any]:
+    """Get complete information about a specific tool"""
+    from tools.registry_v3 import get_registry
+    
+    registry = get_registry()
+    tool = registry.tools.get(tool_name)
+    
+    if not tool:
+        return {"success": False, "error": f"Tool '{tool_name}' not found"}
+    
+    return {
+        "success": True,
+        "tool_info": {
+            "name": tool['name'],
+            "description": tool['description'],
+            "parameters": tool['parameters'],
+            "category": tool.get('category'),
+            "platform": tool.get('platform'),
+            "examples": tool.get('examples', [])
+        }
+    }
+```
+
+**Tool Definitions:**
+
+```json
+// File: UI/modules_external/quote-calculator/tools/meta_tools.json (77 lines)
+[
+  {
+    "name": "meta_get_tool_info",
+    "description": "Get complete schema for a tool (parameters, descriptions, examples)",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "tool_name": {"type": "string", "description": "Name of tool to inspect"}
+      },
+      "required": ["tool_name"]
+    },
+    "platform": "meta_tools",
+    "execution_rules": [
+      "Use this before calling unfamiliar tools",
+      "Check parameter requirements to avoid errors",
+      "Review examples for correct usage patterns"
+    ]
+  }
+  // ... 2 more tools
+]
+```
+
+**Impact:**
+- AI agents can learn tool capabilities dynamically
+- Reduced tool execution errors (parameter validation)
+- Self-documenting system (agents read their own tool schemas)
+- Enables "tool chaining" patterns (discover tools, validate, execute)
+
+**Files Added:**
+- `UI/modules_external/quote-calculator/implementations/meta_tools_wrapper.py` (224 lines)
+- `UI/modules_external/quote-calculator/tools/meta_tools.json` (77 lines)
+
+**Status:** ✅ COMPLETE
+
+---
+
 ### Fix 1: Thread-Local User ID Storage (Jan 13, 2026)
 
 **Problem:** Flask `g` context doesn't transfer to worker threads, causing `_user_id` injection to fail.

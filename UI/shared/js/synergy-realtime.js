@@ -1015,7 +1015,7 @@ window.SynergyRealtime = {
         return agentId;
     },
 
-    _updateActiveUsersCount(count, room = null) {
+    _updateActiveUsersCount(count, room = null, sessions = null) {
         // Only update the currently active room's badge
         const activeRoom = this.presenceContext?.room;
         if (room && activeRoom && room !== activeRoom) return;
@@ -1028,11 +1028,86 @@ window.SynergyRealtime = {
             countEl.title = `${count} active session${count !== 1 ? 's' : ''}`;
         }
 
-        // Toggle the container (the HTML sets it to display:none initially)
+        // Badge is always visible in Command Center, hidden in Synergy unless multiple users
         if (badgeContainer) {
-            badgeContainer.style.display = count > 1 ? 'inline-flex' : 'none';
-            badgeContainer.title = `${count} active session${count !== 1 ? 's' : ''}`;
+            // Command Center badge is always visible
+            const isCommandCenter = this.presenceContext?.badgeContainerId === 'command-center-active-users-badge';
+            badgeContainer.style.display = (isCommandCenter || count > 1) ? 'inline-flex' : 'none';
+            
+            // Update tooltip list if it exists (Command Center only)
+            if (isCommandCenter && sessions && Array.isArray(sessions)) {
+                this._updateActiveUsersTooltip(sessions, count);
+            }
         }
+    },
+
+    /**
+     * Update the active users tooltip list (Command Center only)
+     * @param {Array} sessions - List of active sessions with user info
+     * @param {number} count - Total session count
+     */
+    _updateActiveUsersTooltip(sessions, count) {
+        const listContainer = document.getElementById('command-center-active-users-list');
+        if (!listContainer) return;
+
+        // Clear existing list
+        listContainer.innerHTML = '';
+
+        if (count === 1 || sessions.length === 0) {
+            // Solo session
+            listContainer.innerHTML = `
+                <div class="active-user-item">
+                    <div class="active-user-avatar">You</div>
+                    <span>You (Solo Session)</span>
+                </div>
+            `;
+        } else {
+            // Multiple sessions - show all users
+            sessions.forEach((session, index) => {
+                const userName = session.user_name || session.email || 'Unknown User';
+                const initials = this._getUserInitials(userName);
+                const isCurrentUser = session.session_id === this.sessionId;
+                
+                const item = document.createElement('div');
+                item.className = 'active-user-item';
+                item.innerHTML = `
+                    <div class="active-user-avatar" style="background: ${this._getAvatarColor(index)};">
+                        ${initials}
+                    </div>
+                    <span>${userName}${isCurrentUser ? ' (You)' : ''}</span>
+                `;
+                listContainer.appendChild(item);
+            });
+        }
+    },
+
+    /**
+     * Get user initials from name or email
+     */
+    _getUserInitials(name) {
+        if (!name) return '?';
+        const parts = name.split(' ');
+        if (parts.length >= 2) {
+            return `${parts[0][0]}${parts[1][0]}`.toUpperCase();
+        }
+        return name.substring(0, 2).toUpperCase();
+    },
+
+    /**
+     * Get consistent avatar color for user based on index
+     */
+    _getAvatarColor(index) {
+        const colors = [
+            '#10b981', // green
+            '#3b82f6', // blue
+            '#f59e0b', // amber
+            '#8b5cf6', // purple
+            '#ef4444', // red
+            '#06b6d4', // cyan
+            '#ec4899', // pink
+            '#14b8a6'  // teal
+        ];
+        return colors[index % colors.length];
     },
 
     _updateScopeCount(data) {

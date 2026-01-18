@@ -484,6 +484,9 @@ def inhouse_calculate_quote(product_type: str, parameters: Optional[Dict[str, An
         # Initialize registry
         registry = RegistryV3()
         
+        # ✅ FIX (Jan 19, 2026): Normalize product type (space → underscore)
+        product_type = product_type.lower().replace(' ', '_').replace('-', '_')
+        
         # Handle both nested and flattened parameter formats
         if parameters is None:
             # Parameters were flattened (from execute_tool) - reconstruct from kwargs
@@ -674,6 +677,22 @@ def inhouse_get_reorder_alerts(**kwargs) -> Dict[str, Any]:
             "warning_count": 5
         }
     """
+    # ✅ FIX (Jan 19, 2026): Add JSON serialization helper for Decimal/date types
+    from decimal import Decimal
+    import datetime
+    
+    def convert_to_json_serializable(obj):
+        """Recursively convert Decimal/date objects to JSON-serializable types."""
+        if isinstance(obj, Decimal):
+            return float(obj)
+        elif isinstance(obj, (datetime.date, datetime.datetime)):
+            return obj.isoformat()
+        elif isinstance(obj, dict):
+            return {k: convert_to_json_serializable(v) for k, v in obj.items()}
+        elif isinstance(obj, list):
+            return [convert_to_json_serializable(i) for i in obj]
+        return obj
+    
     try:
         # Import Supabase query utility
         from AI_infrastructure.shared.database_utils import execute_query
@@ -740,12 +759,13 @@ def inhouse_get_reorder_alerts(**kwargs) -> Dict[str, Any]:
         critical_count = len([r for r in results if r.get('alert_level') == 'CRITICAL'])
         warning_count = len([r for r in results if r.get('alert_level') == 'WARNING'])
         
-        return {
+        # ✅ FIX (Jan 19, 2026): Convert Decimal types before returning
+        return convert_to_json_serializable({
             "success": True,
             "alerts": results or [],
             "critical_count": critical_count,
             "warning_count": warning_count
-        }
+        })
         
     except Exception as e:
         import traceback

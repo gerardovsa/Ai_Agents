@@ -934,9 +934,16 @@ def execute_tool(tool_name: str = None, **tool_params) -> Dict[str, Any]:
         # Must pass tool_name inside kwargs dictionary
         result = registry.execute_tool(tool_name=extracted_tool_name, **params)
         
-        print(f"[META-TOOL] execute_tool() result: success={result.get('success', 'unknown')}")
-        if not result.get('success'):
-            print(f"[META-TOOL] Error from target tool: {result.get('error', 'No error message')}")
+        # ✅ FIX (Jan 19, 2026): Handle different return types (dict, list, primitives)
+        if isinstance(result, dict):
+            success_status = result.get('success', 'unknown')
+            print(f"[META-TOOL] execute_tool() result: success={success_status}")
+            if not success_status:
+                print(f"[META-TOOL] Error from target tool: {result.get('error', 'No error message')}")
+        elif isinstance(result, list):
+            print(f"[META-TOOL] execute_tool() result: list with {len(result)} items")
+        else:
+            print(f"[META-TOOL] execute_tool() result: {type(result).__name__}")
         
         return {
             "success": True,

@@ -1,8 +1,10 @@
 # XERO INTEGRATION - Master Documentation
 **Created:** January 18, 2026  
-**Version:** 2.0.0  
+**Version:** 2.1.0  
+**Last Updated:** January 19, 2026  
 **Status:** ✅ Production Ready  
 **Businesses:** InHouse Print, Publishing, Signs  
+**New Module:** Customer Reactivation (9 AI tools)  
 
 ---
 
@@ -1340,6 +1342,154 @@ except requests.exceptions.HTTPError as e:
 ```
 
 **Files Modified**: `UI/modules_external/xero/xero_routes.py` (lines 268-290)
+
+---
+
+### January 18, 2026: Quotes Endpoint Registration Fix
+
+**Problem:** `/api/xero/quotes` endpoints returning 404 errors in production
+
+**Root Cause:** Quotes routes not registered in Flask blueprint
+
+**Fix Applied:**
+```python
+# File: xero_routes.py, Line ~3750
+# Added endpoint registrations:
+
+@xero_bp.route('/api/xero/quotes', methods=['GET'])
+def get_quotes_endpoint():
+    return get_xero_quotes()
+
+@xero_bp.route('/api/xero/quotes/<quote_id>', methods=['GET'])
+def get_quote_detail_endpoint(quote_id):
+    return get_xero_quote_by_id(quote_id)
+
+@xero_bp.route('/api/xero/quotes', methods=['POST'])
+def create_quote_endpoint():
+    return create_xero_quote()
+
+@xero_bp.route('/api/xero/quotes/<quote_id>', methods=['PUT'])
+def update_quote_endpoint(quote_id):
+    return update_xero_quote(quote_id)
+
+@xero_bp.route('/api/xero/quotes/branding-themes', methods=['GET'])
+def get_branding_themes_endpoint():
+    return get_xero_branding_themes()
+```
+
+**Impact:**
+- All 5 quote management endpoints now accessible
+- Quote creation/update workflows functional
+- Production deployment stable
+
+**Files Modified:**
+- `UI/modules_external/xero/xero_routes.py` (Line ~3750)
+
+**Status:** ✅ COMPLETE
+
+---
+
+### January 18, 2026: Customer Reactivation Module Added
+
+**Feature:** Complete customer reactivation system with ML-powered churn prediction
+
+**New Module Structure:**
+```
+UI/modules_external/customer-reactivation/
+├── customer-reactivation.js (1,026 lines) - 6-tab interface
+├── customer-reactivation.css (671 lines) - Dark theme styling
+├── implementations/reactivation_wrapper.py (643 lines) - Backend logic
+└── tools/reactivation_tools.json (313 lines) - 9 AI tools
+```
+
+**6 Dashboard Tabs:**
+1. **Dashboard** - At-risk customer overview, reactivation metrics
+2. **Customer Insights** - Churn risk analysis (ML model predictions)
+3. **Campaigns** - Email campaign management and tracking
+4. **Templates** - Reactivation email templates library
+5. **Analytics** - Campaign performance metrics
+6. **Settings** - Threshold configuration (730+ days = dead customer)
+
+**9 AI Tools Added:**
+1. `reactivation_get_at_risk_customers` - List customers with 730+ days since last invoice
+2. `reactivation_get_customer_churn_risk` - ML model prediction (0.0-1.0 score)
+3. `reactivation_create_campaign` - Create targeted email campaign
+4. `reactivation_get_campaigns` - List all reactivation campaigns
+5. `reactivation_update_campaign` - Modify campaign settings
+6. `reactivation_get_campaign_analytics` - Performance metrics
+7. `reactivation_get_templates` - List email templates
+8. `reactivation_send_campaign_emails` - Bulk email dispatch
+9. `reactivation_get_customer_history` - Full purchase history analysis
+
+**ML Integration:**
+- Connects to Xero churn-risk ML API: `/api/xero/reports/churn-risk-ml`
+- Analyzes: Invoice frequency, recency, total value, payment behavior
+- Returns: Churn probability (0.0-1.0) + risk factors
+
+**Customer Intelligence Fix:**
+```python
+# Problem: "Dead customer" detection threshold too aggressive (365 days)
+# Solution: Updated to 730+ days (2 years) for print shop seasonality
+
+DEAD_CUSTOMER_THRESHOLD = 730  # 2 years since last invoice
+
+# File: analyze_xero_customers.py, Line ~50
+def identify_dead_customers(invoices):
+    today = datetime.now()
+    dead_customers = []
+    
+    for customer_id, customer_invoices in invoices.items():
+        last_invoice_date = max(inv['Date'] for inv in customer_invoices)
+        days_since = (today - last_invoice_date).days
+        
+        if days_since > DEAD_CUSTOMER_THRESHOLD:  # ✅ 730 days
+            dead_customers.append({
+                'customer_id': customer_id,
+                'days_since_last_invoice': days_since,
+                'last_invoice_date': last_invoice_date,
+                'total_invoices': len(customer_invoices)
+            })
+    
+    return dead_customers
+```
+
+**BaseModule Polyfill:**
+```javascript
+// File: customer-reactivation.js, Line ~20
+// Fix: ReferenceError: BaseModule is not defined
+
+if (typeof BaseModule === 'undefined') {
+    window.BaseModule = class {
+        constructor(config) {
+            this.config = config;
+            this.isActive = false;
+        }
+        
+        async activate() {
+            this.isActive = true;
+            console.log(`[${this.config.name}] Module activated`);
+        }
+        
+        async deactivate() {
+            this.isActive = false;
+            console.log(`[${this.config.name}] Module deactivated`);
+        }
+    };
+}
+```
+
+**Impact:**
+- Automated customer reactivation workflows
+- ML-powered churn prevention
+- Email campaign tracking and analytics
+- Integration with existing Xero invoice data
+
+**Files Added:**
+- `UI/modules_external/customer-reactivation/*` (4 files, 2,653 lines)
+- `AI_infrastructure/analyze_xero_customers.py` (232 lines)
+- Module documentation: CUSTOMER_REACTIVATION_DEPLOYMENT.md (412 lines)
+
+**Status:** ✅ READY FOR TESTING
 
 ---
 

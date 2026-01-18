@@ -1,6 +1,7 @@
 # Google Workspace Integration Documentation
 
-**Last Updated:** January 18, 2026  
+**Last Updated:** January 19, 2026  
+**Version:** 3.1.0  
 **Status:** Production Ready - Complete Google Workspace Suite  
 **Purpose:** Comprehensive technical documentation for Google Workspace integration (Gmail, Drive, Docs, Sheets, Slides, Calendar, Forms, Tasks, Meet, Analytics)
 
@@ -1339,7 +1340,80 @@ requests.append({
 })
 ```
 
-### Fix 4: Gmail Threading Implementation (Jan 12, 2026)
+### Fix 4: OAuth State CSRF Debugging (Jan 18, 2026)
+
+**Problem:** OAuth state mismatches causing CSRF errors, difficult to debug
+
+**Root Cause:** Insufficient logging during OAuth flow for state parameter tracking
+
+**Solution:** Added comprehensive state logging for Microsoft and Google OAuth
+
+```python
+# File: google_auth_routes_V2_FIXED.py, Line ~45
+@google_auth_bp.route('/api/google-auth/authorize')
+def authorize():
+    state = str(uuid.uuid4())
+    session['oauth_state'] = state
+    session['oauth_user_id'] = user_id
+    
+    # ✅ NEW: Detailed logging
+    logger.info(f"[GOOGLE AUTH] State generated: {state}")
+    logger.info(f"[GOOGLE AUTH] Session ID: {session.sid}")
+    logger.info(f"[GOOGLE AUTH] User ID: {user_id}")
+    logger.info(f"[GOOGLE AUTH] Redirect URI: {redirect_uri}")
+    
+    # Generate authorization URL...
+
+@google_auth_bp.route('/api/google-auth/callback')
+def callback():
+    state_from_request = request.args.get('state')
+    state_from_session = session.get('oauth_state')
+    
+    # ✅ NEW: Debug logging
+    logger.info(f"[GOOGLE CALLBACK] Received state: {state_from_request}")
+    logger.info(f"[GOOGLE CALLBACK] Session state: {state_from_session}")
+    logger.info(f"[GOOGLE CALLBACK] Session ID: {session.sid}")
+    logger.info(f"[GOOGLE CALLBACK] Match: {state_from_request == state_from_session}")
+    
+    if state_from_request != state_from_session:
+        logger.error(f"[GOOGLE CALLBACK] CSRF attack detected!")
+        return jsonify({'error': 'State mismatch'}), 400
+```
+
+```python
+# File: microsoft_auth_routes_V2_FIXED.py, Line ~50
+# Similar logging pattern for Microsoft OAuth
+
+@microsoft_auth_bp.route('/api/microsoft-auth/authorize')
+def authorize():
+    state = str(uuid.uuid4())
+    session['microsoft_oauth_state'] = state
+    
+    logger.info(f"[MICROSOFT AUTH] State: {state}")
+    logger.info(f"[MICROSOFT AUTH] Session: {session.sid}")
+    logger.info(f"[MICROSOFT AUTH] User: {user_id}")
+    
+@microsoft_auth_bp.route('/api/microsoft-auth/callback')
+def callback():
+    logger.info(f"[MICROSOFT CALLBACK] Received: {request.args.get('state')}")
+    logger.info(f"[MICROSOFT CALLBACK] Expected: {session.get('microsoft_oauth_state')}")
+    logger.info(f"[MICROSOFT CALLBACK] Session: {session.sid}")
+```
+
+**Impact:**
+- Faster CSRF debugging (identify session/state issues immediately)
+- Production monitoring for OAuth failures
+- Detailed audit trail for security incidents
+
+**Files Modified:**
+- `AI_infrastructure/routes/google_auth_routes_V2_FIXED.py` (Lines 45-80)
+- `AI_infrastructure/routes/microsoft_auth_routes_V2_FIXED.py` (Lines 50-85)
+
+**Status:** ✅ COMPLETE
+
+---
+
+### Fix 5: Gmail Threading Implementation (Jan 12, 2026)
 
 **Problem:** Communication Hub showed individual emails, not threaded conversations like Gmail.
 

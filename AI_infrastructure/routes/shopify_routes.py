@@ -32,6 +32,7 @@ Previous: January 4, 2026 - Removed SQLite, added WooCommerce API (WRONG PLATFOR
 
 import sys
 import os
+import json
 import traceback
 from datetime import datetime, timedelta
 from collections import defaultdict
@@ -141,6 +142,10 @@ def get_shopify_credentials(user_id=None):
         
         # Handle both dict and tuple results
         credentials = result['credentials'] if isinstance(result, dict) else result[0]
+        
+        # Handle JSON string vs dict (database_utils may return either)
+        if isinstance(credentials, str):
+            credentials = json.loads(credentials)
         
         # Check if credentials have new format (shop_name + access_token)
         if 'shop_name' in credentials and 'access_token' in credentials:

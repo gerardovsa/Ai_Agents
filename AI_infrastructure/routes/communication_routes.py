@@ -56,6 +56,7 @@ from auth.user_auth import require_auth
 from google_workspace.gmail import (
     gmail_list_messages, 
     gmail_get_message,  # Used to fetch full message details (already imported)
+    gmail_get_thread,  # ✅ FIX (Jan 19, 2026): Added for Gmail thread fetching
     gmail_get_attachment,  # NEW: Download Gmail attachments
     gmail_send_email,
     gmail_mark_as_read,
@@ -369,45 +370,56 @@ def list_emails():
                 actual_thread_id = thread_id.replace('outlook_', '') if thread_id.startswith('outlook_') else thread_id
                 print(f"[Communication Hub] 🔍 Fetching Outlook CONVERSATION: {actual_thread_id}")
                 
-                # Use Microsoft365Client to fetch conversation
-                from Microsoft_365_Connection.microsoft365_client import Microsoft365Client
-                
-                # Get user's Microsoft credentials
-                outlook_creds = user_auth_manager.get_user_oauth_credentials(user_id, 'microsoft')
-                if not outlook_creds:
-                    raise ValueError(f"No Microsoft OAuth credentials for user {user_id}")
-                
-                ms_client = Microsoft365Client(
-                    access_token=outlook_creds['access_token'],
-                    refresh_token=outlook_creds.get('refresh_token')
-                )
-                
-                # Fetch all messages in conversation
-                endpoint = f'/me/messages?$filter=conversationId eq \'{actual_thread_id}\'&$top=100&$orderby=receivedDateTime asc'
-                response = ms_client._make_request('GET', endpoint)
-                conversation_messages = response.get('value', [])
-                
-                print(f"[Communication Hub] ✅ Got {len(conversation_messages)} messages from Outlook conversation")
-                
-                for msg in conversation_messages:
-                    from_addr = msg.get('from', {})
-                    if isinstance(from_addr, dict):
-                        from_email = from_addr.get('emailAddress', {}).get('address', 'Unknown')
-                    else:
-                        from_email = str(from_addr)
+                # ✅ FIX (Jan 19, 2026): Use direct list_messages with conversationId filter
+                # Microsoft Graph API: GET /me/messages?$filter=conversationId eq '<id>'
+                # This searches ALL folders (inbox, sentitems, drafts) automatically
+                try:
+                    # Use Outlook list_messages with filter parameter
+                    outlook_result = microsoft_outlook_list_messages(
+                        folder=None,  # None = search all folders (inbox + sentitems + drafts)
+                        max_results=100,
+                        filter=f"conversationId eq '{actual_thread_id}'",
+                        order_by='receivedDateTime asc',  # Oldest first for conversation thread
+                        _user_id=user_id,
+                        _injected_credentials=True
+                    )
                     
-                    emails.append({
-                        'id': f"outlook_{msg['id']}",
-                        'provider': 'outlook',
-                        'from': from_email,
-                        'to': msg.get('toRecipients', [{}])[0].get('emailAddress', {}).get('address', '') if msg.get('toRecipients') else '',
-                        'subject': msg.get('subject', 'No Subject'),
-                        'date': msg.get('receivedDateTime', ''),
-                        'is_read': msg.get('isRead', False),
-                        'snippet': msg.get('bodyPreview', ''),
-                        'has_attachments': msg.get('hasAttachments', False),
-                        'thread_id': msg.get('conversationId')
-                    })
+                    if outlook_result.get('success'):
+                        conversation_messages = outlook_result.get('messages', [])
+                        print(f"[Communication Hub] ✅ Got {len(conversation_messages)} messages from Outlook conversation")
+                        
+                        for msg in conversation_messages:
+                            from_addr = msg.get('from', {})
+                            if isinstance(from_addr, dict):
+                                from_email = from_addr.get('emailAddress', {}).get('address', 'Unknown')
+                            else:
+                                from_email = str(from_addr)
+                            
+                            # Parse toRecipients properly
+                            to_recipients = msg.get('toRecipients', [])
+                            to_email = ''
+                            if to_recipients and len(to_recipients) > 0:
+                                to_email = to_recipients[0].get('emailAddress', {}).get('address', '')
+                            
+                            emails.append({
+                                'id': f"outlook_{msg['id']}",
+                                'provider': 'outlook',
+                                'from': from_email,
+                                'to': to_email,
+                                'subject': msg.get('subject', 'No Subject'),
+                                'date': msg.get('receivedDateTime', ''),
+                                'is_read': msg.get('isRead', False),
+                                'snippet': msg.get('bodyPreview', ''),
+                                'has_attachments': msg.get('hasAttachments', False),
+                                'thread_id': msg.get('conversationId')
+                            })
+                    else:
+                        raise Exception(f"Outlook list failed: {outlook_result.get('error', 'Unknown error')}")
+                        
+                except Exception as conv_err:
+                    print(f"[Communication Hub] ❌ Failed to fetch Outlook conversation: {conv_err}")
+                    import traceback
+                    traceback.print_exc()
             
             else:
                 # No thread filter - list messages normally

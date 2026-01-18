@@ -2,7 +2,8 @@
 **Live WooCommerce API Integration - Real-Time Order Management & Analytics**
 
 **Created:** January 18, 2026  
-**Module Version:** 1.2.1  
+**Module Version:** 1.2.2  
+**Last Updated:** January 19, 2026  
 **Last Refactor:** January 4, 2026 (Removed SQLite, Added WooCommerce REST API)  
 **Status:** ✅ Production Ready  
 **Platform:** InHouse Print (https://inhouseprint.com.au)
@@ -1154,6 +1155,81 @@ if not cursor.fetchone():
 ---
 
 ## Critical Issues & Fixes
+
+### Issue #0: Layout CSS + Import Path (January 18, 2026) ✅ FIXED
+
+**Problem:** Shopify module not displaying correctly in production + 404 import errors
+
+**Root Causes:**
+1. Missing flex layout CSS causing content overflow
+2. Incorrect database_utils import path (4 parent directories instead of 2)
+3. Revenue chart `data.data.revenue.map()` error (nested data property)
+
+**Fixes Applied:**
+
+#### 1. Flex Layout CSS (shopify.css)
+```css
+/* File: shopify.css, Line ~485 */
+/* ADDED: */
+.shopify-module-wrapper {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    overflow: hidden;
+}
+
+.shopify-header {
+    flex-shrink: 0; /* Fixed header */
+}
+
+.shopify-nav-tabs {
+    flex-shrink: 0; /* Fixed tab navigation */
+}
+
+.shopify-content-wrapper {
+    flex: 1;
+    overflow-y: auto; /* Scrollable content area */
+    padding: 20px;
+}
+```
+
+**Impact:** Module now has proper fixed header/nav with scrollable content area
+
+#### 2. Import Path Fix (shopify_routes.py)
+```python
+# File: AI_infrastructure/routes/shopify_routes.py, Line ~10
+# BEFORE (WRONG):
+from ../../../../shared/database_utils import execute_query
+
+# AFTER (FIXED):
+from AI_infrastructure.shared.database_utils import execute_query
+```
+
+**Impact:** Production deployment no longer crashes with ImportError
+
+#### 3. Revenue Chart Data Fix (shopify.js)
+```javascript
+// File: shopify.js, Line ~850
+// BEFORE (WRONG):
+const revenues = data.data.revenue.map(r => r.revenue);
+
+// AFTER (FIXED):
+const revenues = data.revenue.map(r => r.revenue);
+```
+
+**Impact:** Dashboard charts render correctly
+
+#### 4. Export Functionality Added
+Added CSV/Excel/PDF export to Orders, Customers, and Products tabs via Tabulator built-in methods.
+
+**Files Modified:**
+- `UI/modules_external/shopify/shopify.css` (+37 lines)
+- `AI_infrastructure/routes/shopify_routes.py` (Line ~10)
+- `UI/modules_external/shopify/shopify.js` (Line ~850)
+
+**Status:** ✅ COMPLETE (Production ready Jan 18, 2026)
+
+---
 
 ### Issue #1: Double GST Application 🔴 CRITICAL
 

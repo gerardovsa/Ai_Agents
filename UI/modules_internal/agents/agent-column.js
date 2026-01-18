@@ -137,15 +137,11 @@ const AgentColumn = (function () {
 
         column.innerHTML = `
             <!-- Collapsed Column Bar (hidden by default) -->
-            <div class="collapsed-column-bar" onclick="AgentColumn.expand(${agentId})">
-                <button class="expand-btn" title="Expand column" aria-label="Expand column">
+            <div class="collapsed-column-bar" onclick="AgentColumn.expand(${agentId})" title="Click to expand ${name}">
+                <button class="expand-btn" aria-label="Expand column">
                     <i class="fas fa-chevron-right"></i>
                 </button>
                 <div class="agent-name-vertical">${name}</div>
-                <div class="thread-info-vertical">
-                    <div class="thread-status-vertical" id="collapsed-status-${agentId}">No Thread</div>
-                    <div class="thread-timestamp-vertical" id="collapsed-timestamp-${agentId}"></div>
-                </div>
             </div>
 
             <!-- Expanded Column Content -->
@@ -166,24 +162,24 @@ const AgentColumn = (function () {
                         </button>
                         <div class="view-mode-dropdown" id="view-mode-menu-${agentId}">
                             <div class="view-mode-item active" data-mode="all-expanded" onclick="AgentColumn.setViewMode(${agentId}, 'all-expanded', event)">
-                                <i class="fas fa-expand-alt"></i>
+                                <i class="fas fa-expand-arrows-alt"></i>
                                 <span>All Expanded</span>
                             </div>
                             <div class="view-mode-item" data-mode="all-collapsed" onclick="AgentColumn.setViewMode(${agentId}, 'all-collapsed', event)">
-                                <i class="fas fa-list"></i>
+                                <i class="fas fa-compress-arrows-alt"></i>
                                 <span>All Collapsed</span>
                             </div>
                             <div class="view-mode-item" data-mode="ai-expanded" onclick="AgentColumn.setViewMode(${agentId}, 'ai-expanded', event)">
-                                <i class="fas fa-bolt"></i>
-                                <span>AI + Tools Expanded</span>
+                                <i class="fas fa-brain"></i>
+                                <span>Thinking Collapsed</span>
                             </div>
                             <div class="view-mode-item" data-mode="ai-collapsed" onclick="AgentColumn.setViewMode(${agentId}, 'ai-collapsed', event)">
-                                <i class="fas fa-robot"></i>
-                                <span>AI + Tools Collapsed</span>
+                                <i class="fas fa-tools"></i>
+                                <span>Tools Collapsed</span>
                             </div>
                             <div class="view-mode-item" data-mode="ai-user" onclick="AgentColumn.setViewMode(${agentId}, 'ai-user', event)">
-                                <i class="fas fa-users"></i>
-                                <span>AI + User Only</span>
+                                <i class="fas fa-comments"></i>
+                                <span>Messages Only</span>
                             </div>
                         </div>
                     </div>
@@ -611,21 +607,14 @@ const AgentColumn = (function () {
         const originalCollapsedBar = column.querySelector('.collapsed-column-bar');
         if (originalCollapsedBar) {
             const placeholderBar = originalCollapsedBar.cloneNode(true);
-            placeholderBar.onclick = null; // Remove expand handler
-            placeholderBar.style.cursor = 'default';
+            placeholderBar.onclick = (e) => {
+                e.stopPropagation();
+                returnToMain();
+            };
+            placeholderBar.title = 'Click to return to Command Centre';
+            placeholderBar.style.cursor = 'pointer';
             placeholder.appendChild(placeholderBar);
         }
-
-        // Add return button to placeholder
-        const returnIndicator = document.createElement('button');
-        returnIndicator.className = 'collapsed-return-btn';
-        returnIndicator.innerHTML = '<i class="fas fa-arrow-left"></i><span>Return to Command Centre</span>';
-        returnIndicator.title = 'Return to Command Centre';
-        returnIndicator.onclick = (e) => {
-            e.stopPropagation();
-            returnToMain();
-        };
-        placeholder.appendChild(returnIndicator);
 
         // Replace original column with placeholder in dashboard
         originalParent.replaceChild(placeholder, column);
@@ -818,12 +807,31 @@ const AgentColumn = (function () {
 
         document.addEventListener('mousemove', (e) => {
             if (!isDragging) return;
-            const x = e.clientX - dragOffsetX;
-            const y = e.clientY - dragOffsetY;
-            const maxX = window.innerWidth - 200;
-            const maxY = window.innerHeight - 50;
-            floatingWindow.style.left = `${Math.max(0, Math.min(x, maxX))}px`;
-            floatingWindow.style.top = `${Math.max(0, Math.min(y, maxY))}px`;
+            
+            // Calculate new position
+            let x = e.clientX - dragOffsetX;
+            let y = e.clientY - dragOffsetY;
+            
+            // Get window dimensions
+            const windowRect = floatingWindow.getBoundingClientRect();
+            const windowWidth = windowRect.width;
+            const windowHeight = windowRect.height;
+            
+            // Define minimum visible area (header height + some padding)
+            const MIN_VISIBLE_HEADER = 60; // Ensure at least 60px of header is visible
+            
+            // Constrain position to keep header visible on all edges
+            const minX = -(windowWidth - MIN_VISIBLE_HEADER); // Allow dragging left, but keep some header visible
+            const maxX = window.innerWidth - MIN_VISIBLE_HEADER; // Keep some header visible on right
+            const minY = 0; // Don't allow dragging above screen top
+            const maxY = window.innerHeight - MIN_VISIBLE_HEADER; // Keep header visible at bottom
+            
+            // Apply constraints
+            x = Math.max(minX, Math.min(x, maxX));
+            y = Math.max(minY, Math.min(y, maxY));
+            
+            floatingWindow.style.left = `${x}px`;
+            floatingWindow.style.top = `${y}px`;
         });
 
         document.addEventListener('mouseup', () => {
@@ -972,6 +980,7 @@ const AgentColumn = (function () {
     function toggleWidth(agentId) {
         const column = document.getElementById(`agent-column-${agentId}`);
         const icon = document.getElementById(`width-icon-${agentId}`);
+        const btn = column?.querySelector('.width-toggle-btn');
 
         if (column && icon) {
             const hasWide = column.classList.contains('wide');
@@ -984,6 +993,7 @@ const AgentColumn = (function () {
                 icon.className = 'fas fa-angle-double-right'; // >>
                 icon.style.transform = 'none';
                 newWidth = 600;
+                if (btn) btn.title = 'Make extra-wide (800px)';
                 console.log(`[AgentColumn] Width for agent ${agentId}: 400px -> 600px`);
             } else if (hasWide && !hasExtraWide) {
                 // Stage 2 -> 3: 600px to 800px (icon: >>)
@@ -992,6 +1002,7 @@ const AgentColumn = (function () {
                 icon.className = 'fas fa-chevron-left'; // <
                 icon.style.transform = 'none';
                 newWidth = 800;
+                if (btn) btn.title = 'Return to normal (400px)';
                 console.log(`[AgentColumn] Width for agent ${agentId}: 600px -> 800px`);
             } else {
                 // Stage 3 -> 1: 800px back to 400px (icon: <)
@@ -999,12 +1010,20 @@ const AgentColumn = (function () {
                 icon.className = 'fas fa-chevron-right'; // >
                 icon.style.transform = 'none';
                 newWidth = 400;
+                if (btn) btn.title = 'Make wide (600px)';
                 console.log(`[AgentColumn] Width for agent ${agentId}: 800px -> 400px`);
             }
 
             // ✅ SAVE COLUMN WIDTH TO STORAGE (localStorage + database)
             if (typeof WorkspaceManager !== 'undefined') {
                 WorkspaceManager.save(agentId, 'columnWidth', newWidth);
+            }
+
+            // ✅ If agent is in a popout window, resize the window itself
+            const popoutWindow = document.getElementById(`agent-popout-${agentId}`);
+            if (popoutWindow && column.dataset.poppedOut === 'true') {
+                popoutWindow.style.width = `${newWidth}px`;
+                console.log(`[AgentColumn] Resized popout window for agent ${agentId} to ${newWidth}px`);
             }
         }
     }
@@ -1422,7 +1441,11 @@ const AgentColumn = (function () {
      * @param {number} agentId - Agent ID
      */
     function showHistory(agentId) {
-        toggleMenu(agentId); // Close menu
+        // Explicitly close the menu (don't toggle)
+        const menu = document.getElementById(`menu-${agentId}`);
+        if (menu) {
+            menu.classList.remove('show');
+        }
 
         if (typeof ThreadManager !== 'undefined' && typeof ThreadManager.toggleThreadMenu === 'function') {
             ThreadManager.toggleThreadMenu();
@@ -1922,11 +1945,11 @@ const AgentColumn = (function () {
         const icon = document.getElementById(`view-mode-icon-${agentId}`);
         if (icon) {
             const modeIcons = {
-                'all-collapsed': 'fa-list',
-                'all-expanded': 'fa-expand-alt',
-                'ai-collapsed': 'fa-robot',
-                'ai-expanded': 'fa-bolt',
-                'ai-user': 'fa-users'
+                'all-collapsed': 'fa-compress-arrows-alt',
+                'all-expanded': 'fa-expand-arrows-alt',
+                'ai-collapsed': 'fa-tools',
+                'ai-expanded': 'fa-brain',
+                'ai-user': 'fa-comments'
             };
             icon.className = `fas ${modeIcons[mode]}`;
         }
@@ -1936,11 +1959,11 @@ const AgentColumn = (function () {
             const modeNames = {
                 'all-collapsed': 'All Collapsed',
                 'all-expanded': 'All Expanded',
-                'ai-collapsed': 'AI + Tools Collapsed',
-                'ai-expanded': 'AI + Tools Expanded',
-                'ai-user': 'AI + User Only'
+                'ai-collapsed': 'Tools Collapsed',
+                'ai-expanded': 'Thinking Collapsed',
+                'ai-user': 'Messages Only'
             };
-            btn.title = `Change View Mode\nCurrent: ${modeNames[mode]}`;
+            btn.title = `View Mode: ${modeNames[mode]}`;
         }
 
         // Update active state in menu

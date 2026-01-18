@@ -565,6 +565,90 @@
             text-transform: uppercase;
             letter-spacing: 0.5px;
         }
+
+        /* Active Users Badge Always Visible */
+        .active-users-badge {
+            display: inline-flex !important;
+            align-items: center;
+            padding: 4px 10px;
+            background: rgba(59, 130, 246, 0.15);
+            border: 1px solid rgba(59, 130, 246, 0.4);
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: 600;
+            color: #3b82f6;
+            cursor: default;
+            transition: all 0.3s ease;
+        }
+
+        .active-users-badge:hover {
+            background: rgba(59, 130, 246, 0.25);
+            border-color: rgba(59, 130, 246, 0.6);
+            transform: scale(1.05);
+        }
+
+        /* Active Users Tooltip */
+        .active-users-tooltip {
+            position: absolute;
+            top: 100%;
+            right: 0;
+            margin-top: 8px;
+            padding: 10px;
+            background: var(--bg-primary);
+            border: 1px solid var(--border-default);
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            min-width: 200px;
+            max-width: 300px;
+            z-index: 1000;
+            opacity: 0;
+            pointer-events: none;
+            transform: translateY(-5px);
+            transition: opacity 0.2s ease, transform 0.2s ease;
+        }
+
+        .active-users-badge:hover .active-users-tooltip {
+            opacity: 1;
+            pointer-events: auto;
+            transform: translateY(0);
+        }
+
+        .active-users-tooltip-header {
+            font-size: 11px;
+            font-weight: 600;
+            color: var(--text-secondary);
+            margin-bottom: 8px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .active-users-list {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .active-user-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 4px;
+            font-size: 12px;
+            color: var(--text-primary);
+        }
+
+        .active-user-avatar {
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            background: var(--accent-primary);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 10px;
+            font-weight: 600;
+            color: white;
+        }
     </style>
     <script data-post-auth src="shared/js/status-indicator.js" defer></script>
     <script data-post-auth src="shared/js/supabase-connection-manager.js?v=20260103_213801" defer></script>
@@ -8996,7 +9080,7 @@
 
         .collapsed-return-btn:hover {
             background: #1976D2;
-            transform: translate(-50%, -50%) scale(1.05);
+            transform: translate(-50%, -50%) rotate(180deg) scale(1.05);
             box-shadow: 0 6px 16px rgba(33, 150, 243, 0.6);
         }
 
@@ -11661,6 +11745,13 @@
             background: var(--bg-secondary);
             border-bottom: 1px solid var(--border-default);
             gap: 20px;
+            transition: background-color 0.3s ease, border-color 0.3s ease;
+        }
+
+        /* Privacy Mode Header Visual Feedback */
+        .multi-agent-dashboard-header.privacy-mode-active {
+            background: rgba(251, 146, 60, 0.08);
+            border-bottom-color: rgba(251, 146, 60, 0.3);
         }
 
         .multi-agent-header-left {
@@ -11739,6 +11830,63 @@
 
         .multi-agent-action-btn i {
             font-size: 14px;
+        }
+
+        /* Agent Quick Nav Bar */
+        .agent-quick-nav-bar {
+            position: relative;
+            display: flex;
+            align-items: center;
+            background: var(--bg-secondary);
+            border-bottom: 1px solid var(--border-default);
+            padding: 8px 0;
+        }
+
+        .agent-quick-nav-container {
+            flex: 1;
+            display: flex;
+            gap: 8px;
+            padding: 0 12px;
+            overflow-x: auto;
+            scroll-behavior: smooth;
+            scrollbar-width: none; /* Firefox */
+        }
+
+        .agent-quick-nav-container::-webkit-scrollbar {
+            display: none; /* Chrome, Safari */
+        }
+
+        .quick-nav-scroll-btn {
+            position: sticky;
+            flex-shrink: 0;
+            width: 32px;
+            height: 32px;
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-default);
+            border-radius: 4px;
+            color: var(--text-secondary);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s ease;
+            z-index: 2;
+        }
+
+        .quick-nav-scroll-btn:hover {
+            background: var(--bg-hover);
+            color: var(--text-primary);
+            border-color: var(--accent-primary);
+        }
+
+        .quick-nav-scroll-left {
+            left: 0;
+            margin-right: 4px;
+        }
+
+        .quick-nav-scroll-right {
+            right: 0;
+            margin-left: 4px;
         }
 
         #multi-agent-container {
@@ -13493,50 +13641,31 @@
         }
 
         .collapsed-column-bar .agent-name-vertical {
-            writing-mode: vertical-lr;
+            writing-mode: vertical-rl;
             text-orientation: mixed;
-            transform: rotate(180deg);
             color: white;
             font-weight: 700;
             font-size: 20px;
-            /*    text-transform: uppercase;  */
             letter-spacing: 1px;
             position: absolute;
             top: 50%;
             left: 50%;
-            transform: translate(-50%, -50%) rotate(180deg);
+            transform: translate(-50%, -50%);
             display: flex;
             align-items: center;
             justify-content: center;
         }
 
         .collapsed-column-bar .thread-info-vertical {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: var(--space-2);
-            margin-top: auto;
-            padding-top: var(--space-3);
-            border-top: 1px solid var(--border-default);
-            width: 100%;
+            display: none; /* Hidden - not needed in collapsed state */
         }
 
         .collapsed-column-bar .thread-status-vertical {
-            writing-mode: horizontal-tb;
-            color: var(--text-secondary);
-            font-size: 13px;
-            font-weight: 500;
-            text-align: center;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            white-space: nowrap;
-            max-height: 300px;
+            display: none; /* Hidden - not needed in collapsed state */
         }
 
         .collapsed-column-bar .thread-timestamp-vertical {
-            writing-mode: horizontal-tb;
-            color: var(--text-tertiary);
-            font-size: 15px;
+            display: none; /* Hidden - not needed in collapsed state */
         }
 
         /* Collapse button in agent header - removed old transparent version */
@@ -19667,11 +19796,21 @@
                                     <i class="fas fa-globe" id="privacy-mode-icon"></i>
                                     <span class="mode-label" id="privacy-mode-label">Central HQ</span>
                                 </div>
-                                <!-- Active Users Count (Multi-User Collaboration) -->
+                                <!-- Active Users Count (Multi-User Collaboration) - Always Visible -->
                                 <div class="active-users-badge" id="command-center-active-users-badge"
-                                    style="display: none; margin-right: 10px;" title="Active sessions">
+                                    style="margin-right: 10px; position: relative;">
                                     <i class="fas fa-users" style="margin-right: 4px;"></i>
                                     <span id="command-center-active-users-count">1</span>
+                                    <!-- Tooltip shows on hover -->
+                                    <div class="active-users-tooltip" id="command-center-active-users-tooltip">
+                                        <div class="active-users-tooltip-header">Active Users</div>
+                                        <div class="active-users-list" id="command-center-active-users-list">
+                                            <div class="active-user-item">
+                                                <div class="active-user-avatar">You</div>
+                                                <span>You (Solo Session)</span>
+                                            </div>
+                                        </div>
+                                    </div>
                                 </div>
                                 <button class="multi-agent-action-btn" onclick="MultiAgent.toggleEmptyAgents()"
                                     id="toggle-empty-agents-btn" title="Collapse empty agents">
@@ -19690,9 +19829,23 @@
 
                         <!-- Agent Quick Nav Bar -->
                         <div class="agent-quick-nav-bar" id="agent-quick-nav-bar">
-                            <div class="agent-quick-nav-container">
+                            <button class="quick-nav-scroll-btn quick-nav-scroll-left" 
+                                    id="quick-nav-scroll-left"
+                                    onclick="scrollQuickNavLeft()"
+                                    title="Scroll left"
+                                    style="display: none;">
+                                <i class="fas fa-chevron-left"></i>
+                            </button>
+                            <div class="agent-quick-nav-container" id="agent-quick-nav-container">
                                 <!-- Agent nav badges will be inserted here dynamically -->
                             </div>
+                            <button class="quick-nav-scroll-btn quick-nav-scroll-right" 
+                                    id="quick-nav-scroll-right"
+                                    onclick="scrollQuickNavRight()"
+                                    title="Scroll right"
+                                    style="display: none;">
+                                <i class="fas fa-chevron-right"></i>
+                            </button>
                         </div>
 
                         <!-- Multi-agent container -->
@@ -26258,6 +26411,7 @@
             const toggleEl = document.getElementById('privacy-mode-toggle');
             const iconEl = document.getElementById('privacy-mode-icon');
             const labelEl = document.getElementById('privacy-mode-label');
+            const headerEl = document.querySelector('.multi-agent-dashboard-header');
 
             if (toggleEl && iconEl && labelEl) {
                 if (newMode === 'central') {
@@ -26265,16 +26419,35 @@
                     iconEl.className = 'fas fa-globe';
                     labelEl.textContent = 'Central HQ';
                     toggleEl.title = 'Central HQ: Team sees your interactions';
+                    
+                    // Remove privacy mode header styling
+                    if (headerEl) {
+                        headerEl.classList.remove('privacy-mode-active');
+                    }
+                    
                     if (typeof showNotification === 'function') {
-                        showNotification('?? Central HQ: Team can see your AI interactions', 'success');
+                        showNotification('🌐 Central HQ: Team can see your AI interactions', 'success');
                     }
                 } else {
                     toggleEl.className = 'privacy-mode-toggle mode-local';
                     iconEl.className = 'fas fa-lock';
                     labelEl.textContent = 'Local Ops';
                     toggleEl.title = 'Local Ops: Interactions are private to you';
+                    
+                    // Add privacy mode header styling (subtle orange tint)
+                    if (headerEl) {
+                        headerEl.classList.add('privacy-mode-active');
+                    }
+                    
+                    // Show first-use modal if never shown before
+                    const hasSeenModal = localStorage.getItem('privacy-mode-modal-seen');
+                    if (!hasSeenModal) {
+                        showPrivacyModeModal();
+                        localStorage.setItem('privacy-mode-modal-seen', 'true');
+                    }
+                    
                     if (typeof showNotification === 'function') {
-                        showNotification('?? Local Ops: AI interactions are private', 'info');
+                        showNotification('🔒 Local Ops: AI interactions are private', 'info');
                     }
                 }
             }
@@ -26295,6 +26468,7 @@
             const toggleEl = document.getElementById('privacy-mode-toggle');
             const iconEl = document.getElementById('privacy-mode-icon');
             const labelEl = document.getElementById('privacy-mode-label');
+            const headerEl = document.querySelector('.multi-agent-dashboard-header');
 
             if (toggleEl && iconEl && labelEl) {
                 if (currentMode === 'local') {
@@ -26302,16 +26476,152 @@
                     iconEl.className = 'fas fa-lock';
                     labelEl.textContent = 'Local Ops';
                     toggleEl.title = 'Local Ops: Interactions are private to you';
+                    
+                    // Add privacy mode header styling
+                    if (headerEl) {
+                        headerEl.classList.add('privacy-mode-active');
+                    }
                 } else {
                     toggleEl.className = 'privacy-mode-toggle mode-central';
                     iconEl.className = 'fas fa-globe';
                     labelEl.textContent = 'Central HQ';
                     toggleEl.title = 'Central HQ: Team sees your interactions';
+                    
+                    // Remove privacy mode header styling
+                    if (headerEl) {
+                        headerEl.classList.remove('privacy-mode-active');
+                    }
                 }
             }
 
             console.log(`Privacy mode initialized: ${currentMode}`);
         }
+
+        /**
+         * Show privacy mode explanation modal (first use only)
+         */
+        function showPrivacyModeModal() {
+            const modal = document.createElement('div');
+            modal.style.cssText = `
+                position: fixed;
+                top: 0;
+                left: 0;
+                right: 0;
+                bottom: 0;
+                background: rgba(0, 0, 0, 0.6);
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                z-index: 10000;
+                animation: fadeIn 0.3s ease;
+            `;
+            
+            const content = document.createElement('div');
+            content.style.cssText = `
+                background: var(--bg-primary);
+                border: 1px solid var(--border-default);
+                border-radius: 12px;
+                padding: 24px;
+                max-width: 500px;
+                box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+                animation: slideUp 0.3s ease;
+            `;
+            
+            content.innerHTML = `
+                <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 16px;">
+                    <i class="fas fa-lock" style="font-size: 24px; color: #fb923c;"></i>
+                    <h3 style="margin: 0; font-size: 18px; color: var(--text-primary);">Privacy Mode Active</h3>
+                </div>
+                <div style="color: var(--text-secondary); line-height: 1.6; margin-bottom: 20px;">
+                    <p style="margin: 0 0 12px 0;">You've switched to <strong style="color: #fb923c;">Local Ops</strong> mode. Here's what that means:</p>
+                    <ul style="margin: 0 0 12px 20px; padding: 0;">
+                        <li style="margin-bottom: 8px;"><strong>🌐 Central HQ:</strong> Team members can see your AI interactions (collaborative mode)</li>
+                        <li style="margin-bottom: 8px;"><strong>🔒 Local Ops:</strong> Your AI conversations are private to your session only</li>
+                    </ul>
+                    <p style="margin: 0; font-size: 12px; opacity: 0.8;">
+                        Notice the subtle orange header background? That's your visual indicator that you're in private mode.
+                    </p>
+                </div>
+                <button onclick="this.closest('[style*=\\'position: fixed\\']').remove()" 
+                        style="width: 100%; padding: 10px; background: #fb923c; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 600; transition: opacity 0.2s ease;"
+                        onmouseover="this.style.opacity='0.8'" 
+                        onmouseout="this.style.opacity='1'">
+                    Got it!
+                </button>
+            `;
+            
+            modal.appendChild(content);
+            document.body.appendChild(modal);
+            
+            // Close on background click
+            modal.addEventListener('click', (e) => {
+                if (e.target === modal) {
+                    modal.remove();
+                }
+            });
+        }
+
+
+        // ==================== QUICK NAV SCROLL FUNCTIONS ====================
+        /**
+         * Scroll Quick Nav left
+         */
+        function scrollQuickNavLeft() {
+            const container = document.getElementById('agent-quick-nav-container');
+            if (container) {
+                container.scrollBy({ left: -200, behavior: 'smooth' });
+                setTimeout(() => updateQuickNavScrollButtons(), 100);
+            }
+        }
+
+        /**
+         * Scroll Quick Nav right
+         */
+        function scrollQuickNavRight() {
+            const container = document.getElementById('agent-quick-nav-container');
+            if (container) {
+                container.scrollBy({ left: 200, behavior: 'smooth' });
+                setTimeout(() => updateQuickNavScrollButtons(), 100);
+            }
+        }
+
+        /**
+         * Update visibility of Quick Nav scroll buttons based on overflow
+         */
+        function updateQuickNavScrollButtons() {
+            const container = document.getElementById('agent-quick-nav-container');
+            const leftBtn = document.getElementById('quick-nav-scroll-left');
+            const rightBtn = document.getElementById('quick-nav-scroll-right');
+
+            if (!container || !leftBtn || !rightBtn) return;
+
+            const hasOverflow = container.scrollWidth > container.clientWidth;
+            const isAtStart = container.scrollLeft <= 1;
+            const isAtEnd = container.scrollLeft + container.clientWidth >= container.scrollWidth - 1;
+
+            // Show/hide buttons based on overflow and scroll position
+            leftBtn.style.display = hasOverflow && !isAtStart ? 'flex' : 'none';
+            rightBtn.style.display = hasOverflow && !isAtEnd ? 'flex' : 'none';
+        }
+
+        // Initialize Quick Nav scroll buttons on load
+        document.addEventListener('DOMContentLoaded', () => {
+            const container = document.getElementById('agent-quick-nav-container');
+            if (container) {
+                // Update button visibility when scrolled
+                container.addEventListener('scroll', updateQuickNavScrollButtons);
+                
+                // Update on resize
+                window.addEventListener('resize', updateQuickNavScrollButtons);
+                
+                // Initial update
+                setTimeout(updateQuickNavScrollButtons, 500);
+                
+                // Watch for badge additions/removals
+                const observer = new MutationObserver(updateQuickNavScrollButtons);
+                observer.observe(container, { childList: true });
+            }
+        });
 
 
         // ==================== WOOCOMMERCE FUNCTIONALITY ====================

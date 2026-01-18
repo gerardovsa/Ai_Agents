@@ -18,6 +18,10 @@ The Multi-Agent system provides **26 parallel AI agents** (Alpha through Zulu) t
 - **Automatic UI updates** - Agent columns, badges, and status indicators update in real-time
 - **Cross-thread requests** - Agents can request updates from other agents
 - **Resource assignment** - Assign workflows, documentation, and Synergy sessions to agents
+- **Privacy modes** - Central HQ (team-visible) vs Local Ops (private) with visual indicators
+- **Real-time collaboration** - Live active user badges with presence indicators and tooltips
+- **Enhanced navigation** - Quick Nav bar with scroll arrows for easy agent switching
+- **Flexible layouts** - Column width toggle (400/600/800px), view modes, popout windows
 
 **Use Cases:**
 - **Work distribution** - Split large projects across multiple specialized agents
@@ -250,6 +254,121 @@ function renderStructuredAgentMessage(agentId, content) {
     // Each block gets separate bubble (matches streaming behavior)
 }
 ```
+
+---
+
+## Command Center UI (Updated Jan 19, 2026)
+
+### Dashboard Header
+
+The Command Center header provides quick access to system controls and status indicators:
+
+**Left Side:**
+- **Title** - "Command Center" with person-chalkboard icon
+- **Stats Display:**
+  - Active AI's count - Number of agents currently streaming responses
+  - Loaded AI's count - Total number of agent columns with threads
+
+**Right Side Controls:**
+
+1. **Privacy Mode Toggle** (Central HQ / Local Ops)
+   - **Central HQ** 🌐 - Team members can see your AI interactions (collaborative mode)
+   - **Local Ops** 🔒 - AI conversations are private to your session
+   - **Visual Feedback:** Header background changes to subtle orange tint in Local Ops mode
+   - **First-Use Modal:** Explains privacy modes on first toggle to Local Ops
+   - Toggle persists across sessions via localStorage
+
+2. **Active Users Badge** (Always Visible)
+   - Shows current session count (e.g., "1", "2", "5")
+   - **Always visible** - Shows "1" even in solo sessions
+   - **Hover Tooltip:** Displays list of active users with colored avatars
+     - Solo: "You (Solo Session)"
+     - Multi-user: User names with initials, "(You)" marker for current user
+   - Real-time updates via WebSocket presence system
+
+3. **Toggle Empty Agents** 🔍
+   - Collapse/expand empty agent columns
+   - Icon swaps: `fa-expand` when collapsed, `fa-compress` when expanded
+   - Button label: "Collapse empty agents" / "Expand empty agents"
+
+4. **Refresh All Agents** 🔄
+   - Refreshes all active agent columns
+   - **Enhanced behavior:**
+     - Spinner animation during refresh (`fa-spin`)
+     - Progress counter: "Refreshing agent 2/5..."
+     - Scroll position preservation per agent
+     - Per-agent error handling (continues on failures)
+     - Success/error count notifications
+
+5. **Add New Agent** ➕
+   - Opens next available agent column (Alpha-1, Bravo-2, etc.)
+   - Primary accent color for visibility
+
+### Quick Navigation Bar
+
+**Purpose:** Horizontal scrollable bar showing badges for all open agents.
+
+**Features:**
+- **Agent Badges:** NATO name + icon (e.g., "Alpha-1 🎯")
+- **Scroll Arrows:** Left/right buttons appear automatically when overflow detected
+  - Sticky positioned for easy access
+  - Auto-hide when at scroll boundaries (edge detection)
+  - Smooth scroll behavior (200px increments)
+- **Active Indicator:** Highlights currently selected agent
+- **Click Navigation:** Click badge to switch to that agent column
+- **Overflow Detection:** MutationObserver watches for badge additions/removals
+- **Responsive:** Updates on scroll, resize, and badge changes
+
+### Agent Column Features
+
+Each agent column includes:
+
+**Header Controls:**
+1. **Width Toggle** - Cycle between 400px → 600px → 800px → 400px
+   - **Dynamic Tooltips:** "Make wide (600px)", "Make extra-wide (800px)", "Return to normal (400px)"
+   - Syncs with popout windows (window resizes to match content)
+
+2. **View Mode Toggle** - Switch between conversation styles
+   - **Full Screen** (`fa-expand-arrows-alt`) - Maximize workspace
+   - **Compact** (`fa-compress-arrows-alt`) - Condensed view
+   - **Focus Mode** (`fa-brain`) - Thinking-focused display
+   - **Tools View** (`fa-tools`) - Tool-centric layout
+   - **Chat Mode** (`fa-comments`) - Traditional chat
+
+3. **Thread History** 📋 - Open thread history sidebar
+   - Fixed: Now explicitly closes hamburger menu (no toggle conflict)
+
+4. **Popout Window** 🪟 - Open agent in separate window
+   - Window resizes automatically with content width changes
+   - Maintains all functionality in popout mode
+
+5. **Hamburger Menu** ☰ - Additional options (save, clear, settings)
+
+**Collapsed State:**
+- **Vertical Return Bar** - Thin bar with rotated text "Return [Agent Name]"
+- **Text Orientation:** `writing-mode: vertical-rl` (no double rotation)
+- **Entire Bar Clickable** - Hover tooltip shows agent name
+- **Hover Effect:** Maintains 180° arrow rotation with scale(1.05)
+
+**Drag Boundaries:**
+- Popout windows constrained to keep 60px of header visible
+- Prevents dragging completely off-screen
+- Ensures header remains accessible for repositioning
+
+### Real-Time Collaboration
+
+**Multi-User Presence:**
+- WebSocket-based presence tracking
+- Per-agent session badges (when multiple users in same agent)
+- Rainbow-colored presence indicators for visual distinction
+- Automatic updates on user join/leave events
+
+**Privacy Modes Integration:**
+- Privacy setting syncs across sessions via backend
+- Visual header indicator persists throughout session
+- First-use modal educates users about collaboration implications
+
+---
 
 **Streaming Event Handlers:**
 
@@ -1105,6 +1224,79 @@ agentNames.forEach((name, idx) => {
 
 ---
 
+### Fix 6: Popout Window Drag Constraints (January 19, 2026)
+
+**Problem:** Popout agent windows could be dragged completely off-screen, making them inaccessible.
+
+**Root Cause:** Drag constraints only checked viewport edges, not header visibility.
+
+**Solution:**
+Implemented intelligent drag constraints that ensure header remains visible:
+
+```javascript
+// BEFORE (BROKEN):
+const maxX = window.innerWidth - 200;
+const maxY = window.innerHeight - 50;
+floatingWindow.style.left = `${Math.max(0, Math.min(x, maxX))}px`;
+floatingWindow.style.top = `${Math.max(0, Math.min(y, maxY))}px`;
+
+// AFTER (FIXED):
+const MIN_VISIBLE_HEADER = 60; // Ensure 60px of header visible
+
+// Allow dragging left, but keep some header visible
+const minX = -(windowWidth - MIN_VISIBLE_HEADER);
+const maxX = window.innerWidth - MIN_VISIBLE_HEADER;
+const minY = 0; // Don't allow dragging above screen top
+const maxY = window.innerHeight - MIN_VISIBLE_HEADER;
+
+// Apply constraints
+x = Math.max(minX, Math.min(x, maxX));
+y = Math.max(minY, Math.min(y, maxY));
+```
+
+**Impact:** Users can now safely drag popout windows to edges without losing access to controls.
+
+**Files Modified:**
+- `UI/modules_internal/agents/agent-column.js` (Line ~828)
+
+**Status:** ✅ COMPLETE
+
+---
+
+### Fix 7: Collapsed Column Return Button Animation (January 19, 2026)
+
+**Problem:** Return button hover animation lacked visual feedback for rotation action.
+
+**Root Cause:** Button only scaled on hover without showing directional rotation.
+
+**Solution:**
+Added 180-degree rotation to hover animation for better UX feedback:
+
+```css
+/* BEFORE (BROKEN): */
+.collapsed-return-btn:hover {
+    background: #1976D2;
+    transform: translate(-50%, -50%) scale(1.05);
+    box-shadow: 0 6px 16px rgba(33, 150, 243, 0.6);
+}
+
+/* AFTER (FIXED): */
+.collapsed-return-btn:hover {
+    background: #1976D2;
+    transform: translate(-50%, -50%) rotate(180deg) scale(1.05);
+    box-shadow: 0 6px 16px rgba(33, 150, 243, 0.6);
+}
+```
+
+**Impact:** Visual feedback now clearly indicates the action of "returning" or "flipping back" to the column.
+
+**Files Modified:**
+- `UI/business-ai-platform-v2.html` (Line ~8999)
+
+**Status:** ✅ COMPLETE
+
+---
+
 ## Testing
 
 ### Manual Testing Checklist
@@ -1359,6 +1551,7 @@ TOOL_SUGGESTIONS_COUNT=8
 
 ## Changelog
 
+**Jan 19, 2026** - Added popout window drag constraints and return button rotation animation
 **Jan 18, 2026** - Consolidated 40+ agent documentation files into AI_AGENTS.md
 **Nov 22, 2025** - Fixed agent streaming duplication and tool bubble rendering
 **Nov 22, 2025** - Fixed cross-agent tool contamination
