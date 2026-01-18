@@ -554,6 +554,11 @@ const MultiAgent = {
         }
 
         console.log(`✅ [Command Center] Quick nav built with ${maxAgentId} agent badges (from backend assignments)`);
+        
+        // Update scroll button visibility
+        if (typeof updateQuickNavScrollButtons === 'function') {
+            setTimeout(updateQuickNavScrollButtons, 100);
+        }
     },            // Add badge for new agent
     addQuickNavBadge(agentId) {
         const navContainer = document.querySelector('.agent-quick-nav-container');
@@ -582,6 +587,11 @@ const MultiAgent = {
 
         console.log(`[Command Center] Added badge for ${agentName}`);
         this.updateDashboardStats();
+        
+        // Update scroll button visibility
+        if (typeof updateQuickNavScrollButtons === 'function') {
+            setTimeout(updateQuickNavScrollButtons, 100);
+        }
     },
 
     // Remove badge when agent closed
@@ -591,6 +601,11 @@ const MultiAgent = {
             badge.remove();
             console.log(`[Command Center] Removed badge for ${this.getAgentName(agentId)}`);
             this.updateDashboardStats();
+            
+            // Update scroll button visibility
+            if (typeof updateQuickNavScrollButtons === 'function') {
+                setTimeout(updateQuickNavScrollButtons, 100);
+            }
         }
     },
 
