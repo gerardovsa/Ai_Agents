@@ -1,0 +1,671 @@
+/**
+ * Customer Reactivation Module - Styles
+ * =====================================
+ * 
+ * Dark theme styles consistent with Xero module and platform design.
+ * Colors: #161b22 (bg), #30363d (borders), #8b949e (text), #238636 (green), #1f6feb (blue)
+ * 
+ * Created: January 18, 2026
+ */
+
+/* =============================================================================
+   MODULE CONTAINER
+   ============================================================================= */
+
+.reactivation-module {
+    background: #0d1117;
+    color: #c9d1d9;
+    min-height: 100vh;
+    padding: 20px;
+}
+
+/* =============================================================================
+   MODULE HEADER
+   ============================================================================= */
+
+.module-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    padding: 20px;
+    background: #161b22;
+    border: 1px solid #30363d;
+    border-radius: 8px;
+}
+
+.module-title {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.module-title i {
+    font-size: 32px;
+    color: #238636;
+}
+
+.module-title h2 {
+    margin: 0;
+    font-size: 24px;
+    color: #c9d1d9;
+}
+
+.module-actions {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+}
+
+.business-selector {
+    padding: 8px 12px;
+    background: #0d1117;
+    border: 1px solid #30363d;
+    border-radius: 6px;
+    color: #c9d1d9;
+    font-size: 14px;
+}
+
+/* =============================================================================
+   TAB NAVIGATION
+   ============================================================================= */
+
+.module-tabs {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 20px;
+    border-bottom: 2px solid #30363d;
+    padding-bottom: 8px;
+}
+
+.tab-btn {
+    padding: 10px 20px;
+    background: transparent;
+    border: 1px solid transparent;
+    border-radius: 6px 6px 0 0;
+    color: #8b949e;
+    font-size: 14px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.tab-btn:hover {
+    background: #161b22;
+    color: #c9d1d9;
+}
+
+.tab-btn.active {
+    background: #238636;
+    color: #ffffff;
+    border-color: #238636;
+}
+
+.tab-btn i {
+    font-size: 16px;
+}
+
+/* =============================================================================
+   METRICS CARDS
+   ============================================================================= */
+
+.metrics-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 20px;
+    margin-bottom: 30px;
+}
+
+.metric-card {
+    background: #161b22;
+    border: 1px solid #30363d;
+    border-radius: 8px;
+    padding: 20px;
+    display: flex;
+    gap: 16px;
+    align-items: center;
+    transition: transform 0.2s ease;
+}
+
+.metric-card:hover {
+    transform: translateY(-2px);
+    border-color: #238636;
+}
+
+.metric-card.success {
+    border-color: #238636;
+    background: linear-gradient(135deg, #161b22 0%, #1a2f1e 100%);
+}
+
+.metric-icon {
+    font-size: 36px;
+    width: 60px;
+    height: 60px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #0d1117;
+    border-radius: 8px;
+}
+
+.metric-content {
+    flex: 1;
+}
+
+.metric-value {
+    font-size: 32px;
+    font-weight: bold;
+    color: #c9d1d9;
+    line-height: 1;
+}
+
+.metric-label {
+    font-size: 14px;
+    color: #8b949e;
+    margin-top: 4px;
+}
+
+.metric-sublabel {
+    font-size: 12px;
+    color: #6e7681;
+    margin-top: 2px;
+}
+
+/* =============================================================================
+   PERFORMANCE ROW
+   ============================================================================= */
+
+.performance-row {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 20px;
+    margin-bottom: 30px;
+}
+
+.performance-card {
+    background: #161b22;
+    border: 1px solid #30363d;
+    border-radius: 8px;
+    padding: 20px;
+}
+
+.performance-label {
+    font-size: 14px;
+    color: #8b949e;
+    margin-bottom: 8px;
+}
+
+.performance-value {
+    font-size: 28px;
+    font-weight: bold;
+    color: #c9d1d9;
+    margin-bottom: 12px;
+}
+
+.performance-bar {
+    width: 100%;
+    height: 8px;
+    background: #30363d;
+    border-radius: 4px;
+    overflow: hidden;
+}
+
+.performance-fill {
+    height: 100%;
+    border-radius: 4px;
+    transition: width 0.3s ease;
+}
+
+/* =============================================================================
+   DASHBOARD ACTIONS
+   ============================================================================= */
+
+.dashboard-actions {
+    display: flex;
+    gap: 16px;
+    flex-wrap: wrap;
+}
+
+.action-btn {
+    flex: 1;
+    min-width: 200px;
+    padding: 16px 24px;
+    background: #161b22;
+    border: 1px solid #30363d;
+    border-radius: 8px;
+    color: #c9d1d9;
+    font-size: 16px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    transition: all 0.2s ease;
+}
+
+.action-btn:hover {
+    background: #238636;
+    border-color: #238636;
+    transform: translateY(-2px);
+}
+
+.action-btn i {
+    font-size: 20px;
+}
+
+/* =============================================================================
+   CUSTOMER INSIGHTS
+   ============================================================================= */
+
+.customer-insights-view {
+    background: #161b22;
+    border: 1px solid #30363d;
+    border-radius: 8px;
+    padding: 20px;
+}
+
+.insights-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+}
+
+.insights-header h3 {
+    margin: 0;
+    color: #c9d1d9;
+}
+
+.insights-actions {
+    display: flex;
+    gap: 12px;
+}
+
+.insights-filters {
+    display: flex;
+    gap: 20px;
+    margin-bottom: 20px;
+    padding: 16px;
+    background: #0d1117;
+    border: 1px solid #30363d;
+    border-radius: 6px;
+}
+
+.insights-filters label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: #8b949e;
+}
+
+.insights-filters input,
+.insights-filters select {
+    padding: 6px 10px;
+    background: #161b22;
+    border: 1px solid #30363d;
+    border-radius: 4px;
+    color: #c9d1d9;
+}
+
+/* =============================================================================
+   TABULATOR TABLE OVERRIDES
+   ============================================================================= */
+
+.customer-cell {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.customer-name {
+    font-weight: 600;
+    color: #c9d1d9;
+}
+
+.customer-email {
+    font-size: 12px;
+    color: #8b949e;
+}
+
+.risk-badge {
+    padding: 6px 12px;
+    border-radius: 6px;
+    font-size: 13px;
+    font-weight: 600;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.campaign-cell {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.campaign-name {
+    font-weight: 600;
+    color: #c9d1d9;
+}
+
+.campaign-type {
+    font-size: 11px;
+    color: #8b949e;
+    text-transform: uppercase;
+}
+
+.status-badge {
+    padding: 4px 10px;
+    border-radius: 4px;
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    display: inline-block;
+}
+
+/* =============================================================================
+   TEMPLATES GRID
+   ============================================================================= */
+
+.templates-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 20px;
+}
+
+.template-card {
+    background: #161b22;
+    border: 1px solid #30363d;
+    border-radius: 8px;
+    padding: 16px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.template-card:hover {
+    transform: translateY(-4px);
+    border-color: #238636;
+    box-shadow: 0 4px 12px rgba(35, 134, 54, 0.2);
+}
+
+.template-thumbnail {
+    width: 100%;
+    height: 150px;
+    background: #0d1117;
+    border: 1px solid #30363d;
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 12px;
+    overflow: hidden;
+}
+
+.template-thumbnail img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.template-info h4 {
+    margin: 0 0 8px 0;
+    color: #c9d1d9;
+    font-size: 16px;
+}
+
+.template-info p {
+    margin: 0 0 12px 0;
+    color: #8b949e;
+    font-size: 13px;
+    line-height: 1.4;
+}
+
+.template-meta {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 12px;
+    color: #6e7681;
+}
+
+.template-category {
+    padding: 4px 8px;
+    background: #238636;
+    color: #fff;
+    border-radius: 4px;
+}
+
+.template-actions {
+    display: flex;
+    gap: 8px;
+    margin-top: 12px;
+}
+
+.template-actions button {
+    flex: 1;
+}
+
+/* =============================================================================
+   BUTTONS
+   ============================================================================= */
+
+.btn-primary {
+    padding: 10px 20px;
+    background: #238636;
+    border: 1px solid #238636;
+    border-radius: 6px;
+    color: #ffffff;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.btn-primary:hover {
+    background: #2ea043;
+    transform: translateY(-1px);
+}
+
+.btn-secondary {
+    padding: 10px 20px;
+    background: #161b22;
+    border: 1px solid #30363d;
+    border-radius: 6px;
+    color: #c9d1d9;
+    font-size: 14px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.btn-secondary:hover {
+    background: #1f6feb;
+    border-color: #1f6feb;
+    color: #ffffff;
+}
+
+.btn-link {
+    background: transparent;
+    border: none;
+    color: #58a6ff;
+    cursor: pointer;
+    font-size: 13px;
+    padding: 4px 8px;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.btn-link:hover {
+    color: #79c0ff;
+    text-decoration: underline;
+}
+
+/* =============================================================================
+   MODAL
+   ============================================================================= */
+
+.modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.8);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 10000;
+}
+
+.modal {
+    background: #161b22;
+    border: 1px solid #30363d;
+    border-radius: 8px;
+    width: 90%;
+    max-width: 600px;
+    max-height: 80vh;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+}
+
+.modal-header {
+    padding: 20px;
+    border-bottom: 1px solid #30363d;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.modal-header h3 {
+    margin: 0;
+    color: #c9d1d9;
+}
+
+.modal-close {
+    background: transparent;
+    border: none;
+    color: #8b949e;
+    font-size: 24px;
+    cursor: pointer;
+    padding: 0;
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 4px;
+}
+
+.modal-close:hover {
+    background: #f85149;
+    color: #ffffff;
+}
+
+.modal-body {
+    padding: 20px;
+    overflow-y: auto;
+}
+
+.modal-body label {
+    display: block;
+    margin-bottom: 16px;
+}
+
+.modal-body label span {
+    display: block;
+    margin-bottom: 6px;
+    color: #8b949e;
+    font-size: 14px;
+}
+
+.modal-body input,
+.modal-body select,
+.modal-body textarea {
+    width: 100%;
+    padding: 10px;
+    background: #0d1117;
+    border: 1px solid #30363d;
+    border-radius: 6px;
+    color: #c9d1d9;
+    font-size: 14px;
+}
+
+.modal-body input:focus,
+.modal-body select:focus,
+.modal-body textarea:focus {
+    outline: none;
+    border-color: #238636;
+}
+
+.modal-footer {
+    padding: 16px 20px;
+    border-top: 1px solid #30363d;
+    display: flex;
+    justify-content: flex-end;
+    gap: 12px;
+}
+
+/* =============================================================================
+   CHARTS
+   ============================================================================= */
+
+.chart-container {
+    background: #161b22;
+    border: 1px solid #30363d;
+    border-radius: 8px;
+    padding: 20px;
+    margin-top: 20px;
+}
+
+.chart-container h4 {
+    margin: 0 0 16px 0;
+    color: #c9d1d9;
+}
+
+/* =============================================================================
+   EMPTY STATE
+   ============================================================================= */
+
+.empty-state {
+    text-align: center;
+    padding: 60px 20px;
+    color: #8b949e;
+    font-size: 16px;
+}
+
+/* =============================================================================
+   RESPONSIVE
+   ============================================================================= */
+
+@media (max-width: 768px) {
+    .module-header {
+        flex-direction: column;
+        gap: 16px;
+    }
+    
+    .module-actions {
+        width: 100%;
+        justify-content: space-between;
+    }
+    
+    .metrics-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .dashboard-actions {
+        flex-direction: column;
+    }
+    
+    .action-btn {
+        min-width: 100%;
+    }
+}

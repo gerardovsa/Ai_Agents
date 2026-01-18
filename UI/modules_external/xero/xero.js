@@ -11507,27 +11507,42 @@ class XeroModule extends BaseModule {
                         title: '',
                         field: 'risk_category',
                         width: 50,
+                        headerSort: true,
                         formatter: (cell) => {
                             const colors = { High: '🔴', Medium: '🟡', Low: '🟢' };
                             return colors[cell.getValue()] || '⚪';
                         }
                     },
-                    { title: 'Customer', field: 'contact_name', minWidth: 200, widthGrow: 2 },
+                    { title: 'Customer', field: 'contact_name', minWidth: 200, widthGrow: 2, headerSort: true },
+                    {
+                        title: 'Orders',
+                        field: 'total_invoices',
+                        width: 80,
+                        headerSort: true,
+                        hozAlign: 'center',
+                        formatter: (cell) => {
+                            const val = cell.getValue();
+                            const color = val >= 10 ? '#3fb950' : val >= 5 ? '#d29922' : '#8b949e';
+                            return `<span style="color: ${color}; font-weight: 600;">${val}</span>`;
+                        }
+                    },
                     {
                         title: 'Risk Score',
                         field: 'unified_risk_score',
                         width: 100,
+                        headerSort: true,
                         formatter: (cell) => {
                             const val = cell.getValue();
                             const color = val >= 70 ? '#f85149' : val >= 40 ? '#d29922' : '#3fb950';
                             return `<span style="color: ${color}; font-weight: 600;">${val.toFixed(1)}%</span>`;
                         }
                     },
-                    { title: 'Segment', field: 'rfm_segment', width: 150 },
+                    { title: 'Segment', field: 'rfm_segment', width: 150, headerSort: true },
                     {
                         title: 'Last Order',
                         field: 'last_order_date',
                         width: 110,
+                        headerSort: true,
                         formatter: (cell) => {
                             const val = cell.getValue();
                             if (!val) return '-';
@@ -11548,6 +11563,7 @@ class XeroModule extends BaseModule {
                         title: 'Avg Reorder',
                         field: 'avg_reorder_days',
                         width: 110,
+                        headerSort: true,
                         formatter: (cell) => {
                             const val = cell.getValue();
                             return val > 0 ? `${Math.round(val)} d` : '-';
@@ -11557,6 +11573,7 @@ class XeroModule extends BaseModule {
                         title: 'Variance',
                         field: 'reorder_variance',
                         width: 100,
+                        headerSort: true,
                         formatter: (cell) => {
                             const val = cell.getValue();
                             if (val === 0) return '-';
@@ -11568,6 +11585,7 @@ class XeroModule extends BaseModule {
                         title: 'Days Overdue',
                         field: 'days_overdue',
                         width: 120,
+                        headerSort: true,
                         formatter: (cell) => {
                             const val = cell.getValue();
                             const row = cell.getRow().getData();
@@ -11592,6 +11610,7 @@ class XeroModule extends BaseModule {
                         title: 'Deviation',
                         field: 'deviation_severity',
                         width: 110,
+                        headerSort: true,
                         formatter: (cell) => {
                             const val = cell.getValue();
                             const colors = {
@@ -11609,12 +11628,14 @@ class XeroModule extends BaseModule {
                         title: 'Churn %',
                         field: 'ml_churn_probability',
                         width: 90,
+                        headerSort: true,
                         formatter: (cell) => `${cell.getValue().toFixed(1)}%`
                     },
                     {
                         title: 'LTV',
                         field: 'lifetime_revenue',
                         width: 120,
+                        headerSort: true,
                         formatter: 'money',
                         formatterParams: { precision: 0 }
                     },
@@ -11622,6 +11643,7 @@ class XeroModule extends BaseModule {
                         title: 'Days Inactive',
                         field: 'days_since_last_order',
                         width: 120,
+                        headerSort: true,
                         formatter: (cell) => {
                             const val = cell.getValue();
                             const color = val > 180 ? '#f85149' : val > 90 ? '#d29922' : '#8b949e';
@@ -11632,6 +11654,7 @@ class XeroModule extends BaseModule {
                         title: 'Payment',
                         field: 'payment_consistency',
                         width: 100,
+                        headerSort: true,
                         formatter: (cell) => {
                             const val = cell.getValue();
                             const color = val >= 90 ? '#3fb950' : val >= 70 ? '#d29922' : '#f85149';
@@ -11642,6 +11665,7 @@ class XeroModule extends BaseModule {
                         title: 'Action',
                         field: 'recommended_action',
                         width: 120,
+                        headerSort: true,
                         formatter: (cell) => {
                             const actions = {
                                 'call_now': '📞 Call',

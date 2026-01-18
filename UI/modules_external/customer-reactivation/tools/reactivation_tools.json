@@ -1,0 +1,313 @@
+[
+  {
+    "name": "reactivation_sync_at_risk_customers",
+    "description": "Sync at-risk customers from Xero churn-risk-ml API to prospects cache. Fetches customers with specified churn risk threshold and enriches with contact details from Xero.",
+    "short_description": "Sync at-risk customers from Xero ML models",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "business_id": {
+          "type": "integer",
+          "description": "Xero business ID (1=Print, 2=Publishing, 3=Signs)",
+          "default": 1
+        },
+        "min_churn_risk": {
+          "type": "integer",
+          "description": "Minimum churn risk score percentage (0-100)",
+          "default": 60
+        }
+      },
+      "required": ["business_id"]
+    },
+    "platform": "customer-reactivation"
+  },
+  {
+    "name": "reactivation_create_campaign",
+    "description": "Create a new customer reactivation email campaign. Specify campaign name, target customer segment, email template, discount offer, and scheduling. Returns campaign ID for further operations.",
+    "short_description": "Create new reactivation campaign",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "user_id": {
+          "type": "integer",
+          "description": "User ID creating the campaign",
+          "default": 1
+        },
+        "campaign_name": {
+          "type": "string",
+          "description": "Descriptive name for the campaign (e.g., 'Q1 2026 Win-Back')"
+        },
+        "campaign_type": {
+          "type": "string",
+          "enum": ["reactivation", "win_back", "feedback", "follow_up", "reminder", "cross_sell"],
+          "description": "Type of campaign to create",
+          "default": "reactivation"
+        },
+        "xero_business_id": {
+          "type": "integer",
+          "description": "Xero business ID to target (1=Print, 2=Publishing, 3=Signs)",
+          "default": 1
+        },
+        "target_segment": {
+          "type": "string",
+          "enum": ["at_risk", "high_risk", "medium_risk", "high_value", "lapsed", "new"],
+          "description": "Customer segment to target",
+          "default": "at_risk"
+        },
+        "churn_threshold": {
+          "type": "integer",
+          "description": "Minimum churn risk score to include customers (0-100)",
+          "default": 60
+        },
+        "template_id": {
+          "type": "integer",
+          "description": "Email template ID to use (get from reactivation_list_templates)"
+        },
+        "subject_line": {
+          "type": "string",
+          "description": "Email subject line (supports merge fields like {{first_name}})"
+        },
+        "discount_code": {
+          "type": "string",
+          "description": "Discount code to include in emails (e.g., 'WELCOME25')"
+        },
+        "discount_amount": {
+          "type": "number",
+          "description": "Discount amount (percentage or dollar value depending on discount_type)",
+          "default": 0
+        },
+        "discount_type": {
+          "type": "string",
+          "enum": ["percentage", "fixed"],
+          "description": "Type of discount",
+          "default": "percentage"
+        },
+        "campaign_cost": {
+          "type": "number",
+          "description": "Estimated campaign cost for ROI calculation",
+          "default": 0
+        }
+      },
+      "required": ["campaign_name", "template_id", "subject_line"]
+    },
+    "platform": "customer-reactivation"
+  },
+  {
+    "name": "reactivation_add_recipients",
+    "description": "Add recipients to an existing campaign. Provide array of customer objects with contact details and Xero data. Automatically links to Xero contact IDs for reorder tracking.",
+    "short_description": "Add recipients to campaign",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "campaign_id": {
+          "type": "integer",
+          "description": "Campaign ID to add recipients to"
+        },
+        "recipients": {
+          "type": "array",
+          "description": "Array of recipient objects with customer details",
+          "items": {
+            "type": "object",
+            "properties": {
+              "xero_contact_id": {
+                "type": "string",
+                "description": "Xero contact GUID"
+              },
+              "xero_business_id": {
+                "type": "integer",
+                "description": "Xero business ID"
+              },
+              "email": {
+                "type": "string",
+                "description": "Recipient email address"
+              },
+              "customer_name": {
+                "type": "string",
+                "description": "Full customer name"
+              },
+              "first_name": {
+                "type": "string",
+                "description": "First name for personalization"
+              },
+              "last_name": {
+                "type": "string",
+                "description": "Last name"
+              },
+              "phone": {
+                "type": "string",
+                "description": "Phone number"
+              },
+              "churn_risk_score": {
+                "type": "integer",
+                "description": "Churn risk score from ML model (0-100)"
+              },
+              "total_revenue": {
+                "type": "number",
+                "description": "Total lifetime revenue from customer"
+              },
+              "months_since_last_order": {
+                "type": "integer",
+                "description": "Months since last order"
+              },
+              "last_product_ordered": {
+                "type": "string",
+                "description": "Last product category ordered"
+              },
+              "custom_fields": {
+                "type": "object",
+                "description": "Additional custom fields for personalization"
+              }
+            },
+            "required": ["email", "customer_name"]
+          }
+        }
+      },
+      "required": ["campaign_id", "recipients"]
+    },
+    "platform": "customer-reactivation"
+  },
+  {
+    "name": "reactivation_send_campaign",
+    "description": "Send campaign emails to all pending recipients via SendGrid. Automatically personalizes each email with merge fields, adds tracking pixels for opens, and logs all sending events. Updates campaign status to 'completed' when done.",
+    "short_description": "Send campaign to all recipients",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "campaign_id": {
+          "type": "integer",
+          "description": "Campaign ID to send"
+        }
+      },
+      "required": ["campaign_id"]
+    },
+    "platform": "customer-reactivation"
+  },
+  {
+    "name": "reactivation_get_campaign_analytics",
+    "description": "Get detailed analytics for a campaign including open rates, click rates, reorder conversion, revenue recovered, and event timeline. Shows full ROI calculation with costs vs recovered revenue.",
+    "short_description": "Get campaign performance analytics",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "campaign_id": {
+          "type": "integer",
+          "description": "Campaign ID to analyze"
+        }
+      },
+      "required": ["campaign_id"]
+    },
+    "platform": "customer-reactivation"
+  },
+  {
+    "name": "reactivation_check_reorders",
+    "description": "Check Xero for new orders from campaign recipients to track reactivation success. Polls Xero invoices by date range and matches against campaign recipients. Updates reorder status and revenue recovered metrics automatically.",
+    "short_description": "Check for customer reorders in Xero",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "campaign_id": {
+          "type": "integer",
+          "description": "Campaign ID to check reorders for"
+        }
+      },
+      "required": ["campaign_id"]
+    },
+    "platform": "customer-reactivation"
+  },
+  {
+    "name": "reactivation_list_templates",
+    "description": "List all available email templates. Filter by template type (reactivation, win_back, feedback, etc.) or category. Includes pre-built templates with proven subject lines and HTML designs.",
+    "short_description": "List email templates",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "user_id": {
+          "type": "integer",
+          "description": "User ID to fetch templates for",
+          "default": 1
+        },
+        "template_type": {
+          "type": "string",
+          "enum": ["reactivation", "win_back", "feedback", "follow_up", "reminder", "cross_sell"],
+          "description": "Filter by template type"
+        }
+      },
+      "required": []
+    },
+    "platform": "customer-reactivation"
+  },
+  {
+    "name": "reactivation_create_template",
+    "description": "Create a new email template with HTML body, subject line, and merge fields. Supports personalization variables like {{first_name}}, {{discount_code}}, {{months_inactive}}, and custom fields. Saves template for reuse across campaigns.",
+    "short_description": "Create new email template",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "user_id": {
+          "type": "integer",
+          "description": "User ID creating the template",
+          "default": 1
+        },
+        "template_name": {
+          "type": "string",
+          "description": "Template name for identification"
+        },
+        "template_type": {
+          "type": "string",
+          "enum": ["reactivation", "win_back", "feedback", "follow_up", "reminder", "cross_sell"],
+          "description": "Template category",
+          "default": "reactivation"
+        },
+        "subject": {
+          "type": "string",
+          "description": "Email subject line (supports merge fields)"
+        },
+        "html_body": {
+          "type": "string",
+          "description": "HTML email body with inline CSS and merge fields"
+        },
+        "text_body": {
+          "type": "string",
+          "description": "Plain text version of email"
+        },
+        "merge_fields": {
+          "type": "array",
+          "description": "Available merge fields (e.g., ['first_name', 'discount_code', 'months_inactive'])",
+          "items": {
+            "type": "string"
+          },
+          "default": ["first_name", "customer_name", "discount_code"]
+        },
+        "category": {
+          "type": "string",
+          "description": "Template category for organization",
+          "default": "Reactivation"
+        }
+      },
+      "required": ["template_name", "subject", "html_body"]
+    },
+    "platform": "customer-reactivation"
+  },
+  {
+    "name": "reactivation_get_dashboard",
+    "description": "Get dashboard overview with aggregate metrics across all campaigns. Shows total emails sent, open rates, click rates, reorders, revenue recovered, ROI, and at-risk customer counts. Includes list of recent campaigns with performance summaries.",
+    "short_description": "Get dashboard metrics overview",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "user_id": {
+          "type": "integer",
+          "description": "User ID to fetch dashboard for",
+          "default": 1
+        },
+        "business_id": {
+          "type": "integer",
+          "description": "Xero business ID to filter by (1=Print, 2=Publishing, 3=Signs)",
+          "default": 1
+        }
+      },
+      "required": []
+    },
+    "platform": "customer-reactivation"
+  }
+]

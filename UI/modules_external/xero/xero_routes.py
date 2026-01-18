@@ -3154,35 +3154,171 @@ def xero_report_customer_intelligence():
             if total_paid > 0:
                 record['payment_consistency'] = (record['on_time_payments'] / total_paid) * 100
             
-            # TIME-BASED RISK - NOW USES DEVIATION IF AVAILABLE
+            # INTELLIGENT TIME-BASED RISK - CUSTOMER-SPECIFIC PATTERNS (NO ARBITRARY THRESHOLDS)
+            # Based on real data analysis: avg reorder = 18 days, 55% single-order, 28% high-frequency
             days_inactive = record['days_since_last_order']
+            total_invoices = record['total_invoices']
+            avg_reorder = record['avg_reorder_days']
+            reorder_variance = record['reorder_variance']
+            lifetime_value = record['lifetime_value']
             
-            if record['avg_reorder_days'] > 0:
-                # Use customer-specific deviation-based risk
-                deviation_ratio = record['days_overdue'] / (record['reorder_variance'] + 1)  # +1 to avoid div by zero
-                
-                if deviation_ratio >= 3:  # 3x variance exceeded
-                    record['time_risk_score'] = 95
-                elif deviation_ratio >= 2:  # 2x variance exceeded
-                    record['time_risk_score'] = 75
-                elif deviation_ratio >= 1:  # 1x variance exceeded
-                    record['time_risk_score'] = 50
-                elif record['days_overdue'] > 0:  # Slightly overdue
-                    record['time_risk_score'] = 25
-                else:  # On time or early
+            # Determine if high-frequency customer (<60 day avg reorder interval)
+            is_high_frequency = avg_reorder > 0 and avg_reorder < 60
+            
+            # Define value threshold for single-order classification ($1000 based on LTV median $571)
+            high_value_threshold = 1000
+            is_high_value_single = total_invoices == 1 and lifetime_value >= high_value_threshold
+            is_low_value_single = total_invoices == 1 and lifetime_value < high_value_threshold
+            
+            # TRACK A: SINGLE-ORDER HIGH-VALUE CUSTOMERS
+            if is_high_value_single:
+                if days_inactive <= 30:
                     record['time_risk_score'] = 5
-            else:
-                # Fallback to fixed thresholds for new customers
-                if days_inactive >= 180:
-                    record['time_risk_score'] = 95
-                elif days_inactive >= 90:
-                    record['time_risk_score'] = 75
-                elif days_inactive >= 60:
+                    record['action_priority'] = 2
+                    record['customer_status'] = 'High-Value New'
+                    record['action_reason'] = f'High-value first order (${lifetime_value:,.2f}) - Early follow-up opportunity'
+                elif days_inactive <= 90:
                     record['time_risk_score'] = 50
-                elif days_inactive >= 30:
+                    record['action_priority'] = 1
+                    record['customer_status'] = 'High-Value At-Risk'
+                    record['action_reason'] = f'High-value customer (${lifetime_value:,.2f}) - 30+ days since first order, URGENT follow-up'
+                elif days_inactive <= 365:
+                    record['time_risk_score'] = 75
+                    record['action_priority'] = 3
+                    record['customer_status'] = 'High-Value Dormant'
+                    record['action_reason'] = f'High-value customer (${lifetime_value:,.2f}) - 90+ days inactive, reactivation campaign needed'
+                else:  # 365+ days
+                    record['time_risk_score'] = 0
+                    record['action_priority'] = 10
+                    record['customer_status'] = 'Dead Customer'
+                    record['action_reason'] = f'High-value lost customer - 1+ year inactive, archive unless special circumstance'
+            
+            # TRACK B: SINGLE-ORDER LOW-VALUE CUSTOMERS
+            elif is_low_value_single:
+                if days_inactive <= 90:
+                    record['time_risk_score'] = 10
+                    record['action_priority'] = 6
+                    record['customer_status'] = 'New Low-Value'
+                    record['action_reason'] = f'Single low-value order (${lifetime_value:,.2f}) - Monitor for repeat business'
+                elif days_inactive <= 365:
                     record['time_risk_score'] = 25
+                    record['action_priority'] = 8
+                    record['customer_status'] = 'Low-Value Dormant'
+                    record['action_reason'] = f'Single order (${lifetime_value:,.2f}) - Low priority, consider bulk reactivation campaign'
+                else:  # 365+ days
+                    record['time_risk_score'] = 0
+                    record['action_priority'] = 10
+                    record['customer_status'] = 'Dead Customer'
+                    record['action_reason'] = f'Lost customer - 1+ year inactive, archive'
+            
+            # TRACK C: MULTI-ORDER CUSTOMERS WITH ESTABLISHED PATTERN (4+ orders)
+            elif total_invoices >= 4 and avg_reorder > 0:
+                # Calculate statistical deviation from customer's own pattern
+                days_overdue = record['days_overdue']
+                deviation_ratio = days_overdue / (reorder_variance + 1)  # Standard deviations overdue
+                
+                # Dead customer threshold: 365 days (1 year)
+                if days_inactive >= 365:
+                    record['time_risk_score'] = 0
+                    record['action_priority'] = 10
+                    record['customer_status'] = 'Dead Customer'
+                    record['action_reason'] = f'1+ year inactive - Archive (avg reorder was {avg_reorder:.0f}d, now {days_inactive}d)'
+                
+                # Critical deviation: 3+ standard deviations
+                elif deviation_ratio >= 3:
+                    if is_high_frequency:
+                        record['time_risk_score'] = 95
+                        record['action_priority'] = 1
+                        record['customer_status'] = 'High-Frequency Churning'
+                        record['action_reason'] = f'URGENT: High-frequency customer (avg {avg_reorder:.0f}d) is {deviation_ratio:.1f}σ overdue - {days_overdue}d past expected'
+                    else:
+                        record['time_risk_score'] = 90
+                        record['action_priority'] = 2
+                        record['customer_status'] = 'Churning'
+                        record['action_reason'] = f'Critical: {deviation_ratio:.1f}σ overdue - Expected order {days_overdue}d ago (avg {avg_reorder:.0f}d)'
+                
+                # High deviation: 2-3 standard deviations
+                elif deviation_ratio >= 2:
+                    if is_high_frequency:
+                        record['time_risk_score'] = 85
+                        record['action_priority'] = 1
+                        record['customer_status'] = 'High-Frequency At-Risk'
+                        record['action_reason'] = f'URGENT: High-frequency customer (avg {avg_reorder:.0f}d) is {deviation_ratio:.1f}σ overdue - Act now'
+                    else:
+                        record['time_risk_score'] = 75
+                        record['action_priority'] = 2
+                        record['customer_status'] = 'High-Risk'
+                        record['action_reason'] = f'Significant delay: {deviation_ratio:.1f}σ overdue - Expected {days_overdue}d ago (avg {avg_reorder:.0f}d)'
+                
+                # Moderate deviation: 1-2 standard deviations
+                elif deviation_ratio >= 1:
+                    if is_high_frequency:
+                        record['time_risk_score'] = 60
+                        record['action_priority'] = 2
+                        record['customer_status'] = 'High-Frequency Monitor'
+                        record['action_reason'] = f'High-frequency customer (avg {avg_reorder:.0f}d) is {deviation_ratio:.1f}σ overdue - Early intervention'
+                    else:
+                        record['time_risk_score'] = 50
+                        record['action_priority'] = 4
+                        record['customer_status'] = 'At-Risk'
+                        record['action_reason'] = f'Outside normal pattern: {deviation_ratio:.1f}σ overdue - Check in recommended (avg {avg_reorder:.0f}d)'
+                
+                # Slightly overdue: 0-1 standard deviations
+                elif days_overdue > 0:
+                    if is_high_frequency:
+                        record['time_risk_score'] = 30
+                        record['action_priority'] = 3
+                        record['customer_status'] = 'High-Frequency Normal'
+                        record['action_reason'] = f'High-frequency customer (avg {avg_reorder:.0f}d) slightly delayed - Monitor closely'
+                    else:
+                        record['time_risk_score'] = 25
+                        record['action_priority'] = 5
+                        record['customer_status'] = 'Slightly Overdue'
+                        record['action_reason'] = f'Within variance: {days_overdue}d past avg ({avg_reorder:.0f}d) - Normal variation'
+                
+                # On time or early
+                else:
+                    if is_high_frequency:
+                        record['time_risk_score'] = 5
+                        record['action_priority'] = 4
+                        record['customer_status'] = 'High-Frequency Active'
+                        record['action_reason'] = f'Excellent: High-frequency customer (avg {avg_reorder:.0f}d) ordering on schedule'
+                    else:
+                        record['time_risk_score'] = 5
+                        record['action_priority'] = 6
+                        record['customer_status'] = 'Active'
+                        record['action_reason'] = f'On schedule: Within expected reorder window (avg {avg_reorder:.0f}d)'
+            
+            # TRACK D: MULTI-ORDER CUSTOMERS WITHOUT PATTERN YET (2-3 orders)
+            elif total_invoices >= 2 and total_invoices <= 3:
+                # Not enough data for statistical pattern - use simple checkpoints
+                if days_inactive >= 365:
+                    record['time_risk_score'] = 0
+                    record['action_priority'] = 10
+                    record['customer_status'] = 'Dead Customer'
+                    record['action_reason'] = f'1+ year inactive - Archive (only {total_invoices} orders)'
+                elif days_inactive >= 90:
+                    record['time_risk_score'] = 60
+                    record['action_priority'] = 3
+                    record['customer_status'] = 'Early-Stage At-Risk'
+                    record['action_reason'] = f'New customer ({total_invoices} orders) - 90+ days inactive, nurture needed'
+                elif days_inactive >= 30:
+                    record['time_risk_score'] = 30
+                    record['action_priority'] = 5
+                    record['customer_status'] = 'Early-Stage Active'
+                    record['action_reason'] = f'New customer ({total_invoices} orders) - Building relationship, follow-up opportunity'
                 else:
                     record['time_risk_score'] = 5
+                    record['action_priority'] = 6
+                    record['customer_status'] = 'New Active'
+                    record['action_reason'] = f'New customer ({total_invoices} orders) - Recent activity, continue engagement'
+            
+            # TRACK E: EDGE CASE - No order data (should not happen)
+            else:
+                record['time_risk_score'] = 0
+                record['action_priority'] = 10
+                record['customer_status'] = 'No Data'
+                record['action_reason'] = 'No order history available'
             
             # PAYMENT RISK (0-100)
             if record['payment_consistency'] < 50:
