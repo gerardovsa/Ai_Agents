@@ -170,11 +170,11 @@ class AutomationScheduler:
         # Start background scheduler
         self.scheduler.start()
         
-        # Add periodic task checker (every minute)
+        # Add periodic task checker (every 5 minutes to reduce DB load)
         self.scheduler.add_job(
             self._check_pending_approvals,
             'interval',
-            minutes=1,
+            minutes=5,
             id='approval_checker'
         )
         
