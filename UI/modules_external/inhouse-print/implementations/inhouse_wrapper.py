@@ -424,7 +424,7 @@ def inhouse_get_calculator_requirements(product_type: str, **kwargs) -> Dict[str
 # ACTION TOOLS (Optimized Shortcuts)
 # ============================================================================
 
-def inhouse_calculate_quote(product_type: str, parameters: Dict[str, Any], **kwargs) -> Dict[str, Any]:
+def inhouse_calculate_quote(product_type: str, parameters: Optional[Dict[str, Any]] = None, **kwargs) -> Dict[str, Any]:
     """
     Calculate quote for InHouse Print product
     
@@ -440,7 +440,8 @@ def inhouse_calculate_quote(product_type: str, parameters: Dict[str, Any], **kwa
     Args:
         product_type: Calculator type (from get_calculator_requirements)
         parameters: Product-specific parameters (validated against requirements)
-        **kwargs: Credential injection (not used)
+                   Can be None if parameters are passed as **kwargs (flattened format)
+        **kwargs: Either credential injection OR flattened parameters
     
     Returns:
         {
@@ -464,7 +465,7 @@ def inhouse_calculate_quote(product_type: str, parameters: Dict[str, Any], **kwa
     Raises:
         Exception: If calculator error or invalid parameters
     """
-    # ✅ FIX (Jan 13, 2026): Use registry to execute calculator tool directly
+    # ✅ FIX (Jan 18, 2026): Support both nested and flattened parameter formats
     try:
         import sys
         import json
@@ -483,8 +484,15 @@ def inhouse_calculate_quote(product_type: str, parameters: Dict[str, Any], **kwa
         # Initialize registry
         registry = RegistryV3()
         
-        # Handle both JSON string and dict parameters (from registry)
-        if isinstance(parameters, str):
+        # Handle both nested and flattened parameter formats
+        if parameters is None:
+            # Parameters were flattened (from execute_tool) - reconstruct from kwargs
+            parameters = {
+                k: v for k, v in kwargs.items() 
+                if not k.startswith('_')  # Exclude _user_id, _injected_credentials
+            }
+        elif isinstance(parameters, str):
+            # Handle JSON string format
             parameters = json.loads(parameters)
         
         # Map product_type to calculator tool name

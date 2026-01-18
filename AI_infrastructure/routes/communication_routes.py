@@ -251,85 +251,106 @@ def list_emails():
         try:
             print(f"[Communication Hub] 📧 Fetching Gmail messages for user {user_id}...")
             
-            # ✅ FIX: Pass _user_id and _injected_credentials flag (NOT credentials dict)
-            # The Gmail service will fetch credentials from database using UserAuthManager
-            gmail_params = {
-                'max_results': limit,
-                '_user_id': user_id,
-                '_injected_credentials': True
-            }
-            
-            # ✅ NEW: Add thread filter if specified
+            # ✅ FIX (Jan 18, 2026): Use threads().get() API when thread_id specified
+            # This fetches ALL messages in conversation (sent + received folders)
             if thread_id:
                 # Gmail thread_id format: "gmail_<actual_thread_id>"
                 actual_thread_id = thread_id.replace('gmail_', '') if thread_id.startswith('gmail_') else thread_id
-                gmail_params['query'] = f'in:anywhere'  # Search all folders for thread
-                print(f"[Communication Hub] 🔍 Filtering Gmail by thread: {actual_thread_id}")
-            
-            gmail_result = gmail_list_messages(**gmail_params)
-            
-            # gmail_list_messages returns {'messages': [], 'count': N, 'next_page_token': ...}
-            # NOT {'success': True, ...} - check for 'messages' key instead
-            if 'messages' in gmail_result:
-                gmail_count = len(gmail_result.get('messages', []))
-                print(f"[Communication Hub] ✅ Got {gmail_count} Gmail message IDs")
+                print(f"[Communication Hub] 🔍 Fetching Gmail THREAD: {actual_thread_id}")
                 
-                # ⚡ PARALLEL FETCH: Get all message details at once using ThreadPoolExecutor
-                from concurrent.futures import ThreadPoolExecutor, as_completed
-                import time
+                from google_workspace.gmail import gmail_get_thread
                 
-                # ✅ FIX: Pass user_id to each worker (they'll use database credentials)
-                def fetch_single_message(msg_summary, uid):
-                    """Fetch a single message metadata using database credentials"""
-                    try:
-                        msg = gmail_get_message(
-                            message_id=msg_summary['id'],
-                            format='metadata',
-                            _user_id=uid,
-                            _injected_credentials=True
-                        )
-                        
-                        # Parse message headers
-                        headers = {h['name'].lower(): h['value'] for h in msg.get('payload', {}).get('headers', [])}
-                        
-                        return {
-                            'id': f"gmail_{msg['id']}",
-                            'provider': 'gmail',
-                            'from': headers.get('from', 'Unknown'),
-                            'to': headers.get('to', ''),
-                            'subject': headers.get('subject', 'No Subject'),
-                            'date': headers.get('date', ''),
-                            'is_read': 'UNREAD' not in msg.get('labelIds', []),
-                            'snippet': msg.get('snippet', ''),
-                            'has_attachments': any(p.get('filename') for p in msg.get('payload', {}).get('parts', [])),
-                            'thread_id': msg.get('threadId')  # ✅ Gmail conversation threading
-                        }
-                    except Exception as msg_err:
-                        print(f"[Communication Hub] ⚠️  Failed to fetch message {msg_summary['id']}: {msg_err}")
-                        return None
+                # Get entire thread with all messages (format='metadata' for lightweight response)
+                thread_data = gmail_get_thread(
+                    thread_id=actual_thread_id,
+                    format='metadata',
+                    _user_id=user_id,
+                    _injected_credentials=True
+                )
                 
-                # Execute all fetches in parallel (max 10 workers to respect connection pool limits)
-                start_time = time.time()
-                with ThreadPoolExecutor(max_workers=10) as executor:
-                    # Submit all tasks at once with user_id
-                    future_to_msg = {executor.submit(fetch_single_message, msg, user_id): msg for msg in gmail_result.get('messages', [])}
+                # Parse each message in thread
+                for msg in thread_data.get('messages', []):
+                    headers = {h['name'].lower(): h['value'] for h in msg.get('payload', {}).get('headers', [])}
                     
-                    # Collect results as they complete
-                    for future in as_completed(future_to_msg):
-                        result = future.result()
-                        if result:
-                            # ✅ NEW: Filter by thread_id if specified
-                            if thread_id:
-                                actual_thread_id = thread_id.replace('gmail_', '') if thread_id.startswith('gmail_') else thread_id
-                                if result.get('thread_id') == actual_thread_id:
-                                    emails.append(result)
-                            else:
-                                emails.append(result)
+                    emails.append({
+                        'id': f"gmail_{msg['id']}",
+                        'provider': 'gmail',
+                        'from': headers.get('from', 'Unknown'),
+                        'to': headers.get('to', ''),
+                        'subject': headers.get('subject', 'No Subject'),
+                        'date': headers.get('date', ''),
+                        'is_read': 'UNREAD' not in msg.get('labelIds', []),
+                        'snippet': msg.get('snippet', ''),
+                        'has_attachments': any(p.get('filename') for p in msg.get('payload', {}).get('parts', [])),
+                        'thread_id': msg.get('threadId')
+                    })
                 
-                elapsed = time.time() - start_time
-                print(f"[Communication Hub] ⚡ Fetched {len(emails)} emails in {elapsed:.2f}s (parallel)")
+                print(f"[Communication Hub] ✅ Got {len(emails)} messages from Gmail thread")
+            
             else:
-                print(f"[Communication Hub] ⚠️  Gmail returned unexpected format: {list(gmail_result.keys())}")
+                # No thread filter - list messages normally
+                gmail_params = {
+                    'max_results': limit,
+                    '_user_id': user_id,
+                    '_injected_credentials': True
+                }
+                
+                gmail_result = gmail_list_messages(**gmail_params)
+                
+                # gmail_list_messages returns {'messages': [], 'count': N, 'next_page_token': ...}
+                if 'messages' in gmail_result:
+                    gmail_count = len(gmail_result.get('messages', []))
+                    print(f"[Communication Hub] ✅ Got {gmail_count} Gmail message IDs")
+                    
+                    # ⚡ PARALLEL FETCH: Get all message details at once using ThreadPoolExecutor
+                    from concurrent.futures import ThreadPoolExecutor, as_completed
+                    import time
+                    
+                    def fetch_single_message(msg_summary, uid):
+                        """Fetch a single message metadata using database credentials"""
+                        try:
+                            msg = gmail_get_message(
+                                message_id=msg_summary['id'],
+                                format='metadata',
+                                _user_id=uid,
+                                _injected_credentials=True
+                            )
+                            
+                            # Parse message headers
+                            headers = {h['name'].lower(): h['value'] for h in msg.get('payload', {}).get('headers', [])}
+                            
+                            return {
+                                'id': f"gmail_{msg['id']}",
+                                'provider': 'gmail',
+                                'from': headers.get('from', 'Unknown'),
+                                'to': headers.get('to', ''),
+                                'subject': headers.get('subject', 'No Subject'),
+                                'date': headers.get('date', ''),
+                                'is_read': 'UNREAD' not in msg.get('labelIds', []),
+                                'snippet': msg.get('snippet', ''),
+                                'has_attachments': any(p.get('filename') for p in msg.get('payload', {}).get('parts', [])),
+                                'thread_id': msg.get('threadId')
+                            }
+                        except Exception as msg_err:
+                            print(f"[Communication Hub] ⚠️  Failed to fetch message {msg_summary['id']}: {msg_err}")
+                            return None
+                    
+                    # Execute all fetches in parallel (max 10 workers to respect connection pool limits)
+                    start_time = time.time()
+                    with ThreadPoolExecutor(max_workers=10) as executor:
+                        # Submit all tasks at once with user_id
+                        future_to_msg = {executor.submit(fetch_single_message, msg, user_id): msg for msg in gmail_result.get('messages', [])}
+                        
+                        # Collect results as they complete
+                        for future in as_completed(future_to_msg):
+                            result = future.result()
+                            if result:
+                                emails.append(result)
+                    
+                    elapsed = time.time() - start_time
+                    print(f"[Communication Hub] ⚡ Fetched {len(emails)} emails in {elapsed:.2f}s (parallel)")
+                else:
+                    print(f"[Communication Hub] ⚠️  Gmail returned unexpected format: {list(gmail_result.keys())}")
         except Exception as e:
             print(f"[Communication Hub] ❌ Gmail error: {e}")
             import traceback
@@ -341,29 +362,39 @@ def list_emails():
     if account in ['all', 'outlook'] and has_microsoft and OUTLOOK_AVAILABLE:
         try:
             print(f"[Communication Hub] 📧 Fetching Outlook messages for user {user_id}...")
-            outlook_result = microsoft_outlook_list_messages(
-                max_results=limit,
-                _user_id=user_id,
-                _injected_credentials=True
-            )
             
-            if outlook_result.get('success'):
-                outlook_count = len(outlook_result.get('messages', []))
-                print(f"[Communication Hub] ✅ Got {outlook_count} Outlook message(s)")
-                for msg in outlook_result.get('messages', []):
+            # ✅ FIX (Jan 18, 2026): Use conversationId filter when thread_id specified
+            # This fetches ALL messages in conversation (sent + received folders)
+            if thread_id:
+                actual_thread_id = thread_id.replace('outlook_', '') if thread_id.startswith('outlook_') else thread_id
+                print(f"[Communication Hub] 🔍 Fetching Outlook CONVERSATION: {actual_thread_id}")
+                
+                # Use Microsoft365Client to fetch conversation
+                from Microsoft_365_Connection.microsoft365_client import Microsoft365Client
+                
+                # Get user's Microsoft credentials
+                outlook_creds = user_auth_manager.get_user_oauth_credentials(user_id, 'microsoft')
+                if not outlook_creds:
+                    raise ValueError(f"No Microsoft OAuth credentials for user {user_id}")
+                
+                ms_client = Microsoft365Client(
+                    access_token=outlook_creds['access_token'],
+                    refresh_token=outlook_creds.get('refresh_token')
+                )
+                
+                # Fetch all messages in conversation
+                endpoint = f'/me/messages?$filter=conversationId eq \'{actual_thread_id}\'&$top=100&$orderby=receivedDateTime asc'
+                response = ms_client._make_request('GET', endpoint)
+                conversation_messages = response.get('value', [])
+                
+                print(f"[Communication Hub] ✅ Got {len(conversation_messages)} messages from Outlook conversation")
+                
+                for msg in conversation_messages:
                     from_addr = msg.get('from', {})
                     if isinstance(from_addr, dict):
                         from_email = from_addr.get('emailAddress', {}).get('address', 'Unknown')
                     else:
                         from_email = str(from_addr)
-                    
-                    msg_thread_id = msg.get('conversationId')
-                    
-                    # ✅ NEW: Filter by thread_id if specified
-                    if thread_id:
-                        actual_thread_id = thread_id.replace('outlook_', '') if thread_id.startswith('outlook_') else thread_id
-                        if msg_thread_id != actual_thread_id:
-                            continue  # Skip emails not in this thread
                     
                     emails.append({
                         'id': f"outlook_{msg['id']}",
@@ -375,10 +406,41 @@ def list_emails():
                         'is_read': msg.get('isRead', False),
                         'snippet': msg.get('bodyPreview', ''),
                         'has_attachments': msg.get('hasAttachments', False),
-                        'thread_id': msg_thread_id  # ✅ Outlook conversation threading
+                        'thread_id': msg.get('conversationId')
                     })
+            
             else:
-                print(f"[Communication Hub] ⚠️  Outlook returned no messages or error: {outlook_result.get('error', 'Unknown')}")
+                # No thread filter - list messages normally
+                outlook_result = microsoft_outlook_list_messages(
+                    max_results=limit,
+                    _user_id=user_id,
+                    _injected_credentials=True
+                )
+                
+                if outlook_result.get('success'):
+                    outlook_count = len(outlook_result.get('messages', []))
+                    print(f"[Communication Hub] ✅ Got {outlook_count} Outlook message(s)")
+                    for msg in outlook_result.get('messages', []):
+                        from_addr = msg.get('from', {})
+                        if isinstance(from_addr, dict):
+                            from_email = from_addr.get('emailAddress', {}).get('address', 'Unknown')
+                        else:
+                            from_email = str(from_addr)
+                        
+                        emails.append({
+                            'id': f"outlook_{msg['id']}",
+                            'provider': 'outlook',
+                            'from': from_email,
+                            'to': msg.get('toRecipients', [{}])[0].get('emailAddress', {}).get('address', '') if msg.get('toRecipients') else '',
+                            'subject': msg.get('subject', 'No Subject'),
+                            'date': msg.get('receivedDateTime', ''),
+                            'is_read': msg.get('isRead', False),
+                            'snippet': msg.get('bodyPreview', ''),
+                            'has_attachments': msg.get('hasAttachments', False),
+                            'thread_id': msg.get('conversationId')
+                        })
+                else:
+                    print(f"[Communication Hub] ⚠️  Outlook returned no messages or error: {outlook_result.get('error', 'Unknown')}")
         except Exception as e:
             print(f"[Communication Hub] ❌ Outlook error: {e}")
             import traceback

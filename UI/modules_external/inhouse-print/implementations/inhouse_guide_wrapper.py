@@ -799,6 +799,7 @@ def inhouse_database_guide(**kwargs) -> Dict[str, Any]:
                     "OrderID": "int (Primary Key)",
                     "CustomerMYOB_ID": "uniqueidentifier - MYOB customer reference",
                     "ClientName": "nvarchar(255) - Customer name",
+                    "ClientOrderNum": "nvarchar(50) - Customer's order reference number (NOT OrderNumber!)",
                     "OrderDate": "date - Order creation date (USE THIS for date filtering)",
                     "ReadToInvoice": "bit - Ready for invoicing flag",
                     "Invoiced": "bit - Invoice status",
@@ -808,7 +809,7 @@ def inhouse_database_guide(**kwargs) -> Dict[str, Any]:
                     "InvoiceNumber": "nvarchar(50) - Invoice reference",
                     "InvoiceDate": "date - When invoiced"
                 },
-                "critical_note": "❌ NO Status column! ❌ NO TotalCost column! Use Invoiced flag (bit) for order status. Use o.OrderDate for date filtering - JobTickets does NOT have DateCreated column"
+                "critical_note": "❌ NO Status column! ❌ NO TotalCost column! ❌ NO OrderNumber column (use ClientOrderNum instead)! ❌ NO ColourStatus column (deadline urgency is in JobTickets.ColourStatus)! Use Invoiced flag (bit) for order status. Use o.OrderDate for date filtering - JobTickets does NOT have DateCreated column"
             },
             "JobTickets": {
                 "table": "JobTickets",
@@ -817,29 +818,53 @@ def inhouse_database_guide(**kwargs) -> Dict[str, Any]:
                 "foreign_keys": {
                     "OrderID": "References Orders.OrderID",
                     "PaperSizeID": "References PaperSize.SizeID",
-                    "BindTypeID": "References BindType.BindID"
+                    "BindTypeID": "References BindType.BindID",
+                    "GSM_ID": "References GSM.GSM_ID (BOTH columns have underscores!)"
                 },
                 "key_columns": {
-                    "TicketID": "int (Primary Key)",
+                    "TicketID": "int (Primary Key) - ❌ NOT JobID! Use TicketID for primary key",
                     "OrderID": "int (Foreign Key to Orders)",
-                    "TicketNotes": "nvarchar(MAX) - PRIMARY source of truth for specs",
+                    "StageID": "int - Job stage/status reference",
+                    "JobTypeID": "int - Job type reference",
+                    "TicketNotes": "varchar(500) - PRIMARY source of truth for specs",
                     "QTY": "int - Quantity ordered",
-                    "Cost": "decimal(10,2) - Job cost",
-                    "ColourStatus": "nvarchar(50) - Red/Yellow/Green (PRODUCTION URGENCY, not print color!)",
+                    "Cost": "money - Job cost",
+                    "ColourStatus": "int - Production urgency (1-7 scale, ❌ NOT print color!)",
                     "PaperSizeID": "int (Foreign Key to PaperSize)",
-                    "BindTypeID": "int (Foreign Key to BindType)"
+                    "PaperTypeID": "int (Foreign Key to PaperType)",
+                    "JobTypeID": "int (Foreign Key to JobType)",
+                    "BindTypeID": "int (Foreign Key to BindType)",
+                    "GSM_ID": "int (Foreign Key to GSM) - ❌ NOT GSMID! Note the underscore!",
+                    "CelloYes": "bit - Has celloglaze finishing",
+                    "FrontCelloNone": "bit - No celloglaze on front",
+                    "FrontCelloMatt": "bit - Matt celloglaze on front",
+                    "FrontCelloGloss": "bit - Gloss celloglaze on front",
+                    "BackCelloNone": "bit - No celloglaze on back",
+                    "BackCelloMatt": "bit - Matt celloglaze on back",
+                    "BackCelloGloss": "bit - Gloss celloglaze on back",
+                    "FoldYes": "bit - Has folding",
+                    "FoldDesc": "varchar(250) - Folding specifications",
+                    "StitchYes": "bit - Has stitching",
+                    "StitchDesc": "varchar(250) - Stitching specifications",
+                    "DieCutYes": "bit - Has die cutting",
+                    "DieCutDesc": "varchar(250) - Die cutting specifications",
+                    "DrillYes": "bit - Has drilling",
+                    "DrillDesc": "varchar(250) - Drilling specifications",
+                    "ScoreYes": "bit - Has scoring",
+                    "PerfYes": "bit - Has perforation",
+                    "ScorePerfDesc": "varchar(250) - Scoring/perforation specifications"
                 },
-                "critical_note": "NO DateCreated column! Use o.OrderDate instead (must JOIN Orders). TicketNotes is PRIMARY source when structured columns are NULL. ColourStatus is urgency status (Red/Yellow/Green), NOT print color type."
+                "critical_note": "❌ PRIMARY KEY is TicketID (NOT JobID)! ❌ NO JobID column! ❌ NO DateCreated column - use o.OrderDate with JOIN! ❌ GSM foreign key is GSM_ID (with underscore, NOT GSMID)! TicketNotes is PRIMARY source when structured columns are NULL. ColourStatus is urgency status (Red/Yellow/Green), NOT print color type."
             },
-            "PaperSize": {
-                "table": "PaperSize",
-                "alias": "ps",
-                "primary_key": "SizeID",
+            "GSM": {
+                "table": "GSM",
+                "alias": "gsm",
+                "primary_key": "GSM_ID",
                 "key_columns": {
-                    "SizeID": "int (Primary Key)",
-                    "[Desc]": "nvarchar(100) - Paper size description (use square brackets - reserved word)"
+                    "GSM_ID": "int (Primary Key) - NOTE: underscore!",
+                    "[DESC]": "varchar(20) - GSM description (❌ MUST use square brackets [DESC] - reserved keyword!)"
                 },
-                "critical_note": "NO Width or Height columns! Only has SizeID and [Desc]. Use ps.[Desc] for size info."
+                "critical_note": "❌ Column is 'DESC' (reserved SQL keyword) - MUST use square brackets: gsm.[DESC]! Do NOT use gsm.DESC (will fail)."
             },
             "BindType": {
                 "table": "BindType",
@@ -892,19 +917,26 @@ def inhouse_database_guide(**kwargs) -> Dict[str, Any]:
             "basic_order_query": """
             SELECT TOP 20
                 o.OrderID, 
-                o.ClientName, 
+                o.ClientName,
+                o.ClientOrderNum,
                 o.OrderDate,
                 o.Invoiced,
+                o.InvoiceNumber,
+                o.InvoiceDate,
                 o.Urgent,
+                o.UserID,
+                jt.TicketID,
                 jt.TicketNotes, 
                 jt.QTY, 
                 jt.Cost,
                 ps.[Desc] AS PaperSize,
-                bt.BindTypeDesc AS BindType
+                bt.BindTypeDesc AS BindType,
+                gsm.[DESC] AS GSMDesc
             FROM Orders o
             JOIN JobTickets jt ON o.OrderID = jt.OrderID
             LEFT JOIN PaperSize ps ON jt.PaperSizeID = ps.SizeID
             LEFT JOIN BindType bt ON jt.BindTypeID = bt.BindID
+            LEFT JOIN GSM gsm ON jt.GSM_ID = gsm.GSM_ID
             WHERE o.ClientName LIKE '%customer%'
             ORDER BY o.OrderDate DESC
             """,
@@ -912,16 +944,19 @@ def inhouse_database_guide(**kwargs) -> Dict[str, Any]:
             SELECT TOP 20
                 o.OrderID,
                 o.ClientName,
+                o.ClientOrderNum,
                 o.OrderDate,
                 o.Invoiced,
                 o.InvoiceNumber,
+                o.InvoiceDate,
                 o.DateRequired,
                 o.Urgent,
+                o.ShippingType,
                 COUNT(jt.TicketID) AS TotalJobs
             FROM Orders o
             LEFT JOIN JobTickets jt ON o.OrderID = jt.OrderID
             WHERE o.OrderDate > DATEADD(month, -3, GETDATE())
-            GROUP BY o.OrderID, o.ClientName, o.OrderDate, o.Invoiced, o.InvoiceNumber, o.DateRequired, o.Urgent
+            GROUP BY o.OrderID, o.ClientName, o.ClientOrderNum, o.OrderDate, o.Invoiced, o.InvoiceNumber, o.InvoiceDate, o.DateRequired, o.Urgent, o.ShippingType
             ORDER BY o.OrderDate DESC
             """,
             "customer_details_query": """
@@ -939,6 +974,34 @@ def inhouse_database_guide(**kwargs) -> Dict[str, Any]:
             WHERE c.Name LIKE '%search%'
             GROUP BY c.ContactID, c.Name, c.defaultEmail, c.Phone, c.AddressLine1, c.AddressCity, c.PostalCode
             ORDER BY TotalOrders DESC
+            """,
+            "celloglaze_finishing_details": """
+            SELECT TOP 20
+                jt.TicketID,
+                o.ClientName,
+                jt.QTY,
+                jt.CelloYes,
+                jt.FrontCelloNone,
+                jt.FrontCelloMatt,
+                jt.FrontCelloGloss,
+                jt.BackCelloNone,
+                jt.BackCelloMatt,
+                jt.BackCelloGloss,
+                jt.FoldYes,
+                jt.FoldDesc,
+                jt.StitchYes,
+                jt.StitchDesc,
+                jt.DieCutYes,
+                jt.DieCutDesc,
+                jt.DrillYes,
+                jt.DrillDesc,
+                jt.ScoreYes,
+                jt.PerfYes,
+                jt.ScorePerfDesc
+            FROM JobTickets jt
+            JOIN Orders o ON jt.OrderID = o.OrderID
+            WHERE jt.CelloYes = 1 OR jt.FoldYes = 1 OR jt.StitchYes = 1
+            ORDER BY o.OrderDate DESC
             """
         },
         
@@ -1019,11 +1082,91 @@ def inhouse_database_guide(**kwargs) -> Dict[str, Any]:
                 "frequency": "COMMON - identified Jan 2026 in AI testing"
             },
             {
+                "mistake": "Using OrderNumber instead of ClientOrderNum",
+                "error": "Invalid column name 'OrderNumber'",
+                "fix": "❌ NO OrderNumber column! Use 'ClientOrderNum' for customer order reference",
+                "why_it_happens": "Assumed standard column name - actual column is ClientOrderNum",
+                "real_world_example": "AI tried: SELECT o.OrderNumber FROM Orders o → FAILED. Correct: SELECT o.ClientOrderNum FROM Orders o",
+                "frequency": "VERY COMMON - identified Jan 2026, affects basic queries"
+            },
+            {
+                "mistake": "Using JobID instead of TicketID",
+                "error": "Invalid column name 'JobID'",
+                "fix": "❌ NO JobID column! Primary key is 'TicketID' in JobTickets table",
+                "why_it_happens": "Assumed primary key would be JobID - actual primary key is TicketID",
+                "real_world_example": "AI tried: SELECT jt.JobID FROM JobTickets jt → FAILED. Correct: SELECT jt.TicketID FROM JobTickets jt",
+                "frequency": "CRITICAL - Jan 2026, prevents all JobTickets queries"
+            },
+            {
+                "mistake": "Using GSMID instead of GSM_ID",
+                "error": "Invalid column name 'GSMID'",
+                "fix": "❌ GSMID doesn't exist! Use 'GSM_ID' (with underscore) for paper weight foreign key",
+                "why_it_happens": "Missing underscore - actual column name has underscore",
+                "real_world_example": "AI tried: LEFT JOIN GSM gsm ON jt.GSMID = gsm.GSMID → FAILED. Correct: LEFT JOIN GSM gsm ON jt.GSM_ID = gsm.GSM_ID",
+                "frequency": "COMMON - Jan 2026, affects paper weight queries"
+            },
+            {
+                "mistake": "Querying Orders.ColourStatus for deadline urgency",
+                "error": "Invalid column name 'ColourStatus' in Orders",
+                "fix": "❌ ColourStatus is NOT in Orders! It's in JobTickets table (jt.ColourStatus)",
+                "why_it_happens": "Assumed urgency field would be in Orders - it's in JobTickets",
+                "real_world_example": "AI tried: SELECT o.ColourStatus FROM Orders o → FAILED. Correct: SELECT jt.ColourStatus FROM JobTickets jt JOIN Orders o ON jt.OrderID = o.OrderID",
+                "frequency": "COMMON - Jan 2026, affects urgency/priority queries"
+            },
+            {
                 "mistake": "Assuming ColourStatus is print color type",
                 "error": "Logic error - returns urgency status not color type",
                 "fix": "ColourStatus is production urgency (Red/Yellow/Green ONLY) - check TicketNotes for color specifications",
                 "why_it_happens": "Name is misleading - ColourStatus tracks URGENCY (not print color). Color info is in TicketNotes text field.",
                 "frequency": "COMMON - misleading column name"
+            },
+            {
+                "mistake": "Using gsm.DESC instead of gsm.[DESC]",
+                "error": "Syntax error near the keyword 'DESC'",
+                "fix": "❌ DESC is reserved SQL keyword! MUST use square brackets: gsm.[DESC]",
+                "why_it_happens": "DESC is SQL keyword for descending sort - requires escaping with brackets",
+                "real_world_example": "AI tried: SELECT gsm.DESC FROM GSM gsm → FAILED. Correct: SELECT gsm.[DESC] FROM GSM gsm",
+                "frequency": "VERY COMMON - Jan 2026, DESC is reserved keyword"
+            },
+            {
+                "mistake": "Missing celloglaze detail columns",
+                "error": "Incomplete celloglaze specifications",
+                "fix": "Use FrontCelloMatt/FrontCelloGloss/BackCelloMatt/BackCelloGloss (not just CelloYes)",
+                "why_it_happens": "CelloYes only indicates if celloglaze exists - need detail columns for type/sides",
+                "real_world_example": "Query returned CelloYes=1 but no detail. Correct: SELECT jt.FrontCelloMatt, jt.BackCelloGloss FROM JobTickets jt",
+                "frequency": "MODERATE - affects celloglaze quote accuracy"
+            },
+            {
+                "mistake": "Not checking finishing operation Desc columns",
+                "error": "Missing fold/stitch/drill/diecut specifications",
+                "fix": "Check FoldDesc, StitchDesc, DieCutDesc, DrillDesc, ScorePerfDesc for details when Yes=1",
+                "why_it_happens": "Yes columns only indicate presence - Desc columns contain specifications",
+                "real_world_example": "Query found FoldYes=1 but no specification. Correct: SELECT jt.FoldYes, jt.FoldDesc FROM JobTickets jt WHERE jt.FoldYes=1",
+                "frequency": "MODERATE - affects finishing operation quotes"
+            },
+            {
+                "mistake": "Not using InvoiceNumber from Orders table",
+                "error": "Missing invoice tracking information",
+                "fix": "Orders table has InvoiceNumber and InvoiceDate columns for tracking",
+                "why_it_happens": "Columns exist but not commonly documented - useful for invoice queries",
+                "real_world_example": "SELECT o.OrderID, o.Invoiced FROM Orders o → Missing invoice details. Better: SELECT o.InvoiceNumber, o.InvoiceDate FROM Orders o WHERE o.Invoiced=1",
+                "frequency": "LOW - but useful for accounting queries"
+            },
+            {
+                "mistake": "Ignoring UserID and ShippingType columns",
+                "error": "Missing user and shipping information",
+                "fix": "Orders has UserID (who created order) and ShippingType (delivery method) columns",
+                "why_it_happens": "Undocumented columns - useful for user activity and shipping reports",
+                "real_world_example": "Query missing user tracking. Correct: SELECT o.UserID, o.ShippingType FROM Orders o",
+                "frequency": "LOW - but useful for operational reports"
+            },
+            {
+                "mistake": "Not including Clients address fields",
+                "error": "Incomplete customer contact information",
+                "fix": "Clients table has AddressCity, PostalCode beyond just AddressLine1",
+                "why_it_happens": "Only AddressLine1 commonly documented - full address needs City and PostalCode",
+                "real_world_example": "SELECT c.AddressLine1 FROM Clients c → Incomplete. Better: SELECT c.AddressLine1, c.AddressCity, c.PostalCode FROM Clients c",
+                "frequency": "MODERATE - affects customer contact reports"
             },
             {
                 "mistake": "Using LIMIT syntax (MySQL/PostgreSQL)",

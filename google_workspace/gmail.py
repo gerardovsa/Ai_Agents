@@ -726,9 +726,12 @@ def gmail_stop_watch(**kwargs):
 # ==================== THREADS ====================
 
 def gmail_get_thread(thread_id, format='full', **kwargs):
-    """Get a conversation thread"""
+    """Get a conversation thread
+    
+    ✅ Supports credential injection via **kwargs
+    """
     try:
-        service = _get_gmail_service()
+        service = _get_gmail_service(**kwargs)
         thread = service.users().threads().get(userId='me', id=thread_id, format=format).execute()
         
         return thread
