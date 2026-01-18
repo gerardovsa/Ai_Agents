@@ -351,13 +351,13 @@ def inhouse_calculator_guide(**kwargs) -> Dict[str, Any]:
         
         "available_calculators": {
             "business_cards": "calculate_business_cards",
-            "flyers": "calculate_flyers",
+            "flyers": "calculate_folded_flyers_shopify",
             "booklets": "calculate_booklets",
-            "perfect_bound_books": "calculate_perfect_bound_books",
+            "perfect_bound_books": "calculate_perfect_bound_books_shopify",
             "spiral_bound_books": "calculate_spiral_bound_books_shopify",
             "wire_bound_books": "calculate_wire_bound_books_shopify",
             "letterheads": "calculate_letterheads",
-            "corflute_signs": "calculate_corflute_signs",
+            "corflute_signs": "calculate_corflute_signs_shopify",
             "note": "Total of 37 calculators available - use list_platform_tools('quote_calculator') to see all"
         },
         

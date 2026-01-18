@@ -354,7 +354,8 @@ def inhouse_get_calculator_requirements(product_type: str, **kwargs) -> Dict[str
             "folded_flyers": "calculate_folded_flyers_shopify",
             "perfect_bound_books": "calculate_perfect_bound_books_shopify",
             "wire_bound": "calculate_wire_bound_books_shopify",
-            "spiral_bound": "calculate_spiral_bound_books_shopify"
+            "spiral_bound": "calculate_spiral_bound_books_shopify",
+            "corflute_signs": "calculate_corflute_signs_shopify"
         }
         
         tool_name = calculator_map.get(product_type.lower())
@@ -494,7 +495,8 @@ def inhouse_calculate_quote(product_type: str, parameters: Dict[str, Any], **kwa
             "folded_flyers": "calculate_folded_flyers_shopify",
             "perfect_bound_books": "calculate_perfect_bound_books_shopify",
             "wire_bound": "calculate_wire_bound_books_shopify",
-            "spiral_bound": "calculate_spiral_bound_books_shopify"
+            "spiral_bound": "calculate_spiral_bound_books_shopify",
+            "corflute_signs": "calculate_corflute_signs_shopify"
         }
         
         tool_name = calculator_map.get(product_type.lower())
