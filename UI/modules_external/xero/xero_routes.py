@@ -533,7 +533,20 @@ def init_xero_routes(app):
     except Exception as e:
         print(f"     ✗ /api/xero/customer-details - {e}")
     
-    print(f"✅ Xero module routes registered (10 endpoints + 21 reports)")
+    # Quotes endpoints
+    try:
+        app.add_url_rule('/api/xero/quotes', 'xero_quotes', xero_quotes, methods=['GET', 'POST', 'OPTIONS'])
+        print(f"     ✓ /api/xero/quotes")
+    except Exception as e:
+        print(f"     ✗ /api/xero/quotes - {e}")
+    
+    try:
+        app.add_url_rule('/api/xero/quotes/<quote_id>', 'xero_quote_detail', xero_quote_detail, methods=['GET', 'PUT', 'DELETE', 'OPTIONS'])
+        print(f"     ✓ /api/xero/quotes/<id>")
+    except Exception as e:
+        print(f"     ✗ /api/xero/quotes/<id> - {e}")
+    
+    print(f"✅ Xero module routes registered (12 endpoints + 21 reports)")
 
 
 # ============================================================================
