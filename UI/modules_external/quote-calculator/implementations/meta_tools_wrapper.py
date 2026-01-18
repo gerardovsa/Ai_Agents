@@ -127,12 +127,12 @@ def search_tools(query: str) -> Dict[str, Any]:
 
 
 @tool_executor()
-def get_tool_schema(tool_name: str) -> Dict[str, Any]:
+def get_tool_schema(target_tool_name: str) -> Dict[str, Any]:
     """
     Get detailed parameter schema for a specific tool.
     
     Args:
-        tool_name: Exact name of the tool
+        target_tool_name: Exact name of the tool
         
     Returns:
         dict: Complete tool schema
@@ -142,23 +142,23 @@ def get_tool_schema(tool_name: str) -> Dict[str, Any]:
         
         registry = RegistryV3()
         
-        if tool_name not in registry.tools:
+        if target_tool_name not in registry.tools:
             # Find similar tools
             similar = [name for name in registry.tools.keys() 
-                      if tool_name.lower() in name.lower()][:5]
+                      if target_tool_name.lower() in name.lower()][:5]
             
             return {
                 "success": False,
-                "error": f"Tool not found: {tool_name}",
+                "error": f"Tool not found: {target_tool_name}",
                 "suggestion": "Call list_available_platforms() then list_platform_tools(platform) to see available tools",
                 "similar_tools": similar if similar else None
             }
         
-        tool_def = registry.tools[tool_name]
+        tool_def = registry.tools[target_tool_name]
         
         return {
             "success": True,
-            "name": tool_name,
+            "name": target_tool_name,
             "platform": tool_def.get("platform"),
             "description": tool_def.get("description"),
             "short_description": tool_def.get("short_description"),

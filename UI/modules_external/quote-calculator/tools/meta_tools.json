@@ -47,12 +47,12 @@
       "parameters": {
         "type": "object",
         "properties": {
-          "tool_name": {
+          "target_tool_name": {
             "type": "string",
             "description": "Exact name of the tool (e.g., 'calculate_business_cards', 'gmail_send_email')"
           }
         },
-        "required": ["tool_name"]
+        "required": ["target_tool_name"]
       },
       "returns": {
         "type": "object",

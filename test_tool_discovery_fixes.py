@@ -119,9 +119,10 @@ def test_get_corflute_schema():
     registry = RegistryV3()
     
     try:
+        # Note: execute_tool uses tool_name for the function, so we pass the target tool name as parameter
         result = registry.execute_tool(
             tool_name="get_tool_schema",
-            tool_name="calculate_corflute_signs_shopify"
+            target_tool_name="calculate_corflute_signs_shopify"
         )
         
         if result.get("success"):

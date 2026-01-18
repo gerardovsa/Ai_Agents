@@ -2551,16 +2551,6 @@ window.communicationHub = {
             }
             this.state.emailThreads[emailId] = threadSlug;
 
-            // Update table cell (only if cell provided)
-            if (cell && cell.getRow) {
-                cell.getRow().update({ assigned_agent: agentName });
-            } else {
-                // Called from preview panel - just redraw table
-                if (this.state.tabulatorTable) {
-                    this.state.tabulatorTable.redraw();
-                }
-            }
-
             // Show initial success toast
             if (typeof showToast === 'function') {
                 showToast(`Assigning to ${agentName}...`, 'info', 2000);
@@ -2576,14 +2566,22 @@ window.communicationHub = {
                 await ThreadManager.loadThreadsFromBackend();
                 this.log.success('ThreadManager refreshed - table will show agent badge');
 
-                // Force table redraw to update AI Agent column
+                // ✅ FIX (Jan 18, 2026): Force immediate table redraw with updated ThreadManager data
+                // This ensures the assigned_agent column formatter can find the new thread and render badges
+                if (this.state.tabulatorTable) {
+                    this.state.tabulatorTable.redraw(true);
+                    this.log.info('✅ Table redrawn - assigned_agent cell should now show badges and buttons');
+                }
+            } else {
+                // ThreadManager not available - just redraw table
+                this.log.warn('ThreadManager not available - falling back to simple table redraw');
                 if (this.state.tabulatorTable) {
                     this.state.tabulatorTable.redraw(true);
                 }
             }
 
             // Final success notification
-            this.showSuccess(`Email assigned to ${agentName}`);
+            this.showSuccess(`✅ Email assigned to ${agentName}`);
 
             // CRITICAL: Re-enable cell after successful assignment (if cell provided)
             if (cell && cell.getElement) {
@@ -2795,7 +2793,7 @@ window.communicationHub = {
             this.state.emailThreads[emailId] = threadSlug;
 
             // ✅ UPDATE EMAIL ROW DATA IMMEDIATELY so formatter can access threadSlug
-            const emailRow = this.state.emails.find(e => e.id === emailId);
+            let emailRow = this.state.emails.find(e => e.id === emailId);
             if (emailRow) {
                 emailRow.assigned_agent = agentName;
                 emailRow._threadSlug = threadSlug;
@@ -2822,16 +2820,13 @@ window.communicationHub = {
                     console.log('[assignEmailToAgentWithTask] Thread details:', { id: assignedThread.id, slug: assignedThread.thread_slug, location: assignedThread.location, email_thread_id: assignedThread.email_thread_id });
                 }
                 this.log.success('ThreadManager refreshed with new thread');
+            }
 
-                // FIX: Force immediate cell update now that thread is loaded in ThreadManager
-                if (cell && cell.getElement) {
-                    const emailRow = this.state.emails.find(e => e.id === emailId);
-                    if (emailRow) {
-                        emailRow.assigned_agent = agentName;
-                        emailRow._threadSlug = threadSlug;
-                    }
-                    cell.getRow().update({ assigned_agent: agentName });
-                }
+            // Reuse emailRow variable (already declared above)
+            if (emailRow) {
+                emailRow.assigned_agent = agentName;
+                emailRow._threadSlug = threadSlug;
+                emailRow._processing = true;
             }
 
             // SHOW IMMEDIATE NOTIFICATION: Let user know assignment is happening
@@ -6985,6 +6980,18 @@ Draft questions for the customer listing all missing details required for accura
 
             // Update local state
             this.state.emailThreads[emailId] = threadSlug;
+
+            // ✅ FIX (Jan 18, 2026): Refresh ThreadManager and redraw table immediately
+            if (typeof ThreadManager !== 'undefined' && typeof ThreadManager.loadThreadsFromBackend === 'function') {
+                await ThreadManager.loadThreadsFromBackend();
+                this.log.success('ThreadManager refreshed - table will show assignment');
+            }
+
+            // Force immediate table redraw to show assignment
+            if (this.state.tabulatorTable) {
+                this.state.tabulatorTable.redraw(true);
+                this.log.info('✅ Table redrawn - assigned_agent cell updated');
+            }
 
             this.log.success('Email assigned to thread');
             await this.loadThreadAssignments();

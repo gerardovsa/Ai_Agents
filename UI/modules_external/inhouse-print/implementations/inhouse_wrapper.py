@@ -155,59 +155,58 @@ def inhouse_get_query_library_catalog(category: Optional[str] = None, **kwargs) 
                     "example": "Find what John ordered..."
                 },
                 ...
-            ]
+            ],
+            "total_count": 50+,
+            "categories": [...]
         }
     """
-    # ✅ FIX: Bypass ToolUseAgent - return hardcoded catalog for now
-    # TODO: Load from query_library.json file in backend/
-    queries = [
-        {
-            "name": "customer_order_history",
-            "category": "Customer Analytics",
-            "description": "Get all orders for a specific customer",
-            "parameters": ["customer_name"],
-            "example": "Find orders for 'Neilson Design'"
-        },
-        {
-            "name": "recent_orders",
-            "category": "Operational Flow",
-            "description": "Get most recent orders",
-            "parameters": ["days_back"],
-            "example": "Orders from last 7 days"
-        },
-        {
-            "name": "urgent_orders",
-            "category": "Operational Flow",
-            "description": "Get all urgent orders not yet invoiced",
-            "parameters": [],
-            "example": "Find all rush orders"
-        },
-        {
-            "name": "customer_lifetime_value",
-            "category": "Customer Analytics",
-            "description": "Calculate total revenue from customer",
-            "parameters": ["customer_name"],
-            "example": "Total spent by CJ King Printing"
-        },
-        {
-            "name": "top_customers_by_revenue",
-            "category": "Sales & Revenue",
-            "description": "Top N customers by total revenue",
-            "parameters": ["limit"],
-            "example": "Top 20 customers"
+    # ✅ FIX (Jan 18, 2026): Load from actual QueryLibrary class
+    try:
+        # Import QueryLibrary from backend
+        import sys
+        from pathlib import Path
+        
+        backend_dir = Path(__file__).resolve().parent.parent.parent / 'quote-calculator' / 'backend'
+        if str(backend_dir) not in sys.path:
+            sys.path.insert(0, str(backend_dir))
+        
+        from query_library import QueryLibrary
+        
+        # Initialize library (no DB connection needed for catalog)
+        library = QueryLibrary()
+        
+        # Get all queries using built-in method
+        all_queries = library.get_available_queries(category=category)
+        
+        # Transform to simple format
+        queries = []
+        for query_info in all_queries:
+            queries.append({
+                "name": query_info["name"],
+                "category": query_info["category"],
+                "description": query_info["description"],
+                "parameters": list(query_info.get("parameters", {}).keys()),
+                "returns": query_info.get("returns", ""),
+                "best_for": query_info.get("best_for", "")
+            })
+        
+        return {
+            "success": True,
+            "queries": queries,
+            "total_count": len(queries),
+            "categories": library.get_query_categories()
         }
-    ]
-    
-    # Filter by category if specified
-    if category:
-        queries = [q for q in queries if q['category'] == category]
-    
-    return {
-        "success": True,
-        "queries": queries,
-        "total_count": len(queries),
-        "note": "Full query library loading requires ToolUseAgent - this is a minimal catalog"
-    }
+        
+    except Exception as e:
+        import traceback
+        # Fallback to minimal catalog if QueryLibrary import fails
+        return {
+            "success": False,
+            "error": f"Failed to load query library: {e}",
+            "details": traceback.format_exc(),
+            "fallback": "Use inhouse_execute_sql with custom SQL",
+            "note": "QueryLibrary import failed - check backend path"
+        }
 
 
 def inhouse_execute_sql(query: str, **kwargs) -> List[Dict[str, Any]]:
@@ -692,6 +691,7 @@ def inhouse_get_reorder_alerts(**kwargs) -> Dict[str, Any]:
             }
         
         # Query Supabase stock_data schema for reorder alerts (MixedCase columns)
+        # ✅ FIX (Jan 18, 2026): Convert CURRENT_DATE to string for JSON serialization
         query = """
             SELECT 
                 "StockID" as stock_id,
@@ -704,7 +704,7 @@ def inhouse_get_reorder_alerts(**kwargs) -> Dict[str, Any]:
                     WHEN "CurrentStockLevel" <= "ReorderPoint" THEN 'WARNING'
                     ELSE 'OK'
                 END AS alert_level,
-                CURRENT_DATE AS alert_date
+                TO_CHAR(CURRENT_DATE, 'YYYY-MM-DD') AS alert_date
             FROM stock_data.stocklevels
             WHERE "IsActive" = 1 
               AND "CurrentStockLevel" IS NOT NULL
@@ -720,6 +720,13 @@ def inhouse_get_reorder_alerts(**kwargs) -> Dict[str, Any]:
         """
         
         results = execute_query(query, (), fetch_mode='all')
+        
+        # ✅ ADDITIONAL SAFETY: Convert any remaining date objects to strings
+        import datetime
+        for row in results:
+            for key, value in row.items():
+                if isinstance(value, (datetime.date, datetime.datetime)):
+                    row[key] = value.strftime('%Y-%m-%d')
         
         # Count alerts by level
         critical_count = len([r for r in results if r.get('alert_level') == 'CRITICAL'])

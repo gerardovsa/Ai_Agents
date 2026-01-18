@@ -923,6 +923,22 @@ def inhouse_database_guide(**kwargs) -> Dict[str, Any]:
             WHERE o.OrderDate > DATEADD(month, -3, GETDATE())
             GROUP BY o.OrderID, o.ClientName, o.OrderDate, o.Invoiced, o.InvoiceNumber, o.DateRequired, o.Urgent
             ORDER BY o.OrderDate DESC
+            """,
+            "customer_details_query": """
+            SELECT TOP 20
+                c.ContactID,
+                c.Name AS CustomerName,
+                c.defaultEmail,
+                c.Phone,
+                c.AddressLine1,
+                c.AddressCity,
+                c.PostalCode,
+                COUNT(o.OrderID) AS TotalOrders
+            FROM Clients c
+            LEFT JOIN Orders o ON c.ContactID = o.CustomerMYOB_ID
+            WHERE c.Name LIKE '%search%'
+            GROUP BY c.ContactID, c.Name, c.defaultEmail, c.Phone, c.AddressLine1, c.AddressCity, c.PostalCode
+            ORDER BY TotalOrders DESC
             """
         },
         
@@ -993,6 +1009,14 @@ def inhouse_database_guide(**kwargs) -> Dict[str, Any]:
                 "why_it_happens": "Stock data was migrated from InHouse to Supabase (separate database)",
                 "real_world_example": "AI tried: SELECT * FROM ReorderAlerts → FAILED. This table is in Supabase PostgreSQL, not InHouse SQL Server",
                 "frequency": "CRITICAL - tested and confirmed Dec 2025"
+            },
+            {
+                "mistake": "Using BusinessTable instead of Clients",
+                "error": "Invalid object name 'BusinessTable'",
+                "fix": "❌ NO BusinessTable! Use 'Clients' table for customer data (c.Name, c.ContactID, c.defaultEmail)",
+                "why_it_happens": "Logical assumption that customer table might be named BusinessTable or Business",
+                "real_world_example": "AI tried: FROM JobTickets jt INNER JOIN BusinessTable bt ON jt.BusinessID = bt.BusinessID → FAILED. Use: FROM Orders o WHERE o.ClientName LIKE '%customer%' OR JOIN Clients c ON o.CustomerMYOB_ID = c.ContactID",
+                "frequency": "COMMON - identified Jan 2026 in AI testing"
             },
             {
                 "mistake": "Assuming ColourStatus is print color type",
