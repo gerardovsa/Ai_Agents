@@ -545,24 +545,15 @@ except Exception as e:
 # REMOVED DUPLICATE: Stock Management routes now loaded via module_blueprint_loader above
 # Old init_stock_routes() pattern caused route conflicts with Blueprint system
 
-# Shopify E-Commerce: ENABLED (load routes from module folder)
-if STOCK_DB_AVAILABLE:  # Shopify uses same database as Stock Management
-    try:
-        # Add shopify module to path
-        shopify_module_path = os.path.join(os.path.dirname(__file__), '..', 'UI', 'modules_external', 'shopify')
-        if os.path.exists(shopify_module_path):
-            sys.path.insert(0, shopify_module_path)
-            from shopify_routes import init_shopify_routes
-            init_shopify_routes(app, STOCK_DB_CONFIG, STOCK_DB_AVAILABLE)
-            log_success(logger, f"Shopify E-Commerce routes registered from {shopify_module_path}")
-        else:
-            log_warning(logger, f"Shopify module not found at {shopify_module_path}")
-    except Exception as e:
-        log_error(logger, f"Failed to load shopify routes: {e}")
-        import traceback
-        traceback.print_exc()
-else:
-    log_config(logger, "Shopify E-Commerce disabled - database not available")
+# Shopify E-Commerce: ENABLED (load routes from AI_infrastructure/routes/)
+try:
+    from routes.shopify_routes import init_shopify_routes
+    init_shopify_routes(app)
+    log_success(logger, "Shopify E-Commerce routes registered (Shopify Admin API 2025-10)")
+except Exception as e:
+    log_error(logger, f"Failed to load shopify routes: {e}")
+    import traceback
+    traceback.print_exc()
 
 # Xero Accounting: ENABLED (load routes from module folder)
 try:

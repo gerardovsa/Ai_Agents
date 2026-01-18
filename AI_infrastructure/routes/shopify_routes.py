@@ -194,7 +194,11 @@ def get_shopify_session(user_id=None):
         return None
     
     try:
-        shop_url = f"{credentials['shop_name']}.myshopify.com"
+        # Use shop_domain if available, otherwise construct from shop_name
+        shop_url = credentials.get('shop_domain')
+        if not shop_url:
+            shop_url = f"{credentials['shop_name']}.myshopify.com"
+        
         api_version = credentials.get('api_version', '2024-01')
         access_token = credentials['access_token']
         

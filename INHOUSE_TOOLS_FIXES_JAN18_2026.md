@@ -1,5 +1,9 @@
 # InHouse Tools Fixes - January 18, 2026
 
+**UPDATE (Jan 19, 2026):** Communication Hub thread view fixed - now shows both inbound AND outbound emails in conversations. See `COMMUNICATION_HUB_THREAD_FIX_JAN19_2026.md` for full details.
+
+---
+
 ## Issues Identified from AI Testing
 
 ### **Issue 1: Query Library Catalog - Only 5 Queries Returned** ⚠️
