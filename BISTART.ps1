@@ -10,8 +10,8 @@ Write-Host "============================================================" -Foreg
 Write-Host ""
 
 # Set paths
-$FLASK_DIR = "C:\Users\gpoli\GIT\AI_agents\AI_infrastructure"
-$UI_DIR = "C:\Users\gpoli\GIT\AI_agents\UI"
+$FLASK_DIR = "C:\Users\gpoli\GIT\AI_Agents_V11\AI_agents\AI_infrastructure"
+$UI_DIR = "C:\Users\gpoli\GIT\AI_Agents_V11\AI_agents\UI"
 $ORIGINAL_DIR = Get-Location
 
 # Check if Flask app exists
