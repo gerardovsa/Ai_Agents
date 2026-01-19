@@ -420,12 +420,58 @@ Consider usability, accessibility, and user satisfaction."""
         }
     
     def get_quick_action(self, action_key: str) -> Optional[str]:
-        """Get a quick action prompt by key"""
+        """
+        Get a quick action prompt by key (name)
+        
+        First checks database, then falls back to hardcoded prompts
+        """
+        # Try database first
+        conn = get_database_connection('ai_infrastructure')
+        cursor = conn.cursor()
+        
+        try:
+            cursor.execute("""
+                SELECT prompt_text FROM ai_infrastructure.prompt_library
+                WHERE name = %s AND type = 'quick_action'
+                ORDER BY updated_at DESC LIMIT 1
+            """, (action_key,))
+            
+            row = cursor.fetchone()
+            if row:
+                return row[0] if isinstance(row, tuple) else row['prompt_text']
+        finally:
+            cursor.close()
+            conn.close()
+        
+        # Fallback to hardcoded
         action = self.quick_actions.get(action_key)
         return action['prompt'] if action else None
     
     def get_library_prompt(self, prompt_key: str) -> Optional[str]:
-        """Get a library prompt by key"""
+        """
+        Get a library prompt by key (name)
+        
+        First checks database, then falls back to hardcoded prompts
+        """
+        # Try database first
+        conn = get_database_connection('ai_infrastructure')
+        cursor = conn.cursor()
+        
+        try:
+            cursor.execute("""
+                SELECT prompt_text FROM ai_infrastructure.prompt_library
+                WHERE name = %s AND type = 'full_prompt'
+                ORDER BY updated_at DESC LIMIT 1
+            """, (prompt_key,))
+            
+            row = cursor.fetchone()
+            if row:
+                return row[0] if isinstance(row, tuple) else row['prompt_text']
+        finally:
+            cursor.close()
+            conn.close()
+        
+        # Fallback to hardcoded
         prompt = self.prompt_library.get(prompt_key)
         return prompt['prompt'] if prompt else None
     
@@ -446,6 +492,25 @@ Consider usability, accessibility, and user satisfaction."""
         conn.close()
         
         return row[0] if row else None
+    
+    def _increment_usage_count(self, prompt_name: str, prompt_type: str):
+        """Increment usage count for a prompt in database"""
+        try:
+            conn = get_database_connection('ai_infrastructure')
+            cursor = conn.cursor()
+            
+            cursor.execute("""
+                UPDATE ai_infrastructure.prompt_library
+                SET usage_count = usage_count + 1
+                WHERE name = %s AND type = %s
+            """, (prompt_name, prompt_type))
+            
+            conn.commit()
+            cursor.close()
+            conn.close()
+        except Exception as e:
+            # Non-critical error - don't fail injection
+            print(f"[PROMPT INJECTION] Warning: Could not increment usage count: {e}")
     
     def inject_prompts(
         self,
@@ -474,23 +539,33 @@ Consider usability, accessibility, and user satisfaction."""
         
         # Add quick actions
         if quick_actions:
-            quick_action_text = "\n\n".join([
-                self.get_quick_action(action) 
-                for action in quick_actions 
-                if self.get_quick_action(action)
-            ])
-            if quick_action_text:
+            quick_action_texts = []
+            for action in quick_actions:
+                prompt_text = self.get_quick_action(action)
+                if prompt_text:
+                    quick_action_texts.append(prompt_text)
+                    # Increment usage count
+                    self._increment_usage_count(action, 'quick_action')
+            
+            if quick_action_texts:
+                quick_action_text = "\n\n".join(quick_action_texts)
                 injections.append(f"\n\n{'='*80}\nQUICK ACTION MODIFIERS:\n{'='*80}\n{quick_action_text}")
+                print(f"[PROMPT INJECTION] ✅ Injected {len(quick_action_texts)} quick actions")
         
         # Add library prompts
         if library_prompts:
-            library_text = "\n\n".join([
-                self.get_library_prompt(prompt_key)
-                for prompt_key in library_prompts
-                if self.get_library_prompt(prompt_key)
-            ])
-            if library_text:
+            library_texts = []
+            for prompt_key in library_prompts:
+                prompt_text = self.get_library_prompt(prompt_key)
+                if prompt_text:
+                    library_texts.append(prompt_text)
+                    # Increment usage count
+                    self._increment_usage_count(prompt_key, 'full_prompt')
+            
+            if library_texts:
+                library_text = "\n\n".join(library_texts)
                 injections.append(f"\n\n{'='*80}\nSPECIALIZATION PROMPTS:\n{'='*80}\n{library_text}")
+                print(f"[PROMPT INJECTION] ✅ Injected {len(library_texts)} library prompts")
         
         # Add user custom prompts
         if user_id and user_custom_prompts:

@@ -503,6 +503,13 @@ const AgentColumn = (function () {
                 WorkspaceManager.save(agentId, 'columnCollapsed', true);
             }
 
+            // ✅ If agent is in a popout window, resize the window to collapsed width
+            const popoutWindow = document.getElementById(`agent-popout-${agentId}`);
+            if (popoutWindow && column.dataset.poppedOut === 'true') {
+                popoutWindow.style.width = '60px'; // 40px column + 20px padding
+                console.log(`[AgentColumn] Collapsed popout window for agent ${agentId} to 60px`);
+            }
+
             console.log(`[AgentColumn] Collapsed agent ${agentId}`);
         }
     }
@@ -519,6 +526,20 @@ const AgentColumn = (function () {
             // ✅ SAVE COLLAPSED STATE TO STORAGE
             if (typeof WorkspaceManager !== 'undefined') {
                 WorkspaceManager.save(agentId, 'columnCollapsed', false);
+            }
+
+            // ✅ If agent is in a popout window, restore the window to its current width state
+            const popoutWindow = document.getElementById(`agent-popout-${agentId}`);
+            if (popoutWindow && column.dataset.poppedOut === 'true') {
+                // Determine current width based on column classes
+                let expandedWidth = 400; // Default
+                if (column.classList.contains('extra-wide')) {
+                    expandedWidth = 800;
+                } else if (column.classList.contains('wide')) {
+                    expandedWidth = 600;
+                }
+                popoutWindow.style.width = `${expandedWidth}px`;
+                console.log(`[AgentColumn] Expanded popout window for agent ${agentId} to ${expandedWidth}px`);
             }
 
             console.log(`[AgentColumn] Expanded agent ${agentId}`);

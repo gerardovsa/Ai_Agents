@@ -854,6 +854,8 @@ class TwoRuleStreamProcessor {
         }
 
         // IMPROVED DOM ATTACHMENT TIMING: Wait for DOM to be fully ready with multiple retries
+        // 🔥 FIX: Check if parent container (this.container) is in DOM first
+        // The parent might not be attached yet (e.g., during message rendering)
         let attached = false;
         let retries = 0;
         const maxRetries = 5;
@@ -861,7 +863,9 @@ class TwoRuleStreamProcessor {
         while (!attached && retries < maxRetries) {
             await new Promise(resolve => requestAnimationFrame(resolve));
 
-            if (document.contains(vizContainer)) {
+            // Check if EITHER the viz container OR its parent is in the DOM
+            // Parent check handles case where message container hasn't been appended yet
+            if (document.contains(vizContainer) || document.contains(this.container)) {
                 attached = true;
             } else {
                 retries++;

@@ -1124,7 +1124,7 @@ Object.assign(window.ThreadManager, {
                 }
 
                 // Load thread
-                if (location === 'unassigned') {
+                if (location === 'unassigned' || location === 'prime') {
                     await this.loadThreadInPrime(newThreadId);
                 } else if (location.startsWith('agent-')) {
                     const agentId = parseInt(location.replace('agent-', ''));
