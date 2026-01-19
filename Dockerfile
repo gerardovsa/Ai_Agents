@@ -21,7 +21,7 @@ WORKDIR /app
 # - tesseract-ocr: For pytesseract OCR text extraction
 # - gnupg: For adding Microsoft's GPG key
 # - nodejs npm: For frontend CAD visualization libraries (manifold-3d, three.js)
-# - libgl1-mesa-glx: OpenGL library for CADQuery 3D rendering
+# - libgl1: OpenGL library for CADQuery 3D rendering (replaced libgl1-mesa-glx in Debian Trixie)
 # - libglib2.0-0: Required by CADQuery/OCC
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
@@ -38,7 +38,7 @@ RUN apt-get update && \
     apt-transport-https \
     nodejs \
     npm \
-    libgl1-mesa-glx \
+    libgl1 \
     libglib2.0-0 \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
