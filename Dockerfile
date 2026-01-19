@@ -179,12 +179,13 @@ ENV ENVIRONMENT=production
 # Set via Render Dashboard → Environment Variables to override
 ENV WHISPER_MODEL_SIZE=base
 
-# Pre-download Whisper model during build (OPTIONAL)
+# Pre-download Whisper model during build (DISABLED - Jan 19, 2026)
+# Whisper/PyTorch removed from requirements.txt to reduce build time
 # First build: Adds ~2-3 minutes (downloads model to /data/.cache/whisper)
 # Subsequent builds: Instant (model already cached on persistent disk)
 # Alternative: Comment out for lazy loading (model downloads on first transcription request)
-RUN --mount=type=cache,target=/data/.cache,sharing=locked \
-    python -c "import whisper; whisper.load_model('${WHISPER_MODEL_SIZE:-base}')" || echo "Whisper model pre-download skipped (will lazy-load on first request)"
+# RUN --mount=type=cache,target=/data/.cache,sharing=locked \
+#     python -c "import whisper; whisper.load_model('${WHISPER_MODEL_SIZE:-base}')" || echo "Whisper model pre-download skipped (will lazy-load on first request)"
 
 # Expose Flask port (5001 for local, 10000 for Render)
 EXPOSE 5001
