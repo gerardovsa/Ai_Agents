@@ -26,6 +26,10 @@ console.log('[PROMPT LIBRARY] ========================================');
     let currentFilter = 'all';  // Track current filter: all, recent, favorites, most_used
     let favoritePromptIds = new Set();  // Track favorited prompts
     let currentPromptContext = null;  // Track currently selected prompt for breadcrumb
+    
+    // ==================== AGENT CONTEXT ====================
+    let currentAgentId = null;  // Track which agent opened the catalog
+    let currentAgentName = null;  // Track agent display name
 
     // Category icon mapping (Font Awesome)
     const categoryIcons = {
@@ -359,6 +363,13 @@ console.log('[PROMPT LIBRARY] ========================================');
             <!-- FOOTER -->
             <div class="prompt-sidebar-footer">
                 <div id="browse-footer" class="footer-content active">
+                    <!-- Assign to Agent button (shown when opened from agent column) -->
+                    <button id="assign-prompt-to-agent-btn" class="btn-primary" 
+                            onclick="window.assignPromptsToAgent()" 
+                            style="display: none;"
+                            title="Assign selected prompts to agent">
+                        <i class="fas fa-plus-circle"></i> Assign to Agent
+                    </button>
                     <div style="flex: 1;"></div>
                     <button class="synergy-icon-btn" onclick="window.closeSidebar()" title="Close sidebar">
                         <i class="fas fa-times"></i>
@@ -483,7 +494,134 @@ console.log('[PROMPT LIBRARY] ========================================');
         if (sidebar) sidebar.classList.remove('show');
         if (triggerBtn) triggerBtn.classList.remove('active');
         isDropdownOpen = false;
+        
+        // Clear agent context
+        currentAgentId = null;
+        currentAgentName = null;
+        updateAgentContextDisplay();
+        
         console.log('[PROMPT LIBRARY] Sidebar closed');
+    }
+
+    /**
+     * Open Instruction Catalog for specific agent
+     * Called from agent column buttons
+     * @param {number|string} agentId - Agent ID
+     * @param {string} agentName - Agent display name
+     */
+    function openInstructionCatalog(agentId, agentName) {
+        console.log(`[PROMPT LIBRARY] Opening Instruction Catalog for ${agentName} (ID: ${agentId})`);
+        
+        // Store agent context
+        currentAgentId = agentId;
+        currentAgentName = agentName;
+        
+        // Open sidebar
+        const sidebar = document.getElementById('prompt-sidebar');
+        if (sidebar) {
+            sidebar.classList.add('show');
+        }
+        
+        // Update agent context display
+        updateAgentContextDisplay();
+        
+        // Switch to browse tab
+        switchSidebarTab('browse');
+        
+        isDropdownOpen = true;
+        console.log('[PROMPT LIBRARY] Instruction Catalog opened for:', agentName);
+    }
+
+    /**
+     * Update agent context display in sidebar header
+     */
+    function updateAgentContextDisplay() {
+        const titleElement = document.querySelector('.prompt-sidebar-title span');
+        const assignButton = document.getElementById('assign-prompt-to-agent-btn');
+        
+        if (currentAgentId && currentAgentName) {
+            // Update title to show agent context
+            if (titleElement) {
+                titleElement.innerHTML = `Instructions Catalogue <span style="color: #58a6ff; font-size: 0.9em;">→ ${currentAgentName}</span>`;
+            }
+            
+            // Show/update assign button
+            if (assignButton) {
+                assignButton.style.display = 'flex';
+                assignButton.innerHTML = `<i class="fas fa-plus-circle"></i> Assign to ${currentAgentName}`;
+                assignButton.title = `Assign selected prompts to ${currentAgentName}`;
+            }
+        } else {
+            // Reset to default view
+            if (titleElement) {
+                titleElement.textContent = 'Instructions Catalogue';
+            }
+            
+            // Hide assign button
+            if (assignButton) {
+                assignButton.style.display = 'none';
+            }
+        }
+    }
+
+    /**
+     * Assign selected prompts to current agent
+     */
+    async function assignPromptsToAgent() {
+        if (!currentAgentId || !currentAgentName) {
+            showNotification('No agent selected', 'error');
+            return;
+        }
+        
+        if (selectedPrompts.length === 0) {
+            showNotification('No prompts selected', 'error');
+            return;
+        }
+        
+        console.log(`[PROMPT LIBRARY] Assigning ${selectedPrompts.length} prompts to ${currentAgentName}`);
+        
+        // Show confirmation
+        const promptNames = selectedPrompts.map(p => p.name).join('\n• ');
+        const confirmed = confirm(`Assign the following prompts to ${currentAgentName}?\n\n• ${promptNames}`);
+        
+        if (!confirmed) {
+            console.log('[PROMPT LIBRARY] Assignment cancelled by user');
+            return;
+        }
+        
+        try {
+            // Trigger prompt injection for the agent
+            // This integrates with the existing agent message sending system
+            if (window.AgentInput && typeof window.AgentInput.assignPrompts === 'function') {
+                await window.AgentInput.assignPrompts(currentAgentId, selectedPrompts);
+            } else {
+                // Fallback: Store in session for next message
+                storePromptsForAgent(currentAgentId, selectedPrompts);
+            }
+            
+            showNotification(`✓ Assigned ${selectedPrompts.length} prompt(s) to ${currentAgentName}`, 'success');
+            
+            // Keep selection but close sidebar
+            closeSidebar();
+            
+        } catch (error) {
+            console.error('[PROMPT LIBRARY] Assignment failed:', error);
+            showNotification(`Failed to assign prompts: ${error.message}`, 'error');
+        }
+    }
+
+    /**
+     * Store prompts for agent (fallback method)
+     * Stores in sessionStorage for next message send
+     */
+    function storePromptsForAgent(agentId, prompts) {
+        try {
+            const key = `agent_${agentId}_pending_prompts`;
+            sessionStorage.setItem(key, JSON.stringify(prompts));
+            console.log(`[PROMPT LIBRARY] Stored ${prompts.length} prompts for agent ${agentId} in sessionStorage`);
+        } catch (error) {
+            console.error('[PROMPT LIBRARY] Failed to store prompts:', error);
+        }
     }
 
     /**
@@ -805,6 +943,8 @@ console.log('[PROMPT LIBRARY] ========================================');
 
     // Expose functions globally
     window.closeSidebar = closeSidebar;
+    window.openInstructionCatalog = openInstructionCatalog;
+    window.assignPromptsToAgent = assignPromptsToAgent;
     window.switchSidebarTab = switchSidebarTab;
     window.showEditorTab = showEditorTab;
     window.cancelEditor = cancelEditor;

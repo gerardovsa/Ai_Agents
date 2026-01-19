@@ -325,12 +325,38 @@ const AgentInput = (function () {
      * @param {number} agentId - Agent ID
      */
     function showPromptLibrary(agentId) {
-        console.log(`[AgentInput] Agent-${agentId} prompt library requested`);
+        console.log(`[AgentInput] Agent-${agentId} prompt library (Instruction Catalog) requested`);
 
-        // TODO: Integrate with actual prompt library system
-        // Should filter prompts relevant to agent's thread/context
-        // For now, show placeholder alert
-        alert(`Prompt library for Agent ${agentId}\n\n(Feature coming soon - will show curated prompts)`);
+        // Get agent name for display
+        const agentName = getAgentName(agentId);
+        
+        // Open the prompt library sidebar with agent context
+        if (window.openInstructionCatalog && typeof window.openInstructionCatalog === 'function') {
+            window.openInstructionCatalog(agentId, agentName);
+        } else {
+            console.error('[AgentInput] Instruction Catalog not available - prompt-library.js may not be loaded');
+            alert(`Instruction Catalog for ${agentName}\n\n(Module not loaded - check console)`);
+        }
+    }
+
+    /**
+     * Get agent display name
+     * @param {number} agentId - Agent ID
+     * @returns {string} Agent display name
+     */
+    function getAgentName(agentId) {
+        // Special case for Prime AI
+        if (agentId === 1 || agentId === '1') {
+            return 'Prime AI';
+        }
+        
+        // Try to get from MultiAgent if available
+        if (window.MultiAgent && window.MultiAgent.agents && window.MultiAgent.agents[agentId]) {
+            return window.MultiAgent.agents[agentId].name || `Agent ${agentId}`;
+        }
+        
+        // Fallback to generic name
+        return `Agent ${agentId}`;
     }
 
     /**
@@ -695,6 +721,40 @@ const AgentInput = (function () {
         }
     }
 
+    /**
+     * Assign prompts to specific agent
+     * Called from prompt library when user confirms assignment
+     * @param {number} agentId - Agent ID
+     * @param {Array} prompts - Array of prompt objects
+     */
+    async function assignPrompts(agentId, prompts) {
+        console.log(`[AgentInput] Assigning ${prompts.length} prompts to Agent-${agentId}`);
+        
+        try {
+            // Store in sessionStorage for next message send
+            const key = `agent_${agentId}_pending_prompts`;
+            const promptData = prompts.map(p => ({
+                id: p.id,
+                name: p.name,
+                type: p.type,
+                prompt_text: p.prompt_text
+            }));
+            
+            sessionStorage.setItem(key, JSON.stringify(promptData));
+            console.log(`[AgentInput] Stored ${prompts.length} prompts for Agent-${agentId}`);
+            
+            // Show visual confirmation
+            const agentName = getAgentName(agentId);
+            const promptNames = prompts.map(p => p.name).join(', ');
+            console.log(`[AgentInput] ✓ Prompts assigned to ${agentName}: ${promptNames}`);
+            
+            return true;
+        } catch (error) {
+            console.error(`[AgentInput] Failed to assign prompts to Agent-${agentId}:`, error);
+            throw error;
+        }
+    }
+
     // Public API
     return {
         initState,
@@ -706,6 +766,7 @@ const AgentInput = (function () {
         toggleTranscription,
         toggleAutoScroll,
         showPromptLibrary,
+        assignPrompts,
         showFileDialog,
         setupHandlers,
         cleanupHandlers,
