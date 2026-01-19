@@ -600,7 +600,8 @@
             box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
             min-width: 200px;
             max-width: 300px;
-            z-index: 1000;
+            z-index: 10000;
+            /* Increased from 1000 to 10000 to appear above quick nav bar */
             opacity: 0;
             pointer-events: none;
             transform: translateY(-5px);
@@ -11004,8 +11005,8 @@
             width: 32px;
             height: 32px;
             padding: 0;
-            background: transparent;
-            color: var(--accent-primary);
+            background: var(--accent-primary);
+            color: white;
             border: 1px solid var(--accent-primary);
             border-radius: 6px;
             font-size: 14px;
@@ -11014,7 +11015,7 @@
             align-items: center;
             justify-content: center;
             transition: all 0.3s ease;
-            opacity: 0.5;
+            opacity: 1;
         }
 
         /* STATE 4: Buttons become visible and interactive - MATCH AGENT STYLE */
@@ -11024,13 +11025,6 @@
             background: transparent;
             border: 1px solid var(--border-default);
             color: var(--text-primary);
-        }
-
-        .ai-chat-input-container.expanded .ai-chat-send-btn {
-            background: var(--accent-primary);
-            color: white;
-            border: 1px solid var(--accent-primary);
-            opacity: 1;
         }
 
         /* Hover states - MATCH AGENT STYLE */
@@ -11047,6 +11041,71 @@
             background: var(--accent-primary) !important;
             transform: scale(1.1);
             box-shadow: 0 2px 8px rgba(88, 166, 255, 0.4);
+        }
+
+        /* Floating action buttons - OUTSIDE wrapper, always visible */
+        .floating-action-btn {
+            position: absolute;
+            right: 20px;
+            z-index: 100;
+            width: 32px;
+            height: 32px;
+            padding: 0;
+            border-radius: 6px;
+            font-size: 14px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s cubic-bezier(0.4, 0.0, 0.2, 1);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+        }
+
+        /* When container is expanded - normal position */
+        .ai-chat-input-container.expanded .floating-action-btn {
+            bottom: 20px;
+        }
+
+        /* When container is collapsed - position at bottom of collapsed bar */
+        .ai-chat-input-container:not(.expanded) .floating-action-btn {
+            bottom: -1px;
+            transform: scale(0.9);
+        }
+
+        .ai-chat-input-container:not(.expanded) .floating-action-btn:hover {
+            transform: scale(1.0);
+        }
+
+        /* Stop button styling */
+        .ai-chat-stop-btn {
+            background: #ef4444;
+            color: white;
+            border: 1px solid #dc2626;
+        }
+
+        .ai-chat-stop-btn:hover {
+            background: #dc2626;
+            box-shadow: 0 2px 12px rgba(239, 68, 68, 0.5);
+        }
+
+        .ai-chat-stop-btn:active {
+            transform: scale(0.95);
+        }
+
+        /* Send button styling */
+        .ai-chat-send-btn {
+            background: var(--accent-primary);
+            color: white;
+            border: 1px solid var(--accent-primary);
+        }
+
+        .ai-chat-send-btn:hover {
+            background: var(--accent-primary-hover, #4a8edb);
+            box-shadow: 0 2px 12px rgba(88, 166, 255, 0.5);
+        }
+
+        .ai-chat-send-btn:active {
+            transform: scale(0.95);
         }
 
         .ai-chat-attach-btn input[type="file"] {
@@ -12685,6 +12744,106 @@
 
         .agent-header .collapse-btn i {
             font-size: 14px;
+        }
+
+        /* View Mode Button and Dropdown */
+        .agent-header .view-mode-btn {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-default);
+            color: var(--text-secondary);
+            cursor: pointer;
+            padding: 8px;
+            width: 32px;
+            height: 32px;
+            border-radius: 6px;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+        }
+
+        .agent-header .view-mode-btn:hover {
+            background: var(--bg-tertiary);
+            color: var(--text-primary);
+            border-color: var(--accent-primary);
+        }
+
+        .agent-header .view-mode-btn i {
+            font-size: 14px;
+        }
+
+        .agent-header-left {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            position: relative;
+        }
+
+        .agent-header-left .view-mode-dropdown {
+            display: none;
+            position: absolute;
+            top: 100%;
+            left: 0;
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-default);
+            border-radius: 8px;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4), 0 2px 8px rgba(0, 0, 0, 0.2);
+            z-index: 1000;
+            min-width: 200px;
+            margin-top: 4px;
+        }
+
+        .agent-header-left .view-mode-dropdown.show {
+            display: block;
+        }
+
+        .agent-header-left .view-mode-item {
+            padding: 10px 14px;
+            color: var(--text-primary);
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 13px;
+        }
+
+        .agent-header-left .view-mode-item i {
+            width: 16px;
+            font-size: 12px;
+            text-align: center;
+            color: var(--text-secondary);
+        }
+
+        .agent-header-left .view-mode-item:hover {
+            background: var(--bg-hover);
+            color: var(--accent-primary);
+        }
+
+        .agent-header-left .view-mode-item:hover i {
+            color: var(--accent-primary);
+        }
+
+        .agent-header-left .view-mode-item.active {
+            background: var(--accent-primary);
+            color: white;
+        }
+
+        .agent-header-left .view-mode-item.active i {
+            color: white;
+        }
+
+        .agent-header-left .view-mode-item.active:hover {
+            background: var(--accent-hover);
+        }
+
+        .agent-header-left .view-mode-item:first-child {
+            border-radius: 8px 8px 0 0;
+        }
+
+        .agent-header-left .view-mode-item:last-child {
+            border-radius: 0 0 8px 8px;
         }
 
         /* Width toggle button */
@@ -20596,7 +20755,7 @@
                                 <textarea class="ai-chat-input" id="ai-chat-input" rows="3"></textarea>
                             </div>
 
-                            <!-- Right: All buttons (Prompt Library, Auto-scroll, Feedback, Attach, Send) -->
+                            <!-- Right: All buttons (Prompt Library, Auto-scroll, Feedback, Attach) -->
                             <div class="ai-chat-right-buttons">
                                 <button class="ai-chat-prompt-library-btn" id="ai-chat-prompt-library-btn"
                                     title="Browse Prompt Library">
@@ -20619,12 +20778,17 @@
                                     <input type="file" id="ai-chat-file-input" multiple
                                         accept=".pdf,.png,.jpg,.jpeg,.gif,.webp" />
                                 </button>
-                                <button class="ai-chat-send-btn" id="ai-chat-send-btn" title="Send message">
-                                    <i class="fas fa-paper-plane"></i>
-                                </button>
                             </div>
                         </div>
                     </div>
+                    
+                    <!-- Send/Stop buttons OUTSIDE wrapper - stay visible when collapsed -->
+                    <button class="ai-chat-send-btn floating-action-btn" id="ai-chat-send-btn" title="Send message">
+                        <i class="fas fa-paper-plane"></i>
+                    </button>
+                    <button class="ai-chat-stop-btn floating-action-btn" id="ai-chat-stop-btn" title="Stop AI response" style="display: none;">
+                        <i class="fas fa-stop-circle"></i>
+                    </button>
                 </div>
             </div>
 

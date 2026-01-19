@@ -722,6 +722,298 @@ const AgentInput = (function () {
     }
 
     /**
+     * Render attached prompts UI (similar to file attachments)
+     * @param {number} agentId - Agent ID
+     */
+    function renderAttachedPrompts(agentId) {
+        const key = `agent_${agentId}_pending_prompts`;
+        const stored = sessionStorage.getItem(key);
+        
+        // Find or create container (same area as file attachments)
+        let container = document.getElementById(`agent-attached-prompts-${agentId}`);
+        if (!container) {
+            // Create container below files area
+            const filesContainer = document.getElementById(`agent-attached-files-${agentId}`);
+            if (filesContainer) {
+                container = document.createElement('div');
+                container.id = `agent-attached-prompts-${agentId}`;
+                container.className = 'agent-attached-prompts';
+                filesContainer.parentNode.insertBefore(container, filesContainer.nextSibling);
+            }
+        }
+        
+        if (!container) {
+            console.warn(`[AgentInput] Cannot find container for Agent-${agentId} prompts`);
+            return;
+        }
+        
+        if (!stored) {
+            container.innerHTML = '';
+            container.style.display = 'none';
+            return;
+        }
+        
+        try {
+            const prompts = JSON.parse(stored);
+            if (prompts.length === 0) {
+                container.innerHTML = '';
+                container.style.display = 'none';
+                return;
+            }
+            
+            // Render prompt chips with drag & drop support
+            container.style.display = 'flex';
+            container.innerHTML = prompts.map((p, index) => `
+                <div class="attached-prompt-chip" 
+                     data-prompt-id="${p.id}"
+                     data-prompt-index="${index}"
+                     draggable="true"
+                     ondragstart="AgentInput.handlePromptDragStart(event, ${agentId})"
+                     ondragover="AgentInput.handlePromptDragOver(event)"
+                     ondrop="AgentInput.handlePromptDrop(event, ${agentId})"
+                     ondragend="AgentInput.handlePromptDragEnd(event)"
+                     title="${p.prompt_text.replace(/"/g, '&quot;').substring(0, 200)}${p.prompt_text.length > 200 ? '...' : ''}">
+                    <i class="fas fa-grip-vertical" style="color: #999; cursor: grab; margin-right: 4px; font-size: 10px;"></i>
+                    <i class="fas fa-bolt" style="color: #ffa500;"></i>
+                    <span class="prompt-name">${p.name}</span>
+                    <span class="prompt-type-badge">${p.type === 'quick_action' ? 'Quick' : 'Full'}</span>
+                    <button class="remove-prompt-btn" onclick="AgentInput.removePrompt(${agentId}, ${p.id})" title="Remove prompt">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+            `).join('');
+            
+            // Add tooltips for full prompt preview
+            setupPromptTooltips(agentId);
+            
+            console.log(`[AgentInput] Rendered ${prompts.length} prompt(s) for Agent-${agentId} (drag & drop enabled)`);
+        } catch (error) {
+            console.error(`[AgentInput] Failed to render prompts for Agent-${agentId}:`, error);
+            container.innerHTML = '';
+            container.style.display = 'none';
+        }
+    }
+    
+    /**
+     * Setup interactive tooltips for prompt preview
+     * @param {number} agentId - Agent ID
+     */
+    function setupPromptTooltips(agentId) {
+        const container = document.getElementById(`agent-attached-prompts-${agentId}`);
+        if (!container) return;
+        
+        const chips = container.querySelectorAll('.attached-prompt-chip');
+        chips.forEach(chip => {
+            chip.addEventListener('mouseenter', (e) => {
+                const promptId = parseInt(chip.dataset.promptId);
+                const prompts = getPendingPrompts(agentId);
+                const prompt = prompts.find(p => p.id === promptId);
+                
+                if (prompt && prompt.prompt_text) {
+                    showPromptTooltip(e.currentTarget, prompt);
+                }
+            });
+            
+            chip.addEventListener('mouseleave', () => {
+                hidePromptTooltip();
+            });
+        });
+    }
+    
+    /**
+     * Show tooltip with full prompt text
+     * @param {HTMLElement} element - Element to attach tooltip to
+     * @param {Object} prompt - Prompt object
+     */
+    function showPromptTooltip(element, prompt) {
+        // Remove existing tooltip
+        hidePromptTooltip();
+        
+        const tooltip = document.createElement('div');
+        tooltip.id = 'prompt-preview-tooltip';
+        tooltip.className = 'prompt-preview-tooltip';
+        tooltip.innerHTML = `
+            <div class="tooltip-header">
+                <strong>${prompt.name}</strong>
+                <span class="tooltip-type">${prompt.type === 'quick_action' ? 'Quick Action' : 'Full Prompt'}</span>
+            </div>
+            <div class="tooltip-content">${prompt.prompt_text}</div>
+        `;
+        
+        document.body.appendChild(tooltip);
+        
+        // Position tooltip
+        const rect = element.getBoundingClientRect();
+        const tooltipRect = tooltip.getBoundingClientRect();
+        
+        let top = rect.top - tooltipRect.height - 10;
+        let left = rect.left + (rect.width / 2) - (tooltipRect.width / 2);
+        
+        // Keep tooltip within viewport
+        if (top < 10) {
+            top = rect.bottom + 10;
+        }
+        if (left < 10) {
+            left = 10;
+        }
+        if (left + tooltipRect.width > window.innerWidth - 10) {
+            left = window.innerWidth - tooltipRect.width - 10;
+        }
+        
+        tooltip.style.top = `${top}px`;
+        tooltip.style.left = `${left}px`;
+        tooltip.style.opacity = '1';
+    }
+    
+    /**
+     * Hide prompt tooltip
+     */
+    function hidePromptTooltip() {
+        const tooltip = document.getElementById('prompt-preview-tooltip');
+        if (tooltip) {
+            tooltip.remove();
+        }
+    }
+    
+    // Drag & Drop State
+    let draggedPromptIndex = null;
+    
+    /**
+     * Handle drag start
+     * @param {DragEvent} event - Drag event
+     * @param {number} agentId - Agent ID
+     */
+    function handlePromptDragStart(event, agentId) {
+        const chip = event.currentTarget;
+        draggedPromptIndex = parseInt(chip.dataset.promptIndex);
+        
+        chip.classList.add('dragging');
+        event.dataTransfer.effectAllowed = 'move';
+        event.dataTransfer.setData('text/plain', draggedPromptIndex);
+        
+        hidePromptTooltip();
+        console.log(`[AgentInput] Drag started: prompt index ${draggedPromptIndex}`);
+    }
+    
+    /**
+     * Handle drag over
+     * @param {DragEvent} event - Drag event
+     */
+    function handlePromptDragOver(event) {
+        event.preventDefault();
+        event.dataTransfer.dropEffect = 'move';
+        
+        const chip = event.currentTarget;
+        if (!chip.classList.contains('dragging')) {
+            chip.classList.add('drag-over');
+        }
+    }
+    
+    /**
+     * Handle drop
+     * @param {DragEvent} event - Drag event
+     * @param {number} agentId - Agent ID
+     */
+    function handlePromptDrop(event, agentId) {
+        event.preventDefault();
+        
+        const chip = event.currentTarget;
+        chip.classList.remove('drag-over');
+        
+        const dropIndex = parseInt(chip.dataset.promptIndex);
+        
+        if (draggedPromptIndex !== null && draggedPromptIndex !== dropIndex) {
+            // Reorder prompts
+            const prompts = getPendingPrompts(agentId);
+            const [movedPrompt] = prompts.splice(draggedPromptIndex, 1);
+            prompts.splice(dropIndex, 0, movedPrompt);
+            
+            // Save reordered prompts
+            const key = `agent_${agentId}_pending_prompts`;
+            sessionStorage.setItem(key, JSON.stringify(prompts));
+            
+            // Re-render
+            renderAttachedPrompts(agentId);
+            
+            console.log(`[AgentInput] Reordered: moved prompt from ${draggedPromptIndex} to ${dropIndex}`);
+        }
+    }
+    
+    /**
+     * Handle drag end
+     * @param {DragEvent} event - Drag event
+     */
+    function handlePromptDragEnd(event) {
+        const chip = event.currentTarget;
+        chip.classList.remove('dragging');
+        
+        // Remove drag-over from all chips
+        document.querySelectorAll('.attached-prompt-chip').forEach(c => {
+            c.classList.remove('drag-over');
+        });
+        
+        draggedPromptIndex = null;
+    }
+    
+    /**
+     * Remove a specific prompt
+     * @param {number} agentId - Agent ID
+     * @param {number} promptId - Prompt ID to remove
+     */
+    function removePrompt(agentId, promptId) {
+        const key = `agent_${agentId}_pending_prompts`;
+        const stored = sessionStorage.getItem(key);
+        
+        if (!stored) return;
+        
+        try {
+            let prompts = JSON.parse(stored);
+            prompts = prompts.filter(p => p.id !== promptId);
+            
+            if (prompts.length > 0) {
+                sessionStorage.setItem(key, JSON.stringify(prompts));
+            } else {
+                sessionStorage.removeItem(key);
+            }
+            
+            renderAttachedPrompts(agentId);
+            console.log(`[AgentInput] Removed prompt ${promptId} from Agent-${agentId}`);
+        } catch (error) {
+            console.error(`[AgentInput] Failed to remove prompt:`, error);
+        }
+    }
+    
+    /**
+     * Clear all prompts for agent
+     * @param {number} agentId - Agent ID
+     */
+    function clearPrompts(agentId) {
+        const key = `agent_${agentId}_pending_prompts`;
+        sessionStorage.removeItem(key);
+        renderAttachedPrompts(agentId);
+        console.log(`[AgentInput] Cleared all prompts for Agent-${agentId}`);
+    }
+    
+    /**
+     * Get pending prompts for agent
+     * @param {number} agentId - Agent ID
+     * @returns {Array} Array of prompt objects
+     */
+    function getPendingPrompts(agentId) {
+        const key = `agent_${agentId}_pending_prompts`;
+        const stored = sessionStorage.getItem(key);
+        
+        if (!stored) return [];
+        
+        try {
+            return JSON.parse(stored);
+        } catch (error) {
+            console.error(`[AgentInput] Failed to parse prompts:`, error);
+            return [];
+        }
+    }
+
+    /**
      * Assign prompts to specific agent
      * Called from prompt library when user confirms assignment
      * @param {number} agentId - Agent ID
@@ -742,6 +1034,9 @@ const AgentInput = (function () {
             
             sessionStorage.setItem(key, JSON.stringify(promptData));
             console.log(`[AgentInput] Stored ${prompts.length} prompts for Agent-${agentId}`);
+            
+            // Render visual display immediately
+            renderAttachedPrompts(agentId);
             
             // Show visual confirmation
             const agentName = getAgentName(agentId);
@@ -767,6 +1062,15 @@ const AgentInput = (function () {
         toggleAutoScroll,
         showPromptLibrary,
         assignPrompts,
+        removePrompt,
+        clearPrompts,
+        getPendingPrompts,
+        renderAttachedPrompts,
+        // Drag & drop handlers
+        handlePromptDragStart,
+        handlePromptDragOver,
+        handlePromptDrop,
+        handlePromptDragEnd,
         showFileDialog,
         setupHandlers,
         cleanupHandlers,

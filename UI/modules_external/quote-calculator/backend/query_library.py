@@ -1247,11 +1247,11 @@ class QueryLibrary:
             
             "stock_inventory_master": {
                 "category": "Stock Management",
-                "description": "Complete stock master inventory with pricing, markups, stock levels, and reorder information",
+                "description": "Paper stock types catalog from production history (InHouse Fred database - JobTickets analysis). Shows available GSM values, paper types, and sizes used in actual jobs with recent usage statistics. NOTE: This is NOT live inventory tracking - data comes from historical production records, not real-time stock levels. For comprehensive stock catalog with specifications, pricing may not be current. Active inventory tracking is not enabled.",
                 "parameters": {
                     "status_filter": {
                         "type": "string",
-                        "description": "Filter by status: all, critical, low, ok, inactive (default: all)",
+                        "description": "Filter by status: all, critical, low, ok, inactive (default: all) - Note: Status based on usage patterns, not actual stock levels",
                         "default": "all"
                     },
                     "stock_type": {
@@ -1260,19 +1260,19 @@ class QueryLibrary:
                         "default": "all"
                     }
                 },
-                "returns": "StockID, StockType, Size, GSM, CostPer1000, Markup, FinalPrice, StockLevel, ReorderPoint, Status, LastUsed, Usage30d",
+                "returns": "StockID, StockType, PaperSize, PaperType, GSMValue, Usage30d, LastUsed, UsageCategory",
                 "visualization": "data_table",
-                "best_for": "Inventory management, stock monitoring, pricing control",
+                "best_for": "Understanding paper types used in production, historical usage patterns. For detailed stock catalog with specs, see Supabase stock_data.unified_stocks (264 products with full descriptions)",
                 "validated": True
             },
             
             "stock_usage_analytics": {
                 "category": "Stock Management",
-                "description": "Stock usage patterns with forecasting for next 30 days based on historical consumption",
+                "description": "Paper stock usage patterns from production jobs (InHouse Fred database - JobTickets). Analyzes GSM and PaperType consumption from actual print jobs with demand forecasting based on historical usage. SOURCE: Production database (JobTickets), NOT inventory system. Shows what customers are ordering, not what's in stock. Active stock tracking is not enabled.",
                 "parameters": {
                     "days_back": {
                         "type": "integer",
-                        "description": "Historical days to analyze (default: 90)",
+                        "description": "Historical days to analyze from production jobs (default: 90)",
                         "default": 90
                     },
                     "top_n": {
@@ -1281,51 +1281,51 @@ class QueryLibrary:
                         "default": 20
                     }
                 },
-                "returns": "StockType, TotalUsage, AvgDailyUsage, Trend, ForecastNext30Days, CurrentStock, DaysUntilEmpty",
+                "returns": "GSMDesc, GSMValue, PaperType, PaperSize, JobCount, TotalQuantity, AvgDailyUsage, Forecast30Days, DemandCategory, FirstOrderDate, LastOrderDate, DaysSinceLastUse",
                 "visualization": "bar_chart_horizontal",
-                "best_for": "Demand forecasting, inventory planning, usage patterns",
+                "best_for": "Demand forecasting based on customer orders, understanding popular paper combinations, production planning",
                 "validated": True
             },
             
             "stock_reorder_alerts": {
                 "category": "Stock Management",
-                "description": "List of stocks that need reordering based on current levels and usage patterns",
+                "description": "Stock reorder alerts - NOT ACTIVE. Returns empty result set with informational message. Active inventory tracking and reorder alerts are not currently implemented in production. While Supabase contains stock_data.reorderalerts table (0 records) and stock_data.stocklevels table (183 records with reorder points), these are not being actively maintained. For stock catalog information, query Supabase stock_data.unified_stocks directly.",
                 "parameters": {
                     "urgency": {
                         "type": "string",
-                        "description": "Filter by urgency: all, critical, moderate, upcoming (default: all)",
+                        "description": "Filter by urgency: all, critical, moderate, upcoming (default: all) - Currently non-functional",
                         "default": "all"
                     }
                 },
-                "returns": "StockType, CurrentLevel, ReorderPoint, DaysUntilEmpty, SuggestedOrderQty, EstimatedCost, LastOrderDate",
+                "returns": "Informational message explaining inventory tracking is not active",
                 "visualization": "data_table",
-                "best_for": "Purchase planning, stock replenishment, budget forecasting",
+                "best_for": "Understanding inventory system status. For actual reorder planning, use stock_usage_analytics to forecast demand from production history",
                 "validated": True
             },
             
             "stock_pricing_profitability": {
                 "category": "Stock Management",
-                "description": "Analyze profitability by stock type showing markup performance and margin contribution",
+                "description": "Paper stock revenue analysis from production jobs (InHouse Fred database - JobTickets). Shows job counts and revenue by GSM/PaperType combinations from actual orders. SOURCE: Customer job data, NOT cost accounting system. Does not include actual stock costs or true profit margins - shows revenue performance only. For current stock pricing, see Supabase stock_data.unified_stocks (cost_per_thousand, markup fields) - note: pricing may not be current.",
                 "parameters": {
                     "months": {
                         "type": "integer",
-                        "description": "Months to analyze (default: 6)",
+                        "description": "Months of production history to analyze (default: 6)",
                         "default": 6
                     }
                 },
-                "returns": "StockType, TotalRevenue, TotalCost, GrossProfit, MarginPercent, OrderCount, AvgMarkup",
+                "returns": "StockType, GSMValue, PaperType, JobCount, TotalQuantity, TotalRevenue, AvgJobValue, AvgPricePerUnit, FirstOrder, MostRecentOrder, DaysActive",
                 "visualization": "scatter_plot",
-                "best_for": "Pricing strategy, margin optimization, profitability analysis",
+                "best_for": "Understanding which paper types generate most revenue, identifying high-volume products, revenue trends by paper type",
                 "validated": True
             },
             
             "client_stock_preferences": {
                 "category": "Stock Management",
-                "description": "Customer stock preferences and reorder patterns for intelligent recommendations",
+                "description": "Customer paper preferences from order history (InHouse Fred database - Orders + JobTickets). Analyzes which GSM, PaperType, and PaperSize combinations each customer orders most frequently, with reorder predictions based on historical patterns. SOURCE: Production order data, provides customer intelligence for sales. Shows buying patterns, not inventory needs.",
                 "parameters": {
                     "months": {
                         "type": "integer",
-                        "description": "Historical months to analyze (default: 12)",
+                        "description": "Historical months of customer orders to analyze (default: 12)",
                         "default": 12
                     },
                     "min_orders": {
@@ -1334,30 +1334,30 @@ class QueryLibrary:
                         "default": 3
                     }
                 },
-                "returns": "ClientName, PreferredStocks, OrderFrequency, AvgOrderSize, LastOrderDate, PredictedReorderDate",
+                "returns": "ClientName, PreferredStocks, OrderFrequency, AvgOrderSize, LastOrderDate, PredictedReorderDate, DaysSinceLastOrder, TotalOrders",
                 "visualization": "data_table",
-                "best_for": "Customer intelligence, proactive sales, inventory anticipation",
+                "best_for": "Customer intelligence, proactive sales outreach, understanding customer paper preferences, identifying customers due for reorder",
                 "validated": True
             },
             
             "stock_cost_trends": {
                 "category": "Stock Management",
-                "description": "Historical cost trends for stocks showing supplier price changes over time",
+                "description": "Historical stock cost trends - NOT AVAILABLE. Returns informational message. Production database (InHouse Fred) does not track historical supplier costs or price changes over time. The StockPriceHistory table does not exist. ALTERNATIVE: For current stock pricing snapshot, query Supabase stock_data.unified_stocks (264 products with cost_per_thousand, markup, supplier_name) or stock_data.stocklevels (183 records with CostPerThousand, Markup) - note: pricing may not be current as active cost tracking is not enabled. For revenue trends by paper type, use stock_pricing_profitability query.",
                 "parameters": {
                     "stock_type": {
                         "type": "string",
-                        "description": "Specific stock type to analyze (default: all top 10)",
+                        "description": "Specific stock type to analyze (default: all top 10) - Currently non-functional",
                         "default": "all"
                     },
                     "months": {
                         "type": "integer",
-                        "description": "Months of history (default: 24)",
+                        "description": "Months of history (default: 24) - Currently non-functional",
                         "default": 24
                     }
                 },
-                "returns": "YearMonth, StockType, CostPer1000, ChangePercent, SupplierName",
+                "returns": "Informational message explaining historical cost tracking is not available, with alternatives",
                 "visualization": "line_chart",
-                "best_for": "Cost monitoring, supplier negotiation, budget planning",
+                "best_for": "Understanding cost tracking system status. For current pricing, query Supabase directly. For usage-based analysis, use stock_pricing_profitability",
                 "validated": True
             },
             

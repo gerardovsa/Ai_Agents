@@ -2810,16 +2810,32 @@ window.communicationHub = {
                 cell.getElement().innerHTML = '<div style="display: flex; align-items: center; justify-content: center; gap: 6px;"><i class="fas fa-spinner fa-spin" style="color: #3b82f6;"></i><span style="color: #3b82f6; font-size: 11px; font-weight: 600;">Processing...</span></div>';
             }
 
-            // CRITICAL: Refresh ThreadManager immediately so formatter can find the thread
-            if (typeof ThreadManager !== 'undefined' && typeof ThreadManager.loadThreadsFromBackend === 'function') {
-                await ThreadManager.loadThreadsFromBackend();
-                console.log('[assignEmailToAgentWithTask] ThreadManager refreshed, thread count:', ThreadManager.threads?.length);
-                const assignedThread = ThreadManager.threads?.find(t => t.id === threadSlug || t.thread_slug === threadSlug);
-                console.log('[assignEmailToAgentWithTask] Can find assigned thread in ThreadManager:', !!assignedThread);
-                if (assignedThread) {
-                    console.log('[assignEmailToAgentWithTask] Thread details:', { id: assignedThread.id, slug: assignedThread.thread_slug, location: assignedThread.location, email_thread_id: assignedThread.email_thread_id });
-                }
-                this.log.success('ThreadManager refreshed with new thread');
+            // ✅ OPTIMISTIC UPDATE: Add thread to ThreadManager immediately (no API wait)
+            if (typeof ThreadManager !== 'undefined' && ThreadManager.threads) {
+                const optimisticThread = {
+                    id: threadSlug,
+                    thread_slug: threadSlug,
+                    title: taskTitles[taskType] || `Email: ${fullEmail.subject}`,
+                    location: location,
+                    message_count: 0,
+                    email_thread_id: emailId,
+                    metadata: metadata,
+                    created: new Date().toISOString(),
+                    updated: new Date().toISOString(),
+                    _optimistic: true  // Mark as optimistic (will be replaced by real data)
+                };
+                
+                // Add to ThreadManager immediately
+                ThreadManager.threads.push(optimisticThread);
+                console.log('[assignEmailToAgentWithTask] ✅ OPTIMISTIC: Added thread to ThreadManager instantly');
+                console.log('   threadSlug:', threadSlug, 'location:', location);
+                
+                // Background sync (eventual consistency)
+                ThreadManager.loadThreadsFromBackend().then(() => {
+                    console.log('[assignEmailToAgentWithTask] 🔄 BACKGROUND: ThreadManager synced from backend');
+                }).catch(err => {
+                    console.warn('[assignEmailToAgentWithTask] ⚠️ Background sync failed:', err);
+                });
             }
 
             // Reuse emailRow variable (already declared above)
@@ -2846,6 +2862,33 @@ window.communicationHub = {
             if (this.state.tabulatorTable) {
                 this.state.tabulatorTable.redraw();
                 this.log.info('✅ Initial table redraw - showing processing state with thread mapping');
+            }
+
+            // ✅ UPDATE PREVIEW PANEL AI SECTION IMMEDIATELY
+            const previewFooter = document.querySelector('#email-preview-content .email-ai-section');
+            if (previewFooter && previewFooter.closest('#email-preview-content')) {
+                const natoNames = ['Alpha', 'Bravo', 'Charlie', 'Delta', 'Echo', 'Foxtrot', 'Golf', 'Hotel', 'India',
+                    'Juliet', 'Kilo', 'Lima', 'Mike', 'November', 'Oscar', 'Papa', 'Quebec', 'Romeo',
+                    'Sierra', 'Tango', 'Uniform', 'Victor', 'Whiskey', 'Xray', 'Yankee', 'Zulu'];
+                let displayName = agentName;
+                if (location === 'prime') {
+                    displayName = 'Prime';
+                } else if (location.startsWith('agent-')) {
+                    const agentNum = parseInt(location.replace('agent-', ''));
+                    displayName = `${natoNames[agentNum - 1] || 'Agent'}-${agentNum}`;
+                }
+                
+                previewFooter.innerHTML = `
+                    <div style="display: flex; align-items: center; gap: 6px;">
+                        <i class="fas fa-robot" style="color: var(--accent-blue, #3b82f6); font-size: 14px;"></i>
+                        <span style="color: var(--text-primary); font-size: 12px; font-weight: 500;">AI Assistant</span>
+                        <span style="color: var(--text-secondary); font-size: 10px; margin-left: auto;">${displayName}</span>
+                        <button class="btn-primary" style="padding: 5px 10px; font-size: 11px;" onclick="window.CommunicationHub.openAIThread('${threadSlug}')">
+                            <i class="fas fa-comments"></i> Continue
+                        </button>
+                    </div>
+                `;
+                this.log.info('✅ Preview panel AI section updated immediately');
             }
 
             // Update table to show "Processing..." state in AI Agent column

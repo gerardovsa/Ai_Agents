@@ -4274,6 +4274,11 @@ async function sendAgentMessage(agentId) {
     input.value = '';
     input.style.height = 'auto';
     clearAgentAttachedFiles(agentId);
+    
+    // Clear attached prompts UI (they'll be cleared from storage after successful send)
+    if (window.AgentInput && typeof window.AgentInput.clearPrompts === 'function') {
+        window.AgentInput.clearPrompts(agentId);
+    }
 
     // Get thread for this agent
     const agentName = getAgentName(agentId);
@@ -4414,6 +4419,17 @@ async function sendAgentMessage(agentId) {
         } else {
             const workflowContext = window.agentWorkflowContext && window.agentWorkflowContext[agentId];
 
+            // ✅ GET PENDING PROMPTS
+            const pendingPrompts = window.AgentInput?.getPendingPrompts ? window.AgentInput.getPendingPrompts(agentId) : [];
+            let quickActions = [];
+            let libraryPrompts = [];
+            
+            if (pendingPrompts.length > 0) {
+                quickActions = pendingPrompts.filter(p => p.type === 'quick_action').map(p => p.name);
+                libraryPrompts = pendingPrompts.filter(p => p.type === 'full_prompt').map(p => p.name);
+                console.log(`[Agent ${agentId}] Including ${pendingPrompts.length} prompts in request (${quickActions.length} quick, ${libraryPrompts.length} full)`);
+            }
+
             // ✅ SIMPLIFIED REQUEST: No conversation_history
             requestBody = {
                 message: message,
@@ -4435,7 +4451,10 @@ async function sendAgentMessage(agentId) {
                 sender_team_id: window.UserAuth?.user?.username || null,  // Current user's username
                 recipient_team_id: _getRecipientTeamId(),  // Respects privacy mode
                 message_type: 'direct',  // User-to-agent message
-                privacy_mode: window.SynergyRealtime?.getPrivacyMode ? window.SynergyRealtime.getPrivacyMode() : 'central'
+                privacy_mode: window.SynergyRealtime?.getPrivacyMode ? window.SynergyRealtime.getPrivacyMode() : 'central',
+                // ✅ PROMPTS: Include assigned prompts
+                quick_actions: quickActions.length > 0 ? quickActions.join(',') : undefined,
+                library_prompts: libraryPrompts.length > 0 ? libraryPrompts.join(',') : undefined
             };
 
             // Helper: Determine recipient based on privacy mode
@@ -4512,7 +4531,24 @@ async function sendAgentMessage(agentId) {
         const streamUrl = `${window.API_BASE_URL || 'http://localhost:5001'}/api/agent/stream/${agentId}?thread_slug=${threadSlug}`;
         console.log(`[Agent ${agentId}] Stream URL:`, streamUrl);
 
-        const streamResponse = await fetch(streamUrl);
+        // Create AbortController for this agent's stream
+        agentStreamControllers[agentId] = new AbortController();
+        agentStreamingStates[agentId] = true;
+        
+        // Show stop button in agent input area
+        showAgentStopButton(agentId);
+
+        // ✅ TEAM COLLABORATION FIX: Send socket ID to prevent message echo
+        const headers = {};
+        if (window.SynergyRealtime?.socket?.id) {
+            headers['X-Socket-ID'] = window.SynergyRealtime.socket.id;
+            console.log(`[Agent ${agentId}] Adding X-Socket-ID header:`, window.SynergyRealtime.socket.id);
+        }
+
+        const streamResponse = await fetch(streamUrl, { 
+            signal: agentStreamControllers[agentId].signal,
+            headers: headers
+        });
 
         if (!streamResponse.ok) {
             throw new Error(`Stream error! status: ${streamResponse.status}`);
@@ -4578,6 +4614,12 @@ async function sendAgentMessage(agentId) {
         console.log(`[Agent ${agentId}] 🎬 Stream processing started - thread: ${streamThreadSlug}`);
 
         while (true) {
+            // Check if user stopped this agent's stream
+            if (agentStreamControllers[agentId]?.signal.aborted) {
+                console.log(`[Agent ${agentId}] 🛑 Stream aborted by user`);
+                break;
+            }
+            
             const { done, value } = await reader.read();
             if (done) break;
 
@@ -5317,6 +5359,11 @@ async function sendAgentMessage(agentId) {
 
         console.log(`[Agent ${agentId}] ✅ Stream complete - ${fullResponse.length} chars received`);
 
+        // Clean up stream controls
+        agentStreamControllers[agentId] = null;
+        agentStreamingStates[agentId] = false;
+        hideAgentStopButton(agentId);
+
         // Clear status indicator
         if (typeof AgentStatusIndicator !== 'undefined') {
             AgentStatusIndicator.clear(agentId);
@@ -5610,6 +5657,11 @@ async function sendAgentMessage(agentId) {
             }
         }
 
+        // Clean up stream controls on error
+        agentStreamControllers[agentId] = null;
+        agentStreamingStates[agentId] = false;
+        hideAgentStopButton(agentId);
+        
         addAgentMessage(agentId, 'ai', ` Error: ${error.message}`);
         updateAgentStatus(agentId, 'error', 'Error');
         if (typeof AgentStatusIndicator !== 'undefined') {

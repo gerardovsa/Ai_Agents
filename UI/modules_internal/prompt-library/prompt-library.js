@@ -580,30 +580,22 @@ console.log('[PROMPT LIBRARY] ========================================');
         
         console.log(`[PROMPT LIBRARY] Assigning ${selectedPrompts.length} prompts to ${currentAgentName}`);
         
-        // Show confirmation
-        const promptNames = selectedPrompts.map(p => p.name).join('\n• ');
-        const confirmed = confirm(`Assign the following prompts to ${currentAgentName}?\n\n• ${promptNames}`);
-        
-        if (!confirmed) {
-            console.log('[PROMPT LIBRARY] Assignment cancelled by user');
-            return;
-        }
-        
         try {
-            // Trigger prompt injection for the agent
-            // This integrates with the existing agent message sending system
+            // Auto-assign without blocking browser confirm()
+            console.log(`[PROMPT LIBRARY] Auto-assigning ${selectedPrompts.length} prompts to ${currentAgentName}`);
+
             if (window.AgentInput && typeof window.AgentInput.assignPrompts === 'function') {
                 await window.AgentInput.assignPrompts(currentAgentId, selectedPrompts);
             } else {
                 // Fallback: Store in session for next message
                 storePromptsForAgent(currentAgentId, selectedPrompts);
             }
-            
+
             showNotification(`✓ Assigned ${selectedPrompts.length} prompt(s) to ${currentAgentName}`, 'success');
-            
-            // Keep selection but close sidebar
+
+            // Close sidebar after assignment
             closeSidebar();
-            
+
         } catch (error) {
             console.error('[PROMPT LIBRARY] Assignment failed:', error);
             showNotification(`Failed to assign prompts: ${error.message}`, 'error');

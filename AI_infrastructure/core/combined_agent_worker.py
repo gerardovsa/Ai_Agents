@@ -24,10 +24,14 @@ USAGE:
 import json
 import sys
 import os
+import logging
 from datetime import datetime
 from typing import List, Dict, Any, Optional, Generator
 from queue import Queue
 import threading
+
+# Initialize logger
+logger = logging.getLogger(__name__)
 
 # Windows console emoji fix
 def safe_print(msg: str):
@@ -702,6 +706,16 @@ def validate_conversation_history(conversation_history: List[Dict]) -> List[Dict
         if messages and messages[-1].get('role') == message['role']:
             print(f"[Combined Worker] ⚠️ Duplicate {message['role']} message at index {idx}")
             
+            # ENHANCED DEBUG (Jan 19, 2026): Show source tracking to identify where duplicate came from
+            prev_source = messages[-1].get('_source', 'unknown')
+            curr_source = message.get('_source', 'unknown')
+            prev_timestamp = messages[-1].get('_timestamp', 'unknown')
+            curr_timestamp = message.get('_timestamp', 'unknown')
+            
+            print(f"[Combined Worker] 🔍 DUPLICATE ANALYSIS:")
+            print(f"  Previous message: source={prev_source}, timestamp={prev_timestamp}")
+            print(f"  Current message:  source={curr_source}, timestamp={curr_timestamp}")
+            
             # CRITICAL FIX (Nov 21, 2025): NEVER merge assistant messages with tool_use blocks
             # Anthropic requires tool_use to be LAST blocks in assistant message
             if message['role'] == 'assistant':
@@ -722,9 +736,16 @@ def validate_conversation_history(conversation_history: List[Dict]) -> List[Dict
                     print(f"[Combined Worker] 🚫 Cannot merge assistant messages - tool_use blocks present")
                     print(f"  → Previous message has tool_use: {has_tool_use}")
                     print(f"  → Current message has tool_use: {current_has_tool_use}")
-                    # Don't merge - keep as separate messages by skipping to append
-                    messages.append(message)
-                    continue
+                    
+                    # CRITICAL FIX (Jan 19, 2026): Don't create consecutive assistant messages
+                    # This violates Anthropic API requirements and causes conversation truncation
+                    # Solution: Discard the duplicate message (it's likely a race condition)
+                    print(f"[Combined Worker] 🗑️  DISCARDING duplicate assistant message to prevent API error")
+                    print(f"[Combined Worker] 📊 ROOT CAUSE ANALYSIS:")
+                    print(f"  → Previous: {prev_source} at {prev_timestamp}")
+                    print(f"  → Current:  {curr_source} at {curr_timestamp}")
+                    print(f"  → Likely cause: {'Race condition in streaming' if 'streaming' in curr_source else 'Database returned duplicates' if 'database' in curr_source else 'Unknown - check message creation logic'}")
+                    continue  # Skip appending - effectively discards the duplicate
             
             # Merge content blocks (safe for text-only messages)
             if isinstance(messages[-1].get('content'), list) and isinstance(message.get('content'), list):
@@ -2539,6 +2560,7 @@ def execute_streaming_request(
                             break
         
         # Add user prompt (only on round 1)
+        # CRITICAL (Jan 19, 2026): Add source tracking for debugging
         if user_prompt and current_round == 1:
             # CRITICAL FIX (Nov 18, 2025): Check if last message is also user (consecutive roles)
             # If so, merge current prompt with last user message instead of appending
@@ -2560,13 +2582,23 @@ def execute_streaming_request(
                 # Add current prompt as new text block
                 existing_blocks.append({'type': 'text', 'text': user_prompt})
                 
-                # Update the last message
+                # Update the last message (preserve source tracking if exists)
                 messages[-1]['content'] = existing_blocks
+                if '_source' not in messages[-1]:
+                    messages[-1]['_source'] = 'merged_user_prompt_round_1'
+                    messages[-1]['_timestamp'] = __import__('datetime').datetime.now().isoformat()
                 
                 print(f"{log_prefix} ✅ Merged current prompt into last user message ({len(existing_blocks)} total blocks)")
             else:
                 # Normal case: last message is assistant, so we can append user message
-                messages.append({'role': 'user', 'content': user_prompt})
+                # CRITICAL (Jan 19, 2026): Add source tracking
+                user_message = {
+                    'role': 'user',
+                    'content': user_prompt,
+                    '_source': 'user_prompt_round_1',
+                    '_timestamp': __import__('datetime').datetime.now().isoformat()
+                }
+                messages.append(user_message)
                 print(f"{log_prefix} ✅ Appended current prompt as new user message")
         
         # CRITICAL: Prune conversation if needed to avoid 413 error
@@ -2943,7 +2975,48 @@ def execute_streaming_request(
         print(f"{log_prefix} Serialized {len(serialized_content)} blocks (thinking blocks first: {len(thinking_blocks)})")
         
         # Add assistant response to history (with ALL blocks including thinking)
-        conversation_history.append({'role': 'assistant', 'content': serialized_content})
+        # CRITICAL (Jan 19, 2026): Add source tracking for debugging duplicate message issues
+        assistant_message = {
+            'role': 'assistant',
+            'content': serialized_content,
+            '_source': f'streaming_round_{current_round}',  # Track where message was created
+            '_timestamp': __import__('datetime').datetime.now().isoformat(),  # When it was created
+            '_block_count': len(serialized_content),  # How many blocks
+            '_has_tool_use': any(b.get('type') == 'tool_use' for b in serialized_content if isinstance(b, dict))
+        }
+        
+        # EARLY DUPLICATE DETECTION (Jan 19, 2026): Check if this exact message already exists
+        # This prevents duplicates at creation time instead of during validation
+        if conversation_history:
+            last_msg = conversation_history[-1]
+            if last_msg.get('role') == 'assistant':
+                # Check if last message is identical (same content blocks)
+                last_content = last_msg.get('content', [])
+                if isinstance(last_content, list) and isinstance(serialized_content, list):
+                    # Compare block types and IDs (not full content to avoid false negatives)
+                    last_signature = [(b.get('type'), b.get('id')) for b in last_content if isinstance(b, dict)]
+                    new_signature = [(b.get('type'), b.get('id')) for b in serialized_content if isinstance(b, dict)]
+                    
+                    if last_signature == new_signature:
+                        print(f"{log_prefix} 🚫 DUPLICATE PREVENTION: Identical assistant message detected!")
+                        print(f"{log_prefix}    Last message source: {last_msg.get('_source', 'unknown')}")
+                        print(f"{log_prefix}    New message source: {assistant_message['_source']}")
+                        print(f"{log_prefix}    Block signature: {new_signature[:3]}...")
+                        print(f"{log_prefix}    ❌ DISCARDING duplicate to prevent consecutive assistant messages")
+                        # Don't append - this is a duplicate
+                    else:
+                        print(f"{log_prefix} ⚠️ WARNING: Two consecutive assistant messages with DIFFERENT content!")
+                        print(f"{log_prefix}    This may indicate a race condition or double-processing bug")
+                        print(f"{log_prefix}    Last: {last_signature[:2]}...")
+                        print(f"{log_prefix}    New:  {new_signature[:2]}...")
+                        # Append anyway - these are legitimately different responses
+                        conversation_history.append(assistant_message)
+                else:
+                    conversation_history.append(assistant_message)
+            else:
+                conversation_history.append(assistant_message)
+        else:
+            conversation_history.append(assistant_message)
         
         # Execute tools if present
         if tool_uses and stop_reason == 'tool_use':
@@ -3084,7 +3157,15 @@ Proceed to the NEXT step now."""
                     yield {'type': 'tool_result', 'tool_name': tool_name, 'tool_id': tool_id, 'result': error_msg, 'success': False, 'error': error_msg}
             
             # Add tool results to history
-            conversation_history.append({'role': 'user', 'content': tool_results})
+            # CRITICAL (Jan 19, 2026): Add source tracking for debugging
+            tool_result_message = {
+                'role': 'user',
+                'content': tool_results,
+                '_source': f'tool_results_round_{current_round}',
+                '_timestamp': __import__('datetime').datetime.now().isoformat(),
+                '_tool_count': len(tool_results)
+            }
+            conversation_history.append(tool_result_message)
             
             # Recursive call for next round (preserve AI settings)
             yield from execute_streaming_request(

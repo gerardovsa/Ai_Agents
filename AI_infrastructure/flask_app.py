@@ -69,8 +69,9 @@ log_init(logger, "AI_agents standalone - No external dependencies")
 # Now import Flask and other dependencies
 from flask import Flask, jsonify, request, Response, send_from_directory, send_file
 from flask_cors import CORS, cross_origin
-from datetime import datetime
+from datetime import datetime, UTC
 from flask_socketio import SocketIO
+from markupsafe import escape  # ✅ FIX: HTML escaping for display names (XSS prevention)
 import json
 from queue import Queue, Empty
 import threading
@@ -745,7 +746,7 @@ def serve_ui():
     response.headers['Pragma'] = 'no-cache'
     response.headers['Expires'] = '0'
     response.headers['ETag'] = etag
-    response.headers['Last-Modified'] = datetime.utcnow().strftime('%a, %d %b %Y %H:%M:%S GMT')
+    response.headers['Last-Modified'] = datetime.now(UTC).strftime('%a, %d %b %Y %H:%M:%S GMT')
     return response
 
 @app.route('/dev-tools/<path:filename>')
@@ -1129,16 +1130,36 @@ def ws_synergy_connect(auth=None):
             log_error(logger, "   Possible causes: DDoS attack, client reconnect loop, misconfigured keepalive")
             return False  # Reject - rate limit
         
+        # ✅ FIX: Extract user_id from query params (temporary - TODO: Use Flask-Login)
+        user_id = flask_request.args.get('user_id', type=int)
+        
         # Accept connection
         connected_clients[client_id] = {
             'rooms': set(),
-            'connected_at': datetime.now().isoformat()
+            'connected_at': datetime.now().isoformat(),
+            'user_id': user_id
         }
         
-        log_config(logger, f'[WS] Client connected to /ws/synergy: {client_id}')
+        # ✅ FIX: Auto-join user-specific room for team collaboration
+        # All team members with same user_id join same room = real-time sync
+        if user_id:
+            from flask_socketio import join_room
+            user_room = f'user_{user_id}'
+            command_center_room = 'command_center'
+            
+            join_room(user_room)
+            join_room(command_center_room)
+            
+            connected_clients[client_id]['rooms'].add(user_room)
+            connected_clients[client_id]['rooms'].add(command_center_room)
+            
+            logger.info(f"[WS] Client {client_id} auto-joined rooms: {user_room}, {command_center_room}")
+        
+        log_config(logger, f'[WS] Client connected to /ws/synergy: {client_id} (user_id={user_id})')
         emit('connected', {
             'status': 'connected',
             'client_id': client_id,
+            'user_id': user_id,
             'timestamp': datetime.now().isoformat()
         })
         return True  # Accept connection
@@ -1386,11 +1407,11 @@ def ws_synergy_user_presence(data):
         room = (data.get('room', 'synergy_board') or 'synergy_board')
         scope = data.get('scope') or None
         
-        # Sanitize display_name (max 50 chars, basic safety)
+        # ✅ FIX: Sanitize display_name (XSS prevention + length limit)
         if display_name:
-            display_name = str(display_name)[:50].strip()
+            display_name = str(escape(display_name))[:50].strip()  # Escape HTML, then limit length
         if not display_name:
-            display_name = user_name
+            display_name = str(escape(user_name))[:50].strip()
         
         if not user_id or not session_token:
             log_warning(logger, "[WS] Invalid user_presence data - missing user_id or session_token")
@@ -2479,7 +2500,7 @@ def health_check():
         'providers': ['anthropic', 'deepseek', 'openai'],
         'socketio': socketio_status,
         'semantic_search': semantic_search_status,
-        'timestamp': datetime.utcnow().isoformat() + 'Z',
+        'timestamp': datetime.now(UTC).isoformat() + 'Z',
         'environment': 'production' if IS_RENDER else 'development'
     })
     
@@ -2717,7 +2738,7 @@ def connection_stats():
             'schemas': stats_by_schema,
             'overall': overall,
             'health': 'critical' if total_leaked >= 4 else 'warning' if total_leaked >= 2 else 'healthy',
-            'timestamp': datetime.utcnow().isoformat() + 'Z'
+            'timestamp': datetime.now(UTC).isoformat() + 'Z'
         })
         
         response.headers.add('Access-Control-Allow-Origin', '*')

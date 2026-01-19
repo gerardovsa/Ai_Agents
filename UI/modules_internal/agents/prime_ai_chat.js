@@ -5,6 +5,10 @@
 // Auto-scroll state
 let autoScrollEnabled = true;
 
+// AI streaming control - AbortController for stopping mid-request
+let currentStreamController = null;
+let isStreaming = false;
+
 // Message visibility state tracking (Prime chat)
 // Combined view modes:
 // 1. 'all-collapsed': Show all - tools collapsed
@@ -72,6 +76,12 @@ function initChatPanel() {
 
     // File attachment state
     let attachedFiles = [];
+
+    // Stop button already exists in HTML, just attach event listener
+    const stopBtn = document.getElementById('ai-chat-stop-btn');
+    if (stopBtn) {
+        stopBtn.addEventListener('click', stopAIStream);
+    }
 
     // Initialize textarea height
     input.style.height = 'auto';
@@ -335,6 +345,31 @@ function initChatPanel() {
     });
 
     initInputResizeObserver();
+}
+
+// Stop AI streaming mid-request
+function stopAIStream() {
+    if (currentStreamController) {
+        console.log('🛑 User requested stop - aborting stream');
+        currentStreamController.abort();
+        currentStreamController = null;
+        isStreaming = false;
+        
+        // Hide stop button, show send button (use flex for floating buttons)
+        const stopBtn = document.getElementById('ai-chat-stop-btn');
+        const sendBtn = document.getElementById('ai-chat-send-btn');
+        if (stopBtn) stopBtn.style.display = 'none';
+        if (sendBtn) sendBtn.style.display = 'flex';
+        
+        // Remove thinking indicator
+        removeThinkingIndicator();
+        if (typeof window.hidePrimeProcessingIndicator === 'function') {
+            window.hidePrimeProcessingIndicator();
+        }
+        
+        // Add system message indicating interruption
+        addChatMessage('system', '⏸️ Response stopped by user', false, false);
+    }
 }
 
 // Helper function to gather user context
@@ -763,7 +798,28 @@ async function sendChatMessage() {
         const threadSlug = currentThreadId;
         const streamUrl = `${window.API_BASE_URL}/api/agent/stream/${agentId}?thread_slug=${threadSlug}${promptParams}`;
         console.log(`[Stream] Connecting with thread_slug: ${threadSlug}`);
-        const response = await fetch(streamUrl);
+        
+        // Create AbortController for this stream
+        currentStreamController = new AbortController();
+        isStreaming = true;
+        
+        // Show stop button, hide send button (use flex for floating buttons)
+        const stopBtn = document.getElementById('ai-chat-stop-btn');
+        const sendBtn = document.getElementById('ai-chat-send-btn');
+        if (stopBtn) stopBtn.style.display = 'flex';
+        if (sendBtn) sendBtn.style.display = 'none';
+        
+        // ✅ TEAM COLLABORATION FIX: Send socket ID to prevent message echo
+        const headers = {};
+        if (window.SynergyRealtime?.socket?.id) {
+            headers['X-Socket-ID'] = window.SynergyRealtime.socket.id;
+            console.log('[Stream] Adding X-Socket-ID header:', window.SynergyRealtime.socket.id);
+        }
+        
+        const response = await fetch(streamUrl, { 
+            signal: currentStreamController.signal,
+            headers: headers
+        });
 
         if (!response.ok) {
             throw new Error(`Stream error! status: ${response.status}`);
@@ -1881,6 +1937,15 @@ async function sendChatMessage() {
             if (typeof window.hidePrimeProcessingIndicator === 'function') {
                 window.hidePrimeProcessingIndicator();
             }
+            
+            // Clean up stream controls
+            currentStreamController = null;
+            isStreaming = false;
+            const stopBtn = document.getElementById('ai-chat-stop-btn');
+            const sendBtn = document.getElementById('ai-chat-send-btn');
+            if (stopBtn) stopBtn.style.display = 'none';
+            if (sendBtn) sendBtn.style.display = 'flex';
+            
             const responseTime = Date.now() - startTime;
             console.log(`✅ Streamed response received in ${responseTime}ms`);
 
@@ -1966,6 +2031,14 @@ async function sendChatMessage() {
             type: error.name,
             stack: error.stack
         });
+
+        // Clean up stream controls on error
+        currentStreamController = null;
+        isStreaming = false;
+        const stopBtn = document.getElementById('ai-chat-stop-btn');
+        const sendBtn = document.getElementById('ai-chat-send-btn');
+        if (stopBtn) stopBtn.style.display = 'none';
+        if (sendBtn) sendBtn.style.display = 'flex';
 
         // Hide processing indicator on error
         if (typeof window.hidePrimeProcessingIndicator === 'function') {
@@ -2251,7 +2324,15 @@ async function sendChatMessageWithFiles(message, sessionId, startTime) {
 
         console.log('🌊 Connecting to SSE stream...');
         const streamUrl = `${window.API_BASE_URL}/api/agent/stream/${agentId}?thread_slug=${sessionId}`;
-        const response = await fetch(streamUrl);
+        
+        // ✅ TEAM COLLABORATION FIX: Send socket ID to prevent message echo
+        const headers = {};
+        if (window.SynergyRealtime?.socket?.id) {
+            headers['X-Socket-ID'] = window.SynergyRealtime.socket.id;
+            console.log('[Stream] Adding X-Socket-ID header:', window.SynergyRealtime.socket.id);
+        }
+        
+        const response = await fetch(streamUrl, { headers: headers });
 
         if (!response.ok) {
             throw new Error(`Stream error! status: ${response.status}`);

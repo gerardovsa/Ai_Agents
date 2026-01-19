@@ -161,6 +161,11 @@ class RegistryV3:
                 with open(schema_file, 'r', encoding='utf-8', errors='replace') as f:
                     schema_data = json.load(f)
                 
+                # Validate schema structure (must be dict, not list)
+                if not isinstance(schema_data, dict):
+                    logger.warning(f"Skipping {schema_file.name}: Schema must be an object {{...}}, not an array [...]")
+                    continue
+                
                 # Process schema to inject dynamic values ({{DYNAMIC:...}} placeholders)
                 if use_dynamic_injection:
                     schema_data = process_schema(schema_data)
@@ -194,6 +199,12 @@ class RegistryV3:
                             
                             self.tools[tool_name] = tool
                             logger.debug(f"  [SCHEMA] Loaded: {tool_name}")
+            except FileNotFoundError:
+                logger.debug(f"Schema file not found (skipped): {schema_file.name}")
+            except json.JSONDecodeError as e:
+                logger.warning(f"Invalid JSON in {schema_file.name}: {e}")
+            except AttributeError as e:
+                logger.warning(f"Malformed schema {schema_file.name}: Schema must be object with 'tools' array, not list")
             except Exception as e:
                 logger.warning(f"Failed to load schema {schema_file.name}: {e}")
         

@@ -1051,6 +1051,12 @@ def stream_agent(agent_id):
     user_id = g.get('user_id', 1)
     print(f"[STREAM] 👤 User ID: {user_id}")
     
+    # ✅ FIX: Capture app context and sender session ID BEFORE background threading
+    # This prevents "Working outside of application context" errors and message echo
+    app_instance = current_app._get_current_object()
+    sender_sid = request.environ.get('HTTP_X_SOCKET_ID')  # Frontend sends socket ID in header
+    print(f"[STREAM] 🔧 Captured app context and sender_sid: {sender_sid}")
+    
     # Get user email from database
     user_email = None
     try:
@@ -1508,6 +1514,7 @@ Additional Preferences (YOU MUST FOLLOW THESE):
                 if thread_row:
                     # Use list for O(n) performance instead of string concatenation
                     context_parts = []
+                    context_sections = []  # ✅ Initialize context sections list
                     context_token_count = 0
                     MAX_CONTEXT_TOKENS = 180000  # Leave buffer for Claude 200k limit
             
@@ -1977,41 +1984,47 @@ Use tools in multiple rounds with interleaved thinking."""
     from core.combined_agent_worker import execute_streaming_request
 
     def _broadcast_agent_thread_updated(event_payload: Dict[str, Any]):
-        """Best-effort Socket.IO broadcast to other Command Center clients.
+        """✅ FIXED: Broadcast to Command Center AND user-specific room with captured app context.
 
-        This avoids circular imports by pulling the SocketIO instance from Flask app extensions.
+        Uses captured app_instance and sender_sid to prevent context errors and message echo.
+        Broadcasts to both command_center (dashboard) and user_{user_id} (team collaboration).
         """
         try:
-            # Ensure we're in application context
-            from flask import has_app_context
-            if not has_app_context():
-                # If we're outside app context, push one
-                with current_app.app_context():
-                    socketio_ext = getattr(current_app, 'extensions', {}).get('socketio')
-                    if socketio_ext:
-                        # Broadcast to all clients in the Command Center room.
-                        socketio_ext.emit(
-                            'agent_thread_updated',
-                            event_payload,
-                            room='command_center',
-                            namespace='/ws/synergy'
-                        )
-                return
-            
-            socketio_ext = getattr(current_app, 'extensions', {}).get('socketio')
-            if not socketio_ext:
-                return
-
-            # Broadcast to all clients in the Command Center room.
-            socketio_ext.emit(
-                'agent_thread_updated',
-                event_payload,
-                room='command_center',
-                namespace='/ws/synergy'
-            )
+            # ✅ FIX: Use captured app_instance instead of current_app (prevents context errors)
+            with app_instance.app_context():
+                socketio_ext = getattr(app_instance, 'extensions', {}).get('socketio')
+                if not socketio_ext:
+                    return
+                
+                # ✅ FIX: Broadcast to BOTH command_center and user-specific room
+                # command_center = all users (dashboard view)
+                # user_{user_id} = specific team (AI agent columns - CRITICAL for collaboration)
+                user_room = f"user_{user_id}"
+                
+                # ✅ FIX: Add skip_sid to prevent sender from receiving duplicate message
+                socketio_ext.emit(
+                    'agent_thread_updated',
+                    event_payload,
+                    room='command_center',
+                    namespace='/ws/synergy',
+                    skip_sid=sender_sid  # Exclude sender
+                )
+                
+                socketio_ext.emit(
+                    'agent_thread_updated',
+                    event_payload,
+                    room=user_room,
+                    namespace='/ws/synergy',
+                    skip_sid=sender_sid  # Exclude sender
+                )
+                
+                print(f"[STREAM] 📡 Broadcasted to command_center + {user_room}: {event_payload.get('thread_slug')}")
+                
         except Exception as e:
             # Never break the SSE stream because of a realtime broadcast failure
+            import traceback
             print(f"[STREAM] ⚠️ Failed to broadcast agent_thread_updated: {e}")
+            print(traceback.format_exc())
     
     def generate():
         """Generator with flush and close signal to prevent incomplete chunked encoding"""
@@ -2046,9 +2059,11 @@ Use tools in multiple rounds with interleaved thinking."""
                 # When the backend finishes persisting the authoritative conversation, notify
                 # other browser sessions so they can refresh their agent columns.
                 if event_type == 'conversation_sync':
+                    # ✅ FIX: Add user_id to payload for frontend filtering
                     _broadcast_agent_thread_updated({
                         'agent_id': agent_id,
                         'thread_slug': thread_slug,
+                        'user_id': user_id,  # ✅ Added for team member identification
                         'message_count': event.get('message_count'),
                         'timestamp': int(datetime.utcnow().timestamp() * 1000)
                     })
@@ -2057,9 +2072,11 @@ Use tools in multiple rounds with interleaved thinking."""
                 # Fallback: if the worker never emitted conversation_sync but does emit complete,
                 # still notify other sessions that this thread changed.
                 if event_type == 'complete' and not did_broadcast_update:
+                    # ✅ FIX: Add user_id to payload for frontend filtering
                     _broadcast_agent_thread_updated({
                         'agent_id': agent_id,
                         'thread_slug': thread_slug,
+                        'user_id': user_id,  # ✅ Added for team member identification
                         'message_count': event.get('message_count'),
                         'timestamp': int(datetime.utcnow().timestamp() * 1000)
                     })

@@ -854,31 +854,44 @@ class TwoRuleStreamProcessor {
         }
 
         // IMPROVED DOM ATTACHMENT TIMING: Wait for DOM to be fully ready with multiple retries
-        // 🔥 FIX: Check if parent container (this.container) is in DOM first
+        // 🔥 FIX (Jan 20, 2026): Extended retry logic with better parent detection
         // The parent might not be attached yet (e.g., during message rendering)
         let attached = false;
         let retries = 0;
-        const maxRetries = 5;
+        const maxRetries = 10; // Increased from 5 to 10 retries
 
         while (!attached && retries < maxRetries) {
             await new Promise(resolve => requestAnimationFrame(resolve));
 
             // Check if EITHER the viz container OR its parent is in the DOM
-            // Parent check handles case where message container hasn't been appended yet
-            if (document.contains(vizContainer) || document.contains(this.container)) {
+            // Also check if any ancestor up to 3 levels is in DOM (handles nested structures)
+            let checkElement = vizContainer;
+            let foundInDOM = false;
+            
+            for (let i = 0; i < 3 && checkElement; i++) {
+                if (document.contains(checkElement)) {
+                    foundInDOM = true;
+                    break;
+                }
+                checkElement = checkElement.parentElement || this.container;
+            }
+            
+            if (foundInDOM) {
                 attached = true;
             } else {
                 retries++;
                 if (retries < maxRetries) {
-                    await new Promise(resolve => setTimeout(resolve, 50 * retries)); // Progressive backoff
+                    // Progressive backoff: 50ms, 100ms, 150ms, etc.
+                    await new Promise(resolve => setTimeout(resolve, 50 * retries));
                 }
             }
         }
 
         if (!attached) {
-            console.error('❌ TWO-RULE: Container failed to attach to DOM after retries');
-            vizContainer.innerHTML = '<div style="color: red; padding: 20px;">Failed to create visualization container</div>';
-            return;
+            console.warn('⚠️ TWO-RULE: Container not in DOM after retries, rendering anyway');
+            // Don't fail - render anyway as container might be attached after this function returns
+            // vizContainer.innerHTML = '<div style="color: red; padding: 20px;">Failed to create visualization container</div>';
+            // return; // REMOVED: Allow rendering to continue
         }
 
         // Render visualization using available engine

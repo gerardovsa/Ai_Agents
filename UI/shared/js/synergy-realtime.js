@@ -32,6 +32,7 @@ window.SynergyRealtime = {
     sessionDisplayName: null,  // Per-session display name for multi-user collaboration
     heartbeatInterval: null,
     otherSessionsViewingAgents: {},  // Track other sessions' agent viewing: { agentId: [{ session_token, device, user_name }] }
+    processedEvents: new Set(),  // ✅ FIX: Deduplicate agent_thread_updated events (prevents duplicate UI refreshes)
     presenceContext: {
         room: 'synergy_board',
         scope: null,
@@ -87,6 +88,9 @@ window.SynergyRealtime = {
             // Create Socket.IO connection with environment-aware configuration
             // Server config: ping_interval=25s, ping_timeout=90s (Render) / 60s (local)
             // Client heartbeat: 20s (see _startHeartbeat) - must be < server ping_interval
+            // ✅ TEAM COLLABORATION FIX: Get user_id from session for room auto-join
+            const userId = window.userSession?.user_id || window.currentUserId || null;
+            
             this.socket = io(apiUrl + this.config.namespace, {
                 // ✅ IMPROVED STABILITY: Start with polling, upgrade to WebSocket once stable
                 transports: ['polling', 'websocket'],
@@ -100,6 +104,10 @@ window.SynergyRealtime = {
                 upgrade: true,  // Allow transport upgrade (polling -> WebSocket once stable)
                 rememberUpgrade: true,
                 autoConnect: true,
+                // ✅ TEAM COLLABORATION: Send user_id for auto-join user room
+                query: {
+                    user_id: userId
+                },
                 // ✅ STABILITY: Enhanced ping/pong settings
                 pingTimeout: 60000,  // 60s - wait this long for pong before considering disconnected
                 pingInterval: 25000,  // 25s - send ping every 25 seconds
@@ -345,6 +353,21 @@ window.SynergyRealtime = {
     },
 
     _handleAgentThreadUpdated(data) {
+        // ✅ FIX: Deduplicate events (backend may send duplicate on conversation_sync + complete)
+        const eventKey = `${data.agent_id}:${data.thread_slug}:${data.message_count || 0}`;
+        
+        if (this.processedEvents.has(eventKey)) {
+            this._log('⏭️  Skipping duplicate agent_thread_updated:', eventKey);
+            return;  // Already processed this exact event
+        }
+        
+        // Mark as processed (keep last 100 events to prevent memory leak)
+        this.processedEvents.add(eventKey);
+        if (this.processedEvents.size > 100) {
+            const firstKey = this.processedEvents.values().next().value;
+            this.processedEvents.delete(firstKey);
+        }
+
         // Broadcast a DOM event so modules can react without importing this file.
         this._log('🔄 Agent thread updated (Command Center):', data);
 
@@ -885,12 +908,18 @@ window.SynergyRealtime = {
                 s => s.session_token === data.session_token
             );
 
+            // Determine if this is YOUR other session (same display name) or a DIFFERENT team member
+            const currentDisplayName = this.sessionDisplayName || this._getUserName();
+            const otherDisplayName = data.display_name || data.user_name;
+            const isYourOtherSession = (currentDisplayName === otherDisplayName);
+
             const sessionInfo = {
                 session_token: data.session_token,
                 device: data.device,
                 user_name: data.user_name,
-                display_name: data.display_name || data.user_name,  // Use display_name if available
-                user_id: data.user_id
+                display_name: otherDisplayName,  // Use display_name if available
+                user_id: data.user_id,
+                isYourOtherSession: isYourOtherSession  // True only if same display name
             };
 
             if (existingIndex >= 0) {
@@ -969,13 +998,19 @@ window.SynergyRealtime = {
                         this.otherSessionsViewingAgents[session.scope] = [];
                     }
 
-                    // Add YOUR other session to tracking (same user_id, different device)
+                    // Determine if this is YOUR other session (same display name) or a DIFFERENT team member
+                    const currentDisplayName = this.sessionDisplayName || this._getUserName();
+                    const otherDisplayName = session.display_name || session.user_name || this._getUserName();
+                    const isYourOtherSession = (currentDisplayName === otherDisplayName);
+
+                    // Add session to tracking (could be same user different device, OR different team member)
                     const sessionInfo = {
                         session_token: session.session_token,
                         device: session.device,
-                        user_name: this._getUserName(),  // It's YOUR session
-                        user_id: this._getUserId(),
-                        isYourOtherSession: true  // Flag to show "You (Desktop)" instead of user name
+                        user_name: session.user_name || this._getUserName(),
+                        display_name: otherDisplayName,
+                        user_id: session.user_id || this._getUserId(),
+                        isYourOtherSession: isYourOtherSession  // True only if same display name
                     };
 
                     const existingIndex = this.otherSessionsViewingAgents[session.scope].findIndex(

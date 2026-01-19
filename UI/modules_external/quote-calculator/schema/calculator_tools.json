@@ -1362,9 +1362,10 @@
           "type": "string",
           "description": "Finish type",
           "enum": ["Gloss", "Matte"]
-        }
-      }
-    },
+        },
+        "cut_type": {
+          "type": "string",
+          "description": "Cutting style for stickers",
           "enum": [
             "Kiss-Cut (Individual)",
             "Die-Cut (No background)",

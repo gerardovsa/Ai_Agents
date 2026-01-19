@@ -448,6 +448,179 @@
     color: var(--accent-error);
 }
 
+/* ==================== ATTACHED PROMPTS (Similar to Files) ==================== */
+
+.agent-attached-prompts {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-2);
+    margin-bottom: var(--space-2);
+    padding: var(--space-2);
+    background: rgba(255, 165, 0, 0.05);
+    border: 1px dashed rgba(255, 165, 0, 0.3);
+    border-radius: 6px;
+}
+
+.attached-prompt-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: linear-gradient(135deg, rgba(255, 165, 0, 0.1), rgba(255, 140, 0, 0.1));
+    border: 1px solid rgba(255, 165, 0, 0.4);
+    border-radius: 4px;
+    padding: 5px 10px;
+    font-size: 12px;
+    color: var(--text-primary);
+    font-weight: 500;
+    transition: all 0.2s ease;
+}
+
+.attached-prompt-chip:hover {
+    background: linear-gradient(135deg, rgba(255, 165, 0, 0.15), rgba(255, 140, 0, 0.15));
+    border-color: rgba(255, 165, 0, 0.6);
+    transform: translateY(-1px);
+    box-shadow: 0 2px 4px rgba(255, 165, 0, 0.2);
+}
+
+.attached-prompt-chip i.fa-bolt {
+    color: #ffa500;
+    font-size: 13px;
+}
+
+.prompt-name {
+    color: var(--text-primary);
+    font-weight: 600;
+}
+
+.prompt-type-badge {
+    background: rgba(255, 165, 0, 0.2);
+    color: #ff8c00;
+    padding: 2px 6px;
+    border-radius: 3px;
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.remove-prompt-btn {
+    background: none;
+    border: none;
+    color: var(--text-secondary);
+    cursor: pointer;
+    padding: 0 4px;
+    margin-left: 2px;
+    font-size: 14px;
+    line-height: 1;
+    transition: color 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.remove-prompt-btn:hover {
+    color: var(--accent-error);
+    transform: scale(1.1);
+}
+
+/* ==================== DRAG & DROP FEEDBACK ==================== */
+
+.attached-prompt-chip.dragging {
+    opacity: 0.5;
+    cursor: grabbing !important;
+    transform: scale(0.95);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+}
+
+.attached-prompt-chip.drag-over {
+    border-color: #ffa500;
+    border-style: solid;
+    border-width: 2px;
+    background: linear-gradient(135deg, rgba(255, 165, 0, 0.25), rgba(255, 140, 0, 0.25));
+    transform: scale(1.05);
+}
+
+.attached-prompt-chip[draggable="true"] {
+    cursor: grab;
+    user-select: none;
+}
+
+.attached-prompt-chip[draggable="true"]:active {
+    cursor: grabbing;
+}
+
+/* ==================== HOVER TOOLTIP PREVIEW ==================== */
+
+.prompt-preview-tooltip {
+    position: fixed;
+    z-index: 10000;
+    background: var(--bg-secondary, #1e1e1e);
+    border: 2px solid rgba(255, 165, 0, 0.6);
+    border-radius: 8px;
+    padding: 12px;
+    max-width: 400px;
+    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.4),
+                0 0 20px rgba(255, 165, 0, 0.2);
+    opacity: 0;
+    transition: opacity 0.2s ease;
+    pointer-events: none;
+    color: var(--text-primary, #ffffff);
+}
+
+.prompt-preview-tooltip .tooltip-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid rgba(255, 165, 0, 0.3);
+}
+
+.prompt-preview-tooltip .tooltip-header strong {
+    color: #ffa500;
+    font-size: 13px;
+    font-weight: 700;
+}
+
+.prompt-preview-tooltip .tooltip-type {
+    background: rgba(255, 165, 0, 0.2);
+    color: #ff8c00;
+    padding: 2px 8px;
+    border-radius: 3px;
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.prompt-preview-tooltip .tooltip-content {
+    font-size: 12px;
+    line-height: 1.5;
+    color: var(--text-secondary, #cccccc);
+    max-height: 300px;
+    overflow-y: auto;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+}
+
+.prompt-preview-tooltip .tooltip-content::-webkit-scrollbar {
+    width: 6px;
+}
+
+.prompt-preview-tooltip .tooltip-content::-webkit-scrollbar-track {
+    background: rgba(255, 165, 0, 0.1);
+    border-radius: 3px;
+}
+
+.prompt-preview-tooltip .tooltip-content::-webkit-scrollbar-thumb {
+    background: rgba(255, 165, 0, 0.4);
+    border-radius: 3px;
+}
+
+.prompt-preview-tooltip .tooltip-content::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 165, 0, 0.6);
+}
+
 /* Input Group Layout */
 .agent-input-group {
     display: flex;
@@ -576,6 +749,36 @@
     opacity: 0.5;
     cursor: not-allowed;
     transform: none;
+}
+
+/* Stop button (for interrupting AI streams) */
+.agent-stop-btn,
+.ai-chat-stop-btn {
+    width: 32px;
+    height: 32px;
+    padding: 0;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: none; /* Hidden by default */
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+    background: #ef4444;
+    color: white;
+    border: 1px solid #dc2626;
+}
+
+.agent-stop-btn:hover,
+.ai-chat-stop-btn:hover {
+    background: #dc2626;
+    transform: translateY(-1px);
+    box-shadow: 0 2px 8px rgba(239, 68, 68, 0.4);
+}
+
+.agent-stop-btn:active,
+.ai-chat-stop-btn:active {
+    transform: translateY(0);
 }
 
 /* Hidden file input */
