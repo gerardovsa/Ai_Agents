@@ -250,11 +250,28 @@ python -c "from UI.modules_external.inhouse-print.db_connector import InHousePri
 
 ## Development Workflow
 
-1. **Feature branch:** Work on `v10` (main development branch)
+1. **Feature branch:** Work on `v11` (main development branch)
 2. **Pre-commit checks:** Automatic security scan + code quality validation
 3. **Commit format:** `feat(scope): description` (conventional commits required)
-4. **Push to Render:** Auto-deploys on push to `v10` branch
-5. **Migrations:** Run locally first, test idempotency, then deploy
+4. **Push to BOTH remotes:** 
+   - `git push origin v11` (backup to InHouseGuy/BusinessAiSuite)
+   - `git push gerardo v11:v11` (deploys to Render via gerardovsa/Ai_Agents)
+5. **Auto-deploy:** Render monitors `gerardovsa/Ai_Agents` v11 branch
+6. **Migrations:** Run locally first, test idempotency, then deploy
+
+### **Git Remotes Configuration:**
+- **origin:** https://github.com/InHouseGuy/BusinessAiSuite.git (backup/archive)
+- **gerardo:** https://github.com/gerardovsa/Ai_Agents.git (PRODUCTION - Render deployment)
+
+### **Standard Commit & Push Pattern:**
+```powershell
+git add <files>
+git commit -m "type(scope): description"
+git push origin v11          # Push to backup remote
+git push gerardo v11:v11     # Push to Render deployment remote
+```
+
+**⚠️ CRITICAL:** Always push to **gerardo** remote for production deployment. The `origin` remote is for backup only.
 
 ---
 
@@ -287,6 +304,7 @@ python flask_app.py
 - ✅ Import heavy modules inside functions to avoid circular imports
 - ✅ Add comprehensive logging with `[COMPONENT]` prefixes
 - ✅ Use conventional commits format: `feat(scope): description`
+- ✅ **Push to BOTH remotes:** `git push origin v11` then `git push gerardo v11:v11`
 - ✅ Add IF NOT EXISTS to all migrations
 - ✅ Add CASCADE to foreign keys for clean deletions
 - ✅ **Save all .js/.html/.css/.json files as UTF-8 without BOM**
