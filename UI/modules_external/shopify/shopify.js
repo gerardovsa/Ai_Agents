@@ -372,7 +372,7 @@ class PlotlyChartHelper {
                 },
                 opacity: 0.9
             },
-            text: data.data ? data.data.map(v => `$${v.toLocaleString(undefined, { minimumFractionDigits: 2 })}`) : [],
+            text: data.revenue ? data.revenue.map(v => `$${v.toLocaleString(undefined, { minimumFractionDigits: 2 })}`) : [],
             textposition: 'outside',
             textfont: {
                 ...theme.font,
@@ -959,11 +959,12 @@ class ShopifyModule extends BaseModule {
         try {
             // Load metrics
             const metricsResponse = await fetch(`${this.apiEndpoint}/dashboard/metrics?period=${period}`);
-            const metrics = await metricsResponse.json();
+            const metricsResult = await metricsResponse.json();
+            const metrics = metricsResult.data || {};
 
             document.getElementById('shopify-total-orders').textContent = metrics.total_orders || 0;
             document.getElementById('shopify-total-revenue').textContent = `$${(metrics.total_revenue || 0).toFixed(2)}`;
-            document.getElementById('shopify-avg-order-value').textContent = `$${(metrics.avg_order_value || 0).toFixed(2)}`;
+            document.getElementById('shopify-avg-order-value').textContent = `$${(metrics.average_order_value || 0).toFixed(2)}`;
             document.getElementById('shopify-orders-today').textContent = metrics.orders_today || 0;
 
             // Load charts
@@ -1131,10 +1132,6 @@ class ShopifyModule extends BaseModule {
                 field: "financial_status",
                 width: 140,
                 hozAlign: "center",
-                headerFilter: "select",
-                headerFilterParams: {
-                    values: { "": "All", "paid": "Paid", "pending": "Pending", "refunded": "Refunded", "partially_refunded": "Partial Refund" }
-                },
                 formatter: (cell) => {
                     const status = cell.getValue() || 'unknown';
                     const statusColors = {
@@ -1153,10 +1150,6 @@ class ShopifyModule extends BaseModule {
                 field: "fulfillment_status",
                 width: 140,
                 hozAlign: "center",
-                headerFilter: "select",
-                headerFilterParams: {
-                    values: { "": "All", "fulfilled": "Fulfilled", "unfulfilled": "Unfulfilled", "partial": "Partial" }
-                },
                 formatter: (cell) => {
                     const status = cell.getValue() || 'unfulfilled';
                     const statusColors = {

@@ -208,6 +208,7 @@ def list_emails():
     thread_id = request.args.get('thread_id', None)  # ✅ NEW: Filter by specific thread
     
     print(f"[Communication Hub] 📬 Listing emails: user_id={user_id}, account={account}, limit={limit}, thread_id={thread_id}")
+    print(f"[Communication Hub] 🔍 DEBUG: thread_id type={type(thread_id)}, value='{thread_id}', bool={bool(thread_id)}")
     
     # ✅ FIRST: Check which accounts user has connected (with circuit breaker protection)
     has_google = False
@@ -363,6 +364,7 @@ def list_emails():
     if account in ['all', 'outlook'] and has_microsoft and OUTLOOK_AVAILABLE:
         try:
             print(f"[Communication Hub] 📧 Fetching Outlook messages for user {user_id}...")
+            print(f"[Communication Hub] 🔍 DEBUG: About to check thread_id condition: thread_id='{thread_id}', bool={bool(thread_id)}")
             
             # ✅ FIX (Jan 18, 2026): Use conversationId filter when thread_id specified
             # This fetches ALL messages in conversation (sent + received folders)
