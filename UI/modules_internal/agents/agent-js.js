@@ -1247,7 +1247,7 @@ const MultiAgent = {
         const btn = document.getElementById('toggle-empty-agents-btn');
         const icon = btn?.querySelector('i');
 
-        // Get current state from button or default to false
+        // Get current state from button or default to false (all expanded initially)
         const currentlyCollapsed = btn?.dataset.collapseEmpty === 'true';
         const newState = !currentlyCollapsed;
 

@@ -874,13 +874,34 @@ def execute_tool(tool_name: str = None, **tool_params) -> Dict[str, Any]:
             extracted_tool_name = input_obj.pop('tool_name', None)
             params.update(input_obj)
     
-    # 5. Unwrap nested 'parameters' dict (AI agent sometimes wraps actual params)
+    # 5. Unwrap nested 'parameters' dict OR JSON string (AI agent sometimes wraps actual params)
     # Example: {"tool_name": "foo", "parameters": {"query": "SELECT..."}}
+    # OR: {"tool_name": "foo", "parameters": "{\"query\": \"SELECT...\"}"}
     # Should become: {"query": "SELECT..."}
-    if 'parameters' in params and isinstance(params['parameters'], dict):
+    if 'parameters' in params:
         nested_params = params.pop('parameters')
-        # Merge nested params into main params (nested params take precedence)
-        params.update(nested_params)
+        
+        # If parameters is a JSON string, parse it first
+        if isinstance(nested_params, str):
+            try:
+                nested_params = json.loads(nested_params)
+            except json.JSONDecodeError as e:
+                return {
+                    "success": False,
+                    "error": f"Failed to parse nested parameters JSON: {str(e)}",
+                    "received_parameters": nested_params[:100] if len(nested_params) > 100 else nested_params
+                }
+        
+        # Now nested_params should be a dict - merge it
+        if isinstance(nested_params, dict):
+            # Merge nested params into main params (nested params take precedence)
+            params.update(nested_params)
+        else:
+            return {
+                "success": False,
+                "error": f"Expected 'parameters' to be a dict or JSON string, got {type(nested_params).__name__}",
+                "received_type": str(type(nested_params))
+            }
     
     # Validate tool_name extracted
     if not extracted_tool_name:

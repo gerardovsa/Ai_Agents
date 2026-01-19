@@ -69,8 +69,50 @@ EOF
         echo "  ✓ database-config.json already exists in /data"
     fi
     
-    # List persistent disk contents
+    # ========================================
+    # CACHE INITIALIZATION (Build Time Optimization)
+    # ========================================
+    echo "→ Initializing cache directories..."
+    
+    # Create all cache directories with proper permissions
+    mkdir -p /data/.cache/pip \
+             /data/.cache/torch \
+             /data/.cache/huggingface \
+             /data/.cache/whisper \
+             /data/.cache/numpy \
+             /data/.cache/matplotlib \
+             /data/.cache/npm \
+             /data/tmp \
+             /data/uploads \
+             /data/transcriptions \
+             /data/logs
+    
+    chmod -R 777 /data/.cache 2>/dev/null || echo "  Note: Could not chmod cache (may already have permissions)"
+    chmod -R 777 /data/tmp 2>/dev/null || echo "  Note: Could not chmod tmp"
+    
+    # Check cache sizes (helps debug build time issues)
     echo ""
+    echo "Cache Status:"
+    if [ -d "/data/.cache/pip" ]; then
+        PIP_SIZE=$(du -sh /data/.cache/pip 2>/dev/null | cut -f1)
+        echo "  Pip cache: $PIP_SIZE"
+    fi
+    if [ -d "/data/.cache/torch" ]; then
+        TORCH_SIZE=$(du -sh /data/.cache/torch 2>/dev/null | cut -f1)
+        echo "  PyTorch cache: $TORCH_SIZE"
+    fi
+    if [ -d "/data/.cache/whisper" ]; then
+        WHISPER_SIZE=$(du -sh /data/.cache/whisper 2>/dev/null | cut -f1)
+        WHISPER_COUNT=$(ls -1 /data/.cache/whisper/*.pt 2>/dev/null | wc -l)
+        echo "  Whisper models: $WHISPER_SIZE ($WHISPER_COUNT models)"
+    fi
+    if [ -d "/data/.cache/npm" ]; then
+        NPM_SIZE=$(du -sh /data/.cache/npm 2>/dev/null | cut -f1)
+        echo "  NPM cache: $NPM_SIZE"
+    fi
+    echo ""
+    
+    # List persistent disk contents
     echo "Persistent Disk Contents (/data):"
     ls -lh /data/ || echo "  (empty)"
     echo ""

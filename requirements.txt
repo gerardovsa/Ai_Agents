@@ -124,6 +124,22 @@ ezdxf==1.4.3
 docker>=7.0.0
 redis>=5.0.0
 
+# Communication & Notifications (previously missing)
+twilio>=9.0.0           # SMS/phone communication
+slack-sdk>=3.27.0       # Slack integration
+PyGithub>=2.1.1         # GitHub API (NOT 'github' package)
+resend>=0.8.0           # Modern email API
+pyngrok>=7.0.0          # Ngrok tunneling (development/webhooks)
+
+# E-commerce Extensions (previously missing)
+WooCommerce>=3.0.0      # WooCommerce API integration
+
+# Audio/Video Transcription
+assemblyai>=0.28.0      # Alternative transcription service
+
+# Security & Sandboxing
+RestrictedPython>=7.0.0 # Safe Python execution in sandboxes
+
 # API Framework & WebSockets
 fastapi>=0.109.0
 uvicorn[standard]>=0.27.0

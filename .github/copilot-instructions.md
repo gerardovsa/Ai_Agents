@@ -560,10 +560,10 @@ tooltip: "💬 Messages in conversation"  // OK in tooltip/title attributes
 3. ✅ `inhouse_get_calculator_requirements` - Direct calculator access (Jan 13, 2026)
 4. ✅ `inhouse_calculate_quote` - Direct calculator access (Jan 13, 2026)
 
-### **Pending Functions (Not Requested Yet):**
+### **Stock Level Functions (Present but Not Actively Used):**
 
-5. 📋 `inhouse_query_stock_levels` - Stock inventory tool
-6. 📋 `inhouse_get_reorder_alerts` - Stock reorder alerts
+5. ⚠️ `inhouse_query_stock_levels` - Stock inventory tool (not actively used - stock types are maintained but levels are not tracked)
+6. ⚠️ `inhouse_get_reorder_alerts` - Stock reorder alerts (not actively used - stock types are maintained but reorder alerts are not tracked)
 
 ### **Problem: "ToolUseAgent could not be imported" Error**
 

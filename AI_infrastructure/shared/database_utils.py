@@ -270,15 +270,20 @@ def log_pool_usage():
             # Try to get pool statistics
             try:
                 # psycopg2 pools expose _used and _pool attributes
-                used = len(pool_instance._used) if hasattr(pool_instance, '_used') else '?'
-                available = len(pool_instance._pool) if hasattr(pool_instance, '_pool') else '?'
-                maxconn = pool_instance._maxconn if hasattr(pool_instance, '_maxconn') else '?'
+                used = len(pool_instance._used) if hasattr(pool_instance, '_used') else None
+                available = len(pool_instance._pool) if hasattr(pool_instance, '_pool') else None
+                maxconn = pool_instance._maxconn if hasattr(pool_instance, '_maxconn') else None
                 
                 print(f"\nSchema: {schema_name}")
-                print(f"  Active connections: {used}")
-                print(f"  Available in pool: {available}")
-                print(f"  Max connections: {maxconn}")
-                print(f"  Status: {'OK' if used < maxconn else 'EXHAUSTED'}")
+                print(f"  Active connections: {used if used is not None else '?'}")
+                print(f"  Available in pool: {available if available is not None else '?'}")
+                print(f"  Max connections: {maxconn if maxconn is not None else '?'}")
+                
+                # Only check status if we have valid integer values
+                if used is not None and maxconn is not None:
+                    print(f"  Status: {'OK' if used < maxconn else 'EXHAUSTED'}")
+                else:
+                    print(f"  Status: Unknown")
             except Exception as e:
                 print(f"\nSchema: {schema_name}")
                 print(f"  Error getting stats: {e}")

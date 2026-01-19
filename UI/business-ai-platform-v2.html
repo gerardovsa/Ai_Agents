@@ -11846,14 +11846,29 @@
             flex: 1;
             display: flex;
             gap: 8px;
-            padding: 0 12px;
+            padding: 0 20px; /* Increased from 12px to 20px for buffer zone */
             overflow-x: auto;
             scroll-behavior: smooth;
-            scrollbar-width: none; /* Firefox */
+            /* Show scrollbar for visual feedback */
+            scrollbar-width: thin;
+            scrollbar-color: var(--border-default) transparent;
         }
 
         .agent-quick-nav-container::-webkit-scrollbar {
-            display: none; /* Chrome, Safari */
+            height: 6px;
+        }
+
+        .agent-quick-nav-container::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        .agent-quick-nav-container::-webkit-scrollbar-thumb {
+            background: var(--border-default);
+            border-radius: 3px;
+        }
+
+        .agent-quick-nav-container::-webkit-scrollbar-thumb:hover {
+            background: var(--border-emphasis);
         }
 
         .quick-nav-scroll-btn {
@@ -11871,9 +11886,17 @@
             justify-content: center;
             transition: all 0.2s ease;
             z-index: 2;
+            opacity: 1;
         }
 
-        .quick-nav-scroll-btn:hover {
+        /* Faded state when at boundaries (persistent, not hidden) */
+        .quick-nav-scroll-btn.disabled {
+            opacity: 0.3;
+            pointer-events: none;
+            cursor: default;
+        }
+
+        .quick-nav-scroll-btn:not(.disabled):hover {
             background: var(--bg-hover);
             color: var(--text-primary);
             border-color: var(--accent-primary);
@@ -11881,16 +11904,91 @@
 
         .quick-nav-scroll-left {
             left: 0;
-            margin-right: 4px;
+            margin-right: 8px; /* Increased from 4px to 8px for buffer */
         }
 
         .quick-nav-scroll-right {
             right: 0;
-            margin-left: 4px;
+            margin-left: 8px; /* Increased from 4px to 8px for buffer */
+        }
+
+        /* Multi-Agent Container Wrapper (for scroll buttons) */
+        .multi-agent-container-wrapper {
+            position: relative;
+            display: flex;
+            align-items: center;
+            height: calc(100vh - var(--header-height) - 40px - 70px - 60px);
+            margin-top: 10px;
+            margin-bottom: 10px;
         }
 
         #multi-agent-container {
             position: relative;
+            flex: 1;
+            display: flex;
+            gap: 12px;
+            overflow-x: auto;
+            padding: 0;
+            height: 100%;
+            scroll-behavior: smooth;
+        }
+
+        /* Container Scroll Buttons */
+        .container-scroll-btn {
+            position: absolute;
+            flex-shrink: 0;
+            width: 40px;
+            height: 60px;
+            background: rgba(13, 17, 23, 0.95);
+            border: 1px solid var(--border-default);
+            border-radius: 6px;
+            color: var(--text-secondary);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s ease;
+            z-index: 10;
+            opacity: 1;
+            backdrop-filter: blur(8px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+        }
+
+        .container-scroll-btn.disabled {
+            opacity: 0.3;
+            pointer-events: none;
+            cursor: default;
+        }
+
+        .container-scroll-btn:not(.disabled):hover {
+            background: rgba(22, 27, 34, 0.98);
+            color: var(--text-primary);
+            border-color: var(--accent-primary);
+            transform: scale(1.05);
+        }
+
+        .container-scroll-btn i {
+            font-size: 18px;
+        }
+
+        .container-scroll-left {
+            left: 8px;
+            top: 50%;
+            transform: translateY(-50%);
+        }
+
+        .container-scroll-left:not(.disabled):hover {
+            transform: translateY(-50%) scale(1.05);
+        }
+
+        .container-scroll-right {
+            right: 8px;
+            top: 50%;
+            transform: translateY(-50%);
+        }
+
+        .container-scroll-right:not(.disabled):hover {
+            transform: translateY(-50%) scale(1.05);
         }
 
         .agent-column {
@@ -19829,29 +19927,42 @@
 
                         <!-- Agent Quick Nav Bar -->
                         <div class="agent-quick-nav-bar" id="agent-quick-nav-bar">
-                            <button class="quick-nav-scroll-btn quick-nav-scroll-left" 
+                            <button class="quick-nav-scroll-btn quick-nav-scroll-left disabled" 
                                     id="quick-nav-scroll-left"
                                     onclick="scrollQuickNavLeft()"
-                                    title="Scroll left"
-                                    style="display: none;">
+                                    title="Scroll left">
                                 <i class="fas fa-chevron-left"></i>
                             </button>
                             <div class="agent-quick-nav-container" id="agent-quick-nav-container">
                                 <!-- Agent nav badges will be inserted here dynamically -->
                             </div>
-                            <button class="quick-nav-scroll-btn quick-nav-scroll-right" 
+                            <button class="quick-nav-scroll-btn quick-nav-scroll-right disabled" 
                                     id="quick-nav-scroll-right"
                                     onclick="scrollQuickNavRight()"
-                                    title="Scroll right"
-                                    style="display: none;">
+                                    title="Scroll right">
                                 <i class="fas fa-chevron-right"></i>
                             </button>
                         </div>
 
-                        <!-- Multi-agent container -->
-                        <div id="multi-agent-container"
-                            style="height: calc(100vh - var(--header-height) - 40px - 70px - 60px); display: flex; gap: 12px; overflow-x: auto; margin-top: 10px; margin-bottom: 10px; padding: 0;">
-                            <!-- Multi-agent columns will be inserted here dynamically -->
+                        <!-- Multi-agent container wrapper with scroll buttons -->
+                        <div class="multi-agent-container-wrapper">
+                            <button class="container-scroll-btn container-scroll-left disabled" 
+                                    id="container-scroll-left"
+                                    onclick="scrollContainerLeft()"
+                                    title="Scroll left">
+                                <i class="fas fa-chevron-left"></i>
+                            </button>
+                            
+                            <div id="multi-agent-container">
+                                <!-- Multi-agent columns will be inserted here dynamically -->
+                            </div>
+                            
+                            <button class="container-scroll-btn container-scroll-right disabled" 
+                                    id="container-scroll-right"
+                                    onclick="scrollContainerRight()"
+                                    title="Scroll right">
+                                <i class="fas fa-chevron-right"></i>
+                            </button>
                         </div>
                     </div>
                 </div>
@@ -24167,6 +24278,16 @@
 
                 console.log('? [INIT] initMultiAgent completed successfully');
 
+                // Initialize toggle empty agents button icon state
+                const toggleBtn = document.getElementById('toggle-empty-agents-btn');
+                const toggleIcon = toggleBtn?.querySelector('i');
+                if (toggleBtn && toggleIcon) {
+                    // Default state: all expanded (not collapsed)
+                    toggleBtn.dataset.collapseEmpty = 'false';
+                    toggleIcon.className = 'fas fa-compress';
+                    toggleBtn.title = 'Collapse empty agents';
+                }
+
                 // ? PERMANENT FIX: Align realtime presence context to the currently-active tab.
                 // This covers cases where the multi-agent tab was already active (so switchTab() wasn't called).
                 try {
@@ -26599,9 +26720,25 @@
             const isAtStart = container.scrollLeft <= 1;
             const isAtEnd = container.scrollLeft + container.clientWidth >= container.scrollWidth - 1;
 
-            // Show/hide buttons based on overflow and scroll position
-            leftBtn.style.display = hasOverflow && !isAtStart ? 'flex' : 'none';
-            rightBtn.style.display = hasOverflow && !isAtEnd ? 'flex' : 'none';
+            // Always show buttons, but fade when disabled (no display: none)
+            if (!hasOverflow) {
+                // No overflow - both buttons disabled and faded
+                leftBtn.classList.add('disabled');
+                rightBtn.classList.add('disabled');
+            } else {
+                // Has overflow - enable/disable based on position
+                if (isAtStart) {
+                    leftBtn.classList.add('disabled');
+                } else {
+                    leftBtn.classList.remove('disabled');
+                }
+                
+                if (isAtEnd) {
+                    rightBtn.classList.add('disabled');
+                } else {
+                    rightBtn.classList.remove('disabled');
+                }
+            }
         }
 
         // Initialize Quick Nav scroll buttons on load
@@ -26621,7 +26758,83 @@
                 const observer = new MutationObserver(updateQuickNavScrollButtons);
                 observer.observe(container, { childList: true });
             }
+
+            // Initialize multi-agent container scroll buttons
+            const agentContainer = document.getElementById('multi-agent-container');
+            if (agentContainer) {
+                // Update button visibility when scrolled
+                agentContainer.addEventListener('scroll', updateContainerScrollButtons);
+                
+                // Update on resize
+                window.addEventListener('resize', updateContainerScrollButtons);
+                
+                // Initial update
+                setTimeout(updateContainerScrollButtons, 500);
+                
+                // Watch for column additions/removals
+                const containerObserver = new MutationObserver(updateContainerScrollButtons);
+                containerObserver.observe(agentContainer, { childList: true, subtree: true });
+            }
         });
+
+
+        // ==================== CONTAINER SCROLL FUNCTIONS ====================
+        /**
+         * Scroll multi-agent container left
+         */
+        function scrollContainerLeft() {
+            const container = document.getElementById('multi-agent-container');
+            if (container) {
+                container.scrollBy({ left: -420, behavior: 'smooth' }); // Scroll by column width + gap
+                setTimeout(() => updateContainerScrollButtons(), 100);
+            }
+        }
+
+        /**
+         * Scroll multi-agent container right
+         */
+        function scrollContainerRight() {
+            const container = document.getElementById('multi-agent-container');
+            if (container) {
+                container.scrollBy({ left: 420, behavior: 'smooth' }); // Scroll by column width + gap
+                setTimeout(() => updateContainerScrollButtons(), 100);
+            }
+        }
+
+        /**
+         * Update visibility of container scroll buttons based on overflow
+         */
+        function updateContainerScrollButtons() {
+            const container = document.getElementById('multi-agent-container');
+            const leftBtn = document.getElementById('container-scroll-left');
+            const rightBtn = document.getElementById('container-scroll-right');
+
+            if (!container || !leftBtn || !rightBtn) return;
+
+            const hasOverflow = container.scrollWidth > container.clientWidth;
+            const isAtStart = container.scrollLeft <= 1;
+            const isAtEnd = container.scrollLeft + container.clientWidth >= container.scrollWidth - 1;
+
+            // Always show buttons, but fade when disabled
+            if (!hasOverflow) {
+                // No overflow - both buttons disabled and faded
+                leftBtn.classList.add('disabled');
+                rightBtn.classList.add('disabled');
+            } else {
+                // Has overflow - enable/disable based on position
+                if (isAtStart) {
+                    leftBtn.classList.add('disabled');
+                } else {
+                    leftBtn.classList.remove('disabled');
+                }
+                
+                if (isAtEnd) {
+                    rightBtn.classList.add('disabled');
+                } else {
+                    rightBtn.classList.remove('disabled');
+                }
+            }
+        }
 
 
         // ==================== WOOCOMMERCE FUNCTIONALITY ====================

@@ -541,6 +541,9 @@ def inhouse_query_stock_levels(filters: Optional[Dict[str, Any]] = None, **kwarg
     """
     Quick inventory check
     
+    ⚠️ NOTE: This tool is present but not actively used. Stock types are maintained, 
+    but stock levels are not currently tracked in production.
+    
     Queries Supabase stock_data.stocklevels table (not InHouse Fred database).
     Returns current levels, reorder points, critical levels, and status.
     
@@ -652,6 +655,9 @@ def inhouse_query_stock_levels(filters: Optional[Dict[str, Any]] = None, **kwarg
 def inhouse_get_reorder_alerts(**kwargs) -> Dict[str, Any]:
     """
     Quick stock shortage alerts
+    
+    ⚠️ NOTE: This tool is present but not actively used. Stock types are maintained, 
+    but reorder alerts are not currently tracked in production.
     
     Queries Supabase stock_data.reorderalerts table (not InHouse Fred database).
     Returns stocks below reorder point with alert levels.
