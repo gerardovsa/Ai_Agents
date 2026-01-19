@@ -259,21 +259,99 @@ class RangeValidator:
 
 
 # ============================================================================
+# PARAMETER VALIDATION
+# ============================================================================
+
+class ParameterValidator:
+    """Validate function parameters against schema expectations"""
+    
+    @staticmethod
+    def validate_known_parameters(func: Callable, kwargs: dict) -> Dict[str, Any]:
+        """
+        Detect unknown parameters passed to a function.
+        
+        Returns error dict if unknown parameters found, None otherwise.
+        Logs all unknown parameters with suggestions for correct names.
+        
+        Args:
+            func: Function being called
+            kwargs: Keyword arguments passed to function
+            
+        Returns:
+            Dict with error info if unknown params found, None otherwise
+        """
+        # Get function signature
+        sig = inspect.signature(func)
+        valid_params = set(sig.parameters.keys())
+        provided_params = set(kwargs.keys())
+        
+        # Find unknown parameters
+        unknown_params = provided_params - valid_params
+        
+        if unknown_params:
+            # Build error message with suggestions
+            error_msg = f"❌ Unknown parameters detected: {', '.join(unknown_params)}"
+            suggestions = []
+            
+            # Suggest similar parameter names
+            for unknown in unknown_params:
+                for valid in valid_params:
+                    # Simple similarity check (case-insensitive)
+                    if unknown.lower() in valid.lower() or valid.lower() in unknown.lower():
+                        suggestions.append(f"  • Did you mean '{valid}' instead of '{unknown}'?")
+                        break
+            
+            log_msg = (
+                f"\n{'='*70}\n"
+                f"🚨 PARAMETER VALIDATION ERROR - {func.__name__}\n"
+                f"{'='*70}\n"
+                f"Unknown parameters: {list(unknown_params)}\n"
+                f"Valid parameters: {list(valid_params)}\n"
+            )
+            
+            if suggestions:
+                log_msg += "\nSuggestions:\n" + "\n".join(suggestions) + "\n"
+            
+            log_msg += (
+                f"\nProvided kwargs: {list(kwargs.keys())}\n"
+                f"{'='*70}\n"
+            )
+            
+            print(log_msg)
+            
+            return {
+                "success": False,
+                "error": error_msg,
+                "unknown_parameters": list(unknown_params),
+                "valid_parameters": list(valid_params),
+                "suggestions": suggestions if suggestions else [
+                    f"Valid parameters are: {', '.join(valid_params)}"
+                ],
+                "function": func.__name__
+            }
+        
+        return None
+
+
+# ============================================================================
 # COMPOSITE DECORATOR (Type Enforcement + Common Validations)
 # ============================================================================
 
 def calculator_wrapper(
     quantity_enum: list = None,
-    quantity_range: tuple = None
+    quantity_range: tuple = None,
+    validate_params: bool = True
 ):
     """
     Composite decorator for calculator wrappers.
     
     Combines type enforcement with common validations for calculator parameters.
+    Includes unknown parameter detection to catch schema-function mismatches.
     
     Args:
         quantity_enum: List of allowed quantities (e.g., [250, 500, 1000, 2000, 5000, 10000])
         quantity_range: Tuple of (min, max) for quantity range validation
+        validate_params: Check for unknown parameters (default: True)
         
     Example:
         @calculator_wrapper(quantity_enum=[250, 500, 1000, 2000, 5000, 10000])
@@ -281,6 +359,7 @@ def calculator_wrapper(
             # quantity is:
             # 1. Converted to int (if it was a string)
             # 2. Validated to be in [250, 500, 1000, 2000, 5000, 10000]
+            # 3. Unknown params detected and rejected
             pass
     """
     def decorator(func: Callable) -> Callable:
@@ -288,20 +367,40 @@ def calculator_wrapper(
         @enforce_schema_types
         @functools.wraps(func)
         def wrapper(*args, **kwargs):
+            # Validate known parameters first
+            if validate_params:
+                param_error = ParameterValidator.validate_known_parameters(func, kwargs)
+                if param_error:
+                    return param_error
+            
             # Apply quantity validation if specified
             if 'quantity' in kwargs:
                 quantity = kwargs['quantity']
                 
                 if quantity_enum is not None:
-                    EnumValidator.validate_enum(quantity, quantity_enum, 'quantity')
+                    try:
+                        EnumValidator.validate_enum(quantity, quantity_enum, 'quantity')
+                    except ValueError as e:
+                        return {
+                            "success": False,
+                            "error": str(e),
+                            "function": func.__name__
+                        }
                 
                 if quantity_range is not None:
-                    RangeValidator.validate_range(
-                        quantity, 
-                        quantity_range[0], 
-                        quantity_range[1], 
-                        'quantity'
-                    )
+                    try:
+                        RangeValidator.validate_range(
+                            quantity, 
+                            quantity_range[0], 
+                            quantity_range[1], 
+                            'quantity'
+                        )
+                    except ValueError as e:
+                        return {
+                            "success": False,
+                            "error": str(e),
+                            "function": func.__name__
+                        }
             
             # Call the original function
             return func(*args, **kwargs)

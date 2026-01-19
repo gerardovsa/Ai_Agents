@@ -37,6 +37,9 @@ scikit-learn>=1.3.0     # ML models (Logistic Regression, Random Forest) for pre
 # Calculator Formula Evaluation
 asteval>=1.0.7
 
+# Safe Python Execution (for python_exec and data_analysis_tier2 custom code)
+RestrictedPython>=6.0
+
 # Environment
 python-dotenv==1.0.0
 

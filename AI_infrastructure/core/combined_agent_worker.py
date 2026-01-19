@@ -2056,9 +2056,29 @@ def run_simple_agent_worker(
                     traceback.print_exc()
             
             # If there are extracted tool_results, insert them as a user message immediately after
+            # DEBUG (Jan 19, 2026): Log tool result insertion
+            print(f"{log_prefix} 🔍 DEBUG: Adding tool results to conversation:")
+            print(f"{log_prefix}   - extracted_tool_results: {len(extracted_tool_results) if extracted_tool_results else 0} blocks")
+            print(f"{log_prefix}   - tool_results: {len(tool_results)} blocks")
+            print(f"{log_prefix}   - Current message count: {len(messages)}")
+            
             if extracted_tool_results:
+                print(f"{log_prefix}   → Appending USER message with {len(extracted_tool_results)} extracted tool results")
                 messages.append({'role': 'user', 'content': extracted_tool_results})
+                print(f"{log_prefix}   ✅ Message count now: {len(messages)}")
+            
+            print(f"{log_prefix}   → Appending USER message with {len(tool_results)} tool results")
             messages.append({'role': 'user', 'content': tool_results})
+            print(f"{log_prefix}   ✅ Message count now: {len(messages)}")
+            
+            # DEBUG: Verify last 3 messages are in correct order
+            print(f"{log_prefix} 🔍 DEBUG: Last 3 messages after tool result insertion:")
+            for i, msg in enumerate(messages[-3:]):
+                idx = len(messages) - 3 + i
+                role = msg.get('role')
+                content = msg.get('content', [])
+                content_len = len(content) if isinstance(content, list) else 'string'
+                print(f"{log_prefix}   [{idx}] {role}: {content_len} blocks")
             
             # CRITICAL FIX (Nov 23, 2025): IMMEDIATELY save tool_result message to database
             # This prevents orphaned tool_use blocks when errors occur
@@ -2657,6 +2677,30 @@ def execute_streaming_request(
         # 1. Resending thinking blocks from previous API responses
         # 2. Having consecutive assistant messages when thinking blocks are present
         # 3. Modifying thinking blocks in any way (even just passing them through)
+        
+        # DEBUG: Log EXACT message structure before consecutive check (Jan 19, 2026)
+        print(f"{log_prefix} 🔍 PRE-VALIDATION: Message structure BEFORE consecutive check:")
+        for idx, msg in enumerate(messages):
+            role = msg.get('role')
+            content = msg.get('content', [])
+            if isinstance(content, list):
+                block_summary = []
+                for b in content:
+                    if isinstance(b, dict):
+                        btype = b.get('type', 'unknown')
+                        if btype == 'thinking':
+                            sig = 'sig:YES' if b.get('signature') else 'sig:NO'
+                            block_summary.append(f"{btype}({sig})")
+                        elif btype == 'tool_use':
+                            block_summary.append(f"{btype}({b.get('name', '?')})")
+                        else:
+                            block_summary.append(btype)
+                    else:
+                        block_summary.append('string')
+                print(f"{log_prefix}   [{idx}] {role}: {block_summary}")
+            else:
+                print(f"{log_prefix}   [{idx}] {role}: (string: {str(content)[:50]}...)")
+        
         print(f"{log_prefix} 🔍 Checking for thinking blocks and consecutive assistant messages...")
         
         # STEP 1: Find all assistant messages with thinking blocks
@@ -2678,10 +2722,26 @@ def execute_streaming_request(
         #            Assistant → Assistant is INVALID
         truly_consecutive_indices = []
         for i in range(len(messages) - 1):
-            if messages[i].get('role') == 'assistant' and messages[i+1].get('role') == 'assistant':
+            current_role = messages[i].get('role')
+            next_role = messages[i+1].get('role')
+            
+            # DEBUG (Jan 19, 2026): Log each role comparison
+            if i < 5 or (current_role == 'assistant' and next_role == 'assistant'):
+                print(f"{log_prefix}   Comparing [{i}] {current_role} → [{i+1}] {next_role}")
+            
+            if current_role == 'assistant' and next_role == 'assistant':
                 # This is truly consecutive (no user message between)
                 truly_consecutive_indices.extend([i, i+1])
-                print(f"{log_prefix}  WARNING: TRULY consecutive assistant messages at [{i}] and [{i+1}] (no user between)")
+                print(f"{log_prefix}  ❌ WARNING: TRULY consecutive assistant messages at [{i}] and [{i+1}] (no user between)")
+                
+                # DEBUG: Show what's in these messages
+                for debug_idx in [i, i+1]:
+                    msg_content = messages[debug_idx].get('content', [])
+                    if isinstance(msg_content, list):
+                        types = [b.get('type') if isinstance(b, dict) else 'string' for b in msg_content]
+                        print(f"{log_prefix}     [{debug_idx}] content types: {types}")
+                    else:
+                        print(f"{log_prefix}     [{debug_idx}] content: string")
         
         # STEP 3: Only truncate if we have TRULY consecutive assistant messages with thinking blocks
         # FIX (Dec 29, 2025): Don't truncate valid tool use patterns (assistant → user → assistant)

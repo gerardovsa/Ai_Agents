@@ -394,9 +394,16 @@ def get_tool_schema(tool_name: str = None, **kwargs) -> Dict[str, Any]:
     if not extracted_tool_name:
         error_result = {
             "success": False,
-            "error": "tool_name parameter is required",
-            "usage": "get_tool_schema(tool_name='<tool_name>')",
-            "note": "Pass the tool name you want to learn about",
+            "error": "❌ MISSING PARAMETER: tool_name is required",
+            "correct_usage": "get_tool_schema(tool_name='exact_tool_name')",
+            "example": "get_tool_schema(tool_name='microsoft_excel_create_workbook')",
+            "workflow": {
+                "step_1": "Call list_available_platforms() to see all platform names",
+                "step_2": "Call list_platform_tools(platform='platform_name') to see available tools",
+                "step_3": "Call get_tool_schema(tool_name='exact_tool_name') to see parameters",
+                "step_4": "Call execute_tool(tool_name='exact_tool_name', **params) to run the tool"
+            },
+            "note": "You MUST pass tool_name parameter. Do NOT call get_tool_schema() without parameters.",
             "received_params": list(kwargs.keys())
         }
         # Inject session status even in errors
@@ -404,6 +411,7 @@ def get_tool_schema(tool_name: str = None, **kwargs) -> Dict[str, Any]:
             error_result['_session_status'] = kwargs['_session_status']
         print(f"\n[META-TOOL ERROR] get_tool_schema() - Missing tool_name:")
         print(f"  - Received params: {list(kwargs.keys())}")
+        print(f"  ⚠️ MUST use: get_tool_schema(tool_name='exact_tool_name')")
         return error_result
     
     print(f"\n[META-TOOL] get_tool_schema() called:")
@@ -413,15 +421,46 @@ def get_tool_schema(tool_name: str = None, **kwargs) -> Dict[str, Any]:
     
     # Check if tool exists
     if extracted_tool_name not in registry.tools:
+        # Find similar tools to suggest
+        all_tool_names = list(registry.tools.keys())
+        similar_tools = []
+        search_term = extracted_tool_name.lower()
+        
+        # Find tools with similar names (substring matching)
+        for tool in all_tool_names:
+            if search_term in tool.lower() or tool.lower() in search_term:
+                similar_tools.append(tool)
+        
+        # Limit to top 5 suggestions
+        similar_tools = similar_tools[:5]
+        
         error_result = {
             "success": False,
-            "error": f"Tool not found: {extracted_tool_name}",
-            "suggestion": "Call list_available_platforms() then list_platform_tools(platform) to see available tools"
+            "error": f"❌ TOOL NOT FOUND: '{extracted_tool_name}' does not exist in registry",
+            "similar_tools": similar_tools if similar_tools else None,
+            "hint": "You may have guessed the wrong tool name. Use discovery tools instead of guessing.",
+            "correct_workflow": {
+                "step_1": "Call search_tools(query='excel') to find Excel-related tools",
+                "step_2": "Or call list_platform_tools(platform='microsoft_excel') to list all Excel tools",
+                "step_3": "Use the EXACT tool name from the results",
+                "step_4": "Call get_tool_schema(tool_name='exact_name_from_results')"
+            },
+            "available_discovery_tools": [
+                "search_tools(query='keyword') - Search by keyword across all tools",
+                "list_available_platforms() - See all platform names",
+                "list_platform_tools(platform='name') - List tools for specific platform"
+            ],
+            "common_mistakes": {
+                "wrong": "google_sheets_create_spreadsheet (does not exist)",
+                "correct": "Use search_tools(query='sheets create') to find actual tool name"
+            }
         }
         # Inject session status even in errors
         if '_session_status' in kwargs:
             error_result['_session_status'] = kwargs['_session_status']
         print(f"[META-TOOL ERROR] get_tool_schema() - Tool not found: {extracted_tool_name}")
+        if similar_tools:
+            print(f"  💡 Similar tools found: {', '.join(similar_tools[:3])}")
         return error_result
     
     tool = registry.tools[extracted_tool_name]
@@ -907,16 +946,20 @@ def execute_tool(tool_name: str = None, **tool_params) -> Dict[str, Any]:
     if not extracted_tool_name:
         return {
             "success": False,
-            "error": "tool_name parameter is required",
-            "usage": "execute_tool(tool_name='<tool_name>', param1='value1', param2='value2', ...)",
-            "note": "First call get_tool_schema(tool_name='<tool_name>') to see required parameters",
+            "error": "❌ MISSING PARAMETER: tool_name is required",
+            "correct_usage": "execute_tool(tool_name='exact_tool_name', param1='value1', param2='value2')",
+            "workflow": {
+                "step_1": "First discover tools: search_tools(query='keyword') or list_platform_tools(platform='name')",
+                "step_2": "Get parameters: get_tool_schema(tool_name='exact_tool_name')",
+                "step_3": "Then execute: execute_tool(tool_name='exact_tool_name', **required_params)"
+            },
             "received_params": list(tool_params.keys()),
             "example": {
-                "tool_name": "microsoft_outlook_send_email",
-                "to": "recipient@example.com",
-                "subject": "Hello",
-                "body": "Test message"
-            }
+                "discovery": "search_tools(query='excel create')",
+                "get_params": "get_tool_schema(tool_name='microsoft_excel_create_workbook')",
+                "execution": "execute_tool(tool_name='microsoft_excel_create_workbook', name='My Spreadsheet')"
+            },
+            "note": "You MUST pass tool_name parameter. Do NOT call execute_tool() without tool_name."
         }
     
     registry = get_registry()
@@ -929,10 +972,30 @@ def execute_tool(tool_name: str = None, **tool_params) -> Dict[str, Any]:
         
         return {
             "success": False,
-            "error": f"Tool '{extracted_tool_name}' not found in registry",
-            "suggestion": "Use search_tools() or list_platform_tools() to find available tools",
+            "error": f"❌ TOOL NOT FOUND: '{extracted_tool_name}' does not exist in registry",
             "similar_tools": suggestions if suggestions else None,
-            "available_tool_count": len(all_tools)
+            "hint": "You likely guessed the wrong tool name. Use discovery tools instead of guessing.",
+            "correct_workflow": {
+                "instead_of_guessing": "DO NOT guess tool names like 'google_sheets_create_spreadsheet'",
+                "step_1": "Use search_tools(query='sheets create') to find actual tool names",
+                "step_2": "Or use list_platform_tools(platform='google_sheets') to list all tools",
+                "step_3": "Use the EXACT tool name from the discovery results",
+                "step_4": "Call execute_tool(tool_name='exact_name_from_discovery', **params)"
+            },
+            "available_discovery_tools": [
+                "search_tools(query='keyword') - Search across all 1071 tools",
+                "list_available_platforms() - See all platform names",
+                "list_platform_tools(platform='name') - List tools for platform",
+                "get_tool_schema(tool_name='name') - Get parameters before executing"
+            ],
+            "common_mistakes": {
+                "wrong_1": "microsoft_word_create_document (guessed name - does not exist)",
+                "correct_1": "search_tools(query='word create') → use exact name from results",
+                "wrong_2": "google_sheets_create_spreadsheet (guessed name - does not exist)",
+                "correct_2": "search_tools(query='sheets create') → use exact name from results"
+            },
+            "available_tool_count": len(all_tools),
+            "registry_stats": f"Total tools available: {len(all_tools)} across all platforms"
         }
     
     # Execute the tool with credential injection

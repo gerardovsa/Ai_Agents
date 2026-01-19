@@ -193,8 +193,25 @@ def load_conversation_from_database(thread_slug: str, limit: Optional[int] = Non
                         'created_at': created_at.isoformat() if created_at else None
                     })
                     
-                    content_preview = str(content)[:100] if isinstance(content, str) else f"{len(content)} blocks"
-                    print(f"[DB LOAD]   [{idx}] {role}: {content_preview}...")
+                    # DEBUG (Jan 19, 2026): Enhanced logging to show block structure
+                    if isinstance(content, list):
+                        block_types = []
+                        for b in content:
+                            if isinstance(b, dict):
+                                btype = b.get('type', 'unknown')
+                                if btype == 'thinking':
+                                    has_sig = 'sig' if b.get('signature') else 'no-sig'
+                                    block_types.append(f"{btype}({has_sig})")
+                                elif btype == 'tool_use':
+                                    block_types.append(f"{btype}({b.get('name', '?')})")
+                                else:
+                                    block_types.append(btype)
+                            else:
+                                block_types.append('string')
+                        print(f"[DB LOAD]   [{idx}] {role}: {block_types}")
+                    else:
+                        content_preview = str(content)[:100]
+                        print(f"[DB LOAD]   [{idx}] {role}: (string: {content_preview}...)")
                 
                 cprint(f"[DB LOAD] ✅ Loaded {len(messages)} messages from database", Colors.SUCCESS)
                 print(f"{'='*80}\n")
