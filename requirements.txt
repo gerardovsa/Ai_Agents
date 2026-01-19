@@ -20,20 +20,19 @@ anthropic>=0.40.0
 openai==1.35.0
 requests==2.31.0
 
-# Voice Transcription - DISABLED (Jan 19, 2026)
-# Whisper/PyTorch removed to reduce build time and disk usage
-# Can be re-enabled later if needed
-# openai-whisper>=20231117
-# torch>=2.0.0
-# torchaudio>=2.0.0
+# Voice Transcription - Local Whisper (PyTorch)
+# Adds ~10-15 min to Docker build but provides accurate server-side transcription
+# Browser Speech Recognition also available as alternative (no conflict)
+openai-whisper>=20231117
+torch>=2.0.0
+torchaudio>=2.0.0
 
 # Data Processing
 pandas==2.3.3
 numpy>=1.26.4
-# DISABLED Jan 19, 2026 - Reduce build time
-# scipy>=1.11.0           # Scientific computing for advanced analytics
-# statsmodels>=0.14.0     # Time series forecasting (ARIMA) for accurate revenue predictions
-# scikit-learn>=1.3.0     # ML models (Logistic Regression, Random Forest) for predictions
+scipy>=1.11.0           # Scientific computing for advanced analytics
+statsmodels>=0.14.0     # Time series forecasting (ARIMA) for accurate revenue predictions
+scikit-learn>=1.3.0     # ML models (Logistic Regression, Random Forest) for predictions
 
 # Calculator Formula Evaluation
 asteval>=1.0.7
@@ -109,37 +108,21 @@ python-dateutil==2.8.2
 bcrypt==4.0.1
 PyJWT==2.8.0
 
-# Engineering & CAD Libraries (DISABLED Jan 19, 2026 - Reduce build time)
+# Engineering & CAD Libraries (Dec 12, 2025 - EXACT VERSIONS)
 # Using exact versions from working local environment to avoid pip backtracking
-# matplotlib==3.10.5
-# numpy==2.3.3
-# cytriangle==2.0.0
-# sectionproperties==3.9.0
-# PyNiteFEA==1.6.2
-# forallpeople==2.7.1
-# handcalcs==1.10.0
-# cadquery==2.6.1
-# ezdxf==1.4.3
+matplotlib==3.10.5
+numpy==2.3.3
+cytriangle==2.0.0
+sectionproperties==3.9.0
+PyNiteFEA==1.6.2
+forallpeople==2.7.1
+handcalcs==1.10.0
+cadquery==2.6.1
+ezdxf==1.4.3
 
 # Infrastructure & Service Management
 docker>=7.0.0
 redis>=5.0.0
-
-# Communication & Notifications (previously missing)
-twilio>=9.0.0           # SMS/phone communication
-slack-sdk>=3.27.0       # Slack integration
-PyGithub>=2.1.1         # GitHub API (NOT 'github' package)
-resend>=0.8.0           # Modern email API
-pyngrok>=7.0.0          # Ngrok tunneling (development/webhooks)
-
-# E-commerce Extensions (previously missing)
-WooCommerce>=3.0.0      # WooCommerce API integration
-
-# Audio/Video Transcription
-assemblyai>=0.28.0      # Alternative transcription service
-
-# Security & Sandboxing
-RestrictedPython>=7.0.0 # Safe Python execution in sandboxes
 
 # API Framework & WebSockets
 fastapi>=0.109.0
