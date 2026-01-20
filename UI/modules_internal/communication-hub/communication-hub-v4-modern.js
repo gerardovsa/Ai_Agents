@@ -1675,7 +1675,7 @@ window.communicationHub = {
                     formatter: (cell) => {
                         const rowData = cell.getRow().getData();
                         const emailId = rowData.id;
-                        const threadSlug = this.state.emailThreads?.[emailId];
+                        const threadInfo = this.state.emailThreads?.[emailId];
                         const isProcessing = rowData._processing === true;
 
                         // Show processing state if actively assigning
@@ -1691,15 +1691,30 @@ window.communicationHub = {
                             `;
                         }
 
-                        // DEBUG: Log thread assignment status (reduced verbosity)
-                        if (!threadSlug) {
+                        // ✅ FIX (Jan 21, 2026): Check if threadInfo is object (new format) or string (legacy)
+                        let threadSlug = null;
+                        let location = null;
+                        let agentName = null;
+                        let synced = true;
+                        
+                        if (!threadInfo) {
+                            // Not assigned
                             const hasOtherThreads = Object.keys(this.state.emailThreads || {}).length > 0;
                             if (hasOtherThreads && this.state.tableReady) {
                                 this.log.debug(`Email ${emailId.substring(0, 20)}... not assigned to thread`);
                             }
+                        } else if (typeof threadInfo === 'string') {
+                            // Legacy string format (just slug)
+                            threadSlug = threadInfo;
+                        } else {
+                            // ✅ NEW object format with full metadata - use immediately!
+                            threadSlug = threadInfo.slug;
+                            location = threadInfo.location;
+                            agentName = threadInfo.agentName;
+                            synced = threadInfo.synced !== false;
                         }
 
-                        // Check if email has an assigned thread
+                        // ✅ FIX (Jan 21, 2026): If we have local cache with location, use it immediately!
                         if (!threadSlug) {
                             // NOT ASSIGNED - Simple badge
                             return `
@@ -1712,32 +1727,37 @@ window.communicationHub = {
                             `;
                         }
 
-                        // IS ASSIGNED - Show agent badge + thread info + action buttons
-                        let thread = ThreadManager?.threads?.find(t => t.id === threadSlug);
+                        // IS ASSIGNED - Check if we have local cache with location info
+                        if (!location) {
+                            // Need to get location from ThreadManager (legacy path)
+                            let thread = ThreadManager?.threads?.find(t => t.id === threadSlug);
 
-                        if (!thread) {
-                            thread = ThreadManager?.threads?.find(t => t.thread_slug === threadSlug);
+                            if (!thread) {
+                                thread = ThreadManager?.threads?.find(t => t.thread_slug === threadSlug);
+                            }
+
+                            if (!thread) {
+                                thread = ThreadManager?.threads?.find(t =>
+                                    t.email_thread_id === emailId ||
+                                    t.metadata?.email_thread_id === emailId
+                                );
+                            }
+
+                            if (!thread) {
+                                // Thread not loaded yet - show syncing state
+                                return `
+                                    <div class="email-agent-assignment" style="display: flex; align-items: center; gap: 6px; justify-content: center;">
+                                        <span class="agent-badge" style="background: #6b7280; color: white; padding: 4px 10px; border-radius: 4px; font-size: 10px; font-weight: 600; display: inline-flex; align-items: center; gap: 4px;">
+                                            <i class="fas fa-sync fa-spin"></i> Syncing...
+                                        </span>
+                                    </div>
+                                `;
+                            }
+
+                            location = thread.location || 'unassigned';
                         }
 
-                        if (!thread) {
-                            thread = ThreadManager?.threads?.find(t =>
-                                t.email_thread_id === emailId ||
-                                t.metadata?.email_thread_id === emailId
-                            );
-                        }
-
-                        if (!thread) {
-                            // Thread not loaded yet - show syncing state
-                            return `
-                                <div class="email-agent-assignment" style="display: flex; align-items: center; gap: 6px; justify-content: center;">
-                                    <span class="agent-badge" style="background: #6b7280; color: white; padding: 4px 10px; border-radius: 4px; font-size: 10px; font-weight: 600; display: inline-flex; align-items: center; gap: 4px;">
-                                        <i class="fas fa-sync fa-spin"></i> Syncing...
-                                    </span>
-                                </div>
-                            `;
-                        }
-
-                        const location = thread.location || 'unassigned';
+                        // ✅ NOW we have location - either from local cache or ThreadManager
                         let badgeColor, badgeText, badgeIcon;
 
                         if (location === 'unassigned') {
@@ -1752,7 +1772,7 @@ window.communicationHub = {
                             `;
                         } else if (location === 'prime') {
                             badgeColor = '#f59e0b';
-                            badgeText = 'Prime';
+                            badgeText = agentName || 'Prime';  // Use cached name if available
                             badgeIcon = 'fa-star';
                         } else if (location.startsWith('agent-')) {
                             badgeColor = '#3b82f6';
@@ -1761,15 +1781,15 @@ window.communicationHub = {
                             const natoNames = ['Alpha', 'Bravo', 'Charlie', 'Delta', 'Echo', 'Foxtrot', 'Golf', 'Hotel', 'India',
                                 'Juliet', 'Kilo', 'Lima', 'Mike', 'November', 'Oscar', 'Papa', 'Quebec', 'Romeo',
                                 'Sierra', 'Tango', 'Uniform', 'Victor', 'Whiskey', 'Xray', 'Yankee', 'Zulu'];
-                            badgeText = natoNames[agentNum - 1] || `Agent ${agentNum}`;
+                            badgeText = agentName || natoNames[agentNum - 1] || `Agent ${agentNum}`;  // Use cached name if available
                             badgeIcon = 'fa-user-robot';
                         } else {
                             badgeColor = '#6b7280';
-                            badgeText = 'Unknown';
+                            badgeText = agentName || 'Unknown';
                             badgeIcon = 'fa-question';
                         }
 
-                        const threadId = thread.id || threadSlug;
+                        const threadId = threadSlug;
 
                         return `
                             <div class="email-agent-assignment" style="display: flex; align-items: center; gap: 8px; justify-content: center; padding: 6px 4px;">
@@ -1779,6 +1799,7 @@ window.communicationHub = {
                                       style="background: ${badgeColor}; color: white; padding: 5px 12px; border-radius: 5px; font-size: 11px; font-weight: 600; display: inline-flex; align-items: center; gap: 5px; width: fit-content; box-shadow: 0 1px 3px rgba(0,0,0,0.1);"
                                       title="${location === 'unassigned' || location === 'prime' ? 'AI Prime' : badgeText}">
                                     <i class="fas ${badgeIcon}"></i> ${this.escapeHtml(badgeText)}
+                                    ${!synced ? '<i class="fas fa-sync fa-spin" style="margin-left: 6px; font-size: 9px; opacity: 0.7;" title="Syncing with backend..."></i>' : ''}
                                 </span>
                                 <button class="open-agent-btn" 
                                         onclick="event.stopPropagation(); window.communicationHub.openAIThread('${threadSlug}')"
@@ -2786,17 +2807,28 @@ window.communicationHub = {
                 email_participants: emailParticipants
             });
 
-            // Update local state
+            // ✅ FIX (Jan 21, 2026): Store full thread metadata for IMMEDIATE UI update (no waiting for ThreadManager)
             if (!this.state.emailThreads) {
                 this.state.emailThreads = {};
             }
-            this.state.emailThreads[emailId] = threadSlug;
+            
+            // Store as object with all needed info for instant display
+            this.state.emailThreads[emailId] = {
+                slug: threadSlug,
+                location: location,
+                agentName: agentName,
+                agentId: agentId,
+                taskType: taskType,
+                assignedAt: new Date().toISOString(),
+                synced: false  // Will become true after ThreadManager background sync
+            };
 
-            // ✅ UPDATE EMAIL ROW DATA IMMEDIATELY so formatter can access threadSlug
+            // ✅ UPDATE EMAIL ROW DATA IMMEDIATELY so formatter can access thread info
             let emailRow = this.state.emails.find(e => e.id === emailId);
             if (emailRow) {
                 emailRow.assigned_agent = agentName;
                 emailRow._threadSlug = threadSlug;
+                emailRow._threadLocation = location;
                 emailRow._processing = true;
             }
 
@@ -2833,6 +2865,16 @@ window.communicationHub = {
                 // Background sync (eventual consistency)
                 ThreadManager.loadThreadsFromBackend().then(() => {
                     console.log('[assignEmailToAgentWithTask] 🔄 BACKGROUND: ThreadManager synced from backend');
+                    
+                    // ✅ Mark as synced in local cache
+                    if (this.state.emailThreads[emailId] && typeof this.state.emailThreads[emailId] === 'object') {
+                        this.state.emailThreads[emailId].synced = true;
+                    }
+                    
+                    // Redraw table to remove sync spinner
+                    if (this.state.tabulatorTable) {
+                        this.state.tabulatorTable.redraw();
+                    }
                 }).catch(err => {
                     console.warn('[assignEmailToAgentWithTask] ⚠️ Background sync failed:', err);
                 });
@@ -4156,29 +4198,45 @@ Draft questions for the customer listing all missing details required for accura
      * Render AI Assistant section
      */
     renderAISection(email) {
-        const threadSlug = this.state.emailThreads?.[email.id];
-        // ✅ FIX: Only show if thread exists AND is loaded in ThreadManager
+        const threadInfo = this.state.emailThreads?.[email.id];
+        
+        // ✅ FIX (Jan 21, 2026): Check local cache first for immediate display
         let hasThread = false;
+        let threadSlug = null;
         let threadLocation = null;
         let displayLocation = null;
-        if (threadSlug && typeof ThreadManager !== 'undefined') {
-            const thread = ThreadManager.threads?.find(t => t.id === threadSlug);
-            hasThread = !!thread;
-            threadLocation = thread?.location || 'unknown';
-
-            // ✅ FIX (Jan 5, 2026): Convert agent-12 to NATO name (Lima-12)
-            if (threadLocation && threadLocation.startsWith('agent-')) {
-                const agentNum = parseInt(threadLocation.split('-')[1]);
-                if (typeof MultiAgent !== 'undefined' && MultiAgent.getAgentName) {
-                    displayLocation = MultiAgent.getAgentName(agentNum);
+        
+        if (!threadInfo) {
+            // Not assigned
+            hasThread = false;
+        } else if (typeof threadInfo === 'string') {
+            // Legacy string format - try ThreadManager
+            threadSlug = threadInfo;
+            if (typeof ThreadManager !== 'undefined') {
+                const thread = ThreadManager.threads?.find(t => t.id === threadSlug);
+                hasThread = !!thread;
+                threadLocation = thread?.location || 'unknown';
+                
+                // Convert agent-12 to NATO name
+                if (threadLocation && threadLocation.startsWith('agent-')) {
+                    const agentNum = parseInt(threadLocation.split('-')[1]);
+                    if (typeof MultiAgent !== 'undefined' && MultiAgent.getAgentName) {
+                        displayLocation = MultiAgent.getAgentName(agentNum);
+                    } else {
+                        displayLocation = threadLocation;
+                    }
+                } else if (threadLocation === 'prime') {
+                    displayLocation = 'Prime';
                 } else {
                     displayLocation = threadLocation;
                 }
-            } else if (threadLocation === 'prime') {
-                displayLocation = 'Prime';
-            } else {
-                displayLocation = threadLocation;
             }
+        } else {
+            // ✅ NEW object format with full metadata - use immediately!
+            threadSlug = threadInfo.slug;
+            threadLocation = threadInfo.location;
+            displayLocation = threadInfo.agentName;
+            hasThread = true;  // Immediate display, no waiting for ThreadManager sync
         }
 
         // ✅ NEW: Detect if email is part of a chain
@@ -6508,23 +6566,47 @@ Draft questions for the customer listing all missing details required for accura
             this.state.threads = [];
             this.state.emailThreads = {};
 
-            // NEW: Sync email assignments from ThreadManager
+            // ✅ FIX (Jan 21, 2026): Load email assignments with FULL metadata from ThreadManager
             if (typeof ThreadManager !== 'undefined' && ThreadManager.threads) {
                 this.log.info(`Syncing email assignments from ${ThreadManager.threads.length} threads...`);
 
                 let assignedCount = 0;
                 ThreadManager.threads.forEach(thread => {
-                    // FIX (Jan 3, 2026): Try multiple field locations for email ID
+                    // Try multiple field locations for email ID
                     const emailId = thread.email_thread_id ||
                         thread.metadata?.email_thread_id ||
                         thread.metadata?.email_id;
+                    
                     if (emailId) {
-                        this.state.emailThreads[emailId] = thread.id;
+                        // ✅ Store as object with full metadata for immediate display
+                        const location = thread.location || 'unassigned';
+                        let agentName = null;
+                        
+                        // Determine agent name from location
+                        if (location === 'prime') {
+                            agentName = 'Prime';
+                        } else if (location.startsWith('agent-')) {
+                            const agentNum = parseInt(location.replace('agent-', ''));
+                            const natoNames = ['Alpha', 'Bravo', 'Charlie', 'Delta', 'Echo', 'Foxtrot', 'Golf', 'Hotel', 'India',
+                                'Juliet', 'Kilo', 'Lima', 'Mike', 'November', 'Oscar', 'Papa', 'Quebec', 'Romeo',
+                                'Sierra', 'Tango', 'Uniform', 'Victor', 'Whiskey', 'Xray', 'Yankee', 'Zulu'];
+                            agentName = natoNames[agentNum - 1] || `Agent ${agentNum}`;
+                        }
+                        
+                        this.state.emailThreads[emailId] = {
+                            slug: thread.id || thread.thread_slug,
+                            location: location,
+                            agentName: agentName,
+                            taskType: thread.metadata?.email_task_type,
+                            assignedAt: thread.metadata?.assigned_at || thread.created_at,
+                            synced: true  // Already synced from database
+                        };
+                        
                         assignedCount++;
                     }
                 });
 
-                this.log.success(`Found ${assignedCount} email-to-thread assignments`);
+                this.log.success(`Found ${assignedCount} email-to-thread assignments with full metadata`);
 
                 // Refresh table to show assignments
                 if (this.state.tabulatorTable) {

@@ -366,60 +366,79 @@ def list_emails():
             print(f"[Communication Hub] 📧 Fetching Outlook messages for user {user_id}...")
             print(f"[Communication Hub] 🔍 DEBUG: About to check thread_id condition: thread_id='{thread_id}', bool={bool(thread_id)}")
             
-            # ✅ FIX (Jan 18, 2026): Use conversationId filter when thread_id specified
-            # This fetches ALL messages in conversation (sent + received folders)
+            # ✅ FIX (Jan 21, 2026): Fetch ALL messages and filter by conversationId in Python
+            # Microsoft Graph API does NOT support: $filter=conversationId eq '<id>' (returns 400 error)
+            # Solution: Fetch all messages (inbox + sentitems) then filter by conversationId
             if thread_id:
                 actual_thread_id = thread_id.replace('outlook_', '') if thread_id.startswith('outlook_') else thread_id
                 print(f"[Communication Hub] 🔍 Fetching Outlook CONVERSATION: {actual_thread_id}")
+                print(f"[Communication Hub] 📥 Strategy: Fetch all messages from inbox + sentitems, then filter by conversationId")
                 
-                # ✅ FIX (Jan 19, 2026): Use direct list_messages with conversationId filter
-                # Microsoft Graph API: GET /me/messages?$filter=conversationId eq '<id>'
-                # This searches ALL folders (inbox, sentitems, drafts) automatically
                 try:
-                    # Use Outlook list_messages with filter parameter
-                    outlook_result = microsoft_outlook_list_messages(
-                        folder=None,  # None = search all folders (inbox + sentitems + drafts)
-                        max_results=100,
-                        filter=f"conversationId eq '{actual_thread_id}'",
-                        order_by='receivedDateTime asc',  # Oldest first for conversation thread
+                    # Step 1: Fetch messages from INBOX
+                    inbox_result = microsoft_outlook_list_messages(
+                        folder='inbox',
+                        max_results=500,  # Large enough to capture full conversation
+                        order_by='receivedDateTime desc',
                         _user_id=user_id,
                         _injected_credentials=True
                     )
                     
-                    if outlook_result.get('success'):
-                        conversation_messages = outlook_result.get('messages', [])
-                        print(f"[Communication Hub] ✅ Got {len(conversation_messages)} messages from Outlook conversation")
+                    # Step 2: Fetch messages from SENT ITEMS (user's replies)
+                    sentitems_result = microsoft_outlook_list_messages(
+                        folder='sentitems',
+                        max_results=500,
+                        order_by='receivedDateTime desc',
+                        _user_id=user_id,
+                        _injected_credentials=True
+                    )
+                    
+                    # Step 3: Combine and filter by conversationId
+                    all_messages = []
+                    if inbox_result.get('success'):
+                        all_messages.extend(inbox_result.get('messages', []))
+                    if sentitems_result.get('success'):
+                        all_messages.extend(sentitems_result.get('messages', []))
+                    
+                    # Filter messages that match the conversationId
+                    conversation_messages = [
+                        msg for msg in all_messages 
+                        if msg.get('conversationId') == actual_thread_id
+                    ]
+                    
+                    # Sort by receivedDateTime (oldest first for conversation thread)
+                    conversation_messages.sort(key=lambda x: x.get('receivedDateTime', ''))
+                    
+                    print(f"[Communication Hub] ✅ Found {len(conversation_messages)} messages in conversation (from {len(all_messages)} total)")
+                    
+                    for msg in conversation_messages:
+                        from_addr = msg.get('from', {})
+                        if isinstance(from_addr, dict):
+                            from_email = from_addr.get('emailAddress', {}).get('address', 'Unknown')
+                        else:
+                            from_email = str(from_addr)
                         
-                        for msg in conversation_messages:
-                            from_addr = msg.get('from', {})
-                            if isinstance(from_addr, dict):
-                                from_email = from_addr.get('emailAddress', {}).get('address', 'Unknown')
-                            else:
-                                from_email = str(from_addr)
-                            
-                            # Parse toRecipients properly
-                            to_recipients = msg.get('toRecipients', [])
-                            to_email = ''
-                            if to_recipients and len(to_recipients) > 0:
-                                to_email = to_recipients[0].get('emailAddress', {}).get('address', '')
-                            
-                            emails.append({
-                                'id': f"outlook_{msg['id']}",
-                                'provider': 'outlook',
-                                'from': from_email,
-                                'to': to_email,
-                                'subject': msg.get('subject', 'No Subject'),
-                                'date': msg.get('receivedDateTime', ''),
-                                'is_read': msg.get('isRead', False),
-                                'snippet': msg.get('bodyPreview', ''),
-                                'has_attachments': msg.get('hasAttachments', False),
-                                'thread_id': msg.get('conversationId')
-                            })
-                    else:
-                        raise Exception(f"Outlook list failed: {outlook_result.get('error', 'Unknown error')}")
+                        # Parse toRecipients properly
+                        to_recipients = msg.get('toRecipients', [])
+                        to_email = ''
+                        if to_recipients and len(to_recipients) > 0:
+                            to_email = to_recipients[0].get('emailAddress', {}).get('address', '')
                         
-                except Exception as conv_err:
-                    print(f"[Communication Hub] ❌ Failed to fetch Outlook conversation: {conv_err}")
+                        emails.append({
+                            'id': f"outlook_{msg['id']}",
+                            'provider': 'outlook',
+                            'from': from_email,
+                            'to': to_email,
+                            'subject': msg.get('subject', 'No Subject'),
+                            'date': msg.get('receivedDateTime', ''),
+                            'is_read': msg.get('isRead', False),
+                            'snippet': msg.get('bodyPreview', ''),
+                            'has_attachments': msg.get('hasAttachments', False),
+                            'thread_id': msg.get('conversationId')
+                        })
+                        
+                except Exception as e:
+                    print(f"[Communication Hub] ❌ Failed to fetch Outlook conversation: {e}")
                     import traceback
                     traceback.print_exc()
             

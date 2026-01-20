@@ -2814,7 +2814,11 @@ def execute_streaming_request(
             # - Thinking blocks must remain in exact original positions
             # - Cannot be edited, removed, or reordered
             # - Violating this causes: "thinking blocks in latest assistant message cannot be modified"
-            print(f"{log_prefix} 🧹 Cleaning conversation: Removing server-side tool blocks (preserving thinking)...")
+            #
+            # CRITICAL FIX (Jan 21, 2026): ALSO remove citations from text blocks
+            # Citations reference server-side search results that won't be replayed
+            # Sending citations without search results causes: "Could not find search result for citation index"
+            print(f"{log_prefix} 🧹 Cleaning conversation: Removing server-side tool blocks + citations (preserving thinking)...")
             for idx, msg in enumerate(messages):
                 if msg.get('role') == 'assistant':
                     content = msg.get('content', [])
@@ -2831,6 +2835,14 @@ def execute_streaming_request(
                             ])
                             # Keep ALL other blocks including thinking/redacted_thinking
                         ]
+                        
+                        # CRITICAL (Jan 21, 2026): Strip citations from text blocks
+                        # Citations reference search results that were removed above
+                        for block in cleaned_content:
+                            if isinstance(block, dict) and block.get('type') == 'text':
+                                if 'citations' in block:
+                                    del block['citations']
+                                    print(f"{log_prefix}   Message [{idx}]: Removed citations from text block")
                         
                         if len(cleaned_content) < original_count:
                             removed = original_count - len(cleaned_content)

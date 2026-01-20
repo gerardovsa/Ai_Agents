@@ -951,15 +951,18 @@ class TwoRuleStreamProcessor {
         });
 
         try {
-            // RITICAL FIX: Advanced DOM validation with timing safety
+            // 🔥 FIX (Jan 21, 2026): Only validate container exists, not DOM attachment
+            // Container may not be in DOM during initial message rendering
             if (!container) {
                 throw new Error('Container is null');
             }
+            
+            // Log but don't fail if container not in DOM yet
             if (!document.contains(container)) {
-                throw new Error('Container not attached to DOM');
+                console.log('⚠️ TWO-RULE: Container not in DOM yet (will be attached after message rendering)');
             }
 
-            console.log('WO-RULE: Container validation passed');
+            console.log('TWO-RULE: Container validation passed');
 
             // IMING FIX: Add small delay to ensure DOM stability
             await new Promise(resolve => requestAnimationFrame(resolve));
@@ -974,22 +977,18 @@ class TwoRuleStreamProcessor {
             // Ensure target container has a measurable size to prevent Plotly/Mermaid hiccups
             await this.ensureContainerReady(targetContainer);
 
-            console.log('WO-RULE: Container ready check passed');
+            console.log('TWO-RULE: Container ready check passed');
 
-            // OUBLE-CHECK: Verify container is still valid after timing delay
-            if (!targetContainer || !document.contains(targetContainer)) {
-                throw new Error('Container became invalid after DOM timing check');
-            }
-
-            // RITICAL FIX: Validate container exists and is in DOM
-            if (!targetContainer || !targetContainer.parentElement) {
+            // 🔥 FIX (Jan 21, 2026): Remove strict DOM attachment requirements
+            // Only validate container exists, not DOM attachment status
+            // The container will be attached when parent message is appended to chat
+            if (!targetContainer) {
                 throw new Error(`Container not available for ${type} visualization`);
             }
-
-            // NSURE CONTAINER IS PROPERLY ATTACHED
-            if (!document.contains(targetContainer)) {
-                throw new Error(`Container not attached to DOM for ${type} visualization`);
-            }
+            
+            // Log DOM status for debugging but don't fail
+            const inDOM = document.contains(targetContainer);
+            console.log(`TWO-RULE: Target container DOM status: ${inDOM ? 'attached' : 'not attached (will attach after message render)'}`);
 
             const chartId = `two-rule-${type}-${Date.now()}`;
 
@@ -1065,8 +1064,9 @@ class TwoRuleStreamProcessor {
         } catch (error) {
             console.error(` TWO-RULE: Visualization rendering failed:`, error);
 
-            // RITICAL FIX: Validate container before setting innerHTML
-            if (container && document.contains(container)) {
+            // 🔥 FIX (Jan 21, 2026): Display error even if container not in DOM yet
+            // Container may be attached after message rendering completes
+            if (container) {
                 container.innerHTML = `
                     <div class="two-rule-viz-error" style="text-align: center; padding: 20px; color: var(--accent-red);">
                         <h3>⚠️ ${type.toUpperCase()} Visualization Error</h3>
@@ -1077,8 +1077,12 @@ class TwoRuleStreamProcessor {
                         </details>
                     </div>
                 `;
+                
+                if (!document.contains(container)) {
+                    console.warn('⚠️ TWO-RULE: Error displayed in container not yet in DOM (will be visible after message render)');
+                }
             } else {
-                console.error(' TWO-RULE: Cannot display error - container not in DOM');
+                console.error('❌ TWO-RULE: Cannot display error - container is null');
             }
         }
     }
@@ -1086,13 +1090,21 @@ class TwoRuleStreamProcessor {
     // Wait for container to be attached and have non-zero size
     async ensureContainerReady(container, maxWaitMs = 500) {
         const start = performance.now();
-        while (document.contains(container)) {
-            const rect = container.getBoundingClientRect();
-            const visible = rect.width > 1 && rect.height > 1 && container.offsetParent !== null;
-            if (visible) return;
-            if (performance.now() - start > maxWaitMs) return;
+        
+        // 🔥 FIX (Jan 21, 2026): Don't require DOM attachment
+        // Container may not be in DOM during initial message rendering
+        while (performance.now() - start < maxWaitMs) {
+            // If container is in DOM and visible, we're done
+            if (document.contains(container)) {
+                const rect = container.getBoundingClientRect();
+                const visible = rect.width > 1 && rect.height > 1 && container.offsetParent !== null;
+                if (visible) return;
+            }
+            // Otherwise wait a bit and check again
             await new Promise(r => setTimeout(r, 50));
         }
+        // Timeout reached - proceed anyway (container will be attached soon)
+        console.log('⏱️ TWO-RULE: ensureContainerReady timeout, proceeding with render');
     }
 
     /**
