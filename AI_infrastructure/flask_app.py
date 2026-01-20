@@ -182,8 +182,6 @@ log_debug("Importing microsoft_auth_routes_V2_FIXED...")
 from routes.microsoft_auth_routes_V2_FIXED import microsoft_auth_bp  # NEW: Microsoft OAuth V2
 log_debug("Importing account_linking_routes...")
 from routes.account_linking_routes import account_linking_bp  # NEW: Account linking
-log_debug("Importing admin_routes...")
-from routes.admin_routes import admin_bp  # NEW: Admin operations (cache invalidation, diagnostics)
 log_debug("Importing kanban_routes...")
 from routes.kanban_routes import kanban_bp  # NEW: Kanban board with AI agent integration
 from routes.database_visualizer_routes import database_visualizer_bp  # ✅ MIGRATED to Supabase PostgreSQL (2025-12-07)
@@ -290,6 +288,23 @@ def initialize_semantic_search_async():
         print("[BACKGROUND] Loading tool registry...")
         registry = get_registry()
         print(f"[BACKGROUND] [OK] Registry loaded with {len(registry.tools)} tools")
+        
+        # ✅ FIX (Jan 21, 2026): Invalidate stale Redis cache on startup
+        # This ensures meta-tools and other new tools are always fresh-loaded
+        if registry.redis_manager and registry.redis_manager.connected:
+            print("[BACKGROUND] Invalidating stale Redis cache to force fresh tool loading...")
+            cache_cleared = registry.invalidate_cache()
+            if cache_cleared:
+                print("[BACKGROUND] [OK] Redis cache invalidated - next load will be fresh")
+                # Force reload from disk
+                registry._load_schemas()
+                registry._load_implementations()
+                registry._load_module_plugins()
+                # Save fresh cache
+                registry._save_to_cache()
+                print(f"[BACKGROUND] [OK] Reloaded fresh tools: {len(registry.tools)} total")
+            else:
+                print("[BACKGROUND] [INFO] Redis cache not available - using fresh load")
         
         # Initialize persistent semantic search (loads from Supabase or regenerates)
         print("[BACKGROUND] Loading embeddings from Supabase (or regenerating if needed)...")
@@ -472,7 +487,6 @@ app.register_blueprint(export_bp, url_prefix='/api/export')         # 3 endpoint
 if woocommerce_bp:                                                   # ⚠️ Local development only (disabled on Render)
     app.register_blueprint(woocommerce_bp)                           # 9 endpoints (WooCommerce direct API)
 app.register_blueprint(auth_bp)                                      # NEW: 6 endpoints (user auth)
-app.register_blueprint(admin_bp)                                     # NEW: Admin operations (3 endpoints: /api/admin/cache/*, /api/admin/tools/*)
 app.register_blueprint(oauth_bp)                                     # NEW: OAuth workspace integration (/api/oauth/*)
 app.register_blueprint(google_auth_bp)                               # NEW: Google OAuth V2 (/api/auth/google/*)
 app.register_blueprint(microsoft_auth_bp)                            # NEW: Microsoft OAuth V2 (/api/auth/microsoft/*)
