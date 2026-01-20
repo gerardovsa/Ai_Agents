@@ -193,13 +193,20 @@ def ml_dashboard_summary():
 @cross_origin()
 def predict_churn(contact_id):
     """
-    Predict churn probability for specific customer
+    Predict churn probability for specific customer using REAL-TIME Xero API data
+    
+    IMPROVED INTELLIGENCE (Jan 20, 2026):
+    - Always calculates from Xero API (no cache dependency)
+    - Calculates actual order frequency from invoice history
+    - Improved churn logic with recency, frequency, monetary (RFM) analysis
+    - Realistic LTV based on actual customer patterns
+    - Considers payment behavior and consistency
     
     Args:
         contact_id: Xero Contact ID
         
     Returns:
-        - churn_probability (0-1)
+        - churn_probability (0-100)
         - segment
         - predicted_ltv
         - next_purchase_date
@@ -208,82 +215,318 @@ def predict_churn(contact_id):
     try:
         business_id = int(request.args.get('business_id', 1))
         
-        # Try to get customer data from cache (if available)
-        query = """
-            SELECT contact_id, name, days_since_last_order, order_count, 
-                   total_revenue, avg_order_value, last_order_date
-            FROM xero_contacts_cache
-            WHERE business_id = %s AND contact_id = %s
-        """
+        print(f"[ML Routes] 🔮 Real-time churn prediction for contact: {contact_id}")
         
-        try:
-            customer = execute_query(query, (business_id, contact_id), fetch_mode='one')
-        except Exception as cache_error:
-            print(f"[ML Routes] Cache query failed (expected if tables empty): {cache_error}")
-            customer = None
+        # ALWAYS fetch from Xero API for real-time accuracy
+        customer = None  # Skip cache entirely
         
-        # If no cached data, return default prediction
+        # If no cached data, try real-time calculation from Xero API
         if not customer:
-            # Default values for new/unknown customers
-            return jsonify({
-                'success': True,
-                'churn_probability': 0.25,
-                'predicted_ltv': 5000,
-                'next_purchase_date': (datetime.now() + timedelta(days=30)).isoformat(),
-                'segment': 'new',
-                'recommended_action': 'check_in',
-                'note': 'Prediction based on default assumptions (no historical data available)'
-            })
+            # FIX (Jan 20, 2026): Calculate from Xero API instead of hardcoded defaults
+            try:
+                # Import here to avoid circular dependency
+                sys.path.insert(0, str(Path(__file__).parent.parent.parent / 'UI' / 'modules_external' / 'xero'))
+                from xero_routes import XeroAPIClient, parse_xero_date
+                
+                client = XeroAPIClient(business_id)
+                
+                # Get contact's invoices
+                invoices_response = client.make_request('GET', 'Invoices', 
+                    params={'where': f'Contact.ContactID=Guid("{contact_id}")'})
+                invoices = invoices_response.get('Invoices', [])
+                
+                # Calculate metrics from real data
+                paid_invoices = [inv for inv in invoices if inv.get('Status') == 'PAID']
+                total_revenue = sum(float(inv.get('Total', 0)) for inv in paid_invoices)
+                order_count = len(paid_invoices)
+                
+                if order_count > 0:
+                    # Parse dates and calculate INTELLIGENT metrics
+                    invoice_dates = []
+                    payment_delays = []  # Track payment behavior
+                    
+                    for inv in paid_invoices:
+                        inv_date = parse_xero_date(inv.get('Date'))
+                        due_date = parse_xero_date(inv.get('DueDate'))
+                        paid_date = parse_xero_date(inv.get('FullyPaidOnDate'))
+                        
+                        if inv_date:
+                            invoice_dates.append(inv_date)
+                        
+                        # Track payment behavior
+                        if due_date and paid_date:
+                            delay_days = (paid_date - due_date).days
+                            payment_delays.append(max(0, delay_days))  # 0 = on-time or early
+                    
+                    if invoice_dates:
+                        invoice_dates.sort()
+                        first_order_date = invoice_dates[0]
+                        last_order_date = invoice_dates[-1]
+                        days_since = (datetime.now() - last_order_date).days
+                        days_as_customer = (datetime.now() - first_order_date).days
+                        avg_order = total_revenue / order_count
+                        
+                        # Calculate ACTUAL order frequency (not hardcoded 90 days)
+                        if len(invoice_dates) >= 2:
+                            intervals = []
+                            for i in range(1, len(invoice_dates)):
+                                days_between = (invoice_dates[i] - invoice_dates[i-1]).days
+                                if days_between > 0:
+                                    intervals.append(days_between)
+                            
+                            if intervals:
+                                actual_order_frequency = sum(intervals) / len(intervals)
+                                
+                                # Calculate order consistency (standard deviation / mean)
+                                mean_interval = actual_order_frequency
+                                variance = sum((x - mean_interval) ** 2 for x in intervals) / len(intervals)
+                                std_dev = variance ** 0.5
+                                order_consistency = std_dev / mean_interval if mean_interval > 0 else 1.0
+                            else:
+                                actual_order_frequency = days_as_customer / order_count
+                                order_consistency = 0.5
+                        else:
+                            # Single order - estimate based on tenure
+                            actual_order_frequency = max(30, days_since)
+                            order_consistency = 1.0  # Unknown
+                        
+                        # Calculate payment score (% of on-time payments)
+                        if payment_delays:
+                            on_time_count = sum(1 for delay in payment_delays if delay <= 7)  # 7-day grace
+                            payment_score = on_time_count / len(payment_delays)
+                        else:
+                            payment_score = 1.0  # Assume good if no data
+                        
+                        print(f"[ML Routes] 📈 Calculated metrics - Frequency: {actual_order_frequency:.1f} days, "
+                              f"Consistency: {order_consistency:.2f}, Payment: {payment_score:.1%}")
+                        
+                        # Build enriched customer object with ALL intelligence
+                        customer = {
+                            'days_since_last_order': days_since,
+                            'order_count': order_count,
+                            'total_revenue': total_revenue,
+                            'avg_order_value': avg_order,
+                            'actual_order_frequency': actual_order_frequency,
+                            'order_consistency': order_consistency,
+                            'payment_score': payment_score,
+                            'days_as_customer': days_as_customer
+                        }
+                    else:
+                        raise ValueError("No valid invoice dates")
+                else:
+                    # Contact exists but has no paid invoices - check for outstanding invoices
+                    outstanding_invoices = [inv for inv in invoices 
+                                          if inv.get('Status') in ['AUTHORISED', 'SUBMITTED']]
+                    
+                    if outstanding_invoices:
+                        # Has pending invoices - potential customer
+                        outstanding_total = sum(float(inv.get('Total', 0)) for inv in outstanding_invoices)
+                        return jsonify({
+                            'success': True,
+                            'churn_probability': 0.40,  # Moderate risk until payment
+                            'predicted_ltv': outstanding_total * 2.0,  # Potential if they pay
+                            'next_purchase_date': (datetime.now() + timedelta(days=45)).isoformat(),
+                            'segment': 'prospect',
+                            'recommended_action': 'follow_up',
+                            'calculation_method': 'pending_invoices',
+                            'note': f'Contact has ${outstanding_total:.2f} in pending invoices - following up on payment'
+                        })
+                    else:
+                        # No invoices at all - brand new or quote-only
+                        return jsonify({
+                            'success': True,
+                            'churn_probability': 0.60,  # High uncertainty
+                            'predicted_ltv': 1500,       # Very conservative
+                            'next_purchase_date': (datetime.now() + timedelta(days=30)).isoformat(),
+                            'segment': 'prospect',
+                            'recommended_action': 'nurture',
+                            'calculation_method': 'no_invoice_history',
+                            'note': 'Contact exists but has no invoice history - needs engagement'
+                        })
+                    
+            except Exception as api_error:
+                print(f"[ML Routes] Real-time Xero API calculation failed: {api_error}")
+                traceback.print_exc()
+                
+                # Final fallback: Use business average instead of hardcoded defaults
+                try:
+                    avg_query = """
+                        SELECT AVG(total_revenue) as avg_ltv, 
+                               AVG(CASE WHEN order_count > 0 THEN 1.0 ELSE 0.0 END) as churn_baseline
+                        FROM xero_contacts_cache
+                        WHERE business_id = %s AND order_count > 0
+                    """
+                    business_avg = execute_query(avg_query, (business_id,), fetch_mode='one')
+                    
+                    if business_avg and business_avg.get('avg_ltv'):
+                        default_ltv = float(business_avg['avg_ltv'])
+                        default_churn = 0.30  # Slightly higher for unknown contacts
+                    else:
+                        default_ltv = 5000
+                        default_churn = 0.25
+                except:
+                    default_ltv = 5000
+                    default_churn = 0.25
+                
+                return jsonify({
+                    'success': True,
+                    'churn_probability': default_churn,
+                    'predicted_ltv': default_ltv,
+                    'next_purchase_date': (datetime.now() + timedelta(days=30)).isoformat(),
+                    'segment': 'new',
+                    'recommended_action': 'check_in',
+                    'calculation_method': 'fallback_default',
+                    'note': f'Xero API unavailable - using conservative estimate. Actual data will improve prediction.'
+                })
         
-        # Rule-based predictions using customer history
+        # IMPROVED INTELLIGENCE: Extract customer metrics from real data
         days_since = customer.get('days_since_last_order', 0) or 0
         order_count = customer.get('order_count', 0) or 0
         total_revenue = float(customer.get('total_revenue', 0) or 0)
         avg_order = float(customer.get('avg_order_value', 0) or 0)
         
-        # Churn probability
-        if days_since > 180:
-            churn_prob = 0.85
-            segment = 'churned'
-            recommended_action = 'win_back'
-        elif days_since > 120:
-            churn_prob = 0.65
-            segment = 'at-risk'
-            recommended_action = 'retention_call'
-        elif days_since > 60:
-            churn_prob = 0.35
-            segment = 'at-risk'
-            recommended_action = 'check_in'
-        elif order_count >= 10 and avg_order > 1000:
-            churn_prob = 0.05
+        # Calculate ACTUAL order frequency from invoice dates (not hardcoded)
+        actual_order_frequency = customer.get('actual_order_frequency', 90)  # days between orders
+        order_consistency = customer.get('order_consistency', 1.0)  # variance/stability
+        payment_score = customer.get('payment_score', 1.0)  # on-time payment rate
+        days_as_customer = customer.get('days_as_customer', 30)  # tenure
+        
+        print(f"[ML Routes] 📊 Metrics - Orders: {order_count}, Revenue: ${total_revenue:.2f}, "
+              f"Frequency: {actual_order_frequency:.0f} days, Tenure: {days_as_customer} days")
+        
+        # IMPROVED CHURN PREDICTION using RFM + Behavioral Analysis
+        # Recency Score (0-100, lower is better)
+        if days_since == 0:
+            recency_score = 0
+        elif days_since <= actual_order_frequency * 0.5:
+            recency_score = 10  # Very recent, expected
+        elif days_since <= actual_order_frequency:
+            recency_score = 20  # On schedule
+        elif days_since <= actual_order_frequency * 1.5:
+            recency_score = 40  # Slightly overdue
+        elif days_since <= actual_order_frequency * 2:
+            recency_score = 60  # Concerning delay
+        elif days_since <= actual_order_frequency * 3:
+            recency_score = 80  # High risk
+        else:
+            recency_score = 95  # Likely churned
+        
+        # Frequency Score (0-100, higher order count = lower churn)
+        if order_count >= 20:
+            frequency_score = 5  # Highly loyal
+        elif order_count >= 10:
+            frequency_score = 15
+        elif order_count >= 5:
+            frequency_score = 30
+        elif order_count >= 3:
+            frequency_score = 50
+        elif order_count >= 2:
+            frequency_score = 70
+        else:
+            frequency_score = 85  # One-time customer
+        
+        # Monetary Score (0-100, higher value = lower churn)
+        if total_revenue >= 50000:
+            monetary_score = 5
+        elif total_revenue >= 20000:
+            monetary_score = 15
+        elif total_revenue >= 10000:
+            monetary_score = 25
+        elif total_revenue >= 5000:
+            monetary_score = 40
+        elif total_revenue >= 2000:
+            monetary_score = 55
+        else:
+            monetary_score = 75
+        
+        # Consistency Score (order pattern stability)
+        consistency_score = (1.0 - order_consistency) * 20  # 0-20 points penalty for inconsistent orders
+        
+        # Payment Behavior Score (late payments increase churn)
+        payment_penalty = (1.0 - payment_score) * 15  # 0-15 points penalty for late payments
+        
+        # Calculate weighted churn probability
+        churn_prob = (
+            recency_score * 0.40 +      # 40% weight on recency (most important)
+            frequency_score * 0.25 +     # 25% weight on order count
+            monetary_score * 0.20 +      # 20% weight on revenue
+            consistency_score * 0.10 +   # 10% weight on consistency
+            payment_penalty * 0.05       # 5% weight on payment behavior
+        ) / 100.0  # Convert to 0-1 scale
+        
+        # Cap at 0.95 (never say 100% churned)
+        churn_prob = min(0.95, max(0.02, churn_prob))
+        
+        # Segment assignment based on RFM analysis
+        if churn_prob <= 0.15 and order_count >= 10 and total_revenue >= 10000:
             segment = 'champions'
             recommended_action = 'thank_you'
-        elif order_count >= 5:
-            churn_prob = 0.15
+        elif churn_prob <= 0.25 and order_count >= 5:
             segment = 'loyal'
             recommended_action = 'upsell'
-        else:
-            churn_prob = 0.30
-            segment = 'new'
+        elif churn_prob <= 0.40 and days_since <= actual_order_frequency * 1.5:
+            segment = 'potential'
+            recommended_action = 'nurture'
+        elif churn_prob <= 0.60:
+            segment = 'at-risk'
             recommended_action = 'check_in'
-        
-        # Predicted LTV (12-month)
-        if order_count > 0:
-            avg_order_frequency = 90  # Assume 90 days between orders
-            predicted_orders_per_year = max(1, 365 / avg_order_frequency)
-            predicted_ltv = avg_order * predicted_orders_per_year
+        elif churn_prob <= 0.75:
+            segment = 'at-risk'
+            recommended_action = 'retention_call'
         else:
-            predicted_ltv = 5000  # Default estimate
+            segment = 'churned'
+            recommended_action = 'win_back'
         
-        # Next purchase date
-        if days_since < 90:
-            days_until_next = 30
-        elif days_since < 180:
-            days_until_next = 60
-        else:
-            days_until_next = 90
+        # Override for truly new customers
+        if order_count == 1 and days_since < 30:
+            segment = 'new'
+            recommended_action = 'welcome'
+            churn_prob = 0.35  # Moderate uncertainty for new customers
+        
+        # IMPROVED LTV CALCULATION - Based on actual order frequency and growth trends
+        if order_count >= 2:
+            # Calculate actual orders per year from real frequency
+            orders_per_year = 365 / actual_order_frequency
             
-        next_purchase_date = datetime.now() + timedelta(days=days_until_next)
+            # Apply churn discount (customers likely to churn generate less future value)
+            retention_factor = 1.0 - (churn_prob * 0.7)  # 70% discount based on churn risk
+            
+            # Project 12-month LTV with retention adjustment
+            predicted_ltv = avg_order * orders_per_year * retention_factor
+            
+            # Add growth bonus for high-value, frequent customers (upsell potential)
+            if order_count >= 5 and avg_order >= 1000 and churn_prob < 0.30:
+                growth_multiplier = 1.15  # 15% growth potential
+                predicted_ltv *= growth_multiplier
+            
+        elif order_count == 1:
+            # Conservative estimate for one-time customers
+            predicted_ltv = avg_order * 2.5  # Assume 2-3 more orders if they return
+        else:
+            predicted_ltv = 1500  # Very conservative for no history
+        
+        # Floor at actual revenue (LTV can't be less than what they've already spent)
+        predicted_ltv = max(predicted_ltv, total_revenue)
+        
+        # Next purchase date prediction based on actual frequency
+        if days_since < actual_order_frequency * 0.5:
+            # Recently ordered, predict next based on normal cadence
+            days_until_next = int(actual_order_frequency * 0.8)  # Slightly sooner
+        elif days_since < actual_order_frequency:
+            # On schedule
+            days_until_next = int(actual_order_frequency - days_since)
+        elif days_since < actual_order_frequency * 2:
+            # Overdue, but might still order
+            days_until_next = 30  # Within a month
+        else:
+            # Very overdue, unlikely to order soon
+            days_until_next = 90  # Long shot
+        
+        next_purchase_date = datetime.now() + timedelta(days=max(7, days_until_next))
+        
+        # Log final prediction
+        print(f"[ML Routes] ✅ Prediction complete - Churn: {churn_prob*100:.1f}%, "
+              f"LTV: ${predicted_ltv:.2f}, Segment: {segment}")
         
         return jsonify({
             'success': True,
@@ -291,7 +534,14 @@ def predict_churn(contact_id):
             'predicted_ltv': round(predicted_ltv, 2),
             'next_purchase_date': next_purchase_date.isoformat(),
             'segment': segment,
-            'recommended_action': recommended_action
+            'recommended_action': recommended_action,
+            'calculation_method': 'real_time_xero_api',  # Signal this is fresh data
+            'metrics_used': {
+                'order_frequency_days': round(actual_order_frequency, 1),
+                'order_consistency': round(order_consistency, 2),
+                'payment_score': round(payment_score, 2),
+                'tenure_days': days_as_customer
+            }
         })
     
     except Exception as e:

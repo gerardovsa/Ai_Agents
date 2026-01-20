@@ -355,11 +355,11 @@ function stopAIStream() {
         currentStreamController = null;
         isStreaming = false;
         
-        // Hide stop button, show send button (use flex for floating buttons)
+        // Hide stop button, show send button
         const stopBtn = document.getElementById('ai-chat-stop-btn');
         const sendBtn = document.getElementById('ai-chat-send-btn');
         if (stopBtn) stopBtn.style.display = 'none';
-        if (sendBtn) sendBtn.style.display = 'flex';
+        if (sendBtn) sendBtn.style.display = 'inline-flex';
         
         // Remove thinking indicator
         removeThinkingIndicator();
@@ -806,7 +806,7 @@ async function sendChatMessage() {
         // Show stop button, hide send button (use flex for floating buttons)
         const stopBtn = document.getElementById('ai-chat-stop-btn');
         const sendBtn = document.getElementById('ai-chat-send-btn');
-        if (stopBtn) stopBtn.style.display = 'flex';
+        if (stopBtn) stopBtn.style.display = 'inline-flex';
         if (sendBtn) sendBtn.style.display = 'none';
         
         // ✅ TEAM COLLABORATION FIX: Send socket ID to prevent message echo
@@ -1944,7 +1944,7 @@ async function sendChatMessage() {
             const stopBtn = document.getElementById('ai-chat-stop-btn');
             const sendBtn = document.getElementById('ai-chat-send-btn');
             if (stopBtn) stopBtn.style.display = 'none';
-            if (sendBtn) sendBtn.style.display = 'flex';
+            if (sendBtn) sendBtn.style.display = 'inline-flex';
             
             const responseTime = Date.now() - startTime;
             console.log(`✅ Streamed response received in ${responseTime}ms`);
@@ -2038,7 +2038,7 @@ async function sendChatMessage() {
         const stopBtn = document.getElementById('ai-chat-stop-btn');
         const sendBtn = document.getElementById('ai-chat-send-btn');
         if (stopBtn) stopBtn.style.display = 'none';
-        if (sendBtn) sendBtn.style.display = 'flex';
+        if (sendBtn) sendBtn.style.display = 'inline-flex';
 
         // Hide processing indicator on error
         if (typeof window.hidePrimeProcessingIndicator === 'function') {
@@ -2195,7 +2195,10 @@ async function sendChatMessage() {
         }
 
         let userErrorMsg = 'Sorry, I encountered an error. ';
-        if (error.message.includes('Failed to fetch')) {
+        if (error.message.includes('aborted') || error.message.includes('BodyStreamBuffer')) {
+            // User stopped the response - this is intentional, not an error
+            return; // Don't show error message
+        } else if (error.message.includes('Failed to fetch')) {
             userErrorMsg += 'Could not connect to backend. Is Flask running on port 5001?';
             console.error('❌ Fix: Run BISTART or start Flask manually');
         } else if (error.message.includes('NetworkError')) {

@@ -55,14 +55,22 @@ def parse_xero_date(date_str):
         return None
     
     try:
-        # Handle .NET date format: /Date(1749686400000+0000)/
+        # Handle .NET date format: /Date(1749686400000+0000)/ or /Date(-319593600000+0000)/
         if date_str.startswith('/Date('):
-            # Extract timestamp in milliseconds
-            match = re.match(r'/Date\((\d+)([+-]\d{4})?\)/', date_str)
+            # Extract timestamp in milliseconds (supports negative timestamps for pre-1970 dates)
+            match = re.match(r'/Date\((-?\d+)([+-]\d{4})?\)/', date_str)
             if match:
                 timestamp_ms = int(match.group(1))
-                # Convert milliseconds to seconds
-                return datetime.fromtimestamp(timestamp_ms / 1000)
+                timestamp_sec = timestamp_ms / 1000
+                
+                # Windows doesn't support negative timestamps with fromtimestamp()
+                # Use Unix epoch (1970-01-01) as reference and add/subtract seconds
+                try:
+                    return datetime.fromtimestamp(timestamp_sec)
+                except (OSError, ValueError):
+                    # Fallback for negative timestamps (pre-1970 dates)
+                    epoch = datetime(1970, 1, 1)
+                    return epoch + timedelta(seconds=timestamp_sec)
         
         # Handle ISO format
         return datetime.fromisoformat(date_str.replace('Z', '+00:00'))
@@ -3173,7 +3181,7 @@ def xero_report_customer_intelligence():
             total_invoices = record['total_invoices']
             avg_reorder = record['avg_reorder_days']
             reorder_variance = record['reorder_variance']
-            lifetime_value = record['lifetime_value']
+            lifetime_value = record['lifetime_revenue']  # FIX (Jan 20, 2026): Use lifetime_revenue (actual field)
             
             # Determine if high-frequency customer (<60 day avg reorder interval)
             is_high_frequency = avg_reorder > 0 and avg_reorder < 60

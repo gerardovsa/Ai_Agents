@@ -102,8 +102,11 @@ function setupScrollDetection(agentId, messagesContainer) {
  * Show stop button for an agent (called when streaming starts)
  */
 function showAgentStopButton(agentId) {
-    const sendBtn = document.querySelector(`#agent-input-form-${agentId} .agent-send-btn`);
-    if (!sendBtn) return;
+    const sendBtn = document.getElementById(`agent-send-${agentId}`);
+    if (!sendBtn) {
+        console.warn(`[Stop Button] Send button not found for agent ${agentId}`);
+        return;
+    }
     
     let stopBtn = document.getElementById(`agent-stop-btn-${agentId}`);
     if (!stopBtn) {
@@ -126,7 +129,7 @@ function showAgentStopButton(agentId) {
  */
 function hideAgentStopButton(agentId) {
     const stopBtn = document.getElementById(`agent-stop-btn-${agentId}`);
-    const sendBtn = document.querySelector(`#agent-input-form-${agentId} .agent-send-btn`);
+    const sendBtn = document.getElementById(`agent-send-${agentId}`);
     
     if (stopBtn) stopBtn.style.display = 'none';
     if (sendBtn) sendBtn.style.display = 'inline-flex';
@@ -5725,8 +5728,11 @@ async function sendAgentMessage(agentId) {
         MultiAgent.agentStreamingStates[agentId] = false;
         hideAgentStopButton(agentId);
         
-        addAgentMessage(agentId, 'ai', ` Error: ${error.message}`);
-        updateAgentStatus(agentId, 'error', 'Error');
+        // Don't show error message if user intentionally stopped the response
+        if (!error.message.includes('aborted') && !error.message.includes('BodyStreamBuffer')) {
+            addAgentMessage(agentId, 'ai', ` Error: ${error.message}`);
+            updateAgentStatus(agentId, 'error', 'Error');
+        }
         if (typeof AgentStatusIndicator !== 'undefined') {
             AgentStatusIndicator.clear(agentId);
         }

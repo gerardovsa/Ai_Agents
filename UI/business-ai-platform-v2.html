@@ -11043,41 +11043,18 @@
             box-shadow: 0 2px 8px rgba(88, 166, 255, 0.4);
         }
 
-        /* Floating action buttons - OUTSIDE wrapper, always visible */
-        .floating-action-btn {
-            position: absolute;
-            right: 20px;
-            z-index: 100;
+        /* Stop button styling - red button that replaces send button during streaming */
+        .ai-chat-stop-btn {
             width: 32px;
             height: 32px;
             padding: 0;
             border-radius: 6px;
-            font-size: 14px;
             cursor: pointer;
-            display: flex;
+            transition: all 0.2s ease;
+            display: none; /* Hidden by default */
             align-items: center;
             justify-content: center;
-            transition: all 0.3s cubic-bezier(0.4, 0.0, 0.2, 1);
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
-        }
-
-        /* When container is expanded - normal position */
-        .ai-chat-input-container.expanded .floating-action-btn {
-            bottom: 20px;
-        }
-
-        /* When container is collapsed - position at bottom of collapsed bar */
-        .ai-chat-input-container:not(.expanded) .floating-action-btn {
-            bottom: -1px;
-            transform: scale(0.9);
-        }
-
-        .ai-chat-input-container:not(.expanded) .floating-action-btn:hover {
-            transform: scale(1.0);
-        }
-
-        /* Stop button styling */
-        .ai-chat-stop-btn {
+            font-size: 14px;
             background: #ef4444;
             color: white;
             border: 1px solid #dc2626;
@@ -11085,27 +11062,12 @@
 
         .ai-chat-stop-btn:hover {
             background: #dc2626;
-            box-shadow: 0 2px 12px rgba(239, 68, 68, 0.5);
+            transform: translateY(-1px);
+            box-shadow: 0 2px 8px rgba(239, 68, 68, 0.4);
         }
 
         .ai-chat-stop-btn:active {
-            transform: scale(0.95);
-        }
-
-        /* Send button styling */
-        .ai-chat-send-btn {
-            background: var(--accent-primary);
-            color: white;
-            border: 1px solid var(--accent-primary);
-        }
-
-        .ai-chat-send-btn:hover {
-            background: var(--accent-primary-hover, #4a8edb);
-            box-shadow: 0 2px 12px rgba(88, 166, 255, 0.5);
-        }
-
-        .ai-chat-send-btn:active {
-            transform: scale(0.95);
+            transform: translateY(0);
         }
 
         .ai-chat-attach-btn input[type="file"] {
@@ -20778,17 +20740,17 @@
                                     <input type="file" id="ai-chat-file-input" multiple
                                         accept=".pdf,.png,.jpg,.jpeg,.gif,.webp" />
                                 </button>
+                                <!-- Send/Stop buttons - inside wrapper so they collapse with input -->
+                                <button class="ai-chat-send-btn" id="ai-chat-send-btn" title="Send message">
+                                    <i class="fas fa-paper-plane"></i>
+                                </button>
+                                <button class="ai-chat-stop-btn" id="ai-chat-stop-btn" title="Stop AI response" style="display: none;">
+                                    <i class="fas fa-stop-circle"></i>
+                                </button>
                             </div>
                         </div>
                     </div>
                     
-                    <!-- Send/Stop buttons OUTSIDE wrapper - stay visible when collapsed -->
-                    <button class="ai-chat-send-btn floating-action-btn" id="ai-chat-send-btn" title="Send message">
-                        <i class="fas fa-paper-plane"></i>
-                    </button>
-                    <button class="ai-chat-stop-btn floating-action-btn" id="ai-chat-stop-btn" title="Stop AI response" style="display: none;">
-                        <i class="fas fa-stop-circle"></i>
-                    </button>
                 </div>
             </div>
 
