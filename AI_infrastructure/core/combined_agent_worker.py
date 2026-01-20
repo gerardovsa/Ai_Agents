@@ -28,6 +28,7 @@ import logging
 from datetime import datetime
 from typing import List, Dict, Any, Optional, Generator
 from queue import Queue
+import tiktoken
 import threading
 
 # Initialize logger
@@ -1349,6 +1350,61 @@ def _truncate_value(value: Any, max_length: int) -> Any:
     return value
 
 
+def count_conversation_tokens(messages: List[Dict]) -> int:
+    """
+    Accurately count tokens in conversation using tiktoken
+    
+    Args:
+        messages: Conversation messages
+    
+    Returns:
+        Total token count
+    """
+    try:
+        import tiktoken
+        # Claude uses cl100k_base tokenizer (same as GPT-4)
+        encoder = tiktoken.get_encoding("cl100k_base")
+        
+        total_tokens = 0
+        for msg in messages:
+            role = msg.get('role', '')
+            content = msg.get('content', [])
+            
+            # Count role tokens
+            total_tokens += len(encoder.encode(role))
+            
+            # Count content tokens
+            if isinstance(content, str):
+                total_tokens += len(encoder.encode(content))
+            elif isinstance(content, list):
+                for block in content:
+                    if isinstance(block, dict):
+                        block_type = block.get('type', '')
+                        total_tokens += len(encoder.encode(block_type))
+                        
+                        # Count text content
+                        if 'text' in block:
+                            total_tokens += len(encoder.encode(str(block['text'])))
+                        if 'thinking' in block:
+                            total_tokens += len(encoder.encode(str(block['thinking'])))
+                        if 'content' in block:
+                            total_tokens += len(encoder.encode(str(block['content'])))
+                        
+                        # Tool use/result overhead
+                        if block_type in ('tool_use', 'tool_result'):
+                            total_tokens += 50  # Overhead for tool structure
+                            if 'name' in block:
+                                total_tokens += len(encoder.encode(str(block['name'])))
+                            if 'input' in block:
+                                total_tokens += len(encoder.encode(str(block['input'])))
+        
+        return total_tokens
+    except Exception as e:
+        print(f"[Combined Worker] ⚠️ Token counting failed: {e}")
+        # Fallback to rough estimation
+        return len(messages) * 1000
+
+
 def prune_conversation_for_context_limit(
     messages: List[Dict],
     max_estimated_tokens: int = 180000,
@@ -1358,13 +1414,13 @@ def prune_conversation_for_context_limit(
     Prune conversation history when approaching context limit
     
     Strategy:
-    1. Keep the first user message (for original context)
-    2. Keep the most recent N messages (current context)
-    3. Remove older tool use rounds from the middle
+    1. Count actual tokens using tiktoken
+    2. If over limit, keep first + recent messages
+    3. Aggressively remove middle tool rounds
     
     Args:
         messages: Full conversation history
-        max_estimated_tokens: Maximum estimated tokens to keep (~180K for safety margin)
+        max_estimated_tokens: Maximum tokens to keep (~180K for safety margin)
         preserve_first_user: Whether to preserve the first user message
     
     Returns:
@@ -1373,46 +1429,78 @@ def prune_conversation_for_context_limit(
     if not messages:
         return messages
     
-    # Rough estimation: 1 message ≈ 500 tokens average
-    # (assistant with thinking can be 2000+, tool results can be 1000+)
-    estimated_tokens_per_message = 800
-    max_messages = max_estimated_tokens // estimated_tokens_per_message
+    # Count actual tokens
+    actual_tokens = count_conversation_tokens(messages)
+    
+    print(f"[Combined Worker] 📊 Token count: {actual_tokens:,} / {max_estimated_tokens:,}")
     
     # If we're under the limit, no need to prune
-    if len(messages) <= max_messages:
+    if actual_tokens <= max_estimated_tokens:
+        print(f"[Combined Worker] ✅ Conversation within limit ({len(messages)} messages)")
         return messages
     
-    print(f"[Combined Worker] ⚠️  Conversation pruning needed:")
-    print(f"  Current: {len(messages)} messages (~{len(messages) * estimated_tokens_per_message} tokens)")
-    print(f"  Target: {max_messages} messages (~{max_estimated_tokens} tokens)")
+    print(f"[Combined Worker] ⚠️  AGGRESSIVE PRUNING NEEDED:")
+    print(f"  Current: {len(messages)} messages ({actual_tokens:,} tokens)")
+    print(f"  Target: {max_estimated_tokens:,} tokens")
+    print(f"  Overage: {actual_tokens - max_estimated_tokens:,} tokens")
     
-    # Strategy: Keep first + last N messages
-    # This preserves original context and recent conversation
+    # Strategy: Binary search to find optimal message count
+    # Keep first user message + most recent N messages
     
     if preserve_first_user and messages[0].get('role') == 'user':
-        # Keep first user message
         first_message = [messages[0]]
-        # Calculate how many recent messages we can keep
-        remaining_budget = max_messages - 1
-        # Keep the most recent messages
-        recent_messages = messages[-remaining_budget:] if remaining_budget > 0 else []
         
-        pruned = first_message + recent_messages
+        # Binary search for maximum number of recent messages we can keep
+        left, right = 1, len(messages) - 1
+        best_count = 1
+        
+        while left <= right:
+            mid = (left + right) // 2
+            test_messages = first_message + messages[-mid:]
+            test_tokens = count_conversation_tokens(test_messages)
+            
+            if test_tokens <= max_estimated_tokens:
+                # Can fit more
+                best_count = mid
+                left = mid + 1
+            else:
+                # Too many
+                right = mid - 1
+        
+        pruned = first_message + messages[-best_count:]
+        pruned_tokens = count_conversation_tokens(pruned)
         pruned_count = len(messages) - len(pruned)
         
-        print(f"[Combined Worker] 🔧 Pruned {pruned_count} messages from middle")
-        print(f"  Kept: First message + {len(recent_messages)} recent messages")
-        print(f"  Result: {len(pruned)} messages (~{len(pruned) * estimated_tokens_per_message} estimated tokens)")
+        print(f"[Combined Worker] 🔧 PRUNED {pruned_count} messages from middle")
+        print(f"  Kept: First message + {best_count} recent messages")
+        print(f"  Result: {len(pruned)} messages ({pruned_tokens:,} tokens)")
+        print(f"  Saved: {actual_tokens - pruned_tokens:,} tokens")
         
         return pruned
     else:
-        # Just keep the most recent messages
-        pruned = messages[-max_messages:]
+        # Binary search for maximum recent messages without first
+        left, right = 1, len(messages)
+        best_count = 1
+        
+        while left <= right:
+            mid = (left + right) // 2
+            test_messages = messages[-mid:]
+            test_tokens = count_conversation_tokens(test_messages)
+            
+            if test_tokens <= max_estimated_tokens:
+                best_count = mid
+                left = mid + 1
+            else:
+                right = mid - 1
+        
+        pruned = messages[-best_count:]
+        pruned_tokens = count_conversation_tokens(pruned)
         pruned_count = len(messages) - len(pruned)
         
-        print(f"[Combined Worker] 🔧 Pruned {pruned_count} older messages")
-        print(f"  Kept: {len(pruned)} recent messages")
-        print(f"  Result: ~{len(pruned) * estimated_tokens_per_message} estimated tokens")
+        print(f"[Combined Worker] 🔧 PRUNED {pruned_count} older messages")
+        print(f"  Kept: {best_count} recent messages")
+        print(f"  Result: {len(pruned)} messages ({pruned_tokens:,} tokens)")
+        print(f"  Saved: {actual_tokens - pruned_tokens:,} tokens")
         
         return pruned
 
@@ -1546,9 +1634,9 @@ def run_agent_worker(
         
         if user_id:
             registry.set_thread_user_id(user_id)
-            logger.info(f"{log_prefix} Thread context initialized with user_id={user_id}")
+            print(f"{log_prefix} Thread context initialized with user_id={user_id}")
         else:
-            logger.warning(f"{log_prefix} No user_id provided - authentication-required tools may fail")
+            print(f"{log_prefix} ⚠️  No user_id provided - authentication-required tools may fail")
         
         # Validate conversation history (fixes all 7 issues)
         if conversation_history:
@@ -1679,9 +1767,9 @@ def run_agent_worker(
         if registry:
             try:
                 registry.clear_thread_user_id()
-                logger.debug(f"{log_prefix} Thread context cleaned up")
+                print(f"{log_prefix} Thread context cleaned up")
             except Exception as e:
-                logger.debug(f"{log_prefix} Thread cleanup error: {e}")
+                print(f"{log_prefix} Thread cleanup error: {e}")
         
         try:
             lock.release()
@@ -1744,9 +1832,9 @@ def run_simple_agent_worker(
         # Worker threads don't have Flask g context, so use thread-local storage
         if user_id:
             registry.set_thread_user_id(user_id)
-            logger.info(f"{log_prefix} Thread context initialized with user_id={user_id}")
+            print(f"{log_prefix} Thread context initialized with user_id={user_id}")
         else:
-            logger.warning(f"{log_prefix} No user_id provided - authentication-required tools may fail")
+            print(f"{log_prefix} ⚠️  No user_id provided - authentication-required tools may fail")
         
         # Just-in-time schema loading
         conversation_length = len(conversation_history or [])
@@ -2256,7 +2344,7 @@ def run_simple_agent_worker(
         if registry:
             try:
                 registry.clear_thread_user_id()
-                logger.debug(f"{log_prefix} Thread context cleaned up")
+                print(f"{log_prefix} Thread context cleaned up")
             except:
                 pass
         
@@ -2604,11 +2692,24 @@ def execute_streaming_request(
         # CRITICAL: Prune conversation if needed to avoid 413 error
         # This prevents "Request exceeds the maximum size" errors
         print(f"{log_prefix} Checking conversation size before API call...")
+        print(f"{log_prefix} 📊 Pre-prune: {len(messages)} messages")
+        
         messages = prune_conversation_for_context_limit(
             messages,
-            max_estimated_tokens=170000,  # Safety margin below 200K limit
+            max_estimated_tokens=150000,  # Aggressive limit: 150K tokens (leaves 50K for system prompt + response)
             preserve_first_user=True
         )
+        
+        # Final token check
+        final_tokens = count_conversation_tokens(messages)
+        print(f"{log_prefix} 📊 Post-prune: {len(messages)} messages ({final_tokens:,} tokens)")
+        
+        if final_tokens > 190000:
+            print(f"{log_prefix} ⚠️ WARNING: Still over 190K tokens after pruning!")
+            print(f"{log_prefix} 🔧 Emergency pruning: keeping only last 10 messages")
+            messages = messages[-10:]
+            emergency_tokens = count_conversation_tokens(messages)
+            print(f"{log_prefix} 📊 Emergency result: {len(messages)} messages ({emergency_tokens:,} tokens)")
         
         # Initialize Anthropic client
         import os
