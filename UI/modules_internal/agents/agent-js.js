@@ -97,12 +97,75 @@ function setupScrollDetection(agentId, messagesContainer) {
     }
 }
 
+// ==================== AGENT STOP BUTTON HELPERS ====================
+/**
+ * Show stop button for an agent (called when streaming starts)
+ */
+function showAgentStopButton(agentId) {
+    const sendBtn = document.querySelector(`#agent-input-form-${agentId} .agent-send-btn`);
+    if (!sendBtn) return;
+    
+    let stopBtn = document.getElementById(`agent-stop-btn-${agentId}`);
+    if (!stopBtn) {
+        // Create stop button if it doesn't exist
+        stopBtn = document.createElement('button');
+        stopBtn.id = `agent-stop-btn-${agentId}`;
+        stopBtn.className = 'agent-stop-btn';
+        stopBtn.innerHTML = '<i class="fas fa-stop-circle"></i>';
+        stopBtn.title = 'Stop AI response';
+        stopBtn.addEventListener('click', () => stopAgentStream(agentId));
+        sendBtn.parentElement.appendChild(stopBtn);
+    }
+    
+    stopBtn.style.display = 'inline-flex';
+    sendBtn.style.display = 'none';
+}
+
+/**
+ * Hide stop button for an agent (called when streaming ends)
+ */
+function hideAgentStopButton(agentId) {
+    const stopBtn = document.getElementById(`agent-stop-btn-${agentId}`);
+    const sendBtn = document.querySelector(`#agent-input-form-${agentId} .agent-send-btn`);
+    
+    if (stopBtn) stopBtn.style.display = 'none';
+    if (sendBtn) sendBtn.style.display = 'inline-flex';
+}
+
+/**
+ * Stop streaming for an agent (abort the fetch request)
+ */
+function stopAgentStream(agentId) {
+    if (MultiAgent.agentStreamControllers[agentId]) {
+        console.log(`[Agent ${agentId}] 🛑 User requested stop - aborting stream`);
+        MultiAgent.agentStreamControllers[agentId].abort();
+        MultiAgent.agentStreamControllers[agentId] = null;
+        MultiAgent.agentStreamingStates[agentId] = false;
+        
+        hideAgentStopButton(agentId);
+        
+        // Add system message to chat
+        const messagesContainer = document.getElementById(`agent-messages-${agentId}`);
+        if (messagesContainer) {
+            const systemMsg = document.createElement('div');
+            systemMsg.className = 'message system-message';
+            systemMsg.textContent = '⏸️ Response stopped by user';
+            messagesContainer.appendChild(systemMsg);
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+        }
+    }
+}
+
 // ==================== MULTI-AGENT NATO COLUMNS ====================
 const MultiAgent = {
     nextAgentId: 4,
     agentNames: ['Alpha', 'Bravo', 'Charlie', 'Delta', 'Echo', 'Foxtrot', 'Golf', 'Hotel',
         'India', 'Juliet', 'Kilo', 'Lima', 'Mike', 'November', 'Oscar', 'Papa',
         'Quebec', 'Romeo', 'Sierra', 'Tango', 'Uniform', 'Victor', 'Whiskey', 'X-ray', 'Yankee', 'Zulu'],
+
+    // AI streaming control - AbortControllers for each agent
+    agentStreamControllers: {},  // key = agentId, value = AbortController
+    agentStreamingStates: {},     // key = agentId, value = boolean
 
     // Rainbow color palette for session presence
     PRESENCE_COLORS: [
@@ -4532,8 +4595,8 @@ async function sendAgentMessage(agentId) {
         console.log(`[Agent ${agentId}] Stream URL:`, streamUrl);
 
         // Create AbortController for this agent's stream
-        agentStreamControllers[agentId] = new AbortController();
-        agentStreamingStates[agentId] = true;
+        MultiAgent.agentStreamControllers[agentId] = new AbortController();
+        MultiAgent.agentStreamingStates[agentId] = true;
         
         // Show stop button in agent input area
         showAgentStopButton(agentId);
@@ -4546,7 +4609,7 @@ async function sendAgentMessage(agentId) {
         }
 
         const streamResponse = await fetch(streamUrl, { 
-            signal: agentStreamControllers[agentId].signal,
+            signal: MultiAgent.agentStreamControllers[agentId].signal,
             headers: headers
         });
 
@@ -4615,7 +4678,7 @@ async function sendAgentMessage(agentId) {
 
         while (true) {
             // Check if user stopped this agent's stream
-            if (agentStreamControllers[agentId]?.signal.aborted) {
+            if (MultiAgent.agentStreamControllers[agentId]?.signal.aborted) {
                 console.log(`[Agent ${agentId}] 🛑 Stream aborted by user`);
                 break;
             }
@@ -5360,8 +5423,8 @@ async function sendAgentMessage(agentId) {
         console.log(`[Agent ${agentId}] ✅ Stream complete - ${fullResponse.length} chars received`);
 
         // Clean up stream controls
-        agentStreamControllers[agentId] = null;
-        agentStreamingStates[agentId] = false;
+        MultiAgent.agentStreamControllers[agentId] = null;
+        MultiAgent.agentStreamingStates[agentId] = false;
         hideAgentStopButton(agentId);
 
         // Clear status indicator
@@ -5658,8 +5721,8 @@ async function sendAgentMessage(agentId) {
         }
 
         // Clean up stream controls on error
-        agentStreamControllers[agentId] = null;
-        agentStreamingStates[agentId] = false;
+        MultiAgent.agentStreamControllers[agentId] = null;
+        MultiAgent.agentStreamingStates[agentId] = false;
         hideAgentStopButton(agentId);
         
         addAgentMessage(agentId, 'ai', ` Error: ${error.message}`);
