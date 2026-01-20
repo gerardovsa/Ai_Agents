@@ -182,6 +182,8 @@ log_debug("Importing microsoft_auth_routes_V2_FIXED...")
 from routes.microsoft_auth_routes_V2_FIXED import microsoft_auth_bp  # NEW: Microsoft OAuth V2
 log_debug("Importing account_linking_routes...")
 from routes.account_linking_routes import account_linking_bp  # NEW: Account linking
+log_debug("Importing admin_routes...")
+from routes.admin_routes import admin_bp  # NEW: Admin operations (cache invalidation, diagnostics)
 log_debug("Importing kanban_routes...")
 from routes.kanban_routes import kanban_bp  # NEW: Kanban board with AI agent integration
 from routes.database_visualizer_routes import database_visualizer_bp  # ✅ MIGRATED to Supabase PostgreSQL (2025-12-07)
@@ -470,6 +472,7 @@ app.register_blueprint(export_bp, url_prefix='/api/export')         # 3 endpoint
 if woocommerce_bp:                                                   # ⚠️ Local development only (disabled on Render)
     app.register_blueprint(woocommerce_bp)                           # 9 endpoints (WooCommerce direct API)
 app.register_blueprint(auth_bp)                                      # NEW: 6 endpoints (user auth)
+app.register_blueprint(admin_bp)                                     # NEW: Admin operations (3 endpoints: /api/admin/cache/*, /api/admin/tools/*)
 app.register_blueprint(oauth_bp)                                     # NEW: OAuth workspace integration (/api/oauth/*)
 app.register_blueprint(google_auth_bp)                               # NEW: Google OAuth V2 (/api/auth/google/*)
 app.register_blueprint(microsoft_auth_bp)                            # NEW: Microsoft OAuth V2 (/api/auth/microsoft/*)

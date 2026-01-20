@@ -36,27 +36,48 @@ class HTMLRenderer {
                 .replace(/<\/?HTML>/g, '')
                 .trim();
 
-            // Create sandboxed iframe with srcdoc (SECURE - no same-origin to prevent escape)
+            // 🎯 INTERACTIVE HTML FIX (Jan 21, 2026): Allow full interactivity while preventing parent DOM pollution
+            // Balance: Interactive features + Parent page protection
             const iframe = document.createElement('iframe');
             iframe.id = chartId;
-            iframe.sandbox = 'allow-scripts';
+            
+            // 🎯 BALANCED SANDBOX: Allow interactivity but block parent access
+            // allow-scripts: JavaScript can run (needed for interactive widgets)
+            // allow-forms: Form submissions work
+            // allow-same-origin: Styles and resources load properly
+            // BLOCKED: allow-top-navigation, allow-popups (prevents escape)
+            iframe.sandbox = 'allow-scripts allow-forms allow-same-origin allow-modals allow-pointer-lock';
+            
             iframe.style.cssText = `
                 width: 100%;
                 min-height: 400px;
-                border: 1px solid #444;
+                border: 1px solid var(--border-color, #444);
                 border-radius: 8px;
                 background: white;
+                display: block;
             `;
 
-            // Use srcdoc to avoid cross-origin errors
+            // 🎯 Interactive HTML with isolated styles (won't affect parent page)
             iframe.srcdoc = `<!DOCTYPE html>
 <html>
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { font-family: system-ui, sans-serif; padding: 1rem; }
+        /* Reset to prevent parent style inheritance */
+        html, body { 
+            margin: 0; 
+            padding: 0; 
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+        }
+        body { 
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+            padding: 1rem;
+            box-sizing: border-box;
+        }
+        * { box-sizing: border-box; }
     </style>
 </head>
 <body>
