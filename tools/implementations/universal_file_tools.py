@@ -898,14 +898,27 @@ def process_local_file_universal(
                 mode='auto'
             )
             
+            # CRITICAL FIX (Jan 20, 2026): DO NOT return content_blocks in tool_result!
+            # Base64 PDF data should go to Anthropic Messages API, not stored in conversation DB
+            # Bug caused: 382KB base64 PDF stored in tool_result → 271K tokens in every message → token overflow
+            # Solution: Return success message only, let the agent request the file via proper attachment tools
+            metadata = vision_result.get('metadata', {})
             result = {
                 'success': True,
+                'message': f"✅ Processed {file_name} ({metadata.get('size', 0):,} bytes)",
                 'file_type': file_extension.replace('.', ''),
                 'file_path': file_path,
                 'file_name': file_name,
                 'processing_mode': 'vision',
-                'content_blocks': vision_result.get('content_block'),
-                'metadata': vision_result.get('metadata', {})
+                'token_estimate': metadata.get('token_estimate', 0),
+                'size_bytes': metadata.get('size', 0),
+                'content_type': metadata.get('type', 'unknown'),
+                'next_steps': [
+                    f"Use process_local_file_for_ai(file_path='{file_path}') to analyze the file content",
+                    "The file content will be sent as an attachment to the AI (not in conversation history)"
+                ]
+                # ❌ REMOVED: 'content_blocks': vision_result.get('content_block')
+                # Base64 data belongs in Messages API attachments, not tool_result JSON!
             }
         
         elif processing_mode in ['cloud_onedrive', 'cloud_gdrive']:

@@ -1387,8 +1387,38 @@ def count_conversation_tokens(messages: List[Dict]) -> int:
                             total_tokens += len(encoder.encode(str(block['text'])))
                         if 'thinking' in block:
                             total_tokens += len(encoder.encode(str(block['thinking'])))
+                        
+                        # CRITICAL FIX (Jan 20, 2026): Recursively count nested content in tool_result blocks
+                        # Bug: str(block['content']) only counted string representation, not actual nested JSON
+                        # This caused 271K token tool_results to appear as ~50 tokens, breaking pruning logic
                         if 'content' in block:
-                            total_tokens += len(encoder.encode(str(block['content'])))
+                            content_value = block['content']
+                            if isinstance(content_value, str):
+                                # Try to parse as JSON if it's a string (common in tool_result blocks)
+                                try:
+                                    import json
+                                    parsed_content = json.loads(content_value)
+                                    # Recursively count tokens in parsed JSON
+                                    total_tokens += len(encoder.encode(json.dumps(parsed_content)))
+                                except (json.JSONDecodeError, TypeError):
+                                    # Not JSON, count as plain string
+                                    total_tokens += len(encoder.encode(str(content_value)))
+                            elif isinstance(content_value, list):
+                                # Recursively count nested blocks (common in tool_result content)
+                                for nested_block in content_value:
+                                    if isinstance(nested_block, dict):
+                                        if 'text' in nested_block:
+                                            total_tokens += len(encoder.encode(str(nested_block['text'])))
+                                        else:
+                                            # Count entire nested block as JSON
+                                            import json
+                                            total_tokens += len(encoder.encode(json.dumps(nested_block)))
+                                    else:
+                                        total_tokens += len(encoder.encode(str(nested_block)))
+                            else:
+                                # Count as JSON dump
+                                import json
+                                total_tokens += len(encoder.encode(json.dumps(content_value)))
                         
                         # Tool use/result overhead
                         if block_type in ('tool_use', 'tool_result'):
@@ -1396,7 +1426,9 @@ def count_conversation_tokens(messages: List[Dict]) -> int:
                             if 'name' in block:
                                 total_tokens += len(encoder.encode(str(block['name'])))
                             if 'input' in block:
-                                total_tokens += len(encoder.encode(str(block['input'])))
+                                # Properly encode input as JSON, not string representation
+                                import json
+                                total_tokens += len(encoder.encode(json.dumps(block['input'])))
         
         return total_tokens
     except Exception as e:

@@ -113,10 +113,10 @@ services:
         - key: GOOGLE_OAUTH_MODE
           value: web  # Use web mode for production (not desktop)
         
-        # âœ… UPDATED to V10 URL (Nov 29, 2025)
+        # ✅ UPDATED to V11 URL (Jan 20, 2026)
         - key: GOOGLE_REDIRECT_URI
-          value: https://ai-agents-v10.onrender.com/api/auth/google/callback      - key: GOOGLE_OAUTH_REDIRECT_URI
-        value: https://ai-agents-v10.onrender.com/oauth2callback
+          value: https://in-house-business-ai.onrender.com/api/auth/google/callback      - key: GOOGLE_OAUTH_REDIRECT_URI
+        value: https://in-house-business-ai.onrender.com/oauth2callback
       
       - key: GOOGLE_OAUTH_SCOPES
         value: https://www.googleapis.com/auth/spreadsheets,https://www.googleapis.com/auth/documents,https://www.googleapis.com/auth/drive,https://www.googleapis.com/auth/gmail.readonly,https://www.googleapis.com/auth/gmail.send,https://www.googleapis.com/auth/calendar.readonly
