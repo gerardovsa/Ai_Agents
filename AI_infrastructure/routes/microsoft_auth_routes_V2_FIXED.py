@@ -487,16 +487,25 @@ def microsoft_login():
                 
                 cursor.execute(sql, params)
                 conn.commit()
+                
+                logger.info(f"✅ OAuth state stored in database: {state[:20]}...")
+                logger.info(f"✅ Expires in 5 minutes")
             
             conn.close()
             conn = None
             
         except Exception as e:
-            logger.warning(f"Failed to store OAuth state in database: {e}")
+            logger.error(f"❌ CRITICAL: Failed to store OAuth state in database: {e}")
             import traceback
-            logger.warning(traceback.format_exc())
-            # Fallback to Flask session
-            session['microsoft_oauth_state'] = state
+            logger.error(traceback.format_exc())
+            logger.error(f"❌ OAuth login will FAIL without database state storage")
+            
+            # DO NOT fallback to Flask session - it won't work on production
+            return jsonify({
+                'success': False,
+                'error': 'Failed to initialize OAuth flow - database error',
+                'details': str(e) if os.getenv('FLASK_ENV') == 'development' else None
+            }), 500
         finally:
             if conn:
                 try:
@@ -630,11 +639,23 @@ def microsoft_callback():
                     stored_state = row[0] if not isinstance(row, dict) else row['state']
                     return_url = (row[1] if not isinstance(row, dict) else row['return_url']) or '/'
                     
+                    logger.info(f"✅ OAuth state found in database: {stored_state[:20]}...")
+                    logger.info(f"✅ Return URL: {return_url}")
+                    
                     # Delete used state
                     delete_sql, delete_params = convert_sql_placeholders(
                         "DELETE FROM ai_infrastructure.oauth_states WHERE state = %s", (state,)
                     )
                     cursor.execute(delete_sql, delete_params)
+                    logger.info(f"✅ Deleted used OAuth state from database")
+                else:
+                    logger.error(f"❌ OAuth state NOT found in database!")
+                    logger.error(f"❌ Searched for state: {state[:20]}...")
+                    logger.error(f"❌ This means the state expired OR was never stored")
+                    
+                    # Return None to trigger error handling below
+                    stored_state = None
+                    return_url = '/'
                 
                 conn.commit()
             
@@ -642,12 +663,20 @@ def microsoft_callback():
             conn = None
             
         except Exception as e:
-            logger.warning(f"Failed to retrieve OAuth state from database: {e}")
+            logger.error(f"❌ CRITICAL: Failed to retrieve OAuth state from database: {e}")
             import traceback
-            logger.warning(traceback.format_exc())
-            # Fallback to Flask session
-            stored_state = session.get('microsoft_oauth_state')
-            return_url = session.get('microsoft_return_url', '/')
+            logger.error(traceback.format_exc())
+            logger.error(f"❌ Database query failed - state validation impossible")
+            logger.error(f"❌ Incoming state: {state}")
+            logger.error(f"❌ This means user CANNOT reconnect Outlook")
+            
+            # DO NOT fallback to Flask session on production (Render) - it won't work
+            # Session is not persistent across web workers
+            return jsonify({
+                'success': False,
+                'error': 'OAuth state validation failed - database error. Please try again or contact support.',
+                'details': str(e) if os.getenv('FLASK_ENV') == 'development' else None
+            }), 500
         finally:
             if conn:
                 try:
@@ -656,10 +685,14 @@ def microsoft_callback():
                     pass
         
         if not state or not stored_state or state != stored_state:
-            logger.error(f"❌ Invalid OAuth state (CSRF protection) - state={state}, stored={stored_state}")
+            logger.error(f"❌ Invalid OAuth state (CSRF protection)")
+            logger.error(f"   Incoming state: {state}")
+            logger.error(f"   Stored state: {stored_state}")
+            logger.error(f"   Match: {state == stored_state if stored_state else 'N/A - no stored state'}")
             return jsonify({
                 'success': False,
-                'error': 'Invalid state parameter'
+                'error': 'Invalid state parameter - CSRF protection triggered',
+                'hint': 'Try reconnecting Outlook from Account Settings'
             }), 400
         
         # ====================================================================
@@ -1200,6 +1233,60 @@ def get_microsoft_config():
             base_url = base_url.replace('http://', 'https://')
         redirect_uri = base_url + '/api/auth/microsoft/callback'
     
+    # Check if oauth_states table exists
+    conn = None
+    table_exists = False
+    table_info = None
+    try:
+        from shared.database_utils import is_using_supabase
+        conn = get_db_connection()
+        
+        with conn.cursor() as cursor:
+            if is_using_supabase():
+                # PostgreSQL - check information_schema
+                cursor.execute("""
+                    SELECT COUNT(*) 
+                    FROM information_schema.tables 
+                    WHERE table_schema = 'ai_infrastructure' 
+                    AND table_name = 'oauth_states'
+                """)
+                table_exists = cursor.fetchone()[0] > 0
+                
+                if table_exists:
+                    cursor.execute("""
+                        SELECT COUNT(*) FROM ai_infrastructure.oauth_states
+                        WHERE platform = 'microsoft' AND expires_at > CURRENT_TIMESTAMP
+                    """)
+                    active_states = cursor.fetchone()[0]
+                    table_info = {'active_states': active_states, 'platform': 'microsoft'}
+            else:
+                # SQLite - check sqlite_master
+                cursor.execute("""
+                    SELECT name FROM sqlite_master 
+                    WHERE type='table' AND name='oauth_states'
+                """)
+                table_exists = cursor.fetchone() is not None
+                
+                if table_exists:
+                    cursor.execute("""
+                        SELECT COUNT(*) FROM oauth_states
+                        WHERE platform = 'microsoft' AND expires_at > datetime('now')
+                    """)
+                    active_states = cursor.fetchone()[0]
+                    table_info = {'active_states': active_states, 'platform': 'microsoft'}
+        
+        conn.close()
+        conn = None
+    except Exception as e:
+        logger.error(f"Table check failed: {e}")
+        table_info = {'error': str(e)}
+    finally:
+        if conn:
+            try:
+                conn.close()
+            except:
+                pass
+    
     return jsonify({
         'success': True,
         'configured': bool(client_id and client_secret),
@@ -1209,6 +1296,8 @@ def get_microsoft_config():
         'redirect_uri': redirect_uri,
         'scopes_requested': MICROSOFT_SCOPES,
         'table_used': 'oauth_tokens',
+        'oauth_states_table_exists': table_exists,
+        'oauth_states_info': table_info,
         'columns': 24,
         'version': 'V3_COMPLETE_CURSOR_FIXED',
         'date': 'January 1, 2026'
