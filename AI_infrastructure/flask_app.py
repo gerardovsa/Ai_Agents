@@ -835,7 +835,7 @@ try:
         engineio_logger_level='WARNING',  # Only show warnings/errors
         message_queue=socketio_message_queue,
         # Render-specific: Enhanced connection handling
-        max_http_buffer_size=1e8 if IS_RENDER else 1e6,  # 100MB on Render, 1MB local (for large messages)
+        max_http_buffer_size=1e6,  # ✅ FIX (Jan 22): Reduce to 1MB to prevent massive polling responses (was 100MB causing 223KB floods)
         allow_upgrades=True,  # Allow transport upgrades (polling -> WebSocket)
         http_compression=True,  # Compress HTTP responses
         compression_threshold=1024,  # Compress messages > 1KB
