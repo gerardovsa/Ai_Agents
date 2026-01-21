@@ -4046,6 +4046,12 @@ Draft questions for the customer listing all missing details required for accura
 
             this.dom.injectHTML(previewContent, contentHtml);
 
+            // ✅ FIX (Jan 22, 2026): Redraw table to update AI Agent column when preview loads
+            if (this.state.tabulatorTable) {
+                this.log.debug('Refreshing AI Agent column after email preview load');
+                this.state.tabulatorTable.redraw();
+            }
+
         } catch (error) {
             // Graceful degradation: Show snippet view when full content unavailable
             this.log.warn(`Full content unavailable (showing snippet): ${error.message}`);
@@ -4093,6 +4099,12 @@ Draft questions for the customer listing all missing details required for accura
             `;
 
             this.dom.injectHTML(previewContent, snippetHtml);
+            
+            // ✅ FIX (Jan 22, 2026): Redraw table even in error case to update AI Agent column
+            if (this.state.tabulatorTable) {
+                this.log.debug('Refreshing AI Agent column after email preview (error case)');
+                this.state.tabulatorTable.redraw();
+            }
         }
     },
 
