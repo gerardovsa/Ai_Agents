@@ -3285,10 +3285,13 @@ Proceed to the NEXT step now."""
                         else:
                             result = get_tool_schema_fn(**tool_input)
                     else:
-                        # ✅ FIX (Jan 22, 2026): ALWAYS pass _user_id for ALL tools
-                        # Previously only passed for google_/microsoft_ tools, but universal_file_tools 
-                        # (process_outlook_attachment_for_ai, etc.) also need user authentication
-                        result = registry.execute_tool(tool_name=tool_name, _user_id=user_id, _injected_credentials=True, **tool_input)
+                        # ✅ FIX (Jan 22, 2026): Pass _user_id to tools that need authentication
+                        # Universal file tools, Google/Microsoft tools need user_id for OAuth
+                        # Calculator tools and other regular tools don't need it
+                        if tool_name.startswith(('google_', 'microsoft_', 'process_', 'gmail_', 'outlook_')):
+                            result = registry.execute_tool(tool_name=tool_name, _user_id=user_id, _injected_credentials=True, **tool_input)
+                        else:
+                            result = registry.execute_tool(tool_name=tool_name, **tool_input)
                     
                     # Smart truncation for large tool results to avoid 413 errors
                     result_str = smart_truncate_tool_result(result, tool_name=tool_name, max_tokens=2000)

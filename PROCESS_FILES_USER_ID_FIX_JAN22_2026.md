@@ -27,7 +27,7 @@ else:
 
 ## The Fix
 
-**File:** `AI_infrastructure/core/combined_agent_worker.py` (Line ~3289)
+**File 1:** `AI_infrastructure/core/combined_agent_worker.py` (Line ~3289)
 
 ```python
 # ✅ NEW CODE - FIXED
@@ -37,11 +37,28 @@ else:
 result = registry.execute_tool(tool_name=tool_name, _user_id=user_id, _injected_credentials=True, **tool_input)
 ```
 
+**File 2:** `tools/registry_v3.py` (Line ~713)
+
+```python
+# ✅ FIX (Jan 22, 2026): Smart parameter handling
+# Try calling with all kwargs first (for tools with **kwargs like universal_file_tools)
+try:
+    result = func(**kwargs)
+except TypeError as e:
+    # If tool doesn't accept internal params, filter them out and retry
+    if "unexpected keyword argument" in str(e) and any(k.startswith('_') for k in kwargs):
+        logger.debug(f"[EXECUTE_TOOL] Tool '{tool_name}' doesn't accept internal params, filtering...")
+        tool_kwargs = {k: v for k, v in kwargs.items() if not k.startswith('_')}
+        result = func(**tool_kwargs)
+    else:
+        raise  # Re-raise if it's a different TypeError
+```
+
 **Rationale:**
-1. **Safe for All Tools:** Tools that don't need `_user_id` simply ignore it (via `**kwargs`)
-2. **Fixes Universal Tools:** Tools like `process_outlook_attachment_for_ai` that need authentication now receive it
-3. **Consistent Behavior:** All tools get same credential injection regardless of naming convention
-4. **Future-Proof:** New tools won't fail due to naming prefix assumptions
+1. **Universal Approach:** All tools receive `_user_id` from combined_agent_worker
+2. **Smart Filtering:** Registry tries passing all params first, then filters if needed
+3. **Backward Compatible:** Tools with `**kwargs` get everything; tools without get filtered params
+4. **No Breaking Changes:** Existing tools continue to work regardless of signature
 
 ## Technical Details
 
