@@ -795,14 +795,24 @@ window.ThreadCardTemplates = {
                 <!-- Email Thread (TEAL pill) - Shows when thread has email data AND is assigned to an agent -->
                 ${thread.email_thread_id && thread.location && (thread.location.startsWith('agent-') || thread.location === 'unassigned' || thread.location === 'prime') ? `
                     <div class="thread-item-email thread-item-email-linked" data-email-id="${safeEscape(thread.email_thread_id)}">
-                        <button class="email-badge" style="background: linear-gradient(135deg, #14b8a6 0%, #0d9488 100%); color: white; border: none; padding: 8px 14px; border-radius: 8px; display: flex; align-items: center; gap: 10px; font-size: 13px; font-weight: 500; cursor: pointer; flex: 1; box-shadow: 0 2px 8px rgba(20, 184, 166, 0.3); transition: all 0.2s ease; position: relative; overflow: hidden;"
+                        <button class="email-badge" style="background: linear-gradient(135deg, #14b8a6 0%, #0d9488 100%); color: white; border: none; padding: 8px 14px; border-radius: 8px; display: flex; align-items: center; gap: 10px; font-size: 13px; font-weight: 500; cursor: pointer; flex: 1; box-shadow: 0 2px 8px rgba(20, 184, 166, 0.3); transition: all 0.2s ease; position: relative; overflow: hidden; min-width: 0;"
                             onmouseover="this.style.transform='translateY(-1px)'; this.style.boxShadow='0 4px 12px rgba(20, 184, 166, 0.4)'"
                             onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 2px 8px rgba(20, 184, 166, 0.3)'"
-                            onclick="event.stopPropagation(); window.CommunicationHub?.openEmailPreview('${safeEscape(thread.email_thread_id)}')"
-                            title="${safeEscape(thread.email_subject || 'Email')}">
-                            <i class="fas fa-envelope" style="font-size: 14px; opacity: 0.95;"></i>
-                            <span class="email-badge-title" style="letter-spacing: 0.01em;">${safeEscape(thread.email_subject || 'Email Thread')}</span>
-                            ${thread.email_participants ? `<span style="opacity: 0.8; font-size: 11px; margin-left: 4px;">from ${safeEscape(thread.email_participants)}</span>` : ''}
+                            onclick="event.stopPropagation(); window.ThreadCardTemplates.openEmailInCommHub('${safeEscape(thread.email_thread_id)}')"
+                            title="${(() => {
+                                const metadata = thread.metadata || {};
+                                const subject = thread.email_subject || 'Email';
+                                const from = metadata.email_from || 'Unknown';
+                                const to = metadata.email_to || 'Unknown';
+                                const date = metadata.email_date || thread.created;
+                                const formattedDate = date ? new Date(date).toLocaleString('en-US', { 
+                                    month: 'short', day: 'numeric', year: 'numeric', 
+                                    hour: 'numeric', minute: '2-digit', hour12: true 
+                                }) : 'Unknown date';
+                                return \`Full Subject: \${subject}&#10;From: \${from}&#10;To: \${to}&#10;Date: \${formattedDate}&#10;&#10;Click to open email in Communication Hub\`;
+                            })()}">
+                            <i class="fas fa-envelope" style="font-size: 14px; opacity: 0.95; flex-shrink: 0;"></i>
+                            <span class="email-badge-title" style="letter-spacing: 0.01em; flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${safeEscape(thread.email_subject || 'Email Thread')}</span>
                         </button>
                         ${location !== 'synergy' ? `
                             <button class="email-unlink" title="Unlink email" 
@@ -990,6 +1000,79 @@ window.ThreadCardTemplates = {
                 </button>
             </div>
         `;
+    },
+
+    /**
+     * Open email in Communication Hub - navigates to Comm Hub and opens email preview
+     * Uses NavigationHistoryManager for browser back/forward support
+     * @param {string} emailId - Outlook email ID
+     */
+    openEmailInCommHub(emailId) {
+        console.log(`[ThreadCardTemplates] Opening email ${emailId} in Communication Hub`);
+        
+        try {
+            // Use NavigationHistoryManager if available (enables back button)
+            if (window.NavigationHistoryManager) {
+                console.log('[ThreadCardTemplates] Using NavigationHistoryManager for robust navigation');
+                window.NavigationHistoryManager.navigateTo('communication', null, { email_id: emailId });
+                return;
+            }
+            
+            // Fallback: Legacy navigation (no browser history support)
+            console.warn('[ThreadCardTemplates] NavigationHistoryManager not available - using legacy navigation');
+            
+            // Step 1: Navigate to Communication Hub if not already there
+            const commHubView = document.getElementById('communication-hub-view');
+            if (!commHubView || commHubView.style.display === 'none') {
+                console.log('[ThreadCardTemplates] Switching to Communication Hub view');
+                
+                // Close command center if open
+                if (typeof closeCommandCenter === 'function') {
+                    closeCommandCenter();
+                }
+                
+                // Show Communication Hub
+                const allViews = document.querySelectorAll('.view');
+                allViews.forEach(v => v.style.display = 'none');
+                if (commHubView) {
+                    commHubView.style.display = 'block';
+                }
+            }
+            
+            // Step 2: Find the email row in the table
+            setTimeout(() => {
+                if (window.CommunicationHub && typeof window.CommunicationHub.openEmailPreview === 'function') {
+                    console.log('[ThreadCardTemplates] Opening email preview');
+                    window.CommunicationHub.openEmailPreview(emailId);
+                    
+                    // Step 3: Scroll to and highlight the email row
+                    const emailRow = document.querySelector(`[data-email-id="${emailId}"]`);
+                    if (emailRow) {
+                        emailRow.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                        
+                        // Flash highlight effect
+                        emailRow.style.backgroundColor = 'rgba(59, 130, 246, 0.2)';
+                        setTimeout(() => {
+                            emailRow.style.transition = 'background-color 1s ease';
+                            emailRow.style.backgroundColor = '';
+                        }, 300);
+                    }
+                } else {
+                    console.error('[ThreadCardTemplates] CommunicationHub.openEmailPreview not available');
+                    
+                    // Fallback: Just switch to Communication Hub and show error
+                    if (typeof showToast === 'function') {
+                        showToast('Opening Communication Hub...', 'info', 2000);
+                    }
+                }
+            }, 300); // Wait for view transition
+            
+        } catch (error) {
+            console.error('[ThreadCardTemplates] Failed to open email in Communication Hub:', error);
+            if (typeof showToast === 'function') {
+                showToast('Failed to open email: ' + error.message, 'error', 4000);
+            }
+        }
     }
 };
 

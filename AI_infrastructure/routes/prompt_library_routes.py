@@ -21,6 +21,7 @@ Endpoints:
 from flask import Blueprint, request, jsonify
 from functools import wraps
 import logging
+from datetime import datetime
 
 from core.prompt_injection_manager import get_prompt_manager
 
@@ -563,11 +564,16 @@ def create_prompt_in_db():
         conn = get_db_connection()
         cursor = conn.cursor()
         
+        # CRITICAL FIX (Jan 21, 2026): Use RETURNING id for PostgreSQL compatibility
+        # cursor.lastrowid doesn't work with Supabase connection pooling
         cursor.execute("""
             INSERT INTO ai_infrastructure.prompt_library 
             (user_id, workspace_id, name, category, type, description, 
              prompt_text, tags, visibility, created_at, updated_at)
             VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+            RETURNING id, user_id, workspace_id, name, category, type,
+                description, prompt_text, tags, visibility,
+                usage_count, created_at, updated_at
         """, (
             user_id,
             data.get('workspace_id'),
@@ -582,20 +588,9 @@ def create_prompt_in_db():
             datetime.utcnow().isoformat()
         ))
         
-        prompt_id = cursor.lastrowid
-        conn.commit()
-        
-        # Fetch the created prompt
-        cursor.execute("""
-            SELECT 
-                id, user_id, workspace_id, name, category, type,
-                description, prompt_text, tags, visibility,
-                usage_count, created_at, updated_at
-            FROM ai_infrastructure.prompt_library
-            WHERE id = %s
-        """, (prompt_id,))
-        
+        # Fetch the inserted row with RETURNING clause
         row = cursor.fetchone()
+        conn.commit()
         
         # ✅ Close cursor BEFORE processing result
         cursor.close()
@@ -619,7 +614,7 @@ def create_prompt_in_db():
             'updated_at': row['updated_at']
         }
         
-        logger.info(f"Created prompt {prompt_id} for user {user_id}")
+        logger.info(f"Created prompt {row['id']} for user {user_id}")
         
         return jsonify({
             'success': True,

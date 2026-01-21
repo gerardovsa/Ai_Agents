@@ -1644,10 +1644,9 @@ window.communicationHub = {
 
                         let html = '<div style="display: flex; align-items: center; gap: 8px;">';
 
-                        // Thread count badge (no expand/collapse - click email to view full thread)
-                        if (isThread && threadCount > 1) {
-                            html += `<span style="background: #6366f1; color: white; padding: 2px 8px; border-radius: 12px; font-size: 11px; font-weight: 600;" title="${threadCount} messages in conversation - Click to view full thread">${threadCount}</span>`;
-                        }
+                        // REMOVED: Thread count badge (Jan 21, 2026)
+                        // Reason: Counter was inaccurate (showed cached count, not full thread)
+                        // Preview panel correctly shows ALL messages via API call
 
                         // Thread indicator (AI assignment)
                         if (hasThread) {
@@ -2900,10 +2899,28 @@ window.communicationHub = {
                 this.log.info('✅ Cleared custom instruction textarea (early)');
             }
 
-            // ✅ FORCE IMMEDIATE TABLE REDRAW with threadSlug so formatter shows processing state
+            // ✅ CRITICAL: FORCE MULTIPLE IMMEDIATE TABLE REDRAWS (Jan 21, 2026)
+            // Don't wait for AI response - update UI instantly after assignment
             if (this.state.tabulatorTable) {
+                // First redraw - show assignment happened
                 this.state.tabulatorTable.redraw();
-                this.log.info('✅ Initial table redraw - showing processing state with thread mapping');
+                this.log.info('✅ Table redraw 1/3 - assignment stored');
+                
+                // Second redraw after 100ms - ensure formatter has emailThreads data
+                setTimeout(() => {
+                    if (this.state.tabulatorTable) {
+                        this.state.tabulatorTable.redraw();
+                        this.log.info('✅ Table redraw 2/3 - AI Agent column updated');
+                    }
+                }, 100);
+                
+                // Third redraw after 500ms - final sync
+                setTimeout(() => {
+                    if (this.state.tabulatorTable) {
+                        this.state.tabulatorTable.redraw();
+                        this.log.success('✅ Table redraw 3/3 - UI fully synced');
+                    }
+                }, 500);
             }
 
             // ✅ UPDATE PREVIEW PANEL AI SECTION IMMEDIATELY
@@ -2945,46 +2962,30 @@ window.communicationHub = {
                 this.state.tabulatorTable.redraw();
             }
 
-            // NEW: Load thread and send task-specific prompt
-            await this.loadThreadIntoAgentAndTriggerWithTask(threadSlug, location, fullEmail, processedAttachments, taskType, customInstructions);
-
-            // Clear processing state and update with thread info
-            if (cell && cell.getRow) {
-                cell.getRow().update({ assigned_agent: agentName, _processing: false, _threadSlug: threadSlug });
-            } else if (this.state.tabulatorTable) {
-                const emailRow = this.state.emails.find(e => e.id === emailId);
-                if (emailRow) {
-                    emailRow._processing = false;
-                    emailRow._threadSlug = threadSlug;
-                }
-            }
-
-            // SECOND NOTIFICATION: Confirm task was sent to AI
-            if (typeof showToast === 'function') {
-                showToast(`AI ${agentName} is processing your ${taskType.replace('_', ' ')} request`, 'success', 3000);
-            }
-
-            // CRITICAL: Multiple table redraws to ensure AI Agent column updates with full thread details
-            if (this.state.tabulatorTable) {
-                // First redraw immediately
-                this.state.tabulatorTable.redraw();
-                this.log.info('First table redraw (immediate)');
-
-                // Second redraw after 300ms
-                await new Promise(resolve => setTimeout(resolve, 300));
-                this.state.tabulatorTable.redraw();
-                this.log.info('Second table redraw (300ms)');
-
-                // Third redraw after 1 second (ensure thread fully loaded)
-                await new Promise(resolve => setTimeout(resolve, 700));
-                this.state.tabulatorTable.redraw();
-                this.log.success('Final table redraw - AI Agent column should now show thread info');
-            }
-
-            // CRITICAL: Re-enable cell after successful assignment (if cell provided)
+            // ✅ RE-ENABLE CELL IMMEDIATELY (Jan 21, 2026)
+            // Don't block on AI response - user can interact with table right away
             if (cell && cell.getElement) {
                 cell.getElement().style.pointerEvents = 'auto';
             }
+
+            // NEW: Load thread and send task-specific prompt (non-blocking)
+            // Fire and forget - don't wait for AI response to update UI
+            this.loadThreadIntoAgentAndTriggerWithTask(threadSlug, location, fullEmail, processedAttachments, taskType, customInstructions)
+                .then(() => {
+                    this.log.success(`AI ${taskType} task completed successfully`);
+                    // Final notification after AI starts processing
+                    if (typeof showToast === 'function') {
+                        showToast(`AI ${agentName} is processing your ${taskType.replace('_', ' ')} request`, 'success', 3000);
+                    }
+                })
+                .catch(error => {
+                    this.log.error('AI task failed:', error);
+                    if (typeof showToast === 'function') {
+                        showToast(`AI task failed: ${error.message}`, 'error', 5000);
+                    }
+                });
+
+            // IMMEDIATELY return after starting AI task (don't block UI)
 
         } catch (error) {
             this.log.error('Failed to assign email with task:', error);
@@ -5584,6 +5585,11 @@ Draft questions for the customer listing all missing details required for accura
         this.log.debug(`Opening email preview for ID: ${emailId}`);
 
         try {
+            // Update browser history with email context (enables back button)
+            if (window.NavigationHistoryManager) {
+                window.NavigationHistoryManager.updateContext({ email_id: emailId });
+            }
+
             // Find email in current state
             const email = this.state.emails?.find(e => e.id === emailId);
 

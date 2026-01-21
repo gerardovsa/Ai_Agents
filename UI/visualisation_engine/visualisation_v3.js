@@ -2331,12 +2331,15 @@ class VisualizationEngine {
 
     // 4.1.4
     async renderVisualizationDirectly(item, container, chartId) {
-        // RITICAL: DOM validation before any processing
+        // 🔥 FIX (Jan 21, 2026): Only validate container exists, not DOM attachment
+        // Container may not be in DOM during initial message rendering
         if (!container) {
             throw new Error('Container is null - cannot render visualization');
         }
+        
+        // Log but don't fail if container not in DOM yet
         if (!document.contains(container)) {
-            throw new Error('Container is not attached to DOM - cannot render visualization');
+            console.log('⚠️ VIZ-V3: Container not in DOM yet (will be attached after message rendering)');
         }
 
         const contentArea = container.querySelector('.viz-content-area');
@@ -2611,7 +2614,7 @@ class VisualizationEngine {
             throw new Error('Content area is null - cannot render Plotly');
         }
         if (!document.contains(contentArea)) {
-            throw new Error('Content area is not attached to DOM - cannot render Plotly');
+            console.log('⚠️ VIZ-V3: Plotly content area not in DOM yet (will be attached after message rendering)');
         }
 
         // IMING SAFETY: Add micro-delay to ensure DOM stability
@@ -4149,7 +4152,7 @@ class VisualizationEngine {
             throw new Error('Content area is null - cannot render Mermaid');
         }
         if (!document.contains(contentArea)) {
-            throw new Error('Content area is not attached to DOM - cannot render Mermaid');
+            console.log('⚠️ VIZ-V3: Mermaid content area not in DOM yet (will be attached after message rendering)');
         }
 
         // IMING SAFETY: Add micro-delay to ensure DOM stability
@@ -4175,7 +4178,7 @@ class VisualizationEngine {
 
         // RITICAL: Triple-check DOM validity right before manipulation
         if (!contentArea || !document.contains(contentArea)) {
-            throw new Error('Content area became invalid before appendChild - DOM timing issue');
+            console.log('⚠️ VIZ-V3: Mermaid content area not in DOM before appendChild (proceeding with render)');
         }
 
         contentArea.appendChild(mermaidDiv);
@@ -7757,7 +7760,7 @@ ${svgData}`;
             throw new Error('Content area is null - cannot render Google Chart');
         }
         if (!document.contains(contentArea)) {
-            throw new Error('Content area is not attached to DOM - cannot render Google Chart');
+            console.log('⚠️ VIZ-V3: Google Chart content area not in DOM yet (will be attached after message rendering)');
         }
 
         // IMING SAFETY: Add micro-delay to ensure DOM stability
@@ -7775,7 +7778,7 @@ ${svgData}`;
 
         // RITICAL: Triple-check DOM validity right before manipulation
         if (!contentArea || !document.contains(contentArea)) {
-            throw new Error('Content area became invalid before appendChild - DOM timing issue');
+            console.log('⚠️ VIZ-V3: Google Chart content area not in DOM before appendChild (proceeding with render)');
         }
 
         contentArea.appendChild(chartDiv);
@@ -7897,7 +7900,7 @@ ${svgData}`;
             throw new Error('Content area is null - cannot render Chart.js');
         }
         if (!document.contains(contentArea)) {
-            throw new Error('Content area is not attached to DOM - cannot render Chart.js');
+            console.log('⚠️ VIZ-V3: Chart.js content area not in DOM yet (will be attached after message rendering)');
         }
 
         // IMING SAFETY: Add micro-delay to ensure DOM stability
@@ -7926,7 +7929,7 @@ ${svgData}`;
 
         // RITICAL: Triple-check DOM validity right before manipulation
         if (!contentArea || !document.contains(contentArea)) {
-            throw new Error('Content area became invalid before appendChild - DOM timing issue');
+            console.log('⚠️ VIZ-V3: Chart.js content area not in DOM before appendChild (proceeding with render)');
         }
 
         // Wrap canvas in container to ensure proper sizing
