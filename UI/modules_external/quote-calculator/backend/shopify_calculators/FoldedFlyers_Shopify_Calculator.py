@@ -67,6 +67,7 @@ class PrintType(Enum):
 
 class FinishSize(Enum):
     """Finish size options with items per sheet"""
+    DL = ("DL - 99mm x 210mm", 99, 210, Decimal('6'), "a5_size")  # Added Jan 22, 2026 - Uses A5 margin category
     A5 = ("A5 - 148mm x 210mm", 148, 210, Decimal('4'), "a5_size")
     A4 = ("A4 - 210mm x 297mm", 210, 297, Decimal('2'), "a4_size")
     A3 = ("A3 - 297mm x 420mm", 297, 420, Decimal('1'), "a3_size")

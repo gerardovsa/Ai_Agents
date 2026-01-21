@@ -1414,7 +1414,7 @@ def calculate_folded_flyers_shopify(
     
     ✅ CURRENT PARAMETERS (use these):
         quantity: Number of flyers (100-10000)
-        size: "A5", "A4", "A3", or "6pp A4"
+        size: "DL" (99x210mm), "A5", "A4", "A3", or "6pp A4"
         stock: Paper stock (e.g., "Satin 128GSM", "Satin 150GSM", "Uncoated Bond 100GSM")
         double_sided: True for double-sided, False for single-sided (default: True)
         print_type: "Colour" or "Black & White" (default: "Colour")
@@ -1560,6 +1560,7 @@ def calculate_folded_flyers_shopify(
         
         # Translation: Map schema strings to backend enums
         size_map = {
+            "DL": FinishSize.DL,
             "A5": FinishSize.A5,
             "A4": FinishSize.A4,
             "A3": FinishSize.A3,

@@ -16,15 +16,9 @@
         },
         "finish_size": {
           "type": "string",
-          "description": "Card size: '90x55mm' (standard), '90x50mm', '85x55mm'",
+          "description": "Card size: '90x55mm' (standard business card size only)",
           "enum": [
-            "90x55mm",
-            "90x50mm",
-            "85x55mm",
-            "A4",
-            "A5",
-            "A6",
-            "DL"
+            "90x55mm"
           ]
         },
         "stock_type": {
@@ -500,7 +494,7 @@
     {
       "name": "calculate_folded_flyers_shopify",
       "short_description": "Calculate folded flyer quotes with DL and A4 sizes, fold types, and stock options",
-      "description": "Shopify calculator for Folded Flyers - Multiple sizes (A4/A5/A3/6pp A4), various stocks, folding options (single/double/triple fold). Includes celloglaze options.",
+      "description": "Shopify calculator for Folded Flyers - Multiple sizes (DL/A4/A5/A3/6pp A4), various stocks, folding options (single/double/triple fold). Includes celloglaze options.",
       "platform": "quote_calculator",
       "parameters": {
         "quantity": {
@@ -511,8 +505,9 @@
         },
         "size": {
           "type": "string",
-          "description": "Flat size before folding: 'A5', 'A4', 'A3', '6pp A4'",
+          "description": "Flat size before folding: 'DL', 'A5', 'A4', 'A3', '6pp A4'",
           "enum": [
+            "DL",
             "A4",
             "A5",
             "A3",
@@ -913,7 +908,7 @@
             "A5 Portrait",
             "A4 Portrait",
             "A4 Landscape",
-            "US Trade"
+            "US Trade - 152mm x 229mm"
           ],
           "default": "A5 Portrait"
         },
