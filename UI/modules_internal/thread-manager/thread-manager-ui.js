@@ -474,10 +474,22 @@ window.ThreadManagerUI = {
 
         console.log(`✅ [renderThreadInfoContainer] Thread found:`, { id: thread.id, title: thread.title, location: thread.location, message_count: thread.message_count });
 
-        // Use ThreadCardTemplates for consistent 7-row structure
+        // CRITICAL FIX (Jan 22, 2026): Retry if ThreadCardTemplates not loaded yet
         if (typeof window.ThreadCardTemplates === 'undefined') {
-            console.error('[renderThreadInfoContainer] ThreadCardTemplates not loaded!');
-            console.log('[renderThreadInfoContainer] Available globals:', Object.keys(window).filter(k => k.includes('Thread')));
+            console.warn('[renderThreadInfoContainer] ThreadCardTemplates not ready yet - retrying in 100ms');
+            
+            // Retry once after short delay (handles defer timing)
+            setTimeout(() => {
+                if (typeof window.ThreadCardTemplates !== 'undefined') {
+                    console.log('[renderThreadInfoContainer] ✅ ThreadCardTemplates loaded on retry');
+                    // Re-render with loaded module
+                    this.renderThreadInfoContainer(location, threadId, compact);
+                } else {
+                    console.error('[renderThreadInfoContainer] ThreadCardTemplates still not loaded after retry!');
+                    console.log('[renderThreadInfoContainer] Available globals:', Object.keys(window).filter(k => k.includes('Thread')));
+                }
+            }, 100);
+            
             return this.renderEmptyThreadInfo(location);
         }
 
@@ -877,3 +889,29 @@ window.ThreadManagerUI = {
 };
 
 console.log('✅ ThreadManager-UI module loaded');
+
+// CRITICAL FIX (Jan 22, 2026): Wait for ThreadCardTemplates if not ready yet
+// This handles defer script loading timing issues
+(function ensureThreadCardTemplates() {
+    if (typeof window.ThreadCardTemplates !== 'undefined') {
+        console.log('✅ [ThreadManager-UI] ThreadCardTemplates already loaded');
+        return;
+    }
+    
+    console.warn('[ThreadManager-UI] Waiting for ThreadCardTemplates...');
+    
+    // Listen for ready event
+    window.addEventListener('ThreadCardTemplatesReady', function onReady() {
+        console.log('✅ [ThreadManager-UI] ThreadCardTemplates ready event received');
+        window.removeEventListener('ThreadCardTemplatesReady', onReady);
+    }, { once: true });
+    
+    // Fallback timeout check (in case event missed)
+    setTimeout(() => {
+        if (typeof window.ThreadCardTemplates !== 'undefined') {
+            console.log('✅ [ThreadManager-UI] ThreadCardTemplates loaded via timeout check');
+        } else {
+            console.error('❌ [ThreadManager-UI] ThreadCardTemplates still not loaded after 500ms!');
+        }
+    }, 500);
+})();

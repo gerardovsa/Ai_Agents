@@ -809,7 +809,7 @@ window.ThreadCardTemplates = {
                                     month: 'short', day: 'numeric', year: 'numeric', 
                                     hour: 'numeric', minute: '2-digit', hour12: true 
                                 }) : 'Unknown date';
-                                return \`Full Subject: \${subject}&#10;From: \${from}&#10;To: \${to}&#10;Date: \${formattedDate}&#10;&#10;Click to open email in Communication Hub\`;
+                                return `Full Subject: ${subject}&#10;From: ${from}&#10;To: ${to}&#10;Date: ${formattedDate}&#10;&#10;Click to open email in Communication Hub`;
                             })()}">
                             <i class="fas fa-envelope" style="font-size: 14px; opacity: 0.95; flex-shrink: 0;"></i>
                             <span class="email-badge-title" style="letter-spacing: 0.01em; flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${safeEscape(thread.email_subject || 'Email Thread')}</span>
@@ -1078,3 +1078,12 @@ window.ThreadCardTemplates = {
 
 // Confirm module loaded
 console.log('✅ [ThreadCardTemplates] Module loaded successfully');
+
+// Dispatch event to notify dependent modules (CRITICAL FIX - Jan 22, 2026)
+// This ensures thread-manager-ui.js knows ThreadCardTemplates is ready
+if (typeof window !== 'undefined') {
+    window.dispatchEvent(new CustomEvent('ThreadCardTemplatesReady', {
+        detail: { timestamp: Date.now() }
+    }));
+    console.log('📡 [ThreadCardTemplates] Ready event dispatched');
+}
