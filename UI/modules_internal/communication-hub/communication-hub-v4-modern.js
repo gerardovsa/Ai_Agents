@@ -2899,9 +2899,27 @@ window.communicationHub = {
                 this.log.info('✅ Cleared custom instruction textarea (early)');
             }
 
-            // ✅ CRITICAL: FORCE MULTIPLE IMMEDIATE TABLE REDRAWS (Jan 21, 2026)
+            // ✅ CRITICAL: UPDATE SPECIFIC ROW + TABLE REDRAW (Jan 23, 2026)
             // Don't wait for AI response - update UI instantly after assignment
             if (this.state.tabulatorTable) {
+                // ✅ FIX: Update the specific row to trigger formatter re-evaluation
+                try {
+                    const row = this.state.tabulatorTable.getRow(emailId);
+                    if (row) {
+                        // Update row data to trigger formatter
+                        row.update({
+                            assigned_agent: agentName,
+                            _threadSlug: threadSlug,
+                            _processing: false  // Remove processing state
+                        });
+                        this.log.info('✅ Row updated - AI Agent column should refresh immediately');
+                    } else {
+                        this.log.warn('⚠️ Row not found for emailId:', emailId);
+                    }
+                } catch (err) {
+                    this.log.error('❌ Failed to update row:', err);
+                }
+                
                 // First redraw - show assignment happened
                 this.state.tabulatorTable.redraw();
                 this.log.info('✅ Table redraw 1/3 - assignment stored');
@@ -4046,9 +4064,22 @@ Draft questions for the customer listing all missing details required for accura
 
             this.dom.injectHTML(previewContent, contentHtml);
 
-            // ✅ FIX (Jan 22, 2026): Redraw table to update AI Agent column when preview loads
+            // ✅ FIX (Jan 23, 2026): Update specific row + redraw table to sync AI Agent column
             if (this.state.tabulatorTable) {
                 this.log.debug('Refreshing AI Agent column after email preview load');
+                
+                // Update the specific row to trigger cell formatter
+                try {
+                    const row = this.state.tabulatorTable.getRow(emailData.id);
+                    if (row) {
+                        // Trigger formatter re-evaluation by updating row
+                        row.update({ _lastUpdated: Date.now() });
+                        this.log.debug('✅ Row updated for email:', emailData.id.substring(0, 30));
+                    }
+                } catch (err) {
+                    this.log.warn('Could not update row after preview:', err.message);
+                }
+                
                 this.state.tabulatorTable.redraw();
             }
 
@@ -4100,9 +4131,21 @@ Draft questions for the customer listing all missing details required for accura
 
             this.dom.injectHTML(previewContent, snippetHtml);
             
-            // ✅ FIX (Jan 22, 2026): Redraw table even in error case to update AI Agent column
+            // ✅ FIX (Jan 23, 2026): Update specific row + redraw table even in error case
             if (this.state.tabulatorTable) {
                 this.log.debug('Refreshing AI Agent column after email preview (error case)');
+                
+                // Update the specific row to trigger cell formatter
+                try {
+                    const row = this.state.tabulatorTable.getRow(emailData.id);
+                    if (row) {
+                        row.update({ _lastUpdated: Date.now() });
+                        this.log.debug('✅ Row updated for email (error case):', emailData.id.substring(0, 30));
+                    }
+                } catch (err) {
+                    this.log.warn('Could not update row after error preview:', err.message);
+                }
+                
                 this.state.tabulatorTable.redraw();
             }
         }
