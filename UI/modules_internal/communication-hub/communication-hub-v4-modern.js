@@ -615,9 +615,12 @@ window.communicationHub = {
                 <div class="filter-group" style="display: flex; align-items: center; gap: 8px;">
                     <label style="color: #8b949e; font-size: 0.9em; font-weight: 600;"><i class="fas fa-list"></i> Show:</label>
                     <select id="email-limit" class="filter-select" style="padding: 6px 12px; background: #161b22; border: 1px solid #30363d; border-radius: 4px; color: #f3f4f6; font-size: 0.9em;">
-                        <option value="20" selected>20 emails</option>
-                        <option value="50">50 emails</option>
+                        <option value="20">20 emails</option>
+                        <option value="50" selected>50 emails</option>
                         <option value="100">100 emails</option>
+                        <option value="200">200 emails</option>
+                        <option value="500">500 emails</option>
+                        <option value="1000">1000 emails</option>
                     </select>
                 </div>
                 
