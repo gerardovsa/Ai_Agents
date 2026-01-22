@@ -193,6 +193,52 @@ class TwoRuleStreamProcessor {
         // Release all pending packages
         await this.releaseReadyPackages();
 
+        // CRITICAL FIX (Jan 23, 2026): Process deferred renders after DOM attachment
+        if (this.deferredRenders && this.deferredRenders.length > 0) {
+            console.log(`🔄 TWO-RULE: Processing ${this.deferredRenders.length} deferred visualizations...`);
+            
+            // Wait for container to be in DOM (parent message should be attached by now)
+            await new Promise(resolve => requestAnimationFrame(resolve));
+            await new Promise(resolve => setTimeout(resolve, 200)); // Increased from 100ms to 200ms
+            
+            for (const deferred of this.deferredRenders) {
+                try {
+                    console.log(`🎨 TWO-RULE: Rendering deferred ${deferred.type}...`);
+                    console.log(`   Container in DOM: ${document.contains(deferred.container)}`);
+                    
+                    // Clear loading placeholder
+                    deferred.container.innerHTML = '';
+                    
+                    // Render with full retry logic
+                    await this.renderVisualization(
+                        deferred.type,
+                        deferred.content,
+                        deferred.container
+                    );
+                    
+                    console.log(`✅ TWO-RULE: Deferred ${deferred.type} rendered successfully`);
+                } catch (error) {
+                    console.error(`❌ TWO-RULE: Deferred ${deferred.type} render failed:`, error);
+                    console.error(`   Error details:`, error.stack);
+                    
+                    // Show error in container with more details
+                    deferred.container.innerHTML = `
+                        <div class="viz-error" style="text-align: center; padding: 20px; color: var(--accent-red); background: rgba(239, 68, 68, 0.1); border-radius: 8px;">
+                            <h3 style="margin: 0 0 8px 0; font-size: 16px;">⚠️ ${deferred.type.toUpperCase()} Render Failed</h3>
+                            <p style="margin: 0; font-size: 13px; color: var(--text-secondary);">${error.message}</p>
+                            <details style="margin-top: 12px; text-align: left; font-size: 11px;">
+                                <summary style="cursor: pointer; color: var(--accent-primary);">Show Details</summary>
+                                <pre style="background: rgba(0,0,0,0.2); padding: 8px; border-radius: 4px; overflow-x: auto; white-space: pre-wrap; margin-top: 8px;">${error.stack || 'No stack trace'}</pre>
+                            </details>
+                        </div>
+                    `;
+                }
+            }
+            
+            // Clear deferred queue
+            this.deferredRenders = [];
+        }
+
         console.log(`✅ TWO-RULE: Finalized (${this.stats.chunksProcessed} chunks, ${this.stats.markdownPackages} markdown, ${this.stats.visualPackages} visuals)`);
     }
 
@@ -888,10 +934,32 @@ class TwoRuleStreamProcessor {
         }
 
         if (!attached) {
-            console.warn('⚠️ TWO-RULE: Container not in DOM after retries, rendering anyway');
-            // Don't fail - render anyway as container might be attached after this function returns
-            // vizContainer.innerHTML = '<div style="color: red; padding: 20px;">Failed to create visualization container</div>';
-            // return; // REMOVED: Allow rendering to continue
+            console.warn('⚠️ TWO-RULE: Container not in DOM after retries - will retry after message attachment');
+            
+            // CRITICAL FIX (Jan 23, 2026): Defer rendering until message fully attached
+            // Store deferred render task to execute after DOM attachment
+            if (!this.deferredRenders) {
+                this.deferredRenders = [];
+            }
+            
+            this.deferredRenders.push({
+                type: pkg.subType,
+                content: innerContent,
+                container: vizContainer,
+                chartId: `viz-${pkg.id || Date.now()}`
+            });
+            
+            console.log(`📌 TWO-RULE: Deferred ${pkg.subType} render (will execute after finalize)`);
+            
+            // Show loading placeholder with themed spinner
+            vizContainer.innerHTML = `
+                <div class="viz-loading" style="text-align: center; padding: 40px; color: var(--text-secondary);">
+                    <i class="fas fa-spinner fa-spin" style="font-size: 32px; color: var(--accent-primary); margin-bottom: 12px; display: block;"></i>
+                    <p style="font-size: 14px; margin: 0;">Loading visualization...</p>
+                </div>
+            `;
+            
+            return; // Skip immediate render
         }
 
         // Render visualization using available engine
@@ -1010,8 +1078,13 @@ class TwoRuleStreamProcessor {
 
             const item = { type: type, content: content };
 
-            // RITICAL FIX: Add DOM validation before rendering
+            // CRITICAL FIX: Add DOM validation before rendering
             console.log(`🎯 TWO-RULE: Rendering ${type} in container:`, targetContainer.className, 'DOM attached:', document.contains(targetContainer));
+            
+            // Ensure target container is in DOM before rendering
+            if (!document.contains(targetContainer)) {
+                console.warn(`⚠️ VIZ-V3: Container not in DOM yet (will be attached after message rendering)`);
+            }
 
             // Render with targeted handling for Plotly streaming reliability
             if (type === 'plotly') {

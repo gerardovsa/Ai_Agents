@@ -31,9 +31,34 @@ class ApexChartsRenderer {
             await this.loadLibrary();
         }
 
-        // DOM validation
-        if (!contentArea || !document.contains(contentArea)) {
-            throw new Error('ApexCharts: Invalid content area');
+        // DOM validation - container MUST be in DOM for ApexCharts initialization
+        // ApexCharts.render() requires the container to be attached to DOM tree
+        if (!contentArea) {
+            throw new Error('ApexCharts: Invalid content area - container is null');
+        }
+        
+        // CRITICAL FIX (Jan 23, 2026): Wait for DOM attachment with retry logic
+        // ApexCharts initialization fails silently if container not in DOM
+        if (!document.contains(contentArea)) {
+            console.log('⚠️ APEXCHARTS: Container not in DOM yet - waiting with retry...');
+            
+            const maxRetries = 30; // 30 retries × 100ms = 3000ms max wait (increased from 1000ms)
+            let retries = 0;
+            
+            while (!document.contains(contentArea) && retries < maxRetries) {
+                await new Promise(resolve => setTimeout(resolve, 100)); // Increased from 50ms to 100ms
+                retries++;
+                
+                if (retries % 10 === 0) {
+                    console.log(`   APEXCHARTS: Still waiting... (${retries * 100}ms elapsed)`);
+                }
+            }
+            
+            if (!document.contains(contentArea)) {
+                throw new Error(`ApexCharts: Content area not attached to DOM after ${maxRetries * 100}ms timeout`);
+            }
+            
+            console.log(`✅ APEXCHARTS: Container now in DOM (after ${retries * 100}ms)`);
         }
 
         // Parse configuration - handle both JSON and JS object notation

@@ -984,10 +984,14 @@ class VisualizationEngine {
             width: 68px;
             height: 10px;
             border-radius: 999px;
-            background: linear-gradient(90deg, rgba(255,122,0,0.25), rgba(255,122,0,0.65), rgba(255,122,0,0.25));
+            background: linear-gradient(90deg, 
+                var(--accent-primary-alpha-25, rgba(59, 130, 246, 0.25)), 
+                var(--accent-primary-alpha-65, rgba(59, 130, 246, 0.65)), 
+                var(--accent-primary-alpha-25, rgba(59, 130, 246, 0.25))
+            );
             box-shadow: 0 2px 6px rgba(0,0,0,0.35);
             cursor: ns-resize;
-            transition: background 0.2s ease, opacity 0.2s ease;
+            transition: background 0.2s ease, opacity 0.2s ease, box-shadow 0.2s ease;
             z-index: 20;
         }
 
@@ -996,12 +1000,17 @@ class VisualizationEngine {
             position: absolute;
             inset: 2px 10px;
             border-radius: 999px;
-            background: rgba(0,0,0,0.4);
+            background: var(--bg-tertiary, rgba(0,0,0,0.4));
         }
 
         .viz-content-area.is-resizing .viz-resize-handle,
         .viz-resize-handle:hover {
-            background: linear-gradient(90deg, rgba(255,122,0,0.45), rgba(255,122,0,0.85), rgba(255,122,0,0.45));
+            background: linear-gradient(90deg, 
+                var(--accent-primary-alpha-45, rgba(59, 130, 246, 0.45)), 
+                var(--accent-primary-alpha-85, rgba(59, 130, 246, 0.85)), 
+                var(--accent-primary-alpha-45, rgba(59, 130, 246, 0.45))
+            );
+            box-shadow: 0 3px 8px rgba(0,0,0,0.45);
         }
 
         /* ction bar styling */
@@ -9230,14 +9239,15 @@ ${svgData}`;
 
     // 10.2.2
     showErrorDirectly(contentArea, message) {
-        // RITICAL: DOM validation before any DOM manipulation
+        // CRITICAL: Container validation (doesn't need to be in DOM yet)
         if (!contentArea) {
-            console.error(' Cannot show error - content area is null:', message);
+            console.error('❌ Cannot show error - content area is null:', message);
             return;
         }
+        
+        // Log DOM attachment status but don't block error display
         if (!document.contains(contentArea)) {
-            console.error(' Cannot show error - content area not in DOM:', message);
-            return;
+            console.warn('⚠️ Showing error in container not yet in DOM (will be visible after message render):', message);
         }
 
         contentArea.innerHTML = `

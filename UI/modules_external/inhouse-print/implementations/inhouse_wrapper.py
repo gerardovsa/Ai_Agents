@@ -38,7 +38,7 @@ if quote_calc_backend not in sys.path:
 # InHouse Print tools use direct database access via db_connector.py instead
 # See INHOUSE_TOOLS_COMPLETE_FIX_JAN13_2026.md for architecture details
 ToolUseAgent = None
-print("[InHouse Wrapper] ℹ️ Using direct database access (ToolUseAgent disabled)")
+print("[InHouse Wrapper] Using direct database access (ToolUseAgent disabled)")
 
 # Singleton instance
 _agent_instance = None
@@ -513,19 +513,123 @@ def inhouse_calculate_quote(product_type: str, parameters: Optional[Dict[str, An
         if not tool_name:
             return {
                 "success": False,
-                "error": f"Unknown product type: {product_type}",
-                "available_types": list(calculator_map.keys())
+                "error": f"Unknown product type: '{product_type}'",
+                "available_types": list(calculator_map.keys()),
+                "help": "Call inhouse_calculator_guide() to see all calculator types and workflows"
             }
+        
+        # ========================================================================
+        # ✅ VALIDATION (Jan 23, 2026): Wrapper-level parameter validation
+        # ========================================================================
+        # Validates structure and enums before routing to calculator
+        # Provides InHouse-specific context and guidance
+        
+        # Get calculator schema for validation
+        tool_schema = registry.get_tool(tool_name)
+        
+        if not tool_schema:
+            return {
+                "success": False,
+                "error": f"Calculator schema not found: {tool_name}",
+                "help": "This may indicate a registry initialization issue"
+            }
+        
+        # Extract schema properties
+        input_schema = tool_schema.get("input_schema", {})
+        required_params = input_schema.get("required", [])
+        schema_props = input_schema.get("properties", {})
+        
+        # 1. Validate required parameters exist
+        missing_params = []
+        for param in required_params:
+            if param not in parameters or parameters[param] is None:
+                missing_params.append(param)
+        
+        if missing_params:
+            return {
+                "success": False,
+                "error": f"Missing required parameters: {', '.join(missing_params)}",
+                "missing_parameters": missing_params,
+                "help": f"Call inhouse_get_calculator_requirements('{product_type}') to see parameter details and examples",
+                "workflow_reminder": "Recommended workflow: 1) inhouse_calculator_guide() → 2) inhouse_get_calculator_requirements() → 3) inhouse_calculate_quote()"
+            }
+        
+        # 2. Validate enum values and parameter types
+        validation_errors = []
+        for param_name, param_value in parameters.items():
+            if param_name in schema_props:
+                param_schema = schema_props[param_name]
+                
+                # Check enum constraints
+                if "enum" in param_schema:
+                    valid_values = param_schema["enum"]
+                    if param_value not in valid_values:
+                        # Format enum list nicely
+                        if len(valid_values) <= 5:
+                            enum_str = ", ".join(map(str, valid_values))
+                        else:
+                            enum_str = ", ".join(map(str, valid_values[:5])) + f", ... ({len(valid_values)} total options)"
+                        
+                        validation_errors.append({
+                            "parameter": param_name,
+                            "invalid_value": param_value,
+                            "valid_options": valid_values,
+                            "error": f"Invalid {param_name}: '{param_value}'. Must be one of: {enum_str}"
+                        })
+                
+                # Check type constraints (basic validation)
+                expected_type = param_schema.get("type")
+                if expected_type == "integer" and not isinstance(param_value, int):
+                    try:
+                        # Try to convert strings to int
+                        int(param_value)
+                    except (ValueError, TypeError):
+                        validation_errors.append({
+                            "parameter": param_name,
+                            "invalid_value": param_value,
+                            "expected_type": "integer",
+                            "error": f"Invalid {param_name}: '{param_value}'. Must be an integer"
+                        })
+        
+        if validation_errors:
+            return {
+                "success": False,
+                "error": "Parameter validation failed",
+                "validation_errors": validation_errors,
+                "parameters_provided": parameters,
+                "help": f"Call inhouse_get_calculator_requirements('{product_type}') for valid parameter values and natural language mapping"
+            }
+        
+        # 3. Check for common mistakes (InHouse-specific business rules)
+        warnings = []
+        
+        # Warn about celloglaze on non-Satin stocks
+        if "stock" in parameters and "celloglaze" in parameters:
+            stock = str(parameters["stock"]).lower()
+            celloglaze = str(parameters.get("celloglaze", "")).lower()
+            if "uncoated" in stock and celloglaze != "none" and celloglaze != "":
+                warnings.append({
+                    "type": "business_rule",
+                    "message": "Celloglaze is only available for Satin paper stocks (not Uncoated Bond)",
+                    "suggestion": "Change stock to Satin or remove celloglaze option"
+                })
         
         # Execute calculator tool via registry
         # Note: execute_tool expects tool_name in kwargs
         result = registry.execute_tool(tool_name=tool_name, **parameters)
         
-        return {
+        response = {
             "success": True,
             "product_type": product_type,
-            "quote": result
+            "quote": result,
+            "validated_by": "inhouse_wrapper"
         }
+        
+        # Include warnings if any business rule checks triggered
+        if warnings:
+            response["warnings"] = warnings
+        
+        return response
         
     except Exception as e:
         import traceback

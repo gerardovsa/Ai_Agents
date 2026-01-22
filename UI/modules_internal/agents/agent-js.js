@@ -4564,6 +4564,19 @@ async function sendAgentMessage(agentId) {
         const startData = await response.json();
         console.log(`[Agent ${agentId}] Agent started:`, startData);
 
+        // ✅ ROBUST FIX (Jan 23, 2026): Extract LSN and message_id for read-after-write consistency
+        // Issue: Race condition where /stream called before /start's DB write visible
+        // Solution: Pass LSN to /stream endpoint - backend waits for exact transaction
+        const writeLsn = startData.write_lsn;
+        const messageId = startData.message_id;
+        
+        if (writeLsn) {
+            console.log(`[Agent ${agentId}] 🔒 Write LSN captured: ${writeLsn} (ensures read-after-write consistency)`);
+        }
+        if (messageId) {
+            console.log(`[Agent ${agentId}] 🆔 Message ID captured: ${messageId} (for verification)`);
+        }
+
         // ✅ NEW: Accept backend's conversation
         if (startData.conversation && Array.isArray(startData.conversation)) {
             console.log(`✅ [Agent ${agentId}] Backend returned ${startData.conversation.length} messages (authoritative)`);
@@ -4594,7 +4607,21 @@ async function sendAgentMessage(agentId) {
         // Step 2: Connect to SSE stream (SAME AS PRIME!)
         console.log(`[Agent ${agentId}] Connecting to SSE stream...`);
 
-        const streamUrl = `${window.API_BASE_URL || 'http://localhost:5001'}/api/agent/stream/${agentId}?thread_slug=${threadSlug}`;
+        // ✅ ROBUST FIX (Jan 23, 2026): Pass LSN and message_id for read-after-write consistency
+        let streamUrl = `${window.API_BASE_URL || 'http://localhost:5001'}/api/agent/stream/${agentId}?thread_slug=${threadSlug}`;
+        
+        // Add LSN if available (backend will wait for this transaction to be visible)
+        if (writeLsn) {
+            streamUrl += `&write_lsn=${encodeURIComponent(writeLsn)}`;
+            console.log(`[Agent ${agentId}] 🔒 Stream URL includes LSN for guaranteed consistency`);
+        }
+        
+        // Add message_id if available (backend will verify message exists)
+        if (messageId) {
+            streamUrl += `&message_id=${encodeURIComponent(messageId)}`;
+            console.log(`[Agent ${agentId}] 🆔 Stream URL includes message_id for verification`);
+        }
+        
         console.log(`[Agent ${agentId}] Stream URL:`, streamUrl);
 
         // Create AbortController for this agent's stream

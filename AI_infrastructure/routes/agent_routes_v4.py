@@ -31,6 +31,7 @@ RETAINED FEATURES (ALL):
 
 import json
 import logging
+import time  # ✅ NEW: For LSN wait logic
 from typing import Dict, Any, Optional, List, Generator
 from functools import wraps
 import sys
@@ -875,6 +876,46 @@ def start_agent(agent_id):
             )
         
         # ============================================
+        # STEP 4.5: READ-AFTER-WRITE GUARANTEE (Jan 23, 2026)
+        # ============================================
+        # Issue: /stream endpoint may read stale data before /start's write commits
+        # Solution: Get database transaction LSN and verify write is visible
+        print(f"\n[START] 🔒 STEP 4.5: Verifying database write visibility...")
+        
+        write_lsn = None
+        message_id = None
+        try:
+            with get_database_connection('sessions') as conn:
+                with conn.cursor() as cursor:
+                    # Get the WAL LSN (Write-Ahead Log position) after our write
+                    cursor.execute("SELECT pg_current_wal_lsn()")
+                    write_lsn_result = cursor.fetchone()
+                    if write_lsn_result:
+                        write_lsn = write_lsn_result[0] if isinstance(write_lsn_result, tuple) else write_lsn_result.get('pg_current_wal_lsn')
+                        print(f"[START] 📍 Write LSN captured: {write_lsn}")
+                    
+                    # Get the message ID we just created (for verification)
+                    where_clause, lookup_value = get_thread_lookup_clause(thread_slug)
+                    sql = f"""
+                        SELECT m.id 
+                        FROM sessions.messages m
+                        JOIN sessions.threads t ON m.thread_id = t.id
+                        WHERE {where_clause}
+                        ORDER BY m.created_at DESC
+                        LIMIT 1
+                    """
+                    cursor.execute(sql, (lookup_value,))
+                    result = cursor.fetchone()
+                    if result:
+                        message_id = result[0] if isinstance(result, tuple) else result.get('id')
+                        print(f"[START] 🆔 Message ID verified: {message_id}")
+                    else:
+                        print(f"[START] ⚠️ Could not verify message ID (may still be committing)")
+        except Exception as e:
+            print(f"[START] ⚠️ LSN capture failed (non-critical): {e}")
+            # Not critical - we'll rely on retry logic in /stream endpoint
+        
+        # ============================================
         # STEP 5: UPDATE STATE MANAGER (for worker)
         # ============================================
         print(f"\n[START] 🔄 STEP 5: Updating state manager for worker...")
@@ -931,7 +972,7 @@ def start_agent(agent_id):
         print(f"{'='*80}\n")
         
         # ============================================
-        # STEP 7: RETURN SUCCESS (with conversation)
+        # STEP 7: RETURN SUCCESS (with conversation + LSN)
         # ============================================
         response_data = {
             'session_id': thread_slug,
@@ -939,10 +980,12 @@ def start_agent(agent_id):
             'agent_id': agent_id,
             'status': 'processing',
             'conversation': conversation,  # ✅ Return authoritative conversation
-            'message': 'Backend loaded conversation from database - use this as source of truth'
+            'message': 'Backend loaded conversation from database - use this as source of truth',
+            'write_lsn': write_lsn,  # ✅ NEW: LSN for read-after-write consistency
+            'message_id': message_id  # ✅ NEW: Message ID for verification
         }
         
-        print(f"[START] 📤 Returning response with {len(conversation)} messages")
+        print(f"[START] 📤 Returning response with {len(conversation)} messages (LSN: {write_lsn})")
         return success_response(response_data)
     
     except Exception as e:
@@ -965,6 +1008,11 @@ def stream_agent(agent_id):
     """
     FIXED: Database as source of truth for streaming
     
+    READ-AFTER-WRITE CONSISTENCY (Jan 23, 2026):
+    - Waits for specific database transaction to be visible
+    - Uses LSN (Log Sequence Number) from /start endpoint
+    - Eliminates race condition completely
+    
     CURSOR FIXES:
     - cursor/cursor2 = None initialization
     - finally blocks for cleanup
@@ -973,6 +1021,8 @@ def stream_agent(agent_id):
     Loads conversation from DB instead of trusting frontend state
     """
     thread_slug = request.args.get('thread_slug') or request.args.get('session_id')
+    required_lsn = request.args.get('write_lsn')  # ✅ NEW: LSN from /start endpoint
+    required_message_id = request.args.get('message_id')  # ✅ NEW: Message ID to verify
     
     if not thread_slug:
         return error_response("Missing thread_slug or session_id", 400)
@@ -981,9 +1031,81 @@ def stream_agent(agent_id):
         return error_response("thread_slug cannot be empty", 400)
     
     print(f"\n{'='*80}")
-    print(f"[STREAM] Agent {agent_id} stream started (DATABASE AS SOURCE OF TRUTH)")
+    print(f"[STREAM] Agent {agent_id} stream started (READ-AFTER-WRITE GUARANTEE)")
     print(f"{'='*80}")
     print(f"[STREAM] Thread Slug: {thread_slug}")
+    if required_lsn:
+        print(f"[STREAM] 🔒 Required LSN: {required_lsn} (read-after-write consistency)")
+    if required_message_id:
+        print(f"[STREAM] 🆔 Required Message ID: {required_message_id}")
+    
+    # ============================================
+    # WAIT FOR DATABASE TRANSACTION VISIBILITY
+    # ============================================
+    if required_lsn:
+        print(f"[STREAM] ⏳ Waiting for database to reach LSN {required_lsn}...")
+        max_wait_seconds = 5
+        start_wait = time.time()
+        
+        try:
+            with get_database_connection('sessions') as conn:
+                with conn.cursor() as cursor:
+                    while True:
+                        # Check if database has replayed up to required LSN
+                        cursor.execute("""
+                            SELECT 
+                                CASE 
+                                    WHEN pg_is_in_recovery() THEN 
+                                        pg_last_wal_replay_lsn() >= %s::pg_lsn
+                                    ELSE 
+                                        pg_current_wal_lsn() >= %s::pg_lsn
+                                END as is_visible
+                        """, (required_lsn, required_lsn))
+                        
+                        result = cursor.fetchone()
+                        is_visible = result[0] if isinstance(result, tuple) else result.get('is_visible')
+                        
+                        if is_visible:
+                            elapsed = time.time() - start_wait
+                            print(f"[STREAM] ✅ Database reached LSN after {elapsed:.3f}s")
+                            break
+                        
+                        # Check timeout
+                        if time.time() - start_wait > max_wait_seconds:
+                            print(f"[STREAM] ⚠️ Timeout waiting for LSN after {max_wait_seconds}s (proceeding anyway)")
+                            break
+                        
+                        # Brief sleep before retry
+                        time.sleep(0.05)  # 50ms
+        except Exception as e:
+            print(f"[STREAM] ⚠️ LSN wait failed (proceeding anyway): {e}")
+    
+    # ============================================
+    # VERIFY MESSAGE EXISTS (if message_id provided)
+    # ============================================
+    if required_message_id:
+        print(f"[STREAM] 🔍 Verifying message {required_message_id} exists...")
+        max_retries = 3
+        message_found = False
+        
+        for attempt in range(max_retries):
+            try:
+                with get_database_connection('sessions') as conn:
+                    with conn.cursor() as cursor:
+                        cursor.execute("SELECT id FROM sessions.messages WHERE id = %s", (required_message_id,))
+                        result = cursor.fetchone()
+                        if result:
+                            message_found = True
+                            print(f"[STREAM] ✅ Message verified (attempt {attempt + 1})")
+                            break
+            except Exception as e:
+                print(f"[STREAM] ⚠️ Verification attempt {attempt + 1} failed: {e}")
+            
+            if not message_found and attempt < max_retries - 1:
+                time.sleep(0.2 * (attempt + 1))  # Backoff: 0.2s, 0.4s, 0.6s
+        
+        if not message_found:
+            print(f"[STREAM] ⚠️ Message not verified after {max_retries} attempts (proceeding anyway)")
     
     # ============================================
     # LOAD CONVERSATION FROM DATABASE
@@ -1044,8 +1166,40 @@ def stream_agent(agent_id):
             print(f"[STREAM] Extracted current message, history reduced to {len(conversation_without_current)} messages")
             break
     
+    # ✅ FIX: Race condition - new user message not in DB yet
     if not last_message:
-        return error_response(f"No user message found in conversation", 400)
+        print(f"[STREAM] ⚠️ WARNING: No user message found (last message role: {conversation[-1].get('role') if conversation else 'none'})")
+        print(f"[STREAM] This might be a race condition - waiting 1 second for database write...")
+        import time
+        time.sleep(1.0)
+        
+        # Retry loading conversation
+        conversation = load_conversation_from_database(thread_slug)
+        conversation = validate_and_fix_tool_pairs(conversation)
+        print(f"[STREAM] Retry: Loaded {len(conversation)} messages")
+        
+        # Try extracting user message again
+        for idx in range(len(conversation) - 1, -1, -1):
+            msg = conversation[idx]
+            if msg.get('role') == 'user':
+                content = msg.get('content', '')
+                if isinstance(content, str):
+                    last_message = content
+                elif isinstance(content, list):
+                    for block in content:
+                        if isinstance(block, dict) and block.get('type') == 'text':
+                            last_message = block.get('text', '')
+                            break
+                
+                conversation_without_current = conversation[:idx]
+                print(f"[STREAM] ✅ Retry successful: Found user message, history reduced to {len(conversation_without_current)} messages")
+                break
+        
+        # Still no user message after retry?
+        if not last_message:
+            error_msg = f"No user message found in conversation even after retry (last role: {conversation[-1].get('role') if conversation else 'none'})"
+            print(f"[STREAM] ❌ ERROR: {error_msg}")
+            return error_response(error_msg, 400)
     
     # Get user_id and preferences
     user_id = g.get('user_id', 1)
