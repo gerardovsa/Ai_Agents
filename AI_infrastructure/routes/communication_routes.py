@@ -205,9 +205,10 @@ def list_emails():
         user_id = request.args.get('user_id', 1, type=int)
     account = request.args.get('account', 'all')
     limit = request.args.get('limit', 200, type=int)  # Increased from 50 to 200 for better thread coverage
+    skip = request.args.get('skip', 0, type=int)  # ✅ PAGINATION: Offset for fetching next batch
     thread_id = request.args.get('thread_id', None)  # ✅ NEW: Filter by specific thread
     
-    print(f"[Communication Hub] 📬 Listing emails: user_id={user_id}, account={account}, limit={limit}, thread_id={thread_id}")
+    print(f"[Communication Hub] 📬 Listing emails: user_id={user_id}, account={account}, limit={limit}, skip={skip}, thread_id={thread_id}")
     print(f"[Communication Hub] 🔍 DEBUG: thread_id type={type(thread_id)}, value='{thread_id}', bool={bool(thread_id)}")
     
     # ✅ FIRST: Check which accounts user has connected (with circuit breaker protection)
@@ -293,6 +294,7 @@ def list_emails():
                 # No thread filter - list messages normally
                 gmail_params = {
                     'max_results': limit,
+                    'skip': skip,  # ✅ PAGINATION: Pass skip to Gmail wrapper
                     '_user_id': user_id,
                     '_injected_credentials': True
                 }
@@ -446,6 +448,7 @@ def list_emails():
                 # No thread filter - list messages normally
                 outlook_result = microsoft_outlook_list_messages(
                     max_results=limit,
+                    skip=skip,  # ✅ PAGINATION: Pass skip to Outlook wrapper
                     _user_id=user_id,
                     _injected_credentials=True
                 )

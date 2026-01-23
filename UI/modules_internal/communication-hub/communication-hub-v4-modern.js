@@ -98,6 +98,7 @@ window.communicationHub = {
         pageSize: 50,
         currentAccountFilter: 'all',
         currentEmailLimit: 20,  // Reduced for faster loading
+        currentEmailOffset: 0,  // ✅ PAGINATION: Track current position in email list
 
         // Backend configuration
         apiBase: null,
@@ -624,6 +625,17 @@ window.communicationHub = {
                     </select>
                 </div>
                 
+                <!-- Pagination Controls -->
+                <div class="filter-group" style="display: flex; align-items: center; gap: 4px; border-left: 1px solid #30363d; padding-left: 12px;">
+                    <button id="email-prev-btn" class="btn-secondary" style="padding: 6px 12px; background: #0d1117; border: 1px solid #30363d; color: #8b949e; border-radius: 4px; cursor: pointer; font-size: 0.9em; display: flex; align-items: center; gap: 4px; transition: all 0.2s;" disabled>
+                        <i class="fas fa-chevron-left"></i> Prev
+                    </button>
+                    <span id="pagination-info" style="color: #8b949e; font-size: 0.85em; padding: 0 8px; white-space: nowrap;">1-20</span>
+                    <button id="email-next-btn" class="btn-secondary" style="padding: 6px 12px; background: #0d1117; border: 1px solid #30363d; color: #8b949e; border-radius: 4px; cursor: pointer; font-size: 0.9em; display: flex; align-items: center; gap: 4px; transition: all 0.2s;">
+                        Next <i class="fas fa-chevron-right"></i>
+                    </button>
+                </div>
+                
                 <!-- Refresh Button -->
                 <div class="filter-group" style="display: flex; align-items: center; gap: 8px;">
                     <button id="email-refresh-btn" class="btn-secondary" style="padding: 6px 14px; background: #0d1117; border: 2px solid #3b82f6; color: #3b82f6; border-radius: 6px; cursor: pointer; font-size: 0.9em; display: flex; align-items: center; gap: 6px; transition: all 0.2s;">
@@ -1101,8 +1113,35 @@ window.communicationHub = {
             if (emailLimit) {
                 this.dom.on(emailLimit, 'change', (e) => {
                     this.state.currentEmailLimit = parseInt(e.target.value);
+                    this.state.currentEmailOffset = 0;  // ✅ Reset to first page when limit changes
                     this.log.debug(`Email limit changed: ${e.target.value}`);
                 });
+            }
+            
+            // Pagination buttons
+            const prevBtn = document.getElementById('email-prev-btn');
+            const nextBtn = document.getElementById('email-next-btn');
+            
+            if (prevBtn) {
+                const prevHandler = async () => {
+                    const limit = this.state.currentEmailLimit;
+                    this.state.currentEmailOffset = Math.max(0, this.state.currentEmailOffset - limit);
+                    this.log.info(`⬅️ Previous page: offset=${this.state.currentEmailOffset}`);
+                    await this.loadEmails();
+                    this.updatePaginationUI();
+                };
+                this.dom.on(prevBtn, 'click', prevHandler);
+            }
+            
+            if (nextBtn) {
+                const nextHandler = async () => {
+                    const limit = this.state.currentEmailLimit;
+                    this.state.currentEmailOffset += limit;
+                    this.log.info(`➡️ Next page: offset=${this.state.currentEmailOffset}`);
+                    await this.loadEmails();
+                    this.updatePaginationUI();
+                };
+                this.dom.on(nextBtn, 'click', nextHandler);
             }
         }
 
@@ -1395,10 +1434,11 @@ window.communicationHub = {
             const params = {
                 user_id: userId,
                 account: this.state.currentAccountFilter,
-                limit: this.state.currentEmailLimit
+                limit: this.state.currentEmailLimit,
+                skip: this.state.currentEmailOffset  // ✅ PAGINATION: Pass offset to backend
             };
 
-            this.log.info(`Fetching emails: user_id=${params.user_id}, account=${params.account}, limit=${params.limit}`);
+            this.log.info(`Fetching emails: user_id=${params.user_id}, account=${params.account}, limit=${params.limit}, skip=${params.skip}`);
             this.log.info(`API URL: ${this.state.apiBase}/emails`);
 
             const response = await this.api.get(`${this.state.apiBase}/emails`, { params });
@@ -1441,6 +1481,54 @@ window.communicationHub = {
         } finally {
             this.state.loading.emails = false;
             this.showLoadingState(false);
+            this.updatePaginationUI();  // ✅ Update pagination info after load
+        }
+    },
+    
+    /**
+     * Update pagination UI (Previous/Next buttons, page info)
+     */
+    updatePaginationUI() {
+        const prevBtn = document.getElementById('email-prev-btn');
+        const nextBtn = document.getElementById('email-next-btn');
+        const paginationInfo = document.getElementById('pagination-info');
+        
+        const offset = this.state.currentEmailOffset;
+        const limit = this.state.currentEmailLimit;
+        const emailCount = this.state.emails.length;
+        
+        // Update page info text
+        if (paginationInfo) {
+            const start = offset + 1;
+            const end = offset + emailCount;
+            paginationInfo.textContent = `${start}-${end}`;
+        }
+        
+        // Enable/disable Previous button
+        if (prevBtn) {
+            if (offset === 0) {
+                prevBtn.disabled = true;
+                prevBtn.style.opacity = '0.5';
+                prevBtn.style.cursor = 'not-allowed';
+            } else {
+                prevBtn.disabled = false;
+                prevBtn.style.opacity = '1';
+                prevBtn.style.cursor = 'pointer';
+            }
+        }
+        
+        // Enable/disable Next button (disable if we got fewer emails than limit)
+        if (nextBtn) {
+            if (emailCount < limit) {
+                // Got fewer emails than requested = reached the end
+                nextBtn.disabled = true;
+                nextBtn.style.opacity = '0.5';
+                nextBtn.style.cursor = 'not-allowed';
+            } else {
+                nextBtn.disabled = false;
+                nextBtn.style.opacity = '1';
+                nextBtn.style.cursor = 'pointer';
+            }
         }
     },
 
