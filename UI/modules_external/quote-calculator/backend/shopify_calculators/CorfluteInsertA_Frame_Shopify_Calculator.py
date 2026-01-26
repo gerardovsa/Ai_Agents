@@ -2,10 +2,13 @@
 Corflute Insert A-Frame Shopify Calculator
 Exact implementation of Shopify JavaScript formula for Corflute Insert A-Frame
 
-Based on: c:/Users/gpoli/GIT/In_House_SQL/G_Folder/Quote_Calculator/shopify/Shopify_Corflute_Insert_A_Frame.json specification
-Platform: Shopify (separate from WooCommerce calculators)
-Fields: 3 fields (Shopify-specific structure)
-Key Features: Tiered padding rates, profit margins, double GST application
+✅ FIXED JAN 23, 2026: Implements TXT formula with 26-tier quantity-based pricing
+Formula: ((qty × rate) + artwork) × 1.1
+
+Based on: SHOPIFY_CALCULATORS_WEBSITE_JS_AND_JSON.txt (lines 10000-10200)
+Platform: Shopify
+Fields: 3 fields (quantity, size, artworks)
+Key Features: 26-tier quantity-based pricing, simple artwork formula, single 10% markup
 """
 
 import json
@@ -34,16 +37,19 @@ class CorfluteInsertA_FrameShopifyCalculatorQuoteResult:
 
 class CorfluteInsertA_FrameShopifyCalculator:
     """
-    Corflute Insert A-Frame Shopify Calculator - Exact Shopify JavaScript Implementation
+    Corflute Insert A-Frame Shopify Calculator - Exact TXT JavaScript Implementation
     
-    SHOPIFY-SPECIFIC CALCULATOR - SEPARATE FROM WOOCOMMERCE
+    ✅ FIXED JAN 23, 2026
+    
+    Formula from TXT:
+    - 26-tier quantity-based pricing ($159 → $99)
+    - Artwork: First FREE, $5 per extra
+    - Formula: ((qty × rate) + artwork) × 1.1
     
     Features:
-    - 3-field Shopify structure
-    - Tiered padding rates (0 tiers)
-    - Tiered profit margins (0 tiers)
-    - Artwork setup costs
-    - DOUBLE GST APPLICATION (Shopify-specific: Total * 1.1 * 1.1)
+    - Simple tier pricing (like Selfie Frames)
+    - NOT cost-based with setup/profit margins
+    - Single 10% markup (NOT double GST)
     """
     
     CONFIG_FILE = "Shopify_Corflute_Insert_A_Frame.json"
@@ -64,83 +70,123 @@ class CorfluteInsertA_FrameShopifyCalculator:
         with open(config_path, 'r', encoding='utf-8') as f:
             return json.load(f)
     
+    
+    def _get_price_per_unit(self, quantity: int) -> Decimal:
+        """
+        26-tier quantity-based pricing
+        
+        ⚠️ CRITICAL: Tier values copied EXACTLY from TXT file (lines 10030-10056)
+        Character-by-character verification completed Jan 23, 2026
+        
+        $159 → $99 (26 tiers)
+        """
+        if quantity == 1: return Decimal('159')
+        elif quantity == 2: return Decimal('146.94')
+        elif quantity == 3: return Decimal('138.3333333')
+        elif quantity == 4: return Decimal('130')
+        elif quantity == 5: return Decimal('125')
+        elif quantity == 6: return Decimal('130.8333333')
+        elif quantity == 7: return Decimal('127.1428571')
+        elif quantity == 8: return Decimal('124.375')
+        elif quantity == 9: return Decimal('122.1111111')
+        elif quantity == 10: return Decimal('120')
+        elif 11 <= quantity <= 12: return Decimal('117.0833333')
+        elif 13 <= quantity <= 14: return Decimal('115')
+        elif quantity == 15: return Decimal('114')
+        elif 16 <= quantity <= 20: return Decimal('110.75')
+        elif 21 <= quantity <= 25: return Decimal('108.4')
+        elif 26 <= quantity <= 30: return Decimal('107')
+        elif 31 <= quantity <= 35: return Decimal('105.7142857')
+        elif 36 <= quantity <= 40: return Decimal('104.75')
+        elif 41 <= quantity <= 45: return Decimal('103.8888889')
+        elif 46 <= quantity <= 50: return Decimal('103.4')
+        elif 51 <= quantity <= 60: return Decimal('102.8333333')
+        elif 61 <= quantity <= 70: return Decimal('102.2857143')
+        elif 71 <= quantity <= 80: return Decimal('101.9625')
+        elif 81 <= quantity <= 90: return Decimal('101.6111111')
+        elif 91 <= quantity <= 100: return Decimal('101.35')
+        elif quantity >= 101: return Decimal('99')
+        else: return Decimal('159')  # Fallback
+    
     def calculate(self, **kwargs) -> CorfluteInsertA_FrameShopifyCalculatorQuoteResult:
         """
         Calculate quote for Corflute Insert A-Frame
         
+        ✅ FIXED JAN 23, 2026: Now implements TXT formula exactly
+        
+        Formula from TXT (lines 10000-10200):
+        1. Tier lookup: Get rate per unit based on quantity
+        2. Base cost: qty × rate
+        3. Artwork: IF artworks > 1 THEN (artworks × 5) - 5 ELSE 0
+        4. Subtotal: base_cost + artwork
+        5. Final: subtotal × 1.1
+        
         Args:
             **kwargs: Calculator parameters from JSON config
+                quantity: Number of A-frames (1-10000)
+                size: "600mm(W) x 900mm(H)" (only one size option)
+                artworks: Number of artwork designs (1-20)
         
         Returns:
             CorfluteInsertA_FrameShopifyCalculatorQuoteResult with pricing details
         """
-        quantity = int(kwargs.get('quantity', kwargs.get('qty', 10)))
-        size = kwargs.get('size', '600x450')
-        sides = kwargs.get('sides', 'Single')
+        # ==========================================
+        # STEP 1: PARSE JSON FORMAT PARAMETERS
+        # ==========================================
+        quantity = int(kwargs.get('quantity', kwargs.get('qty', 1)))
+        size_raw = kwargs.get('size', '600mm(W) x 900mm(H)')
         artworks = int(kwargs.get('artworks', 1))
 
         if quantity <= 0:
             raise ValueError('Quantity must be > 0')
+        
+        # ==========================================
+        # STEP 2: TIER LOOKUP (26 tiers)
+        # ==========================================
+        price_per_unit = self._get_price_per_unit(quantity)
+        base_cost = price_per_unit * Decimal(quantity)
+        
+        # ==========================================
+        # STEP 3: ARTWORK SETUP (First FREE, $5 per extra)
+        # ==========================================
+        # var _a = {art} * 5;
+        # var _a2 = {_a} <= 5 ? 0 : ({_a} - 5);
+        _a = Decimal(artworks) * Decimal('5')
+        artwork_cost = Decimal('0') if _a <= Decimal('5') else _a - Decimal('5')
+        
+        # ==========================================
+        # STEP 4: SUBTOTAL (Base + Artwork)
+        # ==========================================
+        # var total = (qty * _up) + _a2;
+        subtotal = base_cost + artwork_cost
+        
+        # ==========================================
+        # STEP 5: FINAL MULTIPLIER (10% markup)
+        # ==========================================
+        # {total} * 1.10
+        final_total = subtotal * Decimal('1.1')
+        final_total = final_total.quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
 
-        try:
-            w_str, h_str = size.lower().split('x')
-            width_mm = Decimal(w_str)
-            height_mm = Decimal(h_str)
-            area_m2 = (width_mm * height_mm) / Decimal('1000000')
-        except Exception:
-            area_m2 = Decimal('0.27')
-
-        material_rate = Decimal('6.50')  # corflute base
-        print_cost_per_m2 = Decimal('8.50')
-        sides_multiplier = Decimal('2') if 'double' in sides.lower() else Decimal('1')
-
-        impos_setup = Decimal('30')
-        extra_arts = Decimal('18')
-        artwork_setup_cost = (Decimal(artworks) - Decimal(1)) * extra_arts if artworks > 1 else Decimal('0')
-
-        material_cost = area_m2 * material_rate * Decimal(quantity)
-        print_cost = area_m2 * print_cost_per_m2 * Decimal(quantity) * sides_multiplier
-        a_frame_hardware = Decimal('4.50') * Decimal(quantity)
-
-        biz_cost = impos_setup + artwork_setup_cost + material_cost + print_cost + a_frame_hardware
-
-        profit_margin_rate = self._get_profit_margin(float(biz_cost))
-        profit_amount = biz_cost * profit_margin_rate
-        sub_total = biz_cost + profit_amount
-
-        PRICE_INCREASE_MULTIPLIER = Decimal('1.00')
-        GST_RATE = Decimal('1.10')
-
-        subtotal_with_increase = sub_total * PRICE_INCREASE_MULTIPLIER
-        total_price = (subtotal_with_increase * GST_RATE) * GST_RATE
-        total_price = total_price.quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
-
-        unit_price = total_price / Decimal(quantity)
+        unit_price = final_total / Decimal(quantity)
 
         breakdown = {
-            'impos_setup': impos_setup,
-            'artwork_setup_cost': artwork_setup_cost,
-            'material_cost': material_cost,
-            'print_cost': print_cost,
-            'a_frame_hardware': a_frame_hardware,
-            'biz_cost': biz_cost,
-            'profit_margin_rate': Decimal(profit_margin_rate),
-            'profit_amount': profit_amount,
-            'subtotal': sub_total,
-            'subtotal_with_increase': subtotal_with_increase,
-            'gst_rate': GST_RATE,
-            'total_price': total_price,
+            'quantity': Decimal(quantity),
+            'price_per_unit': price_per_unit,
+            'base_cost': base_cost,
+            'artwork_cost': artwork_cost,
+            'subtotal': subtotal,
+            'final_multiplier': Decimal('1.1'),
+            'total_price': final_total,
         }
 
         specifications = {
             'quantity': quantity,
-            'size_mm': f"{width_mm}x{height_mm}" if 'width_mm' in locals() else size,
-            'sides': sides,
-            'area_m2': float(area_m2)
+            'size': size_raw,
+            'artworks': artworks,
         }
 
         return CorfluteInsertA_FrameShopifyCalculatorQuoteResult(
-            total_price=total_price,
+            total_price=final_total,
             unit_price=unit_price,
             cost_per_item=unit_price,
             quantity=quantity,

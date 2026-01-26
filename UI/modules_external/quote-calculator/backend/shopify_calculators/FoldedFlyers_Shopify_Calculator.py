@@ -66,8 +66,15 @@ class PrintType(Enum):
 
 
 class FinishSize(Enum):
-    """Finish size options with items per sheet"""
-    DL = ("DL - 99mm x 210mm", 99, 210, Decimal('6'), "a5_size")  # Added Jan 22, 2026 - Uses A5 margin category
+    """Finish size options with items per sheet
+    
+    CRITICAL: DL is NOT a valid size for folded flyers (removed Jan 26, 2026)
+    Valid fold types vary by size:
+    - A5: Half fold to A6
+    - A4: Half fold to A5, Tri Roll fold to DL, Tri Z fold to DL
+    - A3: Half fold to A4, Crash fold to A5(Half then half), Crash fold to DL(Half then roll)
+    - 6pp A4: Tri Roll fold to A4
+    """
     A5 = ("A5 - 148mm x 210mm", 148, 210, Decimal('4'), "a5_size")
     A4 = ("A4 - 210mm x 297mm", 210, 297, Decimal('2'), "a4_size")
     A3 = ("A3 - 297mm x 420mm", 297, 420, Decimal('1'), "a3_size")
@@ -100,10 +107,15 @@ class PaperStock(Enum):
 
 
 class FoldType(Enum):
-    """Fold type options"""
-    SINGLE_FOLD = ("Single Fold", 1)
-    DOUBLE_FOLD = ("Double Fold", 2)
-    TRIPLE_FOLD = ("Triple Fold", 3)
+    """Fold type options - Actual Shopify website fold names"""
+    HALF_FOLD_TO_A6 = ("Half fold to A6", 1)
+    HALF_FOLD_TO_A5 = ("Half fold to A5", 1)
+    TRI_ROLL_FOLD_TO_DL = ("Tri Roll fold to DL", 1)
+    TRI_Z_FOLD_TO_DL = ("Tri Z fold to DL", 1)
+    HALF_FOLD_TO_A4 = ("Half fold to A4", 1)
+    CRASH_FOLD_TO_A5_HALF = ("Crash fold to A5/Half", 2)
+    CRASH_FOLD_TO_DL_HALF = ("Crash fold to DL/Half", 2)
+    TRI_ROLL_FOLD_TO_A4 = ("Tri Roll fold to A4", 1)
     
     def __init__(self, title, multiplier):
         self.title = title
@@ -111,7 +123,13 @@ class FoldType(Enum):
 
 
 class Celloglaze(Enum):
-    """Celloglaze lamination options (only visible for Satin stocks)"""
+    """Celloglaze lamination options
+    
+    CRITICAL RESTRICTION (verified Jan 26, 2026):
+    Celloglaze is ONLY available for Satin 250GSM, 300GSM, and 350GSM.
+    NOT available for: Satin 128GSM, Satin 150GSM, or ANY Uncoated stocks.
+    Website does not even show celloglaze option for non-premium stocks.
+    """
     NONE = ("None", Decimal('0'), Decimal('0'))
     ONE_SIDE_GLOSS = ("1 Side Gloss", Decimal('0.19'), Decimal('16'))
     TWO_SIDE_GLOSS = ("2 Side Gloss", Decimal('0.38'), Decimal('16'))
@@ -481,7 +499,7 @@ def main():
     print()
     
     # Test 1: Standard A4 bi-fold brochure
-    print("TEST 1: Standard A4 Bi-Fold Brochure")
+    print("TEST 1: Standard A4 Bi-Fold Brochure (Half fold to A4)")
     print("-" * 80)
     result1 = calc.calculate_quote(
         quantity=1000,
@@ -490,13 +508,13 @@ def main():
         finish_size=FinishSize.A4,
         paper_stock=PaperStock.SATIN_150GSM,
         artworks=1,
-        fold_type=FoldType.SINGLE_FOLD,
+        fold_type=FoldType.HALF_FOLD_TO_A4,
         celloglaze=Celloglaze.NONE
     )
     print(result1)
     
-    # Test 2: Premium A5 tri-fold with lamination
-    print("TEST 2: Premium A5 Tri-Fold with Lamination")
+    # Test 2: Premium A5 half-fold with lamination
+    print("TEST 2: Premium A5 Half-Fold with Lamination (Half fold to A6)")
     print("-" * 80)
     result2 = calc.calculate_quote(
         quantity=500,
@@ -505,13 +523,13 @@ def main():
         finish_size=FinishSize.A5,
         paper_stock=PaperStock.SATIN_300GSM,
         artworks=1,
-        fold_type=FoldType.DOUBLE_FOLD,
-        celloglaze=Celloglaze.ONE_SIDE_GLOSS
+        fold_type=FoldType.HALF_FOLD_TO_A6,
+        celloglaze=Celloglaze.TWO_SIDE_GLOSS
     )
     print(result2)
     
     # Test 3: Large format A3 single fold menu
-    print("TEST 3: Large Format A3 Single Fold Menu")
+    print("TEST 3: Large Format A3 Single Fold Menu (Half fold to A4)")
     print("-" * 80)
     result3 = calc.calculate_quote(
         quantity=250,
@@ -520,13 +538,13 @@ def main():
         finish_size=FinishSize.A3,
         paper_stock=PaperStock.SATIN_250GSM,
         artworks=1,
-        fold_type=FoldType.SINGLE_FOLD,
+        fold_type=FoldType.HALF_FOLD_TO_A4,
         celloglaze=Celloglaze.TWO_SIDE_MATT
     )
     print(result3)
     
     # Test 4: High volume 6-panel brochure
-    print("TEST 4: High Volume 6-Panel Brochure")
+    print("TEST 4: High Volume 6-Panel Brochure (Crash fold to DL/Half)")
     print("-" * 80)
     result4 = calc.calculate_quote(
         quantity=5000,
@@ -535,7 +553,7 @@ def main():
         finish_size=FinishSize.A4_6PP,
         paper_stock=PaperStock.SATIN_128GSM,
         artworks=1,
-        fold_type=FoldType.DOUBLE_FOLD,
+        fold_type=FoldType.CRASH_FOLD_TO_DL_HALF,
         celloglaze=Celloglaze.NONE
     )
     print(result4)
