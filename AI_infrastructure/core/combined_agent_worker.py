@@ -79,6 +79,11 @@ def validate_messages_for_api(messages: List[Dict], log_prefix: str = "") -> Lis
     """
     CRITICAL pre-API validation - ensures messages comply with Anthropic API requirements
     
+    **UPDATED (Jan 27, 2026): Truncation logic DISABLED**
+    - Aggressive truncation was incorrectly treating valid multi-tool patterns as errors
+    - Now trusts Anthropic API to handle conversation validation
+    - Tool use pattern (Assistant→User→Assistant with thinking blocks) is VALID per Anthropic docs
+    
     Fixes:
     1. Removes orphaned tool_result blocks (tool_use_id references non-existent tool_use)
     2. Ensures no tool_result blocks in assistant messages
@@ -2013,6 +2018,10 @@ def run_simple_agent_worker(
         # CRITICAL: Final validation before API call
         print(f"{log_prefix} 🔐 Running final pre-API validation...")
         messages = validate_messages_for_api(messages, log_prefix)
+        
+        # validate_messages_for_api no longer returns None (truncation disabled Jan 27, 2026)
+        # Anthropic API will handle any conversation structure errors directly
+        
         print(f"{log_prefix} ✅ Pre-API validation complete: {len(messages)} messages ready")
         
         print(f"{log_prefix} 🚀 Calling Anthropic API (claude-sonnet-4-5)...")
@@ -2074,6 +2083,18 @@ def run_simple_agent_worker(
                 tool_input = tool_use.get('input', {})
                 tool_id = tool_use.get('id')
                 
+                # CRITICAL DEBUG (Jan 27, 2026): Check for corrupted tool names
+                print(f"{log_prefix} 🔍 DEBUG: Raw tool_use block:")
+                print(f"{log_prefix}   tool_use dict keys: {tool_use.keys()}")
+                print(f"{log_prefix}   tool_name (repr): {repr(tool_name)}")
+                print(f"{log_prefix}   tool_name (clean): {tool_name.strip() if isinstance(tool_name, str) else tool_name}")
+                if isinstance(tool_name, str) and ('" />' in tool_name or '" />' in tool_name):
+                    print(f"{log_prefix} ❌ CORRUPTED TOOL NAME DETECTED!")
+                    print(f"{log_prefix}   Original: {repr(tool_name)}")
+                    # Strip corruption
+                    tool_name = tool_name.replace('" />', '').replace('" />', '').strip()
+                    print(f"{log_prefix}   Cleaned: {repr(tool_name)}")
+                
                 queue.put({'type': 'tool_use', 'tool_name': tool_name, 'tool_input': tool_input})
                 
                 try:
@@ -2088,15 +2109,12 @@ def run_simple_agent_worker(
                     else:
                         tool_input_copy = {k: v for k, v in tool_input.items() if k != 'tool_name'}
                         
-                        if tool_name.startswith(('google_', 'microsoft_')):
-                            result = registry.execute_tool(
-                                tool_name=tool_name,
-                                _user_id=user_id,
-                                _injected_credentials=True,
-                                **tool_input_copy
-                            )
-                        else:
-                            result = registry.execute_tool(tool_name=tool_name, **tool_input_copy)
+                        # CRITICAL FIX (Jan 27, 2026): ALWAYS pass user_id to ALL tools, not just Google/Microsoft
+                        result = registry.execute_tool(
+                            tool_name=tool_name,
+                            _user_id=user_id,
+                            **tool_input_copy
+                        )
                     
                     # Smart truncation based on tool type (with META-TOOLS exemption)
                     # Use smart_truncate_tool_result which exempts meta-tools from truncation
@@ -2166,35 +2184,58 @@ def run_simple_agent_worker(
             # Add validated content to messages
             messages.append({'role': 'assistant', 'content': validated_content})
             
+            # CRITICAL DEBUG (Jan 27, 2026): Check if save code is reached
+            print(f"{log_prefix} 🔍 DEBUG CHECKPOINT: About to check thread_id for save")
+            print(f"{log_prefix} 🔍 thread_id = {thread_id}")
+            print(f"{log_prefix} 🔍 validated_content blocks = {len(validated_content)}")
+            
             # CRITICAL FIX (Nov 23, 2025): IMMEDIATELY save assistant message with tool_use to database
             # This prevents orphaned tool_use blocks when errors occur before 'complete' event
+            # CRITICAL FIX (Jan 26, 2026): Track saved messages to prevent duplicates causing infinite loops
             if thread_id:
-                print(f"{log_prefix} 💾 IMMEDIATE SAVE: Assistant message with tool_use")
-                print(f"{log_prefix} 🔍 DEBUG: thread_id={thread_id}, user_id={user_id}, blocks={len(validated_content)}")
-                try:
-                    from routes.agent_routes_v4 import save_message_to_database
-                    save_success = save_message_to_database(
-                        thread_slug=thread_id,
-                        role='assistant',
-                        content=validated_content,
-                        user_id=user_id,
-                        model='claude-sonnet-4-5-20250929',
-                        metadata={'round': tool_iteration, 'has_tool_use': True},
-                        sender_team_id=None,  # AI agent (no Team ID)
-                        recipient_team_id=None,  # Broadcast mode (no Team)
-                        message_type='broadcast',  # Broadcast to Central HQ
-                        message_source='assistant_output'  # AI-generated content
-                    )
-                    if save_success:
-                        print(f"{log_prefix} ✅ Assistant message saved immediately to database")
-                    else:
-                        print(f"{log_prefix} ❌ CRITICAL: save_message_to_database returned False!")
-                        print(f"{log_prefix} ❌ Check Flask logs for [DB SAVE] errors")
-                except Exception as save_error:
-                    print(f"{log_prefix} ❌ EXCEPTION during assistant message save:")
-                    print(f"{log_prefix} ❌ {type(save_error).__name__}: {save_error}")
-                    import traceback
-                    traceback.print_exc()
+                # Generate unique hash to detect duplicate saves
+                import hashlib
+                content_hash = hashlib.md5(str(validated_content).encode()).hexdigest()
+                
+                # Initialize tracking set if needed
+                if not hasattr(execute_streaming_request, '_saved_assistant_hashes'):
+                    execute_streaming_request._saved_assistant_hashes = {}
+                if thread_id not in execute_streaming_request._saved_assistant_hashes:
+                    execute_streaming_request._saved_assistant_hashes[thread_id] = set()
+                
+                # Check if we already saved this exact message
+                if content_hash in execute_streaming_request._saved_assistant_hashes[thread_id]:
+                    print(f"{log_prefix} ⏭️  SKIP SAVE: Already saved this assistant message (hash: {content_hash[:8]})")
+                    print(f"{log_prefix} ℹ️  This prevents duplicate assistant messages causing conversation truncation")
+                else:
+                    print(f"{log_prefix} 💾 IMMEDIATE SAVE: Assistant message with tool_use (hash: {content_hash[:8]})")
+                    print(f"{log_prefix} 🔍 DEBUG: thread_id={thread_id}, user_id={user_id}, blocks={len(validated_content)}")
+                    try:
+                        from routes.agent_routes_v4 import save_message_to_database
+                        save_success = save_message_to_database(
+                            thread_slug=thread_id,
+                            role='assistant',
+                            content=validated_content,
+                            user_id=user_id,
+                            model='claude-sonnet-4-5-20250929',
+                            metadata={'round': tool_iteration, 'has_tool_use': True, 'content_hash': content_hash},
+                            sender_team_id=None,  # AI agent (no Team ID)
+                            recipient_team_id=None,  # Broadcast mode (no Team)
+                            message_type='broadcast',  # Broadcast to Central HQ
+                            message_source='assistant_output'  # AI-generated content
+                        )
+                        if save_success:
+                            print(f"{log_prefix} ✅ Assistant message saved immediately to database")
+                            # Mark as saved to prevent duplicates
+                            execute_streaming_request._saved_assistant_hashes[thread_id].add(content_hash)
+                        else:
+                            print(f"{log_prefix} ❌ CRITICAL: save_message_to_database returned False!")
+                            print(f"{log_prefix} ❌ Check Flask logs for [DB SAVE] errors")
+                    except Exception as save_error:
+                        print(f"{log_prefix} ❌ EXCEPTION during assistant message save:")
+                        print(f"{log_prefix} ❌ {type(save_error).__name__}: {save_error}")
+                        import traceback
+                        traceback.print_exc()
             
             # If there are extracted tool_results, insert them as a user message immediately after
             # DEBUG (Jan 19, 2026): Log tool result insertion
@@ -2223,6 +2264,10 @@ def run_simple_agent_worker(
             
             # CRITICAL FIX (Nov 23, 2025): IMMEDIATELY save tool_result message to database
             # This prevents orphaned tool_use blocks when errors occur
+            print(f"{log_prefix} 🔍 DEBUG CHECKPOINT: About to save tool_results")
+            print(f"{log_prefix} 🔍 thread_id = {thread_id}")
+            print(f"{log_prefix} 🔍 tool_results blocks = {len(tool_results)}")
+            
             if thread_id:
                 print(f"{log_prefix} 💾 IMMEDIATE SAVE: Tool result message")
                 try:
@@ -2312,51 +2357,81 @@ def run_simple_agent_worker(
                 response_text += final_text
             
             # CRITICAL FIX (Nov 23, 2025): IMMEDIATELY save final assistant message to database
+            # CRITICAL FIX (Jan 26, 2026): Check for duplicates before saving final message
             if thread_id and final_content:
-                print(f"{log_prefix} 💾 IMMEDIATE SAVE: Final assistant message")
-                from routes.agent_routes_v4 import save_message_to_database
+                import hashlib
                 validated_final_content, _ = validate_and_reorder_assistant_content(final_content)
-                save_success = save_message_to_database(
-                    thread_slug=thread_id,
-                    role='assistant',
-                    content=validated_final_content,
-                    user_id=user_id,
-                    model='claude-sonnet-4-5-20250929',
-                    metadata={'final_response': True, 'rounds': tool_iteration},
-                    sender_team_id=None,  # AI agent
-                    recipient_team_id=recipient_team_id,  # Mirror user's privacy mode
-                    message_type='broadcast' if not recipient_team_id else 'direct',
-                    message_source='assistant_output'  # Final AI response
-                )
-                if save_success:
-                    print(f"{log_prefix} ✅ Final assistant message saved immediately")
+                content_hash = hashlib.md5(str(validated_final_content).encode()).hexdigest()
+                
+                # Initialize tracking set if needed
+                if not hasattr(execute_streaming_request, '_saved_assistant_hashes'):
+                    execute_streaming_request._saved_assistant_hashes = {}
+                if thread_id not in execute_streaming_request._saved_assistant_hashes:
+                    execute_streaming_request._saved_assistant_hashes[thread_id] = set()
+                
+                # Check if we already saved this message
+                if content_hash in execute_streaming_request._saved_assistant_hashes[thread_id]:
+                    print(f"{log_prefix} ⏭️  SKIP SAVE: Final message already saved earlier (hash: {content_hash[:8]})")
                 else:
-                    print(f"{log_prefix} ⚠️ Failed to save final assistant message")
+                    print(f"{log_prefix} 💾 IMMEDIATE SAVE: Final assistant message (hash: {content_hash[:8]})")
+                    from routes.agent_routes_v4 import save_message_to_database
+                    save_success = save_message_to_database(
+                        thread_slug=thread_id,
+                        role='assistant',
+                        content=validated_final_content,
+                        user_id=user_id,
+                        model='claude-sonnet-4-5-20250929',
+                        metadata={'final_response': True, 'rounds': tool_iteration, 'content_hash': content_hash},
+                        sender_team_id=None,  # AI agent
+                        recipient_team_id=recipient_team_id,  # Mirror user's privacy mode
+                        message_type='broadcast' if not recipient_team_id else 'direct',
+                        message_source='assistant_output'  # Final AI response
+                    )
+                    if save_success:
+                        print(f"{log_prefix} ✅ Final assistant message saved immediately")
+                        execute_streaming_request._saved_assistant_hashes[thread_id].add(content_hash)
+                    else:
+                        print(f"{log_prefix} ⚠️ Failed to save final assistant message")
         else:
             if response_text:
                 queue.put({'type': 'content_delta', 'text': response_text})
             
             # CRITICAL FIX (Nov 23, 2025): IMMEDIATELY save assistant response (no tools used)
+            # CRITICAL FIX (Jan 26, 2026): Check for duplicates before saving no-tools message
             if thread_id and response.get('content'):
-                print(f"{log_prefix} 💾 IMMEDIATE SAVE: Assistant message (no tools)")
-                from routes.agent_routes_v4 import save_message_to_database
+                import hashlib
                 validated_content, _ = validate_and_reorder_assistant_content(response['content'])
-                save_success = save_message_to_database(
-                    thread_slug=thread_id,
-                    role='assistant',
-                    content=validated_content,
-                    user_id=user_id,
-                    model='claude-sonnet-4-5-20250929',
-                    metadata={'direct_response': True},
-                    sender_team_id=None,  # AI agent
-                    recipient_team_id=recipient_team_id,  # Mirror user's privacy mode
-                    message_type='broadcast' if not recipient_team_id else 'direct',
-                    message_source='assistant_output'  # Direct AI response
-                )
-                if save_success:
-                    print(f"{log_prefix} ✅ Assistant message saved immediately")
+                content_hash = hashlib.md5(str(validated_content).encode()).hexdigest()
+                
+                # Initialize tracking set if needed
+                if not hasattr(execute_streaming_request, '_saved_assistant_hashes'):
+                    execute_streaming_request._saved_assistant_hashes = {}
+                if thread_id not in execute_streaming_request._saved_assistant_hashes:
+                    execute_streaming_request._saved_assistant_hashes[thread_id] = set()
+                
+                # Check if already saved
+                if content_hash in execute_streaming_request._saved_assistant_hashes[thread_id]:
+                    print(f"{log_prefix} ⏭️  SKIP SAVE: No-tools message already saved (hash: {content_hash[:8]})")
                 else:
-                    print(f"{log_prefix} ⚠️ Failed to save assistant message")
+                    print(f"{log_prefix} 💾 IMMEDIATE SAVE: Assistant message (no tools, hash: {content_hash[:8]})")
+                    from routes.agent_routes_v4 import save_message_to_database
+                    save_success = save_message_to_database(
+                        thread_slug=thread_id,
+                        role='assistant',
+                        content=validated_content,
+                        user_id=user_id,
+                        model='claude-sonnet-4-5-20250929',
+                        metadata={'direct_response': True, 'content_hash': content_hash},
+                        sender_team_id=None,  # AI agent
+                        recipient_team_id=recipient_team_id,  # Mirror user's privacy mode
+                        message_type='broadcast' if not recipient_team_id else 'direct',
+                        message_source='assistant_output'  # Direct AI response
+                    )
+                    if save_success:
+                        print(f"{log_prefix} ✅ Assistant message saved immediately")
+                        execute_streaming_request._saved_assistant_hashes[thread_id].add(content_hash)
+                    else:
+                        print(f"{log_prefix} ⚠️ Failed to save assistant message")
         
         complete_payload = {'type': 'complete', 'result': response_text, 'session_id': session_id}
         if thread_id is not None:
@@ -2602,6 +2677,21 @@ def execute_streaming_request(
     """
     log_prefix = f"[Stream Round {current_round}]"
     
+    # CRITICAL FIX (Jan 26, 2026): Clean up old hash tracking for threads that are no longer active
+    # This prevents memory leaks from accumulating hash sets across many conversations
+    if current_round == 1 and hasattr(execute_streaming_request, '_saved_assistant_hashes'):
+        # Keep only the current thread's hash set, remove all others
+        if thread_id:
+            old_threads = list(execute_streaming_request._saved_assistant_hashes.keys())
+            for old_thread in old_threads:
+                if old_thread != thread_id:
+                    del execute_streaming_request._saved_assistant_hashes[old_thread]
+            
+            # Clear current thread's hashes if this is truly a new conversation (not continuation)
+            if thread_id in execute_streaming_request._saved_assistant_hashes and not conversation_history:
+                print(f"{log_prefix} 🧹 Clearing hash tracking for new conversation in thread {thread_id}")
+                execute_streaming_request._saved_assistant_hashes[thread_id].clear()
+    
     try:
         # Safety check: Prevent infinite loops
         if current_round > max_rounds:
@@ -2747,9 +2837,29 @@ def execute_streaming_request(
         import os
         from anthropic import Anthropic
         
-        api_key = os.getenv('ANTHROPIC_API_KEY')
+        # PRIORITY 1: Try platform-wide credentials from Supabase (user_id=1) (Jan 27, 2026)
+        # User ID 1 = Platform-wide credentials shared by all users
+        api_key = None
+        try:
+            from AI_infrastructure.shared.platform_credentials_loader import get_user_credentials
+            creds = get_user_credentials(1, 'anthropic')  # Always use user_id=1 for platform credentials
+            if creds:
+                # Check credentials JSONB first (preferred), then credential_value
+                credentials_json = creds.get('credentials', {})
+                api_key = credentials_json.get('api_key') or creds.get('credential_value')
+                if api_key:
+                    print(f"{log_prefix} 🔐 Using Anthropic API key from Supabase platform credentials (user_id=1)")
+        except Exception as e:
+            print(f"{log_prefix} ⚠️ Failed to load Anthropic credentials from Supabase: {e}")
+        
+        # PRIORITY 2: Fallback to environment variable
         if not api_key:
-            yield {'type': 'error', 'error': 'ANTHROPIC_API_KEY not found'}
+            api_key = os.getenv('ANTHROPIC_API_KEY')
+            if api_key:
+                print(f"{log_prefix} 🔐 Using Anthropic API key from environment variable")
+        
+        if not api_key:
+            yield {'type': 'error', 'error': 'ANTHROPIC_API_KEY not found in Supabase or environment'}
             return
         
         client = Anthropic(api_key=api_key, timeout=120.0, max_retries=3)
@@ -2920,23 +3030,67 @@ def execute_streaming_request(
                     else:
                         print(f"{log_prefix}     [{debug_idx}] content: string")
         
-        # STEP 3: Only truncate if we have TRULY consecutive assistant messages with thinking blocks
-        # FIX (Dec 29, 2025): Don't truncate valid tool use patterns (assistant → user → assistant)
-        if assistant_messages_with_thinking and truly_consecutive_indices:
-            # Find the earliest assistant message that has both thinking AND is truly consecutive
-            problematic_indices = set(assistant_messages_with_thinking) & set(truly_consecutive_indices)
-            if problematic_indices:
-                print(f"{log_prefix} CRITICAL: Thinking blocks + TRULY consecutive assistant messages detected")
-                print(f"{log_prefix} 🔧 FIX: Truncating conversation at first problematic assistant message")
+        # STEP 3: DISABLED (Jan 27, 2026) - This logic was incorrectly truncating VALID tool use patterns
+        # 
+        # Per Anthropic documentation on Extended Thinking with Tool Use:
+        # "An assistant turn doesn't complete until Claude finishes its full response, which may include multiple tool calls and results."
+        # 
+        # Pattern that was incorrectly being truncated:
+        #   Assistant: [thinking] + [tool_use: get_domain_guide]
+        #   User: [tool_result]
+        #   Assistant: [thinking] + [tool_use: calculator_guide]  ← Has user message between - THIS IS VALID!
+        #   User: [tool_result]
+        #   Assistant: [final text]
+        # 
+        # This is the CORRECT multi-tool pattern. The AI should call the same setup tools
+        # (domain guide, calculator guide, get schema) on every request - this is by design.
+        #
+        # The truncation logic was treating normal multi-round tool conversations as errors.
+        # Only truncate if there are ACTUAL consecutive assistant messages with NO user message between them.
+        #
+        # REAL consecutive error (should still be caught by Anthropic API):
+        #   Assistant: [thinking] + [text]
+        #   Assistant: [thinking] + [text]  ← NO user message - this will error from Anthropic
+        #
+        if False:  # DISABLED - keeping code for reference but not executing
+            if assistant_messages_with_thinking and truly_consecutive_indices:
+                # Find the earliest assistant message that has both thinking AND is truly consecutive
+                problematic_indices = set(assistant_messages_with_thinking) & set(truly_consecutive_indices)
+                if problematic_indices:
+                    print(f"{log_prefix} CRITICAL: Thinking blocks + TRULY consecutive assistant messages detected")
+                    print(f"{log_prefix} 🔧 FIX: Truncating conversation at first problematic assistant message")
+                    
+                    first_problem_idx = min(problematic_indices)
+                    print(f"{log_prefix}    Truncating at message [{first_problem_idx}]")
+                    print(f"{log_prefix}    Removing {len(messages) - first_problem_idx} messages")
+                    
+                    # CRITICAL (Jan 27, 2026): Check if truncation leaves only user messages
+                    # This indicates an infinite loop where AI keeps regenerating the same response
+                    truncated_messages = messages[:first_problem_idx]
+                    
+                    # Count assistant messages remaining after truncation
+                    remaining_assistant_count = sum(1 for msg in truncated_messages if msg.get('role') == 'assistant')
                 
-                first_problem_idx = min(problematic_indices)
-                print(f"{log_prefix}    Truncating at message [{first_problem_idx}]")
-                print(f"{log_prefix}    Removing {len(messages) - first_problem_idx} messages")
-                
-                messages = messages[:first_problem_idx]
-                print(f"{log_prefix} ✅ Truncated to {len(messages)} messages")
-            else:
-                print(f"{log_prefix} ℹ️  Consecutive assistant messages found, but properly separated by user messages (valid tool use pattern)")
+                    if remaining_assistant_count == 0 and first_problem_idx > 0:
+                        # Truncation removed ALL assistant messages - this is an infinite loop
+                        print(f"{log_prefix} 🛑 INFINITE LOOP DETECTED!")
+                        print(f"{log_prefix}    Truncation would leave only user messages")
+                        print(f"{log_prefix}    This indicates AI is repeatedly generating the same response")
+                        print(f"{log_prefix}    STOPPING EXECUTION to prevent infinite loop")
+                        
+                        # Return None to signal that execution should stop
+                        # The calling code should handle this by returning an error to the user
+                        return None
+                    
+                    messages = truncated_messages
+                    print(f"{log_prefix} ✅ Truncated to {len(messages)} messages")
+                else:
+                    print(f"{log_prefix} ℹ️  Consecutive assistant messages found, but properly separated by user messages (valid tool use pattern)")
+        
+        # Log that truncation is disabled
+        if assistant_messages_with_thinking:
+            print(f"{log_prefix} ✅ {len(assistant_messages_with_thinking)} assistant message(s) with thinking blocks found")
+            print(f"{log_prefix} ✅ Truncation logic DISABLED - trusting Anthropic API to handle conversation validation")
         
         # STEP 4: Always ensure last message is user when thinking blocks present
         if assistant_messages_with_thinking:
@@ -2962,7 +3116,12 @@ def execute_streaming_request(
         # CRITICAL: Final validation before stream (Dec 12, 2025)
         print(f"{log_prefix} 🔐 Running final pre-API validation...")
         messages = validate_messages_for_api(messages, log_prefix)
+        
+        # validate_messages_for_api no longer returns None (truncation disabled Jan 27, 2026)
+        # Anthropic API will handle any conversation structure errors directly
+        
         print(f"{log_prefix} ✅ Pre-API validation complete: {len(messages)} messages ready for stream")
+
         
         # ✅ ATTACHMENT RECONSTRUCTION: Convert attachment metadata to multimodal content
         # (Jan 11, 2026) - Download attachments on-demand, never store base64 in database
@@ -3340,31 +3499,48 @@ Proceed to the NEXT step now."""
             
             # CRITICAL FIX (Jan 13, 2026): SAVE final assistant message to database BEFORE conversation_sync
             # This ensures database has complete conversation before frontend sync
+            # CRITICAL FIX (Jan 26, 2026): Check for duplicates before saving final conversation message
             if thread_id and conversation_history:
                 last_msg = conversation_history[-1]
                 if last_msg.get('role') == 'assistant':
-                    print(f"{log_prefix} 💾 IMMEDIATE SAVE: Final assistant message (conversation complete)")
-                    print(f"{log_prefix} 🔍 DEBUG: thread_id={thread_id}, user_id={user_id}, blocks={len(last_msg.get('content', []))}")
-                    try:
-                        from routes.agent_routes_v4 import save_message_to_database
-                        save_success = save_message_to_database(
-                            thread_slug=thread_id,
-                            role='assistant',
-                            content=last_msg.get('content', []),
-                            user_id=user_id,
-                            model=ai_model,
-                            metadata={'final_response': True, 'rounds': current_round},
-                            sender_team_id=None,  # AI agent
-                            recipient_team_id=None,  # Broadcast mode
-                            message_type='broadcast',
-                            message_source='assistant_output'
-                        )
-                        if save_success:
-                            print(f"{log_prefix} ✅ Final assistant message saved to database")
-                        else:
-                            print(f"{log_prefix} ⚠️ Failed to save final assistant message")
-                    except Exception as save_error:
-                        print(f"{log_prefix} ❌ ERROR saving final message: {save_error}")
+                    import hashlib
+                    content = last_msg.get('content', [])
+                    content_hash = hashlib.md5(str(content).encode()).hexdigest()
+                    
+                    # Initialize tracking set if needed
+                    if not hasattr(execute_streaming_request, '_saved_assistant_hashes'):
+                        execute_streaming_request._saved_assistant_hashes = {}
+                    if thread_id not in execute_streaming_request._saved_assistant_hashes:
+                        execute_streaming_request._saved_assistant_hashes[thread_id] = set()
+                    
+                    # Check if already saved
+                    if content_hash in execute_streaming_request._saved_assistant_hashes[thread_id]:
+                        print(f"{log_prefix} ⏭️  SKIP SAVE: Final conversation message already saved (hash: {content_hash[:8]})")
+                        print(f"{log_prefix} ℹ️  This prevents duplicate causing infinite loop on next round")
+                    else:
+                        print(f"{log_prefix} 💾 IMMEDIATE SAVE: Final assistant message (conversation complete, hash: {content_hash[:8]})")
+                        print(f"{log_prefix} 🔍 DEBUG: thread_id={thread_id}, user_id={user_id}, blocks={len(content)}")
+                        try:
+                            from routes.agent_routes_v4 import save_message_to_database
+                            save_success = save_message_to_database(
+                                thread_slug=thread_id,
+                                role='assistant',
+                                content=content,
+                                user_id=user_id,
+                                model=ai_model,
+                                metadata={'final_response': True, 'rounds': current_round, 'content_hash': content_hash},
+                                sender_team_id=None,  # AI agent
+                                recipient_team_id=None,  # Broadcast mode
+                                message_type='broadcast',
+                                message_source='assistant_output'
+                            )
+                            if save_success:
+                                print(f"{log_prefix} ✅ Final assistant message saved to database")
+                                execute_streaming_request._saved_assistant_hashes[thread_id].add(content_hash)
+                            else:
+                                print(f"{log_prefix} ⚠️ Failed to save final assistant message")
+                        except Exception as save_error:
+                            print(f"{log_prefix} ❌ ERROR saving final message: {save_error}")
                         import traceback
                         traceback.print_exc()
             
