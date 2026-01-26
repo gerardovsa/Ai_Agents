@@ -81,9 +81,10 @@ SHOPIFY_CALCULATORS_AVAILABLE = False
 try:
     from EconomicalBusinessCards_Shopify_Calculator import EconomicalBusinessCardsShopifyCalculator
     from PremiumBusinessCards_Shopify_Calculator import PremiumBusinessCardsShopifyCalculator
+    from PrintedFlyers_Shopify_Calculator import PrintedFlyersShopifyCalculator
     from FoldedFlyers_Shopify_Calculator import FoldedFlyersShopifyCalculator
     from WireBound_Shopify_Calculator import WireBoundShopifyCalculator
-    from SpiralBound_Shopify_Calculator import SpiralBoundShopifyCalculator
+    from SpiralBound_Shopify_Calculator import SpiralBoundBooksShopifyCalculator
     from PerfectBound_Shopify_Calculator import PerfectBoundShopifyCalculator
     
     SHOPIFY_CALCULATORS_AVAILABLE = True
@@ -1090,34 +1091,28 @@ def calculate_corflute_signs_shopify(
 def calculate_economical_business_cards_shopify(
     quantity: int,
     print_type: str = None,
-    double_sided: bool = None,
+    print_sides: str = None,
     celloglaze: str = None,
-    artworks: int = None,
-    # LEGACY PARAMETERS (backwards compatibility)
-    colour: bool = None
+    artworks: int = None
 ) -> Dict[str, Any]:
     """
-    Shopify calculator for Economical Business Cards (WRAPPER - Translation Layer)
+    Shopify calculator for Economical Business Cards - MATCHES SHOPIFY JSON EXACTLY
     
     TYPE SAFE: @calculator_wrapper decorator ensures:
     - quantity is converted from string to int if needed
     - quantity is validated against [250, 500, 1000, 2000, 5000, 10000]
-    - double_sided is converted to bool if needed
     
-    ✅ CURRENT PARAMETERS (use these):
+    ✅ PARAMETERS (EXACT match to Shopify JSON config):
         quantity: Number of cards (250, 500, 1000, 2000, 5000, 10000)
-        double_sided: True for double-sided, False for single-sided (default: True)
+        print_sides: "Single side print" or "Double side print" (default: "Double side print")
         print_type: "Colour" or "Black & White" (default: "Colour")
+        celloglaze: "None", "1 Side Gloss", "2 Side Gloss", "1 Side Matt", "2 Side Matt" (default: "None")
         artworks: Number of different designs (1-50, default: 1, first free, $15 per extra)
     
-    ⚠️ DEPRECATED PARAMETERS (will be translated with warning):
-        colour (bool) → use print_type instead
-    
-    Backend Translation:
-        double_sided (bool) → print_sides (str): "Single side print" or "Double side print"
+    ❌ NO TRANSLATION - AI must send exact strings from Shopify JSON
     
     Returns:
-        Dict with success, quote result, or error (includes warnings if legacy params used)
+        Dict with success, quote result, or error
     """
     if not SHOPIFY_CALCULATORS_AVAILABLE:
         return {
@@ -1126,47 +1121,23 @@ def calculate_economical_business_cards_shopify(
         }
     
     try:
-        # LEGACY PARAMETER TRANSLATION
-        warnings = []
-        
-        if colour is not None:
-            print_type = "Colour" if colour else "Black & White"
-            warnings.append({
-                "deprecated_parameter": "colour",
-                "use_instead": "print_type",
-                "value_sent": colour,
-                "translated_to": print_type,
-                "message": f"⚠️ Parameter 'colour' is deprecated. Use 'print_type' instead. Translated colour={colour} → print_type='{print_type}'"
-            })
-        
-        # Log warnings to console
-        if warnings:
-            print(f"\n{'='*80}")
-            print(f"⚠️  DEPRECATED PARAMETERS in calculate_economical_business_cards_shopify")
-            print(f"{'='*80}")
-            for w in warnings:
-                print(f"  • {w['message']}")
-            print(f"{'='*80}\n")
-        
         # ========================================================================
-        # VALIDATION: Check required parameters (after legacy translation)
+        # STRICT VALIDATION: No defaults, no translation - AI must provide correct values
         # ========================================================================
         # NOTE: quantity is validated by @calculator_wrapper decorator
-        # All other parameters have backend defaults, so we apply them here
-        # If backend had truly required params (no defaults), we would return errors
         
-        # Apply backend defaults for optional parameters
+        # Apply Shopify JSON defaults for optional parameters
         if print_type is None:
-            print_type = "Colour"  # Backend default
+            print_type = "Colour"  # Shopify JSON default
         
-        if double_sided is None:
-            double_sided = True  # Backend default
+        if print_sides is None:
+            print_sides = "Double side print"  # Shopify JSON default
         
         if celloglaze is None:
-            celloglaze = "None"  # Backend default
+            celloglaze = "None"  # Shopify JSON default
         
         if artworks is None:
-            artworks = 1  # Backend default
+            artworks = 1  # Shopify JSON default
         
         # Validate parameter values are in allowed ranges/enums
         if print_type not in ["Colour", "Black & White"]:
@@ -1187,10 +1158,13 @@ def calculate_economical_business_cards_shopify(
                 "error": f"Invalid artworks: {artworks}. Must be between 1 and 50"
             }
         
-        # TRANSLATION LAYER: Schema → Backend
-        print_sides = "Double side print" if double_sided else "Single side print"
-        
-        # NOTE: No need for int(quantity) - decorator already converted it!
+        # STRICT VALIDATION: No translation - AI must send exact format from Shopify JSON
+        if print_sides not in ["Single side print", "Double side print"]:
+            return {
+                "success": False,
+                "error": f"Invalid print_sides: '{print_sides}'. Must be 'Single side print' or 'Double side print' (exact match to Shopify JSON)",
+                "valid_options": ["Single side print", "Double side print"]
+            }
         
         calculator = EconomicalBusinessCardsShopifyCalculator()
         result = calculator.calculate(
@@ -1211,10 +1185,6 @@ def calculate_economical_business_cards_shopify(
             "specifications": result.specifications
         }
         
-        # Add deprecation warnings if legacy parameters were used
-        if warnings:
-            response["deprecation_warnings"] = warnings
-        
         return response
         
     except Exception as e:
@@ -1230,23 +1200,19 @@ def calculate_premium_business_cards_shopify(
     quantity: int,
     print_type: str = None,
     paper_stock: str = None,
-    double_sided: bool = None,
+    print_sides: str = None,
     finish_size: str = None,
     celloglaze: str = None,
-    artworks: int = None,
-    # LEGACY PARAMETERS (backwards compatibility)
-    colour: bool = None,
-    stock: str = None
+    artworks: int = None
 ) -> Dict[str, Any]:
     """
-    Shopify calculator for Premium Business Cards (WRAPPER - Translation Layer)
+    Shopify calculator for Premium Business Cards - MATCHES SHOPIFY JSON EXACTLY
     
     TYPE SAFE: @calculator_wrapper decorator ensures all types are correct
-    VALIDATED: validate_params=True catches unknown parameters
     
-    ✅ CURRENT PARAMETERS (use these):
+    ✅ PARAMETERS (EXACT match to Shopify JSON config):
         quantity: Number of cards (250, 500, 1000, 2000, 5000, 10000)
-        double_sided: True for double-sided, False for single-sided (default: True)
+        print_sides: "Single side print" or "Double side print" (default: "Single side print")
         print_type: "Colour" or "Black & White" (default: "Colour")
         finish_size: "90mm x 55mm" (standard) or "90mm x 45mm" (slim) (default: "90mm x 55mm")
         paper_stock: "Satin 350GSM", "King Kong High Bulk", "EcoStar 350GSM Uncoated" (default: "Satin 350GSM")
@@ -1254,15 +1220,10 @@ def calculate_premium_business_cards_shopify(
                     "1 Side SILK FEEL Matt", "2 Side SILK FEEL Matt" (default: "1 Side Gloss")
         artworks: Number of different designs (1-50, default: 1)
     
-    ⚠️ DEPRECATED PARAMETERS (will be translated with warning):
-        colour (bool) → use print_type instead
-        stock (str) → use paper_stock instead
-    
-    Backend Translation:
-        double_sided (bool) → print_sides (str): "Single side print" or "Double side print"
+    ❌ NO TRANSLATION - AI must send exact strings from Shopify JSON
     
     Returns:
-        Dict with success, quote result, or error (includes warnings if legacy params used)
+        Dict with success, quote result, or error
     """
     if not SHOPIFY_CALCULATORS_AVAILABLE:
         return {
@@ -1271,77 +1232,52 @@ def calculate_premium_business_cards_shopify(
         }
     
     try:
-        # LEGACY PARAMETER TRANSLATION
-        warnings = []
-        
-        if colour is not None:
-            print_type = "Colour" if colour else "Black & White"
-            warnings.append({
-                "deprecated_parameter": "colour",
-                "use_instead": "print_type",
-                "value_sent": colour,
-                "translated_to": print_type,
-                "message": f"⚠️ Parameter 'colour' is deprecated. Use 'print_type' instead. Translated colour={colour} → print_type='{print_type}'"
-            })
-        
-        if stock is not None:
-            paper_stock = stock
-            warnings.append({
-                "deprecated_parameter": "stock",
-                "use_instead": "paper_stock",
-                "value_sent": stock,
-                "translated_to": paper_stock,
-                "message": f"⚠️ Parameter 'stock' is deprecated. Use 'paper_stock' instead. Translated stock='{stock}' → paper_stock='{paper_stock}'"
-            })
-        
-        # Log warnings to console
-        if warnings:
-            print(f"\n{'='*80}")
-            print(f"⚠️  DEPRECATED PARAMETERS in calculate_premium_business_cards_shopify")
-            print(f"{'='*80}")
-            for w in warnings:
-                print(f"  • {w['message']}")
-            print(f"{'='*80}\n")
-        
         # ========================================================================
-        # VALIDATION: Check required parameters (after legacy translation)
+        # STRICT VALIDATION: No translation - AI must provide correct values from Shopify JSON
         # ========================================================================
-        # Apply backend defaults for optional parameters
+        # Apply Shopify JSON defaults for optional parameters
         if print_type is None:
-            print_type = "Colour"  # Backend default
+            print_type = "Colour"  # Shopify JSON default
         
         if paper_stock is None:
-            paper_stock = "Satin 350GSM"  # Backend default
+            paper_stock = "Satin 350GSM"  # Shopify JSON default
         
-        if double_sided is None:
-            double_sided = True  # Backend default
+        if print_sides is None:
+            print_sides = "Single side print"  # Shopify JSON default
         
         if finish_size is None:
-            finish_size = "90mm x 55mm"  # Backend default
+            finish_size = "90mm x 55mm"  # Shopify JSON default
         
         if celloglaze is None:
-            celloglaze = "1 Side Gloss"  # Backend default
+            celloglaze = "1 Side Gloss"  # Shopify JSON default
         
         if artworks is None:
-            artworks = 1  # Backend default
+            artworks = 1  # Shopify JSON default
         
-        # Validate parameter values
+        # Validate parameter values match Shopify JSON exactly
         if print_type not in ["Colour", "Black & White"]:
             return {
                 "success": False,
                 "error": f"Invalid print_type: '{print_type}'. Must be 'Colour' or 'Black & White'"
             }
         
-        if paper_stock not in ["Satin 350GSM", "Satin 400GSM", "Uncoated 350GSM"]:
+        if paper_stock not in ["Satin 350GSM", "King Kong High Bulk", "EcoStar 350GSM Uncoated"]:
             return {
                 "success": False,
-                "error": f"Invalid paper_stock: '{paper_stock}'. Must be one of: Satin 350GSM, Satin 400GSM, Uncoated 350GSM"
+                "error": f"Invalid paper_stock: '{paper_stock}'. Must be one of: Satin 350GSM, King Kong High Bulk, EcoStar 350GSM Uncoated"
             }
         
-        if celloglaze not in ["None", "1 Side Gloss", "2 Side Gloss", "1 Side Matt", "2 Side Matt"]:
+        if print_sides not in ["Single side print", "Double side print"]:
             return {
                 "success": False,
-                "error": f"Invalid celloglaze: '{celloglaze}'. Must be one of: None, 1 Side Gloss, 2 Side Gloss, 1 Side Matt, 2 Side Matt"
+                "error": f"Invalid print_sides: '{print_sides}'. Must be 'Single side print' or 'Double side print' (exact match to Shopify JSON)",
+                "valid_options": ["Single side print", "Double side print"]
+            }
+        
+        if celloglaze not in ["None", "1 Side Gloss", "2 Side Gloss", "1 Side Matt", "2 Side Matt", "1 Side SILK FEEL Matt", "2 Side SILK FEEL Matt"]:
+            return {
+                "success": False,
+                "error": f"Invalid celloglaze: '{celloglaze}'. Must be one of: None, 1 Side Gloss, 2 Side Gloss, 1 Side Matt, 2 Side Matt, 1 Side SILK FEEL Matt, 2 Side SILK FEEL Matt"
             }
         
         if artworks < 1 or artworks > 50:
@@ -1349,11 +1285,6 @@ def calculate_premium_business_cards_shopify(
                 "success": False,
                 "error": f"Invalid artworks: {artworks}. Must be between 1 and 50"
             }
-        
-        # TRANSLATION LAYER: Schema → Backend
-        print_sides = "Double side print" if double_sided else "Single side print"
-        
-        # NOTE: No need for int(quantity) - decorator already converted it!
         
         calculator = PremiumBusinessCardsShopifyCalculator()
         result = calculator.calculate(
@@ -1394,45 +1325,47 @@ def calculate_premium_business_cards_shopify(
 @calculator_wrapper(quantity_enum=[100, 250, 500, 1000, 2000, 5000, 10000], validate_params=True)
 def calculate_folded_flyers_shopify(
     quantity: int,
-    size: str = None,
-    stock: str = None,
+    finish_size: str = None,       # ✅ CORRECTED: Use finish_size (not 'size')
+    paper_stock: str = None,       # ✅ CORRECTED: Use paper_stock (not 'stock')
     print_type: str = None,
-    double_sided: bool = None,
-    folding: str = None,
+    print_sides: str = None,
+    fold_type: str = None,         # ✅ CORRECTED: Use fold_type (actual website names)
     artworks: int = None,
     celloglaze: str = None,
-    # LEGACY PARAMETERS (backwards compatibility with deprecation warnings)
+    # DEPRECATED PARAMETERS (backwards compatibility - generates warnings)
+    size: str = None,              # OLD: kept for backwards compat
+    stock: str = None,             # OLD: kept for backwards compat
+    folding: str = None,           # OLD: kept for backwards compat
+    double_sided: bool = None,
     colour: bool = None,
-    fold_type: str = None,
     cellophane: str = None
 ) -> Dict[str, Any]:
     """
-    Shopify calculator for Folded Flyers (WRAPPER - Translation Layer)
+    Shopify calculator for Folded Flyers - DEFENSIVE TRANSLATION PATTERN
     
     TYPE SAFE: @calculator_wrapper decorator ensures all types are correct
     VALIDATED: validate_params=True catches unknown parameters
     
-    ✅ CURRENT PARAMETERS (use these):
+    ✅ CORRECT PARAMETERS (match Python calculator):
         quantity: Number of flyers (100-10000)
-        size: "DL" (99x210mm), "A5", "A4", "A3", or "6pp A4"
-        stock: Paper stock (e.g., "Satin 128GSM", "Satin 150GSM", "Uncoated Bond 100GSM")
-        double_sided: True for double-sided, False for single-sided (default: True)
-        print_type: "Colour" or "Black & White" (default: "Colour")
-        folding: "Single Fold", "Double Fold", or "Triple Fold" (default: "Single Fold")
+        finish_size: Full format like "A5 - 148mm x 210mm" (REQUIRED format)
+        paper_stock: Paper stock (e.g., "Satin 150GSM", "Uncoated Bond 100GSM")
+        print_sides: "Single" or "Double" (simplified, not "Single side print")
+        print_type: "Colour" or "Black & White"
+        fold_type: ACTUAL website fold names like "Half fold to A5", "Tri Roll fold to DL", etc.
         artworks: Number of artwork designs (1-50, default: 1)
-        celloglaze: "None", "1 Side Gloss", "2 Side Gloss", "1 Side Matt", "2 Side Matt" (default: "None")
+        celloglaze: "None", "1 Side Gloss", "2 Side Gloss", "1 Side Matt", "2 Side Matt"
     
-    ⚠️ DEPRECATED PARAMETERS (will be translated with warning):
+    ⚠️ DEPRECATED PARAMETERS (backwards compatibility - generates warnings):
+        size (str) → use finish_size instead
+        stock (str) → use paper_stock instead
+        folding (str) → use fold_type with actual fold names
+        double_sided (bool) → use print_sides instead
         colour (bool) → use print_type instead
-        fold_type (str) → use folding instead  
         cellophane (str) → use celloglaze instead
     
-    Backend Translation:
-        stock (str) → paper_stock (str): Same value
-        double_sided (bool) → print_sides (str): "Single side print" or "Double side print"
-    
     Returns:
-        Dict with success, quote result, or error (includes warnings array if legacy params used)
+        Dict with success, quote result, specifications, and warnings (if any)
     """
     if not SHOPIFY_CALCULATORS_AVAILABLE:
         return {
@@ -1444,24 +1377,45 @@ def calculate_folded_flyers_shopify(
         # LEGACY PARAMETER TRANSLATION (backwards compatibility)
         warnings = []
         
+        # Translate OLD parameter names to NEW
+        if size is not None and finish_size is None:
+            finish_size = size
+            warnings.append({
+                "deprecated_parameter": "size",
+                "use_instead": "finish_size",
+                "message": f"⚠️ Parameter 'size' is deprecated. Use 'finish_size' instead."
+            })
+        
+        if stock is not None and paper_stock is None:
+            paper_stock = stock
+            warnings.append({
+                "deprecated_parameter": "stock",
+                "use_instead": "paper_stock",
+                "message": f"⚠️ Parameter 'stock' is deprecated. Use 'paper_stock' instead."
+            })
+        
+        if folding is not None and fold_type is None:
+            fold_type = folding
+            warnings.append({
+                "deprecated_parameter": "folding",
+                "use_instead": "fold_type",
+                "message": f"⚠️ Parameter 'folding' is deprecated. Use 'fold_type' with actual fold names instead."
+            })
+        
         if colour is not None:
             print_type = "Colour" if colour else "Black & White"
             warnings.append({
                 "deprecated_parameter": "colour",
                 "use_instead": "print_type",
-                "value_sent": colour,
-                "translated_to": print_type,
-                "message": f"⚠️ Parameter 'colour' is deprecated. Use 'print_type' instead. Translated colour={colour} → print_type='{print_type}'"
+                "message": f"⚠️ Parameter 'colour' is deprecated. Use 'print_type' instead."
             })
         
-        if fold_type is not None:
-            folding = fold_type
+        if double_sided is not None and print_sides is None:
+            print_sides = "Double" if double_sided else "Single"
             warnings.append({
-                "deprecated_parameter": "fold_type",
-                "use_instead": "folding",
-                "value_sent": fold_type,
-                "translated_to": folding,
-                "message": f"⚠️ Parameter 'fold_type' is deprecated. Use 'folding' instead. Translated fold_type='{fold_type}' → folding='{folding}'"
+                "deprecated_parameter": "double_sided",
+                "use_instead": "print_sides",
+                "message": f"⚠️ Parameter 'double_sided' is deprecated. Use 'print_sides' instead."
             })
         
         if cellophane is not None:
@@ -1475,9 +1429,7 @@ def calculate_folded_flyers_shopify(
             warnings.append({
                 "deprecated_parameter": "cellophane",
                 "use_instead": "celloglaze",
-                "value_sent": cellophane,
-                "translated_to": celloglaze,
-                "message": f"⚠️ Parameter 'cellophane' is deprecated. Use 'celloglaze' instead. Translated cellophane='{cellophane}' → celloglaze='{celloglaze}'"
+                "message": f"⚠️ Parameter 'cellophane' is deprecated. Use 'celloglaze' instead."
             })
         
         # Log warnings to console (visible in Flask logs)
@@ -1490,86 +1442,125 @@ def calculate_folded_flyers_shopify(
             print(f"{'='*80}\n")
         
         # ========================================================================
-        # VALIDATION: Check required parameters (after legacy translation)
+        # APPLY DEFAULTS
         # ========================================================================
-        # Apply backend defaults for optional parameters
-        if size is None:
-            size = "A5"  # Backend default
         
-        if stock is None:
-            stock = "Satin 150GSM"  # Backend default
+        if finish_size is None:
+            finish_size = "A4 - 210mm x 297mm"
+        
+        if paper_stock is None:
+            paper_stock = "Satin 150GSM"
         
         if print_type is None:
-            print_type = "Colour"  # Backend default
+            print_type = "Colour"
         
-        if double_sided is None:
-            double_sided = True  # Backend default
+        if print_sides is None:
+            print_sides = "Double"
         
-        if folding is None:
-            folding = "Single Fold"  # Backend default
+        if fold_type is None:
+            fold_type = "Half fold to A5"  # Default for A4
         
         if artworks is None:
-            artworks = 1  # Backend default
+            artworks = 1
         
         if celloglaze is None:
-            celloglaze = "None"  # Backend default
+            celloglaze = "None"
         
-        # Validate parameter values (AI learns valid options from errors)
+        # ========================================================================
+        # VALIDATION
+        # ========================================================================
+        
+        # Validate print_sides (accept "Single" or "Double")
+        if print_sides not in ["Single", "Double"]:
+            return {
+                "success": False,
+                "error": f"Invalid print_sides: '{print_sides}'. Must be 'Single' or 'Double'.",
+                "valid_options": ["Single", "Double"]
+            }
+        
+        # Validate print_type
         if print_type not in ["Colour", "Black & White"]:
             return {
                 "success": False,
-                "error": f"Invalid print_type: '{print_type}'. Must be 'Colour' or 'Black & White'"
+                "error": f"Invalid print_type: '{print_type}'. Must be 'Colour' or 'Black & White'."
             }
         
-        valid_sizes = ["A5", "A4", "A3", "6pp A4", "DL"]
-        if size not in valid_sizes:
+        # Validate finish_size (full format required)
+        valid_sizes = [
+            "A5 - 148mm x 210mm",
+            "A4 - 210mm x 297mm",
+            "A3 - 297mm x 420mm",
+            "6pp A4 - 630mm x 297mm"
+        ]
+        if finish_size not in valid_sizes:
             return {
                 "success": False,
-                "error": f"Invalid size: '{size}'. Must be one of: {', '.join(valid_sizes)}"
+                "error": f"Invalid finish_size: '{finish_size}'. Must use full format.",
+                "valid_options": valid_sizes
             }
         
-        valid_folding = ["Single Fold", "Double Parallel Fold", "Z Fold", "Gate Fold", "Roll Fold", "Cross Fold"]
-        if folding not in valid_folding:
+        # Validate paper_stock
+        valid_stocks = ["Satin 128GSM", "Satin 150GSM", "Satin 250GSM", "Satin 300GSM", "Satin 350GSM", 
+                        "Uncoated Bond 80GSM", "Uncoated Bond 90GSM", "Uncoated Bond 100GSM"]
+        if paper_stock not in valid_stocks:
             return {
                 "success": False,
-                "error": f"Invalid folding: '{folding}'. Must be one of: {', '.join(valid_folding)}"
+                "error": f"Invalid paper_stock: '{paper_stock}'.",
+                "valid_options": valid_stocks
             }
         
+        # Validate fold_type (actual website fold names)
+        valid_folds = [
+            "Half fold to A6",
+            "Half fold to A5",
+            "Half fold to A4",
+            "Tri Roll fold to DL",
+            "Tri Z fold to DL",
+            "Tri Roll fold to A4",
+            "Crash fold to A5(Half then half)",
+            "Crash fold to DL(Half then roll)"
+        ]
+        if fold_type not in valid_folds:
+            return {
+                "success": False,
+                "error": f"Invalid fold_type: '{fold_type}'. Must use actual website fold name.",
+                "valid_options": valid_folds,
+                "hint": "Use exact fold names like 'Half fold to A5', not generic 'Single Fold'"
+            }
+        
+        # Validate celloglaze
         if celloglaze not in ["None", "1 Side Gloss", "2 Side Gloss", "1 Side Matt", "2 Side Matt"]:
             return {
                 "success": False,
-                "error": f"Invalid celloglaze: '{celloglaze}'. Must be one of: None, 1 Side Gloss, 2 Side Gloss, 1 Side Matt, 2 Side Matt"
+                "error": f"Invalid celloglaze: '{celloglaze}'."
             }
         
+        # Validate artworks range
         if artworks < 1 or artworks > 50:
             return {
                 "success": False,
-                "error": f"Invalid artworks: {artworks}. Must be between 1 and 50"
+                "error": f"Invalid artworks: {artworks}. Must be between 1 and 50."
             }
         
-        # TRANSLATION LAYER: Schema → Backend
-        paper_stock = stock  # Rename for backend
-        print_sides = "Double side print" if double_sided else "Single side print"
-        
-        # NOTE: No need for int(quantity) - decorator already converted it!
+        # ========================================================================
+        # ENUM MAPPING: Convert strings to backend enums
+        # ========================================================================
         
         # Import backend enums
         from shopify_calculators.FoldedFlyers_Shopify_Calculator import (
             PrintSides, PrintType, FinishSize, PaperStock, FoldType, Celloglaze
         )
         
-        # Translation: Map schema strings to backend enums
         size_map = {
-            "DL": FinishSize.DL,
-            "A5": FinishSize.A5,
-            "A4": FinishSize.A4,
-            "A3": FinishSize.A3,
-            "6pp A4": FinishSize.A4_6PP
+            "A5 - 148mm x 210mm": FinishSize.A5,
+            "A4 - 210mm x 297mm": FinishSize.A4,
+            "A3 - 297mm x 420mm": FinishSize.A3,
+            "6pp A4 - 630mm x 297mm": FinishSize.A4_6PP
         }
         
         sides_map = {
-            "Single side print": PrintSides.SINGLE_SIDE,
-            "Double side print": PrintSides.DOUBLE_SIDE
+            "Single": PrintSides.SINGLE_SIDE,
+            "Double": PrintSides.DOUBLE_SIDE
         }
         
         type_map = {
@@ -1589,9 +1580,14 @@ def calculate_folded_flyers_shopify(
         }
         
         fold_map = {
-            "Single Fold": FoldType.SINGLE_FOLD,
-            "Double Fold": FoldType.DOUBLE_FOLD,
-            "Triple Fold": FoldType.TRIPLE_FOLD
+            "Half fold to A6": FoldType.HALF_FOLD_TO_A6,
+            "Half fold to A5": FoldType.HALF_FOLD_TO_A5,
+            "Half fold to A4": FoldType.HALF_FOLD_TO_A4,
+            "Tri Roll fold to DL": FoldType.TRI_ROLL_FOLD_TO_DL,
+            "Tri Z fold to DL": FoldType.TRI_Z_FOLD_TO_DL,
+            "Tri Roll fold to A4": FoldType.TRI_ROLL_FOLD_TO_A4,
+            "Crash fold to A5(Half then half)": FoldType.CRASH_FOLD_TO_A5_HALF,
+            "Crash fold to DL(Half then roll)": FoldType.CRASH_FOLD_TO_DL_HALF
         }
         
         cello_map = {
@@ -1605,13 +1601,13 @@ def calculate_folded_flyers_shopify(
         calculator = FoldedFlyersShopifyCalculator()
         result = calculator.calculate_quote(
             quantity=quantity,
-            print_sides=sides_map.get(print_sides, PrintSides.SINGLE_SIDE),
-            print_type=type_map.get(print_type, PrintType.COLOUR),
-            finish_size=size_map.get(size, FinishSize.A5),
-            paper_stock=stock_map.get(paper_stock, PaperStock.SATIN_150GSM),
+            print_sides=sides_map[print_sides],
+            print_type=type_map[print_type],
+            finish_size=size_map[finish_size],
+            paper_stock=stock_map[paper_stock],
             artworks=artworks,
-            fold_type=fold_map.get(folding, FoldType.SINGLE_FOLD),
-            celloglaze=cello_map.get(celloglaze, Celloglaze.NONE)
+            fold_type=fold_map[fold_type],
+            celloglaze=cello_map[celloglaze]
         )
         
         response = {
@@ -1636,6 +1632,70 @@ def calculate_folded_flyers_shopify(
         return {
             "success": False,
             "error": str(e)
+        }
+
+
+@calculator_wrapper(validate_params=True)
+def calculate_printed_flyers_shopify(
+    quantity: int,
+    print_sides: str = "Double",
+    print_type: str = "Colour",
+    finish_size: str = "A5 - 148mm x 210mm",
+    paper_stock: str = "Satin 150GSM",
+    artworks: int = 1
+) -> Dict[str, Any]:
+    """
+    Shopify calculator for Printed Flyers (flat/unfolded)
+    
+    Args:
+        quantity: Number of flyers (100, 250, 500, 1000, 2000, 5000, 10000)
+        print_sides: "Single" or "Double" (default: "Double")
+        print_type: "Colour" or "Black & White" (default: "Colour")
+        finish_size: Size option - DL (6/sheet), A6 (8/sheet), A5 (4/sheet), A4 (2/sheet), A3 (1/sheet)
+        paper_stock: Paper stock type (9 options: Satin 128-350GSM, Uncoated 80-100GSM)
+        artworks: Number of different designs (1-50, first FREE then $15 each)
+    
+    Returns:
+        Dict with success, quote result, or error
+        
+    Features:
+        - 11-tier profit margin system (170% → 25% based on cost)
+        - Automatic 10% discount for quantities ≥ 1000
+        - Items per sheet calculation (DL=6, A6=8, A5=4, A4=2, A3=1)
+        - 5% stock waste factor
+        - Setup: $15 imposition + $12 guillotine + artwork extras
+    """
+    if not SHOPIFY_CALCULATORS_AVAILABLE:
+        return {
+            "success": False,
+            "error": "Shopify calculators not available."
+        }
+    
+    try:
+        # Initialize calculator
+        calculator = PrintedFlyersShopifyCalculator()
+        
+        # Calculate quote
+        result = calculator.calculate(
+            quantity=quantity,
+            print_sides=print_sides,
+            print_type=print_type,
+            finish_size=finish_size,
+            paper_stock=paper_stock,
+            artworks=artworks
+        )
+        
+        # Return result dict
+        return result.to_dict()
+        
+    except Exception as e:
+        print(f"❌ [Shopify Printed Flyers] Error: {e}")
+        import traceback
+        traceback.print_exc()
+        return {
+            "success": False,
+            "error": str(e),
+            "product_type": "Printed Flyers"
         }
 
 
@@ -1796,6 +1856,95 @@ def calculate_wire_bound_books_shopify(
             if 'note' in w:
                 log_msg += f"      Note: {w['note']}\n"
         print(log_msg)
+    
+    # ========================================================================
+    # VALIDATION: Validate parameter values (AI learns valid options from errors)
+    # ========================================================================
+    if internal_pages < 1 or internal_pages > 500:
+        return {
+            "success": False,
+            "error": f"Invalid internal_pages: {internal_pages}. Must be between 1 and 500"
+        }
+    
+    valid_sizes = ["A6 Portrait", "A6 Landscape", "DL Portrait", "DL Landscape", "A5 Portrait", "A5 Landscape", "A4 Portrait", "A4 Landscape"]
+    if finish_size not in valid_sizes:
+        return {
+            "success": False,
+            "error": f"Invalid finish_size: '{finish_size}'. Must be one of: {', '.join(valid_sizes)}"
+        }
+    
+    valid_cover_stock = ["250GSM Satin", "300GSM Satin", "350GSM Satin"]
+    if printed_front_cover not in valid_cover_stock:
+        return {
+            "success": False,
+            "error": f"Invalid printed_front_cover: '{printed_front_cover}'. Must be one of: {', '.join(valid_cover_stock)}"
+        }
+    
+    if printed_back_cover not in valid_cover_stock:
+        return {
+            "success": False,
+            "error": f"Invalid printed_back_cover: '{printed_back_cover}'. Must be one of: {', '.join(valid_cover_stock)}"
+        }
+    
+    valid_print = ["1pp Colour", "2pp Colour", "1pp Black & White", "2pp Black & White"]
+    if front_cover_print not in valid_print:
+        return {
+            "success": False,
+            "error": f"Invalid front_cover_print: '{front_cover_print}'. Must be one of: {', '.join(valid_print)}"
+        }
+    
+    if back_cover_print not in valid_print:
+        return {
+            "success": False,
+            "error": f"Invalid back_cover_print: '{back_cover_print}'. Must be one of: {', '.join(valid_print)}"
+        }
+    
+    valid_celloglaze = ["None", "1 Side Gloss", "2 Sided Gloss", "1 Side Matt", "2 Sided Matt"]
+    if front_celloglaze not in valid_celloglaze:
+        return {
+            "success": False,
+            "error": f"Invalid front_celloglaze: '{front_celloglaze}'. Must be one of: {', '.join(valid_celloglaze)}"
+        }
+    
+    if back_celloglaze not in valid_celloglaze:
+        return {
+            "success": False,
+            "error": f"Invalid back_celloglaze: '{back_celloglaze}'. Must be one of: {', '.join(valid_celloglaze)}"
+        }
+    
+    valid_outer_front = ["Not Required", "Clear PVC"]
+    if outer_front_cover not in valid_outer_front:
+        return {
+            "success": False,
+            "error": f"Invalid outer_front_cover: '{outer_front_cover}'. Must be one of: {', '.join(valid_outer_front)}"
+        }
+    
+    valid_outer_back = ["None", "Clear PVC", "Black Leather", "Blank"]
+    if outer_back_cover not in valid_outer_back:
+        return {
+            "success": False,
+            "error": f"Invalid outer_back_cover: '{outer_back_cover}'. Must be one of: {', '.join(valid_outer_back)}"
+        }
+    
+    valid_internal_stock = ["Satin 128GSM", "Satin 150GSM", "Uncoated Bond 80GSM", "Uncoated Bond 90GSM", "Uncoated Bond 100GSM"]
+    if internal_stock not in valid_internal_stock:
+        return {
+            "success": False,
+            "error": f"Invalid internal_stock: '{internal_stock}'. Must be one of: {', '.join(valid_internal_stock)}"
+        }
+    
+    valid_internal_print = ["Full Colour", "Black & White"]
+    if internal_print not in valid_internal_print:
+        return {
+            "success": False,
+            "error": f"Invalid internal_print: '{internal_print}'. Must be one of: {', '.join(valid_internal_print)}"
+        }
+    
+    if artworks < 1 or artworks > 50:
+        return {
+            "success": False,
+            "error": f"Invalid artworks: {artworks}. Must be between 1 and 50"
+        }
     
     # ========================================================================
     # BACKEND CALCULATION
@@ -2021,11 +2170,78 @@ def calculate_spiral_bound_books_shopify(
             "error": f"Invalid internal_pages: {internal_pages}. Must be between 1 and 500"
         }
     
-    valid_sizes = ["A5 Portrait", "A5 Landscape", "A4 Portrait", "A4 Landscape"]
+    valid_sizes = ["A6 Portrait", "A6 Landscape", "DL Portrait", "DL Landscape", "A5 Portrait", "A5 Landscape", "A4 Portrait", "A4 Landscape"]
     if finish_size not in valid_sizes:
         return {
             "success": False,
             "error": f"Invalid finish_size: '{finish_size}'. Must be one of: {', '.join(valid_sizes)}"
+        }
+    
+    valid_cover_stock = ["250GSM Satin", "300GSM Satin", "350GSM Satin"]
+    if printed_front_cover not in valid_cover_stock:
+        return {
+            "success": False,
+            "error": f"Invalid printed_front_cover: '{printed_front_cover}'. Must be one of: {', '.join(valid_cover_stock)}"
+        }
+    
+    if printed_back_cover not in valid_cover_stock:
+        return {
+            "success": False,
+            "error": f"Invalid printed_back_cover: '{printed_back_cover}'. Must be one of: {', '.join(valid_cover_stock)}"
+        }
+    
+    valid_print = ["1pp Colour", "2pp Colour", "1pp Black & White", "2pp Black & White"]
+    if front_cover_print not in valid_print:
+        return {
+            "success": False,
+            "error": f"Invalid front_cover_print: '{front_cover_print}'. Must be one of: {', '.join(valid_print)}"
+        }
+    
+    if back_cover_print not in valid_print:
+        return {
+            "success": False,
+            "error": f"Invalid back_cover_print: '{back_cover_print}'. Must be one of: {', '.join(valid_print)}"
+        }
+    
+    valid_celloglaze = ["None", "1 Side Gloss", "2 Sided Gloss", "1 Side Matt", "2 Sided Matt"]
+    if front_celloglaze not in valid_celloglaze:
+        return {
+            "success": False,
+            "error": f"Invalid front_celloglaze: '{front_celloglaze}'. Must be one of: {', '.join(valid_celloglaze)}"
+        }
+    
+    if back_celloglaze not in valid_celloglaze:
+        return {
+            "success": False,
+            "error": f"Invalid back_celloglaze: '{back_celloglaze}'. Must be one of: {', '.join(valid_celloglaze)}"
+        }
+    
+    valid_outer_front = ["Not Required", "Clear PVC"]
+    if outer_front_cover not in valid_outer_front:
+        return {
+            "success": False,
+            "error": f"Invalid outer_front_cover: '{outer_front_cover}'. Must be one of: {', '.join(valid_outer_front)}"
+        }
+    
+    valid_outer_back = ["None", "Clear PVC", "Black Leather", "Blank"]
+    if outer_back_cover not in valid_outer_back:
+        return {
+            "success": False,
+            "error": f"Invalid outer_back_cover: '{outer_back_cover}'. Must be one of: {', '.join(valid_outer_back)}"
+        }
+    
+    valid_internal_stock = ["Satin 128GSM", "Satin 150GSM", "Uncoated Bond 80GSM", "Uncoated Bond 90GSM", "Uncoated Bond 100GSM"]
+    if internal_stock not in valid_internal_stock:
+        return {
+            "success": False,
+            "error": f"Invalid internal_stock: '{internal_stock}'. Must be one of: {', '.join(valid_internal_stock)}"
+        }
+    
+    valid_internal_print = ["Full Colour", "Black & White"]
+    if internal_print not in valid_internal_print:
+        return {
+            "success": False,
+            "error": f"Invalid internal_print: '{internal_print}'. Must be one of: {', '.join(valid_internal_print)}"
         }
     
     # ========================================================================
@@ -2258,11 +2474,18 @@ def calculate_perfect_bound_books_shopify(
             "error": f"Invalid printed_pages: {printed_pages}. Must be divisible by 4"
         }
     
-    valid_sizes = ["A5 Portrait", "A4 Portrait", "A4 Landscape", "US Trade"]
+    valid_sizes = ["A5 Portrait", "A4 Portrait", "A4 Landscape", "US Trade - 152mm x 229mm"]
     if finish_size not in valid_sizes:
         return {
             "success": False,
             "error": f"Invalid finish_size: '{finish_size}'. Must be one of: {', '.join(valid_sizes)}"
+        }
+    
+    valid_cover_print = ["1 side colour (2pp)", "2 side colour (4pp)", "1 side Black & White (2pp)", "2 side Black & White (4pp)"]
+    if cover_print_type not in valid_cover_print:
+        return {
+            "success": False,
+            "error": f"Invalid cover_print_type: '{cover_print_type}'. Must be one of: {', '.join(valid_cover_print)}"
         }
     
     valid_celloglaze = ["None", "Gloss outside only", "Matt outside only"]
@@ -2270,6 +2493,27 @@ def calculate_perfect_bound_books_shopify(
         return {
             "success": False,
             "error": f"Invalid celloglaze: '{celloglaze}'. Must be one of: {', '.join(valid_celloglaze)}"
+        }
+    
+    valid_content_print = ["Full Colour", "Black & White"]
+    if content_print_type not in valid_content_print:
+        return {
+            "success": False,
+            "error": f"Invalid content_print_type: '{content_print_type}'. Must be one of: {', '.join(valid_content_print)}"
+        }
+    
+    valid_content_stock = ["Satin 128GSM", "Satin 150GSM", "Uncoated Bond 80GSM", "Uncoated Bond 90GSM", "Uncoated Bond 100GSM"]
+    if content_stock_type not in valid_content_stock:
+        return {
+            "success": False,
+            "error": f"Invalid content_stock_type: '{content_stock_type}'. Must be one of: {', '.join(valid_content_stock)}"
+        }
+    
+    valid_proof = ["Digital Emailed Proof", "Physical Proof"]
+    if proof_requirements not in valid_proof:
+        return {
+            "success": False,
+            "error": f"Invalid proof_requirements: '{proof_requirements}'. Must be one of: {', '.join(valid_proof)}"
         }
     
     # ========================================================================
@@ -2477,7 +2721,7 @@ def calculate_saddle_stitch_books_shopify(
     # ========================================================================
     # VALIDATION: Validate parameter values (AI learns valid options from errors)
     # ========================================================================
-    valid_pages = ["16pp", "20pp", "24pp", "28pp", "32pp", "36pp", "40pp", "44pp", "48pp", "52pp", "56pp", "60pp"]
+    valid_pages = ["8pp", "12pp", "16pp", "20pp", "24pp", "28pp", "32pp", "36pp", "40pp", "44pp", "48pp"]
     if printed_pages not in valid_pages:
         return {
             "success": False,
@@ -2489,6 +2733,48 @@ def calculate_saddle_stitch_books_shopify(
         return {
             "success": False,
             "error": f"Invalid finish_size: '{finish_size}'. Must be one of: {', '.join(valid_sizes)}"
+        }
+    
+    valid_cover_stock = ["Satin 200GSM", "Satin 250GSM", "Satin 300GSM"]
+    if cover_stock not in valid_cover_stock:
+        return {
+            "success": False,
+            "error": f"Invalid cover_stock: '{cover_stock}'. Must be one of: {', '.join(valid_cover_stock)}"
+        }
+    
+    valid_cover_print = ["1 side colour (2pp)", "2 side colour (4pp)", "1 side Black & White (2pp)", "2 side Black & White (4pp)"]
+    if cover_print_type not in valid_cover_print:
+        return {
+            "success": False,
+            "error": f"Invalid cover_print_type: '{cover_print_type}'. Must be one of: {', '.join(valid_cover_print)}"
+        }
+    
+    valid_celloglaze = ["None", "Gloss outside only", "Matt outside only"]
+    if celloglaze not in valid_celloglaze:
+        return {
+            "success": False,
+            "error": f"Invalid celloglaze: '{celloglaze}'. Must be one of: {', '.join(valid_celloglaze)}"
+        }
+    
+    valid_content_print = ["Colour", "Black & White"]
+    if content_print_type not in valid_content_print:
+        return {
+            "success": False,
+            "error": f"Invalid content_print_type: '{content_print_type}'. Must be one of: {', '.join(valid_content_print)}"
+        }
+    
+    valid_content_stock = ["Uncoated Bond 80GSM", "Uncoated Bond 100GSM", "Satin 128GSM", "Satin 150GSM"]
+    if content_stock_type not in valid_content_stock:
+        return {
+            "success": False,
+            "error": f"Invalid content_stock_type: '{content_stock_type}'. Must be one of: {', '.join(valid_content_stock)}"
+        }
+    
+    valid_cover_option = ["Hard Cover", "Self Cover"]
+    if cover_option not in valid_cover_option:
+        return {
+            "success": False,
+            "error": f"Invalid cover_option: '{cover_option}'. Must be one of: {', '.join(valid_cover_option)}"
         }
     
     if artworks < 1 or artworks > 50:
@@ -2727,68 +3013,81 @@ def calculate_saddle_stitch_books(
 @calculator_wrapper(validate_params=True)
 def calculate_bollard_signs(
     quantity: int,
-    size: str = None,          # Changed from "300x300" to None
-    material: str = None,      # Changed from "Aluminium" to None
-    sides: str = None,         # Changed from "Single" to None
-    artworks: int = None       # Changed from 1 to None
+    size: str = None,
+    material: str = None,
+    artworks: int = None
 ) -> Dict[str, Any]:
     """
     Shopify calculator for Bollard Signs
     
-    ✅ CURRENT PARAMETERS (matches backend):
-        quantity: Number of signs (required)
-        size: Size in mm (e.g., "300x300", "450x450")
-        material: "Aluminium", "Metal"
-        sides: "Single" or "Double"
-        artworks: Number of artwork designs (1-50)
+    ✅ ALIGNED JAN 23, 2026: Backend, Wrapper, Schema all use JSON format
+    
+    Parameters (Shopify JSON format):
+        quantity: Number of signs (1-1000, required)
+        material: "3mm Corflute" or "5mm Corflute" (from JSON)
+        size: "270mm W x 1000mm H - Three Sided" format (from JSON, 12 options)
+        artworks: Number of artwork designs (1-20)
     """
     if not SHOPIFY_CALCULATORS_AVAILABLE:
         return {"success": False, "error": "Shopify calculators not available."}
     
-    # ✅ VALIDATION - Apply backend defaults if None
+    # ✅ Apply JSON defaults (from Shopify specification)
     if size is None:
-        size = "300x300"
+        size = "270mm W x 1000mm H - Three Sided"  # JSON default
     if material is None:
-        material = "Aluminium"
-    if sides is None:
-        sides = "Single"
+        material = "5mm Corflute"  # JSON default
     if artworks is None:
         artworks = 1
     
-    # Validate parameter values (AI learns valid options from errors)
-    valid_sizes = ["300x300", "450x450", "600x600"]
+    # ✅ Validate quantity range (JSON specifies 1-1000)
+    if quantity < 1 or quantity > 1000:
+        return {
+            "success": False,
+            "error": f"Invalid quantity: {quantity}. Must be between 1 and 1000"
+        }
+    
+    # ✅ Validate against JSON enum values (exact match required)
+    valid_materials = ["3mm Corflute", "5mm Corflute"]
+    if material not in valid_materials:
+        return {
+            "success": False,
+            "error": f"Invalid material: '{material}'. Must be one of: {', '.join(valid_materials)}"
+        }
+    
+    valid_sizes = [
+        "270mm W x 1000mm H - Three Sided",
+        "270mm W x 1200mm H - Three Sided",
+        "270mm W x 1800mm H - Three Sided",
+        "300mm W x 1000mm H - Three Sided",
+        "300mm W x 1200mm H - Three Sided",
+        "300mm W x 1800mm H - Three Sided",
+        "155mm W x 1000mm H - Four Sided",
+        "155mm W x 1200mm H - Four Sided",
+        "155mm W x 1800mm H - Four Sided",
+        "175mm W x 1000mm H - Four Sided",
+        "175mm W x 1200mm H - Four Sided",
+        "175mm W x 1800mm H - Four Sided"
+    ]
     if size not in valid_sizes:
         return {
             "success": False,
-            "error": f"Invalid size: '{size}'. Must be one of: {', '.join(valid_sizes)}"
+            "error": f"Invalid size: '{size}'. Must be one of: {valid_sizes[0]}, {valid_sizes[1]}, ... (12 options total)"
         }
     
-    if material not in ["Aluminium", "Metal"]:
+    if artworks < 1 or artworks > 20:
         return {
             "success": False,
-            "error": f"Invalid material: '{material}'. Must be 'Aluminium' or 'Metal'"
+            "error": f"Invalid artworks: {artworks}. Must be between 1 and 20"
         }
     
-    if sides not in ["Single", "Double"]:
-        return {
-            "success": False,
-            "error": f"Invalid sides: '{sides}'. Must be 'Single' or 'Double'"
-        }
-    
-    if artworks < 1 or artworks > 50:
-        return {
-            "success": False,
-            "error": f"Invalid artworks: {artworks}. Must be between 1 and 50"
-        }
-    
+    # ✅ Pass JSON format directly to backend (no translation needed)
     try:
         from BollardSigns_Shopify_Calculator import BollardSignsShopifyCalculator
         calculator = BollardSignsShopifyCalculator()
         result = calculator.calculate(
             quantity=quantity,
-            size=size,
-            material=material,
-            sides=sides,
+            size=size,  # ✅ JSON format passed directly
+            material=material,  # ✅ JSON format passed directly
             artworks=artworks
         )
         return {
@@ -2810,68 +3109,111 @@ def calculate_bollard_signs(
 @calculator_wrapper(validate_params=True)
 def calculate_construction_signs(
     quantity: int,
-    size: str = None,          # Changed from "600x450" to None
-    material: str = None,      # Changed from "Corflute" to None
-    sides: str = None,         # Changed from "Single" to None
-    artworks: int = None       # Changed from 1 to None
+    size: str = None,
+    thickness: str = None,
+    sides: str = None,
+    eyelets: str = None,
+    cutting: str = None,
+    artworks: int = None
 ) -> Dict[str, Any]:
     """
     Shopify calculator for Construction Signs
     
-    ✅ CURRENT PARAMETERS (matches backend):
-        quantity: Number of signs (required)
-        size: Size in mm (e.g., "600x450", "900x600")
-        material: "Corflute", "Metal"
-        sides: "Single" or "Double"
-        artworks: Number of artwork designs (1-50)
+    ✅ ALIGNED JAN 23, 2026: Backend, Wrapper, Schema all use JSON format
+    
+    Parameters (Shopify JSON format):
+        quantity: Number of signs (1-10000, required)
+        size: "450mm x 600mm" format with spaces (JSON, 5 options)
+        thickness: "3mm" or "5mm" (JSON)
+        sides: "Single Sided" or "Double Sided" with suffix (JSON)
+        eyelets: Eyelet configuration (JSON, 7 options)
+        cutting: "Standard square edge" or "Custom Shape" (JSON)
+        artworks: Number of artwork designs (1-20)
     """
     if not SHOPIFY_CALCULATORS_AVAILABLE:
         return {"success": False, "error": "Shopify calculators not available."}
     
-    # ✅ VALIDATION - Apply backend defaults if None
+    # ✅ Apply JSON defaults
     if size is None:
-        size = "600x450"
-    if material is None:
-        material = "Corflute"
+        size = "600mm x 900mm"  # JSON default
+    if thickness is None:
+        thickness = "5mm"  # JSON default
     if sides is None:
-        sides = "Single"
+        sides = "Single Sided"  # JSON default
+    if eyelets is None:
+        eyelets = "No Eyelets"  # JSON default
+    if cutting is None:
+        cutting = "Standard square edge"  # JSON default
     if artworks is None:
         artworks = 1
     
-    # Validate parameter values (AI learns valid options from errors)
-    valid_sizes = ["600x450", "900x600", "1200x900"]
+    # ✅ Validate against JSON enum values
+    valid_sizes = [
+        "450mm x 600mm",
+        "600mm x 900mm",
+        "900mm x 1200mm",
+        "1200mm x 2400mm",
+        "Custom"
+    ]
     if size not in valid_sizes:
         return {
             "success": False,
             "error": f"Invalid size: '{size}'. Must be one of: {', '.join(valid_sizes)}"
         }
     
-    if material not in ["Corflute", "Metal"]:
+    valid_thickness = ["3mm", "5mm"]
+    if thickness not in valid_thickness:
         return {
             "success": False,
-            "error": f"Invalid material: '{material}'. Must be 'Corflute' or 'Metal'"
+            "error": f"Invalid thickness: '{thickness}'. Must be one of: {', '.join(valid_thickness)}"
         }
     
-    if sides not in ["Single", "Double"]:
+    valid_sides = ["Single Sided", "Double Sided"]
+    if sides not in valid_sides:
         return {
             "success": False,
-            "error": f"Invalid sides: '{sides}'. Must be 'Single' or 'Double'"
+            "error": f"Invalid sides: '{sides}'. Must be one of: {', '.join(valid_sides)}"
         }
     
-    if artworks < 1 or artworks > 50:
+    valid_eyelets = [
+        "No Eyelets",
+        "4 x Eyelets (1 In Each Corner)",
+        "2 x Eyelets (top left & right corners)",
+        "2 x Eyelets (center left & right)",
+        "2 x Eyelets (center top & bottom)",
+        "6 x Eyelets (3 each top & bottom)",
+        "6 x Eyelets (3 each left & right)"
+    ]
+    if eyelets not in valid_eyelets:
         return {
             "success": False,
-            "error": f"Invalid artworks: {artworks}. Must be between 1 and 50"
+            "error": f"Invalid eyelets: '{eyelets}'. Must be one of the 7 eyelet options"
         }
     
+    valid_cutting = ["Standard square edge", "Custom Shape"]
+    if cutting not in valid_cutting:
+        return {
+            "success": False,
+            "error": f"Invalid cutting: '{cutting}'. Must be one of: {', '.join(valid_cutting)}"
+        }
+    
+    if artworks < 1 or artworks > 20:
+        return {
+            "success": False,
+            "error": f"Invalid artworks: {artworks}. Must be between 1 and 20"
+        }
+    
+    # ✅ Pass JSON format directly to backend
     try:
         from ConstructionSigns_Shopify_Calculator import ConstructionSignsShopifyCalculator
         calculator = ConstructionSignsShopifyCalculator()
         result = calculator.calculate(
             quantity=quantity,
-            size=size,
-            material=material,
-            sides=sides,
+            size=size,  # ✅ JSON format
+            thickness=thickness,  # ✅ JSON format
+            sides=sides,  # ✅ JSON format
+            eyelets=eyelets,  # ✅ JSON format
+            cutting=cutting,  # ✅ JSON format
             artworks=artworks
         )
         return {
@@ -2894,71 +3236,111 @@ def calculate_construction_signs(
 @calculator_wrapper(validate_params=True)
 def calculate_election_signs(
     quantity: int,
-    size: str = None,          # Changed from "600x450" to None
-    material: str = None,      # Changed from "Corflute" to None
-    sides: str = None,         # Changed from "Single" to None
-    artworks: int = None       # Changed from 1 to None
+    size: str = None,
+    thickness: str = None,
+    sides: str = None,
+    eyelets: str = None,
+    cutting: str = None,
+    artworks: int = None
 ) -> Dict[str, Any]:
     """
     Shopify calculator for Election Signs
     
-    ✅ CURRENT PARAMETERS (matches backend):
-        quantity: Number of signs (required)
-        size: Size in mm (e.g., "600x450", "900x600")
-        material: "Corflute", "Metal", "Aluminium"
-        sides: "Single" or "Double"
-        artworks: Number of artwork designs (1-50)
+    ✅ ALIGNED JAN 23, 2026: Backend, Wrapper, Schema all use JSON format
     
-    All parameters except quantity have backend defaults.
+    Parameters (Shopify JSON format):
+        quantity: Number of election signs (1-10000, required)
+        size: "450mm x 600mm" format with spaces (JSON, 5 options)
+        thickness: "3mm" or "5mm" (JSON)
+        sides: "Single Sided" or "Double Sided" with suffix (JSON)
+        eyelets: Eyelet configuration (JSON, 7 options)
+        cutting: "Standard square edge" or "Custom Shape" (JSON)
+        artworks: Number of artwork designs (1-20)
     """
     if not SHOPIFY_CALCULATORS_AVAILABLE:
         return {"success": False, "error": "Shopify calculators not available."}
     
-    # ✅ VALIDATION (AFTER parameter check - CRITICAL!)
-    # Apply backend defaults if None
+    # ✅ Apply JSON defaults
     if size is None:
-        size = "600x450"  # Backend default
-    if material is None:
-        material = "Corflute"  # Backend default
+        size = "600mm x 900mm"  # JSON default
+    if thickness is None:
+        thickness = "5mm"  # JSON default
     if sides is None:
-        sides = "Single"  # Backend default
+        sides = "Single Sided"  # JSON default
+    if eyelets is None:
+        eyelets = "No Eyelets"  # JSON default
+    if cutting is None:
+        cutting = "Standard square edge"  # JSON default
     if artworks is None:
-        artworks = 1  # Backend default
+        artworks = 1
     
-    # Validate parameter values (AI learns valid options from errors)
-    valid_sizes = ["600x450", "900x600", "1200x900"]
+    # ✅ Validate against JSON enum values
+    valid_sizes = [
+        "450mm x 600mm",
+        "600mm x 900mm",
+        "900mm x 1200mm",
+        "1200mm x 2400mm",
+        "Custom"
+    ]
     if size not in valid_sizes:
         return {
             "success": False,
             "error": f"Invalid size: '{size}'. Must be one of: {', '.join(valid_sizes)}"
         }
     
-    if material not in ["Corflute", "Metal", "Aluminium"]:
+    valid_thickness = ["3mm", "5mm"]
+    if thickness not in valid_thickness:
         return {
             "success": False,
-            "error": f"Invalid material: '{material}'. Must be one of: Corflute, Metal, Aluminium"
+            "error": f"Invalid thickness: '{thickness}'. Must be one of: {', '.join(valid_thickness)}"
         }
     
-    if sides not in ["Single", "Double"]:
+    valid_sides = ["Single Sided", "Double Sided"]
+    if sides not in valid_sides:
         return {
             "success": False,
-            "error": f"Invalid sides: '{sides}'. Must be 'Single' or 'Double'"
+            "error": f"Invalid sides: '{sides}'. Must be one of: {', '.join(valid_sides)}"
         }
     
-    if artworks < 1 or artworks > 50:
+    valid_eyelets = [
+        "No Eyelets",
+        "4 x Eyelets (1 In Each Corner)",
+        "2 x Eyelets (top left and right corners)",
+        "2 x Eyelets (center left and right)",
+        "2 x Eyelets (center top and bottom)",
+        "6 x Eyelets (3 each top and bottom)",
+        "6 x Eyelets (3 each left and right)"
+    ]
+    if eyelets not in valid_eyelets:
         return {
             "success": False,
-            "error": f"Invalid artworks: {artworks}. Must be between 1 and 50"
+            "error": f"Invalid eyelets: '{eyelets}'. Must be one of the 7 eyelet options"
         }
     
+    valid_cutting = ["Standard square edge", "Custom Shape"]
+    if cutting not in valid_cutting:
+        return {
+            "success": False,
+            "error": f"Invalid cutting: '{cutting}'. Must be one of: {', '.join(valid_cutting)}"
+        }
+    
+    if artworks < 1 or artworks > 20:
+        return {
+            "success": False,
+            "error": f"Invalid artworks: {artworks}. Must be between 1 and 20"
+        }
+    
+    # ✅ Pass JSON format directly to backend
     try:
         from ElectionSigns_Shopify_Calculator import ElectionSignsShopifyCalculator
         calculator = ElectionSignsShopifyCalculator()
         result = calculator.calculate(
             quantity=quantity,
-            size=size,
-            material=material,
-            sides=sides,
+            size=size,  # ✅ JSON format
+            thickness=thickness,  # ✅ JSON format
+            sides=sides,  # ✅ JSON format
+            eyelets=eyelets,  # ✅ JSON format
+            cutting=cutting,  # ✅ JSON format
             artworks=artworks
         )
         return {
@@ -2980,57 +3362,51 @@ def calculate_election_signs(
 @calculator_wrapper(validate_params=True)
 def calculate_corflute_insert_a_frame(
     quantity: int,
-    size: str = None,          # Changed from "600x450" to None
-    sides: str = None,         # Changed from "Single" to None
-    artworks: int = None       # Changed from 1 to None
+    size: str = None,
+    artworks: int = None
 ) -> Dict[str, Any]:
     """
     Shopify calculator for Corflute Insert A-Frame
     
-    ✅ CURRENT PARAMETERS (matches backend):
-        quantity: Number of frames (required)
-        size: Size in mm (e.g., "600x450", "900x600")
-        sides: "Single" or "Double"
-        artworks: Number of artwork designs (1-50)
+    ✅ ALIGNED JAN 23, 2026: Backend, Wrapper, Schema all use JSON format
+    
+    Parameters (Shopify JSON format):
+        quantity: Number of frames (1-10000, required)
+        size: "600mm(W) x 900mm(H)" format (JSON, only 1 option)
+        artworks: Number of artwork designs (1-20)
+    
+    Note: This product only has ONE size option in Shopify JSON
     """
     if not SHOPIFY_CALCULATORS_AVAILABLE:
         return {"success": False, "error": "Shopify calculators not available."}
     
-    # ✅ VALIDATION - Apply backend defaults if None
+    # ✅ Apply JSON defaults
     if size is None:
-        size = "600x450"
-    if sides is None:
-        sides = "Single"
+        size = "600mm(W) x 900mm(H)"  # JSON default (only option)
     if artworks is None:
         artworks = 1
     
-    # Validate parameter values (AI learns valid options from errors)
-    valid_sizes = ["600x450", "900x600"]
+    # ✅ Validate against JSON enum values
+    valid_sizes = ["600mm(W) x 900mm(H)"]  # Only 1 option in JSON
     if size not in valid_sizes:
         return {
             "success": False,
-            "error": f"Invalid size: '{size}'. Must be one of: {', '.join(valid_sizes)}"
+            "error": f"Invalid size: '{size}'. Must be: {valid_sizes[0]}"
         }
     
-    if sides not in ["Single", "Double"]:
+    if artworks < 1 or artworks > 20:
         return {
             "success": False,
-            "error": f"Invalid sides: '{sides}'. Must be 'Single' or 'Double'"
+            "error": f"Invalid artworks: {artworks}. Must be between 1 and 20"
         }
     
-    if artworks < 1 or artworks > 50:
-        return {
-            "success": False,
-            "error": f"Invalid artworks: {artworks}. Must be between 1 and 50"
-        }
-    
+    # ✅ Pass JSON format directly to backend
     try:
         from CorfluteInsertA_Frame_Shopify_Calculator import CorfluteInsertA_FrameShopifyCalculator
         calculator = CorfluteInsertA_FrameShopifyCalculator()
         result = calculator.calculate(
             quantity=quantity,
-            size=size,
-            sides=sides,
+            size=size,  # ✅ JSON format
             artworks=artworks
         )
         return {
@@ -3052,57 +3428,51 @@ def calculate_corflute_insert_a_frame(
 @calculator_wrapper(validate_params=True)
 def calculate_metal_face_a_frame(
     quantity: int,
-    size: str = None,          # Changed from "600x450" to None
-    sides: str = None,         # Changed from "Single" to None
-    artworks: int = None       # Changed from 1 to None
+    size: str = None,
+    artworks: int = None
 ) -> Dict[str, Any]:
     """
     Shopify calculator for Metal Face A-Frame
     
-    ✅ CURRENT PARAMETERS (matches backend):
-        quantity: Number of frames (required)
-        size: Size in mm (e.g., "600x450", "900x600")
-        sides: "Single" or "Double"
-        artworks: Number of artwork designs (1-50)
+    ✅ ALIGNED JAN 23, 2026: Backend, Wrapper, Schema all use JSON format
+    
+    Parameters (Shopify JSON format):
+        quantity: Number of frames (1-100, required)
+        size: "600mm W x 900mm H" format (JSON, only 1 option)
+        artworks: Number of artwork designs (1-20)
+    
+    Note: This product only has ONE size option and is single-sided only
     """
     if not SHOPIFY_CALCULATORS_AVAILABLE:
         return {"success": False, "error": "Shopify calculators not available."}
     
-    # ✅ VALIDATION - Apply backend defaults if None
+    # ✅ Apply JSON defaults
     if size is None:
-        size = "600x450"
-    if sides is None:
-        sides = "Single"
+        size = "600mm W x 900mm H"  # JSON default (only option)
     if artworks is None:
         artworks = 1
     
-    # Validate parameter values (AI learns valid options from errors)
-    valid_sizes = ["600x450", "900x600"]
+    # ✅ Validate against JSON enum values
+    valid_sizes = ["600mm W x 900mm H"]  # Only 1 option in JSON
     if size not in valid_sizes:
         return {
             "success": False,
-            "error": f"Invalid size: '{size}'. Must be one of: {', '.join(valid_sizes)}"
+            "error": f"Invalid size: '{size}'. Must be: {valid_sizes[0]}"
         }
     
-    if sides not in ["Single", "Double"]:
+    if artworks < 1 or artworks > 20:
         return {
             "success": False,
-            "error": f"Invalid sides: '{sides}'. Must be 'Single' or 'Double'"
+            "error": f"Invalid artworks: {artworks}. Must be between 1 and 20"
         }
     
-    if artworks < 1 or artworks > 50:
-        return {
-            "success": False,
-            "error": f"Invalid artworks: {artworks}. Must be between 1 and 50"
-        }
-    
+    # ✅ Pass JSON format directly to backend
     try:
         from MetalFaceA_Frame_Shopify_Calculator import MetalFaceA_FrameShopifyCalculator
         calculator = MetalFaceA_FrameShopifyCalculator()
         result = calculator.calculate(
             quantity=quantity,
-            size=size,
-            sides=sides,
+            size=size,  # ✅ JSON format
             artworks=artworks
         )
         return {
@@ -3125,90 +3495,49 @@ def calculate_metal_face_a_frame(
 @calculator_wrapper(validate_params=True)
 def calculate_luxury_classic_pull_up_banners(
     quantity: int,
-    width_mm: int = None,
-    height_mm: int = None,
-    material: str = None,
-    # Legacy aliases (DEPRECATED)
-    width: int = None,
-    height: int = None
+    size: str = "850mm W x 2000mm H",  # JSON default
+    base_colour: str = "Silver",  # JSON default  
+    artworks: int = 1  # JSON default
 ) -> Dict[str, Any]:
     """
     Shopify calculator for Luxury Classic Pull Up Banners
     
     Args:
-        quantity: Number of banners (required)
-        width_mm: Banner width in millimeters (default backend: 850)
-        height_mm: Banner height in millimeters (default backend: 2000)
-        material: Material type (default backend: "Premium Vinyl")
-        
-        DEPRECATED PARAMETERS (legacy support with warnings):
-        width: Use 'width_mm' instead
-        height: Use 'height_mm' instead
+        quantity: Number of banners 1-100 (required)
+        size: Banner size - "850mm W x 2000mm H", "850mm W x 1500mm H", or "850mm W x 1400mm H Shopping Center" (default: "850mm W x 2000mm H")
+        base_colour: Base finish color - "Silver" or "Black" (default: "Silver")
+        artworks: Number of different artwork designs 1-20 (default: 1, visible when quantity > 2)
     
     Returns:
         Dict with success, quote result, or error
     """
-    warnings = []
-    
     # ========================================================================
-    # LEGACY TRANSLATION (with warnings)
+    # VALIDATION: Validate JSON format parameters
     # ========================================================================
-    if width is not None:
-        width_mm = width
-        warnings.append({
-            "deprecated": "width",
-            "use_instead": "width_mm",
-            "value_sent": width,
-            "translated_to": width_mm
-        })
-    
-    if height is not None:
-        height_mm = height
-        warnings.append({
-            "deprecated": "height",
-            "use_instead": "height_mm",
-            "value_sent": height,
-            "translated_to": height_mm
-        })
-    
-    if warnings:
-        log_msg = f"\n⚠️  DEPRECATED PARAMETERS in calculate_luxury_classic_pull_up_banners:\n"
-        for w in warnings:
-            log_msg += f"   {w['deprecated']}={w['value_sent']} → {w['use_instead']}={w['translated_to']}\n"
-        print(log_msg)
-    
-    # ========================================================================
-    # VALIDATION (after legacy translation - THE CRITICAL MISSING PIECE!)
-    # ========================================================================
-    # Note: Backend has defaults, but we validate None to help AI understand requirements
-    # Backend will use defaults (850, 2000, "Premium Vinyl") if None passed
-    if width_mm is None:
-        width_mm = 850  # Backend default
-    
-    if height_mm is None:
-        height_mm = 2000  # Backend default
-    
-    if material is None:
-        material = "Premium Vinyl"  # Backend default
-    
-    # Validate parameter values (AI learns valid options from errors)
-    if width_mm < 500 or width_mm > 1200:
+    valid_sizes = ["850mm W x 2000mm H", "850mm W x 1500mm H", "850mm W x 1400mm H Shopping Center"]
+    if size not in valid_sizes:
         return {
             "success": False,
-            "error": f"Invalid width_mm: {width_mm}. Must be between 500 and 1200 millimeters"
+            "error": f"Invalid size: '{size}'. Must be one of: {', '.join(valid_sizes)}"
         }
     
-    if height_mm < 1500 or height_mm > 3000:
+    valid_base_colours = ["Silver", "Black"]
+    if base_colour not in valid_base_colours:
         return {
             "success": False,
-            "error": f"Invalid height_mm: {height_mm}. Must be between 1500 and 3000 millimeters"
+            "error": f"Invalid base_colour: '{base_colour}'. Must be one of: {', '.join(valid_base_colours)}"
         }
     
-    valid_materials = ["Premium Vinyl", "Standard Vinyl", "Fabric"]
-    if material not in valid_materials:
+    if quantity < 1 or quantity > 100:
         return {
             "success": False,
-            "error": f"Invalid material: '{material}'. Must be one of: {', '.join(valid_materials)}"
+            "error": f"Invalid quantity: {quantity}. Must be between 1 and 100"
+        }
+    
+    if artworks < 1 or artworks > 20:
+        return {
+            "success": False,
+            "error": f"Invalid artworks: {artworks}. Must be between 1 and 20"
         }
     
     if not SHOPIFY_CALCULATORS_AVAILABLE:
@@ -3219,9 +3548,9 @@ def calculate_luxury_classic_pull_up_banners(
         calculator = LuxuryClassicPullUpBannersShopifyCalculator()
         result = calculator.calculate(
             quantity=quantity,
-            width_mm=width_mm,
-            height_mm=height_mm,
-            material=material
+            size=size,  # JSON format like "850mm W x 2000mm H"
+            base_colour=base_colour,  # JSON field name
+            artworks=artworks
         )
         response = {
             "success": True,
@@ -3233,8 +3562,6 @@ def calculate_luxury_classic_pull_up_banners(
             "breakdown": {k: float(v) if isinstance(v, Decimal) else v for k, v in result.breakdown.items()},
             "specifications": result.specifications
         }
-        if warnings:
-            response["warnings"] = warnings
         return response
     except Exception as e:
         print(f"❌ [Shopify Luxury Classic Pull Up Banners] Error: {e}")
@@ -3242,103 +3569,178 @@ def calculate_luxury_classic_pull_up_banners(
         return {"success": False, "error": str(e)}
 
 
+def calculate_premium_pull_up_banners(
+    quantity: int,
+    size: str = "850mm W x 2000mm H",  # JSON default
+    base_colour: str = "Silver",  # JSON default  
+    artworks: int = 1  # JSON default
+) -> Dict[str, Any]:
+    """
+    Shopify calculator for Premium Pull Up Banners
+    
+    Args:
+        quantity: Number of banners 1-100 (required)
+        size: Banner size - "850mm W x 2000mm H", "850mm W x 1500mm H", or "850mm W x 1400mm H Shopping Center" (default: "850mm W x 2000mm H")
+        base_colour: Base finish color - "Silver" or "Black" (default: "Silver")
+        artworks: Number of different artwork designs 1-20 (default: 1, visible when quantity > 2)
+    
+    Returns:
+        Dict with success, quote result, or error
+    """
+    # ========================================================================
+    # VALIDATION: Validate JSON format parameters
+    # ========================================================================
+    valid_sizes = ["850mm W x 2000mm H", "850mm W x 1500mm H", "850mm W x 1400mm H Shopping Center"]
+    if size not in valid_sizes:
+        return {
+            "success": False,
+            "error": f"Invalid size: '{size}'. Must be one of: {', '.join(valid_sizes)}"
+        }
+    
+    valid_base_colours = ["Silver", "Black"]
+    if base_colour not in valid_base_colours:
+        return {
+            "success": False,
+            "error": f"Invalid base_colour: '{base_colour}'. Must be one of: {', '.join(valid_base_colours)}"
+        }
+    
+    if quantity < 1 or quantity > 100:
+        return {
+            "success": False,
+            "error": f"Invalid quantity: {quantity}. Must be between 1 and 100"
+        }
+    
+    if artworks < 1 or artworks > 20:
+        return {
+            "success": False,
+            "error": f"Invalid artworks: {artworks}. Must be between 1 and 20"
+        }
+    
+    if not SHOPIFY_CALCULATORS_AVAILABLE:
+        return {"success": False, "error": "Shopify calculators not available."}
+    
+    try:
+        from PremiumPullUpBanners_Shopify_Calculator import PremiumPullUpBannersShopifyCalculator
+        calculator = PremiumPullUpBannersShopifyCalculator()
+        result = calculator.calculate(
+            quantity=quantity,
+            size=size,  # JSON format like "850mm W x 2000mm H"
+            base_colour=base_colour,  # JSON field name
+            artworks=artworks
+        )
+        response = {
+            "success": True,
+            "product_type": "Premium Pull Up Banners",
+            "quantity": result.quantity,
+            "total_price": float(result.total_price),
+            "unit_price": float(result.unit_price),
+            "cost_per_item": float(result.cost_per_item),
+            "breakdown": {k: float(v) if isinstance(v, Decimal) else v for k, v in result.breakdown.items()},
+            "specifications": result.specifications
+        }
+        return response
+    except Exception as e:
+        print(f"❌ [Shopify Premium Pull Up Banners] Error: {e}")
+        traceback.print_exc()
+        return {"success": False, "error": str(e)}
+
+
+def calculate_metal_face_a_frame(
+    quantity: int,
+    artworks: int = 1,
+    size: str = "600mm W x 900mm H"
+) -> Dict[str, Any]:
+    """
+    Shopify calculator for Metal Face A-Frame
+    
+    Args:
+        quantity: Number of A-frames (1-100, required)
+        artworks: Number of artwork designs (1-20, default 1)
+        size: A-frame size (fixed: "600mm W x 900mm H")
+    
+    Returns:
+        Dict with success, quote result, or error
+    
+    Formula: qty-based tiers (10 tiers) + artworks COUNT + ×1.1 ×1.1
+    Note: Adds artwork count directly, not cost calculation
+    """
+    # Validate parameters
+    if quantity < 1 or quantity > 100:
+        return {
+            "success": False,
+            "error": f"Invalid quantity: {quantity}. Must be between 1 and 100"
+        }
+    
+    if artworks < 1 or artworks > 20:
+        return {
+            "success": False,
+            "error": f"Invalid artworks: {artworks}. Must be between 1 and 20"
+        }
+    
+    if not SHOPIFY_CALCULATORS_AVAILABLE:
+        return {"success": False, "error": "Shopify calculators not available."}
+    
+    try:
+        from MetalFaceAFrame_Shopify_Calculator import MetalFaceAFrameShopifyCalculator
+        calculator = MetalFaceAFrameShopifyCalculator()
+        result = calculator.calculate(
+            quantity=quantity,
+            artworks=artworks,
+            size=size
+        )
+        return {
+            "success": True,
+            "product_type": "Metal Face A-Frame",
+            "quantity": result.quantity,
+            "total_price": float(result.total_price),
+            "unit_price": float(result.unit_price),
+            "cost_per_item": float(result.cost_per_item),
+            "breakdown": {k: float(v) if isinstance(v, Decimal) else v for k, v in result.breakdown.items()},
+            "specifications": result.specifications
+        }
+    except Exception as e:
+        print(f"❌ [Shopify Metal Face A-Frame] Error: {e}")
+        traceback.print_exc()
+        return {"success": False, "error": str(e)}
+
+
 @calculator_wrapper(validate_params=True)
 def calculate_selfie_frames(
     quantity: int,
-    width_mm: int = None,
-    height_mm: int = None,
-    material: str = None,
-    artworks: int = None,
-    # Legacy aliases (DEPRECATED)
-    width: int = None,
-    height: int = None
+    size: str = "Small 600mm x 900mm",  # JSON default
+    number_of_artworks: int = 1  # JSON field name
 ) -> Dict[str, Any]:
     """
     Shopify calculator for Selfie Frames
     
     Args:
-        quantity: Number of frames (required)
-        width_mm: Frame width in millimeters (default backend: 600)
-        height_mm: Frame height in millimeters (default backend: 600)
-        material: Material type - "Foam Core" or "Card" (default backend: "Foam Core")
-        artworks: Number of artwork designs (default backend: 1, first free then $15 each)
-        
-        DEPRECATED PARAMETERS (legacy support with warnings):
-        width: Use 'width_mm' instead
-        height: Use 'height_mm' instead
+        quantity: Number of frames 1-200 (required)
+        size: Frame size - "Small 600mm x 900mm" or "Large 900mm x 1200mm" (default: "Small 600mm x 900mm")
+        number_of_artworks: Number of artwork designs 1-20 (default: 1)
     
     Returns:
         Dict with success, quote result, or error
     """
-    warnings = []
-    
     # ========================================================================
-    # LEGACY TRANSLATION (with warnings)
+    # VALIDATION: Validate JSON format parameters
     # ========================================================================
-    if width is not None:
-        width_mm = width
-        warnings.append({
-            "deprecated": "width",
-            "use_instead": "width_mm",
-            "value_sent": width,
-            "translated_to": width_mm
-        })
-    
-    if height is not None:
-        height_mm = height
-        warnings.append({
-            "deprecated": "height",
-            "use_instead": "height_mm",
-            "value_sent": height,
-            "translated_to": height_mm
-        })
-    
-    if warnings:
-        log_msg = f"\n⚠️  DEPRECATED PARAMETERS in calculate_selfie_frames:\n"
-        for w in warnings:
-            log_msg += f"   {w['deprecated']}={w['value_sent']} → {w['use_instead']}={w['translated_to']}\n"
-        print(log_msg)
-    
-    # ========================================================================
-    # VALIDATION (after legacy translation - THE CRITICAL MISSING PIECE!)
-    # ========================================================================
-    # Apply backend defaults for None values
-    if width_mm is None:
-        width_mm = 600  # Backend default
-    
-    if height_mm is None:
-        height_mm = 600  # Backend default
-    
-    if material is None:
-        material = "Foam Core"  # Backend default
-    
-    if artworks is None:
-        artworks = 1  # Backend default
-    
-    # Validate parameter values (AI learns valid options from errors)
-    if width_mm < 100 or width_mm > 2000:
+    valid_sizes = ["Small 600mm x 900mm", "Large 900mm x 1200mm"]
+    if size not in valid_sizes:
         return {
             "success": False,
-            "error": f"Invalid width_mm: {width_mm}. Must be between 100 and 2000 millimeters"
+            "error": f"Invalid size: '{size}'. Must be one of: {', '.join(valid_sizes)}"
         }
     
-    if height_mm < 100 or height_mm > 2000:
+    if quantity < 1 or quantity > 200:
         return {
             "success": False,
-            "error": f"Invalid height_mm: {height_mm}. Must be between 100 and 2000 millimeters"
+            "error": f"Invalid quantity: {quantity}. Must be between 1 and 200"
         }
     
-    valid_materials = ["Foam Core", "Corflute"]
-    if material not in valid_materials:
+    if number_of_artworks < 1 or number_of_artworks > 20:
         return {
             "success": False,
-            "error": f"Invalid material: '{material}'. Must be one of: {', '.join(valid_materials)}"
-        }
-    
-    if artworks < 1 or artworks > 50:
-        return {
-            "success": False,
-            "error": f"Invalid artworks: {artworks}. Must be between 1 and 50"
+            "error": f"Invalid number_of_artworks: {number_of_artworks}. Must be between 1 and 20"
         }
     
     if not SHOPIFY_CALCULATORS_AVAILABLE:
@@ -3349,10 +3751,8 @@ def calculate_selfie_frames(
         calculator = SelfieFramesShopifyCalculator()
         result = calculator.calculate(
             quantity=quantity,
-            width_mm=width_mm,
-            height_mm=height_mm,
-            material=material,
-            artworks=artworks
+            size=size,  # JSON format like "Small 600mm x 900mm"
+            number_of_artworks=number_of_artworks  # JSON field name
         )
         response = {
             "success": True,
@@ -3364,8 +3764,6 @@ def calculate_selfie_frames(
             "breakdown": {k: float(v) if isinstance(v, Decimal) else v for k, v in result.breakdown.items()},
             "specifications": result.specifications
         }
-        if warnings:
-            response["warnings"] = warnings
         return response
     except Exception as e:
         print(f"❌ [Shopify Selfie Frames] Error: {e}")
@@ -3376,55 +3774,67 @@ def calculate_selfie_frames(
 @calculator_wrapper(validate_params=True)
 def calculate_stackable_cubes(
     quantity: int,
-    size: str = None,
-    material: str = None
+    material: str = None,
+    cube_size: str = None,
+    artworks: int = None
 ) -> Dict[str, Any]:
     """
     Shopify calculator for Stackable Cubes
     
-    Args:
-        quantity: Number of cubes (required)
-        size: Cube edge size in mm (default backend: "300")
-        material: Material type - "Corrugated" or "Card" (default backend: "Corrugated")
+    ✅ ALIGNED JAN 23, 2026: Backend, Wrapper, Schema all use JSON format
     
-    Returns:
-        Dict with success, quote result, or error
+    Parameters (Shopify JSON format):
+        quantity: Number of cubes (1-1000, required)
+        material: "3mm Corflute" or "5mm Corflute" (JSON)
+        cube_size: "Small 300mm x 300mm", "Medium 400mm x 400mm", "Large 500mm x 500mm", "X-Large 580mm x 580mm" (JSON)
+        artworks: Number of artwork designs (1-20)
     """
-    # ========================================================================
-    # VALIDATION (after legacy translation - THE CRITICAL MISSING PIECE!)
-    # ========================================================================
-    # Apply backend defaults for None values
-    if size is None:
-        size = "300"  # Backend default
+    if not SHOPIFY_CALCULATORS_AVAILABLE:
+        return {"success": False, "error": "Shopify calculators not available."}
     
+    # ✅ Apply JSON defaults
     if material is None:
-        material = "Corrugated"  # Backend default
+        material = "5mm Corflute"  # JSON default
+    if cube_size is None:
+        cube_size = "Medium 400mm x 400mm"  # JSON default
+    if artworks is None:
+        artworks = 1
     
-    # Validate parameter values (AI learns valid options from errors)
-    valid_sizes = ["200", "300", "400", "500"]
-    if size not in valid_sizes:
-        return {
-            "success": False,
-            "error": f"Invalid size: '{size}'. Must be one of: {', '.join(valid_sizes)} (millimeters)"
-        }
-    
-    valid_materials = ["Corrugated", "Foam Core", "Corflute"]
+    # ✅ Validate against JSON enum values
+    valid_materials = ["3mm Corflute", "5mm Corflute"]
     if material not in valid_materials:
         return {
             "success": False,
             "error": f"Invalid material: '{material}'. Must be one of: {', '.join(valid_materials)}"
         }
     
-    if not SHOPIFY_CALCULATORS_AVAILABLE:
-        return {"success": False, "error": "Shopify calculators not available."}
+    valid_cube_sizes = [
+        "Small 300mm x 300mm",
+        "Medium 400mm x 400mm",
+        "Large 500mm x 500mm",
+        "X-Large 580mm x 580mm"
+    ]
+    if cube_size not in valid_cube_sizes:
+        return {
+            "success": False,
+            "error": f"Invalid cube_size: '{cube_size}'. Must be one of: {', '.join(valid_cube_sizes)}"
+        }
     
+    if artworks < 1 or artworks > 20:
+        return {
+            "success": False,
+            "error": f"Invalid artworks: {artworks}. Must be between 1 and 20"
+        }
+    
+    # ✅ Pass JSON format directly to backend
     try:
         from StackableCubes_Shopify_Calculator import StackableCubesShopifyCalculator
         calculator = StackableCubesShopifyCalculator()
         result = calculator.calculate(
             quantity=quantity,
-            size=size,
-            material=material
+            material=material,  # ✅ JSON format
+            cube_size=cube_size,  # ✅ JSON format
+            artworks=artworks
         )
         return {
             "success": True,
@@ -3445,54 +3855,35 @@ def calculate_stackable_cubes(
 @calculator_wrapper(validate_params=True)
 def calculate_strut_cards_a3(
     quantity: int,
-    size: str = None,
-    sides: str = None,
-    artworks: int = None
+    artworks: int = 1,
+    stock: str = None,
+    size: str = None
 ) -> Dict[str, Any]:
     """
-    Shopify calculator for Strut Cards A3
+    Shopify calculator for Strut Cards A3 - Exact TXT Formula
     
     Args:
-        quantity: Number of cards (required)
-        size: Card size format "WxH" in mm (default backend: "297x420" = A3)
-        sides: Print sides - "Single" or "Double" (default backend: "Single")
-        artworks: Number of artwork designs (default backend: 1, first free then $10 each)
+        quantity: Number of cards (1-10000, required)
+        artworks: Number of artwork designs (1-20, default 1, first $5 included then $5 each)
+        stock: Material stock (fixed: "2mm Screenboard")
+        size: Card size (fixed: "A3 - 297mm x 420mm")
     
     Returns:
         Dict with success, quote result, or error
+    
+    Formula: 25-tier quantity pricing + artwork cost + $79 minimum + double markup (×1.1 ×1.1)
     """
-    # ========================================================================
-    # VALIDATION (after legacy translation - THE CRITICAL MISSING PIECE!)
-    # ========================================================================
-    # Apply backend defaults for None values
-    if size is None:
-        size = "297x420"  # Backend default (A3)
-    
-    if sides is None:
-        sides = "Single"  # Backend default
-    
-    if artworks is None:
-        artworks = 1  # Backend default
-    
-    # Validate parameter values (AI learns valid options from errors)
-    valid_sizes = ["297x420", "420x297"]  # A3 portrait and landscape
-    if size not in valid_sizes:
+    # Validate parameters
+    if quantity < 1 or quantity > 10000:
         return {
             "success": False,
-            "error": f"Invalid size: '{size}'. Must be one of: {', '.join(valid_sizes)} (A3 portrait or landscape in mm)"
+            "error": f"Invalid quantity: {quantity}. Must be between 1 and 10000"
         }
     
-    valid_sides = ["Single", "Double"]
-    if sides not in valid_sides:
+    if artworks < 1 or artworks > 20:
         return {
             "success": False,
-            "error": f"Invalid sides: '{sides}'. Must be one of: {', '.join(valid_sides)}"
-        }
-    
-    if artworks < 1 or artworks > 50:
-        return {
-            "success": False,
-            "error": f"Invalid artworks: {artworks}. Must be between 1 and 50"
+            "error": f"Invalid artworks: {artworks}. Must be between 1 and 20"
         }
     
     if not SHOPIFY_CALCULATORS_AVAILABLE:
@@ -3503,8 +3894,6 @@ def calculate_strut_cards_a3(
         calculator = StrutCardsA3ShopifyCalculator()
         result = calculator.calculate(
             quantity=quantity,
-            size=size,
-            sides=sides,
             artworks=artworks
         )
         return {
@@ -3526,54 +3915,35 @@ def calculate_strut_cards_a3(
 @calculator_wrapper(validate_params=True)
 def calculate_strut_cards_a4(
     quantity: int,
-    size: str = None,
-    sides: str = None,
-    artworks: int = None
+    artworks: int = 1,
+    stock: str = None,
+    size: str = None
 ) -> Dict[str, Any]:
     """
-    Shopify calculator for Strut Cards A4
+    Shopify calculator for Strut Cards A4 - Exact TXT Formula
     
     Args:
-        quantity: Number of cards (required)
-        size: Card size format "WxH" in mm (default backend: "210x297" = A4)
-        sides: Print sides - "Single" or "Double" (default backend: "Single")
-        artworks: Number of artwork designs (default backend: 1, first free then $10 each)
+        quantity: Number of cards (1-10000, required)
+        artworks: Number of artwork designs (1-20, default 1, first $5 included then $5 each)
+        stock: Material stock (fixed: "2mm Screenboard")
+        size: Card size (fixed: "A4 - 210mm x 297mm")
     
     Returns:
         Dict with success, quote result, or error
+    
+    Formula: 25-tier quantity pricing + artwork cost + $79 minimum + double markup (×1.1 ×1.1)
     """
-    # ========================================================================
-    # VALIDATION (after legacy translation - THE CRITICAL MISSING PIECE!)
-    # ========================================================================
-    # Apply backend defaults for None values
-    if size is None:
-        size = "210x297"  # Backend default (A4)
-    
-    if sides is None:
-        sides = "Single"  # Backend default
-    
-    if artworks is None:
-        artworks = 1  # Backend default
-    
-    # Validate parameter values (AI learns valid options from errors)
-    valid_sizes = ["210x297", "297x210"]  # A4 portrait and landscape
-    if size not in valid_sizes:
+    # Validate parameters
+    if quantity < 1 or quantity > 10000:
         return {
             "success": False,
-            "error": f"Invalid size: '{size}'. Must be one of: {', '.join(valid_sizes)} (A4 portrait or landscape in mm)"
+            "error": f"Invalid quantity: {quantity}. Must be between 1 and 10000"
         }
     
-    valid_sides = ["Single", "Double"]
-    if sides not in valid_sides:
+    if artworks < 1 or artworks > 20:
         return {
             "success": False,
-            "error": f"Invalid sides: '{sides}'. Must be one of: {', '.join(valid_sides)}"
-        }
-    
-    if artworks < 1 or artworks > 50:
-        return {
-            "success": False,
-            "error": f"Invalid artworks: {artworks}. Must be between 1 and 50"
+            "error": f"Invalid artworks: {artworks}. Must be between 1 and 20"
         }
     
     if not SHOPIFY_CALCULATORS_AVAILABLE:
@@ -3584,8 +3954,6 @@ def calculate_strut_cards_a4(
         calculator = StrutCardsA4ShopifyCalculator()
         result = calculator.calculate(
             quantity=quantity,
-            size=size,
-            sides=sides,
             artworks=artworks
         )
         return {
@@ -3600,6 +3968,204 @@ def calculate_strut_cards_a4(
         }
     except Exception as e:
         print(f"❌ [Shopify Strut Cards A4] Error: {e}")
+        traceback.print_exc()
+        return {"success": False, "error": str(e)}
+
+
+@calculator_wrapper(validate_params=True)
+def calculate_strut_cards_a5(
+    quantity: int,
+    artworks: int = 1,
+    stock: str = None,
+    size: str = None
+) -> Dict[str, Any]:
+    """
+    Shopify calculator for Strut Cards A5 - Exact TXT Formula
+    
+    Args:
+        quantity: Number of cards (1-10000, required)
+        artworks: Number of artwork designs (1-20, default 1, first $5 included then $5 each)
+        stock: Material stock (fixed: "2mm Screenboard")
+        size: Card size (fixed: "A5 - 148mm x 210mm")
+    
+    Returns:
+        Dict with success, quote result, or error
+    
+    Formula: 25-tier quantity pricing + artwork cost + $79 minimum + double markup (×1.1 ×1.2)
+    """
+    # Validate parameters
+    if quantity < 1 or quantity > 10000:
+        return {
+            "success": False,
+            "error": f"Invalid quantity: {quantity}. Must be between 1 and 10000"
+        }
+    
+    if artworks < 1 or artworks > 20:
+        return {
+            "success": False,
+            "error": f"Invalid artworks: {artworks}. Must be between 1 and 20"
+        }
+    
+    if not SHOPIFY_CALCULATORS_AVAILABLE:
+        return {"success": False, "error": "Shopify calculators not available."}
+    
+    try:
+        from StrutCardsA5_Shopify_Calculator import StrutCardsA5ShopifyCalculator
+        calculator = StrutCardsA5ShopifyCalculator()
+        result = calculator.calculate(
+            quantity=quantity,
+            artworks=artworks
+        )
+        return {
+            "success": True,
+            "product_type": "Strut Cards A5",
+            "quantity": result.quantity,
+            "total_price": float(result.total_price),
+            "unit_price": float(result.unit_price),
+            "cost_per_item": float(result.cost_per_item),
+            "breakdown": {k: float(v) if isinstance(v, Decimal) else v for k, v in result.breakdown.items()},
+            "specifications": result.specifications
+        }
+    except Exception as e:
+        print(f"❌ [Shopify Strut Cards A5] Error: {e}")
+        traceback.print_exc()
+        return {"success": False, "error": str(e)}
+
+
+def calculate_counter_strut_cards_a3(
+    quantity: int,
+    artworks: int = 1,
+    stock: str = None,
+    size: str = None
+) -> Dict[str, Any]:
+    """
+    Shopify calculator for Counter Strut Cards A3 (alias of Strut Cards A3)
+    
+    Args:
+        quantity: Number of cards (1-10000, required)
+        artworks: Number of artwork designs (1-20, default 1, first $5 included then $5 each)
+        stock: Material stock (fixed: "2mm Screenboard")
+        size: Card size (fixed: "A3 - 297mm x 420mm")
+    
+    Returns:
+        Dict with success, quote result, or error
+    
+    Note: Same formula as Strut Cards A3, just different product_type labeling
+    """
+    if not SHOPIFY_CALCULATORS_AVAILABLE:
+        return {"success": False, "error": "Shopify calculators not available."}
+    
+    try:
+        from StrutCardsA3_Shopify_Calculator import StrutCardsA3ShopifyCalculator
+        calculator = StrutCardsA3ShopifyCalculator()
+        result = calculator.calculate(
+            quantity=quantity,
+            artworks=artworks
+        )
+        return {
+            "success": True,
+            "product_type": "Counter Strut Cards A3",
+            "quantity": result.quantity,
+            "total_price": float(result.total_price),
+            "unit_price": float(result.unit_price),
+            "cost_per_item": float(result.cost_per_item),
+            "breakdown": {k: float(v) if isinstance(v, Decimal) else v for k, v in result.breakdown.items()},
+            "specifications": result.specifications
+        }
+    except Exception as e:
+        print(f"❌ [Shopify Counter Strut Cards A3] Error: {e}")
+        traceback.print_exc()
+        return {"success": False, "error": str(e)}
+
+
+def calculate_counter_strut_cards_a4(
+    quantity: int,
+    artworks: int = 1,
+    stock: str = None,
+    size: str = None
+) -> Dict[str, Any]:
+    """
+    Shopify calculator for Counter Strut Cards A4 (alias of Strut Cards A4)
+    
+    Args:
+        quantity: Number of cards (1-10000, required)
+        artworks: Number of artwork designs (1-20, default 1, first $5 included then $5 each)
+        stock: Material stock (fixed: "2mm Screenboard")
+        size: Card size (fixed: "A4 - 210mm x 297mm")
+    
+    Returns:
+        Dict with success, quote result, or error
+    
+    Note: Same formula as Strut Cards A4, just different product_type labeling
+    """
+    if not SHOPIFY_CALCULATORS_AVAILABLE:
+        return {"success": False, "error": "Shopify calculators not available."}
+    
+    try:
+        from StrutCardsA4_Shopify_Calculator import StrutCardsA4ShopifyCalculator
+        calculator = StrutCardsA4ShopifyCalculator()
+        result = calculator.calculate(
+            quantity=quantity,
+            artworks=artworks
+        )
+        return {
+            "success": True,
+            "product_type": "Counter Strut Cards A4",
+            "quantity": result.quantity,
+            "total_price": float(result.total_price),
+            "unit_price": float(result.unit_price),
+            "cost_per_item": float(result.cost_per_item),
+            "breakdown": {k: float(v) if isinstance(v, Decimal) else v for k, v in result.breakdown.items()},
+            "specifications": result.specifications
+        }
+    except Exception as e:
+        print(f"❌ [Shopify Counter Strut Cards A4] Error: {e}")
+        traceback.print_exc()
+        return {"success": False, "error": str(e)}
+
+
+def calculate_counter_strut_cards_a5(
+    quantity: int,
+    artworks: int = 1,
+    stock: str = None,
+    size: str = None
+) -> Dict[str, Any]:
+    """
+    Shopify calculator for Counter Strut Cards A5 (alias of Strut Cards A5)
+    
+    Args:
+        quantity: Number of cards (1-10000, required)
+        artworks: Number of artwork designs (1-20, default 1, first $5 included then $5 each)
+        stock: Material stock (fixed: "2mm Screenboard")
+        size: Card size (fixed: "A5 - 148mm x 210mm")
+    
+    Returns:
+        Dict with success, quote result, or error
+    
+    Note: Same formula as Strut Cards A5, just different product_type labeling
+    """
+    if not SHOPIFY_CALCULATORS_AVAILABLE:
+        return {"success": False, "error": "Shopify calculators not available."}
+    
+    try:
+        from StrutCardsA5_Shopify_Calculator import StrutCardsA5ShopifyCalculator
+        calculator = StrutCardsA5ShopifyCalculator()
+        result = calculator.calculate(
+            quantity=quantity,
+            artworks=artworks
+        )
+        return {
+            "success": True,
+            "product_type": "Counter Strut Cards A5",
+            "quantity": result.quantity,
+            "total_price": float(result.total_price),
+            "unit_price": float(result.unit_price),
+            "cost_per_item": float(result.cost_per_item),
+            "breakdown": {k: float(v) if isinstance(v, Decimal) else v for k, v in result.breakdown.items()},
+            "specifications": result.specifications
+        }
+    except Exception as e:
+        print(f"❌ [Shopify Counter Strut Cards A5] Error: {e}")
         traceback.print_exc()
         return {"success": False, "error": str(e)}
 
@@ -3726,25 +4292,40 @@ def calculate_custom_poster_printing(
 @calculator_wrapper(validate_params=True)
 def calculate_custom_vinyl_stickers(
     quantity: int,
+    size: str = "75mm Circle",
+    width: int = None,
+    height: int = None,
+    vinyl_family: str = "Standard (Monomeric)",
+    adhesive: str = "Permanent",
+    laminate: str = "No Lamination",
+    cutting_method: str = "Kiss-Cut (Individual)",
+    artworks: int = 1,
+    labour_rate: str = "Trade ($70/hr)",
+    # Legacy parameters for backward compatibility
     width_mm: int = None,
     height_mm: int = None,
-    finish: str = None,
-    # Legacy aliases for backwards compatibility
-    width: int = None,
-    height: int = None
+    finish: str = None
 ) -> Dict[str, Any]:
     """
     Calculate quote for Custom Vinyl Stickers (Shopify)
+    ⚠️ NO WEBSITE CALCULATOR - Backend implementation only.
     
     Args:
-        quantity: Number of stickers (1-10000, required)
-        width_mm: Width in millimeters (25-500mm, default backend: 100)
-        height_mm: Height in millimeters (25-500mm, default backend: 100)
-        finish: Finish type - "Gloss" or "Matte" (default backend: "Gloss")
+        quantity: Number of stickers (1-10000)
+        size: Preset size or "Custom Size" - 50mm/75mm/100mm Circle/Square, rectangles
+        width: Custom width in mm (25-500, only if size="Custom Size")
+        height: Custom height in mm (25-500, only if size="Custom Size")
+        vinyl_family: "Standard (Monomeric)" or "Premium (Polymeric)" (×1.25 multiplier)
+        adhesive: "Permanent" or "Removable" (×1.15 multiplier)
+        laminate: "No Lamination", "Gloss Laminate", or "Matte Laminate"
+        cutting_method: "Kiss-Cut (Individual)", "Die-Cut", "Contour-Cut", "Sheet"
+        artworks: Number of designs (1-20, first included free, $5 each additional)
+        labour_rate: "Trade ($70/hr)" or "Non-Trade ($90/hr)"
         
         DEPRECATED:
-        width: Legacy alias for width_mm (use width_mm instead)
-        height: Legacy alias for height_mm (use height_mm instead)
+        width_mm: Legacy alias for width (use width instead)
+        height_mm: Legacy alias for height (use height instead)
+        finish: Legacy alias for laminate (use laminate instead)
     
     Returns:
         Dict with success, total_price, unit_price, cost_per_item, breakdown, specifications
@@ -3752,23 +4333,38 @@ def calculate_custom_vinyl_stickers(
     warnings = []
     
     # ========================================================================
-    # LEGACY TRANSLATION (with warnings)
+    # LEGACY TRANSLATION
     # ========================================================================
-    if width is not None:
-        width_mm = width
+    if width_mm is not None and width is None:
+        width = width_mm
+        size = "Custom Size"
         warnings.append({
-            "deprecated": "width",
-            "use_instead": "width_mm",
-            "value_sent": width,
-            "translated_to": width_mm
+            "deprecated": "width_mm",
+            "use_instead": "width (with size='Custom Size')",
+            "value_sent": width_mm,
+            "translated_to": width
         })
-    if height is not None:
-        height_mm = height
+    
+    if height_mm is not None and height is None:
+        height = height_mm
+        size = "Custom Size"
         warnings.append({
-            "deprecated": "height",
-            "use_instead": "height_mm",
-            "value_sent": height,
-            "translated_to": height_mm
+            "deprecated": "height_mm",
+            "use_instead": "height (with size='Custom Size')",
+            "value_sent": height_mm,
+            "translated_to": height
+        })
+    
+    if finish is not None and laminate == "No Lamination":
+        if finish.lower() == "gloss":
+            laminate = "Gloss Laminate"
+        elif finish.lower() == "matte":
+            laminate = "Matte Laminate"
+        warnings.append({
+            "deprecated": "finish",
+            "use_instead": "laminate",
+            "value_sent": finish,
+            "translated_to": laminate
         })
     
     if warnings:
@@ -3778,48 +4374,82 @@ def calculate_custom_vinyl_stickers(
         print(log_msg)
     
     # ========================================================================
-    # VALIDATION (after legacy translation - THE CRITICAL MISSING PIECE!)
+    # SIZE PRESET TRANSLATION
     # ========================================================================
-    # Apply backend defaults for None values
-    if width_mm is None:
-        width_mm = 100  # Backend default
+    size_presets = {
+        "50mm Circle": (50, 50),
+        "75mm Circle": (75, 75),
+        "100mm Circle": (100, 100),
+        "50mm Square": (50, 50),
+        "75mm Square": (75, 75),
+        "100mm Square": (100, 100),
+        "100x50mm Rectangle": (100, 50),
+        "150x75mm Rectangle": (150, 75),
+        "200x100mm Rectangle": (200, 100)
+    }
     
-    if height_mm is None:
-        height_mm = 100  # Backend default
+    if size != "Custom Size":
+        if size in size_presets:
+            width, height = size_presets[size]
+        else:
+            return {"success": False, "error": f"Invalid size preset: {size}. Valid options: {list(size_presets.keys())} or 'Custom Size'"}
+    else:
+        if width is None or height is None:
+            return {"success": False, "error": "Custom Size requires width and height parameters"}
     
-    if finish is None:
-        finish = "Gloss"  # Backend default
+    # ========================================================================
+    # VALIDATION
+    # ========================================================================
+    if width is not None and not (25 <= width <= 500):
+        return {"success": False, "error": f"width must be between 25 and 500mm, got {width}"}
     
-    # Validate parameter values (AI learns valid options from errors)
-    if width_mm < 25 or width_mm > 500:
-        return {
-            "success": False,
-            "error": f"Invalid width_mm: {width_mm}. Must be between 25 and 500 millimeters"
-        }
+    if height is not None and not (25 <= height <= 500):
+        return {"success": False, "error": f"height must be between 25 and 500mm, got {height}"}
     
-    if height_mm < 25 or height_mm > 500:
-        return {
-            "success": False,
-            "error": f"Invalid height_mm: {height_mm}. Must be between 25 and 500 millimeters"
-        }
+    if not (1 <= artworks <= 20):
+        return {"success": False, "error": f"artworks must be between 1 and 20, got {artworks}"}
     
-    if finish not in ["Gloss", "Matte"]:
-        return {
-            "success": False,
-            "error": f"Invalid finish: '{finish}'. Must be 'Gloss' or 'Matte'"
-        }
+    valid_vinyl_families = ["Standard (Monomeric)", "Premium (Polymeric)"]
+    if vinyl_family not in valid_vinyl_families:
+        return {"success": False, "error": f"vinyl_family must be one of {valid_vinyl_families}, got '{vinyl_family}'"}
+    
+    valid_adhesives = ["Permanent", "Removable"]
+    if adhesive not in valid_adhesives:
+        return {"success": False, "error": f"adhesive must be one of {valid_adhesives}, got '{adhesive}'"}
+    
+    valid_laminates = ["No Lamination", "Gloss Laminate", "Matte Laminate"]
+    if laminate not in valid_laminates:
+        return {"success": False, "error": f"laminate must be one of {valid_laminates}, got '{laminate}'"}
+    
+    valid_cutting_methods = ["Kiss-Cut (Individual)", "Die-Cut", "Contour-Cut", "Sheet"]
+    if cutting_method not in valid_cutting_methods:
+        return {"success": False, "error": f"cutting_method must be one of {valid_cutting_methods}, got '{cutting_method}'"}
+    
+    valid_labour_rates = ["Trade ($70/hr)", "Non-Trade ($90/hr)"]
+    if labour_rate not in valid_labour_rates:
+        return {"success": False, "error": f"labour_rate must be one of {valid_labour_rates}, got '{labour_rate}'"}
     
     if not SHOPIFY_CALCULATORS_AVAILABLE:
         return {"success": False, "error": "Shopify calculators not available."}
+    
     try:
         from CustomVinylStickers_Shopify_Calculator import CustomVinylStickersShopifyCalculator
         calculator = CustomVinylStickersShopifyCalculator()
+        
+        # Call backend with ALL 10 parameters (no translation needed - backend handles them all)
         result = calculator.calculate(
             quantity=quantity,
-            width_mm=width_mm,
-            height_mm=height_mm,
-            finish=finish
+            size=size,
+            width=width,
+            height=height,
+            vinyl_family=vinyl_family,
+            adhesive=adhesive,
+            laminate=laminate,
+            cutting_method=cutting_method,
+            artworks=artworks,
+            labour_rate=labour_rate
         )
+        
         response = {
             "success": True,
             "product_type": "Custom Vinyl Stickers",
@@ -3845,94 +4475,98 @@ def calculate_custom_vinyl_stickers(
 )
 def calculate_premium_bookmarks(
     quantity: int,
-    width_mm: int = 55,
-    height_mm: int = 200,
-    paper_stock: str = "350gsm",
-    lamination: str = "Matte",
+    finish_size: str = "50x150mm",
+    paper_stock: str = "satin_350gsm",
+    print_type: str = "colour_1_sided",
+    celloglaze: str = "None",
+    artworks: int = 1,
     # Legacy parameters for backwards compatibility
+    width_mm: int = None,
+    height_mm: int = None,
     width: int = None,
     height: int = None,
-    celloglaze: str = None
+    lamination: str = None
 ) -> Dict[str, Any]:
     """
-    Calculate quote for Premium Bookmarks (Shopify)
+    Calculate quote for Premium Bookmarks (Shopify) - REWRITTEN Jan 24, 2026
     
-    ✅ CURRENT PARAMETERS:
+    ✅ CURRENT PARAMETERS (Exact TXT Formula):
         quantity: Number of bookmarks (25-2000)
-        width_mm: Width in millimeters (40-100mm, default 55)
-        height_mm: Height in millimeters (100-300mm, default 200)
-        paper_stock: Paper weight - "350gsm", "300gsm", "250gsm"
-        lamination: Lamination finish - "None", "Matte", "Gloss"
+        finish_size: Bookmark size - "50x150mm", "50x185mm", "50x230mm", "65x215mm"
+        paper_stock: Paper type - "satin_350gsm" or "uncoated_300gsm"
+        print_type: Print option - "colour_1_sided" or "colour_2_sided"
+        celloglaze: Celloglaze option - "None", "1_side_gloss", "1_side_matt", "2_side_gloss", "2_side_matt"
+        artworks: Number of artworks (first artwork free, $15 per additional)
     
-    ⚠️ DEPRECATED PARAMETERS:
-        width → use width_mm
-        height → use height_mm
-        celloglaze → use lamination
+    ⚠️ DEPRECATED PARAMETERS (automatically translated):
+        width_mm, height_mm, width, height → use finish_size
+        lamination → use celloglaze
     
     Returns:
         Dict with success, total_price, unit_price, cost_per_item, breakdown, specifications
+        
+    Backend: PremiumBookmarks_Shopify_Calculator.py (Exact TXT lines 1644-1950)
+    Validated: Jan 24, 2026 - 4/4 tests = 100% website match
     """
     warnings = []
     
-    # Legacy translation
-    if width is not None:
-        width_mm = width
+    # Legacy translation: dimensions to finish_size
+    if width_mm is not None or height_mm is not None or width is not None or height is not None:
+        w = width_mm or width or 50
+        h = height_mm or height or 150
+        finish_size = f"{w}x{h}mm"
         warnings.append({
-            "deprecated": "width",
-            "use_instead": "width_mm",
-            "value": width
+            "deprecated": "width_mm/height_mm",
+            "use_instead": "finish_size",
+            "translated_to": finish_size
         })
     
-    if height is not None:
-        height_mm = height
-        warnings.append({
-            "deprecated": "height",
-            "use_instead": "height_mm",
-            "value": height
-        })
-    
-    if celloglaze is not None:
-        # Translate celloglaze enum to lamination
+    # Legacy translation: lamination to celloglaze
+    if lamination is not None:
         lamination_map = {
             "None": "None",
-            "Gloss 1 Sided": "Gloss",
-            "Gloss 2 Sided": "Gloss",
-            "Matt 1 Sided": "Matte",
-            "Matt 2 Sided": "Matte"
+            "Gloss": "2_side_gloss",
+            "Matte": "2_side_matt",
+            "Gloss 1 Sided": "1_side_gloss",
+            "Gloss 2 Sided": "2_side_gloss",
+            "Matt 1 Sided": "1_side_matt",
+            "Matt 2 Sided": "2_side_matt"
         }
-        lamination = lamination_map.get(celloglaze, "Matte")
+        celloglaze = lamination_map.get(lamination, celloglaze)
         warnings.append({
-            "deprecated": "celloglaze",
-            "use_instead": "lamination",
-            "value": celloglaze,
-            "translated_to": lamination
+            "deprecated": "lamination",
+            "use_instead": "celloglaze",
+            "value": lamination,
+            "translated_to": celloglaze
         })
     
     # Validate parameter values (AI learns valid options from errors)
-    if width_mm < 40 or width_mm > 100:
+    valid_finish_sizes = ["50x150mm", "50x185mm", "50x230mm", "65x215mm"]
+    if finish_size not in valid_finish_sizes:
         return {
             "success": False,
-            "error": f"Invalid width_mm: {width_mm}. Must be between 40 and 100 millimeters"
+            "error": f"Invalid finish_size: '{finish_size}'. Must be one of: {', '.join(valid_finish_sizes)}"
         }
     
-    if height_mm < 100 or height_mm > 300:
-        return {
-            "success": False,
-            "error": f"Invalid height_mm: {height_mm}. Must be between 100 and 300 millimeters"
-        }
-    
-    valid_paper_stocks = ["350gsm", "300gsm", "250gsm"]
+    valid_paper_stocks = ["satin_350gsm", "uncoated_300gsm"]
     if paper_stock not in valid_paper_stocks:
         return {
             "success": False,
             "error": f"Invalid paper_stock: '{paper_stock}'. Must be one of: {', '.join(valid_paper_stocks)}"
         }
     
-    valid_laminations = ["None", "Matte", "Gloss"]
-    if lamination not in valid_laminations:
+    valid_print_types = ["colour_1_sided", "colour_2_sided"]
+    if print_type not in valid_print_types:
         return {
             "success": False,
-            "error": f"Invalid lamination: '{lamination}'. Must be one of: {', '.join(valid_laminations)}"
+            "error": f"Invalid print_type: '{print_type}'. Must be one of: {', '.join(valid_print_types)}"
+        }
+    
+    valid_celloglaze = ["None", "1_side_gloss", "1_side_matt", "2_side_gloss", "2_side_matt"]
+    if celloglaze not in valid_celloglaze:
+        return {
+            "success": False,
+            "error": f"Invalid celloglaze: '{celloglaze}'. Must be one of: {', '.join(valid_celloglaze)}"
         }
     
     if not SHOPIFY_CALCULATORS_AVAILABLE:
@@ -3943,10 +4577,11 @@ def calculate_premium_bookmarks(
         calculator = PremiumBookmarksShopifyCalculator()
         result = calculator.calculate(
             quantity=quantity,
-            width_mm=width_mm,
-            height_mm=height_mm,
+            finish_size=finish_size,
             paper_stock=paper_stock,
-            lamination=lamination
+            print_type=print_type,
+            celloglaze=celloglaze,
+            artworks=artworks
         )
         
         response = {
@@ -3975,26 +4610,32 @@ def calculate_premium_bookmarks(
 @calculator_wrapper(quantity_enum=[50, 100, 250, 500, 750, 1000, 1250, 1500, 2000, 2500, 3000, 3500, 4000, 5000], validate_params=True)
 def calculate_printed_letterheads(
     quantity: int,
-    print_type: str = None,
-    paper_stock: str = None,
-    print_sides: str = None,
-    finish_size: str = None,
-    artworks: int = None,
+    print_sides: str = "Single side print",
+    print_type: str = "Colour",
+    finish_size: str = "A4 - 210mm x 297mm",
+    paper_stock: str = "Uncoated Bond 80GSM",
+    artworks: int = 1,
     # LEGACY PARAMETER (backwards compatibility)
     paper_stock_type: str = None
 ) -> Dict[str, Any]:
     """
-    Shopify calculator for Printed Letterheads
+    Calculate quote for Printed Letterheads (Shopify) - REWRITTEN Jan 24, 2026
     
-    ✅ CURRENT PARAMETERS:
+    ✅ CURRENT PARAMETERS (Exact TXT Formula):
         quantity: Number of letterheads (50-5000)
-        print_sides: 'Single side print' or 'Double side print'
-        print_type: 'Colour' or 'Black & White'
-        finish_size: 'A4 - 210mm x 297mm'
-        paper_stock: 'Uncoated Bond 80GSM', '90GSM', or '100GSM'
-        artworks: Number of designs (default: 1)
+        print_sides: "Single side print" or "Double side print"
+        print_type: "Colour" or "Black & White"
+        finish_size: "A4 - 210mm x 297mm" (only option)
+        paper_stock: "Uncoated Bond 80GSM", "Uncoated Bond 90GSM", or "Uncoated Bond 100GSM"
+        artworks: Number of designs (first free, $15 per additional)
     
     ⚠️ DEPRECATED: paper_stock_type → use paper_stock instead
+    
+    Returns:
+        Dict with success, total_price, unit_price, cost_per_item, breakdown, specifications
+        
+    Backend: PrintedLetterheads_Shopify_Calculator.py (Exact TXT lines 2115-2450)
+    Validated: Jan 24, 2026 - 4/4 tests = 100% website match
     """
     if not SHOPIFY_CALCULATORS_AVAILABLE:
         return {"success": False, "error": "Shopify calculators not available."}
@@ -4011,29 +4652,6 @@ def calculate_printed_letterheads(
                 "translated_to": paper_stock,
                 "message": f"⚠️ Parameter 'paper_stock_type' is deprecated. Use 'paper_stock' instead."
             })
-            print(f"\n{'='*80}")
-            print(f"⚠️  DEPRECATED PARAMETER in calculate_printed_letterheads")
-            print(f"  • {warnings[0]['message']}")
-            print(f"{'='*80}\n")
-        
-        # ========================================================================
-        # VALIDATION: Check required parameters (after legacy translation)
-        # ========================================================================
-        # Apply backend defaults for optional parameters
-        if print_type is None:
-            print_type = "Colour"  # Backend default
-        
-        if paper_stock is None:
-            paper_stock = "Uncoated Bond 100GSM"  # Backend default
-        
-        if print_sides is None:
-            print_sides = "Single side print"  # Backend default
-        
-        if finish_size is None:
-            finish_size = "A4 - 210mm x 297mm"  # Backend default
-        
-        if artworks is None:
-            artworks = 1  # Backend default
         
         # Validate parameter values (AI learns valid options from errors)
         if print_type not in ["Colour", "Black & White"]:
@@ -4097,24 +4715,33 @@ def calculate_printed_letterheads(
 @calculator_wrapper(quantity_enum=[50, 100, 250, 500, 750, 1000, 1250, 1500, 2000, 2500, 3000, 3500, 4000, 5000], validate_params=True)
 def calculate_with_compliments_slips(
     quantity: int,
-    print_type: str = None,
-    paper_stock: str = None,
-    print_sides: str = None,
-    finish_size: str = None,
-    artworks: int = None,
+    print_type: str = "Colour",
+    paper_stock: str = "Uncoated Bond 80GSM",
+    print_sides: str = "Single side print",
+    finish_size: str = "DL - 99mm x 210mm",
+    artworks: int = 1,
     # LEGACY PARAMETER (backwards compatibility)
     paper_stock_type: str = None
 ) -> Dict[str, Any]:
     """
     Shopify calculator for With Compliments Slips
+    REWRITTEN Jan 24, 2026 - Exact TXT formula (lines 2581-2930)
+    ✅ VALIDATED: 4/4 tests = 100% website match (Jan 25, 2026)
     
-    ✅ CURRENT PARAMETERS:
+    Backend: WithComplimentsSlips_Shopify_Calculator.py
+    Test Results:
+    - TEST 1 (250 qty, Single, Colour, 80GSM, 1 art): $101.41 ✅
+    - TEST 2 (5000 qty, Double, B&W, 100GSM, 2 arts): $347.44 ✅
+    - TEST 3 (1000 qty, Double, Colour, 90GSM, 1 art): $158.64 ✅
+    - TEST 4 (50 qty, Single, B&W, 80GSM, 1 art): $90.16 ✅
+    
+    Args:
         quantity: Number of compliments slips (50-5000)
-        print_sides: 'Single side print' or 'Double side print'
-        print_type: 'Colour' or 'Black & White'
-        finish_size: 'A4 - 210mm x 297mm'
-        paper_stock: 'Uncoated Bond 80GSM', '90GSM', or '100GSM'
-        artworks: Number of designs (default: 1)
+        print_sides: 'Single side print' (1×) or 'Double side print' (2×)
+        print_type: 'Colour' ($0.044/sheet) or 'Black & White' ($0.02/sheet)
+        finish_size: 'DL - 99mm x 210mm' (6 slips per sheet)
+        paper_stock: 'Uncoated Bond 80GSM' ($26.34), '90GSM' ($29.51), or '100GSM' ($32.68) per 1000
+        artworks: Number of designs (first FREE, $15 per additional)
     
     ⚠️ DEPRECATED: paper_stock_type → use paper_stock instead
     """
@@ -4139,23 +4766,8 @@ def calculate_with_compliments_slips(
             print(f"{'='*80}\n")
         
         # ========================================================================
-        # VALIDATION: Check required parameters (after legacy translation)
+        # VALIDATION: Parameters now have defaults in function signature
         # ========================================================================
-        # Apply backend defaults for optional parameters
-        if print_type is None:
-            print_type = "Colour"  # Backend default
-        
-        if paper_stock is None:
-            paper_stock = "Uncoated Bond 100GSM"  # Backend default
-        
-        if print_sides is None:
-            print_sides = "Single side print"  # Backend default
-        
-        if finish_size is None:
-            finish_size = "A4 - 210mm x 297mm"  # Backend default
-        
-        if artworks is None:
-            artworks = 1  # Backend default
         
         # Validate parameter values (AI learns valid options from errors)
         if print_type not in ["Colour", "Black & White"]:
@@ -4216,103 +4828,70 @@ def calculate_with_compliments_slips(
         return {"success": False, "error": str(e)}
 
 
-@calculator_wrapper(quantity_enum=[25, 50, 75, 100, 150, 200, 250, 300, 400, 500, 750, 1000, 2000], validate_params=True)
-@calculator_wrapper(
-    quantity_enum=[25, 50, 75, 100, 150, 200, 250, 300, 400, 500, 750, 1000, 2000],
-    validate_params=True
-)
-@calculator_wrapper(quantity_enum=[25, 50, 75, 100, 150, 200, 250, 300, 400, 500, 750, 1000, 2000], validate_params=True)
 def calculate_notepads_a4(
-    quantity: int,
-    print_type: str = None,
-    print_sides: str = None,
-    paper_stock: str = None,
-    artworks: int = None,
-    pads_per_book: int = None,
-    # Legacy parameters for backwards compatibility
-    stock_type: str = None
+    quantity: str,  # JSON uses string quantities
+    print_type: str = "Black & White 1 sided",  # JSON default
+    stock_type: str = "Uncoated Bond 80GSM",  # JSON default
+    leaves_per_pad: str = "50",  # JSON default
+    finish_size: str = "A4 Portrait",  # JSON only has 1 option
+    artworks: int = 1
 ) -> Dict[str, Any]:
     """
     Calculate quote for Notepads A4 (Shopify)
     
     Args:
-        quantity: Number of notepads (25-2000, required)
-        print_type: "Colour" or "Black & White" (default backend: "Colour")
-        print_sides: "Single side print" or "Double side print" (default backend: "Single side print")
-        paper_stock: Paper type - "Standard", "Uncoated Bond 80GSM", etc. (default backend: "Standard")
-        artworks: Number of unique designs (default backend: 1)
-        pads_per_book: Number of pads per book (default backend: 1)
-        
-        DEPRECATED:
-        stock_type: Legacy alias for paper_stock (use paper_stock instead)
+        quantity: Number of notepads as string - "25", "50", "75", "100", "150", "200", "250", "300", "400", "500", "750", "1000", "2000"
+        print_type: Print type with sides - "Colour 1 sided", "Colour 2 sided", "Black & White 1 sided", "Black & White 2 sided" (default: "Black & White 1 sided")
+        stock_type: Paper stock - "Uncoated Bond 80GSM", "Uncoated Bond 90GSM", "Uncoated Bond 100GSM", "Revive 100% Recycled 80GSM Bond" (default: "Uncoated Bond 80GSM")
+        leaves_per_pad: Leaves per pad as string - "25", "50", "100" (default: "50")
+        finish_size: Finish size - "A4 Portrait" (only option)
+        artworks: Number of unique designs 1-20 (default: 1)
     
     Returns:
         Dict with success, total_price, unit_price, cost_per_item, breakdown, specifications
     """
-    warnings = []
-    
     # ========================================================================
-    # LEGACY TRANSLATION (with warnings)
+    # VALIDATION: Validate JSON format parameters
     # ========================================================================
-    if stock_type is not None:
-        paper_stock = stock_type
-        warnings.append({
-            "deprecated": "stock_type",
-            "use_instead": "paper_stock",
-            "value_sent": stock_type,
-            "translated_to": paper_stock
-        })
-    
-    if warnings:
-        log_msg = f"\n⚠️  DEPRECATED PARAMETERS in calculate_notepads_a4:\n"
-        for w in warnings:
-            log_msg += f"   {w['deprecated']}={w['value_sent']} → {w['use_instead']}='{w['translated_to']}'\n"
-        print(log_msg)
-    
-    # ========================================================================
-    # VALIDATION (after legacy translation - THE CRITICAL MISSING PIECE!)
-    # ========================================================================
-    # Apply backend defaults for None values
-    if print_type is None:
-        print_type = "Colour"  # Backend default
-    
-    if print_sides is None:
-        print_sides = "Single side print"  # Backend default
-    
-    if paper_stock is None:
-        paper_stock = "Standard"  # Backend default
-    
-    if artworks is None:
-        artworks = 1  # Backend default
-    
-    if pads_per_book is None:
-        pads_per_book = 1  # Backend default
-    
-    # ========================================================================
-    # VALIDATION: Validate parameter values (AI learns valid options from errors)
-    # ========================================================================
-    if print_type not in ["Colour", "Black & White"]:
+    valid_quantities = ["25", "50", "75", "100", "150", "200", "250", "300", "400", "500", "750", "1000", "2000"]
+    if quantity not in valid_quantities:
         return {
             "success": False,
-            "error": f"Invalid print_type: '{print_type}'. Must be 'Colour' or 'Black & White'"
+            "error": f"Invalid quantity: '{quantity}'. Must be one of: {', '.join(valid_quantities)}"
         }
     
-    if print_sides not in ["Single side print", "Double side print"]:
+    valid_print_types = ["Colour 1 sided", "Colour 2 sided", "Black & White 1 sided", "Black & White 2 sided"]
+    if print_type not in valid_print_types:
         return {
             "success": False,
-            "error": f"Invalid print_sides: '{print_sides}'. Must be 'Single side print' or 'Double side print'"
+            "error": f"Invalid print_type: '{print_type}'. Must be one of: {', '.join(valid_print_types)}"
         }
     
-    if artworks < 1 or artworks > 50:
+    valid_stock_types = ["Uncoated Bond 80GSM", "Uncoated Bond 90GSM", "Uncoated Bond 100GSM", "Revive 100% Recycled 80GSM Bond"]
+    if stock_type not in valid_stock_types:
         return {
             "success": False,
-            "error": f"Invalid artworks: {artworks}. Must be between 1 and 50"
+            "error": f"Invalid stock_type: '{stock_type}'. Must be one of: {', '.join(valid_stock_types)}"
         }
     
-    if pads_per_book < 1 or pads_per_book > 10:
+    valid_leaves_per_pad = ["25", "50", "100"]
+    if leaves_per_pad not in valid_leaves_per_pad:
         return {
             "success": False,
-            "error": f"Invalid pads_per_book: {pads_per_book}. Must be between 1 and 10"
+            "error": f"Invalid leaves_per_pad: '{leaves_per_pad}'. Must be one of: {', '.join(valid_leaves_per_pad)}"
+        }
+    
+    valid_finish_sizes = ["A4 Portrait"]
+    if finish_size not in valid_finish_sizes:
+        return {
+            "success": False,
+            "error": f"Invalid finish_size: '{finish_size}'. Must be: A4 Portrait"
+        }
+    
+    if artworks < 1 or artworks > 20:
+        return {
+            "success": False,
+            "error": f"Invalid artworks: {artworks}. Must be between 1 and 20"
         }
     
     if not SHOPIFY_CALCULATORS_AVAILABLE:
@@ -4322,12 +4901,11 @@ def calculate_notepads_a4(
         from NotepadsA4_Shopify_Calculator import NotepadsA4ShopifyCalculator
         calculator = NotepadsA4ShopifyCalculator()
         result = calculator.calculate(
-            quantity=quantity,
-            print_type=print_type,
-            print_sides=print_sides,
-            paper_stock=paper_stock,
-            artworks=artworks,
-            pads_per_book=pads_per_book
+            quantity=quantity,  # Pass as string
+            print_type=print_type,  # Pass combined format like "Colour 1 sided"
+            stock_type=stock_type,  # JSON field name
+            leaves_per_pad=leaves_per_pad,  # JSON field name
+            artworks=artworks
         )
         response = {
             "success": True,
@@ -4339,8 +4917,6 @@ def calculate_notepads_a4(
             "breakdown": {k: float(v) if isinstance(v, Decimal) else v for k, v in result.breakdown.items()},
             "specifications": result.specifications
         }
-        if warnings:
-            response["warnings"] = warnings
         return response
     except Exception as e:
         print(f"❌ [Shopify Notepads A4] Error: {e}")
