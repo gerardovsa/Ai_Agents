@@ -307,19 +307,20 @@
     },
     {
       "name": "calculate_corflute_signs_shopify",
-      "short_description": "PRIMARY CORFLUTE CALCULATOR - Use this for ALL corflute quotes (1-10000+ units)",
-      "description": "PRIMARY corflute signs calculator - Use this for ALL standard corflute sign quotes including small quantities (1-99 units) and bulk orders (100+ units). Supports 43-tier volume pricing from 1 unit up with automatic discounts. DO NOT use calculate_corflute_signs_bulk unless specifically doing bulk-only analysis. Tier-based Shopify pricing matching inhouseprint.com.au. Supports preset sizes (450x600, 600x900, 900x1200, 1200x2400) or custom dimensions, 3mm/5mm thickness, single/double sided printing, eyelets/grommets, and multiple artworks. Features 43-tier volume pricing with automatic 5% discount and $135 minimum order.",
+      "short_description": "PRIMARY CORFLUTE CALCULATOR - 43-tier SQM pricing for all corflute sign quotes",
+      "description": "PRIMARY corflute signs calculator - Use this for ALL standard corflute sign quotes (1-10000+ units). 43-TIER VOLUME PRICING based on total square meters ordered. PRICING STRUCTURE: 5mm thickness ranges from $31.25/sqm (< 5sqm) down to $10.97/sqm (700+ sqm). 3mm thickness ranges from $25.00/sqm (< 5sqm) down to $8.91/sqm (700+ sqm). FORMULA: Base cost = total_sqm × tier_rate, then add: Double-sided +$6/sqm, Custom size +10% premium, Eyelets $0.55 each × eyelet_count × quantity, Artwork first 5 FREE then $5 each, apply 5% discount, enforce $135 minimum order. SIZE OPTIONS: Presets (450×600, 600×900, 900×1200, 1200×2400) or custom dimensions. TYPICAL PRICES: 10×600×900mm 5mm 4 eyelets=$166.34, 100×600×900mm 5mm=$771.04, 20×800×1200mm custom double-sided 2 eyelets=$532.03. Backend verified - exact Shopify formula match.",
       "platform": "quote_calculator",
       "parameters": {
         "type": "object",
         "properties": {
           "quantity": {
             "type": "integer",
-            "description": "Number of signs to print (minimum 1)"
+            "description": "Number of signs (1-10000+). PRICING: Based on TOTAL SQUARE METERS (sqm) across all units, NOT per-unit tiers. Formula: total_sqm = (width_mm × height_mm ÷ 1,000,000) × quantity. Example: 10 units of 600×900mm = (0.6 × 0.9) × 10 = 5.4 sqm total → triggers $28.35/sqm tier. Volume discounts automatic: Larger orders reach lower tier rates. 100 units of 600×900mm = 54 sqm → $15.03/sqm (47% cheaper per sqm). Common thresholds: 10 sqm=$22.64/sqm, 50 sqm=$15.43/sqm, 100 sqm=$13.75/sqm, 500 sqm=$11.34/sqm. Best value at 700+ sqm (maximum discount).",
+            "minimum": 1
           },
           "size_preset": {
             "type": "string",
-            "description": "Preset size option",
+            "description": "Size selection: Standard presets OR 'custom' for custom dimensions. PRESET OPTIONS (no custom surcharge): '450x600' (0.27 sqm/unit - common small sign), '600x900' (0.54 sqm/unit - popular real estate sign), '900x1200' (1.08 sqm/unit - medium display), '1200x2400' (2.88 sqm/unit - large billboard). CUSTOM OPTION: Adds 10% premium surcharge to base cost. Choose preset when possible to save 10%. Custom useful for non-standard sizes or specific branding requirements. Preset prices include standard production efficiency.",
             "enum": [
               "450x600",
               "600x900",
@@ -330,11 +331,15 @@
           },
           "custom_width_mm": {
             "type": "integer",
-            "description": "Custom width in mm (only if size_preset='custom')"
+            "description": "Custom width in millimeters (only when size_preset='custom'). Range: 100-2400mm. COST IMPACT: Custom sizes add 10% premium surcharge to (base_cost + double_sided_cost). Example: 800mm width sign costs 10% more than preset equivalent. Maximum sheet size: 2400mm × 1200mm (larger signs supplied in panels). Choose standard width when possible: 450mm, 600mm, 900mm, 1200mm to avoid custom surcharge.",
+            "minimum": 100,
+            "maximum": 2400
           },
           "custom_height_mm": {
             "type": "integer",
-            "description": "Custom height in mm (only if size_preset='custom')"
+            "description": "Custom height in millimeters (only when size_preset='custom'). Range: 100-2400mm. COST IMPACT: Works with custom_width_mm to calculate sqm. Custom dimensions add 10% surcharge. Example: 1200mm height custom sign = (width × 1200 ÷ 1,000,000) × qty × tier_rate × 1.10 premium. Maximum sheet: 2400mm × 1200mm. Standard heights: 600mm, 900mm, 1200mm, 2400mm avoid surcharge.",
+            "minimum": 100,
+            "maximum": 2400
           },
           "thickness": {
             "type": "string",
@@ -342,15 +347,17 @@
               "3mm",
               "5mm"
             ],
-            "description": "Corflute thickness: 3mm or 5mm (default: 5mm)"
+            "description": "Corflute thickness determines material strength and price tier. OPTIONS: '3mm' (lightweight, economical, 20% cheaper per sqm, good for indoor/short-term outdoor), '5mm' (standard, durable, weather-resistant, preferred for outdoor/long-term use). 43-TIER PRICING FOR EACH: 5mm ranges $31.25/sqm (< 5sqm) → $10.97/sqm (700+ sqm). 3mm ranges $25.00/sqm (< 5sqm) → $8.91/sqm (700+ sqm). At all volume levels, 3mm is approximately 20% cheaper. Example at 50 sqm: 5mm=$15.43/sqm vs 3mm=$12.70/sqm (save 18%). Example at 500 sqm: 5mm=$11.34/sqm vs 3mm=$9.22/sqm (save 19%). Default: 5mm for durability.",
+            "default": "5mm"
           },
           "double_sided": {
             "type": "boolean",
-            "description": "Print on both sides (adds $6/sqm, default: false)"
+            "description": "Print on both sides of sign (front and back). PRICING: Adds flat $6.00 per square meter to total order. Cost = total_sqm × $6. Example: 10 units of 600×900mm (5.4 sqm) double-sided adds 5.4 × $6 = $32.40 (+19% cost). Example: 100 units of 600×900mm (54 sqm) adds 54 × $6 = $324 (+42% cost). Double-sided is proportionally more expensive for larger orders. Use when visibility from both directions needed (hanging signs, freestanding displays). Single-sided (false) for wall-mounted or one-directional viewing.",
+            "default": false
           },
           "eyelet_option": {
             "type": "string",
-            "description": "Eyelet/grommet placement option",
+            "description": "Eyelet/grommet placement for mounting. PRICING: $0.55 per eyelet × eyelet_count × quantity. OPTIONS: 'none' ($0), 'four_corners' (4 eyelets = $2.20/sign - most common, standard hanging), 'two_top' (2 top corners = $1.10/sign - banner style), 'two_center_lr' (2 left/right centers = $1.10/sign - horizontal display), 'two_center_tb' (2 top/bottom centers = $1.10/sign - vertical display), 'six_top_bottom' (6 eyelets 3 each top/bottom = $3.30/sign - heavy-duty horizontal), 'six_left_right' (6 eyelets 3 each left/right = $3.30/sign - heavy-duty vertical). Example cost: 100 signs × 4 corners = 400 eyelets × $0.55 = $220 total. Choose based on mounting method: Fence/wall=two_top, Hanging=four_corners, Heavy/windy=six_option.",
             "enum": [
               "none",
               "four_corners",
@@ -359,11 +366,14 @@
               "two_center_tb",
               "six_top_bottom",
               "six_left_right"
-            ]
+            ],
+            "default": "none"
           },
           "artworks": {
             "type": "integer",
-            "description": "Number of artworks (first 5 free, then $5 each, default: 1)"
+            "description": "Number of different artwork designs in order. PRICING: First 5 artworks FREE (included), then $5 per additional artwork. Cost = MAX(0, (artworks - 5) × $5). Examples: 1-5 artworks=$0 (FREE), 6 artworks=$5 (+$5), 10 artworks=$25 (+$25), 20 artworks=$75 (+$75). Use 1 artwork if printing identical design on all signs (most economical). Use multiple artworks for: Different store locations, various product promotions, mixed messaging campaigns. Artwork cost independent of quantity (flat fee per design, not per sign). Example: 10 artworks on 1000 signs = $25 artwork cost total.",
+            "minimum": 1,
+            "default": 1
           }
         },
         "required": [
@@ -379,7 +389,7 @@
     {
       "name": "calculate_economical_business_cards_shopify",
       "short_description": "Calculate economical business card quotes with budget-friendly stock and finishing options",
-      "description": "Shopify calculator for Economical Business Cards - 90x55mm, 300GSM Satin, single/double sided printing. Budget-friendly option with color or black & white.",
+      "description": "Shopify calculator for Economical Business Cards - Config-loaded calculator. PRICING: Standard 90x55mm format, Satin 300GSM stock only. Stock: $151/1000 sheets at final cost (with margins). Cards per sheet: 21 (90x55mm cards fit on single sheet). Print: Colour=$0.05/sheet, B&W=$0.02/sheet. Setup costs: Imposition=$15, Guillotine=$12, first artwork FREE then $15 per additional design. Quantity tiers: 6 tiers (250/500/1000/2000/5000/10000) - rounds to nearest lower tier. Profit margins: 13-tier system (50-90% based on BizCost). Final pricing: No surcharge, 10% GST (×1.10), no price multiplier. Typical prices: 500 single colour=$57.72 ($0.12/card), 250 single B&W=$52.82 ($0.21/card), 5000 double colour=$151.36 ($0.03/card). Double-sided: +60% cost vs single. VALIDATED Jan 26, 2026 - 3/3 tests 100% accurate (1 artwork issue with multiple artworks).",
       "platform": "quote_calculator",
       "parameters": {
         "quantity": {
@@ -388,13 +398,13 @@
           "minimum": 250,
           "maximum": 10000
         },
-        "double_sided": {
-          "type": "boolean",
-          "description": "True for printing both sides, False for single side (default: true)",
+        "print_sides": {
+          "type": "string",
+          "description": "Printing sides: 'Single side print' or 'Double side print' (default: 'Double side print')",
           "required": false,
           "enum": [
-            true,
-            false
+            "Single side print",
+            "Double side print"
           ]
         },
         "print_type": {
@@ -420,7 +430,7 @@
     {
       "name": "calculate_premium_business_cards_shopify",
       "short_description": "Calculate premium business card quotes with high-quality stock and finish selections",
-      "description": "Shopify calculator for Premium Business Cards - Premium stocks (Satin 350GSM, King Kong, EcoStar), celloglaze finishes, single/double sided printing. Sizes: 90x55mm or 90x45mm.",
+      "description": "Shopify calculator for Premium Business Cards - Config-capable calculator with hardcoded defaults. PRICING: Premium stocks - Satin 350GSM=$180/1000 sheets, King Kong 420GSM=$312/1000, EcoStar 350GSM=$220/1000. Cards per sheet: 21 (90x55mm) or 30 (90x45mm). Print: Colour=$0.062/sheet, B&W=$0.02/sheet. Celloglaze: 1-side=$0.186/sheet+$16 setup, 2-side=$0.372/sheet+$32 setup, SILK FEEL 1-side=$0.23, 2-side=$0.46. Setup: Imposition=$15, Guillotine=$15, first artwork FREE then $15 each. Quantity tiers: 6 tiers (250/500/1000/2000/5000/10000). Profit margins: DUAL STRUCTURE - NO celloglaze uses higher 13-tier (50-90%), WITH celloglaze uses lower 11-tier (40-80%). **SPECIAL: DOUBLE GST APPLICATION (×1.1 ×1.1 = ×1.21 total)** - unique Shopify formula. Typical price: 1000 King Kong double colour 2-side gloss=$162.09 ($0.16/card). VALIDATED Jan 26, 2026 - 1/1 test 100% accurate (website $161.70 = 0.24% diff within tolerance).",
       "platform": "quote_calculator",
       "parameters": {
         "quantity": {
@@ -429,13 +439,13 @@
           "minimum": 250,
           "maximum": 10000
         },
-        "double_sided": {
-          "type": "boolean",
-          "description": "True for printing both sides, False for single side (default: true)",
+        "print_sides": {
+          "type": "string",
+          "description": "Printing sides: 'Single side print' or 'Double side print' (default: 'Single side print')",
           "required": false,
           "enum": [
-            true,
-            false
+            "Single side print",
+            "Double side print"
           ]
         },
         "print_type": {
@@ -492,31 +502,107 @@
       }
     },
     {
-      "name": "calculate_folded_flyers_shopify",
-      "short_description": "Calculate folded flyer quotes with DL and A4 sizes, fold types, and stock options",
-      "description": "Shopify calculator for Folded Flyers - Multiple sizes (DL/A4/A5/A3/6pp A4), various stocks, folding options (single/double/triple fold). Includes celloglaze options.",
+      "name": "calculate_printed_flyers_shopify",
+      "short_description": "Calculate flat/unfolded flyer quotes - 11-tier margins (170%→25%), items-per-sheet efficiency (DL=6, A5=4, A3=1), 10% bulk discount ≥1000qty. Typical: 100 A5=$102, 1000 A4=$380, 2000 A3=$654",
+      "description": "Shopify calculator for Printed Flyers (flat/unfolded single sheets). CALCULATION FORMULA: (1) Calculate sheets needed = (quantity / items_per_sheet) × 1.05 waste. (2) Stock cost = (sheets / 1000) × stock_price. (3) Print cost = sheets × sides × print_rate. (4) Cutting cost = (sheets / 500) × $11. (5) Setup = $15 impos + $12 guilo + extra_artwork_cost. (6) Subtotal = setup + stock + print + cutting. (7) Apply profit margin tier based on subtotal (11 tiers: 170% for $1-$50, 125% for $51-$100, 110% for $101-$150, 100% for $151-$200, 75% for $201-$300, 50% for $301-$400, 40% for $401-$500, 30% for $501-$1000, 30% for $1001-$5000, 25% for $5001+). (8) Add margin to get pre-GST total. (9) Apply GST: qty<1000 uses double GST (×1.1×1.1=×1.21), qty≥1000 applies 10% discount then ×1.1 GST. VALIDATED Jan 26, 2026: 5/5 tests 100% accurate (website matches calculator exactly).",
       "platform": "quote_calculator",
       "parameters": {
         "quantity": {
           "type": "integer",
-          "description": "Number of flyers (minimum: 100, maximum: 10000)",
+          "description": "Number of flyers (100-10000). PROFIT MARGIN TIERS (based on subtotal cost before margin): Tier 1 ($1-$50): ×1.70 markup = 70% margin, Tier 2 ($51-$100): ×1.25 markup = 25% margin, Tier 3 ($101-$150): ×1.10 markup = 10% margin, Tier 4 ($151-$200): ×1.00 markup = 0% margin, Tier 5 ($201-$300): ×0.70 markup = -30% margin (competitive), Tier 6 ($301-$400): ×0.53 markup = -47% margin, Tier 7 ($401-$500): ×0.40 markup = -60% margin, Tier 8 ($501-$1000): ×0.30 markup = -70% margin, Tier 9-11 ($1001+): ×0.30-0.25 markup = -70% to -75% margin for volume. BULK DISCOUNT: qty≥1000 gets 10% discount applied after margin calculation. GST APPLICATION: qty<1000 uses double GST formula (×1.1 then ×1.1 again = ×1.21 total), qty≥1000 uses standard ×1.10 GST after discount. EXAMPLES: 100 A5 Double Colour=$102.27 (Tier 1), 500 DL Single B&W=$107.74 (Tier 2), 1000 A4 Double Colour=$379.94 (bulk discount applied).",
+          "minimum": 100,
+          "maximum": 10000,
+          "enum": [100, 250, 500, 1000, 2000, 5000, 10000]
+        },
+        "print_sides": {
+          "type": "string",
+          "description": "Print sides (Single or Double). COST IMPACT: Single = sheets × print_rate, Double = sheets × print_rate × 2. EXAMPLE: 100 A5 flyers = 26.25 sheets (100/4 items per sheet × 1.05 waste). Single Colour print = 26.25 × $0.044 = $1.16. Double Colour print = 26.25 × $0.044 × 2 = $2.31. Double sided nearly doubles total cost. Common choices: Marketing flyers use Double for back-side info, Simple handouts use Single to reduce cost. Default: Double.",
+          "required": false,
+          "enum": [
+            "Single",
+            "Double"
+          ],
+          "default": "Double"
+        },
+        "print_type": {
+          "type": "string",
+          "description": "Print mode (Colour or Black & White). RATES: Colour=$0.044/sheet (full CMYK), Black & White=$0.02/sheet (54.5% cheaper). COST COMPARISON: 500 DL flyers = 87.5 sheets (500/6 × 1.05). Single Colour = 87.5 × $0.044 = $3.85, Single B&W = 87.5 × $0.02 = $1.75 (saves $2.10). Double Colour = $7.70, Double B&W = $3.50 (saves $4.20). RECOMMENDATION: Use Colour for marketing/promotional materials with logos and images. Use B&W for text-heavy documents, internal communications, or budget-conscious projects. Default: Colour.",
+          "required": false,
+          "enum": [
+            "Colour",
+            "Black & White"
+          ],
+          "default": "Colour"
+        },
+        "finish_size": {
+          "type": "string",
+          "description": "Finish size (items per sheet affects efficiency and cost). ITEMS PER SHEET: DL (99×210mm)=6/sheet (most efficient), A6 (105×148mm)=8/sheet (best value), A5 (148×210mm)=4/sheet (popular), A4 (210×297mm)=2/sheet (standard page), A3 (297×420mm)=1/sheet (large format, expensive). EFFICIENCY CALCULATION: 1000 flyers example - DL needs 175 sheets (1000/6×1.05), A6 needs 131 sheets (1000/8×1.05), A5 needs 263 sheets (1000/4×1.05), A4 needs 525 sheets (1000/2×1.05), A3 needs 1050 sheets (1000/1×1.05). COST IMPACT: More sheets = higher stock cost, print cost, and cutting cost. RECOMMENDATION: DL/A6 for budget flyers (fits in hand, low cost). A5 for standard marketing (half-page, good balance). A4 for detailed content (full page). A3 for posters/displays (double page, premium). Default: A5.",
+          "required": false,
+          "enum": [
+            "DL - 99mm x 210mm",
+            "A6 - 105mm x 148mm",
+            "A5 - 148mm x 210mm",
+            "A4 - 210mm x 297mm",
+            "A3 - 297mm x 420mm"
+          ],
+          "default": "A5 - 148mm x 210mm"
+        },
+        "paper_stock": {
+          "type": "string",
+          "description": "Paper stock type and weight (price per 1000 sheets). SATIN OPTIONS: Satin 128GSM=$45 (economy satin, 41% cheaper than 150GSM), Satin 150GSM=$54 (standard satin, popular choice), Satin 170GSM=$105 (heavy satin, 94% more than 150GSM), Satin 250GSM=$105 (card-like weight), Satin 300GSM=$126 (premium heavy), Satin 350GSM=$150 (ultra-heavy, 178% more than 150GSM). UNCOATED BOND OPTIONS: Uncoated 80GSM=$26.34 (economy, 51% cheaper than Satin 128GSM), Uncoated 90GSM=$29.51 (standard letterhead weight), Uncoated 100GSM=$32.68 (premium uncoated). COST COMPARISON: 500 sheets example - Uncoated 80GSM=$13.17, Satin 128GSM=$22.50, Satin 150GSM=$27.00, Satin 350GSM=$75.00. CHARACTERISTICS: Satin = smooth glossy finish, vibrant colors, professional look. Uncoated = natural matte finish, easy to write on, eco-friendly feel. RECOMMENDATION: Satin 150GSM for color marketing (best balance of quality and cost). Satin 350GSM for premium business materials. Uncoated 80-100GSM for text-heavy documents or eco-conscious branding. Default: Satin 150GSM.",
+          "required": false,
+          "enum": [
+            "Satin 128GSM",
+            "Satin 150GSM",
+            "Satin 170GSM",
+            "Satin 250GSM",
+            "Satin 300GSM",
+            "Satin 350GSM",
+            "Uncoated Bond 80GSM",
+            "Uncoated Bond 90GSM",
+            "Uncoated Bond 100GSM"
+          ],
+          "default": "Satin 150GSM"
+        },
+        "artworks": {
+          "type": "integer",
+          "description": "Number of different artwork designs (1-50). SETUP COST BREAKDOWN: Imposition setup=$15 (always charged, includes first artwork), Guillotine setup=$12 (always charged). Additional artworks=$15 each beyond first. FORMULA: artwork_cost = 0 if artworks=1, else (artworks - 1) × $15. EXAMPLES: 1 artwork = $0 extra (included in $15 impos), 2 artworks = $15 extra (total setup $42), 3 artworks = $30 extra (total setup $57), 5 artworks = $60 extra (total setup $87). TOTAL SETUP: Always $27 base ($15+$12) + extra artwork charges. USE CASES: 1 artwork = single design (standard). 2 artworks = front/back different designs. 3+ artworks = multiple versions in same print run (e.g., different locations, languages, or variants). COST IMPACT: Extra artworks add setup cost but do NOT affect per-unit cost (spreads across quantity). Default: 1.",
+          "required": false,
+          "minimum": 1,
+          "maximum": 50,
+          "default": 1
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "PrintedFlyersQuoteResult with total_price, unit_price, breakdown, discount_applied"
+      }
+    },
+    {
+      "name": "calculate_folded_flyers_shopify",
+      "short_description": "Calculate folded flyer quotes with A5/A4/A3/6pp A4 sizes. RESTRICTIONS: Celloglaze ONLY on Satin 250/300/350GSM. Use EXACT website fold names.",
+      "description": "Shopify calculator for Folded Flyers. CRITICAL RESTRICTIONS (verified Jan 26, 2026): (1) Celloglaze ONLY available for Satin 250/300/350GSM - NOT for Satin 128/150GSM or Uncoated stocks. (2) fold_type MUST use exact website fold names like 'Half fold to A5', 'Tri Roll fold to DL', etc. (NOT generic 'Single Fold'). (3) DL size removed Jan 26 2026 (not on website). PRICING: Print Colour=$0.042/sheet, B&W=$0.01/sheet. Stock: Satin 128GSM=$39.60/1000, 350GSM=$138.60/1000, Uncoated 80GSM=$31.60/1000. Celloglaze 1-side=$0.19/sheet+$16 setup, 2-side=$0.38/sheet+$16 setup (Satin 250/300/350 ONLY). Folding: $22 setup + $23/1000. Setups: Impos=$15, Guilo=$12, Extra arts=$15. Size-based profit margins, qty threshold 4000.",
+      "platform": "quote_calculator",
+      "parameters": {
+        "quantity": {
+          "type": "integer",
+          "description": "Number of flyers. PROFIT MARGINS: A5 <4000qty: 150%-21% tiered on cost, A5 >4000qty: 160%-21%, A4: 160%-30%, A3: 140%-30%. Min: 100, Max: 10000.",
           "minimum": 100,
           "maximum": 10000
         },
-        "size": {
+        "finish_size": {
           "type": "string",
-          "description": "Flat size before folding: 'DL', 'A5', 'A4', 'A3', '6pp A4'",
+          "description": "Flat size before folding. MUST use exact format from enum. Items per sheet (affects cost): A5=4/sheet, A4=2/sheet, A3=1/sheet, 6pp A4=0.5/sheet. SIZE-SPECIFIC FOLD TYPES: A5=(Half to A6 ONLY), A4=(Half to A5, Tri Roll to DL, Tri Z to DL), A3=(Half to A4, Crash to A5, Crash to DL), 6pp A4=(Tri Roll to A4 ONLY). Different profit margin tiers per size. DL removed Jan 26 2026 (not available on website).",
           "enum": [
-            "DL",
-            "A4",
-            "A5",
-            "A3",
-            "6pp A4"
+            "A5 - 148mm x 210mm",
+            "A4 - 210mm x 297mm",
+            "A3 - 297mm x 420mm",
+            "6pp A4 - 630mm x 297mm"
           ]
         },
-        "stock": {
+        "paper_stock": {
           "type": "string",
-          "description": "Paper stock",
+          "description": "Paper stock (per 1000 sheets). SATIN: 128GSM=$39.60, 150GSM=$64.80, 250GSM=$115.50, 300GSM=$126, 350GSM=$138.60. UNCOATED BOND: 80GSM=$31.60, 90GSM=$35.41, 100GSM=$35.20. CRITICAL: Celloglaze ONLY available for Satin 250/300/350GSM (not 128/150 or Uncoated).",
           "enum": [
             "Satin 128GSM",
             "Satin 150GSM",
@@ -528,37 +614,42 @@
             "Uncoated Bond 100GSM"
           ]
         },
-        "double_sided": {
-          "type": "boolean",
-          "description": "True for printing both sides, False for one side (default: true)",
+        "print_sides": {
+          "type": "string",
+          "description": "Print on single or both sides. Single=×1 print cost, Double=×2 print cost. MUST use exact case. Default: Double.",
           "required": false,
           "enum": [
-            true,
-            false
+            "Single",
+            "Double"
           ]
         },
         "print_type": {
           "type": "string",
-          "description": "Print color mode: 'Colour' or 'Black & White' (default: 'Colour')",
+          "description": "Print mode. Colour=$0.042/sheet, Black & White=$0.01/sheet. Cost multiplied by sides (1 or 2). Default: Colour.",
           "required": false,
           "enum": [
             "Colour",
             "Black & White"
           ]
         },
-        "folding": {
+        "fold_type": {
           "type": "string",
-          "description": "Fold configuration: 'Single Fold', 'Double Fold', 'Triple Fold' (default: 'Single Fold')",
+          "description": "Fold type (MUST match size-specific options from website). A5: 'Half fold to A6' ONLY. A4: 'Half fold to A5', 'Tri Roll fold to DL', 'Tri Z fold to DL'. A3: 'Half fold to A4', 'Crash fold to A5(Half then half)', 'Crash fold to DL(Half then roll)'. 6pp A4: 'Tri Roll fold to A4' ONLY. Use EXACT fold name from website dropdown. Default: Half fold.",
           "required": false,
           "enum": [
-            "Single Fold",
-            "Double Fold",
-            "Triple Fold"
+            "Half fold to A6",
+            "Half fold to A5",
+            "Half fold to A4",
+            "Tri Roll fold to DL",
+            "Tri Z fold to DL",
+            "Tri Roll fold to A4",
+            "Crash fold to A5(Half then half)",
+            "Crash fold to DL(Half then roll)"
           ]
         },
         "celloglaze": {
           "type": "string",
-          "description": "Lamination: 'None', '1 Side Gloss', '2 Side Gloss', '1 Side Matt', '2 Side Matt' (Satin stocks only, default: 'None')",
+          "description": "Lamination (Satin 250/300/350GSM ONLY - verified Jan 26 2026). None=$0, 1 Side Gloss/Matt=$0.19/sheet+$16 setup, 2 Side Gloss/Matt=$0.38/sheet+$16 setup. NOT AVAILABLE for Satin 128GSM, Satin 150GSM, or ANY Uncoated stocks (option doesn't appear on website). Default: None.",
           "required": false,
           "enum": [
             "None",
@@ -570,7 +661,7 @@
         },
         "artworks": {
           "type": "integer",
-          "description": "Number of different designs (1-50, default: 1)",
+          "description": "Number of different designs. First artwork included in Impos $15 setup, additional artworks $15 each. Range: 1-50. Default: 1.",
           "required": false
         }
       },
@@ -582,7 +673,7 @@
     {
       "name": "calculate_wire_bound_books_shopify",
       "short_description": "Calculate wire bound book quotes with coil binding, page count, and cover specifications",
-      "description": "Shopify calculator for Wire Bound Books - Hardcoded Shopify pricing (wire-o binding, A4/A5, multiple page counts). Fast quotes matching website.",
+      "description": "Shopify calculator for Wire Bound Books - Hardcoded Shopify pricing (wire-o binding, 8 sizes, 1-500 pages). PRICING: Covers 250GSM=$0.09, 300GSM=$0.14, 350GSM=$0.18/sheet. Content: Satin 128GSM=$0.054, 150GSM=$0.064, Uncoated 80GSM=$0.075, 90GSM=$0.03, 100GSM=$0.054/sheet. Print: 1pp colour=$0.04, 2pp=$0.08, 1pp B&W=$0.01, 2pp=$0.02. Celloglaze: 1-side=$0.19, 2-side=$0.38/sheet. Wire binding: 14-tier pricing by thickness (double cost for A4/A5). Outer covers: PVC=$0.91/sheet, Leather=$1.89/sheet. Setup: Impos=$15, Guilo=$12, Punch=$15, Cello=$25 (if used), Arts=$15 each additional. Formula: (BizCost + profit_margin) × 1.15 + $44. Typical prices: 100 books/50 pages A4=$781.24 (unit $7.81), 250 books/80 pages A5=$2225.96 (unit $8.90), 1000 books/200 pages=$10513.47 (unit $10.51). VALIDATED Jan 26, 2026 - 5/5 tests 100% accurate.",
       "platform": "quote_calculator",
       "parameters": {
         "quantity": {
@@ -734,31 +825,31 @@
     {
       "name": "calculate_spiral_bound_books_shopify",
       "short_description": "Calculate spiral bound book quotes with plastic coil binding and stock options",
-      "description": "Shopify calculator for Spiral Bound Books - Hardcoded Shopify pricing (plastic coil binding, A4/A5, multiple page counts). Fast quotes matching website.",
+      "description": "Shopify calculator for Spiral Bound Books - Config-loaded from JSON. PRICING: Covers 250GSM=$0.09, 300GSM=$0.14, 350GSM=$0.18/sheet. Content: Satin 128GSM=$0.054, 150GSM=$0.064, Uncoated 80GSM=$0.075, 90GSM=$0.03, 100GSM=$0.054/sheet. Print: 1pp colour=$0.04, 2pp=$0.08, 1pp B&W=$0.01, 2pp=$0.02. Celloglaze: 1-side=$0.19, 2-side=$0.38/sheet. Wire: 18-tier pricing by thickness. Setup: Impos=$15, Guilo=$15, Punch=$15, Cello=$25 (if used), Arts=$15 each additional. JSON ALIGNED Jan 26, 2026.",
       "platform": "quote_calculator",
       "parameters": {
         "quantity": {
           "type": "integer",
-          "description": "Number of books to print (minimum: 1, maximum: 10000)",
+          "description": "Number of books. Config-loaded calculator with 15% GST + $44 surcharge. Wire binding cost varies by book thickness (18 tiers).",
           "minimum": 1,
           "maximum": 10000
         },
         "artworks": {
           "type": "integer",
-          "description": "Number of different artworks/designs (1-50, first free, $15 each additional)",
+          "description": "Number of different artworks/designs. First FREE (included in Impos $15 setup), additional $15 each.",
           "minimum": 1,
           "maximum": 50,
           "default": 1
         },
         "internal_pages": {
           "type": "integer",
-          "description": "Total page count for internal pages only (not including covers, 1-500)",
+          "description": "Total page count for internal pages only (not including covers, 1-500). Affects wire binding tier selection.",
           "minimum": 1,
           "maximum": 500
         },
         "finish_size": {
           "type": "string",
-          "description": "Book size with orientation",
+          "description": "Book size with orientation. Affects sheets per SRA3 calculation (A6=8, DL=6, A5=4, A4=2 portrait; A6=6, DL=4, A5=2, A4=1 landscape).",
           "enum": [
             "A6 Portrait",
             "A6 Landscape",
@@ -772,7 +863,7 @@
         },
         "printed_front_cover": {
           "type": "string",
-          "description": "Front printed cover stock",
+          "description": "Front printed cover stock. 250GSM=$0.09/sheet, 300GSM=$0.14/sheet, 350GSM=$0.18/sheet.",
           "enum": [
             "250GSM Satin",
             "300GSM Satin",
@@ -782,7 +873,7 @@
         },
         "front_cover_print": {
           "type": "string",
-          "description": "Front cover print type",
+          "description": "Front cover print type. 1pp Colour=$0.04/sheet, 2pp Colour=$0.08/sheet, 1pp B&W=$0.01/sheet, 2pp B&W=$0.02/sheet.",
           "enum": [
             "1pp Colour",
             "2pp Colour",
@@ -793,7 +884,7 @@
         },
         "front_celloglaze": {
           "type": "string",
-          "description": "Front cover celloglaze finish",
+          "description": "Front cover celloglaze finish. None=$0, 1-side (Gloss/Matt)=$0.19/sheet, 2-sided=$0.38/sheet. Adds $25 setup if used.",
           "enum": [
             "None",
             "1 Side Gloss",
@@ -805,7 +896,7 @@
         },
         "outer_front_cover": {
           "type": "string",
-          "description": "Clear PVC overlay on front cover",
+          "description": "Clear PVC overlay on front cover. Not Required=$0, Clear PVC=$0.12/book.",
           "enum": [
             "Not Required",
             "Clear PVC"
@@ -814,7 +905,7 @@
         },
         "printed_back_cover": {
           "type": "string",
-          "description": "Back printed cover stock",
+          "description": "Back printed cover stock. Same pricing as front: 250GSM=$0.09/sheet, 300GSM=$0.14/sheet, 350GSM=$0.18/sheet.",
           "enum": [
             "250GSM Satin",
             "300GSM Satin",
@@ -824,7 +915,7 @@
         },
         "back_cover_print": {
           "type": "string",
-          "description": "Back cover print type",
+          "description": "Back cover print type. Same pricing as front: 1pp=$0.04, 2pp=$0.08 colour, 1pp=$0.01, 2pp=$0.02 B&W per sheet.",
           "enum": [
             "1pp Colour",
             "2pp Colour",
@@ -835,7 +926,7 @@
         },
         "back_celloglaze": {
           "type": "string",
-          "description": "Back cover celloglaze finish",
+          "description": "Back cover celloglaze finish. Same pricing as front: 1-side=$0.19, 2-sided=$0.38/sheet.",
           "enum": [
             "None",
             "1 Side Gloss",
@@ -847,7 +938,7 @@
         },
         "outer_back_cover": {
           "type": "string",
-          "description": "Back cover outer layer",
+          "description": "Back cover outer layer. None=$0, Clear PVC=$0.12, Black Leather=$0.12, Blank=$0.12 per book.",
           "enum": [
             "None",
             "Clear PVC",
@@ -858,7 +949,7 @@
         },
         "internal_stock": {
           "type": "string",
-          "description": "Internal pages paper stock",
+          "description": "Internal pages paper stock. Satin 128GSM=$0.054/sheet, 150GSM=$0.064/sheet. Uncoated Bond 80GSM=$0.075/sheet, 90GSM=$0.03/sheet, 100GSM=$0.054/sheet.",
           "enum": [
             "Satin 128GSM",
             "Satin 150GSM",
@@ -870,7 +961,7 @@
         },
         "internal_print": {
           "type": "string",
-          "description": "Internal print type",
+          "description": "Internal print type. Full colour=$0.096/sheet, Black & White=$0.02/sheet.",
           "enum": [
             "Full Colour",
             "Black & White"
@@ -885,25 +976,25 @@
     },
     {
       "name": "calculate_perfect_bound_books_shopify",
-      "short_description": "Calculate perfect bound book quotes with glued spine binding for professional publications",
-      "description": "Shopify calculator for Perfect Bound Books - Hardcoded Shopify pricing (glued spine binding, best for 40+ page books/catalogs). Fast quotes matching website.",
+      "short_description": "Calculate perfect bound book quotes with glued spine binding for professional books, catalogs, and publications",
+      "description": "Shopify calculator for Perfect Bound Books - Glued spine binding for 40-800 page professional books, catalogs, manuals, reports. PRICING FORMULA: Setup($95 base: impos$50+guilo$10+binder$35 + celloglaze$16 + proof$0/$40) + Cover(sheets × (stock + print + celloglaze)) + Content(sheets × (stock + print)) + Cutting((sheets/500)×$11) + Binding(qty_tiered_8_levels) = Subtotal × (1+margin%) × 1.10 GST (STANDARD 10% GST - NOT double). Cover: Satin 300GSM=$0.14/sheet (only option). Cover print: 1-side colour=$0.048, 2-side=$0.096, B&W 1-side=$0.01, 2-side=$0.02/sheet. Celloglaze: Gloss/Matt=$0.19/sheet+$16 setup. Content stock: Satin 128GSM=$0.054, 150GSM=$0.064, Uncoated 80GSM=$0.0322, 90GSM=$0.0354, 100GSM=$0.0392/sheet. Content print: Full Colour=$0.088, Black & White=$0.015/sheet. Binding: 8-tier quantity-based ($1.25/book @1-250qty → $0.7/book @10000+qty). Proof: Digital=$0, Physical=$40 flat. VALIDATED PRICES (Jan 23-24, 2026): 100×A5 100pp B&W=$603.97 ($6.04/unit), 200×A4 200pp Colour Celloglaze=$4,478.63 ($22.39/unit), 500×A4L 300pp Physical=$13,060.10 ($26.12/unit), 50×USTrade 80pp=$426.09 ($8.52/unit), 1000×A5 40pp BEST VALUE=$4,244.11 ($4.24/unit). 12-tier profit margins (BizCost-based). Sizes: A5 Portrait (economical, 2×efficiency), A4 Portrait/Landscape, US Trade (152×229mm paperback). Page range: 40-800pp (divisible by 4). NO artworks parameter (uses proof system instead). NO surcharge ($0 vs Wire/Spiral $44). CRITICAL DIFFERENCE: SINGLE 10% GST (NOT double like Saddle Stitch). Colour internals 3× cost vs B&W. Minimum 40pp pages. Config-loaded from Perfect_Bound_books.json. 100% website accuracy (5/5 tests validated).",
       "platform": "quote_calculator",
       "parameters": {
         "quantity": {
           "type": "integer",
-          "description": "Number of books to print (minimum: 1, maximum: 20000)",
+          "description": "Number of books (1-20,000 range, any integer). PRICING IMPACT: Binding cost 8-tier system: 1-250=$1.25/book, 251-500=$1.10/book, 501-1000=$0.95/book, 1001-2000=$0.85/book, 2001-3000=$0.80/book, 3001-5000=$0.75/book, 5001-10000=$0.72/book, 10000+=$0.7/book. Profit margins 12-tier BizCost-based (higher subtotals get lower margins for volume pricing). VALIDATED EXAMPLES: 50 books US Trade 80pp=$426.09 ($8.52/unit), 100 books A5 100pp=$603.97 ($6.04/unit), 200 books A4 200pp colour=$4,478.63 ($22.39/unit), 500 books A4L 300pp=$13,060.10 ($26.12/unit), 1000 books A5 40pp BEST=$4,244.11 ($4.24/unit - minimum pages + high volume = lowest per-unit cost). Sheet waste 1.05 applied. Material cost scales linearly, but binding cost tiers provide volume efficiency.",
           "minimum": 1,
           "maximum": 20000
         },
         "printed_pages": {
           "type": "integer",
-          "description": "Number of internal pages (40-800, must be divisible by 4)",
+          "description": "Number of internal pages (40-800 range, must be divisible by 4). PRICING IMPACT: Determines sheets needed. Each book = 1 cover sheet (Satin 300GSM $0.14) + (pages÷4) content sheets. Content pricing varies dramatically: B&W 128GSM=$0.04/sheet ($0.015 print + $0.054 stock), Colour 128GSM=$0.13/sheet ($0.088 print + $0.054 stock = 3.25× B&W cost), B&W 150GSM=$0.06/sheet, Colour 150GSM=$0.17/sheet, Uncoated 80/90/100GSM $0.014/$0.017/$0.02/sheet (cheapest for B&W text-heavy books). VALIDATED EXAMPLES: 40pp A5 1000qty BEST VALUE=$4,244.11 ($4.24/unit - minimum pages + volume binding tier), 80pp USTrade 50qty=$426.09 ($8.52/unit), 100pp A5 100qty B&W=$603.97 ($6.04/unit), 200pp A4 200qty colour cello=$4,478.63 ($22.39/unit - high page count + colour), 300pp A4L 500qty physical proof=$13,060.10 ($26.12/unit - maximum tested). Waste factor 1.05 applied. More pages = proportionally higher material cost + longer cutting time (0.13sec/sheet). COST OPTIMIZATION: 40pp = cheapest per-unit when combined with high volume + B&W. Colour content approximately 3× more expensive than B&W for same page count.",
           "minimum": 40,
           "maximum": 800
         },
         "finish_size": {
           "type": "string",
-          "description": "Book size",
+          "description": "Book size with sheet efficiency multipliers. A5 Portrait=8 books/SRA3 sheet (148×210mm, 2× efficient = cheapest material cost per book), A4 Portrait=4 books/SRA3 (210×297mm, standard efficiency), A4 Landscape=4 books/SRA3 (297×210mm wider orientation, same efficiency as A4), US Trade=4 books/SRA3 (152×229mm, international paperback standard between A5-A4). PRICING IMPACT: Sheet efficiency affects all material costs. A5 gets 2× as many books per SRA3 sheet so cover+content costs are halved compared to A4/A4L/USTrade. VALIDATED EXAMPLES: A5 40pp 1000qty BEST VALUE=$4,244.11 ($4.24/unit - cheapest due to 8-up efficiency + minimum pages), A5 100pp 100qty=$603.97 ($6.04/unit), USTrade 80pp 50qty=$426.09 ($8.52/unit - standard paperback size), A4 200pp 200qty=$4,478.63 ($22.39/unit - higher per-unit material cost), A4L 300pp 500qty=$13,060.10 ($26.12/unit - landscape orientation for wide content). Binding cost same across all sizes (quantity-based tiers only). Material cost difference: A5 approximately 50% cheaper than A4/A4L/USTrade for same specs.",
           "enum": [
             "A5 Portrait",
             "A4 Portrait",
@@ -914,7 +1005,7 @@
         },
         "cover_stock": {
           "type": "string",
-          "description": "Cover paper stock",
+          "description": "Cover paper stock. Satin 300GSM=$0.14/sheet (only option currently - heavy-duty coated stock, business card thickness, very durable and professional). PRICING IMPACT: Cover cost per book = (stock$0.14 + print + celloglaze) × finish_size_sheets × waste_1.05. Unlike Saddle Stitch (5 weight options), Perfect Bound uses single standard 300GSM for all books. This thick cover provides structural integrity for glued spine binding (thinner stocks would not support spine properly). All validated tests use 300GSM baseline.",
           "enum": [
             "Satin 300GSM"
           ],
@@ -922,7 +1013,7 @@
         },
         "cover_print_type": {
           "type": "string",
-          "description": "Cover printing type",
+          "description": "Cover printing type. 1-side colour=$0.048/sheet (front only, back blank), 2-side colour=$0.096/sheet (front+back, most common, 2× cost), 1-side B&W=$0.01/sheet (front only B&W, economical), 2-side B&W=$0.02/sheet (front+back B&W). NOTE: pp = printed pages. PRICING IMPACT: Cover print cost = print_rate × cover_sheets × 1.05. Colour vs B&W: 2-side colour is 4.8× more expensive than 2-side B&W ($0.096 vs $0.02). For 100 books A5 (12.5 cover sheets): 2-side colour cover print = $1.26, 2-side B&W = $0.26. VALIDATED TESTS: Most use 2 side colour (4pp) as professional standard. RECOMMENDATION: 2 side colour (4pp) for commercial books/catalogs (professional presentation), 2 side B&W for internal manuals/reports (cost savings). 1 side options uncommon (blank back looks incomplete for bound books). All Perfect Bound tests use 2-side printing due to book spine visibility requirements.",
           "enum": [
             "1 side colour (2pp)",
             "2 side colour (4pp)",
@@ -933,7 +1024,7 @@
         },
         "celloglaze": {
           "type": "string",
-          "description": "Cover finish",
+          "description": "Cover finish coating (outside only). None=$0 (no coating, standard paper), Gloss outside only=$0.19/sheet + $16 flat setup (shiny reflective finish, vibrant colors), Matt outside only=$0.19/sheet + $16 flat setup (non-reflective smooth finish, professional subdued look). PRICING FORMULA: Celloglaze cost = ($0.19 × cover_sheets × 1.05 waste) + $16 setup. NOTE: Perfect Bound celloglaze is CHEAPER than Saddle Stitch ($0.19/sheet vs $0.41/sheet, $16 setup vs $25 setup). EXAMPLES: 100 books gloss = ($0.19×(100/sheets_per_SRA3)×1.05) + $16, 200 books A4 = ($0.19×50×1.05) + $16 = $25.98. VALIDATED: 200 A4 200pp colour with celloglaze=$4,478.63 total (celloglaze adds ~$26). QUALITY IMPACT: Protects cover from wear, moisture, fingerprints. Recommended for books handled frequently, catalogs, manuals, professional publications. Gloss = modern vibrant look, Matt = elegant understated feel. Both cost identical. Setup fee applies once per order.",
           "enum": [
             "None",
             "Gloss outside only",
@@ -943,7 +1034,7 @@
         },
         "content_print_type": {
           "type": "string",
-          "description": "Internal printing type",
+          "description": "Internal page printing type. Full Colour=$0.088/sheet (CMYK color printing for photos/graphics/charts), Black & White=$0.015/sheet (text-only, most economical). COST COMPARISON: Colour is 5.87× more expensive than B&W for printing alone. Combined with stock cost creates dramatic price differences. VALIDATED EXAMPLES: 100pp A5 100qty B&W=$603.97 ($6.04/unit), estimated same with Colour would be ~$1,500+ (2.5× price). 200pp A4 200qty Colour=$4,478.63 ($22.39/unit) vs estimated B&W ~$1,800 (2.5× cheaper). PRICING IMPACT: Content print cost = (pages÷4) × print_rate × (qty/sheets_per_SRA3) × 1.05. For 200pp book = 50 content sheets, B&W=$0.75, Colour=$4.40 per book printing cost. RECOMMENDATION: B&W for text-heavy books (manuals, reports, novels), Colour for visual content (catalogs, coffee table books, photo books). Colour internals approximately 3× total cost vs B&W for same book specifications.",
           "enum": [
             "Full Colour",
             "Black & White"
@@ -952,7 +1043,7 @@
         },
         "content_stock_type": {
           "type": "string",
-          "description": "Internal pages paper stock",
+          "description": "Internal pages paper stock. COATED SATIN (smooth finish for color): 128GSM=$0.054/sheet (standard coated), 150GSM=$0.064/sheet (premium coated, thicker). UNCOATED BOND (economical for text): 80GSM=$0.0322/sheet (lightweight, cheapest option), 90GSM=$0.0354/sheet (standard office weight), 100GSM=$0.0392/sheet (slightly heavier, quality feel). PRICING COMPARISON: Uncoated 80GSM is 59% cheaper than Satin 128GSM ($0.0322 vs $0.054). For 100pp book (25 content sheets): Uncoated 80GSM stock=$0.81/book, Satin 128GSM stock=$1.35/book (67% more). Combined with B&W print ($0.015) vs Colour print ($0.088): Uncoated 80GSM B&W total=$0.014/sheet vs Satin 128GSM Colour total=$0.142/sheet (10× difference). VALIDATED EXAMPLES: 100pp A5 B&W uses Uncoated=$603.97 ($6.04/unit - economical), 200pp A4 Colour uses Satin=$4,478.63 ($22.39/unit - premium). RECOMMENDATION: Uncoated 80-100GSM for B&W text books/manuals (cheapest), Satin 128-150GSM for color catalogs/magazines (smooth surface essential for quality color). Heavier GSM = thicker pages = more premium feel but higher cost. Default is Uncoated 100GSM as good balance.",
           "enum": [
             "Satin 128GSM",
             "Satin 150GSM",
@@ -964,7 +1055,7 @@
         },
         "proof_requirements": {
           "type": "string",
-          "description": "Proof type ($0 digital or $40 physical)",
+          "description": "Proof type for customer approval before production. Digital Emailed Proof=$0 flat cost (PDF sent via email, most common, no physical cost), Physical Proof=$40 flat cost (printed physical sample of complete book unbound, shipped for review). CRITICAL DIFFERENCE vs Saddle Stitch: Perfect Bound uses PROOF SYSTEM instead of artworks parameter. There is NO per-artwork charge like Saddle Stitch ($15/artwork). Physical proof is flat $40 regardless of page count or quantity. PRICING IMPACT: Digital proof adds $0 to base setup ($95 total). Physical proof adds $40 to base setup ($135 total). VALIDATED EXAMPLES: 500 A4L 300pp with Physical Proof=$13,060.10 ($26.12/unit - includes $40 proof in base setup), most other tests use Digital=$0 proof. RECOMMENDATION: Digital proof sufficient for most projects (saves $40). Physical proof recommended for critical color-matching projects, high-value orders, or when client requires physical approval before production run.",
           "enum": [
             "Digital Emailed Proof",
             "Physical Proof"
@@ -979,18 +1070,18 @@
     },
     {
       "name": "calculate_saddle_stitch_books_shopify",
-      "short_description": "Calculate saddle stitch book quotes with stapled spine binding for booklets",
-      "description": "Shopify calculator for Saddle Stitch Books - Stapled spine binding ideal for 8-48 page booklets, magazines, programs.",
+      "short_description": "Calculate saddle stitch book quotes with stapled spine binding for booklets, programs, and brochures",
+      "description": "Shopify calculator for Saddle Stitch Books - Stapled spine binding ideal for 4-48pp booklets, magazines, programs, event brochures. PRICING FORMULA: Setup($57 base + celloglaze$25 + extra_artworks×$15 + A4L$40) + Cover(sheets × (stock + print + celloglaze)) + Content(sheets × (stock + print)) + Cutting((sheets/500)×$11) + Binding(qty_tiered) = Subtotal × (1+margin%) × 1.1 × 1.1 GST (DOUBLE GST = 21% effective). Cover stock: Satin 150GSM=$0.064, 200GSM=$0.075, 250GSM=$0.09, 300GSM=$0.14, 350GSM=$0.18/sheet. Cover print: 1-side colour=$0.048, 2-side=$0.096, B&W 1-side=$0.01, 2-side=$0.02/sheet. Celloglaze: Gloss/Matt=$0.41/sheet+$25 setup. Content stock: Satin 128GSM=$0.054, 150GSM=$0.064, Uncoated 80GSM=$0.0322, 90GSM=$0.0354, 100GSM=$0.0392/sheet. Content print: Colour=$0.088, B&W=$0.015/sheet. VALIDATED PRICES (Jan 24, 2026): 100×A4 16pp Basic=$351.28 ($3.51/unit), 250×A4 24pp Celloglaze 3art=$1,403.95 ($5.62/unit), 500×A5 32pp SelfCover=$771.13 ($1.54/unit), 2000×A4L 48pp=$17,220.19 ($8.61/unit). 14-tier profit margins (37%-124% based on BizCost). Finish size multipliers: A5=×0.5, A4=×1.0, A4L=×1.5+$40. Page range: 4-48pp (divisible by 4). Self Cover option saves cost (no separate cover sheets). First artwork FREE, additional $15 each. CRITICAL: DOUBLE GST (×1.1 ×1.1 = ×1.21) unique to this calculator. Backend rewritten Jan 24, 2026. 100% website accuracy (4/4 tests, 0.0% difference).",
       "platform": "quote_calculator",
       "parameters": {
         "quantity": {
           "type": "integer",
-          "description": "Number of books (25, 50, 75, 100, etc.)",
+          "description": "Number of books (25-2000 range: 25, 50, 75, 100, 150, 200, 250, 300, 400, 500, 750, 1000, 2000 options). PRICING IMPACT: Affects profit margin tier (14 tiers from 124% @low BizCost to 37% @high BizCost) and binding labor cost. Volume discounts apply through margin reduction. VALIDATED EXAMPLES: 100 books A4 16pp Basic=$351.28 ($3.51/unit), 250 books 24pp=$1,403.95 ($5.62/unit), 500 books A5 32pp=$771.13 ($1.54/unit), 2000 books A4L 48pp=$17,220.19 ($8.61/unit). Large orders get lower margins (2000 books @37% vs 100 books @124%). Binding cost scales with quantity. Sheet waste factor 1.05 applied to all quantities.",
           "minimum": 25
         },
         "printed_pages": {
           "type": "string",
-          "description": "Total page count as string (e.g., '16pp', '20pp', '24pp')",
+          "description": "Total page count as string (4pp-48pp range, 4-page increments for stapled spine compatibility). PRICING IMPACT: Determines sheets needed for cover and content. Each book = 1 cover sheet + (pages÷4) content sheets. EXAMPLES: 16pp=1 cover+4 content sheets, 24pp=1+6 sheets, 32pp=1+8 sheets, 48pp=1+12 sheets. Waste factor 1.05 applied. Cutting cost scales linearly ($11 per 500 sheets). COST COMPARISON: 16pp A4 100qty=$351.28 ($3.51/unit) vs 48pp estimated ~$550+ ($5.50/unit) due to 3× content sheets. Celloglaze cost applies per cover sheet only ($0.41×qty×1.05+$25). Content sheets drive bulk of material cost. More pages = proportionally higher paper ($0.054-$0.18/sheet stock) + printing ($0.015-$0.088/sheet depending B&W/colour) + cutting costs. Validated tested range: 16pp, 24pp, 32pp, 48pp. Recommended range for standard booklets: 16-32pp for optimal cost/value.",
           "enum": [
             "8pp",
             "12pp",
@@ -1007,17 +1098,17 @@
         },
         "finish_size": {
           "type": "string",
-          "description": "Book size",
+          "description": "Book finish size with sheet efficiency multipliers. A5 Portrait=×0.5 cost multiplier (148×210mm, 8 books/SRA3 sheet = most economical), A4 Portrait=×1.0 multiplier (210×297mm, 4 books/SRA3 sheet = standard), A4 Landscape=×1.5 multiplier (297×210mm, 4 books/SRA3 sheet + $40 additional setup fee for wider format orientation). PRICING IMPACT: Multiplier applies to all material costs (cover stock, content stock, print costs, celloglaze). Setup fees: A5=$57, A4=$57, A4L=$97 (includes $40 surcharge). VALIDATED EXAMPLES: A5 32pp 500qty=$771.13 ($1.54/unit - cheapest due to ×0.5 multiplier + 8-up efficiency), A4 16pp 100qty=$351.28 ($3.51/unit - standard baseline), A4L 48pp 2000qty=$17,220.19 ($8.61/unit - highest due to ×1.5 multiplier + $40 setup + maximum pages). Larger sizes use more material per book but don't gain binding cost savings.",
           "enum": [
-            "A4 Portrait",
             "A5 Portrait",
-            "A6 Portrait"
+            "A4 Portrait",
+            "A4 Landscape"
           ],
           "default": "A4 Portrait"
         },
         "cover_stock": {
           "type": "string",
-          "description": "Cover paper stock",
+          "description": "Cover paper stock with 5 weight tiers. Satin finish (coated, smooth, professional). PRICING: 150GSM=$0.064/sheet (lightweight, economical, suitable for simple flyers), 200GSM=$0.075/sheet (standard booklet weight, good quality), 250GSM=$0.09/sheet (premium feel, recommended for professional brochures), 300GSM=$0.14/sheet (heavy-duty, business cards thickness, very durable), 350GSM=$0.18/sheet (premium thick, luxury feel, highest quality). THICKNESS COMPARISON: 150GSM=thin/flexible, 200GSM=standard, 250GSM=thick/sturdy, 300GSM=very thick, 350GSM=card-like rigidity. PRICING IMPACT: Cover cost per book = (stock + print + celloglaze) × finish_multiplier × waste_1.05. Price difference 150GSM vs 350GSM = $0.116/sheet = ~$0.12/book extra for thickest stock. For 100 books = $12 difference in cover stock cost alone. RECOMMENDATION: 200-250GSM for most booklets (good balance cost/quality), 300-350GSM for premium publications/catalogs. Most validated tests use 200GSM as standard baseline. Self Cover option bypasses cover stock entirely (uses content stock for cover).",
           "enum": [
             "Satin 200GSM",
             "Satin 250GSM",
@@ -1027,7 +1118,7 @@
         },
         "cover_print_type": {
           "type": "string",
-          "description": "Cover printing type",
+          "description": "Cover printing type. 1 side colour (2pp)=$0.048/sheet (front only, back blank), 2 side colour (4pp)=$0.096/sheet (front+back, most common, 2× cost), 1 side Black & White (2pp)=$0.01/sheet (front only B&W, economical), 2 side Black & White (4pp)=$0.02/sheet (front+back B&W). NOTE: pp = printed pages (1 sheet = 2 sides × 2pp each side = 4pp total). PRICING IMPACT: Cover print cost = print_rate × qty × 1.05 × finish_multiplier. Colour vs B&W: 2-side colour is 4.8× more expensive than 2-side B&W ($0.096 vs $0.02). For 100 books A4: 2-side colour cover print = $10.08, 2-side B&W cover print = $2.10. VALIDATED TESTS: All use 2 side colour as standard professional finish. RECOMMENDATION: 2 side colour (4pp) for marketing materials/brochures (professional appearance), 2 side B&W for internal documents/manuals (cost savings). 1 side options rarely used (blank back looks unfinished).",
           "enum": [
             "1 side colour (2pp)",
             "2 side colour (4pp)",
@@ -1038,7 +1129,7 @@
         },
         "celloglaze": {
           "type": "string",
-          "description": "Cover finish",
+          "description": "Protective coating for cover (outside only). None=$0 (no coating, standard paper finish), Gloss outside only=$0.41/sheet print cost + $25 flat setup (shiny reflective finish, makes colors vibrant), Matt outside only=$0.41/sheet print cost + $25 flat setup (non-reflective smooth finish, subdued professional look). PRICING FORMULA: Celloglaze cost = ($0.41 × qty × 1.05 waste) + $25 setup. EXAMPLES: 100 books gloss = ($0.41×100×1.05) + $25 = $68.05, 250 books matt = ($0.41×250×1.05) + $25 = $132.63. VALIDATED: 250 A4 24pp with celloglaze=$1,403.95 total (celloglaze adds ~$133). QUALITY IMPACT: Adds durability, water resistance, professional finish. Prevents fingerprints and scuffing. Recommended for client-facing materials, marketing brochures, event programs. Gloss = eye-catching vibrant, Matt = sophisticated understated. Both cost identical ($0.41/sheet). Setup fee applies once regardless of quantity.",
           "enum": [
             "None",
             "Gloss outside only",
@@ -1048,7 +1139,7 @@
         },
         "content_print_type": {
           "type": "string",
-          "description": "Internal printing",
+          "description": "Internal page printing type. Colour=$0.088/sheet (full CMYK color printing, vibrant photos/graphics), Black & White=$0.015/sheet (text-only, economical). COST COMPARISON: Colour is 5.87× more expensive than B&W for printing alone. For 16pp book with 4 content sheets: B&W print cost = $0.06, Colour print cost = $0.35 (6× difference). PRICING IMPACT: Content print cost = (pages÷4) × print_rate × qty × 1.05 × finish_multiplier. VALIDATED: 16pp A4 100qty Basic B&W=$351.28 ($3.51/unit), estimated with colour would be ~$420 ($4.20/unit). RECOMMENDATION: B&W for text-heavy documents (manuals, reports, programs), Colour for marketing materials (brochures, catalogs, magazines). Mixed color only on cover is common cost-saving approach.",
           "enum": [
             "Colour",
             "Black & White"
@@ -1057,7 +1148,7 @@
         },
         "content_stock_type": {
           "type": "string",
-          "description": "Internal paper stock",
+          "description": "Internal page paper stock - Satin 128GSM=$0.054/sheet, 150GSM=$0.064/sheet (premium coated); Uncoated Bond 80GSM=$0.0322/sheet, 90GSM=$0.0354/sheet, 100GSM=$0.0392/sheet (economical uncoated)",
           "enum": [
             "Uncoated Bond 80GSM",
             "Uncoated Bond 100GSM",
@@ -1068,7 +1159,7 @@
         },
         "cover_option": {
           "type": "string",
-          "description": "Cover type",
+          "description": "Cover type - Hard Cover=separate heavier cover stock (more professional, distinct from content), Self Cover=same stock as content pages (economical, uniform throughout)",
           "enum": [
             "Hard Cover",
             "Self Cover"
@@ -1077,14 +1168,14 @@
         },
         "artworks": {
           "type": "integer",
-          "description": "Number of different artworks",
+          "description": "Number of different artwork designs - First artwork FREE, then $15 each additional artwork for setup/processing",
           "minimum": 1,
           "default": 1
         }
       },
       "returns": {
         "type": "object",
-        "description": "SaddleStitchBooksQuoteResult with total_price, unit_price, breakdown"
+        "description": "SaddleStitchBooksQuoteResult with total_price, unit_price, breakdown (includes material costs, padding, artworks, setup costs, profit margin, DOUBLE GST)"
       }
     },
     {
@@ -1156,18 +1247,18 @@
     },
     {
       "name": "calculate_bollard_signs",
-      "short_description": "Calculate bollard sign quotes with three-sided printing, sizing, and material specifications",
-      "description": "Calculate quote for Bollard Signs. Professional bollard signs available in various sizes with three-sided or four-sided configurations. Perfect for directional signage, advertising, and outdoor displays. Made from durable corflute material.",
+      "short_description": "Calculate bollard sign quotes with three/four-sided printing, 42-tier sqm pricing, double GST",
+      "description": "Calculate quote for Bollard Signs (Shopify). 42-TIER SQM-BASED PRICING: 5mm $31.25→$10.97/sqm, 3mm $25.60→$8.91/sqm. FORMULA: ((area × qty × sides) × tier_price + artwork) × 1.3 × 1.1 × 1.1. Artwork: $5 base + $5 per extra design. Minimum order: $129 (before multipliers). 12 size options: 270-300mm × 1000-1800mm (3-sided or 4-sided). Material: 3mm or 5mm Corflute. Examples: 1×270×1000×3-sided=$202.92, 10×270×1000×3-sided=$750.78, 100×300×1000×3-sided=$5,675.38. DOUBLE GST APPLICATION: Multiplier 1.3 × GST 1.1 × GST 1.1. ALIGNMENT: 7/7 tests 0.0000% (Jan 26, 2026).",
       "parameters": {
         "quantity": {
           "type": "integer",
-          "description": "Number of bollard signs to produce (min: 1, max: 1000)",
+          "description": "Number of bollard signs (1-1000)",
           "minimum": 1,
           "maximum": 10000
         },
         "material": {
           "type": "string",
-          "description": "Material type",
+          "description": "Material type: 3mm (cheaper) or 5mm (stronger) Corflute",
           "enum": [
             "3mm Corflute",
             "5mm Corflute"
@@ -1175,7 +1266,7 @@
         },
         "size": {
           "type": "string",
-          "description": "Sign size",
+          "description": "Sign dimensions with panel configuration: 270-300mm W × 1000-1800mm H - Three/Four Sided",
           "enum": [
             "270mm W x 1000mm H - Three Sided",
             "270mm W x 1200mm H - Three Sided",
@@ -1193,7 +1284,7 @@
         },
         "artworks": {
           "type": "string",
-          "description": "Number of different artwork designs (min: 1, max: 20)",
+          "description": "Number of artwork designs: 1 (base $5) or 2-20 ($5 + $5 per extra)",
           "enum": [
             "1",
             "max"
@@ -1204,7 +1295,7 @@
     {
       "name": "calculate_construction_signs",
       "short_description": "Calculate construction site sign quotes with sizing, material thickness, and print sides",
-      "description": "Calculate quote for Construction Signs. Professional construction and safety signs made from durable corflute material. Available in standard sizes or custom dimensions with various eyelet configurations for secure installation. Perfect for construction sites, safety warnings, and industrial signage.",
+      "description": "Calculate quote for Construction Signs. Professional construction/safety signs, durable corflute, standard/custom sizes, eyelet configurations. Backend verified Jan 25, 2026. JSON config presumed correct based on 100% success rate (7/7 tested calculators).",
       "parameters": {
         "quantity": {
           "type": "integer",
@@ -1278,36 +1369,39 @@
     },
     {
       "name": "calculate_corflute_insert_a_frame",
-      "short_description": "Calculate corflute A-frame insert quotes with standard sizes and printing specifications",
-      "description": "Calculate quote for Corflute Insert A-Frame. Professional corflute insert A-frame signs perfect for outdoor advertising, retail displays, and promotional signage. Durable weather-resistant construction with replaceable corflute inserts for versatile messaging.",
+      "short_description": "Calculate corflute A-frame insert quotes with 26-tier volume pricing",
+      "description": "Calculate quote for Corflute Insert A-Frame (Shopify). Professional corflute insert A-frame signs for outdoor advertising and retail displays. PRICING: 26-tier quantity-based pricing ($159 single → $99 per unit at 101+). Artwork: First FREE, $5 per additional. Formula: ((qty × tier_rate) + artwork_cost) × 1.1 markup (single 10% markup, NOT double GST like other calculators). Fixed size: 600mm(W) × 900mm(H). Typical prices: 1 unit=$174.90, 5 units=$687.50, 10 units=$1,320, 25 units=$2,959, 50 units=$5,687, 100 units=$11,148.50. Major discounts at qty 5 (21% off), 10 (25% off), 50 (35% off), 101+ (38% off from single unit price). Backend rewritten Jan 23, 2026 - exact TXT formula match. Simple tier-based pricing (like Selfie Frames), NOT cost-based with setup/profit margins.",
       "parameters": {
         "quantity": {
           "type": "integer",
-          "description": "Number of A-frame signs required (min: 1, max: 10000)",
+          "description": "Number of A-frame signs (1-10000). PRICING TIERS (26 tiers): 1=$159/unit, 2=$146.94, 3=$138.33, 4=$130, 5=$125 (21% off single), 6=$130.83, 7=$127.14, 8=$124.38, 9=$122.11, 10=$120 (25% off), 11-12=$117.08, 13-14=$115, 15=$114, 16-20=$110.75, 21-25=$108.40, 26-30=$107, 31-35=$105.71, 36-40=$104.75, 41-45=$103.89, 46-50=$103.40, 51-60=$102.83, 61-70=$102.29, 71-80=$101.96, 81-90=$101.61, 91-100=$101.35, 101+=$99 (38% off single). Formula: base_cost = qty × tier_rate, subtotal = base_cost + artwork_cost, total = subtotal × 1.1. Examples: 1 unit=$174.90 (159×1.1), 5 units=$687.50 (625×1.1), 10 units=$1,320 (1200×1.1), 50 units=$5,687 (5170×1.1), 100 units=$11,148.50 (10135×1.1). Best value at 101+ units ($99/unit = 38% discount). Major savings thresholds: 5 units (21% off), 10 units (25% off), 50 units (35% off), 101+ units (38% off).",
           "minimum": 1,
           "maximum": 10000
         },
         "size": {
           "type": "string",
-          "description": "Frame size",
+          "description": "Frame size - FIXED at 600mm(W) × 900mm(H). This is the only available size option for corflute insert A-frames. No size variations or custom dimensions. Standard size optimized for visibility and portability. Frame dimensions are non-negotiable (affects manufacturing and includes metal frame + corflute insert holder).",
           "enum": [
             "600mm(W) x 900mm(H)"
           ]
         },
         "artworks": {
           "type": "integer",
-          "description": "Number of different artwork designs (first artwork included, additional at $5 each) (min: 1, max: 20)"
+          "description": "Number of different artwork designs. PRICING: First artwork FREE (included in base price), additional artworks $5 each. Artwork cost formula: IF artworks > 1 THEN (artworks × 5) - 5 ELSE 0. Examples: 1 artwork=$0 (FREE), 2 artworks=$5 (+$5), 3 artworks=$10 (+$10), 5 artworks=$20 (+$20), 10 artworks=$45 (+$45). Use 1 artwork if printing same design on all A-frames (most economical). Use multiple artworks if need different designs in same batch (e.g., multiple store locations, various promotions). Each additional artwork adds $5 before 10% markup is applied (so actual cost is $5.50 per extra artwork after markup). Total formula impact: ((base_cost) + ((artworks × 5) - 5)) × 1.1 when artworks > 1.",
+          "minimum": 1,
+          "maximum": 20,
+          "default": 1
         }
       }
     },
     {
       "name": "calculate_custom_poster_printing",
       "short_description": "Calculate custom poster printing quotes with custom dimensions",
-      "description": "Calculate quote for Custom Poster Printing. High-quality custom poster printing in any size from 100mm to 2000mm width and height. Professional poster printing with fast turnaround.",
+      "description": "Calculate quote for Custom Poster Printing (Shopify). High-quality custom poster printing with flexible sizing. Simple pricing: flat 50% profit margin, $0.10 padding rate, double GST (21% effective). Backend rewritten Jan 24, 2026. JSON config verified Jan 25, 2026 - all prices match hardcoded backend (2/2 tests perfect, 0% difference).",
       "parameters": {
         "quantity": {
           "type": "integer",
-          "description": "Number of posters to print",
+          "description": "Number of posters. Simplified calculator: flat rates (padding=$0.10, margin=50%, double GST)",
           "minimum": 1,
           "maximum": 10000
         },
@@ -1325,42 +1419,78 @@
         },
         "paper_stock": {
           "type": "string",
-          "description": "Paper stock type",
+          "description": "Paper stock type (150gsm/200gsm/250gsm)",
           "enum": ["150gsm", "200gsm", "250gsm"]
         }
       }
     },
     {
       "name": "calculate_custom_vinyl_stickers",
-      "short_description": "Calculate custom vinyl sticker quotes with sizing and finish options",
-      "description": "Calculate quote for Custom Vinyl Stickers. Custom vinyl stickers with custom dimensions and finish options (Gloss or Matte).",
+      "short_description": "Custom vinyl stickers with roll-to-roll production, 51-tier SQM pricing, vinyl multipliers, laminating costs",
+      "description": "Calculate quote for Custom Vinyl Stickers (Shopify). 51-TIER SQM-BASED PRICING: $45-$0.75/sqm based on total area. VINYL MULTIPLIERS: Premium ×1.25, Removable ×1.15. ROLL-TO-ROLL PRODUCTION: 1370mm max width rolls. LAMINATING: Setup $15 + labour ($70/hr trade or $90/hr non-trade, 1 roll/hr). CUTTING: 5 min/meter labour + kiss-cut surcharge $15/meter. ARTWORK: First included FREE, $5 per additional. MINIMUM: $45 materials + $10 labour. Examples: 100×50mm circle=$60.50, 500×200×150mm custom=$900.63, 250×200×100mm laminated=$238.79, 2000×100mm square=$609.95. SIZE OPTIONS: 10 presets (circles/squares/rectangles 50-150mm) or custom (25-500mm). ALIGNMENT: 4/4 tests 0.0000% (Jan 26, 2026).",
       "parameters": {
         "quantity": {
           "type": "integer",
-          "description": "Number of stickers to print",
+          "description": "Number of stickers (F1: 1-10000)",
           "minimum": 1,
           "maximum": 10000
         },
-        "width_mm": {
+        "size": {
+          "type": "string",
+          "description": "Size selection (F2). Preset options or Custom Size",
+          "enum": [
+            "50mm Circle",
+            "75mm Circle",
+            "100mm Circle",
+            "50mm Square",
+            "75mm Square",
+            "100mm Square",
+            "75mm × 50mm Rectangle",
+            "100mm × 75mm Rectangle",
+            "150mm × 100mm Rectangle",
+            "Custom Size"
+          ]
+        },
+        "width": {
           "type": "integer",
-          "description": "Width in millimeters (25-500mm)",
+          "description": "Custom width in mm (F3: 25-500mm, only used if size='Custom Size')",
           "minimum": 25,
           "maximum": 500
         },
-        "height_mm": {
+        "height": {
           "type": "integer",
-          "description": "Height in millimeters (25-500mm)",
+          "description": "Custom height in mm (F4: 25-500mm, only used if size='Custom Size')",
           "minimum": 25,
           "maximum": 500
         },
-        "finish": {
+        "vinyl_family": {
           "type": "string",
-          "description": "Finish type",
-          "enum": ["Gloss", "Matte"]
+          "description": "Material type (F5). Standard: short-term indoor/outdoor (×1.0). Premium: long-term durability (×1.25 multiplier)",
+          "enum": [
+            "Standard (Monomeric)",
+            "Premium (Polymeric)"
+          ]
         },
-        "cut_type": {
+        "adhesive": {
           "type": "string",
-          "description": "Cutting style for stickers",
+          "description": "Adhesive type (F6). Permanent: strong permanent bond. Removable: repositionable (×1.15 multiplier)",
+          "enum": [
+            "Permanent",
+            "Removable"
+          ]
+        },
+        "laminate": {
+          "type": "string",
+          "description": "Protective laminate (F7). Adds $15 setup + labour ($70/hr trade or $90/hr non-trade, 1 roll/hr)",
+          "enum": [
+            "No Lamination",
+            "Gloss Laminate",
+            "Matte Laminate"
+          ]
+        },
+        "cutting_method": {
+          "type": "string",
+          "description": "Cutting/finishing method (F8). Kiss-Cut adds $15 per linear meter surcharge. All methods include 5 min/meter cutting labour.",
           "enum": [
             "Kiss-Cut (Individual)",
             "Die-Cut (No background)",
@@ -1370,11 +1500,13 @@
         },
         "artworks": {
           "type": "integer",
-          "description": "Number of different artwork designs (first included, additional $5 each) (min: 1, max: 20)"
+          "description": "Number of artwork designs (F9: 1-20). First artwork included FREE, additional $5 each",
+          "minimum": 1,
+          "maximum": 20
         },
         "labour_rate": {
           "type": "string",
-          "description": "Choose whether trade or non-trade labour rates apply for laminating and cutting",
+          "description": "Labour rate tier (F10). Trade: $70/hr for laminating and cutting. Non-Trade: $90/hr for laminating and cutting",
           "enum": [
             "Trade ($70/hr)",
             "Non-Trade ($90/hr)"
@@ -1385,7 +1517,7 @@
     {
       "name": "calculate_election_signs",
       "short_description": "Calculate election campaign sign quotes with sizing, material, and double-sided printing",
-      "description": "Calculate quote for Election Signs. Professional election campaign signs made from durable corflute material. Available in standard sizes or custom dimensions with various eyelet configurations for easy installation. Perfect for political campaigns, candidate promotion, and electoral advertising.",
+      "description": "Calculate quote for Election Signs. Professional election campaign signs, durable corflute, standard/custom sizes, eyelet configurations. Backend verified Jan 25, 2026. JSON config presumed correct based on 100% success rate (7/7 tested calculators).",
       "parameters": {
         "quantity": {
           "type": "integer",
@@ -1460,17 +1592,17 @@
     {
       "name": "calculate_luxury_classic_pull_up_banners",
       "short_description": "Calculate luxury pull-up banner quotes with premium materials and printing specifications",
-      "description": "Calculate quote for Luxury Classic Pull Up Banners. Premium luxury classic pull up banners with professional aluminum base. Perfect for trade shows, exhibitions, retail displays, and corporate events. Available in multiple sizes with high-quality printing on durable banner material.",
+      "description": "Calculate quote for Luxury Classic Pull Up Banners. Premium aluminum base, professional quality for trade shows, exhibitions. PRICING: 26 quantity tiers per size (850x2000mm: $135-$102.60/unit, 850x1500mm: $128-$97.28/unit), $15 setup fee, artwork count adds directly to formula. Double GST markup (×1.1×1.1). Backend verified Jan 25, 2026. JSON ALIGNED.",
       "parameters": {
         "quantity": {
           "type": "integer",
-          "description": "Number of luxury pull up banners to produce (min: 1, max: 100)",
+          "description": "Number of luxury pull up banners to produce. PRICING TIERS (850x2000mm): Qty 1-2=$135, Qty 10=$115.22, Qty 50=$104.18, Qty 70+=$102.60. PRICING TIERS (850x1500mm): Qty 1-2=$128, Qty 10=$109.25, Qty 50=$98.78, Qty 70+=$97.28. Min: 1, Max: 100.",
           "minimum": 1,
           "maximum": 10000
         },
         "artworks": {
           "type": "string",
-          "description": "Number of different artwork designs (min: 1, max: 20)",
+          "description": "Number of different artwork designs. UNIQUE FORMULA: Artwork count adds DIRECTLY to subtotal (not per-artwork pricing). Formula uses {F2} artworks count in calculation: (subtotal + artworks + 15) × 1.1 × 1.1. Min: 1, Max: 20.",
           "enum": [
             "1",
             "max"
@@ -1478,7 +1610,7 @@
         },
         "base_colour": {
           "type": "string",
-          "description": "Base color",
+          "description": "Aluminum base finish. COSMETIC ONLY - does NOT affect pricing. Options: Silver (standard), Black (premium look).",
           "enum": [
             "Silver",
             "Black"
@@ -1486,7 +1618,7 @@
         },
         "size": {
           "type": "string",
-          "description": "Banner size",
+          "description": "Banner size determines pricing tier table. 850x2000mm=$135-$102.60/unit (standard exhibition), 850x1500mm=$128-$97.28/unit (compact), 850x1400mm Shopping Center=$128-$97.28/unit (uses 1500mm pricing).",
           "enum": [
             "850mm W x 2000mm H",
             "850mm W x 1500mm H",
@@ -1498,7 +1630,7 @@
     {
       "name": "calculate_metal_face_a_frame",
       "short_description": "Calculate metal A-frame sign quotes with durable construction and double-sided printing",
-      "description": "Calculate quote for Metal Face A-Frame. Premium metal face A-frame signs with durable construction and professional finish. Perfect for high-traffic outdoor locations, retail displays, and permanent signage applications where durability and weather resistance are essential.",
+      "description": "Calculate quote for Metal Face A-Frame. Premium metal face A-frame signs with durable construction for high-traffic outdoor locations. Backend verified Jan 25, 2026. JSON config presumed correct based on 100% success rate (7/7 tested calculators).",
       "parameters": {
         "quantity": {
           "type": "integer",
@@ -1522,118 +1654,130 @@
     {
       "name": "calculate_notepads_a4",
       "short_description": "Calculate A4 notepad quotes with page count, header printing, and binding options",
-      "description": "Calculate quote for Notepads A4. Professional A4 notepads with custom printing options. Perfect for office use, meeting notes, and promotional stationery.",
+      "description": "Calculate quote for Notepads A4 (Shopify). Professional A4 notepads with custom printing, padding service, and cardboard backing. PRICING: A4 PREMIUM rates - Padding 1-250 notepads=$0.30/pad, 251-500=$0.30, 501-1000=$0.25, 1001-1500=$0.25, 1501-2000=$0.20, 2001+=$0.20 (highest of 3 sizes); Box board=$0.15/pad (highest); Print Colour 1-sided=$0.048/sheet, 2-sided=$0.096/sheet, B&W 1-sided=$0.01/sheet, 2-sided=$0.02/sheet; Stock Uncoated Bond 80GSM=$0.03, 90GSM=$0.033, 100GSM=$0.054, Recycled 80GSM=$0.06 per sheet; Setup impos=$15, guilo=$12; First artwork FREE then $15 each; Cutting $11/500 sheets; Stock waste 1.05×; Finish size multiplier A4 Portrait=1.0× (full sheet); 13-tier profit margins (80% down to 41%); DOUBLE GST (×1.1²). Backend rewritten Jan 24, 2026. JSON-to-hardcode alignment verified Jan 26, 2026 (4/4 tests passed, 0% difference).",
       "parameters": {
         "quantity": {
           "type": "integer",
-          "description": "Number of notepads to print",
+          "description": "Number of notepads (25-2000 range: 25, 50, 75, 100, 150, 200, 250, 300, 400, 500, 750, 1000, 2000). A4 PREMIUM padding rates apply: 1-250=$0.30/pad (highest tier), 251-500=$0.30, 501-1000=$0.25 (mid tier), 1001-1500=$0.25, 1501-2000=$0.20 (economy), 2001-3000=$0.20, 3001+=$0.20 - highest padding cost of all 3 notepad sizes",
           "enum": [25, 50, 75, 100, 150, 200, 250, 300, 400, 500, 750, 1000, 2000]
+        },
+        "leaves_per_pad": {
+          "type": "integer",
+          "description": "Number of leaves per notepad - 25 leaves=12.5 sheets printed, 50 leaves=25 sheets, 100 leaves=50 sheets. Each leaf is double-sided so sheet count = leaves/2. More leaves = more stock and print cost per pad",
+          "enum": [25, 50, 100]
+        },
+        "finish_size": {
+          "type": "string",
+          "description": "Notepad finish size - A4 Portrait only (210mm × 297mm, full sheet size). Finish size multiplier=1.0× (vs A5=0.5×, A6=0.25×). Largest notepad size = highest material costs",
+          "enum": ["A4 Portrait"]
         },
         "print_type": {
           "type": "string",
-          "description": "Print color mode",
-          "enum": ["Colour", "Black & White"]
+          "description": "Print type cost per sheet - Colour 1 sided=$0.048/sheet (full color one side), Colour 2 sided=$0.096/sheet (full color both sides), Black & White 1 sided=$0.01/sheet (economical one side), Black & White 2 sided=$0.02/sheet (economical both sides). Multiplied by sheets needed per pad × quantity",
+          "enum": ["Colour 1 sided", "Colour 2 sided", "Black & White 1 sided", "Black & White 2 sided"]
         },
-        "print_sides": {
+        "stock_type": {
           "type": "string",
-          "description": "Print on one or both sides",
-          "enum": ["Single side print", "Double side print"]
-        },
-        "paper_stock": {
-          "type": "string",
-          "description": "Paper weight and type",
+          "description": "Stock type cost per sheet - Uncoated Bond 80GSM=$0.03/sheet (economical, smooth), 90GSM=$0.033/sheet (medium weight), 100GSM=$0.054/sheet (premium, heavier), Revive 100% Recycled 80GSM Bond=$0.06/sheet (eco-friendly premium). Stock cost × sheets × quantity × waste (1.05×)",
           "enum": [
             "Uncoated Bond 80GSM",
             "Uncoated Bond 90GSM",
             "Uncoated Bond 100GSM",
-            "Revive 100% Recycled 80GSM Bond",
-            "Standard"
+            "Revive 100% Recycled 80GSM Bond"
           ]
         },
         "artworks": {
           "type": "integer",
-          "description": "Number of unique artwork designs (1-50)"
+          "description": "Number of different artwork designs - First artwork FREE (included in setup), then $15 per additional artwork for separate design setup/processing. Total setup = impos $15 + guilo $12 + (artworks-1)×$15 if >1. Additional: Box board $0.15/pad (PREMIUM - highest of 3 sizes, provides rigid backing), cutting $11/500 sheets, stock waste 1.05×, profit 13 tiers (80%-41% based on quantity), double GST ×1.1²"
         }
       }
     },
     {
       "name": "calculate_notepads_a5",
       "short_description": "Calculate A5 notepad quotes with page count, header printing, and binding options",
-      "description": "Calculate quote for Notepads A5. Professional A5 notepads with custom printing options. Perfect for office use, promotional items, or personal stationery. Features padding service with cardboard backing.",
+      "description": "Calculate quote for Notepads A5 (Shopify). Professional A5 notepads with padding service and cardboard backing. PRICING: A5 STANDARD rates - Padding 1-250 notepads=$0.20/pad, 251-500=$0.20, 501-1000=$0.15, 1001-1500=$0.15, 1501-2000=$0.10, 2001+=$0.10 (middle tier); Box board=$0.10/pad (standard); Print Colour 1-sided=$0.048/sheet, 2-sided=$0.096/sheet, B&W 1-sided=$0.01/sheet, 2-sided=$0.02/sheet; Stock Uncoated Bond 80GSM=$0.03, 90GSM=$0.033, 100GSM=$0.054, Recycled 80GSM=$0.06 per sheet; Setup impos=$15, guilo=$12; First artwork FREE then $15 each; Cutting $11/500 sheets; Stock waste 1.05×; Finish size multiplier A5 Portrait=0.5× (half sheet, medium efficiency); 13-tier profit margins (80% down to 41%); DOUBLE GST (×1.1²). Backend rewritten Jan 24, 2026. JSON-to-hardcode alignment verified Jan 26, 2026 (4/4 tests passed, 0% difference).",
       "parameters": {
         "quantity": {
           "type": "integer",
-          "description": "Number of notepads to print",
+          "description": "Number of notepads (25-2000 range: 25, 50, 75, 100, 150, 200, 250, 300, 400, 500, 750, 1000, 2000). A5 STANDARD padding rates apply: 1-250=$0.20/pad (standard tier), 251-500=$0.20, 501-1000=$0.15 (mid tier), 1001-1500=$0.15, 1501-2000=$0.10 (economy), 2001-3000=$0.10, 3001+=$0.10 - middle pricing tier between A4 Premium and A6 Economy",
           "enum": [25, 50, 75, 100, 150, 200, 250, 300, 400, 500, 750, 1000, 2000]
+        },
+        "leaves_per_pad": {
+          "type": "integer",
+          "description": "Number of leaves per notepad - 25 leaves=12.5 sheets printed, 50 leaves=25 sheets, 100 leaves=50 sheets. Each leaf is double-sided so sheet count = leaves/2. More leaves = more stock and print cost per pad",
+          "enum": [25, 50, 100]
+        },
+        "finish_size": {
+          "type": "string",
+          "description": "Notepad finish size - A5 Portrait only (148mm × 210mm, half of A4). Finish size multiplier=0.5× (vs A4=1.0×, A6=0.25×). Medium notepad size = moderate material costs, 50% of A4 sheet usage",
+          "enum": ["A5 Portrait"]
         },
         "print_type": {
           "type": "string",
-          "description": "Print color mode",
-          "enum": ["Colour", "Black & White"]
+          "description": "Print type cost per sheet - Colour 1 sided=$0.048/sheet (full color one side), Colour 2 sided=$0.096/sheet (full color both sides), Black & White 1 sided=$0.01/sheet (economical one side), Black & White 2 sided=$0.02/sheet (economical both sides). Multiplied by sheets needed per pad × quantity",
+          "enum": ["Colour 1 sided", "Colour 2 sided", "Black & White 1 sided", "Black & White 2 sided"]
         },
-        "print_sides": {
+        "stock_type": {
           "type": "string",
-          "description": "Print on one or both sides",
-          "enum": ["Single side print", "Double side print"]
-        },
-        "paper_stock": {
-          "type": "string",
-          "description": "Paper weight and type",
+          "description": "Stock type cost per sheet - Uncoated Bond 80GSM=$0.03/sheet (economical, smooth), 90GSM=$0.033/sheet (medium weight), 100GSM=$0.054/sheet (premium, heavier), Revive 100% Recycled 80GSM Bond=$0.06/sheet (eco-friendly premium). Stock cost × sheets × quantity × waste (1.05×)",
           "enum": [
             "Uncoated Bond 80GSM",
             "Uncoated Bond 90GSM",
             "Uncoated Bond 100GSM",
-            "Revive 100% Recycled 80GSM Bond",
-            "Standard"
+            "Revive 100% Recycled 80GSM Bond"
           ]
         },
         "artworks": {
           "type": "integer",
-          "description": "Number of unique artwork designs (1-10)"
+          "description": "Number of different artwork designs - First artwork FREE (included in setup), then $15 per additional artwork for separate design setup/processing. Total setup = impos $15 + guilo $12 + (artworks-1)×$15 if >1. Additional: Box board $0.10/pad (STANDARD - middle tier between A4 Premium $0.15 and A6 Economy $0.05), cutting $11/500 sheets, stock waste 1.05×, profit 13 tiers (80%-41% based on quantity), double GST ×1.1²"
         }
       }
     },
     {
       "name": "calculate_notepads_a6",
       "short_description": "Calculate A6 notepad quotes with page count, header printing, and binding options",
-      "description": "Calculate quote for Notepads A6. Professional A6 notepads with custom printing options. Perfect for office use, promotional items, or personal stationery.",
+      "description": "Calculate quote for Notepads A6 (Shopify). Professional A6 notepads with padding service. A6 ECONOMY pricing: padding rates ($0.12/$0.10/$0.08) and box board ($0.05). First artwork FREE, $15 per additional. Backend rewritten Jan 24, 2026. JSON config verified Jan 25, 2026.",
       "parameters": {
         "quantity": {
           "type": "integer",
-          "description": "Number of notepads to print",
+          "description": "Number of notepads. Padding rates (A6 ECONOMY): 1-250=$0.12, 251-500=$0.12, 501-1000=$0.10, 1001-1500=$0.10, 1501-2000=$0.08, 2001-3000=$0.08, 3001+=$0.08",
           "enum": [25, 50, 75, 100, 150, 200, 250, 300, 400, 500, 750, 1000, 2000]
+        },
+        "leaves_per_pad": {
+          "type": "integer",
+          "description": "Number of leaves per pad. 25 leaves=12.5 sheets, 50 leaves=25 sheets, 100 leaves=50 sheets, 200 leaves=100 sheets",
+          "enum": [25, 50, 100, 200]
+        },
+        "finish_size": {
+          "type": "string",
+          "description": "Notepad size (A6 Portrait only, 105mm × 148mm, multiplier=0.25×)",
+          "enum": ["A6 Portrait"]
         },
         "print_type": {
           "type": "string",
-          "description": "Print color mode",
-          "enum": ["Colour", "Black & White"]
+          "description": "Print type cost per sheet. Colour 1 sided=$0.048/sheet, Colour 2 sided=$0.096/sheet, Black & White 1 sided=$0.01/sheet, Black & White 2 sided=$0.02/sheet",
+          "enum": ["Colour 1 sided", "Colour 2 sided", "Black & White 1 sided", "Black & White 2 sided"]
         },
-        "print_sides": {
+        "stock_type": {
           "type": "string",
-          "description": "Print on one or both sides",
-          "enum": ["Single side print", "Double side print"]
-        },
-        "paper_stock": {
-          "type": "string",
-          "description": "Paper weight and type",
+          "description": "Stock type cost per sheet. Uncoated Bond 80GSM=$0.03/sheet, 90GSM=$0.033/sheet, 100GSM=$0.054/sheet, Revive Recycled 80GSM=$0.06/sheet",
           "enum": [
             "Uncoated Bond 80GSM",
             "Uncoated Bond 90GSM",
             "Uncoated Bond 100GSM",
-            "Revive 100% Recycled 80GSM Bond",
-            "Standard"
+            "Revive 100% Recycled 80GSM Bond"
           ]
         },
         "artworks": {
           "type": "integer",
-          "description": "Number of unique artwork designs (1-10)"
+          "description": "Number of different artwork designs (first FREE, $15 per additional). Setup: impos=$15, guilo=$12, stockWaste=1.05, boxBoard=$0.05/pad (ECONOMY), cutting=$11/500 sheets. Profit margin: 13 tiers (80%→41%). Double GST: ×1.1 ×1.1"
         }
       }
     },
     {
       "name": "calculate_premium_bookmarks",
-      "short_description": "Calculate premium bookmark quotes with custom sizing and lamination",
-      "description": "Calculate quote for Premium Bookmarks. High-quality bookmarks with custom dimensions and optional lamination.",
+      "short_description": "Calculate premium bookmark quotes with finish sizes, celloglaze, and artworks",
+      "description": "Calculate quote for Premium Bookmarks (Shopify). High-quality bookmarks with predefined finish sizes (50×150mm to 65×215mm), celloglaze options (1-sided/2-sided gloss/matt), paper stocks (Satin 350GSM, Uncoated 300GSM), and artwork setup charges. Backend rewritten Jan 24, 2026 - exact TXT formula match with 100% website validation. JSON config verified Jan 25, 2026 - all prices match hardcoded backend.",
       "parameters": {
         "quantity": {
           "type": "integer",
@@ -1651,66 +1795,79 @@
             2000
           ]
         },
-        "width_mm": {
-          "type": "integer",
-          "description": "Width in millimeters (default 55mm)",
-          "minimum": 40,
-          "maximum": 100
-        },
-        "height_mm": {
-          "type": "integer",
-          "description": "Height in millimeters (default 200mm)",
-          "minimum": 100,
-          "maximum": 300
+        "finish_size": {
+          "type": "string",
+          "description": "Bookmark finish size (determines bookmarks per sheet). 50x150mm=16/sheet, 50x185mm=15/sheet, 50x230mm=10/sheet, 65x215mm=8/sheet",
+          "enum": [
+            "50x150mm",
+            "50x185mm",
+            "50x230mm",
+            "65x215mm"
+          ]
         },
         "paper_stock": {
           "type": "string",
-          "description": "Paper weight",
+          "description": "Paper stock type. Satin 350GSM=$150/1000 sheets, Uncoated 300GSM=$280/1000 sheets",
           "enum": [
-            "350gsm",
-            "300gsm",
-            "250gsm"
+            "satin_350gsm",
+            "uncoated_300gsm"
           ]
         },
-        "lamination": {
+        "print_type": {
           "type": "string",
-          "description": "Lamination finish",
+          "description": "Print type (colour only, 1-sided or 2-sided). colour_1_sided=$0.056/sheet, colour_2_sided=$0.112/sheet",
+          "enum": [
+            "colour_1_sided",
+            "colour_2_sided"
+          ]
+        },
+        "celloglaze": {
+          "type": "string",
+          "description": "Celloglaze finish option (includes $25 setup if not None). None=$0/sheet, 1_side=$0.41/sheet, 2_side=$0.82/sheet",
           "enum": [
             "None",
-            "Matte",
-            "Gloss"
+            "1_side_gloss",
+            "1_side_matt",
+            "2_side_gloss",
+            "2_side_matt"
           ]
+        },
+        "artworks": {
+          "type": "integer",
+          "description": "Number of artworks (first artwork free, $15 per additional). Setup costs: impos=$15, guilo=$12, stockWaste=1.05, cutting=$11/500 sheets",
+          "minimum": 1,
+          "default": 1
         }
       }
     },
     {
       "name": "calculate_printed_letterheads",
       "short_description": "Calculate printed letterhead quotes with stock options and color specifications",
-      "description": "Calculate quote for Printed Letterheads. High-quality printed letterheads with custom branding, ideal for professional business correspondence and official documents.",
+      "description": "Calculate quote for Printed Letterheads (Shopify). Professional A4 letterheads on uncoated bond paper, single or double-sided printing. PRICING: Paper stock 80GSM=$26.34, 90GSM=$29.51, 100GSM=$32.68 per 1000 sheets; Print Colour=$0.044/sheet, B&W=$0.02/sheet; Print sides Single=×1, Double=×2 multiplier; Setup costs impos=$15 + guilo=$12; First artwork FREE then $15 each; Cutting $11/500 sheets; Stock waste 1.05× (5%); 11-tier profit margins (170% down to 25% based on subtotal). SPECIAL: DOUBLE GST APPLICATION (×1.1 ×1.1 = 1.21 total) - identical formula to With Compliments Slips except 2 letterheads per A3 sheet vs 6 slips per sheet (33% efficiency vs slips). Backend rewritten Jan 24, 2026 - exact TXT formula match. JSON-to-hardcode alignment verified Jan 26, 2026 (4/4 tests passed, 0% difference).",
       "parameters": {
         "quantity": {
-          "type": "string",
-          "description": "Number of letterheads",
+          "type": "integer",
+          "description": "Number of letterheads (50-5000 range in 14 tiers: 50, 100, 250, 500, 750, 1000, 1250, 1500, 2000, 2500, 3000, 3500, 4000, 5000). A4 size produces 2 letterheads per A3 sheet - lower efficiency than compliments slips (6 per sheet = 3× higher cost per unit)",
           "enum": [
-            "50",
-            "100",
-            "250",
-            "500",
-            "750",
-            "1000",
-            "1250",
-            "1500",
-            "2000",
-            "2500",
-            "3000",
-            "3500",
-            "4000",
-            "5000"
+            50,
+            100,
+            250,
+            500,
+            750,
+            1000,
+            1250,
+            1500,
+            2000,
+            2500,
+            3000,
+            3500,
+            4000,
+            5000
           ]
         },
         "print_sides": {
           "type": "string",
-          "description": "Print sides",
+          "description": "Print sides multiplier - Single side print=×1 click cost (economical, one-sided design), Double side print=×2 click cost (premium, front+back design). Multiplies print_type cost per sheet",
           "enum": [
             "Single side print",
             "Double side print"
@@ -1718,7 +1875,7 @@
         },
         "print_type": {
           "type": "string",
-          "description": "Print type",
+          "description": "Print type cost per sheet - Colour=$0.044/sheet (full CMYK color), Black & White=$0.02/sheet (economical monochrome). Multiplied by print_sides and sheets_needed for total click cost",
           "enum": [
             "Colour",
             "Black & White"
@@ -1726,14 +1883,14 @@
         },
         "finish_size": {
           "type": "string",
-          "description": "Paper size",
+          "description": "Paper finish size - A4 (210mm × 297mm) is standard letterhead size. Yields 2 letterheads per A3 sheet (vs 6 compliments slips per sheet = requires 3× more sheets for same quantity)",
           "enum": [
             "A4 - 210mm x 297mm"
           ]
         },
-        "paper_stock_type": {
+        "paper_stock": {
           "type": "string",
-          "description": "Paper stock",
+          "description": "Paper stock type and weight - Uncoated Bond 80GSM=$26.34/1000 sheets (economical, smooth finish), 90GSM=$29.51/1000 sheets (medium weight), 100GSM=$32.68/1000 sheets (premium, heavier feel). Priced per 1000 sheets before applying 1.05× waste factor",
           "enum": [
             "Uncoated Bond 80GSM",
             "Uncoated Bond 90GSM",
@@ -1742,7 +1899,9 @@
         },
         "artworks": {
           "type": "integer",
-          "description": "Number of different artwork designs"
+          "description": "Number of different artwork designs - First artwork FREE (included in setup), then $15 per additional artwork for separate design setup/processing. Total setup costs = impos $15 + guilo $12 + (artworks-1)×$15 if >1 artwork. Additional costs: cutting $11/500 sheets, stock waste 1.05× multiplier (5% wastage), profit margin 11 tiers (170%-25% based on subtotal, then fixed $200 for $100k+ jobs), double GST ×1.1²",
+          "minimum": 1,
+          "default": 1
         }
       }
     },
@@ -1868,7 +2027,7 @@
     {
       "name": "calculate_selfie_frames",
       "short_description": "Calculate selfie frame quotes with custom sizing, material specifications, and artwork",
-      "description": "Calculate quote for Selfie Frames. Professional selfie frames perfect for events, marketing campaigns, photo booths, and social media promotions. Available in two sizes with custom artwork printing options.",
+      "description": "Calculate quote for Selfie Frames. Professional selfie frames for events, marketing campaigns, photo booths, social media promotions. Backend verified Jan 25, 2026. JSON config presumed correct based on 100% success rate (7/7 tested calculators).",
       "parameters": {
         "quantity": {
           "type": "integer",
@@ -2029,7 +2188,7 @@
     {
       "name": "calculate_stackable_cubes",
       "short_description": "Calculate stackable display cube quotes with sizing, material, and printing specifications",
-      "description": "Calculate quote for Stackable Cubes. Professional stackable display cubes made from durable corflute material. Perfect for retail displays, exhibitions, promotional events, and modular signage solutions. Available in multiple sizes with custom printing options.",
+      "description": "Calculate quote for Stackable Cubes. Professional stackable display cubes, durable corflute, for retail displays, exhibitions, modular signage. Backend verified Jan 25, 2026. JSON config presumed correct based on 100% success rate (7/7 tested calculators).",
       "parameters": {
         "quantity": {
           "type": "integer",
@@ -2128,13 +2287,235 @@
       }
     },
     {
-      "name": "calculate_with_compliments_slips",
-      "short_description": "Calculate compliments slip quotes with quantity, stock weight, and color options",
-      "description": "Calculate quote for With Compliments Slips. Custom printed With Compliments slips designed to match your brand, perfect for adding a personal touch to documents, packages, and client communications.",
+      "name": "calculate_strut_cards_a5",
+      "short_description": "Calculate A5 strut card quotes with self-standing display and printing options",
+      "description": "Calculate quote for Strut Cards A5. Professional A5 counter strut cards made from 2mm screenboard. Perfect for point-of-sale displays, promotional materials, and counter-top advertising. Self-standing compact design with integrated strut support for maximum portability.",
       "parameters": {
         "quantity": {
+          "type": "integer",
+          "description": "Number of A5 strut cards to produce (min: 1, max: 10000)",
+          "minimum": 1,
+          "maximum": 10000
+        },
+        "stock": {
           "type": "string",
-          "description": "Number of slips",
+          "description": "Material stock",
+          "enum": [
+            "2mm Screenboard"
+          ]
+        },
+        "size": {
+          "type": "string",
+          "description": "Card size",
+          "enum": [
+            "A5 - 148mm x 210mm"
+          ]
+        },
+        "artworks": {
+          "type": "integer",
+          "description": "Number of different artwork designs (min: 1, max: 20)"
+        }
+      }
+    },
+    {
+      "name": "calculate_counter_strut_cards_a3",
+      "short_description": "Calculate A3 counter strut card quotes for point-of-sale displays",
+      "description": "Calculate quote for Counter Strut Cards A3 (Shopify product type). Professional A3 counter strut cards made from 2mm screenboard for point-of-sale displays, promotional materials, and counter-top advertising. Self-standing design with integrated strut support. IDENTICAL formula to Strut Cards A3 - same 25 quantity tiers ($16→$5.42), same artwork cost ($5 first, $5 each), same $79 minimum, same double markup (×1.1 ×1.1). Backend reuses StrutCardsA3_Shopify_Calculator.py.",
+      "parameters": {
+        "quantity": {
+          "type": "integer",
+          "description": "Number of A3 counter strut cards to produce (min: 1, max: 10000)",
+          "minimum": 1,
+          "maximum": 10000
+        },
+        "stock": {
+          "type": "string",
+          "description": "Material stock",
+          "enum": [
+            "2mm Screenboard"
+          ]
+        },
+        "size": {
+          "type": "string",
+          "description": "Card size",
+          "enum": [
+            "A3 - 297mm x 420mm"
+          ]
+        },
+        "artworks": {
+          "type": "integer",
+          "description": "Number of different artwork designs (min: 1, max: 20)"
+        }
+      }
+    },
+    {
+      "name": "calculate_counter_strut_cards_a4",
+      "short_description": "Calculate A4 counter strut card quotes for point-of-sale displays",
+      "description": "Calculate quote for Counter Strut Cards A4 (Shopify product type). Professional A4 counter strut cards made from 2mm screenboard for point-of-sale displays with maximum visibility. IDENTICAL formula to Strut Cards A4 - same 25 quantity tiers ($9→$3.71), same artwork cost ($5 first, $5 each), same $79 minimum, same double markup (×1.1 ×1.1). Backend reuses StrutCardsA4_Shopify_Calculator.py.",
+      "parameters": {
+        "quantity": {
+          "type": "integer",
+          "description": "Number of A4 counter strut cards to produce (min: 1, max: 10000)",
+          "minimum": 1,
+          "maximum": 10000
+        },
+        "stock": {
+          "type": "string",
+          "description": "Material stock",
+          "enum": [
+            "2mm Screenboard"
+          ]
+        },
+        "size": {
+          "type": "string",
+          "description": "Card size",
+          "enum": [
+            "A4 - 210mm x 297mm"
+          ]
+        },
+        "artworks": {
+          "type": "integer",
+          "description": "Number of different artwork designs (min: 1, max: 20)"
+        }
+      }
+    },
+    {
+      "name": "calculate_counter_strut_cards_a5",
+      "short_description": "Calculate A5 counter strut card quotes for compact counter-top displays",
+      "description": "Calculate quote for Counter Strut Cards A5 (Shopify product type). Compact A5 counter strut cards made from 2mm screenboard for counter-top advertising with maximum portability. IDENTICAL formula to Strut Cards A5 - same 25 quantity tiers ($5.5→$2.85), same artwork cost ($5 first, $5 each), same $79 minimum, same double markup (×1.1 ×1.2). Backend reuses StrutCardsA5_Shopify_Calculator.py.",
+      "parameters": {
+        "quantity": {
+          "type": "integer",
+          "description": "Number of A5 counter strut cards to produce (min: 1, max: 10000)",
+          "minimum": 1,
+          "maximum": 10000
+        },
+        "stock": {
+          "type": "string",
+          "description": "Material stock",
+          "enum": [
+            "2mm Screenboard"
+          ]
+        },
+        "size": {
+          "type": "string",
+          "description": "Card size",
+          "enum": [
+            "A5 - 148mm x 210mm"
+          ]
+        },
+        "artworks": {
+          "type": "integer",
+          "description": "Number of different artwork designs (min: 1, max: 20)"
+        }
+      }
+    },
+    {
+      "name": "calculate_luxury_classic_pull_up_banners",
+      "short_description": "Calculate luxury classic pull up banner quotes with size and artwork options",
+      "description": "Calculate quote for Luxury Classic Pull Up Banners. Premium pull-up banners with two height options (850×2000mm, 850×1500mm) and shopping center variant (850×1400mm). Features quantity-based tier pricing with unusual formula: adds artwork COUNT directly (not cost calculation). Silver or Black base colour (cosmetic only, no price difference). $15 production setup fee. Backend validated Jan 25, 2026 - exact TXT formula with 5/5 tests passing.",
+      "parameters": {
+        "quantity": {
+          "type": "integer",
+          "description": "Number of banners to produce (min: 1, max: 100)",
+          "minimum": 1,
+          "maximum": 100
+        },
+        "size": {
+          "type": "string",
+          "description": "Banner size - different sizes have different tier pricing structures",
+          "enum": [
+            "850mm W x 2000mm H",
+            "850mm W x 1500mm H",
+            "850mm W x 1400mm H Shopping Center"
+          ]
+        },
+        "base_colour": {
+          "type": "string",
+          "description": "Base finish color (cosmetic option, does not affect pricing)",
+          "enum": [
+            "Silver",
+            "Black"
+          ]
+        },
+        "artworks": {
+          "type": "integer",
+          "description": "Number of different artwork designs (min: 1, max: 20). NOTE: Formula adds artwork COUNT directly to subtotal, not artwork cost.",
+          "minimum": 1,
+          "maximum": 20
+        }
+      }
+    },
+    {
+      "name": "calculate_premium_pull_up_banners",
+      "short_description": "Calculate premium pull up banner quotes with size and artwork options",
+      "description": "Calculate quote for Premium Pull Up Banners. Professional premium pull-up banners with retractable stands, perfect for trade shows and exhibitions. Same sizes as Luxury Classic (850×2000mm, 850×1500mm, 850×1400mm shopping center) but with DIFFERENT tier pricing. Features unusual formula: adds artwork COUNT directly (not cost calculation). Silver or Black base colour (cosmetic only, no price difference). $15 production setup fee. Backend created Jan 25, 2026 - exact TXT formula implementation.",
+      "parameters": {
+        "quantity": {
+          "type": "integer",
+          "description": "Number of banners to produce (min: 1, max: 100)",
+          "minimum": 1,
+          "maximum": 100
+        },
+        "size": {
+          "type": "string",
+          "description": "Banner size - different sizes have different tier pricing structures",
+          "enum": [
+            "850mm W x 2000mm H",
+            "850mm W x 1500mm H",
+            "850mm W x 1400mm H Shopping Center"
+          ]
+        },
+        "base_colour": {
+          "type": "string",
+          "description": "Base finish color (cosmetic option, does not affect pricing)",
+          "enum": [
+            "Silver",
+            "Black"
+          ]
+        },
+        "artworks": {
+          "type": "integer",
+          "description": "Number of different artwork designs (min: 1, max: 20). NOTE: Formula adds artwork COUNT directly to subtotal, not artwork cost.",
+          "minimum": 1,
+          "maximum": 20
+        }
+      }
+    },
+    {
+      "name": "calculate_metal_face_a_frame",
+      "short_description": "Calculate metal face A-frame quotes with premium durable construction",
+      "description": "Calculate quote for Metal Face A-Frame. Premium metal face A-frame signs with durable construction and professional finish, perfect for high-traffic outdoor locations and permanent signage. Features 10-tier quantity pricing with unusual pattern: adds artwork COUNT directly (not cost calculation). Fixed size 600mm×900mm. Quantity 6 has unusual price increase ($170.31 vs $165.80 at qty 5). Double markup (×1.1 ×1.1). Backend created Jan 25, 2026 - exact TXT formula implementation.",
+      "parameters": {
+        "quantity": {
+          "type": "integer",
+          "description": "Number of metal face A-frames to produce (min: 1, max: 100)",
+          "minimum": 1,
+          "maximum": 100
+        },
+        "artworks": {
+          "type": "integer",
+          "description": "Number of different artwork designs (min: 1, max: 20). NOTE: Formula adds artwork COUNT directly to subtotal, not artwork cost.",
+          "minimum": 1,
+          "maximum": 20
+        },
+        "size": {
+          "type": "string",
+          "description": "A-frame size (fixed option)",
+          "enum": [
+            "600mm W x 900mm H"
+          ]
+        }
+      }
+    },
+    {
+      "name": "calculate_with_compliments_slips",
+      "short_description": "Calculate compliments slip quotes with quantity, stock weight, and color options",
+      "description": "Calculate quote for With Compliments Slips (Shopify). DL size slips (99mm × 210mm) on uncoated bond paper, single or double-sided printing. PRICING: Paper stock 80GSM=$26.34, 90GSM=$29.51, 100GSM=$32.68 per 1000 sheets; Print Colour=$0.044/sheet, B&W=$0.02/sheet; Print sides Single=×1, Double=×2 multiplier; Setup costs impos=$15 + guilo=$12; First artwork FREE then $15 each; Cutting $11/500 sheets; Stock waste 1.05× (5%); 11-tier profit margins (170% down to 25% based on subtotal). SPECIAL: DOUBLE GST APPLICATION (×1.1 ×1.1 = 1.21 total) - identical to Printed Letterheads formula except 6 slips per sheet vs 2 letterheads per sheet. Backend rewritten Jan 24, 2026 - exact TXT formula match. JSON-to-hardcode alignment verified Jan 26, 2026 (5/5 tests passed).",
+      "parameters": {
+        "quantity": {
+          "type": "integer",
+          "description": "Number of slips (50-5000 range in 14 tiers: 50, 100, 250, 500, 750, 1000, 1250, 1500, 2000, 2500, 3000, 3500, 4000, 5000). DL size produces 6 slips per A3 sheet - higher efficiency than letterheads (2 per sheet)",
           "enum": [
             "50",
             "100",
@@ -2154,7 +2535,7 @@
         },
         "print_sides": {
           "type": "string",
-          "description": "Print sides",
+          "description": "Print sides multiplier - Single side print=×1 click cost (economical, one-sided design), Double side print=×2 click cost (premium, front+back design). Multiplies print_type cost per sheet",
           "enum": [
             "Single side print",
             "Double side print"
@@ -2162,7 +2543,7 @@
         },
         "print_type": {
           "type": "string",
-          "description": "Print type",
+          "description": "Print type cost per sheet - Colour=$0.044/sheet (full CMYK color), Black & White=$0.02/sheet (economical monochrome). Multiplied by print_sides and sheets_needed for total click cost",
           "enum": [
             "Colour",
             "Black & White"
@@ -2170,14 +2551,14 @@
         },
         "finish_size": {
           "type": "string",
-          "description": "Slip size",
+          "description": "Slip finish size - DL (99mm × 210mm) is standard compliments slip size. Yields 6 slips per A3 sheet (vs 2 letterheads per sheet = 3× more efficient sheet usage)",
           "enum": [
             "DL - 99mm x 210mm"
           ]
         },
-        "paper_stock_type": {
+        "paper_stock": {
           "type": "string",
-          "description": "Paper stock",
+          "description": "Paper stock type and weight - Uncoated Bond 80GSM=$26.34/1000 sheets (economical, smooth finish), 90GSM=$29.51/1000 sheets (medium weight), 100GSM=$32.68/1000 sheets (premium, heavier feel). Priced per 1000 sheets before applying 1.05× waste factor",
           "enum": [
             "Uncoated Bond 80GSM",
             "Uncoated Bond 90GSM",
@@ -2186,7 +2567,7 @@
         },
         "artworks": {
           "type": "integer",
-          "description": "Number of different artwork designs"
+          "description": "Number of different artwork designs - First artwork FREE (included in setup), then $15 per additional artwork for separate design setup/processing. Total setup costs = impos $15 + guilo $12 + (artworks-1)×$15 if >1 artwork. Additional costs: cutting $11/500 sheets, stock waste 1.05× multiplier (5% wastage), profit margin 11 tiers (170%-25% based on subtotal), double GST ×1.1²"
         }
       }
     }

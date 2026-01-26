@@ -123,7 +123,7 @@ class PerfectBoundShopifyCalculator:
         # ========================================================================
         # STEP 2: Proof Cost (F3)
         # ========================================================================
-        proof_cost = Decimal('40') if "Physical" in proof_requirements else Decimal('0')
+        proof_cost = Decimal('40') if proof_requirements == "Physical Proof" else Decimal('0')
         
         # ========================================================================
         # STEP 3: Cover Calculations (F4, F5, F6)
@@ -228,13 +228,20 @@ class PerfectBoundShopifyCalculator:
             price_increase_amount = self.PRICE_INCREASE_VALUE
         
         # ========================================================================
-        # STEP 12: Apply GST (10% standard Australian GST)
+        # STEP 12: Apply First GST (10% standard Australian GST)
         # ========================================================================
-        subtotal_after_gst = subtotal_with_increase * self.GST_RATE
-        gst_amount = subtotal_with_increase * (self.GST_RATE - Decimal('1'))
+        subtotal_after_first_gst = subtotal_with_increase * self.GST_RATE
         
         # ========================================================================
-        # STEP 13: Apply Surcharge (Configurable % or $ - Currently $0)
+        # STEP 13: Apply Second GST (Double GST as per JSON formula)
+        # NOTE: JSON shows "total": "(sub_total_2 + overs) * 1.1" and "final_total": "total * 1.1"
+        # This matches Premium Business Cards double GST pattern
+        # ========================================================================
+        subtotal_after_gst = subtotal_after_first_gst * self.GST_RATE
+        gst_amount = subtotal_after_gst - subtotal_with_increase
+        
+        # ========================================================================
+        # STEP 14: Apply Surcharge (Configurable % or $ - Currently $0)
         # ========================================================================
         if self.SURCHARGE_TYPE == "percentage":
             # Percentage: multiply by surcharge percentage
@@ -246,7 +253,7 @@ class PerfectBoundShopifyCalculator:
         total_price = subtotal_after_gst + surcharge_amount
         
         # ========================================================================
-        # STEP 14: Calculate Final Unit Price
+        # STEP 15: Calculate Final Unit Price
         # ========================================================================
         unit_price = total_price / Decimal(quantity)
         

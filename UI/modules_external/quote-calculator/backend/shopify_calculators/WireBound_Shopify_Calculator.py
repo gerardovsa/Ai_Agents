@@ -1,111 +1,78 @@
 """
-Wire Bound Books Shopify Calculator
-Exact implementation of Shopify DPO JavaScript formula for Wire Bound Books
+Wire Bound Books Calculator - Shopify DPO Formula (Exact Match)
+=================================================================
 
-Based on: Wire_Spiral_Bound.json specification
-Fields: F1-F14 (Quantity, Artworks, Finish Size, Layered Cover Structure, etc.)
+REWRITTEN: January 26, 2026
+FORMULA SOURCE: Website JavaScript (NON-TRADE version)
+
+Formula: (BizCost + (BizCost × ProfitMargin)) × 1.15 + $44
+
+Key Formula Components:
+- Cover sheets: (quantity / imposition) × 1.05
+- Internal sheets: ((quantity × pages / 2) / imposition) × 1.05
+- Wire binding: 14 thickness tiers, HALF cost for small sizes
+- Profit margin: 12 BizCost tiers (90% down to 41%)
+- Final pricing: subtotal × 1.15 + $44 surcharge
 """
 
 import json
-from decimal import Decimal
-from typing import Dict, Any, List, Tuple
+from decimal import Decimal, ROUND_HALF_UP
+from typing import Dict, Tuple
 from dataclasses import dataclass
 
 
 @dataclass
 class WireBoundQuoteResult:
-    """Result from Wire Bound book calculation"""
+    """Result from Wire Bound Books calculation"""
     total_price: Decimal
     unit_price: Decimal
     quantity: int
-    breakdown: Dict[str, Decimal]
-    specifications: Dict[str, Any]
+    breakdown: Dict
+    specifications: Dict
 
 
 class WireBoundShopifyCalculator:
     """
-    Wire Bound Books Calculator - Exact Shopify DPO Implementation
+    Shopify Wire Bound Books Calculator - Exact Website Formula
     
-    Features:
-    - F1-F14 Shopify field structure
-    - Layered cover: Outer PVC + Printed Cover + Celloglaze
-    - Separate front/back specifications
-    - Thickness-based binding cost tiers (14 tiers)
-    - Artworks parameter (F2: 1-50, first free, $15 each additional)
-    - Configurable price increase, GST rate, and surcharge
+    Matches website JavaScript (NON-TRADE version) exactly:
+    - F1-F14 field structure
+    - Layered cover: Outer + Printed + Celloglaze
+    - 14 wire binding thickness tiers
+    - (BizCost + profit) × 1.15 + $44
     """
     
-    # ============================================================================
-    # CONFIGURABLE PRICING VARIABLES (Defaults - overridden by JSON config)
-    # ============================================================================
-    PRICE_INCREASE_TYPE = "percentage"           # "percentage" or "fixed_amount"
-    PRICE_INCREASE_VALUE = Decimal('5')          # 5% (or $5.00 if fixed) - HIDDEN markup
-    PRICE_INCREASE_MULTIPLIER = Decimal('1.05')  # Legacy: 5% price increase
-    GST_RATE = Decimal('1.10')                   # 10% GST (standard Australian GST)
-    SURCHARGE_TYPE = "fixed_amount"              # "percentage" or "fixed_amount"
-    SURCHARGE_VALUE = Decimal('44.00')           # $44 surcharge
-    SURCHARGE = Decimal('44.00')                 # Legacy: Fixed $44 surcharge
+    # ========================================================================
+    # CONSTANTS (from website JavaScript)
+    # ========================================================================
+    GUILO_SETUP = Decimal('12')
+    IMPOS_SETUP = Decimal('15')
+    STOCK_WASTE = Decimal('1.05')
+    EXTRA_ARTS = Decimal('15')
+    CUTTING_BLK = Decimal('500')
+    CUT_COST = Decimal('11')
+    PUNCH_SETUP = Decimal('15')
+    WIREBIND_PER_BOOK = Decimal('1.16')
+    BINDERY_LABOR_PER_HOUR = Decimal('70')
+    PUNCH_SHEETS_PER_HOUR = Decimal('15000')
     
-    def __init__(self, config_path: str = None, pricing_config_path: str = None):
-        """
-        Initialize Wire Bound calculator
-        
-        Args:
-            config_path: Optional path to Wire_Spiral_Bound.json config file
-            pricing_config_path: Optional path to calculator_pricing_config.json for dynamic pricing
-        """
+    # Final pricing multiplier (GST included)
+    FINAL_MULTIPLIER = Decimal('1.15')  # 15% GST
+    SURCHARGE = Decimal('44.00')
+    
+    def __init__(self, config_path: str = None):
+        """Initialize Wire Bound calculator"""
         self.config = self._load_config(config_path) if config_path else None
-        
-        # Load pricing overrides from JSON config if provided
-        if pricing_config_path:
-            self._load_pricing_config(pricing_config_path)
-        
+    
     def _load_config(self, config_path: str) -> Dict:
         """Load configuration from JSON file"""
         with open(config_path, 'r') as f:
             data = json.load(f)
         return data.get('shopify_wire_bound_books', {})
     
-    def _load_pricing_config(self, pricing_config_path: str):
-        """Load pricing configuration from calculator_pricing_config.json"""
-        try:
-            with open(pricing_config_path, 'r') as f:
-                pricing_data = json.load(f)
-            
-            # Get this calculator's pricing config
-            if 'wire_bound_books' in pricing_data:
-                calc_config = pricing_data['wire_bound_books']
-                
-                # Load price increase
-                if 'price_increase' in calc_config:
-                    self.PRICE_INCREASE_TYPE = calc_config['price_increase'].get('type', 'percentage')
-                    self.PRICE_INCREASE_VALUE = Decimal(str(calc_config['price_increase'].get('value', '5')))
-                    
-                    # Convert to multiplier format for legacy code compatibility
-                    if self.PRICE_INCREASE_TYPE == 'percentage':
-                        self.PRICE_INCREASE_MULTIPLIER = Decimal('1') + (self.PRICE_INCREASE_VALUE / Decimal('100'))
-                    else:
-                        # For fixed amount, store as-is (will be added, not multiplied)
-                        self.PRICE_INCREASE_MULTIPLIER = self.PRICE_INCREASE_VALUE
-                
-                # Load GST rate
-                if 'gst_rate' in calc_config:
-                    gst_pct = Decimal(str(calc_config['gst_rate'].get('value', '15')))
-                    self.GST_RATE = Decimal('1') + (gst_pct / Decimal('100'))
-                
-                # Load surcharge
-                if 'surcharge' in calc_config:
-                    self.SURCHARGE_TYPE = calc_config['surcharge'].get('type', 'fixed_amount')
-                    self.SURCHARGE_VALUE = Decimal(str(calc_config['surcharge'].get('value', '44')))
-                    self.SURCHARGE = self.SURCHARGE_VALUE  # Legacy compatibility
-        
-        except FileNotFoundError:
-            # Config file doesn't exist yet, use class defaults
-            pass
-    
     def calculate(self,
                   quantity: int,                    # F1
-                  artworks: int = 1,                # F2
+                  artworks: int = 1,                # F2 (art)
                   finish_size: str = "A5 Portrait", # F14
                   outer_front_cover: str = "Not Required",  # F3
                   printed_front_cover: str = "300GSM Satin",  # F4
@@ -120,241 +87,271 @@ class WireBoundShopifyCalculator:
                   internal_print: str = "Black & White"  # F13
                   ) -> WireBoundQuoteResult:
         """
-        Calculate Wire Bound book quote using exact Shopify DPO formula
+        Calculate Wire Bound book quote using exact Shopify website formula
         
-        Args:
-            quantity: Number of books (F1)
-            artworks: Number of different artworks/designs (F2: 1-50, first free, $15 each)
-            finish_size: Book size (F14: A6/DL/A5/A4 Portrait/Landscape)
-            outer_front_cover: Clear PVC overlay on front (F3)
-            printed_front_cover: Front printed cover stock (F4: 250/300/350GSM Satin)
-            front_cover_print: Front cover print type (F5: 1pp/2pp Colour/B&W)
-            front_celloglaze: Front cover celloglaze (F6: None/1 Side/2 Sided Gloss/Matt)
-            outer_back_cover: Back cover outer layer (F7: None/Clear PVC/Black Leather/Blank)
-            printed_back_cover: Back printed cover stock (F8)
-            back_cover_print: Back cover print type (F9)
-            back_celloglaze: Back cover celloglaze (F10)
-            internal_pages: Number of internal pages (F11: 1-500)
-            internal_stock: Internal paper stock (F12: Satin/Uncoated Bond)
-            internal_print: Internal print type (F13: Full Colour/B&W)
-            
-        Returns:
-            WireBoundQuoteResult with total price, unit price, and breakdown
+        Website Formula (NON-TRADE):
+        var subTotal = (BizCost + (BizCost × profitMargin));
+        var total = subTotal × 1.15;
+        Run Always: total + 44
         """
         
-        # Convert parameters to correct types if needed
-        quantity = int(quantity) if isinstance(quantity, str) else quantity
-        artworks = int(artworks) if isinstance(artworks, str) else artworks
-        internal_pages = int(internal_pages) if isinstance(internal_pages, str) else internal_pages
+        # Convert to Decimal for precision
+        quantity = Decimal(str(quantity))
+        artworks = Decimal(str(artworks))
+        internal_pages = Decimal(str(internal_pages))
         
-        # ========================================================================
-        # STEP 1: Calculate Artwork Costs (F2)
-        # ========================================================================
-        # Formula: First artwork free, $15 per additional artwork
-        artwork_cost = Decimal(max(0, (artworks - 1) * 15))
-        
-        # ========================================================================
-        # STEP 2: Determine Finish Size Parameters (F14)
-        # ========================================================================
+        # ====================================================================
+        # STEP 1: Get Finish Size Parameters (F14)
+        # ====================================================================
         size_params = self._get_finish_size_params(finish_size)
-        imposition = size_params['imposition']  # Books per sheet
+        imposition = Decimal(str(size_params['imposition']))  # F14.price
         book_width = size_params['width']
         book_height = size_params['height']
         
-        # ========================================================================
-        # STEP 3: Calculate Front Cover Costs (F3, F4, F5, F6)
-        # ========================================================================
-        # Outer Front Cover (F3: Clear PVC)
-        outer_front_price = Decimal('0.12') if "Clear PVC" in outer_front_cover else Decimal('0')
+        # ====================================================================
+        # STEP 2: Calculate Artwork Costs
+        # ====================================================================
+        # var _a = {art} * {extraArts};
+        # var _a2 = {_a} <= {extraArts} ? 0 : ({_a} - {extraArts});
+        _a = artworks * self.EXTRA_ARTS
+        _a2 = Decimal('0') if _a <= self.EXTRA_ARTS else (_a - self.EXTRA_ARTS)
         
-        # Printed Front Cover (F4: 250/300/350GSM Satin)
-        front_stock_price = self._get_stock_price(printed_front_cover)
-        
-        # Front Cover Print (F5: 1pp/2pp Colour/B&W)
-        front_print_price = self._get_print_price(front_cover_print)
-        
-        # Front Celloglaze (F6: None/1 Side/2 Sided Gloss/Matt)
-        front_cello_price = self._get_cello_price(front_celloglaze)
-        
-        # Calculate front cover sheets
-        cover_sheets = Decimal(quantity) * Decimal('1.05')  # 5% waste
-        
-        # Total front cover cost
-        front_cover_cost = cover_sheets * (outer_front_price + front_stock_price + 
-                                           front_print_price + front_cello_price)
-        
-        # ========================================================================
-        # STEP 4: Calculate Back Cover Costs (F7, F8, F9, F10)
-        # ========================================================================
-        # Outer Back Cover (F7: None/Clear PVC/Black Leather/Blank)
-        outer_back_price = self._get_outer_back_price(outer_back_cover)
-        
-        # Printed Back Cover (F8)
-        back_stock_price = self._get_stock_price(printed_back_cover)
-        
-        # Back Cover Print (F9)
-        back_print_price = self._get_print_price(back_cover_print)
-        
-        # Back Celloglaze (F10)
-        back_cello_price = self._get_cello_price(back_celloglaze)
-        
-        # Total back cover cost
-        back_cover_cost = cover_sheets * (outer_back_price + back_stock_price + 
-                                          back_print_price + back_cello_price)
-        
-        # ========================================================================
-        # STEP 5: Calculate Internal/Content Costs (F11, F12, F13)
-        # ========================================================================
-        # Internal sheets calculation
-        internal_sheets = ((Decimal(quantity) * Decimal(internal_pages)) / Decimal(imposition)) * Decimal('1.05')
-        
-        # Internal stock price (F12)
-        internal_stock_price, internal_thickness = self._get_internal_stock_price(internal_stock)
-        
-        # Internal print price (F13)
-        internal_print_price = self._get_internal_print_price(internal_print)
-        
-        # Total content cost
-        content_cost = internal_sheets * (internal_stock_price + internal_print_price)
-        
-        # ========================================================================
-        # STEP 6: Calculate Book Thickness and Wire Binding Cost
-        # ========================================================================
-        # Calculate total thickness in mm
-        cover_thickness = self._get_cover_thickness(printed_front_cover, printed_back_cover,
-                                                    outer_front_cover, outer_back_cover)
-        internal_total_thickness = Decimal(internal_pages) * internal_thickness
-        total_thickness = cover_thickness + internal_total_thickness
-        
-        # Get wire binding price per book based on thickness (14 tiers)
-        wire_price_per_book = self._get_wire_binding_price(total_thickness)
-        
-        # Adjust for small sizes (A6, DL Landscape, A5 Landscape use HALF wire cost)
-        if self._is_small_size(finish_size):
-            wire_price_per_book = wire_price_per_book / Decimal('2')
-        
-        wire_binding_cost = Decimal(quantity) * wire_price_per_book
-        
-        # ========================================================================
-        # STEP 7: Calculate Setup and Processing Costs
-        # ========================================================================
-        guilo_setup = Decimal('12')
-        impos_setup = Decimal('15')
-        punch_setup = Decimal('15')
-        
-        # Punch cost calculation
-        bindery_labor_per_hour = Decimal('70')
-        punch_sheets_per_hour = Decimal('15000')
-        total_sheets_to_punch = internal_sheets + cover_sheets
-        punch_hours = total_sheets_to_punch / punch_sheets_per_hour
-        punch_cost = punch_hours * bindery_labor_per_hour
-        
-        # Cutting cost
-        cutting_block = Decimal('500')
-        cut_cost = Decimal('11')
-        total_sheets = internal_sheets + cover_sheets
-        cutting_cost = (total_sheets / cutting_block) * cut_cost
-        
-        # Cello setup cost
+        # ====================================================================
+        # STEP 3: Calculate Cello Setup Cost
+        # ====================================================================
+        # var celloSetup = ({F6} == 'None' && {F10} == 'None') ? 0 : 25;
         has_cello = (front_celloglaze != "None" or back_celloglaze != "None")
         cello_setup = Decimal('25') if has_cello else Decimal('0')
         
-        # Per-book labor cost
-        wirebind_per_book = Decimal('1.16')
-        bindery_labor_cost = Decimal(quantity) * wirebind_per_book
+        # ====================================================================
+        # STEP 4: Calculate Front Cover Costs (F3, F4, F5, F6)
+        # ====================================================================
+        # Outer Front Cover (F3: PVC per book)
+        # var outFront = ({F3.price} * {F1});
+        outer_front_price = self._get_outer_front_price(outer_front_cover)
+        out_front = outer_front_price * quantity
         
-        # ========================================================================
-        # STEP 8: Calculate Business Cost (BizCost)
-        # ========================================================================
-        setup_costs = guilo_setup + impos_setup + punch_setup + cello_setup
+        # Front Cover Sheets
+        # var totalFrontCoverSheets = ({F4} == 'None' ? 0 : (({F1} / {F14.price}) * {stockWaste}));
+        if printed_front_cover == "None":
+            total_front_cover_sheets = Decimal('0')
+        else:
+            total_front_cover_sheets = (quantity / imposition) * self.STOCK_WASTE
         
-        biz_cost = (setup_costs + 
-                   artwork_cost +
-                   front_cover_cost + 
-                   back_cover_cost + 
-                   content_cost + 
-                   wire_binding_cost +
-                   punch_cost +
-                   cutting_cost +
-                   bindery_labor_cost)
+        # Front Cover Stock (F4)
+        front_stock_price = self._get_stock_price(printed_front_cover)
         
-        # ========================================================================
-        # STEP 9: Apply Profit Margin (based on BizCost tiers)
-        # ========================================================================
+        # Front Cover Print Click Cost (F5)
+        # var coverClickCost = ({F5.price} * {totalFrontCoverSheets});
+        front_print_price = self._get_print_price(front_cover_print)
+        cover_click_cost = front_print_price * total_front_cover_sheets
+        
+        # Total Front Cover Cost
+        # var totalFrontCoverCost = ({totalFrontCoverSheets} * {F4.price}) + {coverClickCost};
+        total_front_cover_cost = (total_front_cover_sheets * front_stock_price) + cover_click_cost
+        
+        # Front Celloglaze (F6)
+        # var FrontcelloCost = ({F6} == 'None' ? 0 : ({totalFrontCoverSheets} * {F6.price}));
+        front_cello_price = self._get_cello_price(front_celloglaze)
+        front_cello_cost = Decimal('0') if front_celloglaze == "None" else (total_front_cover_sheets * front_cello_price)
+        
+        # ====================================================================
+        # STEP 5: Calculate Back Cover Costs (F7, F8, F9, F10)
+        # ====================================================================
+        # Outer Back Cover (F7: PVC/Leather per book)
+        # var outBack = ({F7.price} * {F1});
+        outer_back_price = self._get_outer_back_price(outer_back_cover)
+        out_back = outer_back_price * quantity
+        
+        # Back Cover Sheets
+        # var totalBackCoverSheets = ({F8} == 'None' ? 0 : (({F1} / {F14.price}) * {stockWaste}));
+        if printed_back_cover == "None":
+            total_back_cover_sheets = Decimal('0')
+        else:
+            total_back_cover_sheets = (quantity / imposition) * self.STOCK_WASTE
+        
+        # Back Cover Stock (F8)
+        back_stock_price = self._get_stock_price(printed_back_cover)
+        
+        # Back Cover Print Click Cost (F9)
+        # var coverClickCostBack = ({F9.price} * {totalBackCoverSheets});
+        back_print_price = self._get_print_price(back_cover_print)
+        cover_click_cost_back = back_print_price * total_back_cover_sheets
+        
+        # Total Back Cover Cost (NOTE: Website uses F4.price for back cover too!)
+        # var totalBackCoverCost = ({totalBackCoverSheets} * {F4.price}) + {coverClickCostBack};
+        total_back_cover_cost = (total_back_cover_sheets * front_stock_price) + cover_click_cost_back
+        
+        # Back Celloglaze (F10)
+        # var BackcelloCost = ({F10} == 'None' ? 0 : ({totalBackCoverSheets} * {F10.price}));
+        back_cello_price = self._get_cello_price(back_celloglaze)
+        back_cello_cost = Decimal('0') if back_celloglaze == "None" else (total_back_cover_sheets * back_cello_price)
+        
+        # ====================================================================
+        # STEP 6: Calculate Internal/Content Costs (F11, F12, F13)
+        # ====================================================================
+        # Internal Content Sheets
+        # var totalContentSheets = ((({F1} * {F11}) / 2) / {F14.price}) * {stockWaste};
+        total_content_sheets = (((quantity * internal_pages) / Decimal('2')) / imposition) * self.STOCK_WASTE
+        
+        # Internal Stock Price (F12)
+        internal_stock_price, internal_thickness = self._get_internal_stock_price(internal_stock)
+        
+        # Internal Print Click Cost (F13)
+        # var contentClickCost = ({totalContentSheets} * {F13.price});
+        internal_print_price = self._get_internal_print_price(internal_print)
+        content_click_cost = total_content_sheets * internal_print_price
+        
+        # Total Content Cost
+        # var totalContentCost = ({totalContentSheets} * {F12.price}) + {contentClickCost};
+        total_content_cost = (total_content_sheets * internal_stock_price) + content_click_cost
+        
+        # ====================================================================
+        # STEP 7: Calculate Total Print Cost
+        # ====================================================================
+        # var totalPrintCost = {totalFrontCoverCost} + {totalBackCoverCost} + {FrontcelloCost} + {BackcelloCost} + {outFront} + {outBack} + {totalContentCost};
+        total_print_cost = (total_front_cover_cost + total_back_cover_cost + 
+                           front_cello_cost + back_cello_cost + 
+                           out_front + out_back + total_content_cost)
+        
+        # ====================================================================
+        # STEP 8: Calculate Total Setup Costs
+        # ====================================================================
+        # var totalSetupCosts = {guiloSetup} + {imposSetup} + {punchSetup} + {celloSetup} + {_a2};
+        total_setup_costs = self.GUILO_SETUP + self.IMPOS_SETUP + self.PUNCH_SETUP + cello_setup + _a2
+        
+        # ====================================================================
+        # STEP 9: Calculate Book Thickness and Wire Binding Cost
+        # ====================================================================
+        # var bookSheets = {F11} / 2;
+        book_sheets = internal_pages / Decimal('2')
+        
+        # var contentSheetThickness = ...
+        content_sheet_thickness = internal_thickness
+        
+        # var bookThickness = {bookSheets} * {contentSheetThickness};
+        book_thickness = book_sheets * content_sheet_thickness
+        
+        # Get wire binding price per book (14 tiers)
+        # var pricePerRing = ...
+        price_per_ring = self._get_wire_binding_price(book_thickness)
+        
+        # Check if small size (half wire cost)
+        # var priceofwire = ({F14} == 'A6 Portrait' || {F14} == 'A6 Landscape' || {F14} == 'DL Landscape' || {F14} == 'A5 Landscape') ? 
+        #     ({pricePerRing} * {F1}) / 2 : ({pricePerRing} * {F1});
+        is_small = self._is_small_size(finish_size)
+        if is_small:
+            price_of_wire = (price_per_ring * quantity) / Decimal('2')
+        else:
+            price_of_wire = price_per_ring * quantity
+        
+        # ====================================================================
+        # STEP 10: Calculate Punch Cost
+        # ====================================================================
+        # var baseValue = ({F1} * {F11}) / 2;
+        base_value = (quantity * internal_pages) / Decimal('2')
+        
+        # var additionalF8 = ({F8} == 'None' ? 0 : {F1});
+        additional_f8 = Decimal('0') if printed_back_cover == "None" else quantity
+        
+        # var additionalF4 = ({F4} == 'None' ? 0 : {F1});
+        additional_f4 = Decimal('0') if printed_front_cover == "None" else quantity
+        
+        # var totalPunch = {baseValue} + {additionalF8} + {additionalF4};
+        total_punch = base_value + additional_f8 + additional_f4
+        
+        # var sheetsToPunch = {totalPunch} * {stockWaste};
+        sheets_to_punch = total_punch * self.STOCK_WASTE
+        
+        # var punchPrice = ({sheetsToPunch} / {punchsheetsperhour}) * {binderyLaborperhour};
+        punch_price = (sheets_to_punch / self.PUNCH_SHEETS_PER_HOUR) * self.BINDERY_LABOR_PER_HOUR
+        
+        # ====================================================================
+        # STEP 11: Calculate Cutting Cost
+        # ====================================================================
+        # var cuttingCost = (({totalContentSheets} + {totalFrontCoverSheets} + {totalBackCoverSheets}) / {cuttingBlk}) * {cutCost};
+        cutting_cost = ((total_content_sheets + total_front_cover_sheets + total_back_cover_sheets) / self.CUTTING_BLK) * self.CUT_COST
+        
+        # ====================================================================
+        # STEP 12: Calculate BizCost
+        # ====================================================================
+        # var BizCost = {totalPrintCost} + {totalSetupCosts} + {priceofwire} + {punchPrice} + {cuttingCost} + ({F1} * {wirebindperbook});
+        biz_cost = (total_print_cost + total_setup_costs + price_of_wire + 
+                   punch_price + cutting_cost + (quantity * self.WIREBIND_PER_BOOK))
+        
+        # ====================================================================
+        # STEP 13: Calculate Profit Margin (12 BizCost tiers)
+        # ====================================================================
         profit_margin = self._get_profit_margin(biz_cost)
+        
+        # ====================================================================
+        # STEP 14: Calculate Subtotal
+        # ====================================================================
+        # var subTotal = ({BizCost} + ({BizCost} * {profitMargin}));
         subtotal = biz_cost + (biz_cost * profit_margin)
         
-        # ========================================================================
-        # STEP 10: Apply Price Increase (Configurable % or $)
-        # ========================================================================
-        if self.PRICE_INCREASE_TYPE == "percentage":
-            # Percentage: multiply by (1 + percentage)
-            multiplier = Decimal('1') + (self.PRICE_INCREASE_VALUE / Decimal('100'))
-            subtotal_with_increase = subtotal * multiplier
-            price_increase_amount = subtotal * (self.PRICE_INCREASE_VALUE / Decimal('100'))
-        else:  # fixed_amount
-            # Fixed dollar amount: add directly
-            subtotal_with_increase = subtotal + self.PRICE_INCREASE_VALUE
-            price_increase_amount = self.PRICE_INCREASE_VALUE
+        # ====================================================================
+        # STEP 15: Calculate Final Total (×1.15 + $44)
+        # ====================================================================
+        # var total = {subTotal} * 1.15;
+        # Run Always: {total} + 44
+        total_before_surcharge = subtotal * self.FINAL_MULTIPLIER
+        total_price = total_before_surcharge + self.SURCHARGE
         
-        # ========================================================================
-        # STEP 11: Apply GST
-        # ========================================================================
-        subtotal_after_gst = subtotal_with_increase * self.GST_RATE
-        gst_amount = subtotal_with_increase * (self.GST_RATE - Decimal('1'))
+        # ====================================================================
+        # STEP 16: Calculate Unit Price
+        # ====================================================================
+        unit_price = total_price / quantity
         
-        # ========================================================================
-        # STEP 12: Apply Surcharge (Configurable % or $)
-        # ========================================================================
-        if self.SURCHARGE_TYPE == "percentage":
-            # Percentage: multiply by surcharge percentage
-            surcharge_amount = subtotal_after_gst * (self.SURCHARGE_VALUE / Decimal('100'))
-        else:  # fixed_amount
-            # Fixed dollar amount: use directly
-            surcharge_amount = self.SURCHARGE_VALUE
-        
-        total_price = subtotal_after_gst + surcharge_amount
-        
-        # ========================================================================
-        # STEP 12: Calculate Unit Price
-        # ========================================================================
-        unit_price = total_price / Decimal(quantity)
-        
-        # ========================================================================
-        # Build Detailed Breakdown
-        # ========================================================================
+        # ====================================================================
+        # Build Breakdown
+        # ====================================================================
         breakdown = {
-            'artwork_cost': artwork_cost,
-            'front_cover_cost': front_cover_cost,
-            'back_cover_cost': back_cover_cost,
-            'content_cost': content_cost,
-            'wire_binding_cost': wire_binding_cost,
-            'punch_cost': punch_cost,
+            'artwork_cost': _a2,
+            'out_front': out_front,
+            'total_front_cover_sheets': total_front_cover_sheets,
+            'front_stock_cost': total_front_cover_sheets * front_stock_price,
+            'front_print_cost': cover_click_cost,
+            'front_cello_cost': front_cello_cost,
+            'total_front_cover_cost': total_front_cover_cost,
+            'out_back': out_back,
+            'total_back_cover_sheets': total_back_cover_sheets,
+            'back_stock_cost': total_back_cover_sheets * front_stock_price,
+            'back_print_cost': cover_click_cost_back,
+            'back_cello_cost': back_cello_cost,
+            'total_back_cover_cost': total_back_cover_cost,
+            'total_content_sheets': total_content_sheets,
+            'content_stock_cost': total_content_sheets * internal_stock_price,
+            'content_print_cost': content_click_cost,
+            'total_content_cost': total_content_cost,
+            'total_print_cost': total_print_cost,
+            'guilo_setup': self.GUILO_SETUP,
+            'impos_setup': self.IMPOS_SETUP,
+            'punch_setup': self.PUNCH_SETUP,
+            'cello_setup': cello_setup,
+            'total_setup_costs': total_setup_costs,
+            'book_thickness': book_thickness,
+            'price_per_ring': price_per_ring,
+            'is_small_size': is_small,
+            'price_of_wire': price_of_wire,
+            'sheets_to_punch': sheets_to_punch,
+            'punch_price': punch_price,
             'cutting_cost': cutting_cost,
-            'bindery_labor_cost': bindery_labor_cost,
-            'setup_costs': setup_costs,
+            'bindery_labor': quantity * self.WIREBIND_PER_BOOK,
             'biz_cost': biz_cost,
             'profit_margin_rate': profit_margin,
             'profit_amount': biz_cost * profit_margin,
             'subtotal': subtotal,
-            'price_increase_type': self.PRICE_INCREASE_TYPE,
-            'price_increase_value': self.PRICE_INCREASE_VALUE,
-            'price_increase_amount': price_increase_amount,
-            'subtotal_with_increase': subtotal_with_increase,
-            'gst_rate': self.GST_RATE,
-            'gst_amount': gst_amount,
-            'subtotal_after_gst': subtotal_after_gst,
-            'surcharge_type': self.SURCHARGE_TYPE,
-            'surcharge_value': self.SURCHARGE_VALUE,
-            'surcharge_amount': surcharge_amount,
+            'gst_multiplier': self.FINAL_MULTIPLIER,
+            'total_before_surcharge': total_before_surcharge,
+            'surcharge': self.SURCHARGE,
             'total_price': total_price,
-            'unit_price': unit_price,
-            'book_thickness_mm': total_thickness
+            'unit_price': unit_price
         }
         
         specifications = {
-            'quantity': quantity,
-            'artworks': artworks,
+            'quantity': int(quantity),
+            'artworks': int(artworks),
             'finish_size': finish_size,
             'book_dimensions': f"{book_width}mm × {book_height}mm",
             'outer_front_cover': outer_front_cover,
@@ -365,24 +362,24 @@ class WireBoundShopifyCalculator:
             'printed_back_cover': printed_back_cover,
             'back_cover_print': back_cover_print,
             'back_celloglaze': back_celloglaze,
-            'internal_pages': internal_pages,
+            'internal_pages': int(internal_pages),
             'internal_stock': internal_stock,
             'internal_print': internal_print,
-            'total_thickness_mm': float(total_thickness),
-            'wire_price_per_book': float(wire_price_per_book)
+            'book_thickness_mm': float(book_thickness),
+            'wire_price_per_book': float(price_per_ring)
         }
         
         return WireBoundQuoteResult(
             total_price=total_price,
             unit_price=unit_price,
-            quantity=quantity,
+            quantity=int(quantity),
             breakdown=breakdown,
             specifications=specifications
         )
     
-    # ============================================================================
+    # ========================================================================
     # HELPER METHODS
-    # ============================================================================
+    # ========================================================================
     
     def _get_finish_size_params(self, finish_size: str) -> Dict:
         """Get dimensions and imposition for finish size"""
@@ -403,8 +400,14 @@ class WireBoundShopifyCalculator:
         small_sizes = ["A6 Portrait", "A6 Landscape", "DL Landscape", "A5 Landscape"]
         return finish_size in small_sizes
     
+    def _get_outer_front_price(self, outer_front: str) -> Decimal:
+        """Get outer front cover price (F3)"""
+        if "Clear PVC" in outer_front:
+            return Decimal('0.12')
+        return Decimal('0')
+    
     def _get_stock_price(self, stock: str) -> Decimal:
-        """Get price for printed cover stock"""
+        """Get price for printed cover stock (F4/F8)"""
         if "250GSM" in stock:
             return Decimal('0.09')
         elif "300GSM" in stock:
@@ -416,7 +419,7 @@ class WireBoundShopifyCalculator:
         return Decimal('0.14')  # Default 300GSM
     
     def _get_print_price(self, print_type: str) -> Decimal:
-        """Get print price for cover"""
+        """Get print price for cover (F5/F9)"""
         if "1pp Colour" in print_type:
             return Decimal('0.04')
         elif "2pp Colour" in print_type:
@@ -428,21 +431,21 @@ class WireBoundShopifyCalculator:
         return Decimal('0.08')  # Default 2pp Colour
     
     def _get_cello_price(self, cello: str) -> Decimal:
-        """Get celloglaze price"""
+        """Get celloglaze price (F6/F10)"""
         if "1 Side" in cello:
             return Decimal('0.41')
-        elif "2 Sided" in cello:
+        elif "2 Sided" in cello or "2 Side" in cello:
             return Decimal('0.82')
         return Decimal('0')  # None
     
     def _get_outer_back_price(self, outer_back: str) -> Decimal:
-        """Get outer back cover price"""
+        """Get outer back cover price (F7)"""
         if "Clear PVC" in outer_back or "Black Leather" in outer_back or "Blank" in outer_back:
             return Decimal('0.12')
         return Decimal('0')  # None
     
     def _get_internal_stock_price(self, stock: str) -> Tuple[Decimal, Decimal]:
-        """Get internal stock price and thickness"""
+        """Get internal stock price and thickness (F12)"""
         stocks = {
             "Satin 128GSM": (Decimal('0.054'), Decimal('0.12')),
             "Satin 150GSM": (Decimal('0.064'), Decimal('0.135')),
@@ -453,46 +456,15 @@ class WireBoundShopifyCalculator:
         return stocks.get(stock, (Decimal('0.054'), Decimal('0.125')))
     
     def _get_internal_print_price(self, print_type: str) -> Decimal:
-        """Get internal print price"""
+        """Get internal print price (F13)"""
         if "Full Colour" in print_type or "Full colour" in print_type:
             return Decimal('0.096')
         else:  # Black & White
             return Decimal('0.02')
     
-    def _get_cover_thickness(self, front_stock: str, back_stock: str,
-                            outer_front: str, outer_back: str) -> Decimal:
-        """Calculate total cover thickness"""
-        thickness = Decimal('0')
-        
-        # Front printed cover
-        if "250GSM" in front_stock:
-            thickness += Decimal('0.3')
-        elif "300GSM" in front_stock:
-            thickness += Decimal('0.35')
-        elif "350GSM" in front_stock:
-            thickness += Decimal('0.4')
-        
-        # Back printed cover
-        if "250GSM" in back_stock:
-            thickness += Decimal('0.3')
-        elif "300GSM" in back_stock:
-            thickness += Decimal('0.35')
-        elif "350GSM" in back_stock:
-            thickness += Decimal('0.4')
-        
-        # PVC overlays
-        if "Clear PVC" in outer_front:
-            thickness += Decimal('0.2')
-        if "Clear PVC" in outer_back or "Black Leather" in outer_back:
-            thickness += Decimal('0.2')
-        
-        return thickness
-    
     def _get_wire_binding_price(self, thickness_mm: Decimal) -> Decimal:
         """
-        Get wire binding price per book based on thickness
-        Uses 14 price tiers from Shopify specification
-        NOTE: Website mistakenly uses SPIRAL tiers for WIRE products (documented bug)
+        Get wire binding price per book based on thickness (14 tiers)
         """
         tiers = [
             (Decimal('4.7'), Decimal('0.1477')),
@@ -515,12 +487,11 @@ class WireBoundShopifyCalculator:
             if thickness_mm <= max_thickness:
                 return price
         
-        return tiers[-1][1]  # Return highest tier if over maximum
+        return tiers[-1][1]  # Return highest tier
     
     def _get_profit_margin(self, biz_cost: Decimal) -> Decimal:
         """
-        Get profit margin based on BizCost (NOT quantity)
-        Uses 12 tiers from Shopify specification
+        Get profit margin based on BizCost (12 tiers)
         """
         tiers = [
             (Decimal('500'), Decimal('0.9')),
@@ -541,7 +512,7 @@ class WireBoundShopifyCalculator:
             if biz_cost <= max_cost:
                 return margin
         
-        return tiers[-1][1]  # Return lowest margin if over maximum
+        return tiers[-1][1]  # Return lowest margin
 
 
 # ============================================================================
@@ -549,45 +520,37 @@ class WireBoundShopifyCalculator:
 # ============================================================================
 
 if __name__ == "__main__":
-    # Create calculator instance
     calc = WireBoundShopifyCalculator()
     
-    # Example 1: Standard Wire Bound Book
+    # Test 1: A4 Portrait Basic (should be $781.24, not $1125.25)
     print("=" * 80)
-    print("EXAMPLE 1: Standard Wire Bound Book")
+    print("TEST 1: A4 Portrait Basic - 100 books, 50 pages")
     print("=" * 80)
     
     result = calc.calculate(
-        quantity=500,
+        quantity=100,
         artworks=1,
-        finish_size="A5 Portrait",
-        outer_front_cover="Clear PVC",
+        internal_pages=50,
+        finish_size="A4 Portrait",
         printed_front_cover="300GSM Satin",
         front_cover_print="2pp Colour",
-        front_celloglaze="1 Side Gloss",
-        outer_back_cover="Clear PVC",
+        front_celloglaze="None",
+        outer_front_cover="Not Required",
         printed_back_cover="300GSM Satin",
         back_cover_print="2pp Colour",
-        back_celloglaze="1 Side Gloss",
-        internal_pages=100,
+        back_celloglaze="None",
+        outer_back_cover="None",
         internal_stock="Uncoated Bond 100GSM",
         internal_print="Black & White"
     )
     
-    print(f"\nTotal Price: ${result.total_price:,.2f}")
+    print(f"\nWebsite Price: $781.24")
+    print(f"Backend Price: ${result.total_price:,.2f}")
     print(f"Unit Price: ${result.unit_price:.2f} per book")
     print(f"\nBreakdown:")
-    print(f"  Business Cost: ${result.breakdown['biz_cost']:,.2f}")
+    print(f"  BizCost: ${result.breakdown['biz_cost']:,.2f}")
     print(f"  Profit Margin: {result.breakdown['profit_margin_rate']*100:.0f}%")
     print(f"  Subtotal: ${result.breakdown['subtotal']:,.2f}")
-    print(f"  Price Increase ({(calc.PRICE_INCREASE_MULTIPLIER-1)*100:.0f}%): ${result.breakdown['subtotal_with_increase']:,.2f}")
-    print(f"  GST ({(calc.GST_RATE-1)*100:.0f}%): ${result.breakdown['gst_amount']:,.2f}")
-    print(f"  Surcharge: ${result.breakdown['surcharge']:,.2f}")
+    print(f"  ×1.15 GST: ${result.breakdown['total_before_surcharge']:,.2f}")
+    print(f"  +$44 Surcharge: ${result.breakdown['surcharge']:,.2f}")
     print(f"  TOTAL: ${result.total_price:,.2f}")
-    
-    print(f"\nSpecifications:")
-    print(f"  Quantity: {result.specifications['quantity']}")
-    print(f"  Size: {result.specifications['finish_size']} ({result.specifications['book_dimensions']})")
-    print(f"  Pages: {result.specifications['internal_pages']}")
-    print(f"  Thickness: {result.specifications['total_thickness_mm']:.2f}mm")
-    print(f"  Wire cost per book: ${result.specifications['wire_price_per_book']:.4f}")
