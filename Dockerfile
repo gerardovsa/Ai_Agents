@@ -56,7 +56,14 @@ RUN curl -fsSL https://packages.microsoft.com/keys/microsoft.asc | gpg --dearmor
 # This creates a separate Docker layer that gets cached
 # If requirements.txt doesn't change, this layer is reused (saves 10-15 minutes!)
 COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+
+# Install Python packages with increased timeout for large packages (casadi 75MB)
+# --default-timeout=1000: Extend timeout for slow downloads (default is 15s)
+# --retries=5: Retry failed downloads up to 5 times
+RUN pip install --no-cache-dir \
+    --default-timeout=1000 \
+    --retries=5 \
+    -r requirements.txt
 
 # ============================================================================
 # LAYER 3: JavaScript Dependencies (CACHED - only rebuilds if package.json changes)
