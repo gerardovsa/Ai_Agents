@@ -1258,6 +1258,9 @@ def calculate_premium_business_cards_shopify(
         }
     
     try:
+        # Initialize warnings list for tracking any parameter issues
+        warnings = []
+        
         # ========================================================================
         # STRICT VALIDATION: No translation - AI must provide correct values from Shopify JSON
         # ========================================================================
