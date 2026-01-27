@@ -13,9 +13,9 @@ echo.
 REM Store current directory
 set ORIGINAL_DIR=%CD%
 
-REM Set paths
-set FLASK_DIR=C:\Users\gpoli\GIT\AI_agents\AI_infrastructure
-set UI_DIR=C:\Users\gpoli\GIT\AI_agents\UI
+REM Set paths (FIXED Jan 27, 2026: Use V11 folder)
+set FLASK_DIR=C:\Users\gpoli\GIT\AI_Agents_V11\AI_agents\AI_infrastructure
+set UI_DIR=C:\Users\gpoli\GIT\AI_Agents_V11\AI_agents\UI
 
 REM Check if Flask app exists
 if not exist "%FLASK_DIR%\flask_app.py" (

@@ -1,0 +1,518 @@
+{
+  "shopify_custom_vinyl_stickers": {
+    "product_title": "Custom Vinyl Stickers",
+    "product_type": "Vinyl Stickers",
+    "vendor": "PrintShop",
+    "tags": [
+      "stickers",
+      "vinyl",
+      "custom",
+      "adhesive",
+      "waterproof",
+      "decals",
+      "labels"
+    ],
+    "description": "Custom vinyl stickers with roll-to-roll production rules, square-meter pricing and finishing costs (lamination, cutting).",
+    "options": [
+      {
+        "name": "Quantity",
+        "field_id": "F1",
+        "type": "number",
+        "required": true,
+        "default": 100,
+        "min": 1,
+        "max": 10000,
+        "description": "Number of stickers required"
+      },
+      {
+        "name": "Size",
+        "field_id": "F2",
+        "type": "select",
+        "required": true,
+        "default": "75mm Circle",
+        "options": [
+          {
+            "title": "50mm Circle",
+            "dimensions": {
+              "width": 50,
+              "height": 50
+            }
+          },
+          {
+            "title": "75mm Circle",
+            "dimensions": {
+              "width": 75,
+              "height": 75
+            }
+          },
+          {
+            "title": "100mm Circle",
+            "dimensions": {
+              "width": 100,
+              "height": 100
+            }
+          },
+          {
+            "title": "50mm Square",
+            "dimensions": {
+              "width": 50,
+              "height": 50
+            }
+          },
+          {
+            "title": "75mm Square",
+            "dimensions": {
+              "width": 75,
+              "height": 75
+            }
+          },
+          {
+            "title": "100mm Square",
+            "dimensions": {
+              "width": 100,
+              "height": 100
+            }
+          },
+          {
+            "title": "75mm × 50mm Rectangle",
+            "dimensions": {
+              "width": 75,
+              "height": 50
+            }
+          },
+          {
+            "title": "100mm × 75mm Rectangle",
+            "dimensions": {
+              "width": 100,
+              "height": 75
+            }
+          },
+          {
+            "title": "150mm × 100mm Rectangle",
+            "dimensions": {
+              "width": 150,
+              "height": 100
+            }
+          },
+          {
+            "title": "Custom Size"
+          }
+        ]
+      },
+      {
+        "name": "Width (mm)",
+        "field_id": "F3",
+        "type": "number",
+        "required": true,
+        "min": 25,
+        "max": 500,
+        "default": 75,
+        "description": "Custom width in millimetres",
+        "visibility": {
+          "make_it": "Visible",
+          "if": "(F2 == 'Custom Size')"
+        }
+      },
+      {
+        "name": "Height (mm)",
+        "field_id": "F4",
+        "type": "number",
+        "required": true,
+        "min": 25,
+        "max": 500,
+        "default": 75,
+        "description": "Custom height in millimetres",
+        "visibility": {
+          "make_it": "Visible",
+          "if": "(F2 == 'Custom Size')"
+        }
+      },
+      {
+        "name": "Vinyl Family",
+        "field_id": "F5",
+        "type": "select",
+        "required": true,
+        "default": "Standard (Monomeric)",
+        "options": [
+          {
+            "title": "Standard (Monomeric)",
+            "sku": "mono"
+          },
+          {
+            "title": "Premium (Polymeric)",
+            "sku": "poly"
+          }
+        ],
+        "description": "Choose monomeric (short-term) or polymeric (long-term) vinyl."
+      },
+      {
+        "name": "Adhesive",
+        "field_id": "F6",
+        "type": "select",
+        "required": true,
+        "default": "Permanent",
+        "options": [
+          {
+            "title": "Permanent"
+          },
+          {
+            "title": "Removable"
+          }
+        ],
+        "description": "Adhesive type (Permanent or Removable)"
+      },
+      {
+        "name": "Laminate",
+        "field_id": "F7",
+        "type": "select",
+        "required": true,
+        "default": "No Lamination",
+        "options": [
+          {
+            "title": "No Lamination"
+          },
+          {
+            "title": "Gloss Laminate"
+          },
+          {
+            "title": "Matte Laminate"
+          }
+        ],
+        "description": "Optional protective laminate (match monomeric/polymeric family)."
+      },
+      {
+        "name": "Cutting Method",
+        "field_id": "F8",
+        "type": "select",
+        "required": true,
+        "default": "Kiss-Cut (Individual)",
+        "options": [
+          {
+            "title": "Kiss-Cut (Individual)",
+            "sku": "kiss_cut"
+          },
+          {
+            "title": "Die-Cut (No background)",
+            "sku": "die_cut"
+          },
+          {
+            "title": "Contour-Cut (Custom shapes)",
+            "sku": "contour_cut"
+          },
+          {
+            "title": "Sheet (Uncut Grid)",
+            "sku": "sheet_uncut"
+          }
+        ],
+        "description": "Cutting/finishing method"
+      },
+      {
+        "name": "Artworks",
+        "field_id": "F9",
+        "type": "number",
+        "required": true,
+        "default": 1,
+        "min": 1,
+        "max": 20,
+        "description": "Number of different artwork designs (first included, additional $5 each)",
+        "visibility": {
+          "make_it": "Visible",
+          "if": "(F1 < '100')"
+        }
+      },
+      {
+        "name": "Labour Rate",
+        "field_id": "F10",
+        "type": "select",
+        "required": true,
+        "default": "Trade",
+        "options": [
+          {
+            "title": "Trade ($70/hr)",
+            "rate": 70
+          },
+          {
+            "title": "Non-Trade ($90/hr)",
+            "rate": 90
+          }
+        ],
+        "description": "Choose whether trade or non-trade labour rates apply for laminating and cutting"
+      }
+    ],
+    "pricing_constants": {
+      "roll": {
+        "roll_width_mm": 1370,
+        "default_roll_length_m": 50,
+        "common_roll_lengths_m": [
+          30,
+          50,
+          100
+        ],
+        "per_extra_roll_setup_fee": 15
+      },
+      "laminating": {
+        "setup_fee": 15,
+        "rolls_per_hour": 1,
+        "trade_rate_per_hour": 70,
+        "nontrade_rate_per_hour": 90
+      },
+      "cutting": {
+        "aristo_two_meters_minutes": 10,
+        "kiss_cut_per_linear_m": 15,
+        "per_linear_meter_minutes": 5
+      },
+      "artwork_pricing": {
+        "base_cost": 5,
+        "first_included": true,
+        "additional_cost": 5
+      },
+      "minimum_order": {
+        "minimum_value": 45,
+        "handling_fee": 10
+      },
+      "gst": {
+        "rate": 1.1
+      }
+    },
+    "square_meter_rates": {
+      "standard_vinyl": [
+        {
+          "sqm_max": 0.01,
+          "rate": 950
+        },
+        {
+          "sqm_max": 0.02,
+          "rate": 475
+        },
+        {
+          "sqm_max": 0.03,
+          "rate": 317
+        },
+        {
+          "sqm_max": 0.05,
+          "rate": 190
+        },
+        {
+          "sqm_max": 0.08,
+          "rate": 119
+        },
+        {
+          "sqm_max": 0.1,
+          "rate": 95
+        },
+        {
+          "sqm_max": 0.15,
+          "rate": 73
+        },
+        {
+          "sqm_max": 0.2,
+          "rate": 60
+        },
+        {
+          "sqm_max": 0.25,
+          "rate": 52
+        },
+        {
+          "sqm_max": 0.3,
+          "rate": 47
+        },
+        {
+          "sqm_max": 0.4,
+          "rate": 42
+        },
+        {
+          "sqm_max": 0.5,
+          "rate": 38
+        },
+        {
+          "sqm_max": 0.6,
+          "rate": 35
+        },
+        {
+          "sqm_max": 0.7,
+          "rate": 33
+        },
+        {
+          "sqm_max": 0.8,
+          "rate": 31.5
+        },
+        {
+          "sqm_max": 0.9,
+          "rate": 30.2
+        },
+        {
+          "sqm_max": 1,
+          "rate": 29
+        },
+        {
+          "sqm_max": 1.25,
+          "rate": 27.5
+        },
+        {
+          "sqm_max": 1.5,
+          "rate": 26.3
+        },
+        {
+          "sqm_max": 1.75,
+          "rate": 25.4
+        },
+        {
+          "sqm_max": 2,
+          "rate": 24.5
+        },
+        {
+          "sqm_max": 2.5,
+          "rate": 23.2
+        },
+        {
+          "sqm_max": 3,
+          "rate": 22.3
+        },
+        {
+          "sqm_max": 3.5,
+          "rate": 21.6
+        },
+        {
+          "sqm_max": 4,
+          "rate": 21
+        },
+        {
+          "sqm_max": 4.5,
+          "rate": 20.5
+        },
+        {
+          "sqm_max": 5,
+          "rate": 20
+        },
+        {
+          "sqm_max": 6,
+          "rate": 19.3
+        },
+        {
+          "sqm_max": 7,
+          "rate": 18.8
+        },
+        {
+          "sqm_max": 8,
+          "rate": 18.4
+        },
+        {
+          "sqm_max": 9,
+          "rate": 18.1
+        },
+        {
+          "sqm_max": 10,
+          "rate": 17.8
+        },
+        {
+          "sqm_max": 12,
+          "rate": 17.4
+        },
+        {
+          "sqm_max": 14,
+          "rate": 17.1
+        },
+        {
+          "sqm_max": 16,
+          "rate": 16.9
+        },
+        {
+          "sqm_max": 18,
+          "rate": 16.7
+        },
+        {
+          "sqm_max": 20,
+          "rate": 16.5
+        },
+        {
+          "sqm_max": 25,
+          "rate": 16.2
+        },
+        {
+          "sqm_max": 30,
+          "rate": 16
+        },
+        {
+          "sqm_max": 35,
+          "rate": 15.8
+        },
+        {
+          "sqm_max": 40,
+          "rate": 15.6
+        },
+        {
+          "sqm_max": 45,
+          "rate": 15.5
+        },
+        {
+          "sqm_max": 50,
+          "rate": 15.4
+        },
+        {
+          "sqm_max": 60,
+          "rate": 15.2
+        },
+        {
+          "sqm_max": 70,
+          "rate": 15.1
+        },
+        {
+          "sqm_max": 80,
+          "rate": 15
+        },
+        {
+          "sqm_max": 90,
+          "rate": 14.9
+        },
+        {
+          "sqm_max": 100,
+          "rate": 14.8
+        },
+        {
+          "sqm_max": 150,
+          "rate": 14.5
+        },
+        {
+          "sqm_max": 200,
+          "rate": 14.3
+        },
+        {
+          "sqm_max": 999999,
+          "rate": 14
+        }
+      ],
+      "multipliers": {
+        "premium_vinyl": 1.25,
+        "clear_vinyl": 1.35,
+        "removable_vinyl": 1.15
+      }
+    },
+    "calculation_formula": {
+      "description": "Square-metre base pricing converted to roll linear metres when needed; includes roll setup, laminating and cutting labour rules",
+      "steps": [
+        "1. Determine sticker width_mm and height_mm from size or custom fields",
+        "2. Calculate sqm_per_sticker = (width_mm * height_mm) / 1,000,000",
+        "3. total_sqm = sqm_per_sticker * quantity",
+        "4. For roll-based costing: compute stickers_per_row = floor(roll_width_mm / sticker_width_mm)",
+        "   stickers_per_linear_m = stickers_per_row * floor(1000 / sticker_height_mm)",
+        "   raw_linear_m = ceil(quantity / stickers_per_linear_m)",
+        "   linear_m_with_waste = raw_linear_m * 1.10",
+        "   per_linear_m_rate = base_rate_per_sqm * roll_width_m (if converting from sqm rates)",
+        "   material_cost_by_line = per_linear_m_rate * linear_m_with_waste",
+        "5. Determine base_rate_per_sqm from the 51-tier table using total_sqm",
+        "6. Apply material and finish multipliers to get final_rate_per_sqm",
+        "7. printing_cost = total_sqm * final_rate_per_sqm (or use material_cost_by_line)",
+        "8. rolls_needed = ceil((linear_m_with_waste * 1.0) / default_roll_length_m)",
+        "9. per_roll_setup_total = per_extra_roll_setup_fee * max(0, rolls_needed - 1)",
+        "10. laminating_cost = laminating_setup_fee + (laminating_hours * labour_rate)",
+        "    where laminating_hours = rolls_needed / rolls_per_hour",
+        "11. cutting_labour_minutes = linear_m_with_waste * per_linear_meter_minutes",
+        "    cutting_labour_cost = (cutting_labour_minutes / 60) * labour_rate",
+        "12. kiss_cut_surcharge = kiss_cut_per_linear_m * linear_m_with_waste (if kiss-cut selected)",
+        "13. subtotal = printing_cost + per_roll_setup_total + laminating_cost + cutting_labour_cost + kiss_cut_surcharge + artwork_cost",
+        "14. total_with_gst = subtotal * gst_rate",
+        "15. apply minimum order rule and handling fee"
+      ]
+    }
+  }
+}

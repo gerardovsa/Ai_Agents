@@ -162,14 +162,15 @@ class UnifiedAIClient:
         # Use first available key
         api_key = api_key_supabase or api_key_env or api_key_config
         
-        # Log which source was used
+        # Log which source was used (show first 20 and last 8 chars for verification)
         if api_key:
+            key_display = f"{api_key[:20]}...{api_key[-8:]}" if len(api_key) > 28 else api_key
             if api_key == api_key_supabase:
-                print(f"[UnifiedAIClient] 🔐 Using Anthropic key from SUPABASE (key: {api_key[:20]}...)")
+                print(f"[UnifiedAIClient] 🔐 Using Anthropic key from SUPABASE (key: {key_display})")
             elif api_key == api_key_env:
-                print(f"[UnifiedAIClient] 🔐 Using Anthropic key from ENVIRONMENT (key: {api_key[:20]}...)")
+                print(f"[UnifiedAIClient] 🔐 Using Anthropic key from ENVIRONMENT (key: {key_display})")
             else:
-                print(f"[UnifiedAIClient] 🔐 Using Anthropic key from CONFIG FILE (key: {api_key[:20]}...)")
+                print(f"[UnifiedAIClient] 🔐 Using Anthropic key from CONFIG FILE (key: {key_display})")
             
             # Increase timeout to 120 seconds (from default 60s) to handle SSL handshake delays
             self.anthropic_client = Anthropic(

@@ -135,7 +135,8 @@ def init_prompt_library_table(db_path=None):
                 count = cursor.fetchone()[0]
             logger.info(f"✅ prompt_library table initialized ({count} existing prompts)")
         except Exception as count_error:
-            logger.warning(f"⚠️ Could not count prompts: {count_error}")
+            # Non-critical: just means we couldn't verify row count
+            logger.info(f"⚠️ Could not verify prompt count (non-critical): {count_error}")
         
         return True
         

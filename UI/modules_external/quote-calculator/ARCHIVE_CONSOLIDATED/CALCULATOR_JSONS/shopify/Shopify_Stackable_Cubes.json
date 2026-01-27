@@ -1,0 +1,522 @@
+{
+    "shopify_stackable_cubes": {
+        "product_title": "Stackable Cubes",
+        "product_type": "Stackable Cubes",
+        "vendor": "PrintShop",
+        "tags": [
+            "stackable",
+            "cubes",
+            "display",
+            "corflute",
+            "promotional",
+            "signage"
+        ],
+        "description": "Professional stackable display cubes made from durable corflute material. Perfect for retail displays, exhibitions, promotional events, and modular signage solutions. Available in multiple sizes with custom printing options.",
+        "options": [
+            {
+                "name": "Quantity",
+                "field_id": "q",
+                "type": "number",
+                "required": true,
+                "default": "1",
+                "min": 1,
+                "max": 1000,
+                "description": "Number of stackable cubes to produce"
+            },
+            {
+                "name": "Artworks",
+                "field_id": "art",
+                "type": "number",
+                "required": true,
+                "default": "1",
+                "min": 1,
+                "max": 20,
+                "description": "Number of different artwork designs"
+            },
+            {
+                "name": "Material",
+                "field_id": "f3",
+                "type": "select",
+                "required": true,
+                "default": "5mm Corflute",
+                "options": [
+                    {
+                        "title": "3mm Corflute",
+                        "price": 0,
+                        "price_type": "fixed",
+                        "sku": "3mm_corflute",
+                        "description": "3mm corrugated plastic - lightweight and cost-effective"
+                    },
+                    {
+                        "title": "5mm Corflute",
+                        "price": 0,
+                        "price_type": "fixed",
+                        "sku": "5mm_corflute",
+                        "description": "5mm corrugated plastic - premium durability and stability"
+                    }
+                ]
+            },
+            {
+                "name": "Cube Size",
+                "field_id": "f4",
+                "type": "select",
+                "required": true,
+                "default": "Medium 400mm x 400mm",
+                "options": [
+                    {
+                        "title": "Small 300mm x 300mm",
+                        "price": 0,
+                        "price_type": "fixed",
+                        "sku": "small_300x300",
+                        "description": "Small cube - 300mm x 300mm x 300mm (0.36 sqm per cube)",
+                        "dimensions": {
+                            "width": 300,
+                            "height": 300,
+                            "depth": 300,
+                            "sqm_per_cube": 0.36
+                        }
+                    },
+                    {
+                        "title": "Medium 400mm x 400mm",
+                        "price": 0,
+                        "price_type": "fixed",
+                        "sku": "medium_400x400",
+                        "description": "Medium cube - 400mm x 400mm x 400mm (0.64 sqm per cube)",
+                        "dimensions": {
+                            "width": 400,
+                            "height": 400,
+                            "depth": 400,
+                            "sqm_per_cube": 0.64
+                        }
+                    },
+                    {
+                        "title": "Large 500mm x 500mm",
+                        "price": 0,
+                        "price_type": "fixed",
+                        "sku": "large_500x500",
+                        "description": "Large cube - 500mm x 500mm x 500mm (1.0 sqm per cube)",
+                        "dimensions": {
+                            "width": 500,
+                            "height": 500,
+                            "depth": 500,
+                            "sqm_per_cube": 1.0
+                        }
+                    },
+                    {
+                        "title": "X-Large 580mm x 580mm",
+                        "price": 0,
+                        "price_type": "fixed",
+                        "sku": "xlarge_580x580",
+                        "description": "Extra Large cube - 580mm x 580mm x 580mm (1.35 sqm per cube)",
+                        "dimensions": {
+                            "width": 580,
+                            "height": 580,
+                            "depth": 580,
+                            "sqm_per_cube": 1.35
+                        }
+                    }
+                ]
+            }
+        ],
+        "pricing_constants": {
+            "setup_costs": {
+                "artwork_base_cost": 5,
+                "extra_artwork_cost": 5
+            },
+            "minimum_order": {
+                "value": 129,
+                "description": "Minimum order value before final multipliers"
+            },
+            "multipliers": {
+                "initial_markup": 1.1,
+                "description_1": "10% markup applied to material cost plus artwork",
+                "final_markup": 1.1,
+                "description_2": "Final 10% markup applied to total"
+            }
+        },
+        "cube_specifications": {
+            "small": {
+                "dimensions": "300mm x 300mm x 300mm",
+                "sqm_per_cube": 0.36,
+                "weight_approx": "1.5kg (5mm) / 1.0kg (3mm)",
+                "stacking_capacity": "Up to 10 cubes high"
+            },
+            "medium": {
+                "dimensions": "400mm x 400mm x 400mm",
+                "sqm_per_cube": 0.64,
+                "weight_approx": "2.5kg (5mm) / 1.8kg (3mm)",
+                "stacking_capacity": "Up to 8 cubes high"
+            },
+            "large": {
+                "dimensions": "500mm x 500mm x 500mm",
+                "sqm_per_cube": 1.0,
+                "weight_approx": "4.0kg (5mm) / 2.8kg (3mm)",
+                "stacking_capacity": "Up to 6 cubes high"
+            },
+            "xlarge": {
+                "dimensions": "580mm x 580mm x 580mm",
+                "sqm_per_cube": 1.35,
+                "weight_approx": "5.5kg (5mm) / 3.8kg (3mm)",
+                "stacking_capacity": "Up to 5 cubes high"
+            }
+        },
+        "material_pricing_tiers": {
+            "5mm_corflute": [
+                {
+                    "sqm_max": 5,
+                    "price_per_sqm": 37.50
+                },
+                {
+                    "sqm_max": 6,
+                    "price_per_sqm": 34.02
+                },
+                {
+                    "sqm_max": 7,
+                    "price_per_sqm": 30.18
+                },
+                {
+                    "sqm_max": 8,
+                    "price_per_sqm": 29.65
+                },
+                {
+                    "sqm_max": 9,
+                    "price_per_sqm": 27.29
+                },
+                {
+                    "sqm_max": 10,
+                    "price_per_sqm": 27.17
+                },
+                {
+                    "sqm_max": 15,
+                    "price_per_sqm": 26.49
+                },
+                {
+                    "sqm_max": 20,
+                    "price_per_sqm": 25.40
+                },
+                {
+                    "sqm_max": 25,
+                    "price_per_sqm": 24.46
+                },
+                {
+                    "sqm_max": 30,
+                    "price_per_sqm": 24.76
+                },
+                {
+                    "sqm_max": 35,
+                    "price_per_sqm": 23.73
+                },
+                {
+                    "sqm_max": 40,
+                    "price_per_sqm": 23.39
+                },
+                {
+                    "sqm_max": 45,
+                    "price_per_sqm": 22.72
+                },
+                {
+                    "sqm_max": 50,
+                    "price_per_sqm": 22.52
+                },
+                {
+                    "sqm_max": 60,
+                    "price_per_sqm": 22.04
+                },
+                {
+                    "sqm_max": 70,
+                    "price_per_sqm": 21.52
+                },
+                {
+                    "sqm_max": 80,
+                    "price_per_sqm": 21.11
+                },
+                {
+                    "sqm_max": 90,
+                    "price_per_sqm": 20.79
+                },
+                {
+                    "sqm_max": 100,
+                    "price_per_sqm": 20.50
+                },
+                {
+                    "sqm_max": 110,
+                    "price_per_sqm": 20.27
+                },
+                {
+                    "sqm_max": 120,
+                    "price_per_sqm": 20.06
+                },
+                {
+                    "sqm_max": 130,
+                    "price_per_sqm": 19.88
+                },
+                {
+                    "sqm_max": 140,
+                    "price_per_sqm": 19.72
+                },
+                {
+                    "sqm_max": 150,
+                    "price_per_sqm": 19.56
+                },
+                {
+                    "sqm_max": 175,
+                    "price_per_sqm": 19.43
+                },
+                {
+                    "sqm_max": 200,
+                    "price_per_sqm": 19.18
+                },
+                {
+                    "sqm_max": 225,
+                    "price_per_sqm": 18.92
+                },
+                {
+                    "sqm_max": 250,
+                    "price_per_sqm": 18.75
+                },
+                {
+                    "sqm_max": 275,
+                    "price_per_sqm": 18.54
+                },
+                {
+                    "sqm_max": 300,
+                    "price_per_sqm": 18.41
+                },
+                {
+                    "sqm_max": 325,
+                    "price_per_sqm": 18.26
+                },
+                {
+                    "sqm_max": 350,
+                    "price_per_sqm": 18.16
+                },
+                {
+                    "sqm_max": 375,
+                    "price_per_sqm": 18.03
+                },
+                {
+                    "sqm_max": 400,
+                    "price_per_sqm": 17.93
+                },
+                {
+                    "sqm_max": 425,
+                    "price_per_sqm": 17.83
+                },
+                {
+                    "sqm_max": 450,
+                    "price_per_sqm": 17.76
+                },
+                {
+                    "sqm_max": 475,
+                    "price_per_sqm": 17.67
+                },
+                {
+                    "sqm_max": 500,
+                    "price_per_sqm": 17.61
+                },
+                {
+                    "sqm_max": 539,
+                    "price_per_sqm": 17.40
+                },
+                {
+                    "sqm_max": 550,
+                    "price_per_sqm": 17.40
+                },
+                {
+                    "sqm_max": 600,
+                    "price_per_sqm": 17.40
+                },
+                {
+                    "sqm_max": 650,
+                    "price_per_sqm": 17.30
+                },
+                {
+                    "sqm_max": 700,
+                    "price_per_sqm": 17.20
+                },
+                {
+                    "sqm_max": 999999,
+                    "price_per_sqm": 17.80
+                }
+            ],
+            "3mm_corflute": [
+                {
+                    "sqm_max": 5,
+                    "price_per_sqm": 25.00
+                },
+                {
+                    "sqm_max": 6,
+                    "price_per_sqm": 25.00
+                },
+                {
+                    "sqm_max": 7,
+                    "price_per_sqm": 22.09
+                },
+                {
+                    "sqm_max": 8,
+                    "price_per_sqm": 21.48
+                },
+                {
+                    "sqm_max": 9,
+                    "price_per_sqm": 21.02
+                },
+                {
+                    "sqm_max": 10,
+                    "price_per_sqm": 20.75
+                },
+                {
+                    "sqm_max": 15,
+                    "price_per_sqm": 20.73
+                },
+                {
+                    "sqm_max": 20,
+                    "price_per_sqm": 19.13
+                },
+                {
+                    "sqm_max": 25,
+                    "price_per_sqm": 18.82
+                },
+                {
+                    "sqm_max": 30,
+                    "price_per_sqm": 18.28
+                },
+                {
+                    "sqm_max": 35,
+                    "price_per_sqm": 17.61
+                },
+                {
+                    "sqm_max": 40,
+                    "price_per_sqm": 17.32
+                },
+                {
+                    "sqm_max": 45,
+                    "price_per_sqm": 16.89
+                },
+                {
+                    "sqm_max": 50,
+                    "price_per_sqm": 16.70
+                },
+                {
+                    "sqm_max": 60,
+                    "price_per_sqm": 16.40
+                },
+                {
+                    "sqm_max": 70,
+                    "price_per_sqm": 16.03
+                },
+                {
+                    "sqm_max": 80,
+                    "price_per_sqm": 15.74
+                },
+                {
+                    "sqm_max": 90,
+                    "price_per_sqm": 15.50
+                },
+                {
+                    "sqm_max": 100,
+                    "price_per_sqm": 15.30
+                },
+                {
+                    "sqm_max": 110,
+                    "price_per_sqm": 15.13
+                },
+                {
+                    "sqm_max": 120,
+                    "price_per_sqm": 14.98
+                },
+                {
+                    "sqm_max": 130,
+                    "price_per_sqm": 14.85
+                },
+                {
+                    "sqm_max": 140,
+                    "price_per_sqm": 14.74
+                },
+                {
+                    "sqm_max": 150,
+                    "price_per_sqm": 14.63
+                },
+                {
+                    "sqm_max": 175,
+                    "price_per_sqm": 14.54
+                },
+                {
+                    "sqm_max": 200,
+                    "price_per_sqm": 14.35
+                },
+                {
+                    "sqm_max": 225,
+                    "price_per_sqm": 14.16
+                },
+                {
+                    "sqm_max": 250,
+                    "price_per_sqm": 14.03
+                },
+                {
+                    "sqm_max": 275,
+                    "price_per_sqm": 13.89
+                },
+                {
+                    "sqm_max": 300,
+                    "price_per_sqm": 13.80
+                },
+                {
+                    "sqm_max": 325,
+                    "price_per_sqm": 13.69
+                },
+                {
+                    "sqm_max": 350,
+                    "price_per_sqm": 13.61
+                },
+                {
+                    "sqm_max": 375,
+                    "price_per_sqm": 13.52
+                },
+                {
+                    "sqm_max": 400,
+                    "price_per_sqm": 13.46
+                },
+                {
+                    "sqm_max": 425,
+                    "price_per_sqm": 13.39
+                },
+                {
+                    "sqm_max": 450,
+                    "price_per_sqm": 13.34
+                },
+                {
+                    "sqm_max": 475,
+                    "price_per_sqm": 13.27
+                },
+                {
+                    "sqm_max": 500,
+                    "price_per_sqm": 13.22
+                },
+                {
+                    "sqm_max": 539,
+                    "price_per_sqm": 13.08
+                },
+                {
+                    "sqm_max": 550,
+                    "price_per_sqm": 13.08
+                },
+                {
+                    "sqm_max": 600,
+                    "price_per_sqm": 13.08
+                },
+                {
+                    "sqm_max": 650,
+                    "price_per_sqm": 13.00
+                },
+                {
+                    "sqm_max": 700,
+                    "price_per_sqm": 12.42
+                },
+                {
+                    "sqm_max": 999999,
+                    "price_per_sqm": 12.42
+                }
+            ]
+        }
+    }
+}

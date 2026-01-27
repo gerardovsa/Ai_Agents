@@ -163,8 +163,12 @@ class SchemaTypeEnforcer:
         
         @functools.wraps(func)
         def wrapper(*args, **kwargs):
+            # Filter out internal registry parameters before binding
+            internal_params = {'_user_id', '_injected_credentials', '_session_id', '_thread_id', '_user_request', '_workflow_context'}
+            filtered_kwargs = {k: v for k, v in kwargs.items() if k not in internal_params}
+            
             # Convert positional args
-            bound_args = sig.bind_partial(*args, **kwargs)
+            bound_args = sig.bind_partial(*args, **filtered_kwargs)
             bound_args.apply_defaults()
             
             # Enforce types on all parameters

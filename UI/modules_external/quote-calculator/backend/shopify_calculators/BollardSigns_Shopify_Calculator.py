@@ -66,80 +66,143 @@ class BollardSignsShopifyCalculator:
         """
         Calculate Bollard Signs Shopify quote
         
+        ✅ FIXED JAN 23, 2026 (RE-AUDIT): Now implements JSON specification correctly
+        - 42-tier pricing per material (not fixed rates)
+        - Correct setup costs ($5 base + $5 per extra artwork)
+        - Final multiplier (1.3x before GST)
+        - Minimum order check ($129)
+        - JSON dimensions mapping
+        
         Args:
             **kwargs: Calculator parameters from JSON config
+                quantity: Number of signs (1-1000)
+                material: "3mm Corflute" or "5mm Corflute" (JSON format)
+                size: "270mm W x 1000mm H - Three Sided" format (JSON format)
+                artworks: Number of artwork designs (1-20)
         
         Returns:
             BollardSignsShopifyCalculatorQuoteResult with pricing details
         """
-        quantity = int(kwargs.get('quantity', kwargs.get('qty', 10)))
-        size = kwargs.get('size', '300x300')
-        material = kwargs.get('material', 'Aluminium')
-        sides = kwargs.get('sides', 'Single')
+        import re
+        
+        quantity = int(kwargs.get('quantity', kwargs.get('qty', 1)))
+        size_raw = kwargs.get('size', '270mm W x 1000mm H - Three Sided')  # JSON default
+        material_raw = kwargs.get('material', '5mm Corflute')  # JSON default
         artworks = int(kwargs.get('artworks', 1))
 
         if quantity <= 0:
             raise ValueError('Quantity must be > 0')
 
-        try:
-            w_str, h_str = size.lower().split('x')
-            width_mm = Decimal(w_str)
-            height_mm = Decimal(h_str)
-            area_m2 = (width_mm * height_mm) / Decimal('1000000')
-        except Exception:
-            area_m2 = Decimal('0.09')
+        # ✅ Get dimensions from JSON mapping first
+        if self.config and 'shopify_bollard_signs' in self.config:
+            dimensions_map = self.config['shopify_bollard_signs'].get('size_dimensions', {})
+            if size_raw in dimensions_map:
+                dims = dimensions_map[size_raw]
+                width_mm = Decimal(str(dims['width']))
+                height_mm = Decimal(str(dims['height']))
+                area_m2 = (width_mm * height_mm) / Decimal('1000000')
+            else:
+                # Fallback to regex parsing
+                match = re.search(r'(\d+)mm\s*W\s*x\s*(\d+)mm\s*H', size_raw, re.IGNORECASE)
+                if match:
+                    width_mm = Decimal(match.group(1))
+                    height_mm = Decimal(match.group(2))
+                    area_m2 = (width_mm * height_mm) / Decimal('1000000')
+                else:
+                    raise ValueError(f"Cannot parse size: {size_raw}")
+        else:
+            # No config - use regex parsing
+            match = re.search(r'(\d+)mm\s*W\s*x\s*(\d+)mm\s*H', size_raw, re.IGNORECASE)
+            if match:
+                width_mm = Decimal(match.group(1))
+                height_mm = Decimal(match.group(2))
+                area_m2 = (width_mm * height_mm) / Decimal('1000000')
+            else:
+                raise ValueError(f"Cannot parse size: {size_raw}")
+        
+        # Extract sides from size description
+        if 'Four Sided' in size_raw or 'four sided' in size_raw.lower():
+            sides = 'Four'
+            sides_multiplier = Decimal('4')
+        else:
+            sides = 'Three'
+            sides_multiplier = Decimal('3')
 
-        material_map = {'aluminium': Decimal('28.00'), 'metal': Decimal('22.00')}
-        material_rate = material_map.get(material.lower(), Decimal('28.00'))
+        # ✅ RE-FIXED JAN 26, 2026: RESTORED sides multiplier (was incorrectly removed Jan 23)
+        # Validation specs confirm: total_sqm = area × quantity × sides
+        # Example: 0.91 m² × 1 qty × 3 sides = 2.73 sqm (matches Shopify formula)
+        total_sqm = area_m2 * Decimal(quantity) * sides_multiplier
+        
+        # ✅ Get tiered price per sqm from JSON
+        price_per_sqm = self._get_price_per_sqm(total_sqm, material_raw)
+        
+        # ✅ Calculate material cost using tiered pricing
+        material_cost = total_sqm * price_per_sqm
 
-        impos_setup = Decimal('40')
-        extra_arts = Decimal('25')
-        artwork_setup_cost = (Decimal(artworks) - Decimal(1)) * extra_arts if artworks > 1 else Decimal('0')
+        # ✅ Get setup costs from JSON constants
+        if self.config and 'shopify_bollard_signs' in self.config:
+            constants = self.config['shopify_bollard_signs']['pricing_constants']
+            artwork_base = Decimal(str(constants['setup_costs']['artwork_base_cost']))  # $5
+            extra_artwork = Decimal(str(constants['setup_costs']['extra_artwork_cost']))  # $5
+            minimum_order = Decimal(str(constants['minimum_order']['value']))  # $129
+            final_multiplier = Decimal(str(constants['final_multiplier']['rate']))  # 1.3
+        else:
+            # Fallback if no config
+            artwork_base = Decimal('5')
+            extra_artwork = Decimal('5')
+            minimum_order = Decimal('129')
+            final_multiplier = Decimal('1.3')
+        
+        # ✅ FIXED JAN 26, 2026: Corrected artwork cost formula
+        # Validation specs: "$5 base + $5 per extra" = $5 + (art-1) × $5
+        # Example: 1 artwork = $5, 3 artworks = $5 + (3-1)×$5 = $15
+        # OLD (incorrect): "First FREE, then $5 each" = (art × 5) - 5
+        artwork_setup_cost = artwork_base + (Decimal(artworks) - Decimal('1')) * extra_artwork
 
-        print_cost_per_m2 = Decimal('12.00')
-        sides_multiplier = Decimal('2') if 'double' in sides.lower() else Decimal('1')
+        # Calculate costs
+        impos_setup = Decimal('0')  # No imposition setup in JSON formula
+        print_cost = Decimal('0')  # Included in material_cost via sqm pricing
+        installation_preparation = Decimal('0')  # Not in JSON formula
 
-        material_cost = area_m2 * material_rate * Decimal(quantity)
-        print_cost = area_m2 * print_cost_per_m2 * Decimal(quantity) * sides_multiplier
+        # Business cost = material + setup
+        biz_cost = material_cost + artwork_setup_cost
 
-        installation_preparation = Decimal('2.50') * Decimal(quantity)
+        # ✅ Apply minimum order
+        if biz_cost < minimum_order:
+            biz_cost = minimum_order
 
-        biz_cost = impos_setup + artwork_setup_cost + material_cost + print_cost + installation_preparation
-
-        profit_margin_rate = self._get_profit_margin(float(biz_cost))
-        profit_amount = biz_cost * profit_margin_rate
-        sub_total = biz_cost + profit_amount
-
-        PRICE_INCREASE_MULTIPLIER = Decimal('1.00')
-        GST_RATE = Decimal('1.10')
-
-        subtotal_with_increase = sub_total * PRICE_INCREASE_MULTIPLIER
-        total_price = (subtotal_with_increase * GST_RATE) * GST_RATE
-        total_price = total_price.quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
+        # ✅ RE-FIXED JAN 26, 2026: RESTORED double GST (was incorrectly removed Jan 23)
+        # Validation specs confirm: After multiplier × 1.1 × 1.1
+        # Example: $129 × 1.3 × 1.1 × 1.1 = $202.92 (matches Shopify formula)
+        subtotal_with_multiplier = biz_cost * final_multiplier
+        after_first_gst = subtotal_with_multiplier * Decimal('1.1')
+        total_price = (after_first_gst * Decimal('1.1')).quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
 
         unit_price = total_price / Decimal(quantity)
 
         breakdown = {
-            'impos_setup': impos_setup,
-            'artwork_setup_cost': artwork_setup_cost,
+            'area_per_sign_m2': area_m2,
+            'sides_multiplier': sides_multiplier,  # Used in calculation
+            'total_sqm': total_sqm,  # WITH sides multiplier (0.91 × qty × 3)
+            'price_per_sqm': price_per_sqm,
             'material_cost': material_cost,
-            'print_cost': print_cost,
-            'installation_preparation': installation_preparation,
+            'artwork_setup_cost': artwork_setup_cost,  # $5 base + $5 per extra
             'biz_cost': biz_cost,
-            'profit_margin_rate': Decimal(profit_margin_rate),
-            'profit_amount': profit_amount,
-            'subtotal': sub_total,
-            'subtotal_with_increase': subtotal_with_increase,
-            'gst_rate': GST_RATE,
-            'total_price': total_price,
+            'minimum_order_applied': biz_cost == minimum_order,
+            'final_multiplier': final_multiplier,
+            'subtotal_with_multiplier': subtotal_with_multiplier,
+            'after_first_gst': after_first_gst,
+            'total_price': total_price,  # After double GST (×1.1 ×1.1)
         }
 
         specifications = {
             'quantity': quantity,
-            'size_mm': f"{width_mm}x{height_mm}" if 'width_mm' in locals() else size,
-            'material': material,
+            'size': size_raw,
+            'material': material_raw,
             'sides': sides,
-            'area_m2': float(area_m2)
+            'area_m2': float(area_m2),
+            'total_sqm': float(total_sqm),
+            'artworks': artworks
         }
 
         return BollardSignsShopifyCalculatorQuoteResult(
@@ -150,6 +213,41 @@ class BollardSignsShopifyCalculator:
             breakdown=breakdown,
             specifications=specifications
         )
+    
+    def _get_price_per_sqm(self, total_sqm: Decimal, material: str) -> Decimal:
+        """
+        Get tiered price per square meter from Shopify formula
+        
+        Args:
+            total_sqm: Total square meters (area × quantity) - NO sides multiplier!
+            material: "3mm Corflute" or "5mm Corflute"
+        
+        Returns:
+            Price per sqm based on tier (42 tiers per material)
+        """
+        # Determine tier key
+        if '3mm' in material:
+            tier_key = '3mm_corflute'
+        elif '5mm' in material:
+            tier_key = '5mm_corflute'
+        else:
+            raise ValueError(f"Unknown material: {material}")
+        
+        # Get tiers from config
+        if not self.config or 'shopify_bollard_signs' not in self.config:
+            # Fallback to fixed rates if no config
+            return Decimal('28.00') if '5mm' in material else Decimal('24.00')
+        
+        tiers = self.config['shopify_bollard_signs']['material_pricing_tiers'][tier_key]
+        
+        # Find matching tier
+        total_sqm_float = float(total_sqm)
+        for tier in tiers:
+            if total_sqm_float <= tier['sqm_max']:
+                return Decimal(str(tier['price_per_sqm']))
+        
+        # Fallback to last tier if beyond max
+        return Decimal(str(tiers[-1]['price_per_sqm']))
     
     def _get_padding_rate(self, quantity: int) -> Decimal:
         """Get padding rate (no tiers defined)"""

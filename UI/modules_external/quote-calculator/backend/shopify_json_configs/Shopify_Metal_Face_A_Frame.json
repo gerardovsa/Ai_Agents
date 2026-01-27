@@ -1,0 +1,91 @@
+{
+  "shopify_metal_face_a_frame": {
+    "product_title": "Metal Face A-Frame",
+    "product_type": "A-Frames",
+    "vendor": "PrintShop",
+    "tags": ["a-frames", "metal", "signage", "display", "outdoor", "durable"],
+    "description": "Premium metal face A-frame signs with durable construction and professional finish. Perfect for high-traffic outdoor locations, retail displays, and permanent signage applications where durability and weather resistance are essential.",
+    "options": [
+      {
+        "name": "Quantity",
+        "field_id": "F1",
+        "type": "number",
+        "required": true,
+        "default": 1,
+        "price": 0,
+        "price_type": "fixed",
+        "sku": "q",
+        "description": "Number of metal face A-frame signs required",
+        "min": 1,
+        "max": 100,
+        "visibility": {
+          "make_it": "Visible",
+          "if": "Always visible"
+        }
+      },
+      {
+        "name": "Artworks",
+        "field_id": "F2",
+        "type": "number",
+        "required": true,
+        "default": 1,
+        "price": 6,
+        "price_type": "per_artwork",
+        "sku": "art",
+        "description": "Number of different artwork designs (first artwork included, additional at $6 each)",
+        "min": 1,
+        "max": 20,
+        "visibility": {
+          "make_it": "Visible",
+          "if": "(F1 < '2')",
+          "description": "Artworks field visible when quantity is less than 2"
+        }
+      },
+      {
+        "name": "Size",
+        "field_id": "F4",
+        "type": "select",
+        "required": true,
+        "default": "600mm W x 900mm H",
+        "options": [
+          {
+            "title": "600mm W x 900mm H",
+            "price": 0,
+            "price_type": "fixed",
+            "sku": "size_600x900",
+            "description": "Standard metal face A-frame size (600mm wide x 900mm high)"
+          }
+        ]
+      }
+    ],
+    "pricing_constants": {
+      "setup_costs": {
+        "artwork_base_cost": 6
+      },
+      "production_constants": {
+        "artwork_threshold": 6
+      }
+    },
+    "quantity_pricing_tiers": [
+      {"quantity": 1, "unit_price": 197},
+      {"quantity": 2, "unit_price": 186},
+      {"quantity": 3, "unit_price": 179.55},
+      {"quantity": 4, "unit_price": 171.05},
+      {"quantity": 5, "unit_price": 165.8},
+      {"quantity": 6, "unit_price": 170.31},
+      {"quantity": 7, "unit_price": 166.41},
+      {"quantity": 8, "unit_price": 163.39},
+      {"quantity": 9, "unit_price": 160.96},
+      {"quantity": 10, "unit_price": 159.35},
+      {"quantity_range": "11+", "unit_price": 159.35}
+    ],
+    "gst_calculation": {
+      "rate": 1.1,
+      "description": "10% GST (Australia)"
+    },
+    "final_multiplier": {
+      "rate": 1.1,
+      "description": "Additional 10% multiplier applied to final total"
+    }
+  }
+}

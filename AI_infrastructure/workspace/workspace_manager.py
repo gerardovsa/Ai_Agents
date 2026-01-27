@@ -420,7 +420,7 @@ class WorkspaceManager:
                 
                 if update_data.status == WorkspaceStatus.ARCHIVED:
                     updates.append("archived_at = %s")
-                    params.append(datetime.utcnow().isoformat())
+                    params.append(datetime.now(UTC).isoformat())
             
             if update_data.visibility is not None:
                 updates.append("visibility = %s")
@@ -500,7 +500,7 @@ class WorkspaceManager:
                 cursor.execute("DELETE FROM workspaces WHERE id = %s", (workspace_id,))
             else:
                 # Soft delete
-                now = datetime.utcnow().isoformat()
+                now = datetime.now(UTC).isoformat()
                 cursor.execute("""
                     UPDATE workspaces 
                     SET status = %s, archived_at = %s, updated_at = %s

@@ -1,0 +1,640 @@
+{
+    "shopify_bollard_signs": {
+        "product_title": "Bollard Signs",
+        "product_type": "Bollard Signs",
+        "vendor": "PrintShop",
+        "tags": [
+            "bollard",
+            "signs",
+            "outdoor",
+            "corflute",
+            "directional",
+            "signage"
+        ],
+        "description": "Professional bollard signs available in various sizes with three-sided or four-sided configurations. Perfect for directional signage, advertising, and outdoor displays. Made from durable corflute material.",
+        "options": [
+            {
+                "name": "Quantity",
+                "field_id": "F1",
+                "type": "number",
+                "required": true,
+                "default": "1",
+                "min": 1,
+                "max": 1000,
+                "description": "Number of bollard signs to produce"
+            },
+            {
+                "name": "Material",
+                "field_id": "F4",
+                "type": "select",
+                "required": true,
+                "default": "5mm Corflute",
+                "options": [
+                    {
+                        "title": "3mm Corflute",
+                        "price": 0,
+                        "price_type": "fixed",
+                        "sku": "3mm_corflute",
+                        "description": "3mm corrugated plastic - lightweight option"
+                    },
+                    {
+                        "title": "5mm Corflute",
+                        "price": 0,
+                        "price_type": "fixed",
+                        "sku": "5mm_corflute",
+                        "description": "5mm corrugated plastic - standard durability"
+                    }
+                ]
+            },
+            {
+                "name": "Size",
+                "field_id": "F6",
+                "type": "select",
+                "required": true,
+                "default": "270mm W x 1000mm H - Three Sided",
+                "options": [
+                    {
+                        "title": "270mm W x 1000mm H - Three Sided",
+                        "price": 0,
+                        "price_type": "fixed",
+                        "sku": "270x1000_3side",
+                        "description": "270mm wide x 1000mm high, three-sided configuration",
+                        "dimensions": {
+                            "width": 1000,
+                            "height": 910,
+                            "sides": 3
+                        }
+                    },
+                    {
+                        "title": "270mm W x 1200mm H - Three Sided",
+                        "price": 0,
+                        "price_type": "fixed",
+                        "sku": "270x1200_3side",
+                        "description": "270mm wide x 1200mm high, three-sided configuration",
+                        "dimensions": {
+                            "width": 1200,
+                            "height": 910,
+                            "sides": 3
+                        }
+                    },
+                    {
+                        "title": "270mm W x 1800mm H - Three Sided",
+                        "price": 0,
+                        "price_type": "fixed",
+                        "sku": "270x1800_3side",
+                        "description": "270mm wide x 1800mm high, three-sided configuration",
+                        "dimensions": {
+                            "width": 1800,
+                            "height": 910,
+                            "sides": 3
+                        }
+                    },
+                    {
+                        "title": "300mm W x 1000mm H - Three Sided",
+                        "price": 0,
+                        "price_type": "fixed",
+                        "sku": "300x1000_3side",
+                        "description": "300mm wide x 1000mm high, three-sided configuration",
+                        "dimensions": {
+                            "width": 1000,
+                            "height": 1000,
+                            "sides": 3
+                        }
+                    },
+                    {
+                        "title": "300mm W x 1200mm H - Three Sided",
+                        "price": 0,
+                        "price_type": "fixed",
+                        "sku": "300x1200_3side",
+                        "description": "300mm wide x 1200mm high, three-sided configuration",
+                        "dimensions": {
+                            "width": 1200,
+                            "height": 1000,
+                            "sides": 3
+                        }
+                    },
+                    {
+                        "title": "300mm W x 1800mm H - Three Sided",
+                        "price": 0,
+                        "price_type": "fixed",
+                        "sku": "300x1800_3side",
+                        "description": "300mm wide x 1800mm high, three-sided configuration",
+                        "dimensions": {
+                            "width": 1800,
+                            "height": 1000,
+                            "sides": 3
+                        }
+                    },
+                    {
+                        "title": "155mm W x 1000mm H - Four Sided",
+                        "price": 0,
+                        "price_type": "fixed",
+                        "sku": "155x1000_4side",
+                        "description": "155mm wide x 1000mm high, four-sided configuration",
+                        "dimensions": {
+                            "width": 1000,
+                            "height": 720,
+                            "sides": 4
+                        }
+                    },
+                    {
+                        "title": "155mm W x 1200mm H - Four Sided",
+                        "price": 0,
+                        "price_type": "fixed",
+                        "sku": "155x1200_4side",
+                        "description": "155mm wide x 1200mm high, four-sided configuration",
+                        "dimensions": {
+                            "width": 1200,
+                            "height": 720,
+                            "sides": 4
+                        }
+                    },
+                    {
+                        "title": "155mm W x 1800mm H - Four Sided",
+                        "price": 0,
+                        "price_type": "fixed",
+                        "sku": "155x1800_4side",
+                        "description": "155mm wide x 1800mm high, four-sided configuration",
+                        "dimensions": {
+                            "width": 1800,
+                            "height": 720,
+                            "sides": 4
+                        }
+                    },
+                    {
+                        "title": "175mm W x 1000mm H - Four Sided",
+                        "price": 0,
+                        "price_type": "fixed",
+                        "sku": "175x1000_4side",
+                        "description": "175mm wide x 1000mm high, four-sided configuration",
+                        "dimensions": {
+                            "width": 1000,
+                            "height": 800,
+                            "sides": 4
+                        }
+                    },
+                    {
+                        "title": "175mm W x 1200mm H - Four Sided",
+                        "price": 0,
+                        "price_type": "fixed",
+                        "sku": "175x1200_4side",
+                        "description": "175mm wide x 1200mm high, four-sided configuration",
+                        "dimensions": {
+                            "width": 1200,
+                            "height": 800,
+                            "sides": 4
+                        }
+                    },
+                    {
+                        "title": "175mm W x 1800mm H - Four Sided",
+                        "price": 0,
+                        "price_type": "fixed",
+                        "sku": "175x1800_4side",
+                        "description": "175mm wide x 1800mm high, four-sided configuration",
+                        "dimensions": {
+                            "width": 1800,
+                            "height": 800,
+                            "sides": 4
+                        }
+                    }
+                ]
+            },
+            {
+                "name": "Artworks",
+                "field_id": "F10",
+                "type": "number",
+                "required": true,
+                "default": "1",
+                "min": 1,
+                "max": 20,
+                "visibility": {
+                    "make_it": "visible",
+                    "condition": "(F1 > 2)"
+                },
+                "description": "Number of different artwork designs"
+            }
+        ],
+        "pricing_constants": {
+            "setup_costs": {
+                "artwork_base_cost": 5,
+                "extra_artwork_cost": 5
+            },
+            "minimum_order": {
+                "value": 129,
+                "description": "Minimum order value before final multiplier"
+            },
+            "final_multiplier": {
+                "rate": 1.3,
+                "description": "30% markup applied to final total"
+            }
+        },
+        "material_pricing_tiers": {
+            "5mm_corflute": [
+                {
+                    "sqm_max": 5,
+                    "price_per_sqm": 31.25
+                },
+                {
+                    "sqm_max": 6,
+                    "price_per_sqm": 28.35
+                },
+                {
+                    "sqm_max": 7,
+                    "price_per_sqm": 25.15
+                },
+                {
+                    "sqm_max": 8,
+                    "price_per_sqm": 24.71
+                },
+                {
+                    "sqm_max": 9,
+                    "price_per_sqm": 22.74
+                },
+                {
+                    "sqm_max": 10,
+                    "price_per_sqm": 22.64
+                },
+                {
+                    "sqm_max": 15,
+                    "price_per_sqm": 21.24
+                },
+                {
+                    "sqm_max": 20,
+                    "price_per_sqm": 19.5
+                },
+                {
+                    "sqm_max": 25,
+                    "price_per_sqm": 17.05
+                },
+                {
+                    "sqm_max": 30,
+                    "price_per_sqm": 17.3
+                },
+                {
+                    "sqm_max": 35,
+                    "price_per_sqm": 16.44
+                },
+                {
+                    "sqm_max": 40,
+                    "price_per_sqm": 16.16
+                },
+                {
+                    "sqm_max": 45,
+                    "price_per_sqm": 15.6
+                },
+                {
+                    "sqm_max": 50,
+                    "price_per_sqm": 15.43
+                },
+                {
+                    "sqm_max": 60,
+                    "price_per_sqm": 15.03
+                },
+                {
+                    "sqm_max": 70,
+                    "price_per_sqm": 14.6
+                },
+                {
+                    "sqm_max": 80,
+                    "price_per_sqm": 14.26
+                },
+                {
+                    "sqm_max": 90,
+                    "price_per_sqm": 13.99
+                },
+                {
+                    "sqm_max": 100,
+                    "price_per_sqm": 13.75
+                },
+                {
+                    "sqm_max": 110,
+                    "price_per_sqm": 13.56
+                },
+                {
+                    "sqm_max": 120,
+                    "price_per_sqm": 13.38
+                },
+                {
+                    "sqm_max": 130,
+                    "price_per_sqm": 13.23
+                },
+                {
+                    "sqm_max": 140,
+                    "price_per_sqm": 13.1
+                },
+                {
+                    "sqm_max": 150,
+                    "price_per_sqm": 12.97
+                },
+                {
+                    "sqm_max": 175,
+                    "price_per_sqm": 12.86
+                },
+                {
+                    "sqm_max": 200,
+                    "price_per_sqm": 12.65
+                },
+                {
+                    "sqm_max": 225,
+                    "price_per_sqm": 12.43
+                },
+                {
+                    "sqm_max": 250,
+                    "price_per_sqm": 12.29
+                },
+                {
+                    "sqm_max": 275,
+                    "price_per_sqm": 12.12
+                },
+                {
+                    "sqm_max": 300,
+                    "price_per_sqm": 12.01
+                },
+                {
+                    "sqm_max": 325,
+                    "price_per_sqm": 11.88
+                },
+                {
+                    "sqm_max": 350,
+                    "price_per_sqm": 11.8
+                },
+                {
+                    "sqm_max": 375,
+                    "price_per_sqm": 11.69
+                },
+                {
+                    "sqm_max": 400,
+                    "price_per_sqm": 11.61
+                },
+                {
+                    "sqm_max": 425,
+                    "price_per_sqm": 11.53
+                },
+                {
+                    "sqm_max": 450,
+                    "price_per_sqm": 11.47
+                },
+                {
+                    "sqm_max": 475,
+                    "price_per_sqm": 11.39
+                },
+                {
+                    "sqm_max": 500,
+                    "price_per_sqm": 11.34
+                },
+                {
+                    "sqm_max": 539,
+                    "price_per_sqm": 11.17
+                },
+                {
+                    "sqm_max": 550,
+                    "price_per_sqm": 11.17
+                },
+                {
+                    "sqm_max": 600,
+                    "price_per_sqm": 11.17
+                },
+                {
+                    "sqm_max": 650,
+                    "price_per_sqm": 11.08
+                },
+                {
+                    "sqm_max": 700,
+                    "price_per_sqm": 11
+                },
+                {
+                    "sqm_max": 999999,
+                    "price_per_sqm": 10.97
+                }
+            ],
+            "3mm_corflute": [
+                {
+                    "sqm_max": 5,
+                    "price_per_sqm": 25
+                },
+                {
+                    "sqm_max": 6,
+                    "price_per_sqm": 25
+                },
+                {
+                    "sqm_max": 7,
+                    "price_per_sqm": 21.09
+                },
+                {
+                    "sqm_max": 8,
+                    "price_per_sqm": 20.48
+                },
+                {
+                    "sqm_max": 9,
+                    "price_per_sqm": 19.02
+                },
+                {
+                    "sqm_max": 10,
+                    "price_per_sqm": 18.75
+                },
+                {
+                    "sqm_max": 15,
+                    "price_per_sqm": 17.73
+                },
+                {
+                    "sqm_max": 20,
+                    "price_per_sqm": 16.13
+                },
+                {
+                    "sqm_max": 25,
+                    "price_per_sqm": 14.82
+                },
+                {
+                    "sqm_max": 30,
+                    "price_per_sqm": 14.28
+                },
+                {
+                    "sqm_max": 35,
+                    "price_per_sqm": 13.61
+                },
+                {
+                    "sqm_max": 40,
+                    "price_per_sqm": 13.32
+                },
+                {
+                    "sqm_max": 45,
+                    "price_per_sqm": 12.89
+                },
+                {
+                    "sqm_max": 50,
+                    "price_per_sqm": 12.7
+                },
+                {
+                    "sqm_max": 60,
+                    "price_per_sqm": 12.4
+                },
+                {
+                    "sqm_max": 70,
+                    "price_per_sqm": 12.03
+                },
+                {
+                    "sqm_max": 80,
+                    "price_per_sqm": 11.74
+                },
+                {
+                    "sqm_max": 90,
+                    "price_per_sqm": 11.5
+                },
+                {
+                    "sqm_max": 100,
+                    "price_per_sqm": 11.3
+                },
+                {
+                    "sqm_max": 110,
+                    "price_per_sqm": 11.13
+                },
+                {
+                    "sqm_max": 120,
+                    "price_per_sqm": 10.98
+                },
+                {
+                    "sqm_max": 130,
+                    "price_per_sqm": 10.85
+                },
+                {
+                    "sqm_max": 140,
+                    "price_per_sqm": 10.74
+                },
+                {
+                    "sqm_max": 150,
+                    "price_per_sqm": 10.63
+                },
+                {
+                    "sqm_max": 175,
+                    "price_per_sqm": 10.54
+                },
+                {
+                    "sqm_max": 200,
+                    "price_per_sqm": 10.35
+                },
+                {
+                    "sqm_max": 225,
+                    "price_per_sqm": 10.16
+                },
+                {
+                    "sqm_max": 250,
+                    "price_per_sqm": 10.03
+                },
+                {
+                    "sqm_max": 275,
+                    "price_per_sqm": 9.89
+                },
+                {
+                    "sqm_max": 300,
+                    "price_per_sqm": 9.8
+                },
+                {
+                    "sqm_max": 325,
+                    "price_per_sqm": 9.69
+                },
+                {
+                    "sqm_max": 350,
+                    "price_per_sqm": 9.61
+                },
+                {
+                    "sqm_max": 375,
+                    "price_per_sqm": 9.52
+                },
+                {
+                    "sqm_max": 400,
+                    "price_per_sqm": 9.46
+                },
+                {
+                    "sqm_max": 425,
+                    "price_per_sqm": 9.39
+                },
+                {
+                    "sqm_max": 450,
+                    "price_per_sqm": 9.34
+                },
+                {
+                    "sqm_max": 475,
+                    "price_per_sqm": 9.27
+                },
+                {
+                    "sqm_max": 500,
+                    "price_per_sqm": 9.22
+                },
+                {
+                    "sqm_max": 539,
+                    "price_per_sqm": 9.08
+                },
+                {
+                    "sqm_max": 550,
+                    "price_per_sqm": 9.08
+                },
+                {
+                    "sqm_max": 600,
+                    "price_per_sqm": 9.08
+                },
+                {
+                    "sqm_max": 650,
+                    "price_per_sqm": 9
+                },
+                {
+                    "sqm_max": 700,
+                    "price_per_sqm": 8.93
+                },
+                {
+                    "sqm_max": 999999,
+                    "price_per_sqm": 8.91
+                }
+            ]
+        },
+        "size_dimensions": {
+            "270mm W x 1000mm H - Three Sided": {
+                "width": 1000,
+                "height": 910
+            },
+            "270mm W x 1200mm H - Three Sided": {
+                "width": 1200,
+                "height": 910
+            },
+            "270mm W x 1800mm H - Three Sided": {
+                "width": 1800,
+                "height": 910
+            },
+            "300mm W x 1000mm H - Three Sided": {
+                "width": 1000,
+                "height": 1000
+            },
+            "300mm W x 1200mm H - Three Sided": {
+                "width": 1200,
+                "height": 1000
+            },
+            "300mm W x 1800mm H - Three Sided": {
+                "width": 1800,
+                "height": 1000
+            },
+            "155mm W x 1000mm H - Four Sided": {
+                "width": 1000,
+                "height": 720
+            },
+            "155mm W x 1200mm H - Four Sided": {
+                "width": 1200,
+                "height": 720
+            },
+            "155mm W x 1800mm H - Four Sided": {
+                "width": 1800,
+                "height": 720
+            },
+            "175mm W x 1000mm H - Four Sided": {
+                "width": 1000,
+                "height": 800
+            },
+            "175mm W x 1200mm H - Four Sided": {
+                "width": 1200,
+                "height": 800
+            },
+            "175mm W x 1800mm H - Four Sided": {
+                "width": 1800,
+                "height": 800
+            }
+        }
+    }
+}

@@ -182,7 +182,13 @@ class ModuleRegistry:
         for search_path in module_search_paths:
             if search_path.exists():
                 logger.info(f"Scanning modules directory: {search_path}")
-                module_dirs = [d for d in search_path.iterdir() if d.is_dir()]
+                # Skip non-module directories (files, __pycache__, etc.)
+                module_dirs = [
+                    d for d in search_path.iterdir() 
+                    if d.is_dir() 
+                    and not d.name.startswith('.')  # Skip hidden dirs
+                    and not d.name.startswith('__')  # Skip __pycache__
+                ]
                 all_module_dirs.extend(module_dirs)
                 logger.info(f"  Found {len(module_dirs)} module directories")
             else:
@@ -197,7 +203,11 @@ class ModuleRegistry:
             manifest_path = module_dir / "manifest.json"
             
             if not manifest_path.exists():
-                logger.warning(f"No manifest.json found in {module_dir.name}")
+                # Only warn if it looks like it should be a module (has tools/ or implementations/)
+                if (module_dir / "tools").exists() or (module_dir / "implementations").exists():
+                    logger.warning(f"No manifest.json found in {module_dir.name} (has tools/implementations)")
+                else:
+                    logger.debug(f"Skipping non-module directory: {module_dir.name}")
                 continue
             
             try:

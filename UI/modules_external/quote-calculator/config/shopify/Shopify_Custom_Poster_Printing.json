@@ -1,0 +1,953 @@
+{
+    "shopify_custom_poster_printing": {
+        "product_title": "Custom Poster Printing",
+        "product_type": "Custom Poster Printing",
+        "vendor": "PrintShop",
+        "tags": [
+            "posters",
+            "printing",
+            "custom",
+            "large-format",
+            "promotional"
+        ],
+        "description": "High-quality custom poster printing available in standard A-series sizes or custom dimensions. Choose from premium 250GSM Satin Poster Paper or waterproof 200GSM Yuppo Synthetic Paper with sophisticated square meter-based pricing.",
+        "options": [
+            {
+                "name": "Quantity",
+                "field_id": "F1",
+                "type": "number",
+                "required": true,
+                "default": 1,
+                "price": 0,
+                "price_type": "fixed",
+                "sku": "q",
+                "description": "Number of posters required",
+                "min": 1,
+                "max": 10000,
+                "visibility": {
+                    "make_it": "Visible",
+                    "if": "Always visible"
+                }
+            },
+            {
+                "name": "Width (mm)",
+                "field_id": "F3",
+                "type": "number",
+                "required": true,
+                "default": 420,
+                "price": 0,
+                "price_type": "fixed",
+                "sku": "width",
+                "description": "Custom width in millimeters (only visible for custom size)",
+                "min": 100,
+                "max": 2000,
+                "visibility": {
+                    "make_it": "Visible",
+                    "if": "(F6 == 'Custom')",
+                    "description": "Width field only visible when Custom size is selected"
+                }
+            },
+            {
+                "name": "Paper Type",
+                "field_id": "F4",
+                "type": "select",
+                "required": true,
+                "default": "250GSM Satin Poster Paper",
+                "options": [
+                    {
+                        "title": "250GSM Satin Poster Paper",
+                        "price": 0,
+                        "price_type": "fixed",
+                        "sku": "satin_250",
+                        "description": "Premium satin finish poster paper - ideal for indoor displays"
+                    },
+                    {
+                        "title": "200GSM Yuppo Synthetic Paper",
+                        "price": 0,
+                        "price_type": "fixed",
+                        "sku": "yuppo_200",
+                        "description": "Waterproof synthetic paper - perfect for outdoor use"
+                    }
+                ]
+            },
+            {
+                "name": "Size",
+                "field_id": "F6",
+                "type": "select",
+                "required": true,
+                "default": "A2 - 420mm x 594mm",
+                "options": [
+                    {
+                        "title": "A2 - 420mm x 594mm",
+                        "price": 0,
+                        "price_type": "fixed",
+                        "sku": "size6x4",
+                        "description": "A2 standard size (420mm x 594mm)"
+                    },
+                    {
+                        "title": "A1 - 594mm x 841mm",
+                        "price": 0,
+                        "price_type": "fixed",
+                        "sku": "size6x9",
+                        "description": "A1 standard size (594mm x 841mm)"
+                    },
+                    {
+                        "title": "A0 - 841mm x 1189mm",
+                        "price": 0,
+                        "price_type": "fixed",
+                        "sku": "size9x12",
+                        "description": "A0 large size (841mm x 1189mm)"
+                    },
+                    {
+                        "title": "Custom",
+                        "price": 0,
+                        "price_type": "fixed",
+                        "sku": "sizeCustom",
+                        "description": "Custom dimensions - specify width and height"
+                    }
+                ]
+            },
+            {
+                "name": "Length (mm)",
+                "field_id": "F7",
+                "type": "number",
+                "required": true,
+                "default": 594,
+                "price": 0,
+                "price_type": "fixed",
+                "sku": "length",
+                "description": "Custom length/height in millimeters (only visible for custom size)",
+                "min": 100,
+                "max": 3000,
+                "visibility": {
+                    "make_it": "Visible",
+                    "if": "(F6 == 'Custom')",
+                    "description": "Length field only visible when Custom size is selected"
+                }
+            },
+            {
+                "name": "Artworks",
+                "field_id": "F10",
+                "type": "number",
+                "required": true,
+                "default": 1,
+                "price": 0,
+                "price_type": "fixed",
+                "sku": "art",
+                "description": "Number of different artwork designs (first artwork included, additional at $5 each)",
+                "min": 1,
+                "max": 20,
+                "visibility": {
+                    "make_it": "Visible",
+                    "if": "(F1 < '2')",
+                    "description": "Artworks field only visible when quantity is less than 2"
+                }
+            }
+        ],
+        "pricing_constants": {
+            "setup_costs": {
+                "artwork_base_cost": 5,
+                "minimum_order_value": 117,
+                "handling_fee": 15
+            },
+            "production_constants": {
+                "artwork_threshold": 5,
+                "custom_tax_rate": 1.1
+            },
+            "size_dimensions": {
+                "A2": {
+                    "width": 420,
+                    "height": 594
+                },
+                "A1": {
+                    "width": 594,
+                    "height": 841
+                },
+                "A0": {
+                    "width": 841,
+                    "height": 1189
+                }
+            }
+        },
+        "square_meter_pricing_tiers": {
+            "250gsm_satin_poster_paper": [
+                {
+                    "sqm_max": 1,
+                    "rate": 90,
+                    "description": "Under 1 sqm"
+                },
+                {
+                    "sqm_max": 2,
+                    "rate": 45,
+                    "description": "1-2 sqm"
+                },
+                {
+                    "sqm_max": 3,
+                    "rate": 30,
+                    "description": "2-3 sqm"
+                },
+                {
+                    "sqm_max": 4,
+                    "rate": 22.5,
+                    "description": "3-4 sqm"
+                },
+                {
+                    "sqm_max": 5,
+                    "rate": 18,
+                    "description": "4-5 sqm"
+                },
+                {
+                    "sqm_max": 6,
+                    "rate": 15,
+                    "description": "5-6 sqm"
+                },
+                {
+                    "sqm_max": 7,
+                    "rate": 12.86,
+                    "description": "6-7 sqm"
+                },
+                {
+                    "sqm_max": 8,
+                    "rate": 12.22,
+                    "description": "7-8 sqm"
+                },
+                {
+                    "sqm_max": 9,
+                    "rate": 12.03,
+                    "description": "8-9 sqm"
+                },
+                {
+                    "sqm_max": 10,
+                    "rate": 11.88,
+                    "description": "9-10 sqm"
+                },
+                {
+                    "sqm_max": 12,
+                    "rate": 11.63,
+                    "description": "10-12 sqm"
+                },
+                {
+                    "sqm_max": 14,
+                    "rate": 11.43,
+                    "description": "12-14 sqm"
+                },
+                {
+                    "sqm_max": 16,
+                    "rate": 11.27,
+                    "description": "14-16 sqm"
+                },
+                {
+                    "sqm_max": 18,
+                    "rate": 11.14,
+                    "description": "16-18 sqm"
+                },
+                {
+                    "sqm_max": 20,
+                    "rate": 11.03,
+                    "description": "18-20 sqm"
+                },
+                {
+                    "sqm_max": 25,
+                    "rate": 10.81,
+                    "description": "20-25 sqm"
+                },
+                {
+                    "sqm_max": 30,
+                    "rate": 10.65,
+                    "description": "25-30 sqm"
+                },
+                {
+                    "sqm_max": 35,
+                    "rate": 10.52,
+                    "description": "30-35 sqm"
+                },
+                {
+                    "sqm_max": 40,
+                    "rate": 10.41,
+                    "description": "35-40 sqm"
+                },
+                {
+                    "sqm_max": 45,
+                    "rate": 10.32,
+                    "description": "40-45 sqm"
+                },
+                {
+                    "sqm_max": 50,
+                    "rate": 10.24,
+                    "description": "45-50 sqm"
+                },
+                {
+                    "sqm_max": 55,
+                    "rate": 10.17,
+                    "description": "50-55 sqm"
+                },
+                {
+                    "sqm_max": 60,
+                    "rate": 10.11,
+                    "description": "55-60 sqm"
+                },
+                {
+                    "sqm_max": 65,
+                    "rate": 10.05,
+                    "description": "60-65 sqm"
+                },
+                {
+                    "sqm_max": 70,
+                    "rate": 10.00,
+                    "description": "65-70 sqm"
+                },
+                {
+                    "sqm_max": 75,
+                    "rate": 9.96,
+                    "description": "70-75 sqm"
+                },
+                {
+                    "sqm_max": 80,
+                    "rate": 9.92,
+                    "description": "75-80 sqm"
+                },
+                {
+                    "sqm_max": 85,
+                    "rate": 9.88,
+                    "description": "80-85 sqm"
+                },
+                {
+                    "sqm_max": 90,
+                    "rate": 9.84,
+                    "description": "85-90 sqm"
+                },
+                {
+                    "sqm_max": 95,
+                    "rate": 9.81,
+                    "description": "90-95 sqm"
+                },
+                {
+                    "sqm_max": 100,
+                    "rate": 9.78,
+                    "description": "95-100 sqm"
+                },
+                {
+                    "sqm_max": 105,
+                    "rate": 9.75,
+                    "description": "100-105 sqm"
+                },
+                {
+                    "sqm_max": 110,
+                    "rate": 9.73,
+                    "description": "105-110 sqm"
+                },
+                {
+                    "sqm_max": 115,
+                    "rate": 9.70,
+                    "description": "110-115 sqm"
+                },
+                {
+                    "sqm_max": 120,
+                    "rate": 9.68,
+                    "description": "115-120 sqm"
+                },
+                {
+                    "sqm_max": 125,
+                    "rate": 9.65,
+                    "description": "120-125 sqm"
+                },
+                {
+                    "sqm_max": 130,
+                    "rate": 9.63,
+                    "description": "125-130 sqm"
+                },
+                {
+                    "sqm_max": 135,
+                    "rate": 9.61,
+                    "description": "130-135 sqm"
+                },
+                {
+                    "sqm_max": 140,
+                    "rate": 9.59,
+                    "description": "135-140 sqm"
+                },
+                {
+                    "sqm_max": 145,
+                    "rate": 9.57,
+                    "description": "140-145 sqm"
+                },
+                {
+                    "sqm_max": 150,
+                    "rate": 9.55,
+                    "description": "145-150 sqm"
+                },
+                {
+                    "sqm_max": 155,
+                    "rate": 9.54,
+                    "description": "150-155 sqm"
+                },
+                {
+                    "sqm_max": 160,
+                    "rate": 9.52,
+                    "description": "155-160 sqm"
+                },
+                {
+                    "sqm_max": 165,
+                    "rate": 9.50,
+                    "description": "160-165 sqm"
+                },
+                {
+                    "sqm_max": 170,
+                    "rate": 9.49,
+                    "description": "165-170 sqm"
+                },
+                {
+                    "sqm_max": 175,
+                    "rate": 9.47,
+                    "description": "170-175 sqm"
+                },
+                {
+                    "sqm_max": 180,
+                    "rate": 9.46,
+                    "description": "175-180 sqm"
+                },
+                {
+                    "sqm_max": 185,
+                    "rate": 9.44,
+                    "description": "180-185 sqm"
+                },
+                {
+                    "sqm_max": 190,
+                    "rate": 9.43,
+                    "description": "185-190 sqm"
+                },
+                {
+                    "sqm_max": 195,
+                    "rate": 9.42,
+                    "description": "190-195 sqm"
+                },
+                {
+                    "sqm_max": 200,
+                    "rate": 9.40,
+                    "description": "195-200 sqm"
+                },
+                {
+                    "sqm_max": 205,
+                    "rate": 9.39,
+                    "description": "200-205 sqm"
+                },
+                {
+                    "sqm_max": 210,
+                    "rate": 9.38,
+                    "description": "205-210 sqm"
+                },
+                {
+                    "sqm_max": 215,
+                    "rate": 9.37,
+                    "description": "210-215 sqm"
+                },
+                {
+                    "sqm_max": 220,
+                    "rate": 9.36,
+                    "description": "215-220 sqm"
+                },
+                {
+                    "sqm_max": 225,
+                    "rate": 9.35,
+                    "description": "220-225 sqm"
+                },
+                {
+                    "sqm_max": 230,
+                    "rate": 9.34,
+                    "description": "225-230 sqm"
+                },
+                {
+                    "sqm_max": 235,
+                    "rate": 9.33,
+                    "description": "230-235 sqm"
+                },
+                {
+                    "sqm_max": 240,
+                    "rate": 9.32,
+                    "description": "235-240 sqm"
+                },
+                {
+                    "sqm_max": 245,
+                    "rate": 9.31,
+                    "description": "240-245 sqm"
+                },
+                {
+                    "sqm_max": 999999,
+                    "rate": 9.30,
+                    "description": "245+ sqm"
+                }
+            ],
+            "200gsm_yuppo_synthetic_paper": [
+                {
+                    "sqm_max": 1,
+                    "rate": 90,
+                    "description": "Under 1 sqm"
+                },
+                {
+                    "sqm_max": 2,
+                    "rate": 45,
+                    "description": "1-2 sqm"
+                },
+                {
+                    "sqm_max": 3,
+                    "rate": 30,
+                    "description": "2-3 sqm"
+                },
+                {
+                    "sqm_max": 4,
+                    "rate": 22.5,
+                    "description": "3-4 sqm"
+                },
+                {
+                    "sqm_max": 5,
+                    "rate": 19.26,
+                    "description": "4-5 sqm"
+                },
+                {
+                    "sqm_max": 6,
+                    "rate": 18.69,
+                    "description": "5-6 sqm"
+                },
+                {
+                    "sqm_max": 7,
+                    "rate": 18.26,
+                    "description": "6-7 sqm"
+                },
+                {
+                    "sqm_max": 8,
+                    "rate": 17.92,
+                    "description": "7-8 sqm"
+                },
+                {
+                    "sqm_max": 9,
+                    "rate": 17.65,
+                    "description": "8-9 sqm"
+                },
+                {
+                    "sqm_max": 10,
+                    "rate": 17.42,
+                    "description": "9-10 sqm"
+                },
+                {
+                    "sqm_max": 12,
+                    "rate": 17.05,
+                    "description": "10-12 sqm"
+                },
+                {
+                    "sqm_max": 14,
+                    "rate": 16.77,
+                    "description": "12-14 sqm"
+                },
+                {
+                    "sqm_max": 16,
+                    "rate": 16.54,
+                    "description": "14-16 sqm"
+                },
+                {
+                    "sqm_max": 18,
+                    "rate": 16.34,
+                    "description": "16-18 sqm"
+                },
+                {
+                    "sqm_max": 20,
+                    "rate": 16.18,
+                    "description": "18-20 sqm"
+                },
+                {
+                    "sqm_max": 25,
+                    "rate": 15.86,
+                    "description": "20-25 sqm"
+                },
+                {
+                    "sqm_max": 30,
+                    "rate": 15.62,
+                    "description": "25-30 sqm"
+                },
+                {
+                    "sqm_max": 35,
+                    "rate": 15.42,
+                    "description": "30-35 sqm"
+                },
+                {
+                    "sqm_max": 40,
+                    "rate": 15.26,
+                    "description": "35-40 sqm"
+                },
+                {
+                    "sqm_max": 45,
+                    "rate": 15.13,
+                    "description": "40-45 sqm"
+                },
+                {
+                    "sqm_max": 50,
+                    "rate": 15.02,
+                    "description": "45-50 sqm"
+                },
+                {
+                    "sqm_max": 55,
+                    "rate": 14.91,
+                    "description": "50-55 sqm"
+                },
+                {
+                    "sqm_max": 60,
+                    "rate": 14.83,
+                    "description": "55-60 sqm"
+                },
+                {
+                    "sqm_max": 65,
+                    "rate": 14.75,
+                    "description": "60-65 sqm"
+                },
+                {
+                    "sqm_max": 70,
+                    "rate": 14.67,
+                    "description": "65-70 sqm"
+                },
+                {
+                    "sqm_max": 75,
+                    "rate": 14.61,
+                    "description": "70-75 sqm"
+                },
+                {
+                    "sqm_max": 80,
+                    "rate": 14.55,
+                    "description": "75-80 sqm"
+                },
+                {
+                    "sqm_max": 85,
+                    "rate": 14.49,
+                    "description": "80-85 sqm"
+                },
+                {
+                    "sqm_max": 90,
+                    "rate": 14.44,
+                    "description": "85-90 sqm"
+                },
+                {
+                    "sqm_max": 95,
+                    "rate": 14.39,
+                    "description": "90-95 sqm"
+                },
+                {
+                    "sqm_max": 100,
+                    "rate": 14.35,
+                    "description": "95-100 sqm"
+                },
+                {
+                    "sqm_max": 105,
+                    "rate": 14.30,
+                    "description": "100-105 sqm"
+                },
+                {
+                    "sqm_max": 110,
+                    "rate": 14.26,
+                    "description": "105-110 sqm"
+                },
+                {
+                    "sqm_max": 115,
+                    "rate": 14.23,
+                    "description": "110-115 sqm"
+                },
+                {
+                    "sqm_max": 120,
+                    "rate": 14.19,
+                    "description": "115-120 sqm"
+                },
+                {
+                    "sqm_max": 125,
+                    "rate": 14.16,
+                    "description": "120-125 sqm"
+                },
+                {
+                    "sqm_max": 130,
+                    "rate": 14.12,
+                    "description": "125-130 sqm"
+                },
+                {
+                    "sqm_max": 135,
+                    "rate": 14.09,
+                    "description": "130-135 sqm"
+                },
+                {
+                    "sqm_max": 140,
+                    "rate": 14.06,
+                    "description": "135-140 sqm"
+                },
+                {
+                    "sqm_max": 145,
+                    "rate": 14.04,
+                    "description": "140-145 sqm"
+                },
+                {
+                    "sqm_max": 150,
+                    "rate": 14.01,
+                    "description": "145-150 sqm"
+                },
+                {
+                    "sqm_max": 155,
+                    "rate": 13.98,
+                    "description": "150-155 sqm"
+                },
+                {
+                    "sqm_max": 160,
+                    "rate": 13.96,
+                    "description": "155-160 sqm"
+                },
+                {
+                    "sqm_max": 165,
+                    "rate": 13.94,
+                    "description": "160-165 sqm"
+                },
+                {
+                    "sqm_max": 170,
+                    "rate": 13.91,
+                    "description": "165-170 sqm"
+                },
+                {
+                    "sqm_max": 175,
+                    "rate": 13.89,
+                    "description": "170-175 sqm"
+                },
+                {
+                    "sqm_max": 180,
+                    "rate": 13.87,
+                    "description": "175-180 sqm"
+                },
+                {
+                    "sqm_max": 185,
+                    "rate": 13.85,
+                    "description": "180-185 sqm"
+                },
+                {
+                    "sqm_max": 190,
+                    "rate": 13.83,
+                    "description": "185-190 sqm"
+                },
+                {
+                    "sqm_max": 195,
+                    "rate": 13.81,
+                    "description": "190-195 sqm"
+                },
+                {
+                    "sqm_max": 200,
+                    "rate": 13.79,
+                    "description": "195-200 sqm"
+                },
+                {
+                    "sqm_max": 205,
+                    "rate": 13.78,
+                    "description": "200-205 sqm"
+                },
+                {
+                    "sqm_max": 210,
+                    "rate": 13.76,
+                    "description": "205-210 sqm"
+                },
+                {
+                    "sqm_max": 215,
+                    "rate": 13.74,
+                    "description": "210-215 sqm"
+                },
+                {
+                    "sqm_max": 220,
+                    "rate": 13.72,
+                    "description": "215-220 sqm"
+                },
+                {
+                    "sqm_max": 225,
+                    "rate": 13.71,
+                    "description": "220-225 sqm"
+                },
+                {
+                    "sqm_max": 230,
+                    "rate": 13.69,
+                    "description": "225-230 sqm"
+                },
+                {
+                    "sqm_max": 235,
+                    "rate": 13.68,
+                    "description": "230-235 sqm"
+                },
+                {
+                    "sqm_max": 240,
+                    "rate": 13.66,
+                    "description": "235-240 sqm"
+                },
+                {
+                    "sqm_max": 245,
+                    "rate": 13.65,
+                    "description": "240-245 sqm"
+                },
+                {
+                    "sqm_max": 999999,
+                    "rate": 13.63,
+                    "description": "245+ sqm"
+                }
+            ]
+        },
+        "minimum_order_rule": {
+            "minimum_value": 117,
+            "handling_fee": 15,
+            "description": "Orders under $117 are charged minimum $117 + $15 handling fee"
+        },
+        "custom_size_tax": {
+            "rate": 1.1,
+            "description": "Additional 10% tax applied to custom size orders"
+        },
+        "gst_calculation": {
+            "rate": 1.1,
+            "description": "10% GST (Australia)"
+        }
+    },
+    "calculation_formula": {
+        "description": "Custom poster printing with square meter-based pricing, material-specific rate tiers, and minimum order handling",
+        "steps": [
+            "1. Calculate artwork cost: _a = artworks * 5, _a2 = IF _a <= 5 THEN 0 ELSE (_a - 5)",
+            "2. Determine dimensions:",
+            "   - IF size == 'Custom' THEN use F3 (width) and F7 (length)",
+            "   - ELSE use predefined A-series dimensions",
+            "   - A2: 420mm x 594mm, A1: 594mm x 841mm, A0: 841mm x 1189mm",
+            "3. Calculate total square meters: (width * height / 1,000,000) * quantity",
+            "4. Determine rate per sqm based on paper type and total sqm:",
+            "   - 250GSM Satin: 51 pricing tiers from $90/sqm (under 1 sqm) to $9.30/sqm (245+ sqm)",
+            "   - 200GSM Yuppo: 51 pricing tiers from $90/sqm (under 1 sqm) to $13.63/sqm (245+ sqm)",
+            "5. Apply custom size tax: IF size == 'Custom' THEN multiply by 1.1",
+            "6. Calculate subtotal: (sqm * rate * custom_tax_rate) + artwork_cost",
+            "7. Apply GST: subtotal * 1.1",
+            "8. Apply minimum order rule: IF total < $117 THEN total = $117 + $15 ELSE total = total + $15"
+        ]
+    },
+    "validation_rules": {
+        "quantity": {
+            "min": 1,
+            "max": 10000,
+            "required": true,
+            "default": 1
+        },
+        "width": {
+            "min": 100,
+            "max": 2000,
+            "required": true,
+            "condition": "Only when Custom size selected"
+        },
+        "length": {
+            "min": 100,
+            "max": 3000,
+            "required": true,
+            "condition": "Only when Custom size selected"
+        },
+        "artworks": {
+            "min": 1,
+            "max": 20,
+            "required": true,
+            "default": 1
+        }
+    },
+    "visibility_rules": {
+        "width_field": {
+            "make_it": "Visible",
+            "if": "(F6 == 'Custom')",
+            "description": "Width field only visible when Custom size is selected"
+        },
+        "length_field": {
+            "make_it": "Visible",
+            "if": "(F6 == 'Custom')",
+            "description": "Length field only visible when Custom size is selected"
+        },
+        "artworks_field": {
+            "make_it": "Visible",
+            "if": "(F1 < '2')",
+            "description": "Artworks field only visible when quantity is less than 2"
+        }
+    },
+    "examples": {
+        "small_a2_poster": {
+            "quantity": 1,
+            "paper_type": "250GSM Satin Poster Paper",
+            "size": "A2 - 420mm x 594mm",
+            "artworks": 1,
+            "estimated_cost": "$137.50 (minimum order + handling)",
+            "calculation": "A2 = 0.249 sqm × $90/sqm = $22.41 + GST = $24.65, but minimum $117 + $15 = $132"
+        },
+        "large_a0_poster": {
+            "quantity": 1,
+            "paper_type": "250GSM Satin Poster Paper",
+            "size": "A0 - 841mm x 1189mm",
+            "artworks": 1,
+            "estimated_cost": "$126.50",
+            "calculation": "A0 = 1.00 sqm × $90/sqm = $90 + GST = $99 + $15 handling = $114, but minimum $117 + $15 = $132"
+        },
+        "bulk_a1_posters": {
+            "quantity": 10,
+            "paper_type": "200GSM Yuppo Synthetic Paper",
+            "size": "A1 - 594mm x 841mm",
+            "artworks": 1,
+            "estimated_cost": "$225.50",
+            "calculation": "A1 = 0.499 sqm × 10 = 4.99 sqm × $19.26/sqm = $96.11 + GST = $105.72 + $15 = $120.72"
+        },
+        "custom_large_poster": {
+            "quantity": 1,
+            "paper_type": "250GSM Satin Poster Paper",
+            "size": "Custom",
+            "width": 1000,
+            "length": 1500,
+            "artworks": 2,
+            "estimated_cost": "$155.10",
+            "calculation": "1000×1500mm = 1.5 sqm × $90/sqm × 1.1 (custom tax) = $148.50 + $5 (extra artwork) + GST = $168.85, but minimum applies"
+        }
+    },
+    "special_features": {
+        "artwork_pricing": {
+            "description": "First artwork is included in base price, additional artworks charged at $5 each",
+            "formula": "_a = artworks * 5, IF _a <= 5 THEN 0 ELSE (_a - 5)"
+        },
+        "square_meter_based_pricing": {
+            "description": "Sophisticated 51-tier pricing system based on total square meters across quantity",
+            "efficiency": "Bulk orders benefit from lower per-sqm rates as total area increases"
+        },
+        "material_specific_rates": {
+            "description": "Different pricing tiers for Satin vs Yuppo synthetic paper",
+            "satin_advantage": "Satin paper becomes cheaper than Yuppo at higher volumes (9.30 vs 13.63 at 245+ sqm)"
+        },
+        "custom_size_premium": {
+            "description": "Custom sizes incur additional 10% tax before GST application",
+            "formula": "custom_tax_rate = IF size == 'Custom' THEN 1.1 ELSE 1"
+        },
+        "minimum_order_handling": {
+            "description": "All orders under $117 are charged minimum $117 plus $15 handling fee",
+            "formula": "IF total < 117 THEN price = 117 + 15 ELSE price = total + 15"
+        },
+        "conditional_field_visibility": {
+            "description": "Width and length fields only appear for custom sizes, artwork field only for single quantities"
+        }
+    },
+    "key_calculation_variables": {
+        "square_meter_calculation": "(width_mm * height_mm / 1,000,000) * quantity",
+        "rate_determination": "51 different tiers based on total square meters",
+        "custom_size_tax": "Additional 10% for non-standard sizes",
+        "minimum_order_enforcement": "$117 minimum + $15 handling fee",
+        "gst_application": "10% GST applied to all calculations"
+    },
+    "product_specifications": {
+        "paper_options": [
+            "250GSM Satin Poster Paper - Premium indoor finish",
+            "200GSM Yuppo Synthetic Paper - Waterproof outdoor grade"
+        ],
+        "standard_sizes": [
+            "A2: 420mm × 594mm (0.249 sqm)",
+            "A1: 594mm × 841mm (0.499 sqm)",
+            "A0: 841mm × 1189mm (1.00 sqm)"
+        ],
+        "custom_size_limits": {
+            "width": "100mm - 2000mm",
+            "height": "100mm - 3000mm"
+        },
+        "applications": [
+            "Indoor promotional displays",
+            "Outdoor advertising (Yuppo synthetic)",
+            "Trade show graphics",
+            "Retail point-of-sale materials",
+            "Event signage and backdrops"
+        ]
+    }
+}

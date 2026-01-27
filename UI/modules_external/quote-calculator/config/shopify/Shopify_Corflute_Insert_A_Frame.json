@@ -1,0 +1,333 @@
+{
+    "shopify_corflute_insert_a_frame": {
+        "product_title": "Corflute Insert A-Frame",
+        "product_type": "A-Frames",
+        "vendor": "PrintShop",
+        "tags": [
+            "a-frames",
+            "corflute",
+            "signage",
+            "display",
+            "outdoor",
+            "portable"
+        ],
+        "description": "Professional corflute insert A-frame signs perfect for outdoor advertising, retail displays, and promotional signage. Durable weather-resistant construction with replaceable corflute inserts for versatile messaging.",
+        "options": [
+            {
+                "name": "Quantity",
+                "field_id": "F1",
+                "type": "number",
+                "required": true,
+                "default": 1,
+                "price": 0,
+                "price_type": "fixed",
+                "sku": "q",
+                "description": "Number of A-frame signs required",
+                "min": 1,
+                "max": 10000,
+                "visibility": {
+                    "make_it": "Visible",
+                    "if": "Always visible"
+                }
+            },
+            {
+                "name": "Size",
+                "field_id": "F2",
+                "type": "select",
+                "required": true,
+                "default": "600mm(W) x 900mm(H)",
+                "options": [
+                    {
+                        "title": "600mm(W) x 900mm(H)",
+                        "price": 0,
+                        "price_type": "fixed",
+                        "sku": "size_600x900",
+                        "description": "Standard A-frame size (600mm wide x 900mm high)"
+                    }
+                ]
+            },
+            {
+                "name": "Artworks",
+                "field_id": "F3",
+                "type": "number",
+                "required": true,
+                "default": 1,
+                "price": 0,
+                "price_type": "fixed",
+                "sku": "art",
+                "description": "Number of different artwork designs (first artwork included, additional at $5 each)",
+                "min": 1,
+                "max": 20,
+                "visibility": {
+                    "make_it": "Visible",
+                    "if": "(F1 >= '1')",
+                    "description": "Artworks field visible when quantity is 1 or more"
+                }
+            }
+        ],
+        "pricing_constants": {
+            "setup_costs": {
+                "artwork_base_cost": 5
+            },
+            "production_constants": {
+                "artwork_threshold": 5
+            }
+        },
+        "quantity_pricing_tiers": [
+            {
+                "quantity": 1,
+                "unit_price": 159,
+                "description": "Single A-frame unit"
+            },
+            {
+                "quantity": 2,
+                "unit_price": 146.94,
+                "description": "2 A-frame units"
+            },
+            {
+                "quantity": 3,
+                "unit_price": 138.33,
+                "description": "3 A-frame units"
+            },
+            {
+                "quantity": 4,
+                "unit_price": 130,
+                "description": "4 A-frame units"
+            },
+            {
+                "quantity": 5,
+                "unit_price": 125,
+                "description": "5 A-frame units"
+            },
+            {
+                "quantity": 6,
+                "unit_price": 130.83,
+                "description": "6 A-frame units"
+            },
+            {
+                "quantity": 7,
+                "unit_price": 127.14,
+                "description": "7 A-frame units"
+            },
+            {
+                "quantity": 8,
+                "unit_price": 124.38,
+                "description": "8 A-frame units"
+            },
+            {
+                "quantity": 9,
+                "unit_price": 122.11,
+                "description": "9 A-frame units"
+            },
+            {
+                "quantity": 10,
+                "unit_price": 120,
+                "description": "10 A-frame units"
+            },
+            {
+                "quantity_range": "11-12",
+                "unit_price": 117.08,
+                "description": "11-12 A-frame units"
+            },
+            {
+                "quantity_range": "13-14",
+                "unit_price": 115,
+                "description": "13-14 A-frame units"
+            },
+            {
+                "quantity": 15,
+                "unit_price": 114,
+                "description": "15 A-frame units"
+            },
+            {
+                "quantity_range": "16-20",
+                "unit_price": 110.75,
+                "description": "16-20 A-frame units"
+            },
+            {
+                "quantity_range": "21-25",
+                "unit_price": 108.4,
+                "description": "21-25 A-frame units"
+            },
+            {
+                "quantity_range": "26-30",
+                "unit_price": 107,
+                "description": "26-30 A-frame units"
+            },
+            {
+                "quantity_range": "31-35",
+                "unit_price": 105.71,
+                "description": "31-35 A-frame units"
+            },
+            {
+                "quantity_range": "36-40",
+                "unit_price": 104.75,
+                "description": "36-40 A-frame units"
+            },
+            {
+                "quantity_range": "41-45",
+                "unit_price": 103.89,
+                "description": "41-45 A-frame units"
+            },
+            {
+                "quantity_range": "46-50",
+                "unit_price": 103.4,
+                "description": "46-50 A-frame units"
+            },
+            {
+                "quantity_range": "51-60",
+                "unit_price": 102.83,
+                "description": "51-60 A-frame units"
+            },
+            {
+                "quantity_range": "61-70",
+                "unit_price": 102.29,
+                "description": "61-70 A-frame units"
+            },
+            {
+                "quantity_range": "71-80",
+                "unit_price": 101.96,
+                "description": "71-80 A-frame units"
+            },
+            {
+                "quantity_range": "81-90",
+                "unit_price": 101.61,
+                "description": "81-90 A-frame units"
+            },
+            {
+                "quantity_range": "91-100",
+                "unit_price": 101.35,
+                "description": "91-100 A-frame units"
+            },
+            {
+                "quantity_range": "101-10000",
+                "unit_price": 99,
+                "description": "101+ A-frame units (bulk pricing)"
+            }
+        ],
+        "gst_calculation": {
+            "rate": 1.1,
+            "description": "10% GST (Australia)"
+        }
+    },
+    "calculation_formula": {
+        "description": "Corflute Insert A-Frame pricing with complex quantity-based tiered rates and artwork charges",
+        "steps": [
+            "1. Calculate artwork cost: _a = artworks * 5, _a2 = IF _a <= 5 THEN 0 ELSE (_a - 5)",
+            "2. Determine unit price based on quantity using 25 different pricing tiers:",
+            "   - Single unit: $159",
+            "   - 2 units: $146.94 each",
+            "   - 3 units: $138.33 each",
+            "   - 4 units: $130 each",
+            "   - 5 units: $125 each",
+            "   - Continues with decreasing rates up to bulk pricing",
+            "   - 101+ units: $99 each (bulk rate)",
+            "3. Calculate subtotal: quantity * unit_price",
+            "4. Add artwork charges: subtotal + artwork_cost",
+            "5. Apply GST: total * 1.1"
+        ]
+    },
+    "validation_rules": {
+        "quantity": {
+            "min": 1,
+            "max": 10000,
+            "required": true,
+            "default": 1
+        },
+        "artworks": {
+            "min": 1,
+            "max": 20,
+            "required": true,
+            "default": 1
+        }
+    },
+    "visibility_rules": {
+        "artworks_field": {
+            "make_it": "Visible",
+            "if": "(F1 >= '1')",
+            "description": "Artworks field visible when quantity is 1 or more"
+        }
+    },
+    "examples": {
+        "single_retail_display": {
+            "quantity": 1,
+            "size": "600mm(W) x 900mm(H)",
+            "artworks": 1,
+            "estimated_cost": "$174.90 (including GST)",
+            "calculation": "1 × $159 + $0 (first artwork free) = $159 × 1.1 = $174.90"
+        },
+        "small_business_set": {
+            "quantity": 5,
+            "size": "600mm(W) x 900mm(H)",
+            "artworks": 2,
+            "estimated_cost": "$693 (including GST)",
+            "calculation": "5 × $125 + $5 (1 extra artwork) = $630 × 1.1 = $693"
+        },
+        "restaurant_chain_order": {
+            "quantity": 25,
+            "size": "600mm(W) x 900mm(H)",
+            "artworks": 3,
+            "estimated_cost": "$2981 (including GST)",
+            "calculation": "25 × $108.40 + $10 (2 extra artworks) = $2710 × 1.1 = $2981"
+        },
+        "bulk_franchise_order": {
+            "quantity": 150,
+            "size": "600mm(W) x 900mm(H)",
+            "artworks": 1,
+            "estimated_cost": "$16,335 (including GST)",
+            "calculation": "150 × $99 + $0 (first artwork free) = $14,850 × 1.1 = $16,335"
+        }
+    },
+    "special_features": {
+        "artwork_pricing": {
+            "description": "First artwork is included in base price, additional artworks charged at $5 each",
+            "formula": "_a = artworks * 5, IF _a <= 5 THEN 0 ELSE (_a - 5)"
+        },
+        "complex_quantity_discounts": {
+            "description": "25 different pricing tiers with significant bulk discounts",
+            "single_unit_price": "$159",
+            "bulk_unit_price": "$99 (101+ units)",
+            "maximum_discount": "37.7% savings for bulk orders"
+        },
+        "standard_size_only": {
+            "description": "Currently configured for single size option: 600mm(W) x 900mm(H)",
+            "expandable": "Structure supports additional size options if needed"
+        },
+        "gst_application": {
+            "description": "Standard 10% GST applied to final total",
+            "rate": "1.1 multiplier"
+        }
+    },
+    "key_calculation_variables": {
+        "base_unit_pricing": "Complex 25-tier quantity-based pricing structure",
+        "artwork_threshold": "First artwork free, additional at $5 each",
+        "quantity_breaks": "Pricing tiers from 1 unit to 10,000+ units",
+        "bulk_threshold": "101+ units qualify for bulk rate of $99 each"
+    },
+    "product_specifications": {
+        "frame_material": "Durable aluminum or steel construction",
+        "insert_material": "Corflute (corrugated plastic) - weather resistant",
+        "standard_size": "600mm wide x 900mm high",
+        "features": [
+            "Portable A-frame design",
+            "Replaceable corflute inserts",
+            "Weather resistant construction",
+            "Suitable for outdoor use",
+            "Easy assembly and storage"
+        ],
+        "applications": [
+            "Retail store displays",
+            "Restaurant menu boards",
+            "Real estate signage",
+            "Event promotion",
+            "Construction site notices",
+            "Directional signage"
+        ]
+    },
+    "pricing_notes": {
+        "quantity_discounts": "Aggressive quantity discounts encourage bulk orders",
+        "artwork_efficiency": "First design included to reduce barrier to entry",
+        "bulk_pricing": "Significant savings at 101+ units for franchise/chain orders",
+        "price_stability": "Pricing tiers provide predictable costs for different order sizes"
+    }
+}

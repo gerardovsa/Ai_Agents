@@ -1,0 +1,278 @@
+{
+  "product": "perfect_bound_books",
+  "version": "1.0",
+  "pricing_constants": {
+    "setup_costs": {
+      "guilo_setup": 10,
+      "impos_setup": 50,
+      "binder_setup": 35
+    },
+    "production_constants": {
+      "stock_waste": 1.05,
+      "extra_arts": 30,
+      "cutting_block": 500,
+      "cut_cost": 11,
+      "bindery_labor_per_hour": 60,
+      "trimmer_per_book": 0.3
+    }
+  },
+  "options": {
+    "quantity": {
+      "field_id": "F1",
+      "title": "Quantity",
+      "type": "number",
+      "required": true,
+      "min": 1,
+      "max": 20000
+    },
+    "printed_pages": {
+      "field_id": "F2",
+      "title": "Printed Pages (pp)",
+      "type": "number",
+      "required": true,
+      "default": 20,
+      "sku": "pp"
+    },
+    "proof_requirements": {
+      "field_id": "F3",
+      "title": "Proof Requirements",
+      "type": "select",
+      "required": true,
+      "options": [
+        {
+          "title": "Digital Emailed Proof",
+          "price": 0,
+          "price_type": "fixed"
+        },
+        {
+          "title": "Physical Unbound Proof",
+          "price": 40,
+          "price_type": "fixed"
+        }
+      ]
+    },
+    "cover_stock": {
+      "field_id": "F4",
+      "title": "Cover Stock",
+      "type": "select",
+      "required": true,
+      "options": [
+        {
+          "title": "Satin 300GSM",
+          "price": 0.14,
+          "price_type": "fixed"
+        }
+      ]
+    },
+    "cover_print_type": {
+      "field_id": "F5",
+      "title": "Cover Print Type",
+      "type": "select",
+      "required": true,
+      "options": [
+        {
+          "title": "1 side colour (2pp)",
+          "price": 0.048,
+          "price_type": "fixed"
+        },
+        {
+          "title": "2 side colour (4pp)",
+          "price": 0.096,
+          "price_type": "fixed"
+        },
+        {
+          "title": "1 side Black & White",
+          "price": 0.01,
+          "price_type": "fixed"
+        },
+        {
+          "title": "2 side Black & White",
+          "price": 0.02,
+          "price_type": "fixed"
+        }
+      ]
+    },
+    "celloglaze": {
+      "field_id": "F6",
+      "title": "Celloglaze",
+      "type": "select",
+      "required": true,
+      "options": [
+        {
+          "title": "None",
+          "price": 0,
+          "price_type": "fixed"
+        },
+        {
+          "title": "Gloss outside only",
+          "price": 0.19,
+          "price_type": "fixed"
+        },
+        {
+          "title": "Matt outside only",
+          "price": 0.19,
+          "price_type": "fixed"
+        }
+      ]
+    },
+    "finish_size": {
+      "field_id": "F8",
+      "title": "Finish Size",
+      "type": "select",
+      "required": true,
+      "options": [
+        {
+          "title": "A5 Portrait",
+          "price": 8,
+          "price_type": "fixed"
+        },
+        {
+          "title": "A4 Portrait",
+          "price": 4,
+          "price_type": "fixed"
+        },
+        {
+          "title": "A4 Landscape",
+          "price": 4,
+          "price_type": "fixed"
+        },
+        {
+          "title": "US Trade - 152mm x 229mm",
+          "price": 4,
+          "price_type": "fixed"
+        }
+      ]
+    },
+    "content_print_type": {
+      "field_id": "F10",
+      "title": "Content Print Type",
+      "type": "select",
+      "required": true,
+      "options": [
+        {
+          "title": "Full Colour",
+          "price": 0.088,
+          "price_type": "fixed"
+        },
+        {
+          "title": "Black & White",
+          "price": 0.015,
+          "price_type": "fixed"
+        }
+      ]
+    },
+    "content_stock_type": {
+      "field_id": "F11",
+      "title": "Content Stock Type",
+      "type": "select",
+      "required": true,
+      "options": [
+        {
+          "title": "Satin 128GSM",
+          "price": 0.054,
+          "price_type": "fixed"
+        },
+        {
+          "title": "Satin 150GSM",
+          "price": 0.064,
+          "price_type": "fixed"
+        },
+        {
+          "title": "Uncoated Bond 80GSM",
+          "price": 0.0322,
+          "price_type": "fixed"
+        },
+        {
+          "title": "Uncoated Bond 90GSM",
+          "price": 0.0354,
+          "price_type": "fixed"
+        },
+        {
+          "title": "Uncoated Bond 100GSM",
+          "price": 0.0392,
+          "price_type": "fixed"
+        }
+      ]
+    }
+  },
+  "pricing_logic": {
+    "cello_setup": {
+      "condition": "celloglaze == 'None'",
+      "true_value": 0,
+      "false_value": 16
+    },
+    "bind_cost_per_book": {
+      "type": "tiered",
+      "tiers": [
+        {"min": 1, "max": 250, "rate": 1.25},
+        {"min": 251, "max": 500, "rate": 1.0},
+        {"min": 501, "max": 1000, "rate": 0.9},
+        {"min": 1001, "max": 1500, "rate": 0.85},
+        {"min": 1501, "max": 2000, "rate": 0.8},
+        {"min": 2001, "max": 3000, "rate": 0.75},
+        {"min": 3001, "max": 10000, "rate": 0.7},
+        {"min": 10001, "max": 999999, "rate": 0.7}
+      ]
+    },
+    "profit_margin": {
+      "type": "tiered",
+      "tiers": [
+        {"min": 1, "max": 500, "rate": 0.4},
+        {"min": 501, "max": 1000, "rate": 0.4},
+        {"min": 1001, "max": 1500, "rate": 0.6},
+        {"min": 1501, "max": 2000, "rate": 0.72},
+        {"min": 2001, "max": 2500, "rate": 0.75},
+        {"min": 2501, "max": 3000, "rate": 0.75},
+        {"min": 3001, "max": 4000, "rate": 0.65},
+        {"min": 4001, "max": 5000, "rate": 0.55},
+        {"min": 5001, "max": 7500, "rate": 0.52},
+        {"min": 7501, "max": 10000, "rate": 0.47},
+        {"min": 10001, "max": 15000, "rate": 0.42},
+        {"min": 15001, "max": 100000, "rate": 0.41}
+      ]
+    },
+    "extra_books": {
+      "type": "tiered",
+      "tiers": [
+        {"min": 1, "max": 100, "qty": 4},
+        {"min": 101, "max": 250, "qty": 8},
+        {"min": 251, "max": 500, "qty": 12},
+        {"min": 501, "max": 1000, "qty": 20},
+        {"min": 1001, "max": 2000, "qty": 50},
+        {"min": 2001, "max": 3000, "qty": 75},
+        {"min": 3001, "max": 5000, "qty": 100},
+        {"min": 5001, "max": 20000, "qty": 150}
+      ]
+    }
+  },
+  "calculation_formulas": {
+    "total_setup_cost": "impos_setup + guilo_setup + cello_setup + binder_setup",
+    "total_cover_sheets_a3": "quantity * stock_waste",
+    "cover_click_cost": "cover_print_type.price * total_cover_sheets_a3",
+    "total_cover_cost": "(total_cover_sheets_a3 * cover_stock.price) + cover_click_cost",
+    "total_content_sheets": "((quantity * printed_pages) / finish_size.price) * stock_waste",
+    "content_click_cost": "total_content_sheets * content_print_type.price",
+    "total_content_cost": "(total_content_sheets * content_stock_type.price) + content_click_cost",
+    "total_sheets_printed": "total_content_sheets + total_cover_sheets_a3",
+    "cutting_cost": "(total_sheets_printed / cutting_block) * cut_cost",
+    "cello_cost": "celloglaze == 'None' ? 0 : (total_cover_sheets_a3 * celloglaze.price)",
+    "bind_run_cost": "quantity * (bind_cost_per_book + trimmer_per_book)",
+    "sub_total": "total_setup_cost + total_cover_cost + total_content_cost + cutting_cost + cello_cost + bind_run_cost + proof_requirements.price",
+    "sub_total_2": "sub_total + (sub_total * profit_margin)",
+    "overs_book_price": "(sub_total_2 / quantity) * extra_books",
+    "total": "(sub_total_2 + overs_book_price) * 1.1",
+    "final_total": "total * 1.1"
+  },
+  "validation_rules": {
+    "min_pages": 4,
+    "max_pages": 500,
+    "min_quantity": 1,
+    "max_quantity": 20000
+  },
+  "display_settings": {
+    "currency": "AUD",
+    "decimal_places": 2,
+    "show_breakdown": true,
+    "show_unit_price": true
+  }
+}

@@ -1,0 +1,679 @@
+{
+    "shopify_spiral_bound_books": {
+        "product_title": "Spiral Bound Books",
+        "product_type": "Spiral Bound Books",
+        "vendor": "PrintShop",
+        "tags": [
+            "spiral",
+            "bound",
+            "books",
+            "printing",
+            "binding",
+            "notebooks"
+        ],
+        "description": "Professional spiral bound books with customizable covers, content pages, and finishing options. Perfect for notebooks, manuals, catalogs, and presentations.",
+        "options": [
+            {
+                "name": "Quantity",
+                "field_id": "F1",
+                "type": "number",
+                "required": true,
+                "default": "100",
+                "min": 1,
+                "max": 10000,
+                "description": "Number of spiral bound books to print"
+            },
+            {
+                "name": "Artworks",
+                "field_id": "F2",
+                "type": "number",
+                "required": true,
+                "default": "1",
+                "min": 1,
+                "max": 10,
+                "description": "Number of different artwork designs"
+            },
+            {
+                "name": "Outer Front Cover",
+                "field_id": "F3",
+                "type": "select",
+                "required": true,
+                "default": "Not Required",
+                "visibility": "visible",
+                "options": [
+                    {
+                        "title": "Not Required",
+                        "price": 0,
+                        "price_type": "fixed",
+                        "sku": "no_outer_front",
+                        "description": "No outer front cover"
+                    },
+                    {
+                        "title": "Clear PVC",
+                        "price": 0.12,
+                        "price_type": "fixed",
+                        "sku": "clear_pvc_front",
+                        "description": "Clear PVC front cover protection"
+                    }
+                ]
+            },
+            {
+                "name": "Printed Front Cover",
+                "field_id": "F4",
+                "type": "select",
+                "required": true,
+                "default": "None",
+                "options": [
+                    {
+                        "title": "None",
+                        "price": 0,
+                        "price_type": "fixed",
+                        "sku": "no_front_cover",
+                        "description": "No printed front cover"
+                    },
+                    {
+                        "title": "250GSM Satin",
+                        "price": 0.09,
+                        "price_type": "per_sheet",
+                        "sku": "250gsm_satin",
+                        "description": "250GSM Satin cover stock"
+                    },
+                    {
+                        "title": "300GSM Satin",
+                        "price": 0.14,
+                        "price_type": "per_sheet",
+                        "sku": "300gsm_satin",
+                        "description": "300GSM Satin cover stock"
+                    },
+                    {
+                        "title": "350GSM Satin",
+                        "price": 0.18,
+                        "price_type": "per_sheet",
+                        "sku": "350gsm_satin",
+                        "description": "350GSM Satin cover stock"
+                    }
+                ]
+            },
+            {
+                "name": "Cover Print Type",
+                "field_id": "F5",
+                "type": "select",
+                "required": true,
+                "default": "1pp Colour",
+                "visibility": {
+                    "make_it": "visible",
+                    "condition": "(F4 == '350GSM Satin') || (F4 == '300GSM Satin')"
+                },
+                "options": [
+                    {
+                        "title": "1pp Colour",
+                        "price": 0.04,
+                        "price_type": "per_sheet",
+                        "sku": "1pp_colour",
+                        "description": "Single sided full color printing"
+                    },
+                    {
+                        "title": "2pp Colour",
+                        "price": 0.08,
+                        "price_type": "per_sheet",
+                        "sku": "2pp_colour",
+                        "description": "Double sided full color printing"
+                    },
+                    {
+                        "title": "1pp Black & White",
+                        "price": 0.01,
+                        "price_type": "per_sheet",
+                        "sku": "1pp_bw",
+                        "description": "Single sided black and white printing"
+                    },
+                    {
+                        "title": "2pp Black & White",
+                        "price": 0.02,
+                        "price_type": "per_sheet",
+                        "sku": "2pp_bw",
+                        "description": "Double sided black and white printing"
+                    }
+                ]
+            },
+            {
+                "name": "Celloglaze",
+                "field_id": "F6",
+                "type": "select",
+                "required": true,
+                "default": "None",
+                "options": [
+                    {
+                        "title": "None",
+                        "price": 0,
+                        "price_type": "fixed",
+                        "sku": "no_cello",
+                        "description": "No celloglaze finish"
+                    },
+                    {
+                        "title": "1 Side Gloss",
+                        "price": 0.41,
+                        "price_type": "per_sheet",
+                        "sku": "1side_gloss",
+                        "description": "Single sided gloss celloglaze"
+                    },
+                    {
+                        "title": "2 Sided Gloss",
+                        "price": 0.82,
+                        "price_type": "per_sheet",
+                        "sku": "2side_gloss",
+                        "description": "Double sided gloss celloglaze"
+                    },
+                    {
+                        "title": "1 Side Matt",
+                        "price": 0.41,
+                        "price_type": "per_sheet",
+                        "sku": "1side_matt",
+                        "description": "Single sided matt celloglaze"
+                    },
+                    {
+                        "title": "2 Sided Matt",
+                        "price": 0.82,
+                        "price_type": "per_sheet",
+                        "sku": "2side_matt",
+                        "description": "Double sided matt celloglaze"
+                    }
+                ]
+            },
+            {
+                "name": "Outer Back Cover",
+                "field_id": "F7",
+                "type": "select",
+                "required": true,
+                "default": "None",
+                "options": [
+                    {
+                        "title": "None",
+                        "price": 0,
+                        "price_type": "fixed",
+                        "sku": "no_outer_back",
+                        "description": "No outer back cover"
+                    },
+                    {
+                        "title": "Clear PVC",
+                        "price": 0.12,
+                        "price_type": "fixed",
+                        "sku": "clear_pvc_back",
+                        "description": "Clear PVC back cover protection"
+                    },
+                    {
+                        "title": "Black Leather grain",
+                        "price": 0.12,
+                        "price_type": "fixed",
+                        "sku": "black_leather_back",
+                        "description": "Black leather grain back cover"
+                    },
+                    {
+                        "title": "350GSM Satin Blank",
+                        "price": 0.12,
+                        "price_type": "fixed",
+                        "sku": "350gsm_blank_back",
+                        "description": "350GSM Satin blank back cover"
+                    }
+                ]
+            },
+            {
+                "name": "Printed Back Cover",
+                "field_id": "F8",
+                "type": "select",
+                "required": true,
+                "default": "None",
+                "options": [
+                    {
+                        "title": "None",
+                        "price": 0,
+                        "price_type": "fixed",
+                        "sku": "no_back_cover",
+                        "description": "No printed back cover"
+                    },
+                    {
+                        "title": "250GSM Satin",
+                        "price": 0.09,
+                        "price_type": "per_sheet",
+                        "sku": "250gsm_satin_back",
+                        "description": "250GSM Satin back cover stock"
+                    },
+                    {
+                        "title": "300GSM Satin",
+                        "price": 0.14,
+                        "price_type": "per_sheet",
+                        "sku": "300gsm_satin_back",
+                        "description": "300GSM Satin back cover stock"
+                    },
+                    {
+                        "title": "350GSM Satin",
+                        "price": 0.18,
+                        "price_type": "per_sheet",
+                        "sku": "350gsm_satin_back",
+                        "description": "350GSM Satin back cover stock"
+                    }
+                ]
+            },
+            {
+                "name": "Back Cover Print Type",
+                "field_id": "F9",
+                "type": "select",
+                "required": true,
+                "default": "1pp Colour",
+                "options": [
+                    {
+                        "title": "1pp Colour",
+                        "price": 0.04,
+                        "price_type": "per_sheet",
+                        "sku": "1pp_colour_back",
+                        "description": "Single sided full color printing"
+                    },
+                    {
+                        "title": "2pp Colour",
+                        "price": 0.08,
+                        "price_type": "per_sheet",
+                        "sku": "2pp_colour_back",
+                        "description": "Double sided full color printing"
+                    },
+                    {
+                        "title": "1pp Black & White",
+                        "price": 0.01,
+                        "price_type": "per_sheet",
+                        "sku": "1pp_bw_back",
+                        "description": "Single sided black and white printing"
+                    },
+                    {
+                        "title": "2pp Black & White",
+                        "price": 0.02,
+                        "price_type": "per_sheet",
+                        "sku": "2pp_bw_back",
+                        "description": "Double sided black and white printing"
+                    }
+                ]
+            },
+            {
+                "name": "Back Celloglaze",
+                "field_id": "F10",
+                "type": "select",
+                "required": true,
+                "default": "None",
+                "options": [
+                    {
+                        "title": "None",
+                        "price": 0,
+                        "price_type": "fixed",
+                        "sku": "no_cello_back",
+                        "description": "No celloglaze finish on back"
+                    },
+                    {
+                        "title": "1 Side Gloss",
+                        "price": 0.41,
+                        "price_type": "per_sheet",
+                        "sku": "1side_gloss_back",
+                        "description": "Single sided gloss celloglaze"
+                    },
+                    {
+                        "title": "2 Sided Gloss",
+                        "price": 0.82,
+                        "price_type": "per_sheet",
+                        "sku": "2side_gloss_back",
+                        "description": "Double sided gloss celloglaze"
+                    },
+                    {
+                        "title": "1 Side Matt",
+                        "price": 0.41,
+                        "price_type": "per_sheet",
+                        "sku": "1side_matt_back",
+                        "description": "Single sided matt celloglaze"
+                    },
+                    {
+                        "title": "2 Sided Matt",
+                        "price": 0.82,
+                        "price_type": "per_sheet",
+                        "sku": "2side_matt_back",
+                        "description": "Double sided matt celloglaze"
+                    }
+                ]
+            },
+            {
+                "name": "Number of Content Pages",
+                "field_id": "F11",
+                "type": "number",
+                "required": true,
+                "default": "50",
+                "min": 4,
+                "max": 500,
+                "step": 2,
+                "description": "Total number of content pages (must be even)"
+            },
+            {
+                "name": "Content Paper Stock",
+                "field_id": "F12",
+                "type": "select",
+                "required": true,
+                "default": "Uncoated Bond 80GSM",
+                "options": [
+                    {
+                        "title": "Satin 128GSM",
+                        "price": 0.054,
+                        "price_type": "per_sheet",
+                        "sku": "satin128",
+                        "description": "Satin coated paper 128GSM",
+                        "thickness": 0.12
+                    },
+                    {
+                        "title": "Satin 150GSM",
+                        "price": 0.064,
+                        "price_type": "per_sheet",
+                        "sku": "satin150",
+                        "description": "Satin coated paper 150GSM",
+                        "thickness": 0.135
+                    },
+                    {
+                        "title": "Uncoated Bond 80GSM",
+                        "price": 0.075,
+                        "price_type": "per_sheet",
+                        "sku": "bond80",
+                        "description": "Uncoated bond paper 80GSM",
+                        "thickness": 0.1
+                    },
+                    {
+                        "title": "Uncoated Bond 90GSM",
+                        "price": 0.03,
+                        "price_type": "per_sheet",
+                        "sku": "bond90",
+                        "description": "Uncoated bond paper 90GSM",
+                        "thickness": 0.11
+                    },
+                    {
+                        "title": "Uncoated Bond 140GSM",
+                        "price": 0.072,
+                        "price_type": "per_sheet",
+                        "sku": "bond140",
+                        "description": "Uncoated bond paper 140GSM",
+                        "thickness": 0.2
+                    },
+                    {
+                        "title": "Uncoated Bond 100GSM",
+                        "price": 0.054,
+                        "price_type": "per_sheet",
+                        "sku": "bond100",
+                        "description": "Uncoated bond paper 100GSM",
+                        "thickness": 0.125
+                    },
+                    {
+                        "title": "Satin 300GSM",
+                        "price": 0.14,
+                        "price_type": "per_sheet",
+                        "sku": "satin300",
+                        "description": "Heavy satin coated paper 300GSM",
+                        "thickness": 0.4
+                    }
+                ]
+            },
+            {
+                "name": "Content Print Type",
+                "field_id": "F13",
+                "type": "select",
+                "required": true,
+                "default": "Black & White",
+                "options": [
+                    {
+                        "title": "Full colour",
+                        "price": 0.096,
+                        "price_type": "per_sheet",
+                        "sku": "full_colour_content",
+                        "description": "Full color printing for content pages"
+                    },
+                    {
+                        "title": "Black & White",
+                        "price": 0.02,
+                        "price_type": "per_sheet",
+                        "sku": "bw_content",
+                        "description": "Black and white printing for content pages"
+                    }
+                ]
+            },
+            {
+                "name": "Finish Size",
+                "field_id": "F14",
+                "type": "select",
+                "required": true,
+                "default": "A4 Portrait",
+                "options": [
+                    {
+                        "title": "A6 Portrait",
+                        "price": 8,
+                        "price_type": "sheets_per_sra3",
+                        "sku": "a6_port",
+                        "description": "A6 Portrait (105 x 148mm)"
+                    },
+                    {
+                        "title": "A6 Landscape",
+                        "price": 8,
+                        "price_type": "sheets_per_sra3",
+                        "sku": "a6_land",
+                        "description": "A6 Landscape (148 x 105mm)"
+                    },
+                    {
+                        "title": "DL Portrait",
+                        "price": 6,
+                        "price_type": "sheets_per_sra3",
+                        "sku": "dl_port",
+                        "description": "DL Portrait (99 x 210mm)"
+                    },
+                    {
+                        "title": "DL Landscape",
+                        "price": 6,
+                        "price_type": "sheets_per_sra3",
+                        "sku": "dl_land",
+                        "description": "DL Landscape (210 x 99mm)"
+                    },
+                    {
+                        "title": "A5 Portrait",
+                        "price": 4,
+                        "price_type": "sheets_per_sra3",
+                        "sku": "a5_port",
+                        "description": "A5 Portrait (148 x 210mm)"
+                    },
+                    {
+                        "title": "A5 Landscape",
+                        "price": 4,
+                        "price_type": "sheets_per_sra3",
+                        "sku": "a5_land",
+                        "description": "A5 Landscape (210 x 148mm)"
+                    },
+                    {
+                        "title": "A4 Portrait",
+                        "price": 2,
+                        "price_type": "sheets_per_sra3",
+                        "sku": "a4_port",
+                        "description": "A4 Portrait (210 x 297mm)"
+                    },
+                    {
+                        "title": "A4 Landscape",
+                        "price": 2,
+                        "price_type": "sheets_per_sra3",
+                        "sku": "a4_land",
+                        "description": "A4 Landscape (297 x 210mm)"
+                    }
+                ]
+            }
+        ],
+        "pricing_constants": {
+            "setup_costs": {
+                "guilo_setup": 12,
+                "impos_setup": 15,
+                "punch_setup": 15,
+                "extra_arts": 15
+            },
+            "production_constants": {
+                "stock_waste": 1.05,
+                "cutting_block": 500,
+                "cut_cost": 11,
+                "wirebind_per_book": 1.16,
+                "bindery_labor_per_hour": 70,
+                "punch_sheets_per_hour": 15000
+            },
+            "celloglaze_setup": {
+                "condition": "Applied when F6 != 'None' OR F10 != 'None'",
+                "cost": 25
+            }
+        },
+        "wire_pricing_tiers": [
+            {
+                "thickness_range": "≤ 8mm",
+                "price_per_ring": 0.13065
+            },
+            {
+                "thickness_range": "≤ 10mm",
+                "price_per_ring": 0.157
+            },
+            {
+                "thickness_range": "≤ 12mm",
+                "price_per_ring": 0.2242
+            },
+            {
+                "thickness_range": "≤ 14mm",
+                "price_per_ring": 0.25
+            },
+            {
+                "thickness_range": "≤ 16mm",
+                "price_per_ring": 0.2895
+            },
+            {
+                "thickness_range": "≤ 18mm",
+                "price_per_ring": 0.321
+            },
+            {
+                "thickness_range": "≤ 20mm",
+                "price_per_ring": 0.4141
+            },
+            {
+                "thickness_range": "≤ 22mm",
+                "price_per_ring": 0.516
+            },
+            {
+                "thickness_range": "≤ 24mm",
+                "price_per_ring": 0.563
+            },
+            {
+                "thickness_range": "≤ 28mm",
+                "price_per_ring": 0.6392
+            },
+            {
+                "thickness_range": "≤ 31mm",
+                "price_per_ring": 0.7172
+            },
+            {
+                "thickness_range": "≤ 33mm",
+                "price_per_ring": 0.7558
+            },
+            {
+                "thickness_range": "≤ 35mm",
+                "price_per_ring": 0.829
+            },
+            {
+                "thickness_range": "≤ 38mm",
+                "price_per_ring": 0.9042
+            },
+            {
+                "thickness_range": "≤ 41mm",
+                "price_per_ring": 1.201
+            },
+            {
+                "thickness_range": "≤ 48mm",
+                "price_per_ring": 1.248
+            },
+            {
+                "thickness_range": "≤ 53mm",
+                "price_per_ring": 1.248
+            },
+            {
+                "thickness_range": "> 53mm",
+                "price_per_ring": 1.248
+            }
+        ],
+        "profit_margin_tiers": [
+            {
+                "min": 1,
+                "max": 500,
+                "margin": 0.9,
+                "description": "90% margin for small jobs"
+            },
+            {
+                "min": 501,
+                "max": 1000,
+                "margin": 0.9,
+                "description": "90% margin for medium jobs"
+            },
+            {
+                "min": 1001,
+                "max": 1500,
+                "margin": 0.80,
+                "description": "80% margin for larger jobs"
+            },
+            {
+                "min": 1501,
+                "max": 2000,
+                "margin": 0.75,
+                "description": "75% margin for bulk orders"
+            },
+            {
+                "min": 2001,
+                "max": 2500,
+                "margin": 0.70,
+                "description": "70% margin for high volume"
+            },
+            {
+                "min": 2501,
+                "max": 3000,
+                "margin": 0.67,
+                "description": "67% margin for very high volume"
+            },
+            {
+                "min": 3001,
+                "max": 4000,
+                "margin": 0.65,
+                "description": "65% margin for maximum volume"
+            },
+            {
+                "min": 4001,
+                "max": 5000,
+                "margin": 0.55,
+                "description": "55% margin for enterprise orders"
+            },
+            {
+                "min": 5001,
+                "max": 7500,
+                "margin": 0.52,
+                "description": "52% margin for large enterprise"
+            },
+            {
+                "min": 7501,
+                "max": 10000,
+                "margin": 0.47,
+                "description": "47% margin for wholesale"
+            },
+            {
+                "min": 10001,
+                "max": 15000,
+                "margin": 0.42,
+                "description": "42% margin for major wholesale"
+            },
+            {
+                "min": 15001,
+                "max": 100000,
+                "margin": 0.41,
+                "description": "41% margin for distributor pricing"
+            }
+        ],
+        "gst_calculation": {
+            "rate": 1.15,
+            "description": "15% GST/Tax applied to subtotal"
+        },
+        "final_additional_cost": {
+            "amount": 44,
+            "description": "Fixed additional cost added to final total"
+        }
+    }
+}

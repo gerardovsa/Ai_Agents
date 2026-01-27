@@ -1,22 +1,22 @@
 """
 Strut Cards A3 Shopify Calculator
-Exact implementation of Shopify JavaScript formula for Strut Cards A3
+Exact implementation from SHOPIFY_CALCULATORS_WEBSITE_JS_AND_JSON.txt
 
-Based on: Shopify_Strut_Cards_A3.json specification
-Platform: Shopify (separate from WooCommerce calculators)
-Fields: 4 fields (Shopify-specific structure)
-Key Features: Tiered padding rates, profit margins, double GST application
+Formula:
+- Artwork cost: _a = artworks × 5; _a2 = IF _a ≤ 5 THEN 0 ELSE (_a - 5)
+- Unit price: 25 quantity-based tiers (A3: $16 → $5.42)
+- Subtotal: (quantity × unit_price) + _a2
+- Minimum order: IF subtotal < $79 THEN $79
+- First markup: IF above minimum THEN subtotal × 1.1
+- Final markup: × 1.1 (A3-specific)
+
+Size: A3 - 297mm × 420mm
+Stock: 2mm Screenboard
 """
 
-import json
 from decimal import Decimal, ROUND_HALF_UP
-from typing import Dict, Any, List, Tuple, Optional
+from typing import Dict, Any
 from dataclasses import dataclass
-from pathlib import Path
-import sys
-
-# Import config manager
-from config_manager import config_manager
 
 
 @dataclass
@@ -32,124 +32,129 @@ class StrutCardsA3ShopifyCalculatorQuoteResult:
 
 class StrutCardsA3ShopifyCalculator:
     """
-    Strut Cards A3 Shopify Calculator - Exact Shopify JavaScript Implementation
+    Strut Cards A3 Shopify Calculator - Exact TXT Formula Implementation
     
-    SHOPIFY-SPECIFIC CALCULATOR - SEPARATE FROM WOOCOMMERCE
-    
-    Features:
-    - 4-field Shopify structure
-    - Tiered padding rates (0 tiers)
-    - Tiered profit margins (0 tiers)
-    - Artwork setup costs
-    - DOUBLE GST APPLICATION (Shopify-specific: Total * 1.1 * 1.1)
+    25-tier quantity pricing (A3 rates: $16 → $5.42)
+    Artwork cost: First $5 included, then $5 each additional
+    Minimum order: $79
+    Double markup: ×1.1 (initial) then ×1.1 (A3 final)
     """
     
-    CONFIG_FILE = "Shopify_Strut_Cards_A3.json"
+    # A3-specific 25-tier quantity pricing (CORRECTED from TXT)
+    QUANTITY_TIERS = [
+        (1, 9, Decimal("16")),       # 1-9
+        (10, 14, Decimal("16")),     # 10-14
+        (15, 19, Decimal("12")),     # 15-19
+        (20, 24, Decimal("11.8")),   # 20-24
+        (25, 29, Decimal("11.6")),   # 25-29
+        (30, 34, Decimal("11.6")),   # 30-34
+        (35, 39, Decimal("11.4")),   # 35-39
+        (40, 44, Decimal("11.2")),   # 40-44
+        (45, 49, Decimal("11")),     # 45-49
+        (50, 59, Decimal("10.6")),   # 50-59
+        (60, 69, Decimal("10.4")),   # 60-69
+        (70, 79, Decimal("10.32")),  # 70-79
+        (80, 89, Decimal("10.2")),   # 80-89
+        (90, 99, Decimal("8.8")),    # 90-99
+        (100, 124, Decimal("7.7")),  # 100-124 (CORRECTED: was 9.50)
+        (125, 149, Decimal("6.8")),  # 125-149 (CORRECTED: was 9.00)
+        (150, 174, Decimal("6.32")), # 150-174 (CORRECTED: was 9.00)
+        (175, 199, Decimal("6.14")), # 175-199 (CORRECTED: was 8.50)
+        (200, 249, Decimal("5.98")), # 200-249 (CORRECTED: was 8.00)
+        (250, 299, Decimal("5.72")), # 250-299 (CORRECTED: was 7.50)
+        (300, 399, Decimal("5.6")),  # 300-399 (CORRECTED: was 7.00)
+        (400, 499, Decimal("5.56")), # 400-499 (CORRECTED: was 6.60)
+        (500, 749, Decimal("5.5")),  # 500-749 (CORRECTED: was 6.30)
+        (750, 999, Decimal("5.46")), # 750-999 (CORRECTED: was 5.80)
+        (1000, float('inf'), Decimal("5.42"))  # 1000+
+    ]
     
-    def __init__(self, config_path: str = None):
+    MINIMUM_ORDER = Decimal("79")
+    INITIAL_MARKUP = Decimal("1.1")   # First markup
+    FINAL_MARKUP = Decimal("1.1")     # A3-specific final markup
+    
+    def __init__(self):
         """Initialize Strut Cards A3 Shopify calculator"""
-        if config_path:
-            self.config = self._load_config(config_path)
-        else:
-            try:
-                self.config = config_manager.load_shopify_config(self.CONFIG_FILE)
-            except FileNotFoundError as e:
-                print(f"⚠️ Warning: {e}")
-                self.config = None
-    
-    def _load_config(self, config_path: str) -> Dict:
-        """Load configuration from JSON file"""
-        with open(config_path, 'r', encoding='utf-8') as f:
-            return json.load(f)
+        pass
     
     def calculate(self, **kwargs) -> StrutCardsA3ShopifyCalculatorQuoteResult:
         """
-        Calculate Strut Cards A3 Shopify quote
+        Calculate Strut Cards A3 quote using exact TXT formula
         
         Args:
-            **kwargs: Calculator parameters from JSON config
+            quantity (int): Number of strut cards (1-10000)
+            artworks (int): Number of artworks (1-20), default 1
         
         Returns:
             StrutCardsA3ShopifyCalculatorQuoteResult with pricing details
         """
+        # Get parameters (with legacy support)
         quantity = int(kwargs.get('quantity', kwargs.get('qty', 100)))
-        size = kwargs.get('size', '297x420')  # A3
-        sides = kwargs.get('sides', 'Single')
-        artworks = int(kwargs.get('artworks', 1))
+        artworks = int(kwargs.get('artworks', kwargs.get('art', 1)))
 
         if quantity <= 0:
             raise ValueError('Quantity must be > 0')
+        if artworks < 1:
+            raise ValueError('Artworks must be >= 1')
 
-        try:
-            w_str, h_str = size.lower().split('x')
-            width_mm = Decimal(w_str)
-            height_mm = Decimal(h_str)
-            area_m2 = (width_mm * height_mm) / Decimal('1000000')
-        except Exception:
-            area_m2 = Decimal('0.125')
+        # Step 1: Calculate artwork cost
+        # Formula: _a = artworks × 5; _a2 = IF _a ≤ 5 THEN 0 ELSE (_a - 5)
+        _a = Decimal(artworks) * Decimal("5")
+        if _a <= Decimal("5"):
+            artwork_cost = Decimal("0")
+        else:
+            artwork_cost = _a - Decimal("5")
 
-        material_rate = Decimal('3.50')  # card per m2 base
-        print_cost_per_m2 = Decimal('6.00')
-        sides_multiplier = Decimal('2') if 'double' in sides.lower() else Decimal('1')
+        # Step 2: Get unit price from quantity tiers
+        unit_price = self._get_unit_price(quantity)
 
-        impos_setup = Decimal('20')
-        extra_arts = Decimal('10')
-        artwork_setup_cost = (Decimal(artworks) - Decimal(1)) * extra_arts if artworks > 1 else Decimal('0')
+        # Step 3: Calculate subtotal
+        # Formula: (quantity × unit_price) + artwork_cost
+        subtotal = (Decimal(quantity) * unit_price) + artwork_cost
 
-        material_cost = area_m2 * material_rate * Decimal(quantity)
-        print_cost = area_m2 * print_cost_per_m2 * Decimal(quantity) * sides_multiplier
-        cutting_and_finish = Decimal('0.80') * Decimal(quantity)
+        # Step 4: Apply minimum order rule + first markup
+        # Formula: IF subtotal < $79 THEN $79 ELSE (subtotal × 1.1)
+        if subtotal < self.MINIMUM_ORDER:
+            total_after_first_markup = self.MINIMUM_ORDER
+        else:
+            total_after_first_markup = subtotal * self.INITIAL_MARKUP
 
-        biz_cost = impos_setup + artwork_setup_cost + material_cost + print_cost + cutting_and_finish
-
-        profit_margin_rate = self._get_profit_margin(float(biz_cost))
-        profit_amount = biz_cost * profit_margin_rate
-        sub_total = biz_cost + profit_amount
-
-        PRICE_INCREASE_MULTIPLIER = Decimal('1.00')
-        GST_RATE = Decimal('1.10')
-
-        subtotal_with_increase = sub_total * PRICE_INCREASE_MULTIPLIER
-        total_price = (subtotal_with_increase * GST_RATE) * GST_RATE
+        # Step 5: Apply final markup (A3-specific: ×1.1)
+        total_price = total_after_first_markup * self.FINAL_MARKUP
         total_price = total_price.quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
 
-        unit_price = total_price / Decimal(quantity)
+        unit_price_final = total_price / Decimal(quantity)
 
         breakdown = {
-            'impos_setup': impos_setup,
-            'artwork_setup_cost': artwork_setup_cost,
-            'material_cost': material_cost,
-            'print_cost': print_cost,
-            'cutting_and_finish': cutting_and_finish,
-            'biz_cost': biz_cost,
-            'profit_margin_rate': Decimal(profit_margin_rate),
-            'profit_amount': profit_amount,
-            'subtotal': sub_total,
-            'subtotal_with_increase': subtotal_with_increase,
-            'gst_rate': GST_RATE,
+            'artwork_cost': artwork_cost,
+            'unit_price': unit_price,
+            'subtotal': subtotal,
+            'minimum_applied': subtotal < self.MINIMUM_ORDER,
+            'total_after_first_markup': total_after_first_markup,
+            'initial_markup': self.INITIAL_MARKUP,
+            'final_markup': self.FINAL_MARKUP,
             'total_price': total_price,
         }
 
         specifications = {
             'quantity': quantity,
-            'size_mm': f"{width_mm}x{height_mm}" if 'width_mm' in locals() else size,
-            'sides': sides,
-            'area_m2': float(area_m2)
+            'artworks': artworks,
+            'size': 'A3 - 297mm x 420mm',
+            'stock': '2mm Screenboard'
         }
 
         return StrutCardsA3ShopifyCalculatorQuoteResult(
             total_price=total_price,
-            unit_price=unit_price,
-            cost_per_item=unit_price,
+            unit_price=unit_price_final,
+            cost_per_item=unit_price_final,
             quantity=quantity,
             breakdown=breakdown,
             specifications=specifications
         )
     
-    def _get_padding_rate(self, quantity: int) -> Decimal:
-        """Get padding rate (no tiers defined)"""
-        return Decimal('0.10')
-    
-    def _get_profit_margin(self, subtotal: float) -> Decimal:
-        """Get profit margin (no tiers defined)"""
-        return Decimal('0.50')
+    def _get_unit_price(self, quantity: int) -> Decimal:
+        """Get unit price from A3 quantity tiers"""
+        for min_qty, max_qty, price in self.QUANTITY_TIERS:
+            if min_qty <= quantity <= max_qty:
+                return price
+        return self.QUANTITY_TIERS[-1][2]  # Return highest tier if not found

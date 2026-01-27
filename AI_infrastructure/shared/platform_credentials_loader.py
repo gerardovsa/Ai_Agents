@@ -65,13 +65,14 @@ from typing import Optional, Dict, Any
 from AI_infrastructure.shared.database_utils import get_database_connection
 
 
-def get_user_credentials(user_id: int, platform: str) -> Optional[Dict[str, Any]]:
+def get_user_credentials(user_id: int, platform: str, bypass_cache: bool = False) -> Optional[Dict[str, Any]]:
     """
     Get user-specific credentials for a platform
     
     Args:
         user_id: User ID from authentication
-        platform: Platform name (assemblyai, openai, xero_print, etc.)
+        platform: Platform name (assemblyai, openai, xero_print, anthropic, etc.)
+        bypass_cache: If True, skip cache and force fresh database read (default: False)
     
     Returns:
         Dict with credentials or None if not found
@@ -82,19 +83,25 @@ def get_user_credentials(user_id: int, platform: str) -> Optional[Dict[str, Any]
         
         >>> creds = get_user_credentials(1, 'xero_print')
         >>> client_id = creds['credentials']['client_id']
+        
+        >>> creds = get_user_credentials(1, 'anthropic', bypass_cache=True)
+        >>> # Force fresh read, ignore cache (useful after credential updates)
     """
     # ✅ PERFORMANCE OPTIMIZATION (Dec 2025): Try Redis cache first
-    try:
-        from AI_infrastructure.utils.cache_utils import get_cached_platform_credentials
-        cached = get_cached_platform_credentials(user_id, platform)
-        if cached:
-            print(f"[CREDENTIALS] ⚡ Cache HIT for user_id={user_id}, platform={platform}")
-            return cached
-    except Exception as e:
-        # Silently fail if cache unavailable - fallback to DB
-        pass
+    if not bypass_cache:
+        try:
+            from AI_infrastructure.utils.cache_utils import get_cached_platform_credentials
+            cached = get_cached_platform_credentials(user_id, platform)
+            if cached:
+                print(f"[CREDENTIALS] ⚡ Cache HIT for user_id={user_id}, platform={platform}")
+                return cached
+        except Exception as e:
+            # Silently fail if cache unavailable - fallback to DB
+            pass
+    else:
+        print(f"[CREDENTIALS] 🔄 Cache BYPASS requested for user_id={user_id}, platform={platform}")
     
-    print(f"[CREDENTIALS] Cache MISS for user_id={user_id}, platform={platform} - fetching from DB")
+    print(f"[CREDENTIALS] 🔍 Cache MISS for user_id={user_id}, platform={platform} - fetching from DB")
     
     try:
         conn = get_database_connection('ai_infrastructure')

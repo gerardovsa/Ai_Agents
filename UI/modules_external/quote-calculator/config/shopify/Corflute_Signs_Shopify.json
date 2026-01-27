@@ -1,0 +1,527 @@
+{
+  "product_name": "Corflute Signs",
+  "description": "Corflute sign calculator matching inhouseprint.com.au Shopify configurator",
+  "version": "1.0.0",
+  "last_updated": "2025-10-14",
+  "calculator_type": "shopify",
+  "pricing_source": "Shopify Product DPO JavaScript - Hardcoded Website Pricing",
+  
+  "fields": {
+    "F1": {
+      "field_name": "quantity",
+      "label": "Quantity",
+      "type": "number",
+      "default": 10,
+      "min": 1,
+      "max": 10000,
+      "required": true,
+      "description": "Number of corflute signs to produce"
+    },
+    
+    "F2": {
+      "field_name": "eyelet_option",
+      "label": "Eyelets/Grommets",
+      "type": "select",
+      "default": "none",
+      "required": true,
+      "options": [
+        {
+          "value": "none",
+          "label": "None",
+          "eyelet_count": 0
+        },
+        {
+          "value": "4_corners",
+          "label": "4 x Eyelets (1 In Each Corner)",
+          "eyelet_count": 4
+        },
+        {
+          "value": "2_top",
+          "label": "2 x Eyelets (top left & right corners)",
+          "eyelet_count": 2
+        },
+        {
+          "value": "2_center_lr",
+          "label": "2 x Eyelets (center left & right)",
+          "eyelet_count": 2
+        },
+        {
+          "value": "2_center_tb",
+          "label": "2 x Eyelets (center top & bottom)",
+          "eyelet_count": 2
+        },
+        {
+          "value": "6_top_bottom",
+          "label": "6 x Eyelets (3 each top & bottom)",
+          "eyelet_count": 6
+        },
+        {
+          "value": "6_left_right",
+          "label": "6 x Eyelets (3 each left & right)",
+          "eyelet_count": 6
+        }
+      ],
+      "description": "Eyelet placement for hanging/mounting"
+    },
+    
+    "F3": {
+      "field_name": "custom_width_mm",
+      "label": "Width (mm)",
+      "type": "number",
+      "default": 600,
+      "min": 100,
+      "max": 2400,
+      "required": false,
+      "visible_when": {
+        "field": "size_preset",
+        "value": "custom"
+      },
+      "description": "Custom width in millimeters (max 2400mm)"
+    },
+    
+    "F4": {
+      "field_name": "thickness",
+      "label": "Corflute Thickness",
+      "type": "select",
+      "default": "5mm",
+      "required": true,
+      "options": [
+        {
+          "value": "3mm",
+          "label": "3mm Standard"
+        },
+        {
+          "value": "5mm",
+          "label": "5mm Premium"
+        }
+      ],
+      "description": "Corflute board thickness (3mm or 5mm)"
+    },
+    
+    "F5": {
+      "field_name": "size_preset",
+      "label": "Sign Size",
+      "type": "select",
+      "default": "600x900mm",
+      "required": true,
+      "options": [
+        {
+          "value": "450x600mm",
+          "label": "450mm x 600mm",
+          "width_mm": 450,
+          "height_mm": 600
+        },
+        {
+          "value": "600x900mm",
+          "label": "600mm x 900mm (Real Estate Standard)",
+          "width_mm": 600,
+          "height_mm": 900
+        },
+        {
+          "value": "900x1200mm",
+          "label": "900mm x 1200mm",
+          "width_mm": 900,
+          "height_mm": 1200
+        },
+        {
+          "value": "1200x2400mm",
+          "label": "1200mm x 2400mm (Max Sheet)",
+          "width_mm": 1200,
+          "height_mm": 2400
+        },
+        {
+          "value": "custom",
+          "label": "Custom Size (+10% surcharge)",
+          "width_mm": 0,
+          "height_mm": 0
+        }
+      ],
+      "description": "Standard sizes or custom dimensions"
+    },
+    
+    "F6": {
+      "field_name": "custom_height_mm",
+      "label": "Height (mm)",
+      "type": "number",
+      "default": 900,
+      "min": 100,
+      "max": 2400,
+      "required": false,
+      "visible_when": {
+        "field": "size_preset",
+        "value": "custom"
+      },
+      "description": "Custom height in millimeters (max 2400mm)"
+    },
+    
+    "F7": {
+      "field_name": "double_sided",
+      "label": "Print Sides",
+      "type": "select",
+      "default": false,
+      "required": true,
+      "options": [
+        {
+          "value": false,
+          "label": "Single-sided"
+        },
+        {
+          "value": true,
+          "label": "Double-sided (+$6/sqm)"
+        }
+      ],
+      "description": "Print on one or both sides"
+    },
+    
+    "F8": {
+      "field_name": "cutting_type",
+      "label": "Cutting",
+      "type": "select",
+      "default": "standard",
+      "required": true,
+      "options": [
+        {
+          "value": "standard",
+          "label": "Standard square edge"
+        },
+        {
+          "value": "custom_shape",
+          "label": "Custom Shape (subject to quote)"
+        }
+      ],
+      "description": "Edge finish style"
+    },
+    
+    "F9": {
+      "field_name": "artworks",
+      "label": "Number of Artworks",
+      "type": "number",
+      "default": 1,
+      "min": 1,
+      "max": 100,
+      "required": true,
+      "description": "Different designs/artworks (first 5 free, then $5 each)"
+    },
+    
+    "F10": {
+      "field_name": "shipping_required",
+      "label": "Shipping",
+      "type": "boolean",
+      "default": false,
+      "auto_calculate": true,
+      "visible": false,
+      "description": "Auto-calculated: +$45 if width ≥ 1800mm or height ≥ 1800mm"
+    }
+  },
+  
+  "pricing_tiers": {
+    "5mm_corflute": [
+      {"sqm_threshold": 5, "price_per_sqm": 31.25},
+      {"sqm_threshold": 6, "price_per_sqm": 28.35},
+      {"sqm_threshold": 7, "price_per_sqm": 25.15},
+      {"sqm_threshold": 8, "price_per_sqm": 24.71},
+      {"sqm_threshold": 9, "price_per_sqm": 22.74},
+      {"sqm_threshold": 10, "price_per_sqm": 22.64},
+      {"sqm_threshold": 15, "price_per_sqm": 21.24},
+      {"sqm_threshold": 20, "price_per_sqm": 19.50},
+      {"sqm_threshold": 25, "price_per_sqm": 17.05},
+      {"sqm_threshold": 30, "price_per_sqm": 17.30},
+      {"sqm_threshold": 35, "price_per_sqm": 16.44},
+      {"sqm_threshold": 40, "price_per_sqm": 16.16},
+      {"sqm_threshold": 45, "price_per_sqm": 15.60},
+      {"sqm_threshold": 50, "price_per_sqm": 15.43},
+      {"sqm_threshold": 60, "price_per_sqm": 15.03},
+      {"sqm_threshold": 70, "price_per_sqm": 14.60},
+      {"sqm_threshold": 80, "price_per_sqm": 14.26},
+      {"sqm_threshold": 90, "price_per_sqm": 13.99},
+      {"sqm_threshold": 100, "price_per_sqm": 13.75},
+      {"sqm_threshold": 110, "price_per_sqm": 13.56},
+      {"sqm_threshold": 120, "price_per_sqm": 13.38},
+      {"sqm_threshold": 130, "price_per_sqm": 13.23},
+      {"sqm_threshold": 140, "price_per_sqm": 13.10},
+      {"sqm_threshold": 150, "price_per_sqm": 12.97},
+      {"sqm_threshold": 175, "price_per_sqm": 12.86},
+      {"sqm_threshold": 200, "price_per_sqm": 12.65},
+      {"sqm_threshold": 225, "price_per_sqm": 12.43},
+      {"sqm_threshold": 250, "price_per_sqm": 12.29},
+      {"sqm_threshold": 275, "price_per_sqm": 12.12},
+      {"sqm_threshold": 300, "price_per_sqm": 12.01},
+      {"sqm_threshold": 325, "price_per_sqm": 11.88},
+      {"sqm_threshold": 350, "price_per_sqm": 11.80},
+      {"sqm_threshold": 375, "price_per_sqm": 11.69},
+      {"sqm_threshold": 400, "price_per_sqm": 11.61},
+      {"sqm_threshold": 425, "price_per_sqm": 11.53},
+      {"sqm_threshold": 450, "price_per_sqm": 11.47},
+      {"sqm_threshold": 475, "price_per_sqm": 11.39},
+      {"sqm_threshold": 500, "price_per_sqm": 11.34},
+      {"sqm_threshold": 539, "price_per_sqm": 11.17},
+      {"sqm_threshold": 550, "price_per_sqm": 11.17},
+      {"sqm_threshold": 600, "price_per_sqm": 11.17},
+      {"sqm_threshold": 650, "price_per_sqm": 11.08},
+      {"sqm_threshold": 700, "price_per_sqm": 11.00},
+      {"sqm_threshold": 999999, "price_per_sqm": 10.97, "label": "700+ sqm"}
+    ],
+    
+    "3mm_corflute": [
+      {"sqm_threshold": 5, "price_per_sqm": 25.00},
+      {"sqm_threshold": 6, "price_per_sqm": 25.00},
+      {"sqm_threshold": 7, "price_per_sqm": 21.09},
+      {"sqm_threshold": 8, "price_per_sqm": 20.48},
+      {"sqm_threshold": 9, "price_per_sqm": 19.02},
+      {"sqm_threshold": 10, "price_per_sqm": 18.75},
+      {"sqm_threshold": 15, "price_per_sqm": 17.73},
+      {"sqm_threshold": 20, "price_per_sqm": 16.13},
+      {"sqm_threshold": 25, "price_per_sqm": 14.82},
+      {"sqm_threshold": 30, "price_per_sqm": 14.28},
+      {"sqm_threshold": 35, "price_per_sqm": 13.61},
+      {"sqm_threshold": 40, "price_per_sqm": 13.32},
+      {"sqm_threshold": 45, "price_per_sqm": 12.89},
+      {"sqm_threshold": 50, "price_per_sqm": 12.70},
+      {"sqm_threshold": 60, "price_per_sqm": 12.40},
+      {"sqm_threshold": 70, "price_per_sqm": 12.03},
+      {"sqm_threshold": 80, "price_per_sqm": 11.74},
+      {"sqm_threshold": 90, "price_per_sqm": 11.50},
+      {"sqm_threshold": 100, "price_per_sqm": 11.30},
+      {"sqm_threshold": 110, "price_per_sqm": 11.13},
+      {"sqm_threshold": 120, "price_per_sqm": 10.98},
+      {"sqm_threshold": 130, "price_per_sqm": 10.85},
+      {"sqm_threshold": 140, "price_per_sqm": 10.74},
+      {"sqm_threshold": 150, "price_per_sqm": 10.63},
+      {"sqm_threshold": 175, "price_per_sqm": 10.54},
+      {"sqm_threshold": 200, "price_per_sqm": 10.35},
+      {"sqm_threshold": 225, "price_per_sqm": 10.16},
+      {"sqm_threshold": 250, "price_per_sqm": 10.03},
+      {"sqm_threshold": 275, "price_per_sqm": 9.89},
+      {"sqm_threshold": 300, "price_per_sqm": 9.80},
+      {"sqm_threshold": 325, "price_per_sqm": 9.69},
+      {"sqm_threshold": 350, "price_per_sqm": 9.61},
+      {"sqm_threshold": 375, "price_per_sqm": 9.52},
+      {"sqm_threshold": 400, "price_per_sqm": 9.46},
+      {"sqm_threshold": 425, "price_per_sqm": 9.39},
+      {"sqm_threshold": 450, "price_per_sqm": 9.34},
+      {"sqm_threshold": 475, "price_per_sqm": 9.27},
+      {"sqm_threshold": 500, "price_per_sqm": 9.22},
+      {"sqm_threshold": 539, "price_per_sqm": 9.08},
+      {"sqm_threshold": 550, "price_per_sqm": 9.08},
+      {"sqm_threshold": 600, "price_per_sqm": 9.08},
+      {"sqm_threshold": 650, "price_per_sqm": 9.00},
+      {"sqm_threshold": 700, "price_per_sqm": 8.93},
+      {"sqm_threshold": 999999, "price_per_sqm": 8.91, "label": "700+ sqm"}
+    ]
+  },
+  
+  "pricing_constants": {
+    "eyelet_cost_per_unit": 0.55,
+    "artwork_value_each": 5.00,
+    "free_artworks": 5,
+    "double_sided_cost_per_sqm": 6.00,
+    "custom_size_premium_multiplier": 1.10,
+    "discount_multiplier": 0.95,
+    "minimum_order_value": 135.00,
+    "shipping_surcharge": 45.00,
+    "shipping_dimension_threshold_mm": 1800
+  },
+  
+  "calculation_formula": {
+    "step_1": {
+      "name": "Calculate dimensions",
+      "description": "Get width and height from preset or custom input",
+      "formula": "If size_preset != 'custom': use preset dimensions. Else: use custom_width_mm and custom_height_mm"
+    },
+    
+    "step_2": {
+      "name": "Calculate total square meters",
+      "description": "Area per unit × quantity",
+      "formula": "sqm_per_unit = (width_mm × height_mm) / 1,000,000 | total_sqm = sqm_per_unit × quantity"
+    },
+    
+    "step_3": {
+      "name": "Get tier price per sqm",
+      "description": "Lookup price from tier table based on total_sqm and thickness",
+      "formula": "tier_price = lookup(pricing_tiers[thickness], total_sqm)"
+    },
+    
+    "step_4": {
+      "name": "Calculate base cost",
+      "description": "Material and printing cost",
+      "formula": "base_cost = total_sqm × tier_price"
+    },
+    
+    "step_5": {
+      "name": "Add double-sided cost",
+      "description": "Extra cost if printing both sides",
+      "formula": "double_sided_cost = total_sqm × 6.00 (if double_sided=true, else 0)"
+    },
+    
+    "step_6": {
+      "name": "Apply custom size premium",
+      "description": "10% surcharge for non-standard sizes",
+      "formula": "cost_before_custom = base_cost + double_sided_cost | custom_premium = cost_before_custom × 0.10 (if size_preset='custom', else 0) | cost_after_custom = cost_before_custom × 1.10 (if custom, else 1.0)"
+    },
+    
+    "step_7": {
+      "name": "Calculate eyelet cost",
+      "description": "Cost for eyelets/grommets",
+      "formula": "eyelet_cost = eyelet_count × 0.55 × quantity"
+    },
+    
+    "step_8": {
+      "name": "Calculate artwork cost",
+      "description": "First 5 artworks free, then $5 each",
+      "formula": "artwork_value = artworks × 5.00 | artwork_cost = max(0, artwork_value - 25.00)"
+    },
+    
+    "step_9": {
+      "name": "Apply discount",
+      "description": "5% discount on all orders",
+      "formula": "subtotal_before_discount = cost_after_custom + eyelet_cost + artwork_cost | discount_amount = subtotal_before_discount × 0.05 | subtotal_after_discount = subtotal_before_discount × 0.95"
+    },
+    
+    "step_10": {
+      "name": "Apply minimum order",
+      "description": "Enforce $135 minimum",
+      "formula": "total = max(subtotal_after_discount, 135.00) | per_unit = total / quantity"
+    }
+  },
+  
+  "validation_rules": {
+    "size_preset": {
+      "required": true,
+      "allowed_values": ["450x600mm", "600x900mm", "900x1200mm", "1200x2400mm", "custom"]
+    },
+    "custom_width_mm": {
+      "required_if": "size_preset == 'custom'",
+      "min": 100,
+      "max": 2400,
+      "error_message": "Custom width must be between 100mm and 2400mm"
+    },
+    "custom_height_mm": {
+      "required_if": "size_preset == 'custom'",
+      "min": 100,
+      "max": 2400,
+      "error_message": "Custom height must be between 100mm and 2400mm"
+    },
+    "thickness": {
+      "required": true,
+      "allowed_values": ["3mm", "5mm"]
+    },
+    "quantity": {
+      "required": true,
+      "min": 1,
+      "max": 10000,
+      "error_message": "Quantity must be between 1 and 10,000"
+    },
+    "eyelet_option": {
+      "required": true,
+      "allowed_values": ["none", "4_corners", "2_top", "2_center_lr", "2_center_tb", "6_top_bottom", "6_left_right"]
+    },
+    "artworks": {
+      "required": true,
+      "min": 1,
+      "max": 100,
+      "error_message": "Artworks must be between 1 and 100"
+    }
+  },
+  
+  "visibility_rules": {
+    "custom_width_mm": {
+      "visible_when": {
+        "field": "size_preset",
+        "operator": "==",
+        "value": "custom"
+      }
+    },
+    "custom_height_mm": {
+      "visible_when": {
+        "field": "size_preset",
+        "operator": "==",
+        "value": "custom"
+      }
+    }
+  },
+  
+  "examples": [
+    {
+      "name": "Standard Real Estate Sign",
+      "description": "Most common configuration - 600x900mm, 5mm, 10 qty with corner eyelets",
+      "inputs": {
+        "size_preset": "600x900mm",
+        "thickness": "5mm",
+        "quantity": 10,
+        "double_sided": false,
+        "eyelet_option": "4_corners",
+        "artworks": 1
+      },
+      "expected_outputs": {
+        "total_sqm": 5.4,
+        "tier_price_per_sqm": 28.35,
+        "base_cost": 153.09,
+        "eyelet_cost": 22.00,
+        "subtotal_after_discount": 166.34,
+        "total": 166.34,
+        "per_unit": 16.63
+      }
+    },
+    
+    {
+      "name": "Double-Sided Custom Size",
+      "description": "Custom 800x1200mm, double-sided, 20 qty",
+      "inputs": {
+        "size_preset": "custom",
+        "custom_width_mm": 800,
+        "custom_height_mm": 1200,
+        "thickness": "5mm",
+        "quantity": 20,
+        "double_sided": true,
+        "eyelet_option": "2_top",
+        "artworks": 3
+      },
+      "expected_outputs": {
+        "total_sqm": 19.2,
+        "tier_price_per_sqm": 19.50,
+        "base_cost": 374.40,
+        "double_sided_cost": 115.20,
+        "custom_premium": 48.96,
+        "eyelet_cost": 22.00,
+        "subtotal_after_discount": 532.03,
+        "total": 532.03,
+        "per_unit": 26.60
+      }
+    },
+    
+    {
+      "name": "Minimum Order Test",
+      "description": "Small order triggering $135 minimum",
+      "inputs": {
+        "size_preset": "450x600mm",
+        "thickness": "3mm",
+        "quantity": 2,
+        "double_sided": false,
+        "eyelet_option": "none",
+        "artworks": 1
+      },
+      "expected_outputs": {
+        "total_sqm": 0.54,
+        "tier_price_per_sqm": 25.00,
+        "base_cost": 13.50,
+        "subtotal_after_discount": 12.83,
+        "minimum_applied": true,
+        "total": 135.00,
+        "per_unit": 67.50
+      }
+    }
+  ],
+  
+  "notes": [
+    "All prices are ex GST (add 10% for inc GST)",
+    "Maximum sheet size: 2400mm × 1200mm",
+    "Larger signs are supplied in multiple panels",
+    "Shipping surcharge (+$45) applies if width ≥ 1800mm or height ≥ 1800mm",
+    "Custom shapes subject to separate quoting",
+    "5% discount applied to all online orders",
+    "First 5 artworks free, then $5 per additional artwork",
+    "43-tier volume pricing for both 3mm and 5mm thickness",
+    "Prices sourced from Shopify DPO JavaScript (hardcoded website pricing)",
+    "Production lead time: 3-5 business days"
+  ]
+}

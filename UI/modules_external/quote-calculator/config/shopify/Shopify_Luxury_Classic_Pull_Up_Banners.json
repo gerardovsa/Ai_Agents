@@ -1,0 +1,494 @@
+{
+    "shopify_luxury_classic_pull_up_banners": {
+        "product_title": "Luxury Classic Pull Up Banners",
+        "product_type": "Pull Up Banners",
+        "vendor": "PrintShop",
+        "tags": [
+            "pull",
+            "up",
+            "banners",
+            "luxury",
+            "classic",
+            "display",
+            "portable",
+            "exhibition"
+        ],
+        "description": "Premium luxury classic pull up banners with professional aluminum base. Perfect for trade shows, exhibitions, retail displays, and corporate events. Available in multiple sizes with high-quality printing on durable banner material.",
+        "options": [
+            {
+                "name": "Quantity",
+                "field_id": "F1",
+                "type": "number",
+                "required": true,
+                "default": "1",
+                "min": 1,
+                "max": 100,
+                "description": "Number of luxury pull up banners to produce"
+            },
+            {
+                "name": "Artworks",
+                "field_id": "F2",
+                "type": "number",
+                "required": true,
+                "default": "1",
+                "min": 1,
+                "max": 20,
+                "visibility": {
+                    "make_it": "visible",
+                    "condition": "(F1 > 2)"
+                },
+                "description": "Number of different artwork designs"
+            },
+            {
+                "name": "Base Colour",
+                "field_id": "F3",
+                "type": "select",
+                "required": true,
+                "default": "Silver",
+                "options": [
+                    {
+                        "title": "Silver",
+                        "price": 0,
+                        "price_type": "fixed",
+                        "sku": "silver_base",
+                        "description": "Silver aluminum base finish"
+                    },
+                    {
+                        "title": "Black",
+                        "price": 0,
+                        "price_type": "fixed",
+                        "sku": "black_base",
+                        "description": "Black aluminum base finish"
+                    }
+                ]
+            },
+            {
+                "name": "Size",
+                "field_id": "F4",
+                "type": "select",
+                "required": true,
+                "default": "850mm W x 2000mm H",
+                "options": [
+                    {
+                        "title": "850mm W x 2000mm H",
+                        "price": 0,
+                        "price_type": "fixed",
+                        "sku": "850x2000",
+                        "description": "Standard pull up banner - 850mm wide x 2000mm high"
+                    },
+                    {
+                        "title": "850mm W x 1500mm H",
+                        "price": 0,
+                        "price_type": "fixed",
+                        "sku": "850x1500",
+                        "description": "Compact pull up banner - 850mm wide x 1500mm high"
+                    },
+                    {
+                        "title": "850mm W x 1400mm H Shopping Center",
+                        "price": 0,
+                        "price_type": "fixed",
+                        "sku": "850x1400_sc",
+                        "description": "Shopping center compliant - 850mm wide x 1400mm high"
+                    }
+                ]
+            }
+        ],
+        "pricing_constants": {
+            "setup_costs": {
+                "artwork_base_cost": 6,
+                "extra_artwork_cost": 6,
+                "production_setup": 15
+            },
+            "multipliers": {
+                "initial_markup": 1.1,
+                "description_1": "10% markup applied to subtotal + artwork + setup",
+                "final_markup": 1.1,
+                "description_2": "Additional 10% final markup applied to total"
+            }
+        },
+        "quantity_pricing_tiers": {
+            "850mm_w_x_2000mm_h": [
+                {
+                    "qty": 1,
+                    "price_per_unit": 135.00
+                },
+                {
+                    "qty": 2,
+                    "price_per_unit": 135.00
+                },
+                {
+                    "qty": 3,
+                    "price_per_unit": 132.61
+                },
+                {
+                    "qty": 4,
+                    "price_per_unit": 126.88
+                },
+                {
+                    "qty": 5,
+                    "price_per_unit": 123.33
+                },
+                {
+                    "qty": 6,
+                    "price_per_unit": 120.84
+                },
+                {
+                    "qty": 7,
+                    "price_per_unit": 118.96
+                },
+                {
+                    "qty": 8,
+                    "price_per_unit": 117.47
+                },
+                {
+                    "qty": 9,
+                    "price_per_unit": 116.25
+                },
+                {
+                    "qty": 10,
+                    "price_per_unit": 115.22
+                },
+                {
+                    "qty": 11,
+                    "price_per_unit": 114.33
+                },
+                {
+                    "qty": 12,
+                    "price_per_unit": 113.56
+                },
+                {
+                    "qty": 13,
+                    "price_per_unit": 112.88
+                },
+                {
+                    "qty": 14,
+                    "price_per_unit": 112.27
+                },
+                {
+                    "qty_range": "15-19",
+                    "price_per_unit": 111.72
+                },
+                {
+                    "qty_range": "20-24",
+                    "price_per_unit": 109.60
+                },
+                {
+                    "qty_range": "25-29",
+                    "price_per_unit": 108.11
+                },
+                {
+                    "qty_range": "30-34",
+                    "price_per_unit": 106.99
+                },
+                {
+                    "qty_range": "35-39",
+                    "price_per_unit": 106.09
+                },
+                {
+                    "qty_range": "40-44",
+                    "price_per_unit": 105.35
+                },
+                {
+                    "qty_range": "45-49",
+                    "price_per_unit": 104.72
+                },
+                {
+                    "qty_range": "50-54",
+                    "price_per_unit": 104.18
+                },
+                {
+                    "qty_range": "55-59",
+                    "price_per_unit": 103.70
+                },
+                {
+                    "qty_range": "60-64",
+                    "price_per_unit": 103.28
+                },
+                {
+                    "qty_range": "65-69",
+                    "price_per_unit": 102.90
+                },
+                {
+                    "qty_range": "70+",
+                    "price_per_unit": 102.60
+                }
+            ],
+            "other_sizes": [
+                {
+                    "qty": 1,
+                    "price_per_unit": 128.00
+                },
+                {
+                    "qty": 2,
+                    "price_per_unit": 128.00
+                },
+                {
+                    "qty": 3,
+                    "price_per_unit": 125.74
+                },
+                {
+                    "qty": 4,
+                    "price_per_unit": 120.30
+                },
+                {
+                    "qty": 5,
+                    "price_per_unit": 116.94
+                },
+                {
+                    "qty": 6,
+                    "price_per_unit": 114.57
+                },
+                {
+                    "qty": 7,
+                    "price_per_unit": 112.80
+                },
+                {
+                    "qty": 8,
+                    "price_per_unit": 111.38
+                },
+                {
+                    "qty": 9,
+                    "price_per_unit": 110.23
+                },
+                {
+                    "qty": 10,
+                    "price_per_unit": 109.25
+                },
+                {
+                    "qty": 11,
+                    "price_per_unit": 108.40
+                },
+                {
+                    "qty": 12,
+                    "price_per_unit": 107.68
+                },
+                {
+                    "qty": 13,
+                    "price_per_unit": 107.03
+                },
+                {
+                    "qty": 14,
+                    "price_per_unit": 107.45
+                },
+                {
+                    "qty_range": "15-19",
+                    "price_per_unit": 105.93
+                },
+                {
+                    "qty_range": "20-24",
+                    "price_per_unit": 103.91
+                },
+                {
+                    "qty_range": "25-29",
+                    "price_per_unit": 102.50
+                },
+                {
+                    "qty_range": "30-34",
+                    "price_per_unit": 101.44
+                },
+                {
+                    "qty_range": "35-39",
+                    "price_per_unit": 100.59
+                },
+                {
+                    "qty_range": "40-44",
+                    "price_per_unit": 99.89
+                },
+                {
+                    "qty_range": "45-49",
+                    "price_per_unit": 99.29
+                },
+                {
+                    "qty_range": "50-54",
+                    "price_per_unit": 98.78
+                },
+                {
+                    "qty_range": "55-59",
+                    "price_per_unit": 98.33
+                },
+                {
+                    "qty_range": "60-64",
+                    "price_per_unit": 97.92
+                },
+                {
+                    "qty_range": "65-69",
+                    "price_per_unit": 97.56
+                },
+                {
+                    "qty_range": "70+",
+                    "price_per_unit": 97.28
+                }
+            ]
+        }
+    },
+    "calculation_formula": {
+        "description": "Luxury pull up banner pricing with size-specific quantity discounts and artwork setup costs",
+        "steps": [
+            "1. Calculate artwork setup: IF artworks > 1 THEN (artworks * 6) - 6 ELSE 0",
+            "2. Determine price per unit based on size selection and quantity using tiered pricing tables",
+            "3. Calculate subtotal: quantity * price_per_unit",
+            "4. Add costs: subtotal + artwork_setup + production_setup (15)",
+            "5. Apply first markup: result * 1.1",
+            "6. Apply final multiplier: result * 1.1"
+        ]
+    },
+    "validation_rules": {
+        "quantity": {
+            "required": true,
+            "min": 1,
+            "max": 100,
+            "type": "integer"
+        },
+        "artworks": {
+            "required": true,
+            "min": 1,
+            "max": 20,
+            "type": "integer",
+            "visibility_condition": "quantity > 2"
+        },
+        "base_colour": {
+            "required": true,
+            "options": [
+                "Silver",
+                "Black"
+            ]
+        },
+        "size": {
+            "required": true,
+            "must_select_from_list": true
+        }
+    },
+    "visibility_rules": {
+        "artworks_field": {
+            "field_id": "F2",
+            "condition": "(F1 > 2)",
+            "action": "show",
+            "description": "Show artworks field when quantity is greater than 2"
+        }
+    },
+    "examples": {
+        "single_standard_banner": {
+            "description": "Single standard size luxury pull up banner",
+            "inputs": {
+                "quantity": 1,
+                "artworks": 1,
+                "base_colour": "Silver",
+                "size": "850mm W x 2000mm H"
+            },
+            "calculation_breakdown": {
+                "quantity": 1,
+                "price_per_unit": 135.00,
+                "subtotal": 135.00,
+                "artwork_setup": 0,
+                "production_setup": 15,
+                "total_before_markups": 150.00,
+                "after_first_markup": 165.00,
+                "final_total": 181.50
+            }
+        },
+        "bulk_compact_banners": {
+            "description": "Bulk order of compact pull up banners with multiple artworks",
+            "inputs": {
+                "quantity": 25,
+                "artworks": 3,
+                "base_colour": "Black",
+                "size": "850mm W x 1500mm H"
+            },
+            "calculation_breakdown": {
+                "quantity": 25,
+                "price_per_unit": 102.50,
+                "subtotal": 2562.50,
+                "artwork_setup": 12,
+                "production_setup": 15,
+                "total_before_markups": 2589.50,
+                "after_first_markup": 2848.45,
+                "final_total": 3133.30
+            }
+        },
+        "shopping_center_compliant": {
+            "description": "Shopping center compliant banners for retail display",
+            "inputs": {
+                "quantity": 10,
+                "artworks": 2,
+                "base_colour": "Silver",
+                "size": "850mm W x 1400mm H Shopping Center"
+            },
+            "calculation_breakdown": {
+                "quantity": 10,
+                "price_per_unit": 109.25,
+                "subtotal": 1092.50,
+                "artwork_setup": 6,
+                "production_setup": 15,
+                "total_before_markups": 1113.50,
+                "after_first_markup": 1224.85,
+                "final_total": 1347.34
+            }
+        }
+    },
+    "technical_specifications": {
+        "banner_material": {
+            "type": "Premium PVC banner material",
+            "weight": "440gsm",
+            "finish": "Matte or gloss available",
+            "durability": "Indoor/outdoor use, UV resistant"
+        },
+        "base_construction": {
+            "material": "Premium aluminum",
+            "mechanism": "Spring-loaded roller mechanism",
+            "stability": "Wide base for stability",
+            "portability": "Includes padded carry case"
+        },
+        "printing_specifications": {
+            "print_method": "Large format digital printing",
+            "resolution": "High resolution (1440dpi)",
+            "colors": "Full color CMYK + spot colors available",
+            "finishing": "Hemmed edges with pole pocket"
+        }
+    },
+    "use_cases": {
+        "trade_shows": [
+            "Exhibition displays",
+            "Product launches",
+            "Corporate presentations",
+            "Information stands"
+        ],
+        "retail": [
+            "In-store promotions",
+            "Product displays",
+            "Seasonal campaigns",
+            "Point-of-sale advertising"
+        ],
+        "corporate": [
+            "Reception areas",
+            "Conference displays",
+            "Company announcements",
+            "Branding displays"
+        ],
+        "events": [
+            "Conferences",
+            "Seminars",
+            "Networking events",
+            "Award ceremonies"
+        ]
+    },
+    "design_guidelines": {
+        "artwork_requirements": [
+            "High resolution files (300dpi minimum)",
+            "CMYK color mode preferred",
+            "Include 10mm bleed on all edges",
+            "Consider viewing distance when sizing text and graphics"
+        ],
+        "design_considerations": [
+            "Keep important elements in safe area (50mm from edges)",
+            "Use bold, high-contrast designs for maximum impact",
+            "Consider banner curl - avoid critical elements at bottom 100mm",
+            "Design for both close and distance viewing"
+        ]
+    },
+    "shipping_and_setup": {
+        "packaging": "Individual padded carry cases included",
+        "setup_time": "Less than 2 minutes",
+        "storage": "Compact storage in protective case",
+        "weight": "Approximately 3-4kg depending on size"
+    }
+}

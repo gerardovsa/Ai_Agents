@@ -1,0 +1,489 @@
+{
+    "product_name": "Notepads A5",
+    "description": "Professional A5 notepads with custom printing options. Perfect for office use, promotional items, or personal stationery. Features padding service with cardboard backing.",
+    "version": "1.0.0",
+    "last_updated": "2025-11-12",
+    "calculator_type": "shopify",
+    "pricing_source": "Shopify Product DPO JavaScript - Hardcoded Website Pricing",
+    "product_type": "Notepads",
+    "vendor": "PrintShop",
+    "tags": [
+        "notepads",
+        "stationary",
+        "A5",
+        "printing",
+        "office",
+        "padding"
+    ],
+    "fields": {
+        "F1": {
+            "field_name": "quantity",
+            "label": "Quantity",
+            "type": "select",
+            "default": "100",
+            "required": true,
+            "options": [
+                {
+                    "value": "25",
+                    "label": "25",
+                    "quantity": 25
+                },
+                {
+                    "value": "50",
+                    "label": "50",
+                    "quantity": 50
+                },
+                {
+                    "value": "75",
+                    "label": "75",
+                    "quantity": 75
+                },
+                {
+                    "value": "100",
+                    "label": "100",
+                    "quantity": 100
+                },
+                {
+                    "value": "150",
+                    "label": "150",
+                    "quantity": 150
+                },
+                {
+                    "value": "200",
+                    "label": "200",
+                    "quantity": 200
+                },
+                {
+                    "value": "250",
+                    "label": "250",
+                    "quantity": 250
+                },
+                {
+                    "value": "300",
+                    "label": "300",
+                    "quantity": 300
+                },
+                {
+                    "value": "400",
+                    "label": "400",
+                    "quantity": 400
+                },
+                {
+                    "value": "500",
+                    "label": "500",
+                    "quantity": 500
+                },
+                {
+                    "value": "750",
+                    "label": "750",
+                    "quantity": 750
+                },
+                {
+                    "value": "1000",
+                    "label": "1000",
+                    "quantity": 1000
+                },
+                {
+                    "value": "2000",
+                    "label": "2000",
+                    "quantity": 2000
+                }
+            ],
+            "description": "Number of notepads to produce (pads, not sheets)"
+        },
+        "F2": {
+            "field_name": "artworks",
+            "label": "Artworks",
+            "type": "number",
+            "default": 1,
+            "required": true,
+            "min": 1,
+            "max": 10,
+            "description": "Number of different artwork designs",
+            "pricing": {
+                "first_artwork_free": true,
+                "extra_artwork_cost": 15,
+                "formula": "IF artworks > 1 THEN (artworks * 15) - 15 ELSE 0"
+            },
+            "visibility": {
+                "condition": "F1 > 1",
+                "make_it": "Visible",
+                "if": "(F1 > '1')",
+                "note": "Artworks field only visible when quantity is greater than 1"
+            }
+        },
+        "F3": {
+            "field_name": "finish_size",
+            "label": "Finish Size",
+            "type": "select",
+            "default": "A5 Portrait",
+            "required": true,
+            "options": [
+                {
+                    "value": "a5_portrait",
+                    "label": "A5 Portrait",
+                    "dimensions": "148 x 210mm",
+                    "multiplier": 0.5,
+                    "sku": "a5_port",
+                    "description": "A5 Portrait size (148 x 210mm)"
+                }
+            ],
+            "description": "Notepad size (currently only A5 Portrait supported)"
+        },
+        "F4": {
+            "field_name": "leaves_per_pad",
+            "label": "Leaves Per Pad",
+            "type": "select",
+            "default": "50",
+            "required": true,
+            "options": [
+                {
+                    "value": "25",
+                    "label": "25",
+                    "sheets": 25,
+                    "sku": "leaves_25",
+                    "description": "25 leaves per pad"
+                },
+                {
+                    "value": "50",
+                    "label": "50",
+                    "sheets": 50,
+                    "sku": "leaves_50",
+                    "description": "50 leaves per pad"
+                },
+                {
+                    "value": "100",
+                    "label": "100",
+                    "sheets": 100,
+                    "sku": "leaves_100",
+                    "description": "100 leaves per pad"
+                }
+            ],
+            "description": "Number of sheets in each notepad"
+        },
+        "F5": {
+            "field_name": "print_type",
+            "label": "Print Type",
+            "type": "select",
+            "default": "Black & White 1 sided",
+            "required": true,
+            "options": [
+                {
+                    "value": "colour_1s",
+                    "label": "Colour 1 sided",
+                    "price_per_sheet": 0.048,
+                    "sku": "col_1s",
+                    "description": "Full color printing on one side"
+                },
+                {
+                    "value": "colour_2s",
+                    "label": "Colour 2 sided",
+                    "price_per_sheet": 0.096,
+                    "sku": "col_2s",
+                    "description": "Full color printing on both sides"
+                },
+                {
+                    "value": "bw_1s",
+                    "label": "Black & White 1 sided",
+                    "price_per_sheet": 0.01,
+                    "sku": "bw_1s",
+                    "description": "Black and white printing on one side"
+                },
+                {
+                    "value": "bw_2s",
+                    "label": "Black & White 2 sided",
+                    "price_per_sheet": 0.02,
+                    "sku": "bw_2s",
+                    "description": "Black and white printing on both sides"
+                }
+            ],
+            "description": "Printing type - color or black & white, single or double sided"
+        },
+        "F6": {
+            "field_name": "stock_type",
+            "label": "Stock Type",
+            "type": "select",
+            "default": "Uncoated Bond 80GSM",
+            "required": true,
+            "options": [
+                {
+                    "value": "bond_80gsm",
+                    "label": "Uncoated Bond 80GSM",
+                    "price_per_sheet": 0.03,
+                    "gsm": 80,
+                    "sku": "bond_80gsm",
+                    "description": "Standard uncoated bond paper 80GSM"
+                },
+                {
+                    "value": "bond_90gsm",
+                    "label": "Uncoated Bond 90GSM",
+                    "price_per_sheet": 0.033,
+                    "gsm": 90,
+                    "sku": "bond_90gsm",
+                    "description": "Medium weight uncoated bond paper 90GSM"
+                },
+                {
+                    "value": "bond_100gsm",
+                    "label": "Uncoated Bond 100GSM",
+                    "price_per_sheet": 0.054,
+                    "gsm": 100,
+                    "sku": "bond_100gsm",
+                    "description": "Heavy weight uncoated bond paper 100GSM"
+                },
+                {
+                    "value": "recycled_80gsm",
+                    "label": "Revive 100% Recycled 80GSM Bond",
+                    "price_per_sheet": 0.06,
+                    "gsm": 80,
+                    "sku": "recycled_80gsm",
+                    "description": "Environmentally friendly 100% recycled paper 80GSM"
+                }
+            ],
+            "description": "Paper stock weight and type"
+        }
+    },
+    "pricing_constants": {
+        "setup_costs": {
+            "guilo_setup": 12,
+            "impos_setup": 15,
+            "extra_arts": 15,
+            "description": "Fixed setup costs for guillotine cutting, imposition, and additional artworks"
+        },
+        "production_constants": {
+            "stock_waste": 1.05,
+            "cutting_block": 500,
+            "cut_cost": 11,
+            "box_board_cost": 0.07,
+            "description": "5% waste factor, cutting cost per 500 sheets, and backing board cost per pad"
+        }
+    },
+    "padding_rate_tiers": [
+        {
+            "min": 1,
+            "max": 250,
+            "rate": 0.2,
+            "description": "20 cents per pad for quantities 1-250"
+        },
+        {
+            "min": 251,
+            "max": 500,
+            "rate": 0.2,
+            "description": "20 cents per pad for quantities 251-500"
+        },
+        {
+            "min": 501,
+            "max": 1000,
+            "rate": 0.15,
+            "description": "15 cents per pad for quantities 501-1000"
+        },
+        {
+            "min": 1001,
+            "max": 1500,
+            "rate": 0.15,
+            "description": "15 cents per pad for quantities 1001-1500"
+        },
+        {
+            "min": 1501,
+            "max": 2000,
+            "rate": 0.10,
+            "description": "10 cents per pad for quantities 1501-2000"
+        },
+        {
+            "min": 2001,
+            "max": 3000,
+            "rate": 0.10,
+            "description": "10 cents per pad for quantities 2001-3000"
+        },
+        {
+            "min": 3001,
+            "max": 999999,
+            "rate": 0.10,
+            "description": "10 cents per pad for quantities 3001+"
+        }
+    ],
+    "profit_margin_tiers": [
+        {
+            "min": 1,
+            "max": 500,
+            "margin": 0.8,
+            "description": "80% margin for jobs $1-$500"
+        },
+        {
+            "min": 501,
+            "max": 1000,
+            "margin": 0.8,
+            "description": "80% margin for jobs $501-$1000"
+        },
+        {
+            "min": 1001,
+            "max": 1500,
+            "margin": 0.8,
+            "description": "80% margin for jobs $1001-$1500"
+        },
+        {
+            "min": 1501,
+            "max": 2000,
+            "margin": 0.75,
+            "description": "75% margin for jobs $1501-$2000"
+        },
+        {
+            "min": 2001,
+            "max": 2500,
+            "margin": 0.72,
+            "description": "72% margin for jobs $2001-$2500"
+        },
+        {
+            "min": 2501,
+            "max": 3000,
+            "margin": 0.72,
+            "description": "72% margin for jobs $2501-$3000"
+        },
+        {
+            "min": 3001,
+            "max": 4000,
+            "margin": 0.65,
+            "description": "65% margin for jobs $3001-$4000"
+        },
+        {
+            "min": 4001,
+            "max": 5000,
+            "margin": 0.55,
+            "description": "55% margin for jobs $4001-$5000"
+        },
+        {
+            "min": 5001,
+            "max": 7500,
+            "margin": 0.52,
+            "description": "52% margin for jobs $5001-$7500"
+        },
+        {
+            "min": 7501,
+            "max": 10000,
+            "margin": 0.47,
+            "description": "47% margin for jobs $7501-$10000"
+        },
+        {
+            "min": 10001,
+            "max": 15000,
+            "margin": 0.42,
+            "description": "42% margin for jobs $10001-$15000"
+        },
+        {
+            "min": 15001,
+            "max": 20000,
+            "margin": 0.41,
+            "description": "41% margin for jobs $15001-$20000"
+        },
+        {
+            "min": 20001,
+            "max": 999999,
+            "margin": 0.41,
+            "description": "41% margin for jobs $20001+"
+        }
+    ],
+    "gst_calculation": {
+        "rate": 1.1,
+        "description": "10% GST (Australia)"
+    },
+    "final_multiplier": {
+        "rate": 1.1,
+        "description": "Additional 10% multiplier applied to final total (double GST application)"
+    },
+    "calculation_formula": {
+        "description": "Notepad printing calculator with complex artwork setup, padding costs, and tiered profit margins",
+        "steps": [
+            "1. Calculate artwork setup cost: IF artworks > 1 THEN (artworks * 15) - 15 ELSE 0",
+            "2. Calculate total setup cost: impos_setup (15) + guilo_setup (12) + artwork_setup",
+            "3. Calculate total leave sheets: ((quantity * leaves_per_pad) * stock_waste (1.05)) * finish_size_multiplier",
+            "4. Calculate content click cost: total_leave_sheets * print_type_price",
+            "5. Calculate total content cost: (total_leave_sheets * stock_price) + content_click_cost + (box_board_cost (0.07) * quantity)",
+            "6. Calculate cutting cost: total_leave_sheets / cutting_block (500) * cut_cost (11)",
+            "7. Calculate padding cost based on quantity tiers: quantity * padding_rate",
+            "8. Calculate subtotal: setup_cost + content_cost + cutting_cost + padding_cost",
+            "9. Determine profit margin based on subtotal amount using 13 different tiers",
+            "10. Apply margin: subtotal + (subtotal * profit_margin)",
+            "11. Apply GST: result * 1.1",
+            "12. Apply final multiplier: result * 1.1 (double GST application)"
+        ]
+    },
+    "validation_rules": {
+        "quantity": {
+            "min": 25,
+            "max": 2000,
+            "required": true,
+            "allowed_values": [
+                25,
+                50,
+                75,
+                100,
+                150,
+                200,
+                250,
+                300,
+                400,
+                500,
+                750,
+                1000,
+                2000
+            ]
+        },
+        "artworks": {
+            "min": 1,
+            "max": 10,
+            "required": true,
+            "default": 1
+        },
+        "leaves_per_pad": {
+            "allowed_values": [
+                25,
+                50,
+                100
+            ],
+            "required": true
+        }
+    },
+    "examples": {
+        "small_business_notepads": {
+            "quantity": 100,
+            "artworks": 1,
+            "finish_size": "A5 Portrait",
+            "leaves_per_pad": 50,
+            "print_type": "Black & White 1 sided",
+            "stock_type": "Uncoated Bond 80GSM",
+            "estimated_cost_range": "$120-180 (including GST and final multiplier)"
+        },
+        "promotional_notepads": {
+            "quantity": 250,
+            "artworks": 2,
+            "finish_size": "A5 Portrait",
+            "leaves_per_pad": 25,
+            "print_type": "Colour 1 sided",
+            "stock_type": "Uncoated Bond 90GSM",
+            "estimated_cost_range": "$280-350 (including GST and final multiplier)"
+        },
+        "bulk_office_notepads": {
+            "quantity": 1000,
+            "artworks": 1,
+            "finish_size": "A5 Portrait",
+            "leaves_per_pad": 100,
+            "print_type": "Black & White 1 sided",
+            "stock_type": "Revive 100% Recycled 80GSM Bond",
+            "estimated_cost_range": "$800-1200 (including GST and final multiplier)"
+        }
+    },
+    "special_features": {
+        "artwork_pricing": {
+            "description": "First artwork is included, additional artworks charged at $15 each",
+            "formula": "IF artworks > 1 THEN (artworks * 15) - 15 ELSE 0"
+        },
+        "padding_service": {
+            "description": "Professional padding service with quantity-based pricing tiers",
+            "includes": "Cardboard backing and padding compound"
+        },
+        "double_gst_application": {
+            "description": "Calculator applies GST twice - once in the main calculation and once as a final multiplier",
+            "warning": "Final price includes double 10% application (1.1 * 1.1 = 21% total increase)",
+            "note": "This matches the original Shopify DPO JavaScript implementation"
+        }
+    }
+}

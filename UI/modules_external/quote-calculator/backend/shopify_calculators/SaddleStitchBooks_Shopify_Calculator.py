@@ -112,7 +112,8 @@ class SaddleStitchBooksShopifyCalculator:
         cover_stock_price = self._get_option_price(options['Cover Stock'], cover_stock)
         cover_print_price = self._get_option_price(options['Cover Print Type'], cover_print_type)
         cello_price = self._get_option_price(options['Celloglaze'], celloglaze)
-        pages_multiplier = int(printed_pages.replace('pp', ''))  # Extract number from "16pp"
+        # F7: Printed Pages - the "price" field is the SHEET COUNT (e.g., "16pp" = price 4 = 4 sheets)
+        pages_sheet_count = self._get_option_price(options['Printed Pages'], printed_pages)
         finish_multiplier = self._get_option_price(options['Finish Size'], finish_size)
         content_print_price = self._get_option_price(options['Content Print Type'], content_print_type)
         content_stock_price = self._get_option_price(options['Content Stock Type'], content_stock_type)
@@ -136,82 +137,86 @@ class SaddleStitchBooksShopifyCalculator:
         bindery_labor = Decimal(str(prod['bindery_labor_per_hour']))
         binder_sheets_hour = Decimal(str(prod['binder_sheets_per_hour']))
         
-        # Calculate sheets needed
-        content_sheets = Decimal(str(pages_multiplier)) / Decimal('2')  # 2 pages per sheet
+        # =========================================================================
+        # EXACT TXT FORMULA IMPLEMENTATION (Lines 3078-3089)
+        # =========================================================================
         
-        # Cover sheets (0 if Self Cover)
+        # TXT Line 3078: totalCoverSheetsA3 = {F3} == 'Self Cover' ? 0 : (({f1.price} * {F8.price}) * {stockWaste})
         if cover_option == "Self Cover":
-            cover_sheets = Decimal('0')
-            cover_cost = Decimal('0')
+            total_cover_sheets_a3 = Decimal('0')
         else:
-            cover_sheets = Decimal('1')  # 1 sheet for hard cover
-            # Cover cost = (stock + print) * quantity * size_multiplier * waste
-            cover_cost = (
-                (Decimal(str(cover_stock_price)) + Decimal(str(cover_print_price))) * 
-                Decimal(str(qty)) * 
-                Decimal(str(finish_multiplier)) * 
-                stock_waste
-            )
+            total_cover_sheets_a3 = (Decimal(str(qty)) * Decimal(str(finish_multiplier))) * stock_waste
         
-        # Celloglaze cost (per sheet)
-        if celloglaze != "None" and cover_option != "Self Cover":
-            cello_cost = Decimal(str(cello_price)) * Decimal(str(qty)) * Decimal(str(finish_multiplier))
-        else:
+        # TXT Line 3079: coverClickCost = {F5.price} * {totalCoverSheetsA3}
+        cover_click_cost = Decimal(str(cover_print_price)) * total_cover_sheets_a3
+        
+        # TXT Line 3080: totalCoverCost = ({totalCoverSheetsA3} * {F4.price}) + {coverClickCost}
+        total_cover_cost = (total_cover_sheets_a3 * Decimal(str(cover_stock_price))) + cover_click_cost
+        
+        # TXT Line 3084: totalContentSheets = (({F1.price} * {F7.price}) * {stockWaste}) * {F8.price}
+        # F7.price is the SHEET COUNT (e.g., "16pp" has price=4 meaning 4 sheets)
+        total_content_sheets = ((Decimal(str(qty)) * Decimal(str(pages_sheet_count))) * stock_waste) * Decimal(str(finish_multiplier))
+        
+        # TXT Line 3085: contentClickCost = {totalContentSheets} * {F10.price}
+        content_click_cost = total_content_sheets * Decimal(str(content_print_price))
+        
+        # TXT Line 3086: totalContentCost = ({totalContentSheets} * {F11.price}) + {contentClickCost}
+        total_content_cost = (total_content_sheets * Decimal(str(content_stock_price))) + content_click_cost
+        
+        # TXT Line 3088: totalSheetsPrinted = {totalContentSheets} + {totalCoverSheetsA3}
+        total_sheets_printed = total_content_sheets + total_cover_sheets_a3
+        
+        # TXT Line 3089: cuttingCost = {totalSheetsPrinted} / {cuttingBlk} * {cutCost}
+        cutting_cost = (total_sheets_printed / cutting_block) * cut_cost
+        
+        # TXT Line 3091: celloCost = {F6} == 'None' ? 0 : ({totalCoverSheetsA3} * {F6.price})
+        if celloglaze == "None":
             cello_cost = Decimal('0')
+        else:
+            cello_cost = total_cover_sheets_a3 * Decimal(str(cello_price))
         
-        # Content cost = (stock + print) * sheets * quantity * size_multiplier * waste
-        content_cost = (
-            (Decimal(str(content_stock_price)) + Decimal(str(content_print_price))) * 
-            content_sheets * 
-            Decimal(str(qty)) * 
-            Decimal(str(finish_multiplier)) * 
-            stock_waste
-        )
+        # TXT Line 3096: bindRunCost = ((({totalContentSheets} + {totalCoverSheetsA3}) / {bindersheetsperhour}) * {binderyLaborperhour}) + ({F1.price} * {binderPerBook})
+        bind_run_cost = (((total_content_sheets + total_cover_sheets_a3) / binder_sheets_hour) * bindery_labor) + (Decimal(str(qty)) * binder_per_book)
         
-        # Cutting cost (per cutting_block units)
-        cuts_needed = (Decimal(str(qty)) / cutting_block).quantize(Decimal('1'), rounding=ROUND_HALF_UP)
-        if cuts_needed < Decimal('1'):
-            cuts_needed = Decimal('1')
-        cutting_cost = cuts_needed * cut_cost
+        # TXT Line 3099: subTotal = {totalSetupCost} + {totalCoverCost} + {totalContentCost} + {cuttingCost} + {celloCost} + {bindRunCost}
+        total_setup_cost = guilo_setup + impos_setup + binder_setup + extra_arts + cello_setup
+        sub_total = total_setup_cost + total_cover_cost + total_content_cost + cutting_cost + cello_cost + bind_run_cost
         
-        # Binding cost
-        binding_material = Decimal(str(qty)) * binder_per_book
-        binding_labor = (Decimal(str(qty)) * content_sheets) / binder_sheets_hour * bindery_labor
-        binding_cost = binding_material + binding_labor
-        
-        # Calculate subtotal (before margin)
-        subtotal_before_margin = (
-            guilo_setup + impos_setup + binder_setup + extra_arts + cello_setup +
-            cover_cost + cello_cost + content_cost + cutting_cost + binding_cost
-        )
-        
+        # TXT Lines 3101-3113: 14-tier profit margin
         # Get profit margin based on subtotal
-        margin_multiplier = self._get_profit_margin(float(subtotal_before_margin))
+        margin_multiplier = self._get_profit_margin(float(sub_total))
         
-        # Apply margin
-        subtotal_with_margin = subtotal_before_margin * (Decimal('1') + margin_multiplier)
+        # TXT Line 3116: total = ({subTotal} + ({subTotal} *{profitMargin})) * 1.1
+        # This is: subtotal_with_margin = subtotal × (1 + profit_margin), then × 1.1
+        subtotal_with_margin = sub_total * (Decimal('1') + margin_multiplier)
+        total_after_first_gst = subtotal_with_margin * Decimal('1.1')
         
-        # Apply GST (10%)
-        total_inc_gst = subtotal_with_margin * Decimal('1.1')
+        # TXT Line 3118: {total}*1.1
+        # ❗ DOUBLE GST APPLICATION - DELIBERATE PRICE INCREASE
+        total_inc_double_gst = total_after_first_gst * Decimal('1.1')
         
         # Unit prices
-        unit_price = (total_inc_gst / Decimal(str(qty))).quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
-        cost_per_item = (subtotal_before_margin / Decimal(str(qty))).quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
+        unit_price = (total_inc_double_gst / Decimal(str(qty))).quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
+        cost_per_item = (sub_total / Decimal(str(qty))).quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
         
         # Build breakdown
         breakdown = {
             'setup_costs': guilo_setup + impos_setup + binder_setup + extra_arts,
             'cello_setup': cello_setup,
-            'cover_cost': cover_cost,
+            'total_setup': total_setup_cost,
+            'cover_cost': total_cover_cost,
             'celloglaze_cost': cello_cost,
-            'content_cost': content_cost,
+            'content_cost': total_content_cost,
             'cutting_cost': cutting_cost,
-            'binding_cost': binding_cost,
-            'subtotal_before_margin': subtotal_before_margin,
+            'binding_cost': bind_run_cost,
+            'subtotal_before_margin': sub_total,
             'profit_margin_pct': margin_multiplier * Decimal('100'),
             'subtotal_with_margin': subtotal_with_margin,
-            'gst_10pct': total_inc_gst - subtotal_with_margin,
-            'total_inc_gst': total_inc_gst
+            'first_gst_10pct': total_after_first_gst - subtotal_with_margin,
+            'total_after_first_gst': total_after_first_gst,
+            'second_gst_10pct': total_inc_double_gst - total_after_first_gst,
+            'total_inc_double_gst': total_inc_double_gst,
+            'effective_gst_rate': Decimal('21')  # 1.1 × 1.1 = 1.21 = 21% total
         }
         
         # Build specifications
@@ -226,12 +231,15 @@ class SaddleStitchBooksShopifyCalculator:
             'finish_size': finish_size,
             'content_print_type': content_print_type,
             'content_stock_type': content_stock_type,
-            'total_sheets': float(content_sheets + cover_sheets),
-            'pages': pages_multiplier
+            'total_sheets_printed': float(total_sheets_printed),
+            'content_sheets': float(total_content_sheets),
+            'cover_sheets': float(total_cover_sheets_a3),
+            'pages': int(printed_pages.replace('pp', '')),
+            'pages_sheet_count': float(pages_sheet_count)
         }
         
         return SaddleStitchBooksShopifyCalculatorQuoteResult(
-            total_price=total_inc_gst,
+            total_price=total_inc_double_gst,
             unit_price=unit_price,
             cost_per_item=cost_per_item,
             quantity=qty,

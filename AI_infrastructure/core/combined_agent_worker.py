@@ -2840,28 +2840,60 @@ def execute_streaming_request(
         # PRIORITY 1: Try platform-wide credentials from Supabase (user_id=1) (Jan 27, 2026)
         # User ID 1 = Platform-wide credentials shared by all users
         api_key = None
+        api_key_source = None
         try:
             from AI_infrastructure.shared.platform_credentials_loader import get_user_credentials
-            creds = get_user_credentials(1, 'anthropic')  # Always use user_id=1 for platform credentials
+            
+            # BYPASS CACHE: Force fresh read from database to avoid stale keys
+            print(f"{log_prefix} 🔍 Loading Anthropic credentials from Supabase (user_id=1, bypassing cache)...")
+            creds = get_user_credentials(1, 'anthropic')
+            
             if creds:
-                # Check credentials JSONB first (preferred), then credential_value
+                print(f"{log_prefix} 📋 Raw credentials data: credential_value={bool(creds.get('credential_value'))}, credentials.api_key={bool(creds.get('credentials', {}).get('api_key'))}")
+                
+                # PRIORITY 1: Check credentials JSONB (preferred location for new keys)
                 credentials_json = creds.get('credentials', {})
-                api_key = credentials_json.get('api_key') or creds.get('credential_value')
+                if credentials_json and credentials_json.get('api_key'):
+                    api_key = credentials_json.get('api_key')
+                    api_key_source = 'credentials.api_key (JSONB)'
+                    print(f"{log_prefix} 🔐 Found API key in credentials.api_key field (last 8 chars: ...{api_key[-8:]})")
+                
+                # PRIORITY 2: Fallback to credential_value (legacy location)
+                if not api_key and creds.get('credential_value'):
+                    api_key = creds.get('credential_value')
+                    api_key_source = 'credential_value (legacy)'
+                    print(f"{log_prefix} 🔐 Found API key in credential_value field (last 8 chars: ...{api_key[-8:]})")
+                
                 if api_key:
-                    print(f"{log_prefix} 🔐 Using Anthropic API key from Supabase platform credentials (user_id=1)")
+                    print(f"{log_prefix} ✅ Using Anthropic API key from Supabase (user_id=1, source: {api_key_source})")
+                else:
+                    print(f"{log_prefix} ❌ Credentials row found but no API key in any field")
+            else:
+                print(f"{log_prefix} ❌ No credentials found in Supabase for user_id=1, platform='anthropic'")
         except Exception as e:
+            import traceback
             print(f"{log_prefix} ⚠️ Failed to load Anthropic credentials from Supabase: {e}")
+            print(f"{log_prefix} 📊 Traceback: {traceback.format_exc()}")
         
-        # PRIORITY 2: Fallback to environment variable
+        # PRIORITY 3: Fallback to environment variable
         if not api_key:
             api_key = os.getenv('ANTHROPIC_API_KEY')
             if api_key:
-                print(f"{log_prefix} 🔐 Using Anthropic API key from environment variable")
+                api_key_source = 'environment variable'
+                print(f"{log_prefix} 🔐 Using Anthropic API key from environment variable (last 8 chars: ...{api_key[-8:]})")
         
         if not api_key:
-            yield {'type': 'error', 'error': 'ANTHROPIC_API_KEY not found in Supabase or environment'}
+            error_msg = (
+                f"ANTHROPIC_API_KEY not found in any location. Checked: "
+                f"1) Supabase user_id=1 credentials.api_key, "
+                f"2) Supabase user_id=1 credential_value, "
+                f"3) Environment variable ANTHROPIC_API_KEY"
+            )
+            print(f"{log_prefix} ❌ {error_msg}")
+            yield {'type': 'error', 'error': error_msg}
             return
         
+        print(f"{log_prefix} 🚀 Initializing Anthropic client with key from: {api_key_source}")
         client = Anthropic(api_key=api_key, timeout=120.0, max_retries=3)
         
         # Track content blocks and stop reason

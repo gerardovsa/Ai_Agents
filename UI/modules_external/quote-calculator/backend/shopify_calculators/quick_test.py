@@ -1,0 +1,21 @@
+from PremiumBookmarks_Shopify_Calculator import PremiumBookmarksShopifyCalculator
+
+c = PremiumBookmarksShopifyCalculator()
+r = c.calculate(quantity=250, paper_stock='satin_350gsm', print_type='colour_1_sided', finish_size='50x150mm', celloglaze='none', artworks=1)
+
+print(f"Test 1: 250 bookmarks, Satin 350GSM, 1-sided, 50x150mm, no cello, 1 artwork")
+print(f"Total: ${r.total_price}")
+print(f"Expected (from test): $115.16")
+print(f"Difference: ${abs(float(r.total_price) - 115.16):.2f}")
+print()
+print(f"Breakdown:")
+print(f"  Setup: ${r.breakdown['total_setup_cost']}")
+print(f"  Sheets cost: ${r.breakdown['total_cost_of_sheets']:.2f}")
+print(f"  Print cost: ${r.breakdown['click_cost']:.2f}")
+print(f"  Cutting: ${r.breakdown['cutting_cost']:.2f}")
+print(f"  Cello: ${r.breakdown['cello_cost']}")
+print(f"  Subtotal: ${r.breakdown['subtotal']:.2f}")
+print(f"  Profit margin: {float(r.breakdown['profit_margin_rate'])*100:.1f}%")
+print(f"  Profit amount: ${r.breakdown['profit_amount']:.2f}")
+print(f"  After profit: ${float(r.breakdown['subtotal'] + r.breakdown['profit_amount']):.2f}")
+print(f"  DOUBLE GST (×1.21): ${r.total_price}")

@@ -1,0 +1,405 @@
+{
+    "shopify_printed_letterheads": {
+        "product_title": "Printed Letterheads",
+        "product_type": "Letterheads",
+        "vendor": "PrintShop",
+        "tags": [
+            "letterheads",
+            "printing",
+            "stationary",
+            "business",
+            "office"
+        ],
+        "description": "High-quality printed letterheads with custom branding, ideal for professional business correspondence and official documents.",
+        "options": [
+            {
+                "name": "Quantity",
+                "field_id": "F1",
+                "type": "select",
+                "required": true,
+                "default": "500",
+                "options": [
+                    {
+                        "title": "50",
+                        "price": 50,
+                        "price_type": "fixed",
+                        "sku": "qty_50"
+                    },
+                    {
+                        "title": "100",
+                        "price": 100,
+                        "price_type": "fixed",
+                        "sku": "qty_100"
+                    },
+                    {
+                        "title": "250",
+                        "price": 250,
+                        "price_type": "fixed",
+                        "sku": "qty_250"
+                    },
+                    {
+                        "title": "500",
+                        "price": 500,
+                        "price_type": "fixed",
+                        "sku": "qty_500"
+                    },
+                    {
+                        "title": "750",
+                        "price": 750,
+                        "price_type": "fixed",
+                        "sku": "qty_750"
+                    },
+                    {
+                        "title": "1000",
+                        "price": 1000,
+                        "price_type": "fixed",
+                        "sku": "qty_1000"
+                    },
+                    {
+                        "title": "1250",
+                        "price": 1250,
+                        "price_type": "fixed",
+                        "sku": "qty_1250"
+                    },
+                    {
+                        "title": "1500",
+                        "price": 1500,
+                        "price_type": "fixed",
+                        "sku": "qty_1500"
+                    },
+                    {
+                        "title": "2000",
+                        "price": 2000,
+                        "price_type": "fixed",
+                        "sku": "qty_2000"
+                    },
+                    {
+                        "title": "2500",
+                        "price": 2500,
+                        "price_type": "fixed",
+                        "sku": "qty_2500"
+                    },
+                    {
+                        "title": "3000",
+                        "price": 3000,
+                        "price_type": "fixed",
+                        "sku": "qty_3000"
+                    },
+                    {
+                        "title": "3500",
+                        "price": 3500,
+                        "price_type": "fixed",
+                        "sku": "qty_3500"
+                    },
+                    {
+                        "title": "4000",
+                        "price": 4000,
+                        "price_type": "fixed",
+                        "sku": "qty_4000"
+                    },
+                    {
+                        "title": "5000",
+                        "price": 5000,
+                        "price_type": "fixed",
+                        "sku": "qty_5000"
+                    }
+                ]
+            },
+            {
+                "name": "Print Sides",
+                "field_id": "F2",
+                "type": "select",
+                "required": true,
+                "default": "Single side print",
+                "options": [
+                    {
+                        "title": "Single side print",
+                        "price": 1,
+                        "price_type": "multiplier",
+                        "sku": "ssp",
+                        "description": "Printing on one side only"
+                    },
+                    {
+                        "title": "Double side print",
+                        "price": 2,
+                        "price_type": "multiplier",
+                        "sku": "dsp",
+                        "description": "Printing on both sides"
+                    }
+                ]
+            },
+            {
+                "name": "Print Type",
+                "field_id": "F3",
+                "type": "select",
+                "required": true,
+                "default": "Colour",
+                "options": [
+                    {
+                        "title": "Colour",
+                        "price": 0.044,
+                        "price_type": "per_sheet",
+                        "sku": "colp",
+                        "description": "Full color printing (CMYK)"
+                    },
+                    {
+                        "title": "Black & White",
+                        "price": 0.02,
+                        "price_type": "per_sheet",
+                        "sku": "bnwp",
+                        "description": "Black and white printing only"
+                    }
+                ]
+            },
+            {
+                "name": "Finish Size",
+                "field_id": "F4",
+                "type": "select",
+                "required": true,
+                "default": "A4 - 210mm x 297mm",
+                "options": [
+                    {
+                        "title": "A4 - 210mm x 297mm",
+                        "price": 2,
+                        "price_type": "sheets_per_unit",
+                        "sku": "psa4",
+                        "description": "Standard A4 size letterhead"
+                    }
+                ]
+            },
+            {
+                "name": "Paper Stock Type",
+                "field_id": "F5",
+                "type": "select",
+                "required": true,
+                "default": "Uncoated Bond 80GSM",
+                "options": [
+                    {
+                        "title": "Uncoated Bond 80GSM",
+                        "price": 26.34,
+                        "price_type": "per_1000_sheets",
+                        "sku": "pUnC80",
+                        "description": "Standard uncoated bond paper 80GSM"
+                    },
+                    {
+                        "title": "Uncoated Bond 90GSM",
+                        "price": 29.51,
+                        "price_type": "per_1000_sheets",
+                        "sku": "pUnC90",
+                        "description": "Medium weight uncoated bond paper 90GSM"
+                    },
+                    {
+                        "title": "Uncoated Bond 100GSM",
+                        "price": 32.68,
+                        "price_type": "per_1000_sheets",
+                        "sku": "pUnC100",
+                        "description": "Heavy weight uncoated bond paper 100GSM"
+                    }
+                ]
+            },
+            {
+                "name": "Artworks",
+                "field_id": "F6",
+                "type": "number",
+                "required": true,
+                "default": 1,
+                "price": 0,
+                "price_type": "fixed",
+                "sku": "art",
+                "description": "Number of different artwork designs",
+                "visibility": {
+                    "make_it": "Visible",
+                    "if": "Always visible"
+                }
+            }
+        ],
+        "pricing_constants": {
+            "setup_costs": {
+                "impos_setup": 15,
+                "guilo_setup": 12,
+                "extra_arts": 15
+            },
+            "production_constants": {
+                "stock_waste": 1.05,
+                "cutting_block": 500,
+                "cut_cost": 11
+            }
+        },
+        "profit_margin_tiers": [
+            {
+                "min": 1,
+                "max": 50.999,
+                "margin": 1.7,
+                "description": "170% margin for jobs $1-$50.99"
+            },
+            {
+                "min": 51,
+                "max": 74.999,
+                "margin": 1.55,
+                "description": "155% margin for jobs $51-$74.99"
+            },
+            {
+                "min": 75,
+                "max": 100.999,
+                "margin": 1.35,
+                "description": "135% margin for jobs $75-$100.99"
+            },
+            {
+                "min": 101,
+                "max": 150.999,
+                "margin": 1.30,
+                "description": "130% margin for jobs $101-$150.99"
+            },
+            {
+                "min": 151,
+                "max": 200.999,
+                "margin": 1.15,
+                "description": "115% margin for jobs $151-$200.99"
+            },
+            {
+                "min": 201,
+                "max": 300.999,
+                "margin": 0.70,
+                "description": "70% margin for jobs $201-$300.99"
+            },
+            {
+                "min": 301,
+                "max": 400.999,
+                "margin": 0.53,
+                "description": "53% margin for jobs $301-$400.99"
+            },
+            {
+                "min": 401,
+                "max": 500.999,
+                "margin": 0.40,
+                "description": "40% margin for jobs $401-$500.99"
+            },
+            {
+                "min": 501,
+                "max": 1000.999,
+                "margin": 0.30,
+                "description": "30% margin for jobs $501-$1000.99"
+            },
+            {
+                "min": 1001,
+                "max": 5000.999,
+                "margin": 0.30,
+                "description": "30% margin for jobs $1001-$5000.99"
+            },
+            {
+                "min": 5001,
+                "max": 100000.999,
+                "margin": 0.25,
+                "description": "25% margin for jobs $5001-$100000.99"
+            },
+            {
+                "min": 100001,
+                "max": 999999,
+                "margin": 200,
+                "description": "Fixed $200 margin for jobs over $100,000"
+            }
+        ],
+        "gst_calculation": {
+            "rate": 1.1,
+            "description": "10% GST (Australia)"
+        },
+        "final_multiplier": {
+            "rate": 1.1,
+            "description": "Additional 10% multiplier applied to final total"
+        }
+    },
+    "calculation_formula": {
+        "description": "Professional letterhead printing with complex tiered margins, artwork setup, and double GST application",
+        "steps": [
+            "1. Calculate artwork setup cost: _a = artworks * 15, _a2 = IF _a <= 15 THEN 0 ELSE (_a - 15)",
+            "2. Calculate total setup cost: impos_setup (15) + guilo_setup (12) + artwork_setup",
+            "3. Calculate total cost of sheets: ((quantity / finish_size_sheets_per_unit) / 1000) * stock_waste (1.05) * paper_stock_price",
+            "4. Calculate total sheets printed: (quantity / finish_size_sheets_per_unit) * stock_waste (1.05)",
+            "5. Calculate click cost: total_sheets_printed * print_type_price * print_sides_multiplier",
+            "6. Calculate cutting cost: total_sheets_printed / cutting_block (500) * cut_cost (11)",
+            "7. Calculate subtotal: setup_cost + sheet_costs + click_cost + cutting_cost",
+            "8. Determine profit margin based on subtotal using 12 different tiers",
+            "9. Apply margin: subtotal + (subtotal * profit_margin)",
+            "10. Apply GST: result * 1.1",
+            "11. Apply final multiplier: result * 1.1 (total GST effect: 21%)"
+        ]
+    },
+    "validation_rules": {
+        "quantity": {
+            "min": 50,
+            "max": 50000,
+            "required": true
+        },
+        "artworks": {
+            "min": 1,
+            "max": 20,
+            "required": true,
+            "default": 1
+        }
+    },
+    "visibility_rules": {
+        "artworks_field": {
+            "make_it": "Visible",
+            "if": "Always visible",
+            "description": "Artworks field is always visible for letterhead orders"
+        }
+    },
+    "examples": {
+        "small_business_letterheads": {
+            "quantity": 250,
+            "print_sides": "Single side print",
+            "print_type": "Colour",
+            "finish_size": "A4 - 210mm x 297mm",
+            "paper_stock": "Uncoated Bond 80GSM",
+            "artworks": 1,
+            "estimated_cost": "$180-250 (including double GST application)"
+        },
+        "professional_letterheads": {
+            "quantity": 1000,
+            "print_sides": "Double side print",
+            "print_type": "Colour",
+            "finish_size": "A4 - 210mm x 297mm",
+            "paper_stock": "Uncoated Bond 90GSM",
+            "artworks": 2,
+            "estimated_cost": "$320-450 (including double GST application)"
+        },
+        "bulk_corporate_letterheads": {
+            "quantity": 5000,
+            "print_sides": "Single side print",
+            "print_type": "Black & White",
+            "finish_size": "A4 - 210mm x 297mm",
+            "paper_stock": "Uncoated Bond 80GSM",
+            "artworks": 1,
+            "estimated_cost": "$450-650 (including double GST application)"
+        }
+    },
+    "special_features": {
+        "artwork_pricing": {
+            "description": "First artwork is included in base setup, additional artworks charged at $15 each",
+            "formula": "IF artworks > 1 THEN (artworks * 15) - 15 ELSE 0"
+        },
+        "sheet_calculation_logic": {
+            "description": "A4 letterheads use 2 sheets per unit for calculation purposes",
+            "formula": "quantity / finish_size_value (2 for A4) = total sheets needed"
+        },
+        "double_gst_application": {
+            "description": "This calculator applies GST twice - once in the main calculation and once as a final multiplier",
+            "warning": "Final price includes double 10% application (1.1 * 1.1 = 21% total increase)",
+            "business_logic": "First GST for standard tax, second multiplier for handling/margin"
+        },
+        "complex_margin_structure": {
+            "description": "12-tier profit margin system with very high margins for small jobs (170%) scaling down to 25% for large jobs",
+            "note": "Jobs over $100k get a fixed $200 margin instead of percentage"
+        },
+        "print_sides_multiplier": {
+            "description": "Print sides affects click cost calculation - single side = 1x, double side = 2x",
+            "formula": "click_cost = total_sheets * print_type_price * print_sides_multiplier"
+        }
+    },
+    "key_calculation_variables": {
+        "sheets_calculation": "quantity / 2 (A4 uses 2 sheets per letterhead)",
+        "waste_factor": "5% waste applied to all sheet calculations",
+        "cutting_efficiency": "500 sheets per cutting block",
+        "paper_pricing": "Priced per 1000 sheets with three weight options"
+    }
+}

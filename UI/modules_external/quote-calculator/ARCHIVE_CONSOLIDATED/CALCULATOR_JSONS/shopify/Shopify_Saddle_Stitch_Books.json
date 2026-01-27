@@ -1,0 +1,597 @@
+{
+    "shopify_saddle_stitch_books": {
+        "product_title": "Saddle Stitch Books",
+        "product_type": "Saddle Stitch Booklets",
+        "vendor": "PrintShop",
+        "tags": [
+            "booklets",
+            "printing",
+            "saddle-stitch",
+            "binding",
+            "brochures"
+        ],
+        "description": "Professional saddle stitch booklets with customizable covers, content pages, and finishing options. Perfect for brochures, catalogs, programs, and marketing materials with optional celloglaze protection.",
+        "options": [
+            {
+                "name": "Quantity",
+                "field_id": "F1",
+                "type": "select",
+                "required": true,
+                "default": "250",
+                "options": [
+                    {
+                        "title": "25",
+                        "price": 25,
+                        "price_type": "fixed",
+                        "sku": "qty_25"
+                    },
+                    {
+                        "title": "50",
+                        "price": 50,
+                        "price_type": "fixed",
+                        "sku": "qty_50"
+                    },
+                    {
+                        "title": "75",
+                        "price": 75,
+                        "price_type": "fixed",
+                        "sku": "qty_75"
+                    },
+                    {
+                        "title": "100",
+                        "price": 100,
+                        "price_type": "fixed",
+                        "sku": "qty_100"
+                    },
+                    {
+                        "title": "150",
+                        "price": 150,
+                        "price_type": "fixed",
+                        "sku": "qty_150"
+                    },
+                    {
+                        "title": "200",
+                        "price": 200,
+                        "price_type": "fixed",
+                        "sku": "qty_200"
+                    },
+                    {
+                        "title": "250",
+                        "price": 250,
+                        "price_type": "fixed",
+                        "sku": "qty_250"
+                    },
+                    {
+                        "title": "300",
+                        "price": 300,
+                        "price_type": "fixed",
+                        "sku": "qty_300"
+                    },
+                    {
+                        "title": "400",
+                        "price": 400,
+                        "price_type": "fixed",
+                        "sku": "qty_400"
+                    },
+                    {
+                        "title": "500",
+                        "price": 500,
+                        "price_type": "fixed",
+                        "sku": "qty_500"
+                    },
+                    {
+                        "title": "750",
+                        "price": 750,
+                        "price_type": "fixed",
+                        "sku": "qty_750"
+                    },
+                    {
+                        "title": "1000",
+                        "price": 1000,
+                        "price_type": "fixed",
+                        "sku": "qty_1000"
+                    },
+                    {
+                        "title": "2000",
+                        "price": 2000,
+                        "price_type": "fixed",
+                        "sku": "qty_2000"
+                    }
+                ]
+            },
+            {
+                "name": "Artworks",
+                "field_id": "F2",
+                "type": "number",
+                "required": true,
+                "default": 1,
+                "price": 0,
+                "price_type": "fixed",
+                "sku": "art",
+                "description": "Number of different artwork designs",
+                "visibility": {
+                    "make_it": "Visible",
+                    "if": "Always visible"
+                }
+            },
+            {
+                "name": "Cover Option",
+                "field_id": "F3",
+                "type": "select",
+                "required": true,
+                "default": "Hard Cover",
+                "options": [
+                    {
+                        "title": "Self Cover",
+                        "price": 0,
+                        "price_type": "fixed",
+                        "sku": "self_cover",
+                        "description": "Cover printed on same stock as content"
+                    },
+                    {
+                        "title": "Hard Cover",
+                        "price": 0,
+                        "price_type": "fixed",
+                        "sku": "hard_cover",
+                        "description": "Separate cover on heavier stock"
+                    }
+                ]
+            },
+            {
+                "name": "Cover Stock",
+                "field_id": "F4",
+                "type": "select",
+                "required": true,
+                "default": "Satin 200GSM",
+                "options": [
+                    {
+                        "title": "Satin 150GSM",
+                        "price": 0.064,
+                        "price_type": "per_sheet",
+                        "sku": "satin_150",
+                        "description": "Premium satin finish 150GSM"
+                    },
+                    {
+                        "title": "Satin 200GSM",
+                        "price": 0.075,
+                        "price_type": "per_sheet",
+                        "sku": "satin_200",
+                        "description": "Premium satin finish 200GSM"
+                    },
+                    {
+                        "title": "Satin 250GSM",
+                        "price": 0.09,
+                        "price_type": "per_sheet",
+                        "sku": "satin_250",
+                        "description": "Premium satin finish 250GSM"
+                    },
+                    {
+                        "title": "Satin 300GSM",
+                        "price": 0.14,
+                        "price_type": "per_sheet",
+                        "sku": "satin_300",
+                        "description": "Premium satin finish 300GSM"
+                    },
+                    {
+                        "title": "Satin 350GSM",
+                        "price": 0.18,
+                        "price_type": "per_sheet",
+                        "sku": "satin_350",
+                        "description": "Premium satin finish 350GSM"
+                    }
+                ]
+            },
+            {
+                "name": "Cover Print Type",
+                "field_id": "F5",
+                "type": "select",
+                "required": true,
+                "default": "2 side colour (4pp)",
+                "options": [
+                    {
+                        "title": "1 side colour (2pp)",
+                        "price": 0.048,
+                        "price_type": "per_sheet",
+                        "sku": "cover_1s_col",
+                        "description": "Full color printing on one side"
+                    },
+                    {
+                        "title": "2 side colour (4pp)",
+                        "price": 0.096,
+                        "price_type": "per_sheet",
+                        "sku": "cover_2s_col",
+                        "description": "Full color printing on both sides"
+                    },
+                    {
+                        "title": "1 side Black & White (2pp)",
+                        "price": 0.01,
+                        "price_type": "per_sheet",
+                        "sku": "cover_1s_bw",
+                        "description": "Black and white printing on one side"
+                    },
+                    {
+                        "title": "2 side Black & White (4pp)",
+                        "price": 0.02,
+                        "price_type": "per_sheet",
+                        "sku": "cover_2s_bw",
+                        "description": "Black and white printing on both sides"
+                    }
+                ]
+            },
+            {
+                "name": "Celloglaze",
+                "field_id": "F6",
+                "type": "select",
+                "required": true,
+                "default": "None",
+                "options": [
+                    {
+                        "title": "None",
+                        "price": 0,
+                        "price_type": "fixed",
+                        "sku": "no_cello",
+                        "description": "No protective coating"
+                    },
+                    {
+                        "title": "Gloss outside only",
+                        "price": 0.41,
+                        "price_type": "per_sheet",
+                        "sku": "gloss_outside",
+                        "description": "Glossy protective coating on outside only"
+                    },
+                    {
+                        "title": "Matt outside only",
+                        "price": 0.41,
+                        "price_type": "per_sheet",
+                        "sku": "matt_outside",
+                        "description": "Matte protective coating on outside only"
+                    }
+                ]
+            },
+            {
+                "name": "Printed Pages",
+                "field_id": "F7",
+                "type": "select",
+                "required": true,
+                "default": "16pp",
+                "options": [
+                    {
+                        "title": "4pp",
+                        "price": 1,
+                        "price_type": "fixed",
+                        "sku": "pp_4",
+                        "description": "4 printed pages"
+                    },
+                    {
+                        "title": "8pp",
+                        "price": 2,
+                        "price_type": "fixed",
+                        "sku": "pp_8",
+                        "description": "8 printed pages"
+                    },
+                    {
+                        "title": "12pp",
+                        "price": 3,
+                        "price_type": "fixed",
+                        "sku": "pp_12",
+                        "description": "12 printed pages"
+                    },
+                    {
+                        "title": "16pp",
+                        "price": 4,
+                        "price_type": "fixed",
+                        "sku": "pp_16",
+                        "description": "16 printed pages"
+                    },
+                    {
+                        "title": "20pp",
+                        "price": 5,
+                        "price_type": "fixed",
+                        "sku": "pp_20",
+                        "description": "20 printed pages"
+                    },
+                    {
+                        "title": "24pp",
+                        "price": 6,
+                        "price_type": "fixed",
+                        "sku": "pp_24",
+                        "description": "24 printed pages"
+                    },
+                    {
+                        "title": "28pp",
+                        "price": 7,
+                        "price_type": "fixed",
+                        "sku": "pp_28",
+                        "description": "28 printed pages"
+                    },
+                    {
+                        "title": "32pp",
+                        "price": 8,
+                        "price_type": "fixed",
+                        "sku": "pp_32",
+                        "description": "32 printed pages"
+                    },
+                    {
+                        "title": "36pp",
+                        "price": 9,
+                        "price_type": "fixed",
+                        "sku": "pp_36",
+                        "description": "36 printed pages"
+                    },
+                    {
+                        "title": "40pp",
+                        "price": 10,
+                        "price_type": "fixed",
+                        "sku": "pp_40",
+                        "description": "40 printed pages"
+                    },
+                    {
+                        "title": "44pp",
+                        "price": 11,
+                        "price_type": "fixed",
+                        "sku": "pp_44",
+                        "description": "44 printed pages"
+                    },
+                    {
+                        "title": "48pp",
+                        "price": 12,
+                        "price_type": "fixed",
+                        "sku": "pp_48",
+                        "description": "48 printed pages"
+                    },
+                    {
+                        "title": "52pp",
+                        "price": 13,
+                        "price_type": "fixed",
+                        "sku": "pp_52",
+                        "description": "52 printed pages"
+                    },
+                    {
+                        "title": "56pp",
+                        "price": 14,
+                        "price_type": "fixed",
+                        "sku": "pp_56",
+                        "description": "56 printed pages"
+                    },
+                    {
+                        "title": "60pp",
+                        "price": 15,
+                        "price_type": "fixed",
+                        "sku": "pp_60",
+                        "description": "60 printed pages"
+                    },
+                    {
+                        "title": "64pp",
+                        "price": 16,
+                        "price_type": "fixed",
+                        "sku": "pp_64",
+                        "description": "64 printed pages"
+                    }
+                ]
+            },
+            {
+                "name": "Finish Size",
+                "field_id": "F8",
+                "type": "select",
+                "required": true,
+                "default": "A4 Portrait",
+                "options": [
+                    {
+                        "title": "A5 Portrait",
+                        "price": 0.5,
+                        "price_type": "multiplier",
+                        "sku": "a5_port",
+                        "description": "A5 Portrait size (148 x 210mm)"
+                    },
+                    {
+                        "title": "A4 Portrait",
+                        "price": 1,
+                        "price_type": "multiplier",
+                        "sku": "a4_port",
+                        "description": "A4 Portrait size (210 x 297mm)"
+                    },
+                    {
+                        "title": "A4 Landscape",
+                        "price": 1.5,
+                        "price_type": "multiplier",
+                        "sku": "a4_land",
+                        "description": "A4 Landscape size (297 x 210mm)"
+                    }
+                ]
+            },
+            {
+                "name": "Content Print Type",
+                "field_id": "F10",
+                "type": "select",
+                "required": true,
+                "default": "Black & White",
+                "options": [
+                    {
+                        "title": "Colour",
+                        "price": 0.096,
+                        "price_type": "per_sheet",
+                        "sku": "content_colour",
+                        "description": "Full color printing for content pages"
+                    },
+                    {
+                        "title": "Black & White",
+                        "price": 0.01,
+                        "price_type": "per_sheet",
+                        "sku": "content_bw",
+                        "description": "Black and white printing for content pages"
+                    }
+                ]
+            },
+            {
+                "name": "Content Stock Type",
+                "field_id": "F11",
+                "type": "select",
+                "required": true,
+                "default": "Uncoated Bond 80GSM",
+                "options": [
+                    {
+                        "title": "Satin 128GSM",
+                        "price": 0.054,
+                        "price_type": "per_sheet",
+                        "sku": "satin_128",
+                        "description": "Premium satin finish 128GSM"
+                    },
+                    {
+                        "title": "Satin 150GSM",
+                        "price": 0.064,
+                        "price_type": "per_sheet",
+                        "sku": "satin_150_content",
+                        "description": "Premium satin finish 150GSM"
+                    },
+                    {
+                        "title": "Satin 200GSM",
+                        "price": 0.075,
+                        "price_type": "per_sheet",
+                        "sku": "satin_200_content",
+                        "description": "Premium satin finish 200GSM"
+                    },
+                    {
+                        "title": "Uncoated Bond 80GSM",
+                        "price": 0.03,
+                        "price_type": "per_sheet",
+                        "sku": "bond_80gsm",
+                        "description": "Standard uncoated bond paper 80GSM"
+                    },
+                    {
+                        "title": "Uncoated Bond 90GSM",
+                        "price": 0.033,
+                        "price_type": "per_sheet",
+                        "sku": "bond_90gsm",
+                        "description": "Medium weight uncoated bond paper 90GSM"
+                    },
+                    {
+                        "title": "Uncoated Bond 100GSM",
+                        "price": 0.054,
+                        "price_type": "per_sheet",
+                        "sku": "bond_100gsm",
+                        "description": "Heavy weight uncoated bond paper 100GSM"
+                    }
+                ]
+            }
+        ],
+        "pricing_constants": {
+            "setup_costs": {
+                "guilo_setup": 12,
+                "impos_setup": 15,
+                "extra_arts": 15,
+                "binder_setup": 30
+            },
+            "production_constants": {
+                "stock_waste": 1.05,
+                "cutting_block": 500,
+                "cut_cost": 11,
+                "binder_per_book": 0.2,
+                "bindery_labor_per_hour": 60,
+                "binder_sheets_per_hour": 5000
+            },
+            "conditional_setup": {
+                "cello_setup": 25
+            }
+        },
+        "profit_margin_tiers": [
+            {
+                "min": 1,
+                "max": 49.999,
+                "margin": 1.7,
+                "description": "170% margin for jobs $1-$49.99"
+            },
+            {
+                "min": 50,
+                "max": 99.999,
+                "margin": 1.54,
+                "description": "154% margin for jobs $50-$99.99"
+            },
+            {
+                "min": 100,
+                "max": 199.999,
+                "margin": 1.24,
+                "description": "124% margin for jobs $100-$199.99"
+            },
+            {
+                "min": 200,
+                "max": 299.999,
+                "margin": 1.1,
+                "description": "110% margin for jobs $200-$299.99"
+            },
+            {
+                "min": 300,
+                "max": 499.999,
+                "margin": 1.04,
+                "description": "104% margin for jobs $300-$499.99"
+            },
+            {
+                "min": 500,
+                "max": 749.999,
+                "margin": 0.88,
+                "description": "88% margin for jobs $500-$749.99"
+            },
+            {
+                "min": 750,
+                "max": 999.999,
+                "margin": 0.78,
+                "description": "78% margin for jobs $750-$999.99"
+            },
+            {
+                "min": 1000,
+                "max": 1249.999,
+                "margin": 0.7,
+                "description": "70% margin for jobs $1000-$1249.99"
+            },
+            {
+                "min": 1250,
+                "max": 1499.999,
+                "margin": 0.64,
+                "description": "64% margin for jobs $1250-$1499.99"
+            },
+            {
+                "min": 1500,
+                "max": 1749.999,
+                "margin": 0.52,
+                "description": "52% margin for jobs $1500-$1749.99"
+            },
+            {
+                "min": 1750,
+                "max": 1999.999,
+                "margin": 0.47,
+                "description": "47% margin for jobs $1750-$1999.99"
+            },
+            {
+                "min": 2000,
+                "max": 2499.999,
+                "margin": 0.42,
+                "description": "42% margin for jobs $2000-$2499.99"
+            },
+            {
+                "min": 2500,
+                "max": 2999.999,
+                "margin": 0.4,
+                "description": "40% margin for jobs $2500-$2999.99"
+            },
+            {
+                "min": 3000,
+                "max": 100000,
+                "margin": 0.37,
+                "description": "37% margin for jobs $3000+"
+            }
+        ],
+        "celloglaze_setup_rule": {
+            "condition": "F6 != 'None'",
+            "setup_cost": 25,
+            "description": "Additional $25 setup cost when celloglaze is selected"
+        },
+        "self_cover_rule": {
+            "condition": "F3 == 'Self Cover'",
+            "cover_sheets": 0,
+            "description": "No separate cover sheets when Self Cover is selected"
+        },
+        "gst_calculation": {
+            "rate": 1.1,
+            "description": "10% GST (Australia)"
+        }
+    }
+}

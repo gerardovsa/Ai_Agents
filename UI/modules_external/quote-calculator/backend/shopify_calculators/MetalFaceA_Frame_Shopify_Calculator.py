@@ -72,26 +72,30 @@ class MetalFaceA_FrameShopifyCalculator:
         Returns:
             MetalFaceA-FrameShopifyCalculatorQuoteResult with pricing details
         """
-        # Implement calculation: per-sign area + material + print + hardware
-        quantity = int(kwargs.get('quantity', kwargs.get('qty', 10)))
-        size = kwargs.get('size', '600x450')
-        sides = kwargs.get('sides', 'Single')
+        # ✅ JSON FORMAT PARAMETERS (Jan 23, 2026)
+        quantity = int(kwargs.get('quantity', kwargs.get('qty', 1)))
+        size_raw = kwargs.get('size', '600mm W x 900mm H')  # JSON default
         artworks = int(kwargs.get('artworks', 1))
 
         if quantity <= 0:
             raise ValueError('Quantity must be > 0')
 
-        try:
-            w_str, h_str = size.lower().split('x')
-            width_mm = Decimal(w_str)
-            height_mm = Decimal(h_str)
+        # ✅ Parse size from JSON format: "600mm W x 900mm H"
+        import re
+        match = re.search(r'(\d+)mm.*?x\s*(\d+)mm', size_raw, re.IGNORECASE)
+        if match:
+            width_mm = Decimal(match.group(1))
+            height_mm = Decimal(match.group(2))
             area_m2 = (width_mm * height_mm) / Decimal('1000000')
-        except Exception:
-            area_m2 = Decimal('0.27')
+        else:
+            # Fallback
+            area_m2 = Decimal('0.54')  # default 600x900
+            width_mm = Decimal('600')
+            height_mm = Decimal('900')
 
         material_rate = Decimal('22.00')
         print_cost_per_m2 = Decimal('10.00')
-        sides_multiplier = Decimal('2') if 'double' in sides.lower() else Decimal('1')
+        sides_multiplier = Decimal('1')  # Metal Face A-Frame is single-sided only
 
         impos_setup = Decimal('40')
         extra_arts = Decimal('22')
@@ -133,8 +137,8 @@ class MetalFaceA_FrameShopifyCalculator:
 
         specifications = {
             'quantity': quantity,
-            'size_mm': f"{width_mm}x{height_mm}" if 'width_mm' in locals() else size,
-            'sides': sides,
+            'size': size_raw,  # JSON format
+            'artworks': artworks,
             'area_m2': float(area_m2)
         }
 

@@ -51,16 +51,34 @@ const AgentColumn = (function () {
         return feedbackModule;
     }
 
-    // Agent icon mapping
+    // Agent icon mapping - synchronized with agent-js.js agentIcons array
     const AGENT_ICONS = {
-        1: 'fa-robot',
-        2: 'fa-wand-magic-sparkles',
-        3: 'fa-brain',
-        4: 'fa-flask',
-        5: 'fa-code',
-        6: 'fa-chart-line',
-        7: 'fa-database',
-        8: 'fa-shield-halved'
+        1: 'fa-crosshairs',        // Alpha-1
+        2: 'fa-thumbs-up',         // Bravo-2
+        3: 'fa-satellite-dish',    // Charlie-3
+        4: 'fa-rocket',            // Delta-4
+        5: 'fa-volume-up',         // Echo-5
+        6: 'fa-paw',               // Foxtrot-6
+        7: 'fa-golf-ball',         // Golf-7
+        8: 'fa-hotel',             // Hotel-8
+        9: 'fa-flag',              // India-9
+        10: 'fa-female',           // Juliet-10
+        11: 'fa-dumbbell',         // Kilo-11
+        12: 'fa-lemon',            // Lima-12
+        13: 'fa-microphone',       // Mike-13
+        14: 'fa-calendar-alt',     // November-14
+        15: 'fa-award',            // Oscar-15
+        16: 'fa-church',           // Papa-16
+        17: 'fa-map-marked-alt',   // Quebec-17
+        18: 'fa-heart',            // Romeo-18
+        19: 'fa-mountain',         // Sierra-19
+        20: 'fa-music',            // Tango-20
+        21: 'fa-user-tie',         // Uniform-21
+        22: 'fa-trophy',           // Victor-22
+        23: 'fa-glass-whiskey',    // Whiskey-23
+        24: 'fa-x-ray',            // X-ray-24
+        25: 'fa-flag-usa',         // Yankee-25
+        26: 'fa-shield'            // Zulu-26
     };
 
     // Agent name mapping
@@ -92,7 +110,7 @@ const AgentColumn = (function () {
      */
     function create(agentId, agentName = null) {
         const name = agentName || AGENT_NAMES[agentId] || `Agent ${agentId}`;
-        const icon = AGENT_ICONS[agentId] || 'fa-robot';
+        const icon = AGENT_ICONS[agentId] || 'fa-atom';
 
         const column = document.createElement('div');
         column.className = 'agent-column';
@@ -574,7 +592,7 @@ const AgentColumn = (function () {
 
         popoutCount++;
         const name = AGENT_NAMES[agentId] || `Agent ${agentId}`;
-        const icon = AGENT_ICONS[agentId] || 'fa-robot';
+        const icon = AGENT_ICONS[agentId] || 'fa-atom';
 
         // 💾 SAVE CURRENT STATE (width & scroll position)
         const currentWidth = column.offsetWidth;
@@ -1493,7 +1511,7 @@ const AgentColumn = (function () {
      * @returns {string} Font Awesome icon class
      */
     function getIcon(agentId) {
-        return AGENT_ICONS[agentId] || 'fa-robot';
+        return AGENT_ICONS[agentId] || 'fa-atom';
     }
 
     /**

@@ -1,0 +1,10 @@
+"""Extract hardcoded from CustomPosterPrinting"""
+print("="*80)
+print("HARDCODED - CustomPosterPrinting_Shopify_Calculator.py")
+print("="*80)
+print("\nSIMPLE CALCULATOR - No complex pricing tiers")
+print("1. PADDING RATE: $0.10 (flat rate)")
+print("2. PROFIT MARGIN: 50% (0.50 flat rate)")
+print("3. GST: Double (×1.1 ×1.1 = 21%)")
+print("\nNote: Appears to be placeholder/simplified calculator")
+print("="*80)

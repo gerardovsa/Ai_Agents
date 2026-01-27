@@ -1,0 +1,421 @@
+{
+    "shopify_selfie_frames": {
+        "product_title": "Selfie Frames",
+        "product_type": "Selfie Frames",
+        "vendor": "PrintShop",
+        "tags": [
+            "selfie",
+            "frames",
+            "photo",
+            "props",
+            "events",
+            "marketing"
+        ],
+        "description": "Professional selfie frames perfect for events, marketing campaigns, photo booths, and social media promotions. Available in two sizes with custom artwork printing options.",
+        "options": [
+            {
+                "name": "Quantity",
+                "field_id": "F1",
+                "type": "number",
+                "required": true,
+                "default": "1",
+                "min": 1,
+                "max": 200,
+                "description": "Number of selfie frames to produce"
+            },
+            {
+                "name": "Size",
+                "field_id": "F2",
+                "type": "select",
+                "required": true,
+                "default": "Small 600mm x 900mm",
+                "options": [
+                    {
+                        "title": "Small 600mm x 900mm",
+                        "price": 0,
+                        "price_type": "fixed",
+                        "sku": "small_600x900",
+                        "description": "Small selfie frame - 600mm x 900mm"
+                    },
+                    {
+                        "title": "Large 900mm x 1200mm",
+                        "price": 0,
+                        "price_type": "fixed",
+                        "sku": "large_900x1200",
+                        "description": "Large selfie frame - 900mm x 1200mm"
+                    }
+                ]
+            },
+            {
+                "name": "Number of Artworks",
+                "field_id": "F3",
+                "type": "number",
+                "required": true,
+                "default": "1",
+                "min": 1,
+                "max": 20,
+                "visibility": {
+                    "make_it": "hidden",
+                    "condition": "(F1 > 1)"
+                },
+                "description": "Number of different artwork designs"
+            }
+        ],
+        "pricing_constants": {
+            "setup_costs": {
+                "artwork_base_cost": 5,
+                "extra_artwork_cost": 5
+            },
+            "final_multiplier": {
+                "rate": 1.1,
+                "description": "10% final markup applied to total"
+            }
+        },
+        "quantity_pricing_tiers": {
+            "large_900x1200": [
+                {
+                    "qty_min": 1,
+                    "qty_max": 1,
+                    "price_per_unit": 172.00
+                },
+                {
+                    "qty_min": 2,
+                    "qty_max": 2,
+                    "price_per_unit": 163.00
+                },
+                {
+                    "qty_min": 3,
+                    "qty_max": 3,
+                    "price_per_unit": 150.00
+                },
+                {
+                    "qty_min": 4,
+                    "qty_max": 4,
+                    "price_per_unit": 127.00
+                },
+                {
+                    "qty_min": 5,
+                    "qty_max": 5,
+                    "price_per_unit": 114.00
+                },
+                {
+                    "qty_min": 6,
+                    "qty_max": 6,
+                    "price_per_unit": 105.17
+                },
+                {
+                    "qty_min": 7,
+                    "qty_max": 7,
+                    "price_per_unit": 99.14
+                },
+                {
+                    "qty_min": 8,
+                    "qty_max": 8,
+                    "price_per_unit": 94.50
+                },
+                {
+                    "qty_min": 9,
+                    "qty_max": 9,
+                    "price_per_unit": 90.67
+                },
+                {
+                    "qty_min": 10,
+                    "qty_max": 10,
+                    "price_per_unit": 87.70
+                },
+                {
+                    "qty_min": 11,
+                    "qty_max": 11,
+                    "price_per_unit": 85.09
+                },
+                {
+                    "qty_min": 12,
+                    "qty_max": 12,
+                    "price_per_unit": 82.83
+                },
+                {
+                    "qty_min": 13,
+                    "qty_max": 13,
+                    "price_per_unit": 81.00
+                },
+                {
+                    "qty_min": 14,
+                    "qty_max": 14,
+                    "price_per_unit": 79.36
+                },
+                {
+                    "qty_min": 15,
+                    "qty_max": 15,
+                    "price_per_unit": 77.87
+                },
+                {
+                    "qty_min": 16,
+                    "qty_max": 20,
+                    "price_per_unit": 72.30
+                },
+                {
+                    "qty_min": 21,
+                    "qty_max": 25,
+                    "price_per_unit": 68.64
+                },
+                {
+                    "qty_min": 26,
+                    "qty_max": 30,
+                    "price_per_unit": 66.00
+                },
+                {
+                    "qty_min": 31,
+                    "qty_max": 35,
+                    "price_per_unit": 63.86
+                },
+                {
+                    "qty_min": 36,
+                    "qty_max": 40,
+                    "price_per_unit": 62.20
+                },
+                {
+                    "qty_min": 41,
+                    "qty_max": 45,
+                    "price_per_unit": 62.00
+                },
+                {
+                    "qty_min": 46,
+                    "qty_max": 50,
+                    "price_per_unit": 61.96
+                },
+                {
+                    "qty_min": 51,
+                    "qty_max": 60,
+                    "price_per_unit": 61.92
+                },
+                {
+                    "qty_min": 61,
+                    "qty_max": 70,
+                    "price_per_unit": 61.86
+                },
+                {
+                    "qty_min": 71,
+                    "qty_max": 80,
+                    "price_per_unit": 61.83
+                },
+                {
+                    "qty_min": 81,
+                    "qty_max": 90,
+                    "price_per_unit": 61.80
+                },
+                {
+                    "qty_min": 91,
+                    "qty_max": 100,
+                    "price_per_unit": 61.78
+                },
+                {
+                    "qty_min": 101,
+                    "qty_max": 110,
+                    "price_per_unit": 61.76
+                },
+                {
+                    "qty_min": 111,
+                    "qty_max": 120,
+                    "price_per_unit": 61.75
+                },
+                {
+                    "qty_min": 121,
+                    "qty_max": 130,
+                    "price_per_unit": 61.74
+                },
+                {
+                    "qty_min": 131,
+                    "qty_max": 140,
+                    "price_per_unit": 61.73
+                },
+                {
+                    "qty_min": 141,
+                    "qty_max": 150,
+                    "price_per_unit": 61.72
+                },
+                {
+                    "qty_min": 151,
+                    "qty_max": 175,
+                    "price_per_unit": 61.70
+                },
+                {
+                    "qty_min": 176,
+                    "qty_max": 200,
+                    "price_per_unit": 61.69
+                }
+            ],
+            "small_600x900": [
+                {
+                    "qty_min": 1,
+                    "qty_max": 1,
+                    "price_per_unit": 117.00
+                },
+                {
+                    "qty_min": 2,
+                    "qty_max": 2,
+                    "price_per_unit": 108.00
+                },
+                {
+                    "qty_min": 3,
+                    "qty_max": 3,
+                    "price_per_unit": 98.67
+                },
+                {
+                    "qty_min": 4,
+                    "qty_max": 4,
+                    "price_per_unit": 83.00
+                },
+                {
+                    "qty_min": 5,
+                    "qty_max": 5,
+                    "price_per_unit": 74.60
+                },
+                {
+                    "qty_min": 6,
+                    "qty_max": 6,
+                    "price_per_unit": 68.67
+                },
+                {
+                    "qty_min": 7,
+                    "qty_max": 7,
+                    "price_per_unit": 64.57
+                },
+                {
+                    "qty_min": 8,
+                    "qty_max": 8,
+                    "price_per_unit": 61.50
+                },
+                {
+                    "qty_min": 9,
+                    "qty_max": 9,
+                    "price_per_unit": 59.00
+                },
+                {
+                    "qty_min": 10,
+                    "qty_max": 10,
+                    "price_per_unit": 57.00
+                },
+                {
+                    "qty_min": 11,
+                    "qty_max": 11,
+                    "price_per_unit": 55.27
+                },
+                {
+                    "qty_min": 12,
+                    "qty_max": 12,
+                    "price_per_unit": 53.83
+                },
+                {
+                    "qty_min": 13,
+                    "qty_max": 13,
+                    "price_per_unit": 50.23
+                },
+                {
+                    "qty_min": 14,
+                    "qty_max": 14,
+                    "price_per_unit": 51.43
+                },
+                {
+                    "qty_min": 15,
+                    "qty_max": 15,
+                    "price_per_unit": 50.53
+                },
+                {
+                    "qty_min": 16,
+                    "qty_max": 20,
+                    "price_per_unit": 46.80
+                },
+                {
+                    "qty_min": 21,
+                    "qty_max": 25,
+                    "price_per_unit": 44.40
+                },
+                {
+                    "qty_min": 26,
+                    "qty_max": 30,
+                    "price_per_unit": 42.60
+                },
+                {
+                    "qty_min": 31,
+                    "qty_max": 35,
+                    "price_per_unit": 41.23
+                },
+                {
+                    "qty_min": 36,
+                    "qty_max": 40,
+                    "price_per_unit": 40.15
+                },
+                {
+                    "qty_min": 41,
+                    "qty_max": 45,
+                    "price_per_unit": 40.00
+                },
+                {
+                    "qty_min": 46,
+                    "qty_max": 50,
+                    "price_per_unit": 39.96
+                },
+                {
+                    "qty_min": 51,
+                    "qty_max": 60,
+                    "price_per_unit": 39.90
+                },
+                {
+                    "qty_min": 61,
+                    "qty_max": 70,
+                    "price_per_unit": 39.86
+                },
+                {
+                    "qty_min": 71,
+                    "qty_max": 80,
+                    "price_per_unit": 39.84
+                },
+                {
+                    "qty_min": 81,
+                    "qty_max": 90,
+                    "price_per_unit": 39.80
+                },
+                {
+                    "qty_min": 91,
+                    "qty_max": 100,
+                    "price_per_unit": 39.79
+                },
+                {
+                    "qty_min": 101,
+                    "qty_max": 110,
+                    "price_per_unit": 39.76
+                },
+                {
+                    "qty_min": 111,
+                    "qty_max": 120,
+                    "price_per_unit": 39.75
+                },
+                {
+                    "qty_min": 121,
+                    "qty_max": 130,
+                    "price_per_unit": 39.74
+                },
+                {
+                    "qty_min": 131,
+                    "qty_max": 140,
+                    "price_per_unit": 39.74
+                },
+                {
+                    "qty_min": 141,
+                    "qty_max": 150,
+                    "price_per_unit": 39.73
+                },
+                {
+                    "qty_min": 151,
+                    "qty_max": 175,
+                    "price_per_unit": 39.70
+                },
+                {
+                    "qty_min": 176,
+                    "qty_max": 200,
+                    "price_per_unit": 39.69
+                }
+            ]
+        }
+    }
+}

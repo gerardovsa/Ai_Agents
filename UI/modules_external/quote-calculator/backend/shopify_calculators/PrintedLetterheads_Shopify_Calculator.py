@@ -1,11 +1,26 @@
 """
 Printed Letterheads Shopify Calculator
-Exact implementation of Shopify JavaScript formula for Printed Letterheads
+Exact implementation of Shopify JavaScript formula from TXT lines 2115-2450
 
-Based on: c:/Users/gpoli/GIT/In_House_SQL/G_Folder/Quote_Calculator/shopify/Shopify_Printed_Letterheads.json specification
-Platform: Shopify (separate from WooCommerce calculators)
-Fields: 6 fields (Shopify-specific structure)
-Key Features: Tiered padding rates, profit margins, double GST application
+Based on: SHOPIFY_CALCULATORS_WEBSITE_JS_AND_JSON.txt lines 2115-2450
+Platform: Shopify
+Fields: 6 fields (F1-F6)
+- F1: Quantity (50-5000) - price = quantity value
+- F2: Print Sides (Single=1, Double=2 multiplier)
+- F3: Print Type (Colour=0.044, B&W=0.02 per sheet)
+- F4: Finish Size (A4 = 2 sheets per unit - letterheads use 2 per A4 sheet)
+- F5: Paper Stock (80GSM=26.34, 90GSM=29.51, 100GSM=32.68 per 1000 sheets)
+- F6: Artworks (number input)
+
+Key Features:
+- No celloglaze (unlike other Shopify calculators)
+- Extra artworks: $15 each (first artwork free)
+- 11 profit margin tiers (1.7 → 0.25, then fixed $200)
+- Double GST: ×1.1 ×1.1 = 1.21 total
+- Stock waste: 1.05
+- Cutting cost: $11 per 500 sheets
+
+Rewritten: January 24, 2026 - Exact TXT formula match
 """
 
 import json
@@ -32,16 +47,31 @@ class PrintedLetterheadsShopifyCalculatorQuoteResult:
 
 class PrintedLetterheadsShopifyCalculator:
     """
-    Printed Letterheads Shopify Calculator - Exact Shopify JavaScript Implementation
+    Printed Letterheads Shopify Calculator - Exact TXT Formula Implementation
     
-    SHOPIFY-SPECIFIC CALCULATOR - SEPARATE FROM WOOCOMMERCE
+    TXT Formula (lines 2115-2154):
+    - imposSetup = 15
+    - guiloSetup = 12
+    - extraArts = 15 (per artwork, first free)
+    - stockWaste = 1.05
+    - cuttingBlk = 500
+    - cutCost = 11
+    - totalSetupCost = imposSetup + guiloSetup + extraArtsCost
+    - totalCostOfSheets = (((quantity / F4.price) / 1000) * stockWaste) * F5.price
+    - totalSheetsPrinted = (quantity / F4.price) * stockWaste
+    - clickCost = totalSheetsPrinted * F2.price * F3.price
+    - cuttingCost = (totalSheetsPrinted / 500) * 11
+    - subTotal = setup + sheets + clicks + cutting
+    - profitMargin = 11 tiers (1.7 → 0.25, then fixed $200)
+    - total = (subTotal + (subTotal * profitMargin)) * 1.1 * 1.1 (DOUBLE GST)
     
-    Features:
-    - 6-field Shopify structure
-    - Tiered padding rates (0 tiers)
-    - Tiered profit margins (12 tiers)
-    - Artwork setup costs
-    - DOUBLE GST APPLICATION (Shopify-specific: Total * 1.1 * 1.1)
+    Fields:
+    - F1: quantity (50-5000)
+    - F2: print_sides (Single=1, Double=2) - multiplier
+    - F3: print_type (Colour=0.044, B&W=0.02) - per sheet
+    - F4: finish_size (A4 = 2 sheets per unit)
+    - F5: paper_stock (80GSM=26.34, 90GSM=29.51, 100GSM=32.68) - per 1000 sheets
+    - F6: artworks (number)
     """
     
     CONFIG_FILE = "Shopify_Printed_Letterheads.json"
@@ -64,131 +94,211 @@ class PrintedLetterheadsShopifyCalculator:
     
     def calculate(self, **kwargs) -> PrintedLetterheadsShopifyCalculatorQuoteResult:
         """
-        Calculate Printed Letterheads Shopify quote
+        Calculate Printed Letterheads quote - EXACT TXT formula implementation
+        
+        TXT Formula Order:
+        1. Setup costs (impos, guilo, extra artworks)
+        2. Sheet calculations (quantity / sheets_per_unit × stockWaste)
+        3. Stock cost ((sheets / 1000) × stock_price_per_1000 × stockWaste)
+        4. Click cost (sheets × print_sides_multiplier × print_type_price)
+        5. Cutting cost ((sheets / 500) × 11)
+        6. Subtotal = all costs
+        7. Profit margin (11 tiers based on subtotal)
+        8. Total = (subtotal + profit) × 1.1 × 1.1 (double GST)
         
         Args:
-            **kwargs: Calculator parameters from JSON config
+            quantity (int): F1 - Quantity (50-5000)
+            print_sides (str): F2 - "Single side print" or "Double side print"
+            print_type (str): F3 - "Colour" or "Black & White"
+            finish_size (str): F4 - "A4 - 210mm x 297mm" (only option)
+            paper_stock (str): F5 - "Uncoated Bond 80GSM", "90GSM", or "100GSM"
+            artworks (int): F6 - Number of artworks
         
         Returns:
-            PrintedLetterheadsShopifyCalculatorQuoteResult with pricing details
+            PrintedLetterheadsShopifyCalculatorQuoteResult with exact pricing
         """
-        # Minimal practical implementation following established calculator patterns
-        quantity = int(kwargs.get('quantity', kwargs.get('qty', 250)))
-        print_sides = kwargs.get('print_sides', 'Single side print')
-        print_type = kwargs.get('print_type', 'Colour')
-        paper_stock = kwargs.get('paper_stock', 'Standard')
-        artworks = int(kwargs.get('artworks', 1))
+        # Extract parameters with exact field names from JSON
+        quantity = int(kwargs.get('quantity', kwargs.get('F1', 250)))
+        print_sides = kwargs.get('print_sides', kwargs.get('F2', 'Single side print'))
+        print_type = kwargs.get('print_type', kwargs.get('F3', 'Colour'))
+        finish_size = kwargs.get('finish_size', kwargs.get('F4', 'A4 - 210mm x 297mm'))
+        paper_stock = kwargs.get('paper_stock', kwargs.get('F5', 'Uncoated Bond 80GSM'))
+        artworks = int(kwargs.get('artworks', kwargs.get('F6', 1)))
 
         if quantity <= 0:
-            raise ValueError("Quantity must be > 0")
+            raise ValueError('Quantity must be > 0')
 
-        # Setup costs (imposition + guillotine)
-        impos_setup = Decimal('22')
-        guilo_setup = Decimal('18')
-        extra_arts = Decimal('15')
+        # TXT Constants
+        impos_setup = Decimal('15')  # TXT: imposSetup = 15
+        guilo_setup = Decimal('12')  # TXT: guiloSetup = 12
+        extra_arts = Decimal('15')   # TXT: extraArts = 15
+        stock_waste = Decimal('1.05')  # TXT: stockWaste = 1.05
+        cutting_blk = Decimal('500')   # TXT: cuttingBlk = 500
+        cut_cost = Decimal('11')       # TXT: cutCost = 11
 
-        if artworks > 1:
-            artwork_setup_cost = (Decimal(artworks) - Decimal(1)) * extra_arts
-        else:
-            artwork_setup_cost = Decimal('0')
+        # TXT: var _a = {art} * {extraArts};
+        # TXT: var _a2 = {_a} <= {extraArts} ? 0 : ({_a} - {extraArts});
+        # This means: first artwork is free, each additional costs $15
+        _a = Decimal(artworks) * extra_arts
+        _a2 = Decimal('0') if _a <= extra_arts else (_a - extra_arts)
 
-        total_setup_cost = impos_setup + guilo_setup + artwork_setup_cost
+        # TXT: var totalSetupCost = {imposSetup} + {guiloSetup} + {_a2};
+        total_setup_cost = impos_setup + guilo_setup + _a2
 
-        # Sides multiplier
-        sides_multiplier = Decimal('2') if 'Double' in print_sides else Decimal('1')
+        # Get field values
+        sheets_per_unit = self._get_sheets_per_unit(finish_size)  # F4.price
+        stock_price_per_1000 = self._get_stock_price(paper_stock)  # F5.price
+        print_sides_multiplier = self._get_print_sides_multiplier(print_sides)  # F2.price
+        print_type_price = self._get_print_type_price(print_type)  # F3.price
 
-        # Print mode cost per sheet
-        print_mode_cost = Decimal('0.06') if 'Colour' in print_type else Decimal('0.025')
+        # TXT: var totalSheetsPrinted = {F1.Price}/{F4.price} * {stockWaste};
+        # F1.price = quantity, F4.price = sheets per unit (2 for A4)
+        total_sheets_printed = (Decimal(quantity) / sheets_per_unit) * stock_waste
 
-        # Items per sheet (A4 letterheads: 1 per sheet)
-        items_per_sheet = Decimal('1')
+        # TXT: var totalCostOfSheets = ((({F1.price}/{F4.price}) / 1000) * {stockWaste}) * {F5.price};
+        total_cost_of_sheets = (((Decimal(quantity) / sheets_per_unit) / Decimal('1000')) * stock_waste) * stock_price_per_1000
 
-        # Stock cost per 1000 sheets (fallback value)
-        stock_cost_per_1000_sheets = Decimal('85')
+        # TXT: var clickCost = {totalSheetsPrinted} * {F2.price} * {F3.price};
+        click_cost = total_sheets_printed * print_sides_multiplier * print_type_price
 
-        stock_waste = Decimal('1.05')
-        sheets_needed = (Decimal(quantity) / items_per_sheet) * stock_waste
+        # TXT: var cuttingCost = {totalSheetsPrinted} / {cuttingBlk} * {cutCost};
+        cutting_cost = (total_sheets_printed / cutting_blk) * cut_cost
 
-        stock_cost = (sheets_needed / Decimal('1000')) * stock_cost_per_1000_sheets
+        # TXT: var subTotal = {totalSetupCost} + {totalCostOfSheets} + {clickCost} + {cuttingCost};
+        sub_total = total_setup_cost + total_cost_of_sheets + click_cost + cutting_cost
 
-        # Click cost
-        click_cost = sheets_needed * sides_multiplier * print_mode_cost
+        # TXT: var profitMargin = [11 tiers based on subtotal]
+        profit_margin_rate = self._get_profit_margin(float(sub_total))
+        profit_amount = sub_total * profit_margin_rate
 
-        # Cutting cost
-        cutting_block = Decimal('500')
-        cut_cost = Decimal('12')
-        cutting_cost = (sheets_needed / cutting_block) * cut_cost
-
-        # Business cost
-        biz_cost = total_setup_cost + stock_cost + click_cost + cutting_cost
-
-        # Profit
-        profit_margin_rate = self._get_profit_margin(float(biz_cost))
-        profit_amount = biz_cost * profit_margin_rate
-        sub_total = biz_cost + profit_amount
-
-        # Price increase and DOUBLE GST (Shopify-specific)
-        PRICE_INCREASE_MULTIPLIER = Decimal('1.00')
+        # TXT: var total = ({subTotal} + ({subTotal}*{profitMargin})) * 1.1;
+        # TXT: {total}*1.1
+        # NOTE: Double GST (first line ×1.1, second line ×1.1 again)
         GST_RATE = Decimal('1.10')
-        SURCHARGE = Decimal('0.00')
-
-        subtotal_with_increase = sub_total * PRICE_INCREASE_MULTIPLIER
-        total_price = (subtotal_with_increase * GST_RATE) * GST_RATE + SURCHARGE
+        total_price = (sub_total + profit_amount) * GST_RATE * GST_RATE
         total_price = total_price.quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
 
-        cost_per_item = total_price / Decimal(quantity)
-        unit_price = cost_per_item
+        unit_price = total_price / Decimal(quantity)
 
         breakdown = {
-            'setup_costs': total_setup_cost,
-            'artwork_setup_cost': artwork_setup_cost,
             'impos_setup': impos_setup,
             'guilo_setup': guilo_setup,
-            'stock_cost': stock_cost,
+            'extra_artworks_cost': _a2,
+            'total_setup_cost': total_setup_cost,
+            'sheets_per_unit': sheets_per_unit,
+            'total_sheets_printed': total_sheets_printed,
+            'stock_price_per_1000': stock_price_per_1000,
+            'total_cost_of_sheets': total_cost_of_sheets,
+            'print_sides_multiplier': print_sides_multiplier,
+            'print_type_price': print_type_price,
             'click_cost': click_cost,
             'cutting_cost': cutting_cost,
-            'biz_cost': biz_cost,
-            'profit_margin_rate': Decimal(profit_margin_rate),
-            'profit_amount': profit_amount,
             'subtotal': sub_total,
-            'price_increase_multiplier': PRICE_INCREASE_MULTIPLIER,
-            'subtotal_with_increase': subtotal_with_increase,
-            'gst_rate': GST_RATE,
-            'gst_amount': subtotal_with_increase * (GST_RATE - Decimal('1')),
-            'surcharge': SURCHARGE,
+            'profit_margin_rate': profit_margin_rate,
+            'profit_amount': profit_amount,
             'total_price': total_price,
-            'cost_per_item': cost_per_item,
-            'sheets_needed': sheets_needed,
-            'items_per_sheet': items_per_sheet
         }
 
         specifications = {
             'quantity': quantity,
             'print_sides': print_sides,
             'print_type': print_type,
+            'finish_size': finish_size,
             'paper_stock': paper_stock,
             'artworks': artworks,
-            'sheets_used': float(sheets_needed),
+            'sheets_printed': float(total_sheets_printed),
         }
 
         return PrintedLetterheadsShopifyCalculatorQuoteResult(
             total_price=total_price,
             unit_price=unit_price,
-            cost_per_item=cost_per_item,
+            cost_per_item=unit_price,
             quantity=quantity,
             breakdown=breakdown,
             specifications=specifications
         )
     
-    def _get_padding_rate(self, quantity: int) -> Decimal:
-        """Get padding rate (no tiers defined)"""
-        return Decimal('0.10')
+    def _get_sheets_per_unit(self, finish_size: str) -> Decimal:
+        """
+        Get sheets per unit from F4 field (TXT: F4.price)
+        
+        TXT JSON Field F4 - Finish Size:
+        - "A4 - 210mm x 297mm" → 2 sheets per unit (letterheads use 2 per sheet)
+        
+        Note: This is unusual - most products use this field differently
+        """
+        # Only one option for letterheads
+        if 'A4' in finish_size or 'a4' in finish_size.lower():
+            return Decimal('2')
+        
+        # Default to 2 if not specified
+        return Decimal('2')
+    
+    def _get_stock_price(self, paper_stock: str) -> Decimal:
+        """
+        Get paper stock price per 1000 sheets from F5 field (TXT: F5.price)
+        
+        TXT JSON Field F5 - Paper Stock Type:
+        - "Uncoated Bond 80GSM" → $26.34 per 1000 sheets
+        - "Uncoated Bond 90GSM" → $29.51 per 1000 sheets
+        - "Uncoated Bond 100GSM" → $32.68 per 1000 sheets
+        """
+        stock_map = {
+            'uncoated_bond_80gsm': Decimal('26.34'),
+            'uncoated_bond_90gsm': Decimal('29.51'),
+            'uncoated_bond_100gsm': Decimal('32.68'),
+        }
+        
+        # Normalize key
+        stock_key = paper_stock.lower().replace(' ', '_')
+        if stock_key not in stock_map:
+            raise ValueError(f"Invalid paper_stock: {paper_stock}. Must be one of: {list(stock_map.keys())}")
+        
+        return stock_map[stock_key]
+    
+    def _get_print_sides_multiplier(self, print_sides: str) -> Decimal:
+        """
+        Get print sides multiplier from F2 field (TXT: F2.price)
+        
+        TXT JSON Field F2 - Print Sides:
+        - "Single side print" → 1 (multiplier)
+        - "Double side print" → 2 (multiplier)
+        """
+        if 'double' in print_sides.lower():
+            return Decimal('2')
+        else:
+            return Decimal('1')
+    
+    def _get_print_type_price(self, print_type: str) -> Decimal:
+        """
+        Get print type price per sheet from F3 field (TXT: F3.price)
+        
+        TXT JSON Field F3 - Print Type:
+        - "Colour" → $0.044 per sheet
+        - "Black & White" → $0.02 per sheet
+        """
+        if 'colour' in print_type.lower() or 'color' in print_type.lower():
+            return Decimal('0.044')
+        else:
+            return Decimal('0.02')
     
     def _get_profit_margin(self, subtotal: float) -> Decimal:
         """
-        Get profit margin rate based on subtotal tiers
+        Get profit margin rate based on subtotal - EXACT TXT tiers
         
-        12 tiers based on subtotal amount
+        TXT JSON profit_margin_tiers (11 tiers + fixed):
+        1. $1.00 - $50.99 → 1.7 (170%)
+        2. $51.00 - $74.99 → 1.55 (155%)
+        3. $75.00 - $100.99 → 1.35 (135%)
+        4. $101.00 - $150.99 → 1.30 (130%)
+        5. $151.00 - $200.99 → 1.15 (115%)
+        6. $201.00 - $300.99 → 0.70 (70%)
+        7. $301.00 - $400.99 → 0.53 (53%)
+        8. $401.00 - $500.99 → 0.40 (40%)
+        9. $501.00 - $1000.99 → 0.30 (30%)
+        10. $1001.00 - $5000.99 → 0.30 (30%)
+        11. $5001.00 - $100000.99 → 0.25 (25%)
+        12. $100001.00+ → Fixed $200 margin
         """
         if subtotal <= 50.999:
             return Decimal('1.7')
@@ -197,20 +307,21 @@ class PrintedLetterheadsShopifyCalculator:
         elif subtotal <= 100.999:
             return Decimal('1.35')
         elif subtotal <= 150.999:
-            return Decimal('1.3')
+            return Decimal('1.30')
         elif subtotal <= 200.999:
             return Decimal('1.15')
         elif subtotal <= 300.999:
-            return Decimal('0.7')
+            return Decimal('0.70')
         elif subtotal <= 400.999:
             return Decimal('0.53')
         elif subtotal <= 500.999:
-            return Decimal('0.4')
+            return Decimal('0.40')
         elif subtotal <= 1000.999:
-            return Decimal('0.3')
+            return Decimal('0.30')
         elif subtotal <= 5000.999:
-            return Decimal('0.3')
+            return Decimal('0.30')
         elif subtotal <= 100000.999:
             return Decimal('0.25')
         else:
+            # Fixed $200 margin for jobs over $100k
             return Decimal('200')

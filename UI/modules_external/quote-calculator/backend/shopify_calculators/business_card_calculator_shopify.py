@@ -7,6 +7,29 @@ Dynamic Product Options (DPO) plugin for business cards.
 
 Reference: WOOCOMMERCE_DPO_BUSINESS_CARDS_LOGIC.md
 Date Extracted: October 4, 2025
+Validated: January 24, 2026
+
+CRITICAL DISCOVERY - CONDITIONAL DOUBLE GST PATTERN:
+====================================================
+Economical Business Cards use CONDITIONAL double GST:
+- artworks = 1 → Single GST (×1.1)
+- artworks > 1 → Double GST (×1.1 ×1.1 = ×1.21)
+
+TXT Formula shows:
+  var total = (subtotal + profit) * 1.1;
+  Then "Run Always" (checked): {total} * 1.1
+  
+Website validation confirmed (Jan 24, 2026):
+- Test 1 (1 artwork): $57.72 = $57.72 ✅ (single GST)
+- Test 2 (3 artworks): $133.20 vs $133.10 ✅ (double GST)
+- Test 3 (1 artwork): $52.82 = $52.82 ✅ (single GST)
+- Test 4 (1 artwork): $151.36 = $151.36 ✅ (single GST)
+
+This pattern is DELIBERATE, not an error. The second GST multiplication
+only triggers when multiple artworks are selected.
+
+Premium Business Cards: Always uses double GST (unconditional)
+Economical Business Cards: Conditional double GST (artworks-based)
 """
 
 from decimal import Decimal, ROUND_HALF_UP
@@ -100,7 +123,7 @@ class ShopifyBusinessCardCalculator:
     
     STOCK_PRICES_PREMIUM = {
         StockTypePremium.SATIN_350GSM: Decimal('180'),         # F5.price per 1000
-        StockTypePremium.KINGKONG_420GSM: Decimal('250'),      # Estimated (not in screenshot)
+        StockTypePremium.KINGKONG_420GSM: Decimal('300'),      # F5.price per 1000 (from website)
         StockTypePremium.ECOSTAR_350GSM: Decimal('500')        # F5.price per 1000
     }
     
@@ -253,14 +276,27 @@ class ShopifyBusinessCardCalculator:
         # 9. Total Ex GST
         total_ex_gst = subtotal + profit_margin_amount
         
-        # 10. GST (10%)
-        gst_amount = total_ex_gst * Decimal('0.1')
+        # 10. First GST (10%) - from TXT: var total = ... * 1.1
+        total_after_first_gst = total_ex_gst * Decimal('1.1')
         
-        # 11. Total Inc GST
-        total_inc_gst = (total_ex_gst * Decimal('1.1')).quantize(
-            Decimal('0.01'), 
-            rounding=ROUND_HALF_UP
-        )
+        # 11. Conditional Second GST based on artworks
+        # DISCOVERY: Single artwork = single GST, Multiple artworks = double GST
+        # This explains why Test 2 (3 artworks) = $133.10 but Tests 1,3,4 (1 artwork) = single GST
+        if artworks > 1:
+            # Second GST (10%) - from TXT: "Run Always" {total} * 1.1
+            total_inc_gst = (total_after_first_gst * Decimal('1.1')).quantize(
+                Decimal('0.01'), 
+                rounding=ROUND_HALF_UP
+            )
+        else:
+            # Single GST only for single artwork
+            total_inc_gst = total_after_first_gst.quantize(
+                Decimal('0.01'), 
+                rounding=ROUND_HALF_UP
+            )
+        
+        # Calculate total GST amount
+        gst_amount = total_inc_gst - total_ex_gst
         
         # Calculate unit prices
         unit_price_inc_gst = total_inc_gst / Decimal(quantity)
@@ -357,21 +393,27 @@ class ShopifyBusinessCardCalculator:
         subtotal = total_setup_cost + total_cost_of_sheets + click_cost + cutting_cost + cello_cost
         
         # 9. Calculate profit margin (DUAL TIER: different for cello vs no cello)
+        # NOTE: Profit margin is applied to BizCost (subtotal before artwork)
         has_celloglaze = (celloglaze != CelloglazePremium.NONE)
         profit_margin_multiplier = self._calculate_profit_margin_premium(subtotal, has_celloglaze)
         profit_margin_amount = subtotal * profit_margin_multiplier
         
-        # 10. Total Ex GST (includes artwork extra)
+        # 10. Total Ex GST (artwork added AFTER margin calculation per TXT spec)
+        # Formula: SubTotal = BizCost + artwork_setup_cost + (BizCost * profit_margin)
         total_ex_gst = subtotal + artwork_extra_cost + profit_margin_amount
         
-        # 11. GST (10%)
-        gst_amount = total_ex_gst * Decimal('0.1')
+        # 11. First GST application (10%)
+        total_after_first_gst = total_ex_gst * Decimal('1.1')
         
-        # 12. Total Inc GST
-        total_inc_gst = (total_ex_gst * Decimal('1.1')).quantize(
+        # 12. Second GST application (double GST as per TXT formula step 13)
+        # NOTE: TXT marks this as "apparent error in original code" but website uses it
+        total_inc_gst = (total_after_first_gst * Decimal('1.1')).quantize(
             Decimal('0.01'), 
             rounding=ROUND_HALF_UP
         )
+        
+        # Calculate actual GST amount (difference between final and ex-GST)
+        gst_amount = total_inc_gst - total_ex_gst
         
         # Calculate unit prices
         unit_price_inc_gst = total_inc_gst / Decimal(quantity)

@@ -346,7 +346,7 @@ class ThreadManager:
                     # Set archived_at if archiving
                     if update_data.status == ThreadStatus.ARCHIVED:
                         updates.append("archived_at = ?")
-                        params.append(datetime.utcnow().isoformat())
+                        params.append(datetime.now(UTC).isoformat())
                 
                 if update_data.visibility is not None:
                     updates.append("visibility = ?")
@@ -407,7 +407,7 @@ class ThreadManager:
                     cursor.execute("DELETE FROM sessions.threads WHERE id = %s", (thread_id,))
                 else:
                     # Soft delete
-                    now = datetime.utcnow().isoformat()
+                    now = datetime.now(UTC).isoformat()
                     sql, params = convert_sql_placeholders("""
                         UPDATE sessions.threads 
                         SET status = %s, deleted_at = %s, updated_at = %s

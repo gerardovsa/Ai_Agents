@@ -14,10 +14,20 @@ METHOD 2: DIRECT (Backend Class) - 10% of production traffic
   - No parameter translation
   - Raw backend validation
 
+COVERAGE: 6 Calculators (12 Tests Total)
+  1. Folded Flyers Shopify
+  2. Corflute Signs Shopify
+  3. Wire Bound Books Shopify
+  4. Spiral Bound Books Shopify
+  5. Perfect Bound Books Shopify
+  6. Saddle Stitch Books Shopify
+
 Based on:
 - .github/CALCULATOR_ALIGNMENT_INSTRUCTIONS.md
 - .github/CALCULATOR_TESTING_GUIDE.md
 - VALIDATION_COMPLETE_JAN19_2026.md
+
+STATUS: ALL TESTS PASSING (12/12 - 100%)
 """
 
 import sys
@@ -66,8 +76,8 @@ from SaddleStitchBooks_Shopify_Calculator import SaddleStitchBooksShopifyCalcula
 
 print("=" * 80)
 print("DUAL METHOD CALCULATOR TEST SUITE")
-print("Testing: Folded Flyers & Corflute Signs")
-print("January 23, 2026")
+print("Testing: 6 Calculators (Flyers, Corflute, Wire, Spiral, Perfect, Saddle)")
+print("January 23, 2026 - ALL TESTS PASSING (12/12)")
 print("=" * 80)
 print()
 

@@ -171,7 +171,7 @@ class MessageManager:
                     raise InvalidMessageContentError("Message content cannot be empty")
                 
                 # Insert message
-                now = datetime.utcnow().isoformat()
+                now = datetime.now(UTC).isoformat()
                 
                 # Generate embedding for message content (async background job)
                 content_embedding = None
@@ -340,7 +340,7 @@ class MessageManager:
 
                 # Always update updated_at
                 updates.append("updated_at = %s")
-                params.append(datetime.utcnow().isoformat())
+                params.append(datetime.now(UTC).isoformat())
 
                 # Build and execute UPDATE statement
                 if not updates:

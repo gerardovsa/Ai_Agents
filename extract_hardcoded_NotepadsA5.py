@@ -1,0 +1,13 @@
+"""Extract hardcoded prices from NotepadsA5_Shopify_Calculator.py"""
+print("="*80)
+print("HARDCODED PRICES - NotepadsA5_Shopify_Calculator.py")
+print("="*80)
+print("\n1. PRINT TYPE (per sheet): Colour 2 sided=$0.096, Colour 1 sided=$0.048, B&W 2 sided=$0.02, B&W 1 sided=$0.01")
+print("2. STOCK TYPE (per sheet): Revive Recycled=$0.06, 100GSM=$0.054, 90GSM=$0.033, 80GSM=$0.03")
+print("3. FINISH SIZE (multiplier): A5 Portrait=0.5×")
+print("4. LEAVES PER PAD: 25=12.5, 50=25, 100=50")
+print("5. PADDING RATES (A5 STANDARD): 1-250=$0.20, 251-500=$0.20, 501-1000=$0.15, 1001-1500=$0.15, 1501-2000=$0.10, 2001-3000=$0.10, 3001+=$0.10")
+print("6. CONSTANTS: impos=$15, guilo=$12, extra_arts=$15, stockWaste=1.05, boxBoard=$0.1, cutting=$11/500")
+print("7. PROFIT MARGIN: 13 tiers (80%→41%)")
+print("8. GST: Double (×1.1 ×1.1 = 21%)")
+print("\nTotal: 39 values")

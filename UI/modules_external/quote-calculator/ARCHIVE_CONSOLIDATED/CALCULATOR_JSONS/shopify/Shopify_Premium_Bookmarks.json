@@ -1,0 +1,428 @@
+{
+    "shopify_premium_bookmarks": {
+        "product_title": "Premium Bookmarks",
+        "product_type": "Bookmarks",
+        "vendor": "PrintShop",
+        "tags": [
+            "bookmarks",
+            "premium",
+            "printing",
+            "stationary"
+        ],
+        "description": "High-quality premium bookmarks with custom printing options, ideal for branding, gifts, and promotional use.",
+        "options": [
+            {
+                "name": "Quantity",
+                "field_id": "F1",
+                "type": "select",
+                "required": true,
+                "default": "500",
+                "options": [
+                    {
+                        "title": "25",
+                        "price": 25,
+                        "price_type": "fixed",
+                        "sku": "qty_25"
+                    },
+                    {
+                        "title": "50",
+                        "price": 50,
+                        "price_type": "fixed",
+                        "sku": "qty_50"
+                    },
+                    {
+                        "title": "100",
+                        "price": 100,
+                        "price_type": "fixed",
+                        "sku": "qty_100"
+                    },
+                    {
+                        "title": "250",
+                        "price": 250,
+                        "price_type": "fixed",
+                        "sku": "qty_250"
+                    },
+                    {
+                        "title": "500",
+                        "price": 500,
+                        "price_type": "fixed",
+                        "sku": "qty_500"
+                    },
+                    {
+                        "title": "750",
+                        "price": 750,
+                        "price_type": "fixed",
+                        "sku": "qty_750"
+                    },
+                    {
+                        "title": "1000",
+                        "price": 1000,
+                        "price_type": "fixed",
+                        "sku": "qty_1000"
+                    },
+                    {
+                        "title": "1250",
+                        "price": 1250,
+                        "price_type": "fixed",
+                        "sku": "qty_1250"
+                    },
+                    {
+                        "title": "1500",
+                        "price": 1500,
+                        "price_type": "fixed",
+                        "sku": "qty_1500"
+                    },
+                    {
+                        "title": "2000",
+                        "price": 2000,
+                        "price_type": "fixed",
+                        "sku": "qty_2000"
+                    }
+                ]
+            },
+            {
+                "name": "Celloglaze",
+                "field_id": "F2",
+                "type": "select",
+                "required": true,
+                "default": "None",
+                "options": [
+                    {
+                        "title": "None",
+                        "price": 0,
+                        "price_type": "fixed",
+                        "sku": "no_cello",
+                        "description": "No protective coating"
+                    },
+                    {
+                        "title": "Gloss 1 Sided",
+                        "price": 0.41,
+                        "price_type": "per_sheet",
+                        "sku": "gloss_1s",
+                        "description": "Glossy protective coating on one side"
+                    },
+                    {
+                        "title": "Gloss 2 Sided",
+                        "price": 0.82,
+                        "price_type": "per_sheet",
+                        "sku": "gloss_2s",
+                        "description": "Glossy protective coating on both sides"
+                    },
+                    {
+                        "title": "Matt 1 Sided",
+                        "price": 0.41,
+                        "price_type": "per_sheet",
+                        "sku": "matt_1s",
+                        "description": "Matte protective coating on one side"
+                    },
+                    {
+                        "title": "Matt 2 Sided",
+                        "price": 0.82,
+                        "price_type": "per_sheet",
+                        "sku": "matt_2s",
+                        "description": "Matte protective coating on both sides"
+                    }
+                ]
+            },
+            {
+                "name": "Print Type",
+                "field_id": "F3",
+                "type": "select",
+                "required": true,
+                "default": "Colour 1 sided",
+                "options": [
+                    {
+                        "title": "Colour 1 sided",
+                        "price": 0.056,
+                        "price_type": "per_sheet",
+                        "sku": "colp",
+                        "description": "Full color printing on one side"
+                    },
+                    {
+                        "title": "Colour 2 sided",
+                        "price": 0.112,
+                        "price_type": "per_sheet",
+                        "sku": "bnwp",
+                        "description": "Full color printing on both sides"
+                    }
+                ]
+            },
+            {
+                "name": "Finish Size",
+                "field_id": "F4",
+                "type": "select",
+                "required": true,
+                "default": "65mm x 215mm",
+                "options": [
+                    {
+                        "title": "50mm x 150mm",
+                        "price": 16,
+                        "price_type": "per_1000_sheets",
+                        "sku": "psdl",
+                        "description": "Small rectangular bookmark (50mm x 150mm)"
+                    },
+                    {
+                        "title": "50mm x 185mm",
+                        "price": 15,
+                        "price_type": "per_1000_sheets",
+                        "sku": "psa6",
+                        "description": "Medium rectangular bookmark (50mm x 185mm)"
+                    },
+                    {
+                        "title": "50mm x 230mm",
+                        "price": 10,
+                        "price_type": "per_1000_sheets",
+                        "sku": "psa5",
+                        "description": "Long rectangular bookmark (50mm x 230mm)"
+                    },
+                    {
+                        "title": "65mm x 215mm",
+                        "price": 8,
+                        "price_type": "per_1000_sheets",
+                        "sku": "psa4",
+                        "description": "Large rectangular bookmark (65mm x 215mm)"
+                    }
+                ]
+            },
+            {
+                "name": "Paper Stock Type",
+                "field_id": "F5",
+                "type": "select",
+                "required": true,
+                "default": "Satin 350GSM",
+                "options": [
+                    {
+                        "title": "Satin 350GSM",
+                        "price": 150,
+                        "price_type": "per_1000_sheets",
+                        "sku": "satin_350",
+                        "description": "Premium satin finish heavyweight stock"
+                    },
+                    {
+                        "title": "Uncoated 300GSM",
+                        "price": 280,
+                        "price_type": "per_1000_sheets",
+                        "sku": "uncoated_300",
+                        "description": "Uncoated heavyweight cardstock"
+                    }
+                ]
+            },
+            {
+                "name": "Artworks",
+                "field_id": "F6",
+                "type": "number",
+                "required": true,
+                "default": 1,
+                "price": 0,
+                "price_type": "fixed",
+                "sku": "art",
+                "description": "Number of different artwork designs",
+                "visibility": {
+                    "make_it": "Visible",
+                    "if": "Always visible"
+                }
+            }
+        ],
+        "pricing_constants": {
+            "setup_costs": {
+                "impos_setup": 15,
+                "guilo_setup": 12,
+                "extra_arts": 15,
+                "cello_setup": 25
+            },
+            "production_constants": {
+                "stock_waste": 1.05,
+                "cutting_block": 500,
+                "cut_cost": 11
+            }
+        },
+        "profit_margin_tiers": [
+            {
+                "min": 1,
+                "max": 50.999,
+                "margin": 1.8,
+                "description": "180% margin for jobs $1-$50.99"
+            },
+            {
+                "min": 51,
+                "max": 74.999,
+                "margin": 1.6,
+                "description": "160% margin for jobs $51-$74.99"
+            },
+            {
+                "min": 75,
+                "max": 100.999,
+                "margin": 1.45,
+                "description": "145% margin for jobs $75-$100.99"
+            },
+            {
+                "min": 101,
+                "max": 150.999,
+                "margin": 1.35,
+                "description": "135% margin for jobs $101-$150.99"
+            },
+            {
+                "min": 151,
+                "max": 200.999,
+                "margin": 1.2,
+                "description": "120% margin for jobs $151-$200.99"
+            },
+            {
+                "min": 201,
+                "max": 300.999,
+                "margin": 0.83,
+                "description": "83% margin for jobs $201-$300.99"
+            },
+            {
+                "min": 301,
+                "max": 400.999,
+                "margin": 0.67,
+                "description": "67% margin for jobs $301-$400.99"
+            },
+            {
+                "min": 401,
+                "max": 500.999,
+                "margin": 0.54,
+                "description": "54% margin for jobs $401-$500.99"
+            },
+            {
+                "min": 501,
+                "max": 1000.999,
+                "margin": 0.33,
+                "description": "33% margin for jobs $501-$1000.99"
+            },
+            {
+                "min": 1001,
+                "max": 5000.999,
+                "margin": 0.32,
+                "description": "32% margin for jobs $1001-$5000.99"
+            },
+            {
+                "min": 5001,
+                "max": 100000.999,
+                "margin": 0.31,
+                "description": "31% margin for jobs $5001-$100000.99"
+            },
+            {
+                "min": 100001,
+                "max": 999999,
+                "margin": 200,
+                "description": "Fixed $200 margin for jobs over $100,000"
+            }
+        ],
+        "celloglaze_setup_rule": {
+            "condition": "F2 != 'None'",
+            "setup_cost": 25,
+            "description": "Additional $25 setup cost when celloglaze is selected"
+        },
+        "gst_calculation": {
+            "rate": 1.1,
+            "description": "10% GST (Australia)"
+        },
+        "final_multiplier": {
+            "rate": 1.1,
+            "description": "Additional 10% multiplier applied to final total"
+        }
+    },
+    "calculation_formula": {
+        "description": "Premium bookmark printing with complex tiered margins, optional celloglaze, and double GST application",
+        "steps": [
+            "1. Calculate artwork setup cost: _a = artworks * 15, _a2 = IF _a <= 15 THEN 0 ELSE (_a - 15)",
+            "2. Calculate celloglaze setup cost: IF celloglaze != 'None' THEN 25 ELSE 0",
+            "3. Calculate total setup cost: impos_setup (15) + guilo_setup (12) + artwork_setup + celloglaze_setup",
+            "4. Calculate sheet costs: ((quantity / sheets_per_1000) / 1000) * paper_stock_price * stock_waste (1.05)",
+            "5. Calculate total sheets printed: (quantity / sheets_per_1000) * stock_waste",
+            "6. Calculate click cost: total_sheets_printed * print_type_price",
+            "7. Calculate cutting cost: total_sheets_printed / cutting_block (500) * cut_cost (11)",
+            "8. Calculate celloglaze cost: IF celloglaze != 'None' THEN total_sheets_printed * celloglaze_price ELSE 0",
+            "9. Calculate subtotal: setup_cost + sheet_costs + click_cost + cutting_cost + celloglaze_cost",
+            "10. Determine profit margin based on subtotal using 12 different tiers",
+            "11. Apply margin: subtotal + (subtotal * profit_margin)",
+            "12. Apply GST: result * 1.1",
+            "13. Apply final multiplier: result * 1.1 (total GST effect: 21%)"
+        ]
+    },
+    "validation_rules": {
+        "quantity": {
+            "min": 25,
+            "max": 20000,
+            "required": true
+        },
+        "artworks": {
+            "min": 1,
+            "max": 10,
+            "required": true,
+            "default": 1
+        }
+    },
+    "visibility_rules": {
+        "artworks_field": {
+            "make_it": "Visible",
+            "if": "Always visible",
+            "description": "Artworks field is always visible"
+        }
+    },
+    "examples": {
+        "small_promotional_bookmarks": {
+            "quantity": 250,
+            "celloglaze": "Gloss 1 Sided",
+            "print_type": "Colour 1 sided",
+            "finish_size": "65mm x 215mm",
+            "paper_stock": "Satin 350GSM",
+            "artworks": 1,
+            "estimated_cost": "$180-250 (including double GST application)"
+        },
+        "business_bookmarks": {
+            "quantity": 500,
+            "celloglaze": "None",
+            "print_type": "Colour 1 sided",
+            "finish_size": "50mm x 150mm",
+            "paper_stock": "Uncoated 300GSM",
+            "artworks": 2,
+            "estimated_cost": "$220-320 (including double GST application)"
+        },
+        "bulk_promotional_bookmarks": {
+            "quantity": 1500,
+            "celloglaze": "Matt 1 Sided",
+            "print_type": "Colour 2 sided",
+            "finish_size": "50mm x 185mm",
+            "paper_stock": "Satin 350GSM",
+            "artworks": 1,
+            "estimated_cost": "$450-650 (including double GST application)"
+        }
+    },
+    "special_features": {
+        "artwork_pricing": {
+            "description": "First artwork is included in base setup, additional artworks charged at $15 each",
+            "formula": "IF artworks > 1 THEN (artworks * 15) - 15 ELSE 0"
+        },
+        "conditional_celloglaze_setup": {
+            "description": "Additional $25 setup cost only applies when celloglaze option is selected",
+            "formula": "IF celloglaze != 'None' THEN 25 ELSE 0"
+        },
+        "size_based_efficiency": {
+            "description": "Different bookmark sizes have different sheets-per-1000 ratios affecting material costs",
+            "ratios": {
+                "50mm x 150mm": "16 sheets per 1000 bookmarks",
+                "50mm x 185mm": "15 sheets per 1000 bookmarks",
+                "50mm x 230mm": "10 sheets per 1000 bookmarks",
+                "65mm x 215mm": "8 sheets per 1000 bookmarks"
+            }
+        },
+        "double_gst_application": {
+            "description": "This calculator applies GST twice - once in the main calculation and once as a final multiplier",
+            "warning": "Final price includes double 10% application (1.1 * 1.1 = 21% total increase)",
+            "business_logic": "First GST for standard tax, second multiplier for handling/margin"
+        },
+        "complex_margin_structure": {
+            "description": "12-tier profit margin system with very high margins for small jobs (180%) scaling down to 31% for large jobs",
+            "note": "Jobs over $100k get a fixed $200 margin instead of percentage"
+        }
+    },
+    "key_calculation_variables": {
+        "sheets_calculation": "quantity / finish_size_value (sheets per 1000)",
+        "waste_factor": "5% waste applied to all sheet calculations",
+        "cutting_efficiency": "500 sheets per cutting block",
+        "celloglaze_application": "Applied per sheet when selected"
+    }
+}

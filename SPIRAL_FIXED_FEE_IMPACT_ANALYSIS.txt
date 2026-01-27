@@ -1,0 +1,128 @@
+"""
+IMPACT OF $54.63 FEE ON ORIGINAL SPIRAL BOOKS TESTS
+====================================================
+
+The diagnostic tests revealed that the website adds a FIXED $54.63 fee
+to ALL Spiral Books orders (not a percentage markup).
+
+This means if the backend currently calculates with a $44 surcharge,
+we need to change it to $98.63 ($44 + $54.63 = $98.63).
+
+ANALYSIS OF ORIGINAL 5 TESTS:
+==============================
+
+We don't have the original 5 test expected prices yet, but the pattern
+from the diagnostic tests shows that EVERY test needs +$54.63.
+
+
+DIAGNOSTIC TEST RESULTS (CONFIRMED):
+=====================================
+
+Test 1 (Original Reference):
+  Backend: $633.02
+  Website: $687.65
+  Difference: +$54.63 ✅ EXACT
+
+Test 2 (No outer covers):
+  Backend: $580.58
+  Website: $635.21
+  Difference: +$54.63 ✅ EXACT
+
+Test 3 (No printed covers):
+  Backend: $620.36
+  Website: $674.99
+  Difference: +$54.63 ✅ EXACT
+
+Test 4 (No covers):
+  Backend: $567.92
+  Website: $622.55
+  Difference: +$54.63 ✅ EXACT
+
+Test 6 (A4 Portrait):
+  Backend: $796.54
+  Website: $851.16
+  Difference: +$54.62 ✅ EXACT (1¢ rounding)
+
+Test 7 (A4 minimal):
+  Backend: $744.10
+  Website: $798.72
+  Difference: +$54.62 ✅ EXACT (1¢ rounding)
+
+
+CONCLUSION:
+===========
+
+The $54.63 fee is CONSISTENT across:
+  - Different quantities (50, 100)
+  - Different sizes (A5 Landscape, A4 Portrait)
+  - Different configurations (with/without covers)
+  - Different total prices ($567 to $796)
+
+This is definitely a FIXED FEE, not a percentage.
+
+
+WHAT THIS MEANS FOR THE ORIGINAL 5 TESTS:
+==========================================
+
+Since the diagnostic tests cover various configurations and ALL show
+the exact same $54.63 fee, we can confidently predict:
+
+Original Test 1 (100 books, A5, 40pp, B&W):
+  Current Backend: $XXX.XX
+  Expected Website: Backend + $54.63
+
+Original Test 2 (500 books, A4, 100pp, Color):
+  Current Backend: $XXX.XX
+  Expected Website: Backend + $54.63
+
+Original Test 3 (1000 books, A4, 200pp, B&W):
+  Current Backend: $XXX.XX
+  Expected Website: Backend + $54.63
+
+Original Test 4 (250 books, A6, 50pp, B&W):
+  Current Backend: $XXX.XX
+  Expected Website: Backend + $54.63
+
+Original Test 5 (100 books, A4, 60pp, Premium):
+  Current Backend: $XXX.XX
+  Expected Website: Backend + $54.63
+
+
+IMPLEMENTATION FIX:
+===================
+
+In SpiralBoundBooks_Shopify_Calculator.py, change:
+
+  OLD: final_price = total_after_gst + Decimal('44.00')
+  NEW: final_price = total_after_gst + Decimal('98.63')
+
+Or alternatively document as:
+  surcharge = Decimal('44.00')  # Original formula surcharge
+  platform_fee = Decimal('54.63')  # Shopify platform/handling fee
+  final_price = total_after_gst + surcharge + platform_fee
+
+
+WHY THIS MAKES SENSE:
+=====================
+
+1. JavaScript formula was exported with original $44 surcharge
+2. Website later added $54.63 platform/handling/delivery fee
+3. JavaScript wasn't updated to reflect this change
+4. Total website surcharge is now $98.63 ($44 + $54.63)
+
+This is common when:
+  - Formulas are exported before pricing updates
+  - Platform fees are added after formula implementation
+  - Operational costs increase (shipping, handling, etc.)
+
+
+RECOMMENDATION:
+===============
+
+1. Apply the $54.63 fix to the calculator
+2. Test ALL 5 original configurations on the website
+3. Verify they all match within ±$1
+4. If they match, we've solved it!
+5. If not, there may be additional configuration-specific adjustments
+
+The diagnostic tests provide STRONG evidence this is a universal fix.

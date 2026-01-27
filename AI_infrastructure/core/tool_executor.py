@@ -272,7 +272,7 @@ class ToolExecutor:
             yield json.dumps({
                 "type": "start",
                 "tool": tool_name,
-                "timestamp": datetime.datetime.utcnow().isoformat()
+                "timestamp": datetime.datetime.now(UTC).isoformat()
             }) + "\n"
             
             # If result is iterable, stream each item
@@ -283,7 +283,7 @@ class ToolExecutor:
                         "type": "progress",
                         "index": i,
                         "data": item,
-                        "timestamp": datetime.datetime.utcnow().isoformat()
+                        "timestamp": datetime.datetime.now(UTC).isoformat()
                     }) + "\n"
                     logger.debug(f"📦 Yielded progress event {i}")
             else:
@@ -292,12 +292,12 @@ class ToolExecutor:
                 yield json.dumps({
                     "type": "result",
                     "data": result,
-                    "timestamp": datetime.datetime.utcnow().isoformat()
+                    "timestamp": datetime.datetime.now(UTC).isoformat()
                 }) + "\n"
             
             yield json.dumps({
                 "type": "complete",
-                "timestamp": datetime.datetime.utcnow().isoformat()
+                "timestamp": datetime.datetime.now(UTC).isoformat()
             }) + "\n"
             
             logger.info(f"Stream complete: {tool_name}")
@@ -307,7 +307,7 @@ class ToolExecutor:
             yield json.dumps({
                 "type": "error",
                 "message": str(e),
-                "timestamp": datetime.datetime.utcnow().isoformat()
+                "timestamp": datetime.datetime.now(UTC).isoformat()
             }) + "\n"
 
     def list_tools_for_platform(self, platform: str) -> List[Dict[str, Any]]:

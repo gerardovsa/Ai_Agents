@@ -255,7 +255,7 @@ class FoldedFlyersShopifyCalculator:
     def _load_profit_margin_tiers(self):
         """Load all profit margin tiers from JSON specification"""
         
-        # A5 Size - Under 4000 qty
+        # A5 Size - Under 4000 qty (OVERLAPPING RANGES - website uses last match)
         self.a5_under_4000 = [
             (Decimal('50.999'), Decimal('1.5')),    # $1-$50.99: 150% margin
             (Decimal('100.999'), Decimal('1.25')),  # $51-$100.99: 125%
@@ -281,7 +281,7 @@ class FoldedFlyersShopifyCalculator:
             (Decimal('5000.999'), Decimal('0.21'))  # $1001-$5000.99: 21%
         ]
         
-        # A4 Size - Under 4000 qty
+        # A4 Size - Under 4000 qty (OVERLAPPING RANGES - website uses last match)
         self.a4_under_4000 = [
             (Decimal('50.999'), Decimal('1.6')),    # $1-$50.99: 160%
             (Decimal('100.999'), Decimal('1.3')),   # $51-$100.99: 130%
@@ -353,13 +353,13 @@ class FoldedFlyersShopifyCalculator:
             else:  # 6pp A4
                 tiers = self.a4_6pp_under_4000
         
-        # Find matching tier
+        # Find matching tier - FIRST match wins (correct behavior)
         for max_cost, margin in tiers:
             if biz_cost <= max_cost:
                 return margin
         
-        # Default to lowest margin if beyond all tiers
-        return tiers[-1][1]
+        # Fallback
+        return Decimal('2.0')
     
     def calculate_quote(
         self,
@@ -393,9 +393,10 @@ class FoldedFlyersShopifyCalculator:
         quantity = int(quantity) if not isinstance(quantity, int) else quantity
         artworks = int(artworks) if not isinstance(artworks, int) else artworks
         
-        # Validate celloglaze is only for Satin stocks
-        if celloglaze != Celloglaze.NONE and paper_stock.stock_type != "Satin":
-            raise ValueError("Celloglaze is only available for Satin paper stocks")
+        # Validate celloglaze is only for Satin stocks (NONE is allowed for all stocks)
+        if celloglaze != Celloglaze.NONE:
+            if paper_stock.stock_type != "Satin":
+                raise ValueError("Celloglaze is only available for Satin paper stocks")
         
         # Step 1: Calculate Setup Costs
         impos_setup = self.IMPOS_SETUP

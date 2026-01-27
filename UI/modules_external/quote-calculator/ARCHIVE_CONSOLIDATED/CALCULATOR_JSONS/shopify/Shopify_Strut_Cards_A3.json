@@ -1,0 +1,415 @@
+{
+    "shopify_strut_cards_a3": {
+        "product_title": "Strut Cards A3",
+        "product_type": "Counter Strut Cards",
+        "vendor": "PrintShop",
+        "tags": [
+            "strut",
+            "cards",
+            "a3",
+            "counter",
+            "display",
+            "promotional"
+        ],
+        "description": "Professional A3 counter strut cards made from 2mm screenboard. Perfect for point-of-sale displays, promotional materials, and counter-top advertising. Self-standing design with integrated strut support.",
+        "options": [
+            {
+                "name": "Quantity",
+                "field_id": "F1",
+                "type": "number",
+                "required": true,
+                "default": "1",
+                "min": 1,
+                "max": 10000,
+                "description": "Number of A3 strut cards to produce"
+            },
+            {
+                "name": "Stock",
+                "field_id": "F2",
+                "type": "select",
+                "required": true,
+                "default": "2mm Screenboard",
+                "options": [
+                    {
+                        "title": "2mm Screenboard",
+                        "price": 0,
+                        "price_type": "fixed",
+                        "sku": "2mm_screenboard",
+                        "description": "2mm screenboard - premium rigid material for counter displays"
+                    }
+                ]
+            },
+            {
+                "name": "Size:",
+                "field_id": "F3",
+                "type": "select",
+                "required": true,
+                "default": "A3 - 297mm x 420mm",
+                "options": [
+                    {
+                        "title": "A3 - 297mm x 420mm",
+                        "price": 0,
+                        "price_type": "fixed",
+                        "sku": "a3_size",
+                        "description": "Standard A3 size - 297mm x 420mm"
+                    }
+                ]
+            },
+            {
+                "name": "Artworks",
+                "field_id": "F4",
+                "type": "number",
+                "required": true,
+                "default": "1",
+                "min": 1,
+                "max": 20,
+                "description": "Number of different artwork designs"
+            }
+        ],
+        "pricing_constants": {
+            "setup_costs": {
+                "artwork_base_cost": 5,
+                "extra_artwork_cost": 5
+            },
+            "minimum_order": {
+                "value": 79,
+                "description": "Minimum order value before final multipliers"
+            },
+            "multipliers": {
+                "initial_markup": 1.1,
+                "description_1": "10% markup applied when subtotal >= minimum",
+                "final_markup": 1.1,
+                "description_2": "Additional 10% final markup applied to all orders"
+            }
+        },
+        "quantity_pricing_tiers": [
+            {
+                "qty_min": 1,
+                "qty_max": 9,
+                "price_per_unit": 16.00,
+                "description": "Premium pricing for very small quantities"
+            },
+            {
+                "qty_min": 10,
+                "qty_max": 14,
+                "price_per_unit": 16.00,
+                "description": "Premium pricing for small quantities"
+            },
+            {
+                "qty_min": 15,
+                "qty_max": 19,
+                "price_per_unit": 12.00,
+                "description": "Reduced pricing for medium-small quantities"
+            },
+            {
+                "qty_min": 20,
+                "qty_max": 24,
+                "price_per_unit": 11.80,
+                "description": "Volume discount tier 1"
+            },
+            {
+                "qty_min": 25,
+                "qty_max": 29,
+                "price_per_unit": 11.60,
+                "description": "Volume discount tier 2"
+            },
+            {
+                "qty_min": 30,
+                "qty_max": 34,
+                "price_per_unit": 11.60,
+                "description": "Volume discount tier 3"
+            },
+            {
+                "qty_min": 35,
+                "qty_max": 39,
+                "price_per_unit": 11.40,
+                "description": "Volume discount tier 4"
+            },
+            {
+                "qty_min": 40,
+                "qty_max": 44,
+                "price_per_unit": 11.20,
+                "description": "Volume discount tier 5"
+            },
+            {
+                "qty_min": 45,
+                "qty_max": 49,
+                "price_per_unit": 11.00,
+                "description": "Volume discount tier 6"
+            },
+            {
+                "qty_min": 50,
+                "qty_max": 59,
+                "price_per_unit": 10.60,
+                "description": "Volume discount tier 7"
+            },
+            {
+                "qty_min": 60,
+                "qty_max": 69,
+                "price_per_unit": 10.40,
+                "description": "Volume discount tier 8"
+            },
+            {
+                "qty_min": 70,
+                "qty_max": 79,
+                "price_per_unit": 10.32,
+                "description": "Volume discount tier 9"
+            },
+            {
+                "qty_min": 80,
+                "qty_max": 89,
+                "price_per_unit": 10.20,
+                "description": "Volume discount tier 10"
+            },
+            {
+                "qty_min": 90,
+                "qty_max": 99,
+                "price_per_unit": 8.80,
+                "description": "Significant discount for approaching 100 units"
+            },
+            {
+                "qty_min": 100,
+                "qty_max": 124,
+                "price_per_unit": 7.70,
+                "description": "100+ units discount tier"
+            },
+            {
+                "qty_min": 125,
+                "qty_max": 149,
+                "price_per_unit": 6.80,
+                "description": "125+ units discount tier"
+            },
+            {
+                "qty_min": 150,
+                "qty_max": 174,
+                "price_per_unit": 6.32,
+                "description": "150+ units discount tier"
+            },
+            {
+                "qty_min": 175,
+                "qty_max": 199,
+                "price_per_unit": 6.14,
+                "description": "175+ units discount tier"
+            },
+            {
+                "qty_min": 200,
+                "qty_max": 249,
+                "price_per_unit": 5.98,
+                "description": "200+ units discount tier"
+            },
+            {
+                "qty_min": 250,
+                "qty_max": 299,
+                "price_per_unit": 5.72,
+                "description": "250+ units discount tier"
+            },
+            {
+                "qty_min": 300,
+                "qty_max": 399,
+                "price_per_unit": 5.60,
+                "description": "300+ units discount tier"
+            },
+            {
+                "qty_min": 400,
+                "qty_max": 499,
+                "price_per_unit": 5.56,
+                "description": "400+ units discount tier"
+            },
+            {
+                "qty_min": 500,
+                "qty_max": 749,
+                "price_per_unit": 5.50,
+                "description": "500+ units discount tier"
+            },
+            {
+                "qty_min": 750,
+                "qty_max": 999,
+                "price_per_unit": 5.46,
+                "description": "750+ units discount tier"
+            },
+            {
+                "qty_min": 1000,
+                "qty_max": 999999,
+                "price_per_unit": 5.42,
+                "description": "Maximum volume discount for 1000+ units"
+            }
+        ]
+    },
+    "calculation_formula": {
+        "description": "A3 strut card pricing with extensive quantity-based tiered pricing and artwork setup costs",
+        "steps": [
+            "1. Calculate artwork setup: IF artworks > 1 THEN (artworks * 5) - 5 ELSE 0",
+            "2. Determine price per unit based on quantity using 25 different pricing tiers",
+            "3. Calculate base cost: quantity * price_per_unit",
+            "4. Add artwork setup cost: base_cost + artwork_setup",
+            "5. Apply minimum order value: IF subtotal < 79 THEN 79 ELSE subtotal",
+            "6. Apply first markup: IF subtotal >= 79 THEN subtotal * 1.1 ELSE 79",
+            "7. Apply final multiplier: result * 1.1"
+        ]
+    },
+    "validation_rules": {
+        "quantity": {
+            "required": true,
+            "min": 1,
+            "max": 10000,
+            "type": "integer"
+        },
+        "artworks": {
+            "required": true,
+            "min": 1,
+            "max": 20,
+            "type": "integer"
+        },
+        "stock": {
+            "required": true,
+            "options": [
+                "2mm Screenboard"
+            ]
+        },
+        "size": {
+            "required": true,
+            "options": [
+                "A3 - 297mm x 420mm"
+            ]
+        }
+    },
+    "examples": {
+        "small_order_single_artwork": {
+            "description": "Small quantity strut cards with single artwork",
+            "inputs": {
+                "quantity": 10,
+                "stock": "2mm Screenboard",
+                "size": "A3 - 297mm x 420mm",
+                "artworks": 1
+            },
+            "calculation_breakdown": {
+                "quantity": 10,
+                "price_per_unit": 16.00,
+                "base_cost": 160.00,
+                "artwork_setup": 0,
+                "subtotal": 160.00,
+                "minimum_not_applied": 160.00,
+                "after_first_markup": 176.00,
+                "final_total": 193.60
+            }
+        },
+        "medium_order_multiple_artworks": {
+            "description": "Medium quantity with multiple artworks",
+            "inputs": {
+                "quantity": 100,
+                "stock": "2mm Screenboard",
+                "size": "A3 - 297mm x 420mm",
+                "artworks": 3
+            },
+            "calculation_breakdown": {
+                "quantity": 100,
+                "price_per_unit": 7.70,
+                "base_cost": 770.00,
+                "artwork_setup": 10,
+                "subtotal": 780.00,
+                "minimum_not_applied": 780.00,
+                "after_first_markup": 858.00,
+                "final_total": 943.80
+            }
+        },
+        "bulk_order_maximum_discount": {
+            "description": "Large bulk order with maximum volume discount",
+            "inputs": {
+                "quantity": 1500,
+                "stock": "2mm Screenboard",
+                "size": "A3 - 297mm x 420mm",
+                "artworks": 2
+            },
+            "calculation_breakdown": {
+                "quantity": 1500,
+                "price_per_unit": 5.42,
+                "base_cost": 8130.00,
+                "artwork_setup": 5,
+                "subtotal": 8135.00,
+                "minimum_not_applied": 8135.00,
+                "after_first_markup": 8948.50,
+                "final_total": 9843.35
+            }
+        },
+        "minimum_order_test": {
+            "description": "Very small order triggering minimum order value",
+            "inputs": {
+                "quantity": 2,
+                "stock": "2mm Screenboard",
+                "size": "A3 - 297mm x 420mm",
+                "artworks": 1
+            },
+            "calculation_breakdown": {
+                "quantity": 2,
+                "price_per_unit": 16.00,
+                "base_cost": 32.00,
+                "artwork_setup": 0,
+                "subtotal": 32.00,
+                "minimum_applied": 79.00,
+                "after_first_markup": 79.00,
+                "final_total": 86.90
+            }
+        }
+    },
+    "technical_specifications": {
+        "material_properties": {
+            "screenboard": {
+                "thickness": "2mm",
+                "material": "High-density foam board",
+                "surface": "Smooth white surface suitable for high-quality printing",
+                "rigidity": "Self-supporting structure ideal for counter displays"
+            }
+        },
+        "printing_specifications": {
+            "print_method": "Digital printing",
+            "resolution": "High resolution (1440dpi)",
+            "colors": "Full color CMYK",
+            "finish": "Matte finish standard"
+        },
+        "construction_features": {
+            "strut_design": "Integrated fold-out strut for self-standing display",
+            "stability": "Designed for stable counter-top placement",
+            "portability": "Lightweight yet rigid construction"
+        }
+    },
+    "use_cases": {
+        "retail": [
+            "Point-of-sale displays",
+            "Product promotions",
+            "Pricing displays",
+            "New product announcements"
+        ],
+        "hospitality": [
+            "Menu displays",
+            "Special offers",
+            "Event promotions",
+            "Table tent alternatives"
+        ],
+        "corporate": [
+            "Reception area displays",
+            "Information stands",
+            "Company announcements",
+            "Service promotions"
+        ],
+        "events": [
+            "Trade show displays",
+            "Conference information",
+            "Registration displays",
+            "Sponsor recognition"
+        ]
+    },
+    "design_guidelines": {
+        "artwork_requirements": [
+            "High resolution files (300dpi minimum)",
+            "CMYK color mode",
+            "Include 3mm bleed on all edges",
+            "Consider strut fold line in design layout"
+        ],
+        "design_considerations": [
+            "Keep important elements away from fold lines",
+            "Design for counter-level viewing angle",
+            "Use bold, readable fonts for distance viewing",
+            "Consider both front and back design opportunities"
+        ]
+    }
+}

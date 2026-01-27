@@ -36,7 +36,7 @@ from typing import Dict, Any, Optional, List, Generator
 from functools import wraps
 import sys
 from pathlib import Path
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, UTC
 
 # Add root and tools to path
 root_dir = Path(__file__).parent.parent.parent  # Go up to AI_agents root
@@ -2219,7 +2219,7 @@ Use tools in multiple rounds with interleaved thinking."""
                         'thread_slug': thread_slug,
                         'user_id': user_id,  # ✅ Added for team member identification
                         'message_count': event.get('message_count'),
-                        'timestamp': int(datetime.utcnow().timestamp() * 1000)
+                        'timestamp': int(datetime.now(UTC).timestamp() * 1000)
                     })
                     did_broadcast_update = True
 
@@ -2232,7 +2232,7 @@ Use tools in multiple rounds with interleaved thinking."""
                         'thread_slug': thread_slug,
                         'user_id': user_id,  # ✅ Added for team member identification
                         'message_count': event.get('message_count'),
-                        'timestamp': int(datetime.utcnow().timestamp() * 1000)
+                        'timestamp': int(datetime.now(UTC).timestamp() * 1000)
                     })
                     did_broadcast_update = True
 

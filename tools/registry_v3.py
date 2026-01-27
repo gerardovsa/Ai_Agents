@@ -168,7 +168,15 @@ class RegistryV3:
                 
                 # Process schema to inject dynamic values ({{DYNAMIC:...}} placeholders)
                 if use_dynamic_injection:
-                    schema_data = process_schema(schema_data)
+                    try:
+                        schema_data = process_schema(schema_data)
+                        # Ensure process_schema returns dict (not list)
+                        if not isinstance(schema_data, dict):
+                            logger.warning(f"Skipping {schema_file.name}: process_schema returned invalid type {type(schema_data)}")
+                            continue
+                    except Exception as e:
+                        logger.warning(f"Failed to process schema {schema_file.name}: {e}")
+                        continue
                 
                 # Get top-level platform field (if present)
                 schema_platform = schema_data.get("platform")

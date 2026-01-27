@@ -1,0 +1,328 @@
+{
+  "shopify_economical_business_cards": {
+    "product_title": "Economical Business Cards",
+    "product_type": "Business Cards",
+    "vendor": "PrintShop",
+    "tags": ["business-cards", "economical", "custom-printing", "single-double-sided"],
+    "description": "Budget-friendly business cards with professional quality. Perfect for small businesses and startups looking for cost-effective branding solutions.",
+    "options": [
+      {
+        "name": "Quantity",
+        "field_id": "F1",
+        "type": "select",
+        "required": true,
+        "default": "500",
+        "options": [
+          {
+            "title": "250",
+            "price": 250,
+            "price_type": "fixed"
+          },
+          {
+            "title": "500",
+            "price": 500,
+            "price_type": "fixed"
+          },
+          {
+            "title": "1000",
+            "price": 1000,
+            "price_type": "fixed"
+          },
+          {
+            "title": "2000",
+            "price": 2000,
+            "price_type": "fixed"
+          },
+          {
+            "title": "5000",
+            "price": 5000,
+            "price_type": "fixed"
+          },
+          {
+            "title": "10000",
+            "price": 10000,
+            "price_type": "fixed"
+          }
+        ]
+      },
+      {
+        "name": "Print Sides",
+        "field_id": "F2",
+        "type": "select",
+        "required": true,
+        "default": "Single side print",
+        "options": [
+          {
+            "title": "Single side print",
+            "price": 1,
+            "price_type": "multiplier",
+            "sku": "ssp",
+            "description": "Print on front side only"
+          },
+          {
+            "title": "Double side print",
+            "price": 2,
+            "price_type": "multiplier",
+            "sku": "dsp",
+            "description": "Print on both front and back"
+          }
+        ]
+      },
+      {
+        "name": "Print Type",
+        "field_id": "F3",
+        "type": "select",
+        "required": true,
+        "default": "Colour",
+        "options": [
+          {
+            "title": "Colour",
+            "price": 0.044,
+            "price_type": "per_sheet",
+            "sku": "colp",
+            "description": "Full color printing (CMYK)"
+          },
+          {
+            "title": "Black & White",
+            "price": 0.02,
+            "price_type": "per_sheet",
+            "sku": "bnwp",
+            "description": "Black and white printing only"
+          }
+        ]
+      },
+      {
+        "name": "Finish Size",
+        "field_id": "F4",
+        "type": "select",
+        "required": true,
+        "default": "90mm x 55mm",
+        "options": [
+          {
+            "title": "90mm x 55mm",
+            "price": 21,
+            "price_type": "cards_per_sheet",
+            "width": 90,
+            "height": 55,
+            "description": "Standard business card size"
+          }
+        ]
+      },
+      {
+        "name": "Paper Stock Type",
+        "field_id": "F5",
+        "type": "select",
+        "required": true,
+        "default": "Satin 300GSM",
+        "options": [
+          {
+            "title": "Satin 300GSM",
+            "price": 126,
+            "price_type": "per_1000_sheets",
+            "gsm": 300,
+            "stock_type": "Satin",
+            "sku": "pSAT300",
+            "description": "Premium satin finish, smooth texture"
+          }
+        ]
+      },
+      {
+        "name": "Artworks",
+        "field_id": "F6",
+        "type": "number",
+        "required": true,
+        "default_value": 1,
+        "min": 1,
+        "max": 50,
+        "sku": "art",
+        "description": "Number of different artwork designs"
+      }
+    ],
+    "pricing_constants": {
+      "setup_costs": {
+        "impos_setup": 15,
+        "guilo_setup": 12,
+        "extra_arts": 15
+      },
+      "production_constants": {
+        "stock_waste": 1.05,
+        "cutting_block": 500,
+        "cut_cost": 11
+      }
+    },
+    "profit_margin_tiers": [
+      {
+        "comment": "Profit margins based on business cost (BizCost), NOT quantity",
+        "min": 1,
+        "max": 50.999,
+        "margin": 0.65,
+        "description": "65% margin for very low cost jobs"
+      },
+      {
+        "min": 51,
+        "max": 60.999,
+        "margin": 0.51,
+        "description": "51% margin"
+      },
+      {
+        "min": 61,
+        "max": 65.999,
+        "margin": 0.6,
+        "description": "60% margin"
+      },
+      {
+        "min": 66,
+        "max": 70.999,
+        "margin": 0.6,
+        "description": "60% margin"
+      },
+      {
+        "min": 71,
+        "max": 80.999,
+        "margin": 0.7,
+        "description": "70% margin"
+      },
+      {
+        "min": 81,
+        "max": 100.999,
+        "margin": 0.6,
+        "description": "60% margin"
+      },
+      {
+        "min": 101,
+        "max": 150.999,
+        "margin": 0.75,
+        "description": "75% margin"
+      },
+      {
+        "min": 151,
+        "max": 200.999,
+        "margin": 0.9,
+        "description": "90% margin - peak profitability"
+      },
+      {
+        "min": 201,
+        "max": 300.999,
+        "margin": 0.3,
+        "description": "30% margin - volume discount"
+      },
+      {
+        "min": 301,
+        "max": 400.999,
+        "margin": 0.4,
+        "description": "40% margin"
+      },
+      {
+        "min": 401,
+        "max": 500.999,
+        "margin": 0.45,
+        "description": "45% margin"
+      },
+      {
+        "min": 501,
+        "max": 1000.999,
+        "margin": 0.3,
+        "description": "30% margin - high volume"
+      },
+      {
+        "min": 1001,
+        "max": 10000,
+        "margin": 0.3,
+        "description": "30% margin - very high volume"
+      }
+    ],
+    "gst_calculation": {
+      "rate": 1.1,
+      "description": "10% GST (Australia)",
+      "note": "GST applied to final total"
+    }
+  },
+  "calculation_formula": {
+    "description": "Exact WooCommerce Economical Business Cards formula implementation",
+    "steps": [
+      "1. Calculate artwork setup cost: IF artworks > 1 THEN (artworks * extra_arts) - extra_arts ELSE 0",
+      "2. Calculate total setup cost: impos_setup + guilo_setup + artwork_setup_cost",
+      "3. Calculate sheets needed: (quantity / cards_per_sheet) * stock_waste",
+      "4. Calculate stock cost: (sheets_needed / 1000) * paper_stock.price",
+      "5. Calculate click cost: sheets_needed * print_sides.price * print_type.price",
+      "6. Calculate cutting cost: (sheets_needed / cutting_block) * cut_cost",
+      "7. Calculate BizCost (business cost): setup + stock + clicks + cutting",
+      "8. Determine profit margin tier based on BizCost value",
+      "9. Calculate SubTotal: BizCost + (BizCost * profit_margin)",
+      "10. Calculate Total: SubTotal * GST_rate",
+      "11. Round final price to nearest cent"
+    ],
+    "key_differences_from_perfect_bound": {
+      "artwork_setup": "Multiple artworks incur additional setup costs ($15 per extra artwork)",
+      "no_binding": "No binding costs - just cutting to finished size",
+      "cards_per_sheet": "Uses cards-per-sheet calculation (21 cards per sheet for 90x55mm)",
+      "profit_margins": "Different margin structure optimized for small format printing",
+      "simpler_structure": "No cover/content separation - single stock type throughout"
+    }
+  },
+  "validation_rules": {
+    "min_quantity": 250,
+    "max_quantity": 10000,
+    "min_artworks": 1,
+    "max_artworks": 50,
+    "standard_size_only": "Currently only supports 90mm x 55mm standard business card size"
+  },
+  "display_settings": {
+    "currency": "AUD",
+    "decimal_places": 2,
+    "show_breakdown": true,
+    "show_unit_price": true,
+    "show_cost_per_card": true
+  },
+  "parameter_mapping": {
+    "note": "Map WooCommerce fields to Python calculator parameters",
+    "quantity": "F1 → quantity (select from predefined options)",
+    "print_sides": "F2 → sides_multiplier (1=single, 2=double)",
+    "print_type": "F3 → print_mode_cost (0.044=color, 0.02=b&w)",
+    "finish_size": "F4 → cards_per_sheet (21 for standard 90x55mm)",
+    "paper_stock": "F5 → stock_cost_per_1000_sheets (126 for Satin 300GSM)",
+    "artworks": "F6 → artwork_count (triggers extra setup costs if > 1)"
+  },
+  "examples": {
+    "example_1": {
+      "description": "Standard single-sided color business cards",
+      "quantity": 500,
+      "print_sides": "Single side print",
+      "print_type": "Colour",
+      "finish_size": "90mm x 55mm",
+      "paper_stock": "Satin 300GSM",
+      "artworks": 1,
+      "expected_price_range": "$80-$120 (approx $0.16-$0.24/card)"
+    },
+    "example_2": {
+      "description": "Double-sided color cards with multiple designs",
+      "quantity": 1000,
+      "print_sides": "Double side print",
+      "print_type": "Colour",
+      "finish_size": "90mm x 55mm",
+      "paper_stock": "Satin 300GSM",
+      "artworks": 3,
+      "expected_price_range": "$150-$220 (approx $0.15-$0.22/card)"
+    },
+    "example_3": {
+      "description": "Budget black & white cards",
+      "quantity": 250,
+      "print_sides": "Single side print",
+      "print_type": "Black & White",
+      "finish_size": "90mm x 55mm",
+      "paper_stock": "Satin 300GSM",
+      "artworks": 1,
+      "expected_price_range": "$50-$80 (approx $0.20-$0.32/card)"
+    },
+    "example_4": {
+      "description": "High volume order",
+      "quantity": 5000,
+      "print_sides": "Double side print",
+      "print_type": "Colour",
+      "finish_size": "90mm x 55mm",
+      "paper_stock": "Satin 300GSM",
+      "artworks": 1,
+      "expected_price_range": "$400-$600 (approx $0.08-$0.12/card)"
+    }
+  }
+}

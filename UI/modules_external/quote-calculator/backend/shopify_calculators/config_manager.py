@@ -15,8 +15,8 @@ class ConfigManager:
     
     # Config file locations to search
     CONFIG_PATHS = [
-        r"c:\Users\gpoli\GIT\In_House_SQL\G_Folder\Quote_Calculator\shopify",
-        Path(__file__).parent.parent.parent.parent.parent.parent / "In_House_SQL" / "G_Folder" / "Quote_Calculator" / "shopify"
+        Path(__file__).parent.parent.parent / "config" / "shopify",  # AI_agents/UI/modules_external/quote-calculator/config/shopify
+        r"c:\Users\gpoli\GIT\AI_Agents_V11\AI_agents\UI\modules_external\quote-calculator\config\shopify"
     ]
     
     def __init__(self):

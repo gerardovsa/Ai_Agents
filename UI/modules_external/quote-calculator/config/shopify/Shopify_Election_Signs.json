@@ -1,0 +1,657 @@
+{
+    "shopify_election_signs": {
+        "product_title": "Election Signs",
+        "product_type": "Election Signs",
+        "vendor": "PrintShop",
+        "tags": [
+            "election",
+            "political",
+            "campaign",
+            "signs",
+            "corflute",
+            "outdoor"
+        ],
+        "description": "Professional election campaign signs made from durable corflute material. Available in standard sizes or custom dimensions with various eyelet configurations for easy installation. Perfect for political campaigns, candidate promotion, and electoral advertising.",
+        "options": [
+            {
+                "name": "Quantity",
+                "field_id": "F1",
+                "type": "number",
+                "required": true,
+                "default": "1",
+                "min": 1,
+                "max": 10000,
+                "description": "Number of election signs to produce"
+            },
+            {
+                "name": "Eyelets",
+                "field_id": "F2",
+                "type": "select",
+                "required": true,
+                "default": "No Eyelets",
+                "options": [
+                    {
+                        "title": "No Eyelets",
+                        "price": 0,
+                        "price_type": "fixed",
+                        "sku": "no_eyelets",
+                        "description": "No eyelets - plain sign"
+                    },
+                    {
+                        "title": "4 x Eyelets (1 In Each Corner)",
+                        "price": 1.6,
+                        "price_type": "fixed",
+                        "sku": "4_corner_eyelets",
+                        "description": "Four eyelets positioned in each corner"
+                    },
+                    {
+                        "title": "2 x Eyelets (top left and right corners)",
+                        "price": 0.8,
+                        "price_type": "fixed",
+                        "sku": "2_top_eyelets",
+                        "description": "Two eyelets in top left and right corners"
+                    },
+                    {
+                        "title": "2 x Eyelets (center left and right)",
+                        "price": 0.8,
+                        "price_type": "fixed",
+                        "sku": "2_center_lr_eyelets",
+                        "description": "Two eyelets positioned center left and right"
+                    },
+                    {
+                        "title": "2 x Eyelets (center top and bottom)",
+                        "price": 0.8,
+                        "price_type": "fixed",
+                        "sku": "2_center_tb_eyelets",
+                        "description": "Two eyelets positioned center top and bottom"
+                    },
+                    {
+                        "title": "6 x Eyelets (3 each top and bottom)",
+                        "price": 2.4,
+                        "price_type": "fixed",
+                        "sku": "6_top_bottom_eyelets",
+                        "description": "Six eyelets - three each along top and bottom edges"
+                    },
+                    {
+                        "title": "6 x Eyelets (3 each left and right)",
+                        "price": 2.4,
+                        "price_type": "fixed",
+                        "sku": "6_left_right_eyelets",
+                        "description": "Six eyelets - three each along left and right edges"
+                    }
+                ]
+            },
+            {
+                "name": "Width (mm)",
+                "field_id": "F3",
+                "type": "number",
+                "required": false,
+                "default": "",
+                "min": 100,
+                "max": 5000,
+                "visibility": {
+                    "make_it": "visible",
+                    "condition": "F6 == 'Custom'"
+                },
+                "description": "Custom width in millimeters (only for custom sizes)"
+            },
+            {
+                "name": "Thickness",
+                "field_id": "F4",
+                "type": "select",
+                "required": true,
+                "default": "5mm",
+                "options": [
+                    {
+                        "title": "3mm",
+                        "price": 0,
+                        "price_type": "fixed",
+                        "sku": "3mm_corflute",
+                        "description": "3mm corrugated plastic - lightweight option"
+                    },
+                    {
+                        "title": "5mm",
+                        "price": 0,
+                        "price_type": "fixed",
+                        "sku": "5mm_corflute",
+                        "description": "5mm corrugated plastic - premium durability"
+                    }
+                ]
+            },
+            {
+                "name": "Size",
+                "field_id": "F6",
+                "type": "select",
+                "required": true,
+                "default": "600mm x 900mm",
+                "options": [
+                    {
+                        "title": "450mm x 600mm",
+                        "price": 0,
+                        "price_type": "fixed",
+                        "sku": "size6x4",
+                        "description": "Small election sign - 450mm x 600mm",
+                        "dimensions": {
+                            "width": 450,
+                            "height": 600
+                        }
+                    },
+                    {
+                        "title": "600mm x 900mm",
+                        "price": 0,
+                        "price_type": "fixed",
+                        "sku": "size6x9",
+                        "description": "Medium election sign - 600mm x 900mm",
+                        "dimensions": {
+                            "width": 600,
+                            "height": 900
+                        }
+                    },
+                    {
+                        "title": "900mm x 1200mm",
+                        "price": 0,
+                        "price_type": "fixed",
+                        "sku": "size9x12",
+                        "description": "Large election sign - 900mm x 1200mm",
+                        "dimensions": {
+                            "width": 900,
+                            "height": 1200
+                        }
+                    },
+                    {
+                        "title": "1200mm x 2400mm",
+                        "price": 0,
+                        "price_type": "fixed",
+                        "sku": "size12x24",
+                        "description": "Extra large election sign - 1200mm x 2400mm",
+                        "dimensions": {
+                            "width": 1200,
+                            "height": 2400
+                        }
+                    },
+                    {
+                        "title": "Custom",
+                        "price": 0,
+                        "price_type": "fixed",
+                        "sku": "sizeCustom",
+                        "description": "Custom size - specify width and height"
+                    }
+                ]
+            },
+            {
+                "name": "Length (mm)",
+                "field_id": "F7",
+                "type": "number",
+                "required": false,
+                "default": "",
+                "min": 100,
+                "max": 5000,
+                "visibility": {
+                    "make_it": "visible",
+                    "condition": "F6 == 'Custom'"
+                },
+                "description": "Custom height/length in millimeters (only for custom sizes)"
+            },
+            {
+                "name": "Sides?",
+                "field_id": "F8",
+                "type": "select",
+                "required": true,
+                "default": "Single Sided",
+                "options": [
+                    {
+                        "title": "Single Sided",
+                        "price": 0,
+                        "price_type": "fixed",
+                        "sku": "ssPrint",
+                        "description": "Printing on one side only"
+                    },
+                    {
+                        "title": "Double Sided",
+                        "price": 0,
+                        "price_type": "fixed",
+                        "sku": "dsPrint",
+                        "description": "Printing on both sides"
+                    }
+                ]
+            },
+            {
+                "name": "Cutting",
+                "field_id": "F9",
+                "type": "select",
+                "required": true,
+                "default": "Standard square edge",
+                "options": [
+                    {
+                        "title": "Standard square edge",
+                        "price": 0,
+                        "price_type": "fixed",
+                        "sku": "standard_cut",
+                        "description": "Standard rectangular cutting"
+                    },
+                    {
+                        "title": "Custom Shape",
+                        "price": 0,
+                        "price_type": "fixed",
+                        "sku": "custom_cut",
+                        "description": "Custom shape cutting"
+                    }
+                ]
+            },
+            {
+                "name": "Artworks",
+                "field_id": "art",
+                "type": "number",
+                "required": true,
+                "default": "1",
+                "min": 1,
+                "max": 20,
+                "description": "Number of different artwork designs"
+            }
+        ],
+        "pricing_constants": {
+            "setup_costs": {
+                "artwork_base_cost": 5,
+                "extra_artwork_cost": 5
+            },
+            "production_constants": {
+                "double_sided_surcharge": 6,
+                "custom_tax_rate": 1.1,
+                "discount_factor": 0.95
+            },
+            "minimum_order": {
+                "value": 135,
+                "description": "Minimum order value before final multiplier"
+            },
+            "final_multiplier": {
+                "rate": 1.1,
+                "description": "10% final markup applied to total"
+            }
+        },
+        "size_dimensions": {
+            "450mm x 600mm": {
+                "width": 450,
+                "height": 600
+            },
+            "600mm x 900mm": {
+                "width": 600,
+                "height": 900
+            },
+            "900mm x 1200mm": {
+                "width": 900,
+                "height": 1200
+            },
+            "1200mm x 2400mm": {
+                "width": 1200,
+                "height": 2400
+            },
+            "Custom": {
+                "width": "F3_value",
+                "height": "F7_value"
+            }
+        },
+        "material_pricing_tiers": {
+            "5mm_corflute": [
+                {
+                    "sqm_max": 5,
+                    "price_per_sqm": 31.25
+                },
+                {
+                    "sqm_max": 6,
+                    "price_per_sqm": 28.35
+                },
+                {
+                    "sqm_max": 7,
+                    "price_per_sqm": 25.15
+                },
+                {
+                    "sqm_max": 8,
+                    "price_per_sqm": 24.71
+                },
+                {
+                    "sqm_max": 9,
+                    "price_per_sqm": 22.74
+                },
+                {
+                    "sqm_max": 10,
+                    "price_per_sqm": 22.64
+                },
+                {
+                    "sqm_max": 15,
+                    "price_per_sqm": 21.24
+                },
+                {
+                    "sqm_max": 20,
+                    "price_per_sqm": 19.5
+                },
+                {
+                    "sqm_max": 25,
+                    "price_per_sqm": 17.05
+                },
+                {
+                    "sqm_max": 30,
+                    "price_per_sqm": 17.3
+                },
+                {
+                    "sqm_max": 35,
+                    "price_per_sqm": 16.44
+                },
+                {
+                    "sqm_max": 40,
+                    "price_per_sqm": 16.16
+                },
+                {
+                    "sqm_max": 45,
+                    "price_per_sqm": 15.6
+                },
+                {
+                    "sqm_max": 50,
+                    "price_per_sqm": 15.43
+                },
+                {
+                    "sqm_max": 60,
+                    "price_per_sqm": 15.03
+                },
+                {
+                    "sqm_max": 70,
+                    "price_per_sqm": 14.6
+                },
+                {
+                    "sqm_max": 80,
+                    "price_per_sqm": 14.26
+                },
+                {
+                    "sqm_max": 90,
+                    "price_per_sqm": 13.99
+                },
+                {
+                    "sqm_max": 100,
+                    "price_per_sqm": 13.75
+                },
+                {
+                    "sqm_max": 110,
+                    "price_per_sqm": 13.56
+                },
+                {
+                    "sqm_max": 120,
+                    "price_per_sqm": 13.38
+                },
+                {
+                    "sqm_max": 130,
+                    "price_per_sqm": 13.23
+                },
+                {
+                    "sqm_max": 140,
+                    "price_per_sqm": 13.1
+                },
+                {
+                    "sqm_max": 150,
+                    "price_per_sqm": 12.97
+                },
+                {
+                    "sqm_max": 175,
+                    "price_per_sqm": 12.86
+                },
+                {
+                    "sqm_max": 200,
+                    "price_per_sqm": 12.65
+                },
+                {
+                    "sqm_max": 225,
+                    "price_per_sqm": 12.43
+                },
+                {
+                    "sqm_max": 250,
+                    "price_per_sqm": 12.29
+                },
+                {
+                    "sqm_max": 275,
+                    "price_per_sqm": 12.12
+                },
+                {
+                    "sqm_max": 300,
+                    "price_per_sqm": 12.01
+                },
+                {
+                    "sqm_max": 325,
+                    "price_per_sqm": 11.88
+                },
+                {
+                    "sqm_max": 350,
+                    "price_per_sqm": 11.8
+                },
+                {
+                    "sqm_max": 375,
+                    "price_per_sqm": 11.69
+                },
+                {
+                    "sqm_max": 400,
+                    "price_per_sqm": 11.61
+                },
+                {
+                    "sqm_max": 425,
+                    "price_per_sqm": 11.53
+                },
+                {
+                    "sqm_max": 450,
+                    "price_per_sqm": 11.47
+                },
+                {
+                    "sqm_max": 475,
+                    "price_per_sqm": 11.39
+                },
+                {
+                    "sqm_max": 500,
+                    "price_per_sqm": 11.34
+                },
+                {
+                    "sqm_max": 539,
+                    "price_per_sqm": 11.17
+                },
+                {
+                    "sqm_max": 550,
+                    "price_per_sqm": 11.17
+                },
+                {
+                    "sqm_max": 600,
+                    "price_per_sqm": 11.17
+                },
+                {
+                    "sqm_max": 650,
+                    "price_per_sqm": 11.08
+                },
+                {
+                    "sqm_max": 700,
+                    "price_per_sqm": 11
+                },
+                {
+                    "sqm_max": 999999,
+                    "price_per_sqm": 10.97
+                }
+            ],
+            "3mm_corflute": [
+                {
+                    "sqm_max": 5,
+                    "price_per_sqm": 25
+                },
+                {
+                    "sqm_max": 6,
+                    "price_per_sqm": 25
+                },
+                {
+                    "sqm_max": 7,
+                    "price_per_sqm": 21.09
+                },
+                {
+                    "sqm_max": 8,
+                    "price_per_sqm": 20.48
+                },
+                {
+                    "sqm_max": 9,
+                    "price_per_sqm": 19.02
+                },
+                {
+                    "sqm_max": 10,
+                    "price_per_sqm": 18.75
+                },
+                {
+                    "sqm_max": 15,
+                    "price_per_sqm": 17.73
+                },
+                {
+                    "sqm_max": 20,
+                    "price_per_sqm": 16.13
+                },
+                {
+                    "sqm_max": 25,
+                    "price_per_sqm": 14.82
+                },
+                {
+                    "sqm_max": 30,
+                    "price_per_sqm": 14.28
+                },
+                {
+                    "sqm_max": 35,
+                    "price_per_sqm": 13.61
+                },
+                {
+                    "sqm_max": 40,
+                    "price_per_sqm": 13.32
+                },
+                {
+                    "sqm_max": 45,
+                    "price_per_sqm": 12.89
+                },
+                {
+                    "sqm_max": 50,
+                    "price_per_sqm": 12.7
+                },
+                {
+                    "sqm_max": 60,
+                    "price_per_sqm": 12.4
+                },
+                {
+                    "sqm_max": 70,
+                    "price_per_sqm": 12.03
+                },
+                {
+                    "sqm_max": 80,
+                    "price_per_sqm": 11.74
+                },
+                {
+                    "sqm_max": 90,
+                    "price_per_sqm": 11.5
+                },
+                {
+                    "sqm_max": 100,
+                    "price_per_sqm": 11.3
+                },
+                {
+                    "sqm_max": 110,
+                    "price_per_sqm": 11.13
+                },
+                {
+                    "sqm_max": 120,
+                    "price_per_sqm": 10.98
+                },
+                {
+                    "sqm_max": 130,
+                    "price_per_sqm": 10.85
+                },
+                {
+                    "sqm_max": 140,
+                    "price_per_sqm": 10.74
+                },
+                {
+                    "sqm_max": 150,
+                    "price_per_sqm": 10.63
+                },
+                {
+                    "sqm_max": 175,
+                    "price_per_sqm": 10.54
+                },
+                {
+                    "sqm_max": 200,
+                    "price_per_sqm": 10.35
+                },
+                {
+                    "sqm_max": 225,
+                    "price_per_sqm": 10.16
+                },
+                {
+                    "sqm_max": 250,
+                    "price_per_sqm": 10.03
+                },
+                {
+                    "sqm_max": 275,
+                    "price_per_sqm": 9.89
+                },
+                {
+                    "sqm_max": 300,
+                    "price_per_sqm": 9.8
+                },
+                {
+                    "sqm_max": 325,
+                    "price_per_sqm": 9.69
+                },
+                {
+                    "sqm_max": 350,
+                    "price_per_sqm": 9.61
+                },
+                {
+                    "sqm_max": 375,
+                    "price_per_sqm": 9.52
+                },
+                {
+                    "sqm_max": 400,
+                    "price_per_sqm": 9.46
+                },
+                {
+                    "sqm_max": 425,
+                    "price_per_sqm": 9.39
+                },
+                {
+                    "sqm_max": 450,
+                    "price_per_sqm": 9.34
+                },
+                {
+                    "sqm_max": 475,
+                    "price_per_sqm": 9.27
+                },
+                {
+                    "sqm_max": 500,
+                    "price_per_sqm": 9.22
+                },
+                {
+                    "sqm_max": 539,
+                    "price_per_sqm": 9.08
+                },
+                {
+                    "sqm_max": 550,
+                    "price_per_sqm": 9.08
+                },
+                {
+                    "sqm_max": 600,
+                    "price_per_sqm": 9.08
+                },
+                {
+                    "sqm_max": 650,
+                    "price_per_sqm": 9
+                },
+                {
+                    "sqm_max": 700,
+                    "price_per_sqm": 8.93
+                },
+                {
+                    "sqm_max": 999999,
+                    "price_per_sqm": 8.91
+                }
+            ]
+        },
+        "conditional_pricing": {
+            "condition": "({F4} == '5mm' || {F4} == '3mm') && ({F8} == 'Single Sided' || {F8} == 'Double Sided')",
+            "else_price": 135,
+            "description": "Special pricing applies when valid material and print options are selected, otherwise fixed price of $135"
+        }
+    }
+}

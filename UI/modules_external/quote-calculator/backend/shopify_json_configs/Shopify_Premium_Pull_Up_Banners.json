@@ -1,0 +1,166 @@
+{
+  "shopify_premium_pull_up_banners": {
+    "product_title": "Premium Pull Up Banners",
+    "product_type": "Pull Up Banners",
+    "vendor": "PrintShop",
+    "tags": ["banners", "pull-up", "display", "marketing", "portable", "premium"],
+    "description": "Professional premium pull up banners with retractable stands. Perfect for trade shows, exhibitions, retail displays, and marketing events. Available in multiple sizes with high-quality printing and durable hardware.",
+    "options": [
+      {
+        "name": "Quantity",
+        "field_id": "F1",
+        "type": "number",
+        "required": true,
+        "default": 1,
+        "price": 0,
+        "price_type": "fixed",
+        "sku": "q",
+        "description": "Number of pull up banners required",
+        "min": 1,
+        "max": 100,
+        "visibility": {
+          "make_it": "Visible",
+          "if": "Always visible"
+        }
+      },
+      {
+        "name": "Artworks",
+        "field_id": "F2",
+        "type": "number",
+        "required": true,
+        "default": 1,
+        "price": 6,
+        "price_type": "per_artwork",
+        "sku": "art",
+        "description": "Number of different artwork designs (first artwork included, additional at $6 each)",
+        "min": 1,
+        "max": 20,
+        "visibility": {
+          "make_it": "Visible",
+          "if": "(F1 < '2')",
+          "condition": "Only visible when quantity is less than 2"
+        }
+      },
+      {
+        "name": "Base Colour",
+        "field_id": "F3",
+        "type": "select",
+        "required": true,
+        "default": "Silver",
+        "options": [
+          {
+            "title": "Silver",
+            "price": 0,
+            "price_type": "fixed",
+            "sku": "silver_base",
+            "description": "Silver aluminum base and hardware"
+          },
+          {
+            "title": "Black",
+            "price": 0,
+            "price_type": "fixed",
+            "sku": "black_base",
+            "description": "Black aluminum base and hardware"
+          }
+        ]
+      },
+      {
+        "name": "Size",
+        "field_id": "F4",
+        "type": "select",
+        "required": true,
+        "default": "850mm W x 2000mm H",
+        "options": [
+          {
+            "title": "850mm W x 2000mm H",
+            "price": 0,
+            "price_type": "fixed",
+            "sku": "size_2000h",
+            "description": "Standard height pull up banner (850mm x 2000mm)"
+          },
+          {
+            "title": "850mm W x 1500mm H",
+            "price": 0,
+            "price_type": "fixed",
+            "sku": "size_1500h",
+            "description": "Medium height pull up banner (850mm x 1500mm)"
+          },
+          {
+            "title": "850mm W x 1400mm H Shopping Center",
+            "price": 0,
+            "price_type": "fixed",
+            "sku": "size_1400h_sc",
+            "description": "Shopping center compliant height (850mm x 1400mm)"
+          }
+        ]
+      }
+    ],
+    "pricing_constants": {
+      "setup_costs": {
+        "base_setup": 15,
+        "artwork_base_cost": 6
+      },
+      "production_constants": {
+        "artwork_threshold": 6
+      }
+    },
+    "quantity_pricing_tiers": {
+      "850mm_w_x_2000mm_h": [
+        {"quantity": 1, "rate": 97},
+        {"quantity": 2, "rate": 97},
+        {"quantity": 3, "rate": 95.28},
+        {"quantity": 4, "rate": 91.16},
+        {"quantity": 5, "rate": 88.61},
+        {"quantity": 6, "rate": 86.83},
+        {"quantity": 7, "rate": 85.47},
+        {"quantity": 8, "rate": 84.4},
+        {"quantity": 9, "rate": 83.52},
+        {"quantity": 10, "rate": 82.78},
+        {"quantity": 11, "rate": 82.15},
+        {"quantity": 12, "rate": 81.59},
+        {"quantity": 13, "rate": 81.1},
+        {"quantity": 14, "rate": 80.67},
+        {"quantity_range": "15-19", "rate": 80.27},
+        {"quantity_range": "20-24", "rate": 78.75},
+        {"quantity_range": "25-29", "rate": 77.68},
+        {"quantity_range": "30-34", "rate": 76.87},
+        {"quantity_range": "35-39", "rate": 76.23},
+        {"quantity_range": "40-44", "rate": 75.69},
+        {"quantity_range": "45-49", "rate": 75.24},
+        {"quantity_range": "50-54", "rate": 74.85},
+        {"quantity_range": "55-59", "rate": 74.51},
+        {"quantity_range": "60-64", "rate": 74.21},
+        {"quantity_range": "65-69", "rate": 73.94},
+        {"quantity_range": "70+", "rate": 73.72}
+      ],
+      "other_sizes": [
+        {"quantity": 1, "rate": 90},
+        {"quantity": 2, "rate": 90},
+        {"quantity": 3, "rate": 88.41},
+        {"quantity": 4, "rate": 84.58},
+        {"quantity": 5, "rate": 82.22},
+        {"quantity": 6, "rate": 80.56},
+        {"quantity": 7, "rate": 79.31},
+        {"quantity": 8, "rate": 78.31},
+        {"quantity": 9, "rate": 77.5},
+        {"quantity": 10, "rate": 76.81},
+        {"quantity": 11, "rate": 76.22},
+        {"quantity": 12, "rate": 75.71},
+        {"quantity": 13, "rate": 75.25},
+        {"quantity": 14, "rate": 75.85},
+        {"quantity_range": "15-19", "rate": 74.48},
+        {"quantity_range": "20-24", "rate": 73.06},
+        {"quantity_range": "25-29", "rate": 72.07},
+        {"quantity_range": "30-34", "rate": 71.32},
+        {"quantity_range": "35-39", "rate": 70.73},
+        {"quantity_range": "40-44", "rate": 70.23},
+        {"quantity_range": "45-49", "rate": 69.81},
+        {"quantity_range": "50-54", "rate": 69.45},
+        {"quantity_range": "55-59", "rate": 69.14},
+        {"quantity_range": "60-64", "rate": 68.85},
+        {"quantity_range": "65-69", "rate": 68.6},
+        {"quantity_range": "70+", "rate": 68.4}
+      ]
+    }
+  }
+}
