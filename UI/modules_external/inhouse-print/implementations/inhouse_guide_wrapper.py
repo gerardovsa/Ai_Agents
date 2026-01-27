@@ -176,8 +176,8 @@ def inhouse_calculator_guide(**kwargs) -> Dict[str, Any]:
         "calculator_index": {
             "god_calculator": {
                 "name": "Universal GOD Calculator",
-                "products": ["flyers", "business_cards"],
-                "description": "Flexible parameter system, handles 90x55mm business cards when product_type='flyers'",
+                "products": ["flyers"],
+                "description": "Flexible parameter system for flyer products only. WARNING: DO NOT use for business cards - use specialized calculators instead (calculate_premium_business_cards_shopify or calculate_economical_business_cards_shopify)",
                 "parameters": "Dynamic - call get_calculator_requirements to see all options"
             },
             "shopify_calculators": {

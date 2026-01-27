@@ -118,7 +118,15 @@ def calculate_business_cards(
     **kwargs
 ) -> Dict[str, Any]:
     """
-    Calculate quote for business cards - MATCHES SCHEMA
+    DEPRECATED: This GOD calculator should NOT be used for business card quotes.
+    
+    ⚠️ WARNING: This calculator produces incorrect pricing (30-56% under-quoted).
+    
+    For business cards, ALWAYS use the specialized Shopify calculators:
+    - calculate_premium_business_cards_shopify (Satin 350GSM, King Kong, EcoStar)
+    - calculate_economical_business_cards_shopify (Standard 350GSM)
+    
+    This function is maintained for backward compatibility with flyer products only.
     
     TYPE SAFE: @calculator_wrapper decorator ensures all types are correct
     
@@ -134,6 +142,24 @@ def calculate_business_cards(
         Dict with success, total_price, per_unit_price, stock_details, turnaround_days
     """
     try:
+        # CRITICAL VALIDATION: Reject business card requests
+        if finish_size in ["90x55mm", "90x50mm", "85x55mm"] and (
+            "business_card" in str(kwargs).lower() or 
+            (width := kwargs.get("width")) and (height := kwargs.get("height")) and 
+            (width in [85, 90] and height in [50, 55])
+        ):
+            return {
+                "success": False,
+                "error": "DEPRECATED: calculate_business_cards() should NOT be used for business card quotes. "
+                        "This calculator produces incorrect pricing (30-56% under-quoted). "
+                        "Use calculate_premium_business_cards_shopify or calculate_economical_business_cards_shopify instead.",
+                "error_type": "deprecated_calculator",
+                "recommended_tools": [
+                    "calculate_premium_business_cards_shopify",
+                    "calculate_economical_business_cards_shopify"
+                ]
+            }
+        
         # Use Shopify calculator directly (like GOD calculators)
         if not SHOPIFY_CALCULATORS_AVAILABLE:
             raise RuntimeError("Shopify calculators not available")

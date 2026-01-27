@@ -4,8 +4,8 @@
   "tools": [
     {
       "name": "calculate_business_cards",
-      "short_description": "Calculate business card printing quotes with quantity, stock type, and finishing options",
-      "description": "Calculate quote for business cards. Returns total price, per-card cost, stock details, and turnaround time. Standard size is 90x55mm.",
+      "short_description": "DEPRECATED for business cards - Use calculate_premium_business_cards_shopify or calculate_economical_business_cards_shopify instead",
+      "description": "DEPRECATED: This GOD calculator should NOT be used for business card quotes - it produces incorrect pricing (30-56% under-quoted). For business cards, ALWAYS use the specialized Shopify calculators: calculate_premium_business_cards_shopify (Satin 350GSM, King Kong, EcoStar) or calculate_economical_business_cards_shopify (Standard 350GSM). This calculator is only valid for flyer products.",
       "platform": "quote_calculator",
       "parameters": {
         "quantity": {
