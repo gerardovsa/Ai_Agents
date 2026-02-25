@@ -485,11 +485,14 @@ def get_database_connection(db_name: str = 'ai_infrastructure'):
         
         # ✅ FIX 5: Test if connection is alive before using it
         # Supabase may close idle connections - pool returns them but they're dead
+        # NOTE: Catching psycopg2.DatabaseError (parent class) because Supabase raises it
+        # directly (not OperationalError subclass) for "could not send data to server: 
+        # Connection timed out" errors on dead TCP connections.
         try:
             cursor = conn.cursor(cursor_factory=RealDictCursor)
             cursor.execute("SELECT 1")  # Quick liveness check
             cursor.close()
-        except (psycopg2.OperationalError, psycopg2.InterfaceError) as test_err:
+        except (psycopg2.DatabaseError, psycopg2.InterfaceError) as test_err:
             # Connection is dead - discard it and get a fresh one
             print(f" [POOL] Connection test failed, discarding dead connection: {test_err}")
             try:
@@ -574,8 +577,10 @@ def get_database_connection(db_name: str = 'ai_infrastructure'):
                             self._pool.putconn(self._conn)
                             _pool_stats['connections_returned'] += 1
                             self._closed = True
-                        except (psycopg2.OperationalError, psycopg2.InterfaceError) as zombie_err:
+                        except (psycopg2.DatabaseError, psycopg2.InterfaceError) as zombie_err:
                             # Connection died during use - don't return zombie to pool
+                            # NOTE: Catching psycopg2.DatabaseError (parent) because Supabase raises it
+                            # directly for TCP timeout errors, not just OperationalError subclass.
                             print(f"⚠️  [POOL] Discarding zombie connection (died during use): {zombie_err}")
                             try:
                                 self._pool.putconn(self._conn, close=True)  # Close instead of return
