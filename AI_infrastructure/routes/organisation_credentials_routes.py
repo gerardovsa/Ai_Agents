@@ -221,6 +221,66 @@ def format_credential_row(row: dict, reveal: bool = False) -> dict:
 
 
 # ============================================================================
+# ROUTES: ORGANISATION CREATION
+# ============================================================================
+
+@org_credentials_bp.route('/create', methods=['POST'])
+@require_auth
+def create_organisation():
+    """POST /api/org/create — Create a new organisation and assign caller as owner.
+    Caller must not already be a member of an organisation.
+    """
+    import re
+    user_id = g.user_id
+
+    # Reject if user already has an org
+    existing = execute_query(
+        "SELECT organisation_id FROM ai_infrastructure.users WHERE id = %s",
+        (user_id,), fetch_mode='one'
+    )
+    if existing and existing.get('organisation_id'):
+        return jsonify({'success': False, 'error': 'You are already a member of an organisation'}), 409
+
+    data = request.get_json() or {}
+    name = (data.get('name') or '').strip()
+    if not name:
+        return jsonify({'success': False, 'error': 'Organisation name is required'}), 400
+
+    # Auto-generate slug from name if not provided
+    raw_slug = data.get('slug') or name
+    slug = re.sub(r'[^a-z0-9]+', '-', raw_slug.lower()).strip('-')
+    if not slug:
+        return jsonify({'success': False, 'error': 'Could not generate a valid slug from the name'}), 400
+
+    # Check slug uniqueness
+    existing_slug = execute_query(
+        "SELECT id FROM ai_infrastructure.organisations WHERE slug = %s",
+        (slug,), fetch_mode='one'
+    )
+    if existing_slug:
+        return jsonify({'success': False, 'error': f'Slug "{slug}" is already taken. Please choose a different name.'}), 409
+
+    # Create the organisation
+    new_org = execute_query(
+        """INSERT INTO ai_infrastructure.organisations (name, slug, plan_tier, is_active)
+           VALUES (%s, %s, 'free', TRUE) RETURNING id, name, slug, plan_tier""",
+        (name, slug), fetch_mode='one'
+    )
+    if not new_org:
+        return jsonify({'success': False, 'error': 'Failed to create organisation'}), 500
+
+    # Assign the creating user as owner
+    execute_query(
+        "UPDATE ai_infrastructure.users SET organisation_id = %s, org_role = 'owner' WHERE id = %s",
+        (new_org['id'], user_id)
+    )
+
+    logger.info(f"[ORG_CREDS] User {user_id} created org '{name}' (id={new_org['id']}, slug={slug})")
+
+    return jsonify({'success': True, 'organisation': dict(new_org)}), 201
+
+
+# ============================================================================
 # ROUTES: ORGANISATION INFO
 # ============================================================================
 
@@ -803,6 +863,88 @@ def get_audit_log():
 # ============================================================================
 # INVITATION ROUTES  (migration 026)
 # ============================================================================
+
+@org_credentials_bp.route('/invite/<int:invite_id>/send-email', methods=['POST'])
+@require_auth
+@require_org_role('admin')
+def send_invite_email(invite_id: int):
+    """
+    POST /api/org/invite/<id>/send-email
+    Body: { provider }   — 'gmail' or 'outlook'
+    Sends the invitation email using the caller's connected OAuth account.
+    Requires admin+ org role.
+    """
+    ctx  = g.org_ctx
+    data = request.get_json() or {}
+    provider = (data.get('provider') or 'gmail').lower()
+
+    # Verify invite belongs to this org and is still pending
+    inv = execute_query(
+        """
+        SELECT id, invited_email, invited_role, invite_token, expires_at, status
+        FROM ai_infrastructure.org_invitations
+        WHERE id = %s AND organisation_id = %s
+        """,
+        (invite_id, ctx['organisation_id']),
+        fetch_mode='one'
+    )
+    if not inv:
+        return jsonify({'success': False, 'error': 'Invitation not found'}), 404
+    if inv['status'] != 'pending':
+        return jsonify({'success': False, 'error': f'Cannot send email for a {inv["status"]} invitation'}), 400
+
+    # Build accept URL and email content
+    base_url   = request.host_url.rstrip('/')
+    accept_url = f"{base_url}/?accept_invite={inv['invite_token']}"
+    org_name   = ctx.get('org_name') or ctx.get('org_slug') or 'our organisation'
+    role       = inv['invited_role']
+    to_email   = inv['invited_email']
+
+    subject = f"You're invited to join {org_name}"
+    body    = (
+        f"Hi,\n\n"
+        f"You've been invited to join {org_name} on our AI platform as a {role}.\n\n"
+        f"Click the link below to accept your invitation:\n\n"
+        f"{accept_url}\n\n"
+        f"This link expires on "
+        f"{inv['expires_at'].strftime('%d %b %Y') if inv.get('expires_at') else 'in 7 days'}.\n\n"
+        f"If you didn't expect this invitation, you can safely ignore this email.\n\nThanks"
+    )
+
+    try:
+        if provider == 'gmail':
+            from google_workspace.gmail import gmail_send_email
+            gmail_send_email(
+                to=to_email,
+                subject=subject,
+                body=body,
+                _user_id=g.user_id,
+                _injected_credentials=True
+            )
+
+        elif provider == 'outlook':
+            try:
+                from tools.implementations.microsoft_outlook_tools import microsoft_outlook_send_email
+                microsoft_outlook_send_email(
+                    to=[to_email],
+                    subject=subject,
+                    body=body,
+                    _user_id=g.user_id,
+                    _injected_credentials=True
+                )
+            except ImportError:
+                return jsonify({'success': False, 'error': 'Outlook integration is not available on this server'}), 501
+
+        else:
+            return jsonify({'success': False, 'error': f'Unknown provider "{provider}". Use gmail or outlook'}), 400
+
+    except Exception as e:
+        logger.error(f'[ORG_INVITE] send-email failed: {e}')
+        return jsonify({'success': False, 'error': f'Failed to send email: {e}'}), 500
+
+    logger.info(f'[ORG_INVITE] Invite {invite_id} email sent via {provider} to {to_email} by user {g.user_id}')
+    return jsonify({'success': True, 'provider': provider, 'sent_to': to_email})
+
 
 @org_credentials_bp.route('/invite', methods=['POST'])
 @require_auth

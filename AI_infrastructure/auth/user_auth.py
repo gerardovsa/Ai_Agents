@@ -485,7 +485,8 @@ class UserAuthManager:
                     
                     # Find user by username or email
                     cursor.execute('''
-                        SELECT id, username, email, password_hash, role, primary_gmail
+                        SELECT id, username, email, password_hash, role, primary_gmail,
+                               organisation_id, org_role
                         FROM ai_infrastructure.users
                         WHERE username = %s OR email = %s
                     ''', (username, username))
@@ -501,6 +502,8 @@ class UserAuthManager:
                     password_hash = row['password_hash'] if isinstance(row, dict) else row[3]
                     role = row['role'] if isinstance(row, dict) else row[4]
                     primary_gmail = row['primary_gmail'] if isinstance(row, dict) else row[5]
+                    organisation_id = row['organisation_id'] if isinstance(row, dict) else row[6]
+                    org_role = row['org_role'] if isinstance(row, dict) else row[7]
                     
                     # Verify password
                     if not bcrypt.checkpw(password.encode('utf-8'), password_hash.encode('utf-8')):
@@ -542,6 +545,8 @@ class UserAuthManager:
                         'username': username,
                         'email': email,
                         'role': role,
+                        'organisation_id': organisation_id,
+                        'org_role': org_role,
                         'exp': exp_timestamp
                     }
                     
@@ -584,6 +589,8 @@ class UserAuthManager:
                         'username': username,
                         'email': email,
                         'role': role,
+                        'organisation_id': organisation_id,
+                        'org_role': org_role,
                         'primary_gmail': primary_gmail,
                         'workspaces': workspaces,
                         'gmail_accounts': gmail_accounts

@@ -259,9 +259,10 @@ def get_profile():
         with get_database_connection('ai_infrastructure') as conn:
             with conn.cursor() as cursor:
                 
-                # Query 1: Get user data including display_name
+                # Query 1: Get user data including display_name and org membership
                 sql, params = convert_sql_placeholders(
-                    'SELECT password_hash, display_name FROM ai_infrastructure.users WHERE id = %s',
+                    '''SELECT password_hash, display_name, organisation_id, org_role, is_sub_user
+                       FROM ai_infrastructure.users WHERE id = %s''',
                     (user_id,)
                 )
                 cursor.execute(sql, params)
@@ -269,8 +270,14 @@ def get_profile():
                 
                 auth_platform = None
                 display_name = None
+                organisation_id = None
+                org_role = None
+                is_sub_user = False
                 if user_row:
                     display_name = user_row.get('display_name')
+                    organisation_id = user_row.get('organisation_id')
+                    org_role = user_row.get('org_role')
+                    is_sub_user = bool(user_row.get('is_sub_user', False))
                     password_hash = user_row.get('password_hash')
                     if password_hash:
                         if password_hash == 'oauth_google':
@@ -336,6 +343,9 @@ def get_profile():
                 **request.user,
                 'id': request.user['user_id'],
                 'display_name': display_name,
+                'organisation_id': organisation_id,
+                'org_role': org_role,
+                'is_sub_user': is_sub_user,
                 'gmail_accounts': gmail_accounts,
                 'workspace_id': workspace_id,
                 'auth_platform': auth_platform,

@@ -30889,6 +30889,7 @@
                 // Cache role context so sub-loads can use it without re-fetching
                 OrgManager._userRole  = userRole;
                 OrgManager._userLevel = userLevel;
+                OrgManager._orgName   = (orgInfo && (orgInfo.display_name || orgInfo.name)) || 'our organisation';
 
                 if (can('manager')) {
                     OrgManager.loadMembers();
@@ -30949,6 +30950,69 @@
             const profile = (window.UserAuth && window.UserAuth.user) ? window.UserAuth.user : null;
             if (profile) applyOrgRoleVisibility(profile);
         };
+
+        // ============================================================
+        // Org creation helpers (called from HTML onclick attributes)
+        // ============================================================
+        function showCreateOrgForm() {
+            document.getElementById('orgEmpty').style.display = 'none';
+            const form = document.getElementById('orgCreateForm');
+            if (form) { form.style.display = 'flex'; }
+            const nameInput = document.getElementById('createOrgName');
+            if (nameInput) nameInput.focus();
+        }
+
+        function hideCreateOrgForm() {
+            const form = document.getElementById('orgCreateForm');
+            if (form) form.style.display = 'none';
+            document.getElementById('orgEmpty').style.display = 'flex';
+            const name = document.getElementById('createOrgName');
+            const slug = document.getElementById('createOrgSlug');
+            const desc = document.getElementById('createOrgDescription');
+            if (name) name.value = '';
+            if (slug) slug.value = '';
+            if (desc) desc.value = '';
+        }
+
+        function updateOrgSlugPreview() {
+            const nameEl = document.getElementById('createOrgName');
+            const slugEl = document.getElementById('createOrgSlug');
+            if (!nameEl || !slugEl) return;
+            slugEl.value = nameEl.value.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+        }
+
+        async function createOrganisation() {
+            const nameEl = document.getElementById('createOrgName');
+            const slugEl = document.getElementById('createOrgSlug');
+            const name = (nameEl ? nameEl.value : '').trim();
+            const slug = (slugEl ? slugEl.value : '').trim();
+            if (!name) { alert('Organisation name is required'); return; }
+
+            const btn = document.getElementById('createOrgBtn');
+            if (btn) { btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Creating...'; }
+
+            try {
+                const resp = await fetch(`${API_BASE_URL}/api/org/create`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${localStorage.getItem('authToken')}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ name, slug })
+                });
+                const data = await resp.json();
+                if (data.success) {
+                    hideCreateOrgForm();
+                    AccountSidebar.loadOrganisationTab();
+                } else {
+                    alert(data.error || 'Failed to create organisation');
+                }
+            } catch (e) {
+                alert('Network error: ' + e.message);
+            } finally {
+                if (btn) { btn.disabled = false; btn.innerHTML = '<i class="fas fa-plus"></i> Create Organisation'; }
+            }
+        }
 
         // ============================================================
         // OrgManager — all Organisation API interactions
@@ -31300,10 +31364,227 @@
             // ── Utilities ─────────────────────────────────────────────────────
             esc(str) {
                 return String(str || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#x27;');
+            },
+
+            showError(elOrId, msg) {
+                const el = typeof elOrId === 'string' ? document.getElementById(elOrId) : elOrId;
+                if (el) el.innerHTML = `<span style="color:var(--accent-danger,#f44336);font-size:13px;">${msg}</span>`;
             }
         };
 
         window.OrgManager = OrgManager;
+
+        // ============================================================
+        // OrgManager invite methods (attached after object definition
+        // so they can reference OrgManager itself)
+        // ============================================================
+        Object.assign(OrgManager, {
+
+            _emailAccounts: [],
+
+            async loadInvitations() {
+                const el = document.getElementById('orgInvitationsList');
+                if (!el) return;
+                el.innerHTML = '<div style="color:var(--text-muted);font-size:13px;padding:12px 0;">Loading...</div>';
+                try {
+                    // Detect connected email accounts for send-via-email buttons
+                    try {
+                        const ar = await fetch(`${API_BASE_URL}/api/communication-hub/accounts`, {
+                            headers: { 'Authorization': `Bearer ${localStorage.getItem('authToken')}` }
+                        });
+                        const ad = await ar.json();
+                        this._emailAccounts = ad.accounts || [];
+                    } catch (_) { this._emailAccounts = []; }
+
+                    const r = await fetch(`${API_BASE_URL}/api/org/invite/pending`, { headers: this.authHeaders() });
+                    if (!r.ok) { this.showError(el, 'Could not load invitations.'); return; }
+                    const data = await r.json();
+                    const invites = data.invitations || [];
+
+                    const badge = document.getElementById('orgPendingCount');
+                    const pendingCount = invites.filter(i => i.status === 'pending').length;
+                    if (badge) badge.textContent = pendingCount;
+
+                    if (!invites.length) {
+                        el.innerHTML = '<div style="color:var(--text-muted);font-size:13px;padding:12px 0;">No invitations sent yet.</div>';
+                        return;
+                    }
+
+                    const gmailAcc   = this._emailAccounts.find(a => a.provider === 'gmail');
+                    const outlookAcc = this._emailAccounts.find(a => a.provider === 'outlook');
+
+                    el.innerHTML = invites.map(inv => {
+                        const isPending  = inv.status === 'pending';
+                        const expiry     = inv.expires_at ? new Date(inv.expires_at).toLocaleDateString() : '–';
+                        const statusColor = { pending:'#f59e0b', accepted:'#4caf50', revoked:'#9e9e9e', expired:'#f44336' }[inv.status] || '#9e9e9e';
+                        const baseUrl    = window.location.origin;
+                        const acceptUrl  = `${baseUrl}/?accept_invite=${inv.invite_token}`;
+                        const safeUrl    = this.esc(acceptUrl);
+                        const safeEmail  = this.esc(inv.invited_email);
+
+                        return `
+                        <div style="background:var(--bg-tertiary);border-radius:8px;padding:12px 14px;margin-bottom:8px;">
+                            <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+                                <div style="flex:1;min-width:160px;">
+                                    <div style="font-weight:600;font-size:13px;">${safeEmail}</div>
+                                    <div style="font-size:11px;color:var(--text-muted);">Role: <strong>${inv.invited_role}</strong> &nbsp;&middot;&nbsp; Expires: ${expiry}</div>
+                                    <div style="font-size:11px;color:var(--text-muted);">By ${this.esc(inv.invited_by_username || inv.invited_by_email || '&ndash;')}</div>
+                                </div>
+                                <span style="background:${statusColor};color:#fff;border-radius:4px;padding:2px 8px;font-size:11px;font-weight:600;">${inv.status.toUpperCase()}</span>
+                                ${isPending ? `
+                                <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:4px;">
+                                    <button onclick="OrgManager.copyInviteToClipboard('${safeUrl}', '${safeEmail}', '${inv.invited_role}', this)"
+                                        style="padding:5px 10px;background:transparent;border:1px solid var(--border-color);color:var(--text-secondary);border-radius:5px;cursor:pointer;font-size:12px;white-space:nowrap;">
+                                        <i class="fas fa-copy"></i> Copy Invite</button>
+                                    ${gmailAcc ? `
+                                    <button onclick="OrgManager.sendInviteEmail(${inv.id}, 'gmail', this)"
+                                        style="padding:5px 10px;background:#d93025;color:#fff;border:none;border-radius:5px;cursor:pointer;font-size:12px;white-space:nowrap;" title="Send via ${this.esc(gmailAcc.email)}">
+                                        <i class="fas fa-paper-plane"></i> Send via Gmail</button>` : ''}
+                                    ${outlookAcc ? `
+                                    <button onclick="OrgManager.sendInviteEmail(${inv.id}, 'outlook', this)"
+                                        style="padding:5px 10px;background:#0078d4;color:#fff;border:none;border-radius:5px;cursor:pointer;font-size:12px;white-space:nowrap;" title="Send via ${this.esc(outlookAcc.email)}">
+                                        <i class="fas fa-paper-plane"></i> Send via Outlook</button>` : ''}
+                                    <button onclick="OrgManager.revokeInvite(${inv.id})"
+                                        style="padding:5px 10px;background:transparent;border:1px solid var(--accent-danger,#f44336);color:var(--accent-danger,#f44336);border-radius:5px;cursor:pointer;font-size:12px;">
+                                        Revoke</button>
+                                </div>` : ''}
+                            </div>
+                        </div>`;
+                    }).join('');
+
+                } catch (e) { this.showError(el, e.message); }
+            },
+
+            copyInviteToClipboard(acceptUrl, email, role, btn) {
+                const orgName = this._orgName || 'our organisation';
+                const subject = `You're invited to join ${orgName}`;
+                const body    = `Hi,
+
+You've been invited to join ${orgName} on our AI platform as a ${role}.
+
+Click the link below to accept your invitation:
+
+${acceptUrl}
+
+This link expires in 7 days. If you didn't expect this invitation, you can safely ignore this email.
+
+Thanks`;
+                const fullText = `Subject: ${subject}\n\n${body}`;
+
+                navigator.clipboard.writeText(fullText).then(() => {
+                    const orig = btn.innerHTML;
+                    btn.innerHTML = '<i class="fas fa-check"></i> Copied!';
+                    btn.style.cssText += ';background:var(--accent-success,#4caf50);color:#fff;border-color:transparent;';
+                    setTimeout(() => { btn.innerHTML = orig; btn.style.background = ''; btn.style.color = ''; btn.style.borderColor = ''; }, 2500);
+                }).catch(() => {
+                    // Fallback for browsers without clipboard API permission
+                    prompt('Copy this invite email text:', fullText);
+                });
+            },
+
+            async sendInviteEmail(inviteId, provider, btn) {
+                const orig = btn.innerHTML;
+                btn.disabled = true;
+                btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Sending...';
+                try {
+                    const r = await fetch(`${API_BASE_URL}/api/org/invite/${inviteId}/send-email`, {
+                        method: 'POST',
+                        headers: this.authHeaders(),
+                        body: JSON.stringify({ provider })
+                    });
+                    const data = await r.json();
+                    if (data.success) {
+                        btn.innerHTML = '<i class="fas fa-check"></i> Sent!';
+                        const successBg = provider === 'gmail' ? '#b71c1c' : '#005a9e';
+                        btn.style.background = successBg;
+                        setTimeout(() => {
+                            btn.innerHTML = orig;
+                            btn.disabled = false;
+                            btn.style.background = provider === 'gmail' ? '#d93025' : '#0078d4';
+                        }, 3000);
+                    } else {
+                        btn.innerHTML = orig;
+                        btn.disabled = false;
+                        alert(data.error || 'Failed to send email.');
+                    }
+                } catch (e) {
+                    btn.innerHTML = orig;
+                    btn.disabled = false;
+                    alert(e.message);
+                }
+            },
+
+            async revokeInvite(inviteId) {
+                if (!confirm('Revoke this invitation? The link will stop working.')) return;
+                try {
+                    const r = await fetch(`${API_BASE_URL}/api/org/invite/${inviteId}`, {
+                        method: 'DELETE', headers: this.authHeaders()
+                    });
+                    const data = await r.json();
+                    if (!r.ok) { alert(data.error || 'Failed to revoke.'); return; }
+                    this.loadInvitations();
+                } catch (e) { alert(e.message); }
+            }
+        });
+
+        // ============================================================
+        // Org sub-tab switcher  (called from HTML onclick)
+        // ============================================================
+        function switchOrgSubTab(subtab, btn) {
+            document.querySelectorAll('.org-sub-tab').forEach(b => b.classList.remove('active'));
+            if (btn) btn.classList.add('active');
+            document.querySelectorAll('.org-sub-panel').forEach(p => p.style.display = 'none');
+            const panel = document.getElementById(`org-subtab-${subtab}`);
+            if (panel) panel.style.display = 'flex';
+            if (subtab === 'invitations') OrgManager.loadInvitations();
+            if (subtab === 'members')     OrgManager.loadMembers();
+        }
+
+        // ============================================================
+        // Invite member form helpers  (called from HTML onclick)
+        // ============================================================
+        function showInviteMemberUI() {
+            const f = document.getElementById('inviteMemberForm');
+            if (f) { f.style.display = 'block'; }
+            const e = document.getElementById('inviteEmail');
+            if (e) e.focus();
+        }
+
+        function hideInviteMemberUI() {
+            const f = document.getElementById('inviteMemberForm');
+            if (f) f.style.display = 'none';
+            const e = document.getElementById('inviteEmail');
+            if (e) e.value = '';
+        }
+
+        async function inviteOrgMember() {
+            const email = (document.getElementById('inviteEmail')?.value || '').trim();
+            const role  = document.getElementById('inviteRole')?.value || 'member';
+            if (!email || !email.includes('@')) { alert('Please enter a valid email address.'); return; }
+
+            const btn = document.getElementById('sendInviteBtn');
+            if (btn) { btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Creating...'; }
+
+            try {
+                const r = await fetch(`${API_BASE_URL}/api/org/invite`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${localStorage.getItem('authToken')}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ email, role })
+                });
+                const data = await r.json();
+                if (!data.success) { alert(data.error || 'Failed to create invite.'); return; }
+                hideInviteMemberUI();
+                // Switch to invitations tab to show the new invite with copy/send buttons
+                switchOrgSubTab('invitations', document.querySelector('.org-sub-tab[data-subtab="invitations"]'));
+            } catch (e) {
+                alert('Network error: ' + e.message);
+            } finally {
+                if (btn) { btn.disabled = false; btn.innerHTML = '<i class="fas fa-paper-plane"></i> Send Invite'; }
+            }
+        }
 
         // Legacy functions for backwards compatibility (redirect to sidebar)
         function showSecurity() {
