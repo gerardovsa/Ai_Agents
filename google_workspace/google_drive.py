@@ -55,8 +55,8 @@ def _get_drive_service(user_id=None, injected_credentials=None):
     if not HAS_DRIVE_API:
         raise Exception("Google Drive API not available - install google-api-python-client")
     
-    # Use the unified Google Workspace authentication helper with user credentials
-    return build_drive_service(user_id=user_id, injected_credentials=injected_credentials)
+    # Pass _user_id so build_drive_service uses the new oauth_tokens path (Priority 1)
+    return build_drive_service(_user_id=user_id, user_id=user_id, injected_credentials=injected_credentials)
 
 
 # ==================== FILE OPERATIONS ====================

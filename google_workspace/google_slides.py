@@ -70,7 +70,24 @@ def _get_slides_service(user_id=None, injected_credentials=None):
     Returns:
         Authenticated Slides service
     """
-    # If user credentials provided, use those (database OAuth)
+    # Priority 1: Use new oauth_tokens DB path via build_service_with_oauth
+    if user_id:
+        try:
+            from google_workspace.oauth_credential_loader import build_service_with_oauth
+            service = build_service_with_oauth(
+                user_id=user_id,
+                service_name='slides',
+                version='v1',
+                scopes=SLIDES_SCOPES
+            )
+            if service:
+                print(f"✅ Slides service created with user {user_id}'s OAuth credentials from database")
+                return service
+            print(f"⚠️  Failed to load OAuth credentials for Slides, falling back")
+        except ImportError:
+            pass
+    
+    # Priority 2: Legacy injected credentials dict
     if user_id and injected_credentials:
         credentials = Credentials(
             token=injected_credentials['access_token'],
@@ -80,12 +97,12 @@ def _get_slides_service(user_id=None, injected_credentials=None):
             client_secret=injected_credentials['client_secret'],
             scopes=injected_credentials['scopes']
         )
-        print(f"📊 Building Slides service with user {user_id}'s OAuth credentials")
+        print(f"📊 Building Slides service with user {user_id}'s OAuth credentials (legacy)")
         return build('slides', 'v1', credentials=credentials)
-    else:
-        # Fallback to service account (may have permission issues)
-        credentials = get_service_account_credentials(SLIDES_SCOPES)
-        return build('slides', 'v1', credentials=credentials)
+    
+    # Fallback to service account (may have permission issues)
+    credentials = get_service_account_credentials(SLIDES_SCOPES)
+    return build('slides', 'v1', credentials=credentials)
 
 
 # ==================== CORE PRESENTATION OPERATIONS ====================
@@ -115,11 +132,10 @@ def google_slides_create_presentation(title, template_id=None, _user_id=None, _i
         
         if cred_dict:
             slides_service = _get_slides_service(user_id=_user_id, injected_credentials=cred_dict)
-            drive_service = build_drive_service(user_id=_user_id, injected_credentials=cred_dict)
+            drive_service = build_drive_service(_user_id=_user_id, user_id=_user_id, injected_credentials=cred_dict)
         else:
-            # Fall back to service account (may have permission issues)
-            slides_service = _get_slides_service()
-            drive_service = build_drive_service()
+            slides_service = _get_slides_service(user_id=_user_id)
+            drive_service = build_drive_service(_user_id=_user_id)
         
         if template_id:
             # Copy from template
@@ -1294,9 +1310,9 @@ def google_slides_export_as_pdf(presentation_id,
         cred_dict = _get_user_credentials_if_available(_user_id, _injected_credentials)
         
         if cred_dict:
-            drive_service = build_drive_service(user_id=_user_id, injected_credentials=cred_dict)
+            drive_service = build_drive_service(_user_id=_user_id, user_id=_user_id, injected_credentials=cred_dict)
         else:
-            drive_service = build_drive_service()
+            drive_service = build_drive_service(_user_id=_user_id)
         
         request = drive_service.files().export_media(
             fileId=presentation_id,
@@ -1341,9 +1357,9 @@ def google_slides_export_as_pptx(presentation_id,
         cred_dict = _get_user_credentials_if_available(_user_id, _injected_credentials)
         
         if cred_dict:
-            drive_service = build_drive_service(user_id=_user_id, injected_credentials=cred_dict)
+            drive_service = build_drive_service(_user_id=_user_id, user_id=_user_id, injected_credentials=cred_dict)
         else:
-            drive_service = build_drive_service()
+            drive_service = build_drive_service(_user_id=_user_id)
         
         request = drive_service.files().export_media(
             fileId=presentation_id,

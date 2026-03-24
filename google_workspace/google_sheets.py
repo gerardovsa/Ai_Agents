@@ -66,7 +66,28 @@ def _get_sheets_service(user_id=None, injected_credentials=None):
     if not HAS_DOCS_API:
         raise Exception("Google Sheets API not available")
     
-    # If user credentials provided, use them
+    # Priority 1: Use new oauth_tokens DB path via build_service_with_oauth
+    if user_id:
+        try:
+            from google_workspace.oauth_credential_loader import build_service_with_oauth
+            SCOPES = [
+                'https://www.googleapis.com/auth/spreadsheets',
+                'https://www.googleapis.com/auth/drive'
+            ]
+            service = build_service_with_oauth(
+                user_id=user_id,
+                service_name='sheets',
+                version='v4',
+                scopes=SCOPES
+            )
+            if service:
+                print(f"✅ Sheets service created with user {user_id}'s OAuth credentials from database")
+                return service
+            print(f"⚠️  Failed to load OAuth credentials for Sheets, falling back")
+        except ImportError:
+            pass
+    
+    # Priority 2: Legacy injected credentials dict
     if user_id and injected_credentials:
         from google.oauth2.credentials import Credentials
         
@@ -156,7 +177,7 @@ def google_sheets_create(title, data=None, headers=None, parse_markdown=False,
         cred_dict = _get_user_credentials_if_available(_user_id, _injected_credentials)
         
         sheets_service = _get_sheets_service(user_id=_user_id, injected_credentials=cred_dict)
-        drive_service = build_drive_service(user_id=_user_id, injected_credentials=cred_dict)
+        drive_service = build_drive_service(_user_id=_user_id, user_id=_user_id, injected_credentials=cred_dict)
         
         # Create spreadsheet
         spreadsheet = {
