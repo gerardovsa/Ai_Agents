@@ -911,7 +911,56 @@ class VisualizationEngine {
                 logLevel: 'error',
                 suppressErrorRendering: true
             });
+
+            // FIX: Intercept Mermaid's dynamic <style> injections that cause
+            // purple borders to bleed onto the entire page layout.
+            this._installMermaidStyleGuard();
         }
+    }
+
+    /**
+     * MutationObserver that watches for <style> tags injected by Mermaid v10
+     * and strips any border/background rules that bleed outside viz-containers.
+     */
+    _installMermaidStyleGuard() {
+        if (this._mermaidStyleGuardInstalled) return;
+        this._mermaidStyleGuardInstalled = true;
+
+        const sanitizeMermaidStyle = (styleEl) => {
+            try {
+                if (!styleEl || !styleEl.textContent) return;
+                const id = styleEl.id || '';
+                if (id.includes('mermaid-font-controller') || id.includes('viz-engine')) return;
+
+                let css = styleEl.textContent;
+                let changed = false;
+
+                const globalBorderPattern = /(?:^|\})(\s*\.mermaid\s*\{[^}]*border[^}]*\})/gm;
+                if (globalBorderPattern.test(css)) {
+                    css = css.replace(/(\.mermaid\s*\{[^}]*)border[^;]*;([^}]*\})/gm,
+                        '$1border:none!important;$2');
+                    changed = true;
+                }
+
+                if (changed) styleEl.textContent = css;
+            } catch (e) { /* Silently ignore */ }
+        };
+
+        const observer = new MutationObserver((mutations) => {
+            mutations.forEach((mutation) => {
+                mutation.addedNodes.forEach((node) => {
+                    if (node.tagName === 'STYLE') sanitizeMermaidStyle(node);
+                    if (node.nodeType === 1) {
+                        const id = node.id || '';
+                        if (id.startsWith('dmermaid') || id.startsWith('d-mermaid')) node.remove();
+                    }
+                });
+            });
+        });
+
+        observer.observe(document.head, { childList: true, subtree: false });
+        observer.observe(document.body, { childList: true, subtree: false });
+        document.querySelectorAll('head style').forEach(sanitizeMermaidStyle);
     }
 
     // 2.2.5
@@ -2339,11 +2388,15 @@ class VisualizationEngine {
             throw new Error('Container is not attached to DOM - cannot render visualization');
         }
 
-        const contentArea = container.querySelector('.viz-content-area');
+        let contentArea = container.querySelector('.viz-content-area');
 
-        // RITICAL: Ensure content area exists
+        // RITICAL: Ensure content area exists - create it if missing (fallback for containers built externally)
         if (!contentArea) {
-            throw new Error('Content area not found in container - cannot render visualization');
+            console.warn('⚠️ VIZ-COPY: .viz-content-area missing from container, creating fallback');
+            contentArea = document.createElement('div');
+            contentArea.className = 'viz-content-area';
+            contentArea.style.cssText = 'width:100%;height:auto;min-height:0;';
+            container.appendChild(contentArea);
         }
 
         this.attachResizeHandle(contentArea);
@@ -4569,7 +4622,7 @@ class VisualizationEngine {
 
         } catch (error) {
             console.error('Mermaid rendering error:', error);
-            mermaidDiv.innerHTML = `<p style="color: var(--text-primary);">Error rendering diagram: ${error.message}</p>`;
+            this.showMermaidError(mermaidDiv, error, item.content);
         }
     }
 
@@ -7859,41 +7912,89 @@ ${svgData}`;
     showMermaidError(mermaidDiv, error, originalContent) {
         const errorMessage = error.message || 'Unknown error';
 
+        const escapeHtml = (str) => String(str)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;');
+
+        const safeError = escapeHtml(errorMessage);
+        const safeContent = escapeHtml(originalContent || '');
+
+        // Reset mermaidDiv styles to prevent global border bleed
+        mermaidDiv.style.cssText = `
+            width: 100%;
+            box-sizing: border-box;
+            border: none !important;
+            background: transparent !important;
+            outline: none !important;
+        `;
+
         mermaidDiv.innerHTML = `
             <div style="
-                padding: 20px; 
-                border: 2px dashed var(--border-primary); 
-                border-radius: 8px; 
-                background: var(--bg-secondary);
-                color: var(--text-primary);
-                font-family: var(--font-family);
+                padding: 16px 20px;
+                border: 1px dashed rgba(239, 68, 68, 0.5);
+                border-radius: 8px;
+                background: rgba(239, 68, 68, 0.06);
+                color: var(--text-primary, #24292f);
+                font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
                 text-align: left;
                 max-width: 100%;
+                width: 100%;
                 box-sizing: border-box;
+                overflow: hidden;
             ">
-                <h4 style="margin: 0 0 12px 0; color: var(--accent-red);">
-                    ⚠️ Mermaid Rendering Error
-                </h4>
-                <p style="margin: 0 0 12px 0; font-size: 14px;">
-                    <strong>Error:</strong> ${errorMessage}
+                <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 10px;">
+                    <span style="color: #ef4444; font-size: 16px;">⚠️</span>
+                    <strong style="color: #ef4444; font-size: 14px;">Diagram Syntax Error</strong>
+                </div>
+                <p style="margin: 0 0 10px 0; font-size: 13px; color: var(--text-secondary, #656d76); line-height: 1.5;">
+                    ${safeError}
                 </p>
-                <details style="margin-top: 12px;">
-                    <summary style="cursor: pointer; color: var(--accent-blue);">View Original Content</summary>
+                <details style="margin-top: 8px;">
+                    <summary style="cursor: pointer; font-size: 12px; color: var(--accent-blue, #3b82f6); user-select: none;">
+                        View diagram source
+                    </summary>
                     <pre style="
-                        margin: 8px 0 0 0; 
-                        padding: 12px; 
-                        background: rgba(0,0,0,0.1); 
-                        border-radius: 4px; 
-                        font-family: monospace; 
-                        font-size: 11px; 
-                        max-height: 200px; 
+                        margin: 8px 0 0 0;
+                        padding: 10px;
+                        background: rgba(0,0,0,0.08);
+                        border-radius: 4px;
+                        font-family: 'Monaco', 'Menlo', monospace;
+                        font-size: 11px;
+                        max-height: 180px;
                         overflow-y: auto;
                         white-space: pre-wrap;
                         word-break: break-word;
-                    ">${originalContent}</pre>
+                        color: var(--text-primary, #24292f);
+                        border: none;
+                        outline: none;
+                    ">${safeContent}</pre>
                 </details>
             </div>
         `;
+
+        this._cleanupMermaidGlobalErrors();
+    }
+
+    _cleanupMermaidGlobalErrors() {
+        try {
+            const orphanedErrorNodes = document.querySelectorAll(
+                'body > [id^="dmermaid"], body > .mermaid:not(.viz-container .mermaid)'
+            );
+            orphanedErrorNodes.forEach(el => el.remove());
+
+            const mermaidStyles = document.querySelectorAll('style[id^="mermaid-"]');
+            mermaidStyles.forEach(style => {
+                if (!style.id.includes('font-controller') && !style.id.includes('viz-engine')) {
+                    const content = style.textContent || '';
+                    if (content.includes('border') && (content.includes('#') || content.includes('rgb'))) {
+                        style.textContent = style.textContent
+                            .replace(/\.mermaid\s*\{([^}]*)border[^;]*;/g, '.mermaid{$1border:none!important;');
+                    }
+                }
+            });
+        } catch (e) { /* Silently ignore */ }
     }
 
     /**

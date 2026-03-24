@@ -911,7 +911,79 @@ class VisualizationEngine {
                 logLevel: 'error',
                 suppressErrorRendering: true
             });
+
+            // FIX: Intercept Mermaid's dynamic <style> injections that cause
+            // purple borders to bleed onto the entire page layout.
+            this._installMermaidStyleGuard();
         }
+    }
+
+    /**
+     * MutationObserver that watches for <style> tags injected by Mermaid v10
+     * and strips any border/background rules that bleed outside viz-containers.
+     * This prevents the "purple border around everything" issue.
+     */
+    _installMermaidStyleGuard() {
+        if (this._mermaidStyleGuardInstalled) return;
+        this._mermaidStyleGuardInstalled = true;
+
+        const sanitizeMermaidStyle = (styleEl) => {
+            try {
+                if (!styleEl || !styleEl.textContent) return;
+                const id = styleEl.id || '';
+                // Only process mermaid-generated style tags (not our own)
+                if (id.includes('mermaid-font-controller') || id.includes('viz-engine')) return;
+
+                let css = styleEl.textContent;
+                let changed = false;
+
+                // Remove global .mermaid border rules that bleed to the whole page
+                const globalBorderPattern = /(?:^|\})\s*\.mermaid\s*\{([^}]*border[^}]*)\}/gm;
+                if (globalBorderPattern.test(css)) {
+                    css = css.replace(globalBorderPattern, (match, props) => {
+                        // Strip border properties but keep others
+                        const cleaned = props.replace(/border[^;]*;?/g, '');
+                        return match.replace(props, cleaned + 'border:none!important;');
+                    });
+                    changed = true;
+                }
+
+                // Remove #dmermaid-* error nodes injected outside containers
+                const errorNodePattern = /(?:^|\})\s*#d?mermaid[^{]*\{[^}]*\}/gm;
+                if (errorNodePattern.test(css)) {
+                    css = css.replace(errorNodePattern, '');
+                    changed = true;
+                }
+
+                if (changed) styleEl.textContent = css;
+            } catch (e) {
+                // Silently ignore
+            }
+        };
+
+        // Watch for dynamically injected <style> tags from mermaid
+        const observer = new MutationObserver((mutations) => {
+            mutations.forEach((mutation) => {
+                mutation.addedNodes.forEach((node) => {
+                    if (node.tagName === 'STYLE') {
+                        sanitizeMermaidStyle(node);
+                    }
+                    // Also clean up orphaned mermaid error nodes in body
+                    if (node.nodeType === 1 && node.tagName !== 'SCRIPT' && node.tagName !== 'STYLE') {
+                        const id = node.id || '';
+                        if (id.startsWith('dmermaid') || id.startsWith('d-mermaid')) {
+                            node.remove();
+                        }
+                    }
+                });
+            });
+        });
+
+        observer.observe(document.head, { childList: true, subtree: false });
+        observer.observe(document.body, { childList: true, subtree: false });
+
+        // Also sanitize any already-injected mermaid styles
+        document.querySelectorAll('head style').forEach(sanitizeMermaidStyle);
     }
 
     // 2.2.5
@@ -1657,6 +1729,54 @@ class VisualizationEngine {
                 font-size: 9px;
             }
         }
+
+        /* ===================================================================
+         * MERMAID GLOBAL CSS OVERRIDE - Prevent mermaid from injecting
+         * purple/colored borders and backgrounds onto the page globally.
+         * Mermaid v10 injects <style> tags that target .mermaid globally,
+         * which bleeds onto the entire page layout. These rules neutralize
+         * that bleed while keeping proper rendering INSIDE viz containers.
+         * =================================================================== */
+
+        /* Neutralize any global .mermaid styles mermaid injects */
+        body > .mermaid,
+        .mermaid:not(.viz-container .mermaid):not([id*="mermaid-"]) {
+            border: none !important;
+            background: transparent !important;
+            outline: none !important;
+            box-shadow: none !important;
+        }
+
+        /* Override mermaid's injected error styles that apply globally */
+        #dmermaid,
+        [id^="dmermaid"],
+        .mermaid-error-icon,
+        .error-icon,
+        .error-text {
+            display: none !important;
+        }
+
+        /* Ensure mermaid syntax errors stay inside the viz-content-area */
+        .viz-content-area .mermaid-syntax-error,
+        .viz-content-area .mermaid-error-msg {
+            display: block !important;
+            color: var(--accent-red, #ef4444);
+            padding: 12px;
+            border-radius: 6px;
+            background: rgba(239, 68, 68, 0.08);
+            border: 1px dashed rgba(239, 68, 68, 0.4);
+            font-size: 13px;
+        }
+
+        /* Override mermaid's default theme border that bleeds globally */
+        .mermaid svg {
+            max-width: 100%;
+        }
+
+        /* Prevent mermaid injected global styles from adding purple borders */
+        :root {
+            --mermaid-global-border-override: none;
+        }
         `;
 
         const oldStyle = document.getElementById('viz-engine-styles');
@@ -1962,6 +2082,80 @@ class VisualizationEngine {
         this.attachResizeHandle(contentArea);
 
         return container;
+    }
+
+    /**
+     * Build a descriptive label for a viz panel/float:
+     *   "Thread Title — HH:MM"  (if both available)
+     *   "Thread Title"           (if only thread title)
+     *   vizType                  (fallback)
+     */
+    _buildVizLabel(container, vizType) {
+        const parts = [];
+        try {
+            const tm = window.ThreadManager;
+            if (tm) {
+                const tid = tm.currentThreadId;
+                const threads = tm.threads;
+                if (tid && Array.isArray(threads)) {
+                    const thread = threads.find(t => t.id === tid);
+                    if (thread?.title) parts.push(thread.title);
+                }
+            }
+        } catch (_) {}
+        try {
+            const msgEl = container.closest?.('.ai-message');
+            if (msgEl) {
+                const ts = msgEl.querySelector('.ai-message-timestamp');
+                if (ts?.textContent?.trim()) parts.push(ts.textContent.trim());
+            }
+        } catch (_) {}
+        return parts.length ? parts.join(' \u2014 ') : vizType;
+    }
+
+    /**
+     * Adds a small "Float / Panel" action bar to HTML and React iframe containers.
+     * Delegates to window.vizPopupManager (loaded from viz_popup_manager.js).
+     * @param {HTMLElement} container   - The .viz-container div
+     * @param {HTMLElement} contentArea - The .viz-content-area div (contains the iframe)
+     * @param {string}      chartId     - Unique chart id
+     * @param {string}      vizType     - Display label used to build the popup header title
+     */
+    addIframeActionBar(container, contentArea, chartId, vizType = 'Widget') {
+        if (!container || container.querySelector('.viz-iframe-action-bar')) return;
+
+        // Derive a human-readable label from thread title + message timestamp
+        const label = this._buildVizLabel(container, vizType);
+
+        const bar = document.createElement('div');
+        bar.className = 'viz-action-bar viz-iframe-action-bar';
+        bar.style.cssText = `
+            display: flex;
+            gap: 4px;
+            padding: 4px 10px;
+            justify-content: flex-end;
+            border-top: 1px solid var(--border-color, #333);
+            background: var(--bg-secondary, #1e1e2e);
+        `;
+        bar.innerHTML = `
+            <button class="viz-action-btn" title="Open in side panel">&#x229F;</button>
+            <button class="viz-action-btn" title="Open as floating window">&#x229E;</button>
+        `;
+
+        const [panelBtn, floatBtn] = bar.querySelectorAll('.viz-action-btn');
+
+        panelBtn.addEventListener('click', () => {
+            if (window.vizPopupManager) {
+                window.vizPopupManager.openPanel(contentArea, chartId, label);
+            }
+        });
+        floatBtn.addEventListener('click', () => {
+            if (window.vizPopupManager) {
+                window.vizPopupManager.openFloat(contentArea, chartId, label);
+            }
+        });
+
+        container.appendChild(bar);
     }
 
     attachResizeHandle(contentArea) {
@@ -2351,11 +2545,15 @@ class VisualizationEngine {
             console.log('⚠️ VIZ-V3: Container not in DOM yet (will be attached after message rendering)');
         }
 
-        const contentArea = container.querySelector('.viz-content-area');
+        let contentArea = container.querySelector('.viz-content-area');
 
-        // RITICAL: Ensure content area exists
+        // RITICAL: Ensure content area exists - create it if missing (fallback for containers built externally)
         if (!contentArea) {
-            throw new Error('Content area not found in container - cannot render visualization');
+            console.warn('⚠️ VIZ-V3: .viz-content-area missing from container, creating fallback');
+            contentArea = document.createElement('div');
+            contentArea.className = 'viz-content-area';
+            contentArea.style.cssText = 'width:100%;height:auto;min-height:0;';
+            container.appendChild(contentArea);
         }
 
         this.attachResizeHandle(contentArea);
@@ -2365,15 +2563,19 @@ class VisualizationEngine {
             switch (item.type) {
                 case 'plotly':
                     await this.renderPlotlyDirectly(item, contentArea, chartId);
+                    this.addIframeActionBar(container, contentArea, chartId, 'Visualisation Viewer');
                     break;
                 case 'google':
                     await this.renderGoogleChartDirectly(item, contentArea, chartId);
+                    this.addIframeActionBar(container, contentArea, chartId, 'Visualisation Viewer');
                     break;
                 case 'chartjs':
                     await this.renderChartJSDirectly(item, contentArea, chartId);
+                    this.addIframeActionBar(container, contentArea, chartId, 'Visualisation Viewer');
                     break;
                 case 'mermaid':
                     await this.renderMermaidDirectly(item, contentArea, chartId);
+                    this.addIframeActionBar(container, contentArea, chartId, 'Visualisation Viewer');
                     break;
                 case 'apexcharts':
                     // Delegate to modular ApexCharts renderer
@@ -2383,6 +2585,7 @@ class VisualizationEngine {
                         this.apexchartsRenderer = new window.ApexChartsRenderer(this);
                     }
                     await this.apexchartsRenderer.render(item, contentArea, chartId);
+                    this.addIframeActionBar(container, contentArea, chartId, 'Visualisation Viewer');
                     break;
                 case 'lottie':
                     // Delegate to modular Lottie renderer
@@ -2392,6 +2595,7 @@ class VisualizationEngine {
                         this.lottieRenderer = new window.LottieRenderer(this);
                     }
                     await this.lottieRenderer.render(item, contentArea, chartId);
+                    this.addIframeActionBar(container, contentArea, chartId, 'Visualisation Viewer');
                     break;
                 case 'gsap':
                     // Delegate to modular GSAP renderer
@@ -2401,6 +2605,7 @@ class VisualizationEngine {
                         this.gsapRenderer = new window.GSAPRenderer(this);
                     }
                     await this.gsapRenderer.render(item, contentArea, chartId);
+                    this.addIframeActionBar(container, contentArea, chartId, 'Visualisation Viewer');
                     break;
                 case 'cad':
                 case 'blueprint':
@@ -2411,6 +2616,7 @@ class VisualizationEngine {
                         this.cadRenderer = new window.CADRenderer(this);
                     }
                     await this.cadRenderer.render(item, contentArea, chartId);
+                    this.addIframeActionBar(container, contentArea, chartId, 'Visualisation Viewer');
                     break;
                 case 'schematic':
                     // Delegate to modular Schematic renderer
@@ -2420,6 +2626,7 @@ class VisualizationEngine {
                         this.schematicRenderer = new window.SchematicRenderer(this);
                     }
                     await this.schematicRenderer.render(item, contentArea, chartId);
+                    this.addIframeActionBar(container, contentArea, chartId, 'Visualisation Viewer');
                     break;
                 case 'molecule':
                 case 'svg':
@@ -2429,6 +2636,7 @@ class VisualizationEngine {
                         this.svgRenderer = new window.SVGRenderer(this);
                     }
                     await this.svgRenderer.render(item, contentArea, chartId);
+                    this.addIframeActionBar(container, contentArea, chartId, 'Visualisation Viewer');
                     break;
                 case 'latex':
                     // Delegate to modular LaTeX renderer
@@ -2437,6 +2645,7 @@ class VisualizationEngine {
                         this.latexRenderer = new window.LatexRenderer(this);
                     }
                     await this.latexRenderer.render(item, contentArea, chartId);
+                    this.addIframeActionBar(container, contentArea, chartId, 'Visualisation Viewer');
                     break;
                 case 'html':
                 case 'execute_html':
@@ -2446,6 +2655,17 @@ class VisualizationEngine {
                         this.htmlRenderer = new window.HTMLRenderer(this);
                     }
                     await this.htmlRenderer.render(item, contentArea, chartId);
+                    this.addIframeActionBar(container, contentArea, chartId, 'Visualisation Viewer');
+                    break;
+                case 'react':
+                case 'execute_react':
+                    // Delegate to modular React renderer (Babel + UMD globals, no build step)
+                    if (!this.reactRenderer) {
+                        await this.waitForRenderer('ReactRenderer', 'react_renderer.js');
+                        this.reactRenderer = new window.ReactRenderer(this);
+                    }
+                    await this.reactRenderer.render(item, contentArea, chartId);
+                    this.addIframeActionBar(container, contentArea, chartId, 'Visualisation Viewer');
                     break;
                 case 'threejs':
                     // Delegate to modular Three.js renderer
@@ -2454,6 +2674,7 @@ class VisualizationEngine {
                         this.threejsRenderer = new window.ThreeJSRenderer(this);
                     }
                     await this.threejsRenderer.render(item, contentArea, chartId);
+                    this.addIframeActionBar(container, contentArea, chartId, 'Visualisation Viewer');
                     break;
                 case 'error':
                     this.showErrorDirectly(contentArea, item.content);
@@ -2687,9 +2908,10 @@ class VisualizationEngine {
         }
 
         const config = {
-            displayModeBar: false,
+            displayModeBar: true,          // Show zoom/pan/reset controls
             responsive: true,
-            displaylogo: false
+            displaylogo: false,            // Remove Plotly watermark logo
+            modeBarButtonsToRemove: ['sendDataToCloud']  // Remove cloud upload button
         };
 
         try {
@@ -4424,7 +4646,7 @@ class VisualizationEngine {
 
         } catch (error) {
             console.error('Mermaid rendering error:', error);
-            mermaidDiv.innerHTML = `<p style="color: var(--text-primary);">Error rendering diagram: ${error.message}</p>`;
+            this.showMermaidError(mermaidDiv, error, item.content);
         }
     }
 
@@ -4439,21 +4661,21 @@ class VisualizationEngine {
             // TEP 1: Handle direct \n in the content
             let transformedContent = content.replace(/\\n/g, '\n');
 
-            // EW: STEP 1.5: Fix Gantt chart syntax issues when needed
-            if (transformedContent.trim().startsWith('gantt')) {
-                // Check for known problematic patterns that cause 'taskData' errors
+            // EW: STEP 1.5: Fix Gantt / Journey chart syntax issues when needed
+            // Both diagram types use  section Name  +  task: score: actor  syntax — a colon
+            // inside a section label (e.g. "section Day 1-2: Preparation") confuses the
+            // parser into treating the text after the colon as 'taskData'.
+            const trimmedForCheck = transformedContent.trim();
+            if (trimmedForCheck.startsWith('gantt') || trimmedForCheck.startsWith('journey')) {
                 const hasProblematicSections = transformedContent.includes('section') &&
-                    (transformedContent.match(/section.*:/g) ||               // Any section with colon (common cause)
-                        transformedContent.match(/section.*[^\w\s:\-]/g) ||
-                        transformedContent.includes('taskData') ||
-                        transformedContent.match(/section.*:.*-.*-/g) ||
-                        transformedContent.match(/section.*:.*\s+\S+/g));       // Extra content after section names
+                    (transformedContent.match(/section[^\n]*:/g) ||   // Any section line with a colon
+                     transformedContent.includes('taskData'));
 
                 if (hasProblematicSections) {
-                    console.log('🔄 Detected problematic Gantt section patterns, applying fixes...');
+                    console.log('🔄 Detected problematic section colons in', trimmedForCheck.split('\n')[0], '— applying fixes...');
                     transformedContent = this.fixGanttSyntax(transformedContent);
                 } else {
-                    console.log('antt chart syntax appears clean, skipping fixes');
+                    console.log('Chart section syntax appears clean, skipping fixes');
                 }
             }
 
@@ -4696,13 +4918,15 @@ class VisualizationEngine {
             const lines = fixedContent.split('\n');
             const fixedLines = [];
             let inGantt = false;
+            let isJourney = false;
 
             for (let i = 0; i < lines.length; i++) {
                 let line = lines[i].trim();
 
-                // Track if we're in a gantt section
-                if (line.startsWith('gantt')) {
+                // Track if we're in a gantt or journey section (both use same section syntax)
+                if (line.startsWith('gantt') || line.startsWith('journey')) {
                     inGantt = true;
+                    isJourney = line.startsWith('journey');
                     fixedLines.push(line);
                     continue;
                 }
@@ -4768,8 +4992,9 @@ class VisualizationEngine {
                 }
 
                 // IX 1: Ensure proper task syntax format
-                // Look for task lines (not gantt, title, dateFormat, section, or comment lines)
-                if (line && inGantt &&
+                // Only apply Gantt task rewriting for gantt diagrams, NOT journey —
+                // journey task format  "task: score: actor"  is already valid.
+                if (line && inGantt && !isJourney &&
                     !line.startsWith('gantt') &&
                     !line.startsWith('title') &&
                     !line.startsWith('dateFormat') &&
@@ -7715,41 +7940,104 @@ ${svgData}`;
     showMermaidError(mermaidDiv, error, originalContent) {
         const errorMessage = error.message || 'Unknown error';
 
+        // Sanitize the error message and content to avoid XSS
+        const escapeHtml = (str) => String(str)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;');
+
+        const safeError = escapeHtml(errorMessage);
+        const safeContent = escapeHtml(originalContent || '');
+
+        // Ensure the mermaidDiv is contained within the viz-content-area
+        // and does NOT leak outside by using contained inline styles only
+        mermaidDiv.style.cssText = `
+            width: 100%;
+            box-sizing: border-box;
+            border: none !important;
+            background: transparent !important;
+            outline: none !important;
+        `;
+
         mermaidDiv.innerHTML = `
             <div style="
-                padding: 20px; 
-                border: 2px dashed var(--border-primary); 
-                border-radius: 8px; 
-                background: var(--bg-secondary);
-                color: var(--text-primary);
-                font-family: var(--font-family);
+                padding: 16px 20px;
+                border: 1px dashed rgba(239, 68, 68, 0.5);
+                border-radius: 8px;
+                background: rgba(239, 68, 68, 0.06);
+                color: var(--text-primary, #24292f);
+                font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
                 text-align: left;
                 max-width: 100%;
+                width: 100%;
                 box-sizing: border-box;
+                overflow: hidden;
             ">
-                <h4 style="margin: 0 0 12px 0; color: var(--accent-red);">
-                    ⚠️ Mermaid Rendering Error
-                </h4>
-                <p style="margin: 0 0 12px 0; font-size: 14px;">
-                    <strong>Error:</strong> ${errorMessage}
+                <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 10px;">
+                    <span style="color: #ef4444; font-size: 16px;">⚠️</span>
+                    <strong style="color: #ef4444; font-size: 14px;">Diagram Syntax Error</strong>
+                </div>
+                <p style="margin: 0 0 10px 0; font-size: 13px; color: var(--text-secondary, #656d76); line-height: 1.5;">
+                    ${safeError}
                 </p>
-                <details style="margin-top: 12px;">
-                    <summary style="cursor: pointer; color: var(--accent-blue);">View Original Content</summary>
+                <details style="margin-top: 8px;">
+                    <summary style="cursor: pointer; font-size: 12px; color: var(--accent-blue, #3b82f6); user-select: none;">
+                        View diagram source
+                    </summary>
                     <pre style="
-                        margin: 8px 0 0 0; 
-                        padding: 12px; 
-                        background: rgba(0,0,0,0.1); 
-                        border-radius: 4px; 
-                        font-family: monospace; 
-                        font-size: 11px; 
-                        max-height: 200px; 
+                        margin: 8px 0 0 0;
+                        padding: 10px;
+                        background: rgba(0,0,0,0.08);
+                        border-radius: 4px;
+                        font-family: 'Monaco', 'Menlo', monospace;
+                        font-size: 11px;
+                        max-height: 180px;
                         overflow-y: auto;
                         white-space: pre-wrap;
                         word-break: break-word;
-                    ">${originalContent}</pre>
+                        color: var(--text-primary, #24292f);
+                        border: none;
+                        outline: none;
+                    ">${safeContent}</pre>
                 </details>
             </div>
         `;
+
+        // Remove any mermaid-injected error elements that escape the container
+        this._cleanupMermaidGlobalErrors();
+    }
+
+    /**
+     * Remove any error elements that Mermaid v10 injects directly into the body
+     * or outside of viz-containers (e.g. #dmermaid, .mermaid-error-icon, etc.)
+     */
+    _cleanupMermaidGlobalErrors() {
+        try {
+            // Mermaid v10 injects error nodes with id starting with 'd' + chartId
+            const orphanedErrorNodes = document.querySelectorAll(
+                'body > [id^="dmermaid"], body > .mermaid:not(.viz-container .mermaid)'
+            );
+            orphanedErrorNodes.forEach(el => el.remove());
+
+            // Also remove any mermaid-injected <style> tags that add purple borders globally
+            const mermaidStyles = document.querySelectorAll('style[id^="mermaid-"]');
+            mermaidStyles.forEach(style => {
+                // Keep our own styles, only remove mermaid's injected ones
+                if (!style.id.includes('font-controller') && !style.id.includes('viz-engine')) {
+                    // Override border rules to none rather than removing (safer)
+                    const content = style.textContent || '';
+                    if (content.includes('border') && (
+                        content.includes('#') || content.includes('purple') || content.includes('rgb')
+                    )) {
+                        style.textContent = style.textContent
+                            .replace(/\.mermaid\s*\{[^}]*border[^}]*\}/g, '.mermaid { border: none !important; }');
+                    }
+                }
+            });
+        } catch (e) {
+            // Silently ignore cleanup errors
+        }
     }
 
     /**
