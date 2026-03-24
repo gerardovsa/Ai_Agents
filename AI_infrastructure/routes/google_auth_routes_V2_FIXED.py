@@ -74,6 +74,14 @@ def _ensure_https_redirect_uri(base_uri=None, path='/api/auth/google/callback'):
     if base_uri:
         return base_uri
     
+    # Check FRONTEND_URL env var (most reliable on Render)
+    frontend_url = os.getenv('FRONTEND_URL')
+    if frontend_url:
+        base_url = frontend_url.rstrip('/')
+        if 'onrender.com' in base_url or os.getenv('RENDER') == 'true':
+            base_url = base_url.replace('http://', 'https://')
+        return base_url + path
+
     # Build from request
     from flask import request
     if request:
@@ -449,6 +457,13 @@ def google_login():
                     VALUES (%s, 'google', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP + INTERVAL '5 minutes')
                 """
                 sql, params = convert_sql_placeholders(sql, (state,))
+            else:
+                # SQLite: datetime() function
+                sql = """
+                    INSERT INTO oauth_states (state, platform, created_at, expires_at)
+                    VALUES (?, 'google', datetime('now'), datetime('now', '+5 minutes'))
+                """
+                params = (state,)
             
             cursor_state.execute(sql, params)
             conn_state.commit()
@@ -533,6 +548,10 @@ def google_callback():
                     AND expires_at > CURRENT_TIMESTAMP
                 """
                 sql, params = convert_sql_placeholders(sql, (state,))
+            else:
+                # SQLite: datetime() function
+                sql = "SELECT state, expires_at FROM oauth_states WHERE state = ? AND platform = 'google' AND expires_at > datetime('now')"
+                params = (state,)
             
             cursor_state.execute(sql, params)
             row = cursor_state.fetchone()
