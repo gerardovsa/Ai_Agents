@@ -182,11 +182,33 @@ Object.assign(window.ThreadManager, {
                 const BATCH_DELAY_MS = 100;
                 const MESSAGE_DELAY_MS = 10;
 
-                // Add loading indicator to Prime chat
+                // Add sticky loading indicator to Prime chat (position:sticky keeps it visible as messages render above)
                 const loadingIndicator = document.createElement('div');
-                loadingIndicator.style.cssText = 'padding: 20px; text-align: center; color: #666; font-style: italic; background: #f0f0f0; border-radius: 8px; margin: 10px;';
-                loadingIndicator.innerHTML = `<i class="fas fa-spinner fa-spin"></i> Loading messages... <span id="prime-load-progress">0/${thread.messages.length}</span>`;
-                messagesContainer.appendChild(loadingIndicator);
+                loadingIndicator.id = 'prime-render-progress';
+                // Sits as a sibling BELOW #ai-chat-messages — always visible, no sticky needed
+                loadingIndicator.style.cssText = [
+                    'background: var(--bg-primary, #0d1117)',
+                    'border-top: 1px solid var(--border-color, #30363d)',
+                    'padding: 8px 16px',
+                    'display: flex',
+                    'align-items: center',
+                    'gap: 10px',
+                    'font-size: 12px',
+                    'color: var(--text-secondary, #8b949e)',
+                    'z-index: 10',
+                    'user-select: none',
+                    'box-sizing: border-box',
+                    'flex-shrink: 0',
+                ].join('; ');
+                loadingIndicator.innerHTML = `
+                    <i class="fas fa-spinner fa-spin" style="color:var(--accent-primary,#58a6ff);font-size:11px;flex-shrink:0;"></i>
+                    <span id="prime-load-progress-text">Loading messages\u2026 0 of ${thread.messages.length}</span>
+                    <div style="flex:1;height:3px;background:var(--border-color,#30363d);border-radius:2px;overflow:hidden;min-width:40px;">
+                        <div id="prime-load-progress-bar" style="height:100%;width:0%;background:var(--accent-primary,#58a6ff);transition:width 0.15s ease;border-radius:2px;"></div>
+                    </div>
+                `;
+                // Insert AFTER the messages container, not inside it
+                messagesContainer.insertAdjacentElement('afterend', loadingIndicator);
 
                 let renderedCount = 0;
                 let skippedCount = 0;
@@ -229,8 +251,11 @@ Object.assign(window.ThreadManager, {
                                 skippedCount++;
                             }
 
-                            // Update progress indicator
-                            document.getElementById('prime-load-progress').textContent = `${idx + 1}/${thread.messages.length}`;
+                            // Update sticky progress indicator (text + fill bar)
+                            const _ppt = document.getElementById('prime-load-progress-text');
+                            const _ppb = document.getElementById('prime-load-progress-bar');
+                            if (_ppt) _ppt.textContent = `Loading messages\u2026 ${idx + 1} of ${thread.messages.length}`;
+                            if (_ppb) _ppb.style.width = `${Math.round(((idx + 1) / thread.messages.length) * 100)}%`;
 
                         } catch (renderError) {
                             console.error(`❌ [PRIME-LOAD] Failed to render message ${idx + 1} (ID: ${msg.id}):`, renderError);

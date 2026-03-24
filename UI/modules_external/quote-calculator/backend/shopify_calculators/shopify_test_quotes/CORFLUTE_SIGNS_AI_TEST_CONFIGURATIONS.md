@@ -7,14 +7,12 @@
 
 To get a quote for Corflute Signs:
 
-```
-Please calculate a quote for Corflute Signs with these specifications:
-[paste specifications from tests below]
-```
+
+We are testing the Corflute signs Calculator, below are test quote with specifications and the verified prices of what the quotes should come back as please generate quotes using the specifications below
 
 All prices are ex GST (add 10% for inc GST). Backend formula verified against Shopify website pricing.
 
----
+
 
 # Corflute Signs - Test Configurations
 

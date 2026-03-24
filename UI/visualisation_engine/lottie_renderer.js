@@ -33,9 +33,12 @@ class LottieRenderer {
             await this.loadLibrary();
         }
 
-        // DOM validation
-        if (!contentArea || !document.contains(contentArea)) {
+        // DOM validation — only null-check; container may be detached during deferred thread load
+        if (!contentArea) {
             throw new Error('Lottie: Invalid content area');
+        }
+        if (!document.contains(contentArea)) {
+            console.warn('⚠️ Lottie: Container not yet in DOM (deferred render) — proceeding anyway');
         }
 
         // Parse configuration - handle both JSON and JS notation

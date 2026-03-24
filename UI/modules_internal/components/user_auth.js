@@ -616,6 +616,18 @@ const UserAuth = {
             // Circuit animation will stop automatically when overlay is hidden
             setTimeout(() => {
                 this.hideLoadingOverlay();
+
+                // ✅ PERF FIX: Load thread message histories AFTER the UI is visible.
+                // initMultiAgent() already rendered thread info cards from cached data.
+                // The expensive per-thread message API calls (was ~15s each) run here in the
+                // background so the user sees the UI immediately instead of after ~60s.
+                if (typeof window.loadDeferredThreadMessages === 'function') {
+                    setTimeout(() => {
+                        window.loadDeferredThreadMessages().catch(err =>
+                            console.warn('⚠️ [AUTH] Deferred message loading error (non-fatal):', err.message)
+                        );
+                    }, 200); // Brief pause so the overlay hide animation completes first
+                }
             }, 500); // Show UI immediately (500ms for smooth transition)
 
         } catch (error) {

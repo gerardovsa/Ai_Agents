@@ -132,6 +132,13 @@ def list_visualization_types(filter_by="all", **kwargs):
                 "use_cases": ["Interactive demos", "Custom forms", "Educational tools"]
             },
             {
+                "type": "execute_react",
+                "name": "Interactive React",
+                "best_for": "Stateful React components with hooks, charts (Recharts), and icons (Lucide)",
+                "complexity": "Medium-High",
+                "use_cases": ["Data dashboards", "Stateful widgets", "Component-based UIs", "Interactive charts"]
+            },
+            {
                 "type": "threejs",
                 "name": "Three.js 3D",
                 "best_for": "3D graphics and interactive 3D scenes",
@@ -1438,6 +1445,235 @@ def _get_visualization_guidance():
                 "Teacher/Educator": "Quizzes, worksheets, interactive lessons",
                 "Data Analyst": "Custom dashboards with interactions",
                 "Print Designer": "Digital mockups of print materials"
+            }
+        },
+
+        "execute_react": {
+            "delimiter": "<EXECUTE_REACT>...</EXECUTE_REACT>",
+            "description": "Interactive React components with hooks, state, and modern UI libraries (Recharts, Lucide, Tailwind). Write JSX components ONLY — React, Babel, and library globals are injected automatically.",
+            "security": "Runs in fully isolated sandboxed iframe — your JSX/CSS won't affect the parent page",
+            "what_you_write": "Function components and hooks ONLY. DO NOT write import statements. Do NOT write ReactDOM.createRoot() — auto-injected. Just define: function App() { ... } or const App = () => { ... }",
+            "auto_injected": [
+                "React 18 (UMD global — all hooks available: useState, useEffect, useMemo, useCallback, useRef, useContext, useReducer, createContext, forwardRef, memo)",
+                "ReactDOM 18 (createRoot auto-called on your App component)",
+                "Babel Standalone (JSX transpilation at runtime — no build step)",
+                "Recharts 2 (auto-included if BarChart, LineChart, PieChart etc. are detected — all chart components available as globals)",
+                "Lucide React (auto-included if icon names detected — icons available as globals)",
+                "Tailwind CSS (auto-included if Tailwind class names detected in className props)",
+                "postMessage auto-resize (iframe grows to fit content automatically)"
+            ],
+            "root_component_rules": [
+                "MUST define a function named 'App', 'Component', or 'Dashboard' — this is auto-mounted",
+                "DO NOT call ReactDOM.createRoot() yourself — it is injected automatically",
+                "DO NOT write import statements — all libraries are available as globals",
+                "All React hooks are top-level destructures: const { useState } = React — already done for you",
+                "Recharts components are already destructured from window.Recharts — just use <BarChart>",
+                "Tailwind classes work directly in className props"
+            ],
+            "available_libraries": {
+                "React hooks": "useState, useEffect, useMemo, useCallback, useRef, useContext, useReducer, createContext, forwardRef, memo, Fragment",
+                "Recharts": "BarChart, Bar, LineChart, Line, PieChart, Pie, Cell, AreaChart, Area, ScatterChart, Scatter, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, RadarChart, Radar, ComposedChart, LabelList, ReferenceLine",
+                "Lucide React": "All icons by name (ChevronRight, Star, Heart, Home, User, Settings, Search, Bell, Mail, Check, X, Plus, Minus, etc.) — auto-detected",
+                "Tailwind CSS": "Full Tailwind v3 utility classes in className props — auto-detected"
+            },
+            "structure": {
+                "pattern": "Write ONLY function components — no imports, no ReactDOM calls",
+                "root_component": "function App() { ... } — renderer auto-mounts this",
+                "hooks": "const [state, setState] = useState(0); — all hooks available at top level",
+                "recharts_usage": "Use chart components directly: <BarChart data={data}><Bar dataKey='value' /></BarChart>",
+                "tailwind_usage": "Use className='flex items-center gap-4 bg-blue-500 text-white p-4 rounded-lg'"
+            },
+            "examples": [
+                {
+                    "title": "Sales Dashboard with Recharts",
+                    "use_case": "Business data visualizations with interactive charts",
+                    "profession": "Data Analyst / Business Manager",
+                    "code": """<EXECUTE_REACT>
+const salesData = [
+  { month: 'Jan', revenue: 42000, expenses: 28000, profit: 14000 },
+  { month: 'Feb', revenue: 55000, expenses: 31000, profit: 24000 },
+  { month: 'Mar', revenue: 48000, expenses: 29500, profit: 18500 },
+  { month: 'Apr', revenue: 67000, expenses: 35000, profit: 32000 },
+  { month: 'May', revenue: 71000, expenses: 38000, profit: 33000 },
+  { month: 'Jun', revenue: 84000, expenses: 42000, profit: 42000 },
+];
+
+function App() {
+  const [activeMetric, setActiveMetric] = useState('revenue');
+
+  const metrics = [
+    { key: 'revenue', label: 'Revenue', color: '#3b82f6' },
+    { key: 'expenses', label: 'Expenses', color: '#ef4444' },
+    { key: 'profit', label: 'Profit', color: '#10b981' },
+  ];
+
+  const activeColor = metrics.find(m => m.key === activeMetric)?.color || '#3b82f6';
+  const total = salesData.reduce((sum, d) => sum + d[activeMetric], 0);
+
+  return (
+    <div style={{ padding: '24px', fontFamily: 'system-ui, sans-serif', background: '#f9fafb', minHeight: '100vh' }}>
+      <h2 style={{ color: '#111', marginBottom: '8px' }}>Sales Dashboard</h2>
+      <p style={{ color: '#6b7280', marginBottom: '24px' }}>
+        Total {activeMetric}: <strong>${total.toLocaleString()}</strong>
+      </p>
+
+      <div style={{ display: 'flex', gap: '12px', marginBottom: '24px' }}>
+        {metrics.map(m => (
+          <button
+            key={m.key}
+            onClick={() => setActiveMetric(m.key)}
+            style={{
+              padding: '8px 16px', borderRadius: '8px', border: 'none',
+              background: activeMetric === m.key ? m.color : '#e5e7eb',
+              color: activeMetric === m.key ? 'white' : '#374151',
+              cursor: 'pointer', fontWeight: '600', fontSize: '14px'
+            }}
+          >
+            {m.label}
+          </button>
+        ))}
+      </div>
+
+      <div style={{ background: 'white', borderRadius: '12px', padding: '24px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }}>
+        <ResponsiveContainer width="100%" height={300}>
+          <BarChart data={salesData} margin={{ top: 10, right: 30, left: 20, bottom: 5 }}>
+            <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+            <XAxis dataKey="month" tick={{ fill: '#6b7280' }} />
+            <YAxis tickFormatter={v => `$${(v/1000).toFixed(0)}k`} tick={{ fill: '#6b7280' }} />
+            <Tooltip formatter={v => [`$${v.toLocaleString()}`, activeMetric]} />
+            <Bar dataKey={activeMetric} fill={activeColor} radius={[6, 6, 0, 0]} />
+          </BarChart>
+        </ResponsiveContainer>
+      </div>
+    </div>
+  );
+}
+</EXECUTE_REACT>"""
+                },
+                {
+                    "title": "Interactive Counter with Animated UI",
+                    "use_case": "Stateful UI demo with hooks and transitions",
+                    "profession": "Frontend Developer / UI Designer",
+                    "code": """<EXECUTE_REACT>
+function App() {
+  const [count, setCount] = useState(0);
+  const [history, setHistory] = useState([]);
+
+  const add = (n) => {
+    setCount(c => c + n);
+    setHistory(h => [...h.slice(-8), { value: n, time: new Date().toLocaleTimeString() }]);
+  };
+
+  const reset = () => { setCount(0); setHistory([]); };
+
+  const color = count > 0 ? '#10b981' : count < 0 ? '#ef4444' : '#6b7280';
+
+  return (
+    <div style={{ padding: '32px', fontFamily: 'system-ui, sans-serif', maxWidth: '480px', margin: '0 auto' }}>
+      <div style={{
+        textAlign: 'center', padding: '40px', background: 'white',
+        borderRadius: '24px', boxShadow: '0 4px 24px rgba(0,0,0,0.08)', marginBottom: '24px'
+      }}>
+        <p style={{ color: '#9ca3af', fontSize: '14px', margin: '0 0 8px' }}>Current Value</p>
+        <div style={{ fontSize: '72px', fontWeight: '800', color, lineHeight: 1.1, transition: 'color 0.3s' }}>
+          {count}
+        </div>
+        <div style={{ display: 'flex', gap: '12px', justifyContent: 'center', marginTop: '24px', flexWrap: 'wrap' }}>
+          {[-10, -1, 1, 10].map(n => (
+            <button
+              key={n}
+              onClick={() => add(n)}
+              style={{
+                padding: '12px 20px', borderRadius: '12px', border: 'none',
+                background: n > 0 ? '#dbeafe' : '#fee2e2',
+                color: n > 0 ? '#1d4ed8' : '#b91c1c',
+                cursor: 'pointer', fontWeight: '700', fontSize: '16px'
+              }}
+            >
+              {n > 0 ? `+${n}` : n}
+            </button>
+          ))}
+        </div>
+        <button onClick={reset} style={{
+          marginTop: '16px', padding: '8px 24px', borderRadius: '8px',
+          border: '2px solid #e5e7eb', background: 'white', cursor: 'pointer',
+          color: '#6b7280', fontSize: '14px'
+        }}>
+          Reset
+        </button>
+      </div>
+
+      {history.length > 0 && (
+        <div style={{ background: 'white', borderRadius: '16px', padding: '20px', boxShadow: '0 2px 8px rgba(0,0,0,0.05)' }}>
+          <p style={{ color: '#374151', fontWeight: '600', marginBottom: '12px' }}>Recent Actions</p>
+          {history.slice().reverse().map((h, i) => (
+            <div key={i} style={{
+              display: 'flex', justifyContent: 'space-between',
+              padding: '6px 0', borderBottom: '1px solid #f3f4f6', fontSize: '14px'
+            }}>
+              <span style={{ color: h.value > 0 ? '#10b981' : '#ef4444', fontWeight: '600' }}>
+                {h.value > 0 ? `+${h.value}` : h.value}
+              </span>
+              <span style={{ color: '#9ca3af' }}>{h.time}</span>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+</EXECUTE_REACT>"""
+                }
+            ],
+            "best_practices": [
+                "ONLY define function components — do not write imports or ReactDOM calls",
+                "Always name your root component 'App', 'Component', or 'Dashboard'",
+                "Use inline styles or Tailwind className for CSS (no external CSS files needed)",
+                "For charts: use Recharts — just import BarChart, LineChart etc. directly (already provided)",
+                "For icons: use Lucide icon components by name (e.g. <ChevronRight />) — already provided",
+                "Split complex components into sub-functions defined above App",
+                "Use useState for local state, useEffect for side effects",
+                "Keep data arrays defined at module level (outside components) for static data",
+                "Prefer ResponsiveContainer from Recharts so charts don't overflow"
+            ],
+            "when_to_use": [
+                "Interactive stateful UIs (counters, toggles, filters, tabs)",
+                "Data dashboards with charts (use Recharts)",
+                "Multi-step forms or wizards",
+                "Component demos and design system showcases",
+                "Anything that benefits from React's component model and hooks",
+                "Animated UIs (useState + CSS transitions)",
+                "Real-time updating displays with useEffect + setInterval"
+            ],
+            "when_not_to_use": [
+                "Static HTML/CSS layouts → use <EXECUTE_HTML>",
+                "Simple charts without interactivity → use <APEXCHARTS> or <PLOTLY>",
+                "SVG diagrams → use <SVG>",
+                "Math equations → use <LATEX>",
+                "Flowcharts → use <MERMAID>"
+            ],
+            "common_errors": [
+                "Writing 'import React from react' — NOT needed, React is a global automatically",
+                "Writing ReactDOM.createRoot() — NOT needed, auto-injected by renderer",
+                "Not naming the root component App/Component/Dashboard — renderer won't find it",
+                "Using npm package names in code that aren't available (only React, ReactDOM, Recharts, Lucide are auto-provided)",
+                "Writing '=>' arrow functions in JSX attribute positions without wrapping in () — Babel handles this but be careful",
+                "Forgetting to wrap multiple JSX sibling elements in a container or <></>"
+            ],
+            "vs_execute_html": {
+                "use_execute_react_when": [
+                    "You need React hooks (useState, useEffect, etc.)",
+                    "You want Recharts for interactive charts",
+                    "You are building component-based UI",
+                    "You want Tailwind CSS utility classes",
+                    "You prefer JSX syntax over raw HTML"
+                ],
+                "use_execute_html_when": [
+                    "You want full control over raw HTML/CSS/JS",
+                    "You are loading a CDN library not available in React mode",
+                    "You are creating a complete HTML document with specific structure",
+                    "You are building something that does not benefit from React components"
+                ]
             }
         }
     }

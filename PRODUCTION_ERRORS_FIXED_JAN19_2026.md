@@ -241,8 +241,7 @@ git commit -m "fix(agent): resolve logger and context_sections NameError excepti
 - Fixes production crashes blocking agent execution
 - Related: META_TOOLS_IMPROVEMENTS_JAN19_2026.md"
 
-# Push to both remotes
-git push origin v11          # Backup remote
+# Push to production
 git push gerardo v11:v11     # Production deployment (Render)
 ```
 

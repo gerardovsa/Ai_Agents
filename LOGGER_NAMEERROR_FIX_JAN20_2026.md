@@ -91,7 +91,6 @@ print(f"{log_prefix} Thread context cleaned up")
 ### Git Commits
 ```bash
 git commit -m "fix(worker): replace logger calls with print in run_simple_agent_worker - fixes production NameError on Render v11"
-git push origin v11        # Backup remote
 git push gerardo v11:v11   # Production remote (triggers Render deployment)
 ```
 

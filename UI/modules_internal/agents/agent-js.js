@@ -31,6 +31,55 @@ function removeProcessingIndicator(agentId) {
 }
 
 /**
+ * Create a sticky render-progress indicator that sits at the bottom of the messages container.
+ * Shows "Loading messages… X of Y" with a thin fill bar as historical messages render one-by-one.
+ */
+function createRenderProgressIndicator(agentId, totalCount) {
+    const el = document.createElement('div');
+    el.className = 'render-progress-indicator';
+    el.id = `render-progress-${agentId}`;
+    // Sits as a sibling BELOW the messages container — no sticky/absolute needed
+    el.style.cssText = [
+        'background: var(--bg-primary, #0d1117)',
+        'border-top: 1px solid var(--border-color, #30363d)',
+        'padding: 8px 16px',
+        'display: flex',
+        'align-items: center',
+        'gap: 10px',
+        'font-size: 12px',
+        'color: var(--text-secondary, #8b949e)',
+        'z-index: 10',
+        'user-select: none',
+        'box-sizing: border-box',
+        'flex-shrink: 0',
+    ].join('; ');
+    el.innerHTML = `
+        <i class="fas fa-spinner fa-spin" style="color:var(--accent-primary,#58a6ff);font-size:11px;flex-shrink:0;"></i>
+        <span class="rpi-text">Loading messages\u2026 0 of ${totalCount}</span>
+        <div style="flex:1;height:3px;background:var(--border-color,#30363d);border-radius:2px;overflow:hidden;min-width:40px;">
+            <div class="rpi-bar" style="height:100%;width:0%;background:var(--accent-primary,#58a6ff);transition:width 0.15s ease;border-radius:2px;"></div>
+        </div>
+    `;
+    return el;
+}
+
+/** Update the render-progress indicator with current count (call every N messages). */
+function updateRenderProgressIndicator(agentId, current, total) {
+    const el = document.getElementById(`render-progress-${agentId}`);
+    if (!el) return;
+    const text = el.querySelector('.rpi-text');
+    const bar = el.querySelector('.rpi-bar');
+    if (text) text.textContent = `Loading messages\u2026 ${current} of ${total}`;
+    if (bar) bar.style.width = `${Math.round((current / total) * 100)}%`;
+}
+
+/** Remove the render-progress indicator once all messages have been rendered. */
+function removeRenderProgressIndicator(agentId) {
+    const el = document.getElementById(`render-progress-${agentId}`);
+    if (el) el.remove();
+}
+
+/**
  * Setup scroll detection for a messages container.
  * - Attaches a throttled scroll handler that: 
  *   - triggers a load-older callback when near the top
@@ -2144,6 +2193,11 @@ const MultiAgent = {
                                 // Remove processing indicator before rendering messages
                                 removeProcessingIndicator(agentId);
 
+                                // Insert progress bar as a sibling AFTER the messages container
+                                // (not inside it — appending inside would place it above rendered messages)
+                                const _rpIndicator = createRenderProgressIndicator(agentId, loadedMessages.length);
+                                messagesContainer.insertAdjacentElement('afterend', _rpIndicator);
+
                                 // CRITICAL: Use for...of with await instead of forEach
                                 for (const [index, msg] of loadedMessages.entries()) {
                                     // USE SAME PATHWAY AS AI PRIME: UnifiedMessageRenderer
@@ -2170,9 +2224,12 @@ const MultiAgent = {
 
                                         if (!rendered) {
                                             console.warn(`[LOAD] ❌ Message ${index + 1} NOT RENDERED (${msg.role})`);
-                                            // console.log(`[LOAD]    Check console for skip reason from UnifiedMessageRenderer`);
                                         } else {
                                             // console.log(`[LOAD] ✅ Message ${index + 1} rendered successfully`);
+                                        }
+                                        // Update progress bar every 5 messages (keeps UI responsive)
+                                        if ((index + 1) % 5 === 0 || index + 1 === loadedMessages.length) {
+                                            updateRenderProgressIndicator(agentId, index + 1, loadedMessages.length);
                                         }
                                     } else {
                                         console.error(`[LOAD] UnifiedMessageRenderer not available! Falling back to manual rendering`);
@@ -2196,6 +2253,8 @@ const MultiAgent = {
                                         }
                                     }
                                 }
+                                // All messages rendered — remove progress bar and scroll to bottom
+                                removeRenderProgressIndicator(agentId);
                                 messagesContainer.scrollTop = messagesContainer.scrollHeight;
                                 console.log(`[LOAD] ✅ Completed - ${loadedMessages.length} messages rendered for agent-${agentId}`);
 
@@ -2220,6 +2279,11 @@ const MultiAgent = {
                 // Load thread messages from MessageStore with proper rendering
                 console.log(`[LOAD] 📨 Rendering ${storedMessages.length} messages from MessageStore for "${thread.title}"`);
 
+                // Insert progress bar as a sibling AFTER the messages container
+                // (not inside it — appending inside would place it above rendered messages)
+                const _rpIndicator2 = createRenderProgressIndicator(agentId, storedMessages.length);
+                messagesContainer.insertAdjacentElement('afterend', _rpIndicator2);
+
                 // CRITICAL: Use for...of with await instead of forEach
                 for (const [index, msg] of storedMessages.entries()) {
                     // USE SAME PATHWAY AS AI PRIME: UnifiedMessageRenderer
@@ -2243,6 +2307,10 @@ const MultiAgent = {
                         if (!rendered) {
                             console.log(`[LOAD] Message ${index + 1} skipped (duplicate or tool_result-only)`);
                         }
+                        // Update progress bar every 5 messages
+                        if ((index + 1) % 5 === 0 || index + 1 === storedMessages.length) {
+                            updateRenderProgressIndicator(agentId, index + 1, storedMessages.length);
+                        }
                     } else {
                         console.error(`[LOAD] UnifiedMessageRenderer not available! Falling back to manual rendering`);
                         // Fallback: manual rendering (old pathway)
@@ -2265,6 +2333,7 @@ const MultiAgent = {
                         }
                     }
                 }
+                removeRenderProgressIndicator(agentId);
                 console.log(`[OK] All ${storedMessages.length} messages rendered for agent-${agentId}`);
 
                 // ✅ Update scroll controls visibility after loading messages from MessageStore
@@ -2797,22 +2866,32 @@ async function initMultiAgent() {
             : null;
 
         if (primeLoadedThread && typeof ThreadManager !== 'undefined') {
-            // Thread is assigned - load and render thread card
-            console.log(`🎯 [initMultiAgent] Prime has prime thread: ${primeLoadedThread.id}, loading...`);
-            await ThreadManager.loadThreadInPrime(primeLoadedThread.id);
+            // Thread is assigned - render info card immediately, defer message loading to post-render
+            console.log(`🎯 [initMultiAgent] Prime has thread: ${primeLoadedThread.id}, rendering card (messages deferred)...`);
 
-            // Update thread info card for Prime
+            // ✅ Render thread info card immediately (data already in ThreadManager.threads - no API call)
             if (typeof ThreadManager.renderThreadInfoContainer === 'function') {
                 // Render with compact=false for full card display
                 // Use 'prime' location to show correct badge styling
                 const cardHtml = ThreadManager.renderThreadInfoContainer('prime', primeLoadedThread.id, false);
                 if (cardHtml) {
                     primeThreadInfoContainer.innerHTML = cardHtml;
-                    console.log(`✅ [initMultiAgent] Prime thread card rendered (${cardHtml.length} chars, replaced empty state)`);
+                    console.log(`✅ [initMultiAgent] Prime thread card rendered (${cardHtml.length} chars)`);
                 } else {
                     console.error(`❌ [initMultiAgent] Prime card HTML is empty!`);
                 }
             }
+
+            // ⏳ Queue Prime message loading to run AFTER UI renders (was blocking ~15s on cold start)
+            window._pendingMessageLoads = window._pendingMessageLoads || [];
+            window._pendingMessageLoads.push({ type: 'prime', threadId: primeLoadedThread.id });
+
+            // Show loading state in Prime messages container while messages are deferred
+            const primeMsgContainer = document.getElementById('ai-chat-messages');
+            if (primeMsgContainer && typeof AgentColumn !== 'undefined' && typeof AgentColumn.renderLoadingState === 'function') {
+                primeMsgContainer.innerHTML = AgentColumn.renderLoadingState(null, 'Prime');
+            }
+            console.log(`⏳ [initMultiAgent] Prime messages queued for post-render load`);
         } else {
             // No prime thread - ensure empty state is shown
             console.log(`📭 [initMultiAgent] No prime thread assigned, keeping empty state`);
@@ -2858,65 +2937,33 @@ async function initMultiAgent() {
                 thread.agent = agentName;
                 console.log(`[OK] Tagged thread "${thread.title}" with agent: ${agentName}`);
 
-                // Load thread immediately (no setTimeout delay)
-                const loadPromise = (async () => {
-                    // Clear welcome message - DO NOT create child div (causes duplicate ID)
-                    const messagesContainer = document.querySelector(`#agent-column-${agentId} .agent-messages-container`);
-                    if (messagesContainer) {
-                        // Clear old messages but preserve scroll controls
-                        const oldMessages = messagesContainer.querySelectorAll('.ai-message, .message-bubble');
-                        oldMessages.forEach(msg => msg.remove());
-                        console.log(`[initMultiAgent] Cleared ${oldMessages.length} old messages from agent-${agentId}`);
+                // ✅ Render thread info card immediately (data already in ThreadManager.threads - no API call)
+                requestAnimationFrame(() => {
+                    if (typeof ThreadManager !== 'undefined' && typeof ThreadManager.renderThreadInfoContainer === 'function') {
+                        const cardHtml = ThreadManager.renderThreadInfoContainer(`agent-${agentId}`, thread.id, true);
+                        const threadInfoContainer = document.getElementById(`thread-info-${agentId}`);
+                        if (threadInfoContainer && cardHtml) {
+                            threadInfoContainer.innerHTML = cardHtml;
+                            console.log(`✅ [initMultiAgent] Agent-${agentId} thread card rendered (${cardHtml.length} chars)`);
+                        } else if (!threadInfoContainer) {
+                            console.error(`❌ [initMultiAgent] thread-info-${agentId} container NOT FOUND in DOM!`);
+                        } else {
+                            console.error(`❌ [initMultiAgent] Card HTML is empty or null for agent-${agentId}!`);
+                        }
                     }
+                    MultiAgent.updateAgentHeader(agentId);
+                });
 
-                    // ✅ FIX DEC 17: Load messages into MessageStore FIRST before rendering
-                    console.log(`📥 [initMultiAgent] Pre-loading messages for thread ${thread.id} into MessageStore...`);
-                    if (typeof ThreadManager !== 'undefined' && typeof ThreadManager.loadMessagesForThread === 'function') {
-                        await ThreadManager.loadMessagesForThread(thread.id, null, 0);
-                        const messageCount = window.MessageStore.getMessages(thread.id).length;
-                        console.log(`✅ [initMultiAgent] ${messageCount} messages loaded into MessageStore for thread ${thread.id}`);
-                    }
+                // ⏳ Queue agent message loading to run AFTER UI renders (was blocking ~15s per agent on cold start)
+                window._pendingMessageLoads = window._pendingMessageLoads || [];
+                window._pendingMessageLoads.push({ type: 'agent', agentId, thread });
 
-                    // Load thread with full rendering
-                    await MultiAgent.loadThreadIntoAgent(agentId, thread);
-                    console.log(`✅ [initMultiAgent] Loaded thread "${thread.title}" into ${agentName}`);
-
-                    // Update thread info card for agent column
-                    // CRITICAL FIX NOV 29: Use requestAnimationFrame to ensure DOM is ready
-                    await new Promise(resolve => {
-                        requestAnimationFrame(() => {
-                            if (typeof ThreadManager !== 'undefined' && typeof ThreadManager.renderThreadInfoContainer === 'function') {
-                                console.log(`📋 [initMultiAgent] Rendering thread info card for agent-${agentId}, thread: ${thread.id}`);
-                                // Use compact=true for agent columns (matches initial render during createAgentColumn)
-                                const cardHtml = ThreadManager.renderThreadInfoContainer(`agent-${agentId}`, thread.id, true);
-                                console.log(`📋 [initMultiAgent] Card HTML generated: ${cardHtml ? cardHtml.length + ' chars' : 'NULL'}`);
-
-                                const threadInfoContainer = document.getElementById(`thread-info-${agentId}`);
-                                console.log(`📋 [initMultiAgent] Container element:`, threadInfoContainer ? 'FOUND' : 'NOT FOUND');
-
-                                if (threadInfoContainer && cardHtml) {
-                                    // CRITICAL: Replace entire innerHTML (removes empty state if present)
-                                    threadInfoContainer.innerHTML = cardHtml;
-                                    console.log(`✅ [initMultiAgent] Updated thread info card for ${agentName} (replaced empty state with thread card)`);
-                                    console.log(`✅ [initMultiAgent] Container HTML after injection:`, threadInfoContainer.innerHTML.substring(0, 100) + '...');
-                                } else if (!threadInfoContainer) {
-                                    console.error(`❌ [initMultiAgent] thread-info-${agentId} container NOT FOUND in DOM!`);
-                                } else {
-                                    console.error(`❌ [initMultiAgent] Card HTML is empty or null!`);
-                                }
-                            } else {
-                                console.error(`❌ [initMultiAgent] ThreadManager or renderThreadInfoContainer NOT available!`);
-                            }
-
-                            // Update header
-                            MultiAgent.updateAgentHeader(agentId);
-
-                            resolve();
-                        });
-                    });
-                })();
-
-                agentLoadPromises.push(loadPromise);
+                // Show loading state in agent messages container while messages are deferred
+                const agentMsgContainer = document.getElementById(`agent-messages-${agentId}`);
+                if (agentMsgContainer && typeof AgentColumn !== 'undefined' && typeof AgentColumn.renderLoadingState === 'function') {
+                    agentMsgContainer.innerHTML = AgentColumn.renderLoadingState(agentId, agentName);
+                }
+                console.log(`⏳ [initMultiAgent] Agent-${agentId} messages queued for post-render load`);
             } else {
                 console.warn(`[WARN] Thread "${thread.title}" assigned to ${location} but agent column doesn't exist (maxAgentId=${maxAgentId})`);
             }
@@ -2925,20 +2972,10 @@ async function initMultiAgent() {
         console.error(`❌ [initMultiAgent] ThreadManager.threads not available!`);
     }
 
-    // ✅ FIX: Load threads sequentially to prevent connection pool exhaustion
-    // OLD: await Promise.all(agentLoadPromises) - caused 5 parallel connections
-    // NEW: Sequential loading with connection reuse
-    if (agentLoadPromises.length > 0) {
-        console.log(`⏳ [initMultiAgent] Loading ${agentLoadPromises.length} agent threads sequentially...`);
-
-        for (let i = 0; i < agentLoadPromises.length; i++) {
-            const promise = agentLoadPromises[i];
-            await promise;  // Wait for each agent before starting next
-            console.log(`✅ [initMultiAgent] Agent ${i + 1}/${agentLoadPromises.length} loaded (sequential mode)`);
-        }
-
-        console.log(`✅ [initMultiAgent] All ${agentLoadPromises.length} agent threads loaded successfully`);
-    }
+    // ✅ PERF: Agent message loads are deferred to window.loadDeferredThreadMessages() (post-render)
+    // Previously: sequential loop here caused ~15s delay per agent (total startup ~60s)
+    // Now: thread INFO cards are rendered immediately above; messages load after hideLoadingOverlay()
+    console.log(`✅ [initMultiAgent] Agent thread cards rendered; ${(window._pendingMessageLoads || []).length} panel(s) queued for post-render message load`);
 
     // Legacy fallback: Restore threads from old MultiAgent.loadedThreads if not in assignments
     // This handles migration from old system to new centralized tracker
@@ -3079,9 +3116,14 @@ async function initMultiAgent() {
     // Validate and fix any assignment inconsistencies
     if (typeof ThreadManager !== 'undefined' && typeof ThreadManager.validateAssignments === 'function') {
         setTimeout(async () => {
-            const validation = await ThreadManager.validateAssignments();
-            if (validation.fixed) {
-                console.log(' [Multi-Agent] Assignment inconsistencies detected and fixed on page load');
+            try {
+                const validation = await ThreadManager.validateAssignments();
+                if (validation.fixed) {
+                    console.log(' [Multi-Agent] Assignment inconsistencies detected and fixed on page load');
+                }
+            } catch (validationErr) {
+                // Non-fatal: validation may fail on cold start (502) - app still works
+                console.warn('⚠️ [Multi-Agent] validateAssignments error (non-fatal):', validationErr.message);
             }
         }, 500);
     }
@@ -3299,6 +3341,91 @@ async function initMultiAgent() {
 
     console.log(`[Multi - Agent] [OK] Initialized with ${maxAgentId} NATO agents(${agentIdsWithThreads.length} with threads, ${maxAgentId - agentIdsWithThreads.length} collapsed)`);
 }
+
+/**
+ * Load all deferred thread messages AFTER the UI has rendered.
+ *
+ * Strategy: initMultiAgent() renders thread INFO cards instantly using cached thread list data.
+ * The expensive per-thread message history API calls are deferred here, so the loading overlay
+ * hides in ~5s instead of ~60s. Called from user_auth.js after hideLoadingOverlay().
+ *
+ * Sequential loading is intentional — prevents connection pool exhaustion on Render.
+ */
+window.loadDeferredThreadMessages = async function () {
+    const loads = window._pendingMessageLoads || [];
+    window._pendingMessageLoads = []; // Clear to prevent double-run
+
+    if (loads.length === 0) {
+        console.log('✅ [DeferredLoad] No deferred messages to load');
+        return;
+    }
+
+    // Sort: Prime first, then agents in numerical order (agent-1 → agent-2 → ... → agent-N)
+    loads.sort((a, b) => {
+        if (a.type === 'prime') return -1;
+        if (b.type === 'prime') return 1;
+        return (a.agentId || 0) - (b.agentId || 0);
+    });
+
+    console.log(`⏳ [DeferredLoad] Loading order: ${loads.map(l => l.type === 'prime' ? 'Prime' : `Agent-${l.agentId}`).join(' → ')}`);
+
+    for (const item of loads) {
+        try {
+            if (item.type === 'prime') {
+                console.log(`⏳ [DeferredLoad] Loading Prime messages (thread ${item.threadId})...`);
+
+                // Clear loading state before rendering
+                const primeMsgContainer = document.getElementById('ai-chat-messages');
+                if (primeMsgContainer) {
+                    primeMsgContainer.querySelectorAll('.loading-thread-state, .empty-state').forEach(el => el.remove());
+                }
+
+                if (typeof ThreadManager !== 'undefined' && typeof ThreadManager.loadThreadInPrime === 'function') {
+                    await ThreadManager.loadThreadInPrime(item.threadId);
+                    console.log(`✅ [DeferredLoad] Prime messages loaded`);
+                }
+
+            } else if (item.type === 'agent') {
+                const { agentId, thread } = item;
+                console.log(`⏳ [DeferredLoad] Loading agent-${agentId} messages (thread ${thread.id})...`);
+
+                // Clear loading state + any stale messages
+                const messagesContainer = document.querySelector(`#agent-column-${agentId} .agent-messages-container`);
+                if (messagesContainer) {
+                    const oldMessages = messagesContainer.querySelectorAll('.ai-message, .message-bubble, .loading-thread-state, .empty-state');
+                    oldMessages.forEach(msg => msg.remove());
+                }
+
+                // Pre-load messages into MessageStore
+                if (typeof ThreadManager !== 'undefined' && typeof ThreadManager.loadMessagesForThread === 'function') {
+                    await ThreadManager.loadMessagesForThread(thread.id, null, 0);
+                    const messageCount = (window.MessageStore?.getMessages(thread.id) || []).length;
+                    console.log(`✅ [DeferredLoad] ${messageCount} messages in MessageStore for thread ${thread.id}`);
+                }
+
+                // Render messages into the agent column
+                if (typeof MultiAgent !== 'undefined' && typeof MultiAgent.loadThreadIntoAgent === 'function') {
+                    await MultiAgent.loadThreadIntoAgent(agentId, thread);
+                }
+
+                // Refresh agent header
+                if (typeof MultiAgent !== 'undefined' && typeof MultiAgent.updateAgentHeader === 'function') {
+                    MultiAgent.updateAgentHeader(agentId);
+                }
+
+                console.log(`✅ [DeferredLoad] Agent-${agentId} messages loaded`);
+            }
+        } catch (err) {
+            console.warn(`⚠️ [DeferredLoad] Failed to load ${item.type} messages (non-fatal):`, err.message);
+            // Continue loading remaining panels
+        }
+    }
+
+    window.dispatchEvent(new CustomEvent('multiagent-messages-loaded', {
+        detail: { loaded: loads.length, timestamp: new Date().toISOString() }
+    }));
+    console.log(`✅ [DeferredLoad] All ${loads.length} deferred message load(s) complete`);
+};
 
 function createAgentColumn(agentId) {
     const container = document.getElementById('multi-agent-container');
@@ -5464,7 +5591,13 @@ async function sendAgentMessage(agentId) {
 
         // ✅ CRITICAL FIX: Ensure fullResponse is visible in DOM after streaming
         // Sometimes TwoRuleStreamProcessor loses content or fails silently
-        if (textBubble && fullResponse && fullResponse.trim().length > 0) {
+        // ⚠️ IMPORTANT: Skip the text-length check when the response contains viz delimiters.
+        // Visualizations (React, HTML, Plotly, Mermaid, etc.) render inside iframes/canvases
+        // and contribute ZERO to .textContent, making the 50% threshold always trigger
+        // and overwriting the correctly-rendered viz with raw markdown.
+        const VIZ_DELIMITER_RE = /<(EXECUTE_REACT|EXECUTE_HTML|PLOTLY|MERMAID|CHARTJS|APEXCHARTS|THREEJS|GSAP|LOTTIE|SVG_VISUAL|CAD|SCHEMATIC|BLUEPRINT|MOLECULE|GRAPH|LATEX|ENGINEERING_CAD|TECHNICAL_DRAWING)>/i;
+        const responseHasViz = VIZ_DELIMITER_RE.test(fullResponse);
+        if (textBubble && fullResponse && fullResponse.trim().length > 0 && !responseHasViz) {
             const textContent = textBubble.querySelector('.ai-message-content');
             if (textContent) {
                 // Check if content is actually visible (not empty or just whitespace)
@@ -5479,6 +5612,8 @@ async function sendAgentMessage(agentId) {
                     console.log(`[Agent ${agentId}] ✅ Forced full content render - ${fullResponse.length} chars`);
                 }
             }
+        } else if (responseHasViz) {
+            console.log(`[Agent ${agentId}] ℹ️ Skipping fallback text-ratio check — response contains viz delimiters (iframes don't count toward textContent)`);
         }
 
         // Finalize TwoRuleStreamProcessor (render any pending visualizations)
@@ -5489,9 +5624,10 @@ async function sendAgentMessage(agentId) {
                     await textBubble._twoRuleProcessor.finalize();
                     console.log(`[Agent ${agentId}] ✅ Processor finalized`);
 
-                    // Force render if still no content visible
+                    // Force render if still no content visible (skip if viz was rendered)
                     const textContent = textBubble.querySelector('.ai-message-content');
-                    if (textContent && (!textContent.innerHTML || textContent.innerHTML.trim() === '')) {
+                    const hasRenderedViz = textContent && textContent.querySelector('.viz-container, iframe, canvas') !== null;
+                    if (textContent && !hasRenderedViz && (!textContent.innerHTML || textContent.innerHTML.trim() === '')) {
                         console.warn(`[Agent ${agentId}] No content visible after finalize - forcing markdown render`);
                         if (window.marked) {
                             textContent.innerHTML = marked.parse(fullResponse, { breaks: true, gfm: true });

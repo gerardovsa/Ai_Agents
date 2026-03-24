@@ -150,9 +150,47 @@ Object.assign(window.ThreadManager, {
 
             AssignmentQueue.register(threadId, location, assignmentPromise);
 
-            const response = await assignmentPromise;
+            let response = await assignmentPromise;
 
-            if (!response.ok) {
+            // ✅ FIX: Retry on 502/503/504 (Render cold start) with exponential backoff
+            // After max retries, fall back gracefully so the UI still loads.
+            if (!response.ok && [502, 503, 504].includes(response.status)) {
+                const maxRetries = 3;
+                let retryDelay = 1500;
+                let retryResponse = null;
+                for (let attempt = 1; attempt <= maxRetries; attempt++) {
+                    console.warn(`⚠️ [Assignment] Server returned ${response.status}, retrying in ${retryDelay}ms (attempt ${attempt}/${maxRetries})...`);
+                    await new Promise(resolve => setTimeout(resolve, retryDelay));
+                    retryDelay = Math.min(retryDelay * 1.5, 8000);
+                    try {
+                        retryResponse = await fetch(`${window.API_BASE_URL || 'http://localhost:5001'}/api/thread-assignments/assign`, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                session_id: threadId,
+                                location: location || 'unassigned',
+                                user_id: (UserAuth.user && (UserAuth.user.id || UserAuth.user.user_id)) || 1
+                            })
+                        });
+                        if (retryResponse.ok) {
+                            response = retryResponse;
+                            console.log(`✅ [Assignment] Retry ${attempt} succeeded`);
+                            break;
+                        }
+                    } catch (retryErr) {
+                        console.warn(`⚠️ [Assignment] Retry ${attempt} fetch error:`, retryErr.message);
+                    }
+                }
+                // After all retries, if still not OK, update local state only (non-fatal)
+                if (!response.ok) {
+                    console.warn(`⚠️ [Assignment] Backend unreachable after ${maxRetries} retries - updating local state only (will sync on next interaction)`);
+                    // Update local thread state so UI is consistent
+                    const localThread = this.threads.find(t => t.id === threadId);
+                    if (localThread) { localThread.location = location || 'unassigned'; }
+                    this.pendingAssignment = false;
+                    return { success: true, localOnly: true, assignment: { session_id: threadId, location: location || 'unassigned' } };
+                }
+            } else if (!response.ok) {
                 const errorData = await response.json().catch(() => ({ error: 'Unknown error' }));
                 throw new Error(`API update failed: ${errorData.error || response.statusText}`);
             }

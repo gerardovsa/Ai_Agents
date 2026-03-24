@@ -42,9 +42,13 @@ class CADRenderer {
      * @param {string} chartId - Unique chart identifier
      */
     async render(item, contentArea, chartId) {
-        // DOM validation
-        if (!contentArea || !document.contains(contentArea)) {
+        // DOM validation — only null-check; container may be detached during deferred thread load
+        // (it gets attached to the DOM after message rendering completes — that is fine for SVG/Three.js)
+        if (!contentArea) {
             throw new Error('CAD: Invalid content area');
+        }
+        if (!document.contains(contentArea)) {
+            console.warn('⚠️ CAD: Container not yet in DOM (deferred render) — proceeding anyway');
         }
 
         // Parse configuration - support both SVG (2D drawings) and JSON (3D models)

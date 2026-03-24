@@ -140,26 +140,28 @@ class ConnectionMonitor(threading.Thread):
                 # No pools active yet
                 return
             
-            total_acquired = 0
-            total_returned = 0
-            total_leaked = 0
+            # ✅ FIX: Use ONLY the '_global' entry for totals.
+            # get_all_pool_stats() returns the same global _pool_stats dict for every
+            # schema key (_global, ai_infrastructure, sessions, ...).  Summing across
+            # all keys multiplies the true count by the number of schemas, producing
+            # wildly inflated "leaked" numbers (e.g. 2 real leaks → 6 reported).
+            global_stats = all_stats.get('_global', {})
+            total_acquired = global_stats.get('connections_acquired', 0)
+            total_returned = global_stats.get('connections_returned', 0)
+            total_leaked = total_acquired - total_returned
             
-            for schema, stats in all_stats.items():
-                acquired = stats.get('connections_acquired', 0)
-                returned = stats.get('connections_returned', 0)
-                leaked = acquired - returned
-                
-                total_acquired += acquired
-                total_returned += returned
-                total_leaked += leaked
-                
-                # Log individual schema stats if there are leaks
-                if leaked > 0:
-                    logger.info(
-                        f"[{schema}] Acquired: {acquired}, "
-                        f"Returned: {returned}, "
-                        f"Leaked: {leaked}"
-                    )
+            # Log per-schema breakdown (informational only, same underlying counter)
+            if total_leaked > 0:
+                for schema, stats in all_stats.items():
+                    acquired = stats.get('connections_acquired', 0)
+                    returned = stats.get('connections_returned', 0)
+                    leaked = acquired - returned
+                    if leaked > 0:
+                        logger.info(
+                            f"[{schema}] Acquired: {acquired}, "
+                            f"Returned: {returned}, "
+                            f"Leaked: {leaked} (shares global counter)"
+                        )
             
             # Track leak history
             self.leak_count_history.append({

@@ -515,9 +515,11 @@
     display: flex;
     align-items: center;
     gap: var(--space-2);
-    padding: var(--space-2) var(--space-3);
+    /* Padding reduced by 1px each side to compensate for fixed 2px border */
+    padding: calc(var(--space-2) - 1px) calc(var(--space-3) - 1px);
     background: var(--bg-secondary);
-    border: 1px solid var(--border-default);
+    /* Always 2px so width never changes on hover/state transitions */
+    border: 2px solid var(--border-default);
     border-radius: 6px;
     color: var(--text-primary);
     font-size: 13px;
@@ -531,11 +533,9 @@
 .agent-quick-nav-badge:hover {
     background: var(--bg-hover);
     border-color: var(--accent-primary);
-    border-width: 2px;
-    /* Brighter/thicker border */
+    /* No border-width change — use shadow for emphasis instead */
     transform: translateY(-2px);
     box-shadow: 0 4px 8px rgba(88, 166, 255, 0.4);
-    /* Brighter blue shadow */
 }
 
 .agent-quick-nav-badge.active {
@@ -554,20 +554,14 @@
 
 .agent-quick-nav-badge.has-thread:hover {
     background: rgba(88, 166, 255, 0.3);
-    /* Slightly brighter dull blue on hover */
-    border-width: 2px;
-    /* Brighter/thicker border */
     box-shadow: 0 4px 12px rgba(88, 166, 255, 0.6);
-    /* Brighter blue shadow */
 }
 
 /* Highlight badge when agent completes a message (green = ready to view) */
 .agent-quick-nav-badge.message-complete {
     background: var(--accent-success-dull);
-    /* Dull dark green background */
     border-color: var(--accent-success);
-    /* Bright green border */
-    border-width: 2px;
+    /* border-width stays 2px — no layout shift */
     color: var(--text-primary);
     box-shadow: 0 2px 8px rgba(63, 185, 80, 0.4);
     animation: pulse-green-background 2s ease-in-out infinite;
@@ -575,16 +569,14 @@
 
 .agent-quick-nav-badge.message-complete:hover {
     background: rgba(63, 185, 80, 0.3);
-    /* Brighter green on hover */
-    border-width: 2px;
     box-shadow: 0 4px 12px rgba(63, 185, 80, 0.6);
     animation: none;
-    /* Stop pulsing on hover */
 }
 
 /* Processing state - pulsing orange border when AI is generating */
 .agent-quick-nav-badge.processing {
-    border: 2px solid var(--warning-color);
+    /* border is already 2px — just change color, no layout shift */
+    border-color: var(--warning-color);
     animation: pulse-processing 1.5s ease-in-out infinite;
 }
 
@@ -604,13 +596,17 @@
 
 /* Viewing state - bold cyan border when current user is viewing this agent */
 .agent-quick-nav-badge.viewing {
-    border: 3px solid var(--accent-primary);
+    /* Use outline instead of border: 3px to avoid layout shift */
+    border-color: var(--accent-primary);
+    outline: 1px solid var(--accent-primary);
     box-shadow: 0 0 12px var(--accent-primary);
 }
 
 /* Other user/session viewing - dashed border with device-specific color + bubble (shows initials or count) */
 .agent-quick-nav-badge.other-user {
-    border: 3px dashed var(--session-color, #a855f7);
+    /* Use outline for dashed effect to avoid layout shift */
+    border-color: var(--session-color, #a855f7);
+    outline: 1px dashed var(--session-color, #a855f7);
     position: relative;
 }
 
@@ -732,14 +728,16 @@
 
 .agent-quick-nav-badge.status-thinking,
 .agent-quick-nav-badge.status-writing,
-.agent-quick-nav-badge.status-tool-running {
+.agent-quick-nav-badge.status-tool-running,
+.agent-quick-nav-badge.status-tool-success {
     position: relative;
 }
 
 /* Status ring animations */
 .agent-quick-nav-badge.status-thinking::before,
 .agent-quick-nav-badge.status-writing::before,
-.agent-quick-nav-badge.status-tool-running::before {
+.agent-quick-nav-badge.status-tool-running::before,
+.agent-quick-nav-badge.status-tool-success::before {
     content: '';
     position: absolute;
     top: -4px;
@@ -754,20 +752,25 @@
     z-index: 0;
 }
 
-/* Color coding */
+/* Color coding — matches icon circle colours in agent-header h2 i::after exactly */
 .agent-quick-nav-badge.status-thinking::before {
-    border-color: #3b82f6;
-    /* Blue - Thinking */
+    border-color: #8b5cf6;
+    /* Purple - Thinking (matches icon) */
 }
 
 .agent-quick-nav-badge.status-writing::before {
-    border-color: #10b981;
-    /* Green - Writing */
+    border-color: #ffffff;
+    /* White - Writing (matches icon) */
 }
 
 .agent-quick-nav-badge.status-tool-running::before {
-    border-color: #f59e0b;
-    /* Orange - Tool running */
+    border-color: #eab308;
+    /* Yellow - Tool running (matches icon) */
+}
+
+.agent-quick-nav-badge.status-tool-success::before {
+    border-color: #60A5FA;
+    /* Light blue - Tool success (matches icon) */
 }
 
 /* Pulse animation for badges */

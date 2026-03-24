@@ -309,8 +309,9 @@ class EngineeringCADRenderer {
                 modelConfig.dimensions.depth
             );
         } else if (modelConfig.type === 'assembly') {
-            // Render assembly with multiple components
-            modelConfig.components?.forEach(component => {
+            // Render assembly with multiple components or layers (both naming conventions supported)
+            const parts = modelConfig.components || modelConfig.layers || [];
+            parts.forEach(component => {
                 this.createComponent(scene, component);
             });
         }
@@ -374,7 +375,10 @@ class EngineeringCADRenderer {
     createComponent(scene, component) {
         let geometry;
 
-        if (component.type === 'box') {
+        // Support both explicit type='box' and layer objects which are implicitly box-shaped
+        const isBoxLike = component.type === 'box' || (!component.type && component.dimensions);
+
+        if (isBoxLike) {
             geometry = new THREE.BoxGeometry(
                 component.dimensions.width,
                 component.dimensions.height,
@@ -383,10 +387,18 @@ class EngineeringCADRenderer {
         }
 
         if (geometry) {
+            // Support color as direct integer (layers format) or nested under material
+            const colorValue = component.color !== undefined ? component.color
+                : (component.material?.color !== undefined ? component.material.color : 0xC0C0C0);
+            const opacityValue = component.opacity !== undefined ? component.opacity : 1.0;
+            const isTransparent = opacityValue < 1.0;
+
             const material = new THREE.MeshStandardMaterial({
-                color: component.material?.color || 0xC0C0C0,
-                metalness: component.material?.metalness || 0.7,
-                roughness: component.material?.roughness || 0.3
+                color: colorValue,
+                metalness: component.material?.metalness || 0.3,
+                roughness: component.material?.roughness || 0.7,
+                transparent: isTransparent,
+                opacity: opacityValue
             });
 
             const mesh = new THREE.Mesh(geometry, material);

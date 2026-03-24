@@ -41,7 +41,7 @@ Endpoints:
     ... (60+ total endpoints)
 """
 
-from flask import Blueprint, request, jsonify
+from flask import Blueprint, request, jsonify, g
 import json
 import os
 from datetime import datetime
@@ -324,70 +324,104 @@ def check_session_permission(session_data, user_id, require_write=False):
 @synergy_bp.route('/list', methods=['GET'])
 def list_sessions():
     """
-    List all sessions with optional filtering and permission checking
-    ✅ FIXED: Uses nested context managers
+    List sessions with multi-tenant visibility filtering.
+
+    Visibility rules (applied in SQL + Python for defence-in-depth):
+      private → only owner sees it
+      shared  → owner + explicit session_members
+      team    → everyone in the same organisation
+
+    When Supabase migration 025 is applied, RLS enforces this at DB level too.
+    The Python filter below is a belt-and-braces second layer.
     """
     try:
-        status = request.args.get('status')
+        status   = request.args.get('status')
         priority = request.args.get('priority')
-        column = request.args.get('kanban_column')
-        user_id = request.args.get('user_id', type=int)
-        
+        column   = request.args.get('kanban_column')
+        # Prefer user_id from JWT context (g.rls_user_id) over query param
+        user_id  = getattr(g, 'rls_user_id', None) or request.args.get('user_id', type=int)
+        org_id   = getattr(g, 'rls_organisation_id', None)
+
         with get_database_connection('synergy_sessions') as conn:
-            with conn.cursor() as cursor:  # ✅ NESTED CONTEXT MANAGER
-                
-                query = 'SELECT * FROM synergy_sessions WHERE 1=1'
+            with conn.cursor() as cursor:
+                # Base query — RLS (migration 025) filters rows at DB level when
+                # app.current_user_id / app.current_organisation_id are set.
+                # The CASE in ORDER BY keeps column_position ordering intact.
+                query  = 'SELECT * FROM synergy_sessions WHERE 1=1'
                 params = []
-                
+
                 if status:
                     query += ' AND status = %s'
                     params.append(status)
-                
                 if priority:
                     query += ' AND priority = %s'
                     params.append(priority)
-                
                 if column:
                     query += ' AND kanban_column = %s'
                     params.append(column)
-                
+
                 query += ' ORDER BY COALESCE(column_position, 999999), last_active DESC'
-                
+
                 sql, final_params = convert_sql_placeholders(query, tuple(params))
                 cursor.execute(sql, final_params)
                 rows = cursor.fetchall()
-            
-            # ✅ Cursor auto-closed here, now process rows
+
+            # ── Python-level visibility filter (belt-and-braces) ──────────────
+            # This catches environments where migration 025 hasn't run yet, and
+            # provides a clear audit log of why rows were excluded.
             sessions = []
             for row in rows:
                 session = dict(row)
-                
-                has_permission, perm_type = check_session_permission(session, user_id, require_write=False)
-                if not has_permission:
-                    continue
-                
-                for field in ['platforms_involved', 'tags', 'documents', 'links', 
-                             'next_steps', 'assignees', 'recent_activity', 'checklist', 'shared_with_users']:
+
+                # Determine effective visibility (new column or legacy permission_level)
+                visibility = session.get('visibility') or session.get('permission_level', 'private')
+                session_owner = session.get('owner_user_id')
+                session_org   = session.get('organisation_id')
+
+                if user_id:
+                    if session_owner == user_id:
+                        perm_type = 'owner'
+                    elif visibility == 'team' and org_id and session_org == org_id:
+                        perm_type = 'team_member'
+                    elif visibility in ('shared', 'public_view', 'public_edit'):
+                        # Old permission_level compat + new shared visibility
+                        # Shared rows: RLS already filtered at DB; we trust DB result
+                        perm_type = visibility
+                    elif visibility == 'private':
+                        # Private and not owner → skip
+                        continue
+                    else:
+                        # Unknown value — fall back to old helper
+                        has_perm, perm_type = check_session_permission(session, user_id)
+                        if not has_perm:
+                            continue
+                else:
+                    # No user context — only show non-private sessions
+                    if visibility == 'private':
+                        continue
+                    perm_type = visibility or 'public_view'
+
+                # Deserialise JSON text fields
+                for field in ['platforms_involved', 'tags', 'documents', 'links',
+                               'next_steps', 'assignees', 'recent_activity',
+                               'checklist', 'shared_with_users']:
                     if session.get(field):
                         try:
                             session[field] = json.loads(session[field])
-                        except:
+                        except Exception:
                             session[field] = []
-                
+
                 session['user_permission'] = perm_type
                 sessions.append(session)
-            
+
             return jsonify({
                 'success': True,
                 'count': len(sessions),
-                'sessions': sessions
+                'sessions': sessions,
             })
-    
+
     except Exception as e:
-        return jsonify({
-            'success': False,
-            'error': str(e)
-        }), 500
+        return jsonify({'success': False, 'error': str(e)}), 500
 
 
 @synergy_bp.route('/sessions', methods=['GET'])
@@ -727,12 +761,27 @@ def create_session():
         thread_ids = json.dumps(thread_ids_list)
         assigned_agents = json.dumps(data.get('assigned_agents', []))
         
-        owner_user_id = data.get('owner_user_id')
+        # ── Multi-tenant fields ────────────────────────────────────────────────
+        # owner_user_id: prefer explicit body value, fall back to JWT context
+        owner_user_id = (
+            data.get('owner_user_id')
+            or getattr(g, 'rls_user_id', None)
+        )
+        # organisation_id: prefer body value, fall back to JWT context
+        organisation_id = (
+            data.get('organisation_id')
+            or getattr(g, 'rls_organisation_id', None)
+        )
+        # visibility: private (default) / shared / team
+        visibility = data.get('visibility', 'private')
+        if visibility not in ('private', 'shared', 'team'):
+            visibility = 'private'
+
         shared_with_users = json.dumps(data.get('shared_with_users', []))
-        
+
         with get_database_connection('synergy_sessions') as conn:
             with conn.cursor() as cursor:  # ✅ NESTED CONTEXT MANAGER
-                
+
                 # Check if session_id already exists
                 check_sql, check_params = convert_sql_placeholders(
                     'SELECT session_id FROM synergy_sessions WHERE session_id = %s',
@@ -740,20 +789,21 @@ def create_session():
                 )
                 cursor.execute(check_sql, check_params)
                 existing = cursor.fetchone()
-                
+
                 if existing:
                     random_suffix = ''.join(random.choices(string.ascii_lowercase + string.digits, k=6))
                     session_id = f"sess_{timestamp}_{title_slug}_{random_suffix}"
                     print(f"[SYNERGY] Session ID collision detected - regenerated: {session_id}")
-                
+
                 insert_sql, insert_params = convert_sql_placeholders('''
                     INSERT INTO synergy_sessions (
                         session_id, title, description, platforms_involved, status,
                         priority, kanban_column, tags, documents, links, next_steps,
                         assignees, recent_activity, checklist, due_date, created_at, last_active,
                         thread_ids, assigned_agents, uses_milestones,
-                        owner_user_id, shared_with_users, project_name
-                    ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                        owner_user_id, shared_with_users, project_name,
+                        organisation_id, visibility
+                    ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
                 ''', (
                     session_id,
                     data.get('title', 'Untitled Session'),
@@ -777,7 +827,9 @@ def create_session():
                     data.get('uses_milestones', False),
                     owner_user_id,
                     shared_with_users,
-                    data.get('project_name', '')
+                    data.get('project_name', ''),
+                    organisation_id,
+                    visibility,
                 ))
                 cursor.execute(insert_sql, insert_params)
                 

@@ -251,7 +251,6 @@ assert "30-56% under-quoted" in god_calc["description"]
 - [x] Fixed calculator_tools.json (added deprecation warning)
 - [x] Fixed calculator_wrapper.py (added validation rejection)
 - [ ] Commit changes with urgent bug fix message
-- [ ] Push to origin (backup)
 - [ ] Push to gerardo (production deployment)
 - [ ] Monitor Render deployment logs
 - [ ] Test in production with same test case from trace

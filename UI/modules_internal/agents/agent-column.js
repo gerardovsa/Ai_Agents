@@ -508,6 +508,41 @@ const AgentColumn = (function () {
     }
 
     /**
+     * Loading state shown in the messages container while deferred thread messages are being fetched.
+     * Matches the visual style of renderEmptyState() so there is no layout jump.
+     * @param {number|null} agentId - Agent ID (null for Prime)
+     * @param {string} agentName - Display name e.g. "Alpha-1" or "Prime"
+     */
+    function renderLoadingState(agentId, agentName) {
+        return `
+            <div class="loading-thread-state" style="display: flex; align-items: center; justify-content: center; min-height: 50vh; text-align: center;">
+                <div style="line-height: 1.8; max-width: 500px;">
+                    <div style="font-size: 2em; margin-bottom: 15px;">
+                        <i class="fas fa-spinner fa-spin" style="color: var(--accent-primary, #58a6ff);"></i>
+                    </div>
+                    <div style="font-size: 1.2em; margin-bottom: 12px; font-weight: 600; color: var(--text-primary, #e5e7eb);">
+                        Loading ${agentName}...
+                    </div>
+                    <div style="margin-bottom: 20px; opacity: 0.8; font-size: 0.95em; color: var(--text-secondary, #9ca3af);">
+                        Fetching thread messages
+                    </div>
+                    <div style="display: flex; gap: 8px; justify-content: center;">
+                        <div style="width: 8px; height: 8px; border-radius: 50%; background: var(--accent-primary, #58a6ff); opacity: 0.4; animation: loadingDot 1.4s ease-in-out infinite;"></div>
+                        <div style="width: 8px; height: 8px; border-radius: 50%; background: var(--accent-primary, #58a6ff); opacity: 0.4; animation: loadingDot 1.4s ease-in-out 0.2s infinite;"></div>
+                        <div style="width: 8px; height: 8px; border-radius: 50%; background: var(--accent-primary, #58a6ff); opacity: 0.4; animation: loadingDot 1.4s ease-in-out 0.4s infinite;"></div>
+                    </div>
+                </div>
+            </div>
+            <style>
+                @keyframes loadingDot {
+                    0%, 80%, 100% { transform: scale(0.8); opacity: 0.3; }
+                    40% { transform: scale(1.2); opacity: 1; }
+                }
+            </style>
+        `;
+    }
+
+    /**
      * Collapse agent column
      * @param {number} agentId - Agent ID
      */
@@ -2347,6 +2382,7 @@ const AgentColumn = (function () {
         hidePrimeThreadSelector,
         loadThreadIntoPrime,
         refreshAllAgentThreadInfos,
+        renderLoadingState,
         cycleExpandMode,
         toggleThinkingToolBubbles,
         toggleViewModeMenu,

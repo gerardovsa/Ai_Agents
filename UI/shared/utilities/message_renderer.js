@@ -560,6 +560,7 @@ const UnifiedMessageRenderer = (function () {
                 processorUsed = 'TwoRuleStreamProcessor';
                 const processor = new TwoRuleStreamProcessor(contentDiv);
                 await processor.processChunk(contentStr);  // ✅ FIX: AWAIT the async operation
+                await processor.finalize();                 // ✅ FIX: flush deferred renders (thread load)
 
                 // Verify content was rendered
                 if (!contentDiv.innerHTML || contentDiv.innerHTML.trim() === '') {

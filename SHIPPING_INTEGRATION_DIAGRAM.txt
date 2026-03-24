@@ -1,0 +1,196 @@
+┌─────────────────────────────────────────────────────────────────────────┐
+│                    WooCommerce Orders Table UI                          │
+│  ┌────┬──────┬──────┬────────┬──────────┬────────┬──────────┬────────┐ │
+│  │ ID │ Date │ Time │ Status │ Customer │ Items  │ Shipping │ Total  │ │
+│  ├────┼──────┼──────┼────────┼──────────┼────────┼──────────┼────────┤ │
+│  │123 │ 1/26 │12:30 │  ✓     │ John Doe │ 10x... │ 📦 small │ $45.00 │ │
+│  │    │      │      │        │          │        │ ⚖️ 595g  │        │ │
+│  │    │      │      │        │          │        │ 💰 $10.50│        │ │
+│  └────┴──────┴──────┴────────┴──────────┴────────┴──────────┴────────┘ │
+│                                                           ▲              │
+│                                                           │              │
+└───────────────────────────────────────────────────────────┼──────────────┘
+                                                            │
+                                     ┌──────────────────────┴─────────────┐
+                                     │  calculateShipping(order)          │
+                                     │  - Extract postcode/state          │
+                                     │  - Call Flask API                  │
+                                     └──────────────┬─────────────────────┘
+                                                    │
+                                                    │ HTTP POST
+                                                    │
+                         ┌──────────────────────────▼───────────────────────────┐
+                         │  Flask: /api/auspost/calculate-order-shipping        │
+                         │  ┌────────────────────────────────────────────────┐  │
+                         │  │ auspost_routes.py                              │  │
+                         │  │                                                │  │
+                         │  │ 1. Extract SKUs from line_items                │  │
+                         │  │    ["CFS", "MVG", "MVGEM"]                     │  │
+                         │  │                                                │  │
+                         │  │ 2. Map to product codes:                       │  │
+                         │  │    CFS → 220g/20mm                             │  │
+                         │  │    MVG → 325g/30mm                             │  │
+                         │  │    MVGEM → 370g/35mm                           │  │
+                         │  │                                                │  │
+                         │  │ 3. Call BoxCalculator                          │  │
+                         │  │    → total_thickness = 85mm                    │  │
+                         │  │    → box = "large" (60g)                       │  │
+                         │  │    → total_weight = 915g                       │  │
+                         │  │                                                │  │
+                         │  │ 4. Call AusPostClient                          │  │
+                         │  │    → from_postcode: 3977                       │  │
+                         │  │    → to_postcode: 2000                         │  │
+                         │  │    → weight: 915g                              │  │
+                         │  │    → service: Parcel Post                      │  │
+                         │  │                                                │  │
+                         │  │ 5. Return result                               │  │
+                         │  │    {box_type, weight_grams, postage_cost}      │  │
+                         │  └────────────────────────────────────────────────┘  │
+                         └──────────────────────────────────────────────────────┘
+                                                    │
+                                                    │
+                                   ┌────────────────▼───────────────────┐
+                                   │  auspost-shipping backend          │
+                                   │                                    │
+                                   │  ┌──────────────────────────────┐ │
+                                   │  │ OrderParser                  │ │
+                                   │  │ - Validate product codes     │ │
+                                   │  │ - Calculate totals           │ │
+                                   │  └──────────────────────────────┘ │
+                                   │                                    │
+                                   │  ┌──────────────────────────────┐ │
+                                   │  │ BoxCalculator                │ │
+                                   │  │ - Sum thickness              │ │
+                                   │  │ - Choose box: small/large    │ │
+                                   │  │ - Add box weight             │ │
+                                   │  └──────────────────────────────┘ │
+                                   │                                    │
+                                   │  ┌──────────────────────────────┐ │
+                                   │  │ AusPostClient                │ │
+                                   │  │ - HTTP call to PAC API       │ │
+                                   │  │ - Parse response             │ │
+                                   │  │ - Extract cost               │ │
+                                   │  └──────────────────────────────┘ │
+                                   └────────────────────────────────────┘
+                                                    │
+                                                    │
+                                       ┌────────────▼───────────────┐
+                                       │ Australia Post PAC API     │
+                                       │ digitalapi.auspost.com.au  │
+                                       │                            │
+                                       │ Returns:                   │
+                                       │ {                          │
+                                       │   "price": 10.50,          │
+                                       │   "service": "Parcel Post" │
+                                       │ }                          │
+                                       └────────────────────────────┘
+
+
+PRODUCT CODE MAPPING
+════════════════════
+
+WooCommerce SKU → Product Code → Weight & Thickness
+─────────────────────────────────────────────────
+"CFS-001"       → CFS          → 220g / 20mm
+"MVG-GLOSS"     → MVG          → 325g / 30mm
+"MVGEQ-SMALL"   → MVGEQ        → 220g / 20mm
+"MVGEM-LARGE"   → MVGEM        → 370g / 35mm
+
+
+BOX SELECTION LOGIC
+═══════════════════
+
+Total Thickness          Box Type      Box Weight
+─────────────────────────────────────────────────
+0-60mm                → small         50g
+61-85mm               → large         60g
+>85mm                 → custom        (manual)
+
+
+EXAMPLE CALCULATION
+═══════════════════
+
+Order: 10x CFS (Cards Full Size)
+─────────────────────────────────
+Products:     10 × 220g = 2200g
+Thickness:    10 × 20mm = 200mm
+Box:          large (200mm > 60mm, ≤ 85mm... wait, 200mm > 85mm = CUSTOM)
+ERROR: Thickness exceeds 85mm - custom handling required
+
+Order: 2x CFS + 1x MVG
+──────────────────────
+Products:     (2×220g) + (1×325g) = 765g
+Thickness:    (2×20mm) + (1×30mm) = 70mm
+Box:          large (70mm > 60mm)
+Box Weight:   60g
+Total:        765g + 60g = 825g
+Postcode:     2000 (Sydney)
+API Call:     3977 → 2000, 825g, Parcel Post
+Result:       $10.50
+
+
+DATA FLOW
+═════════
+
+1. User opens WooCommerce orders page
+   └→ renderOrdersTable() creates Tabulator
+
+2. Tabulator formatter triggers for "Shipping" column
+   └→ Shows "Calculating..." spinner
+
+3. calculateShipping(order) called async
+   ├→ Extract postcode from shipping_address (regex: \d{4})
+   ├→ Extract state from shipping_address (regex: NSW|VIC|QLD...)
+   ├→ POST to /api/auspost/calculate-order-shipping
+   └→ {line_items, shipping_address}
+
+4. Flask route receives request
+   ├→ Maps SKUs to product codes (CFS/MVG/MVGEQ/MVGEM)
+   ├→ Calls BoxCalculator.calculate_box_requirements()
+   ├→ Calls AusPostClient.calculate_domestic_postage()
+   └→ Returns {box_type, weight_grams, postage_cost}
+
+5. UI receives response
+   ├→ Cache in row._shippingData
+   ├→ Call cell.getRow().reformat()
+   └→ Display formatted result:
+      📦 Box: small
+      ⚖️ Wt: 595g
+      💰 $10.50
+
+
+ERROR HANDLING
+══════════════
+
+Frontend Errors:
+─────────────────
+❌ No postcode      → extractPostcode() returns null
+❌ Network Error    → fetch() throws exception
+❌ API Error        → response.ok === false
+❌ Calc Error       → Generic fallback
+
+Backend Errors:
+────────────────
+❌ No line items          → 400 error
+❌ No recognized products → SKU doesn't match CFS/MVG/MVGEQ/MVGEM
+❌ Box calc failed        → Thickness > 85mm (custom required)
+❌ No postcode            → Missing shipping address
+❌ API failure            → Australia Post API unreachable
+
+
+CACHING STRATEGY
+════════════════
+
+Problem: Tabulator redraws cells frequently (sort, filter, scroll)
+Solution: Cache results in row object
+
+1. First call: row._shippingData === undefined
+   └→ Show spinner, calculate async
+
+2. Calculation completes: row._shippingData = result
+   └→ Trigger reformat to show result
+
+3. Subsequent calls: row._shippingData exists
+   └→ Immediately return cached data (no API call)
+
+Result: Each order calculated ONCE per table load

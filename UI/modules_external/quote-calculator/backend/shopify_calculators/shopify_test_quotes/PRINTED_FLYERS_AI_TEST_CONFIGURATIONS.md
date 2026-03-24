@@ -7,12 +7,12 @@
 
 To get a quote for Printed Flyers:
 
-```
-Please calculate a quote for Printed Flyers with these specifications:
-[paste specifications from tests below]
-```
+
+We are testing the calculators, please calculate a quote for Printed Flyers with these specifications:, below are test quote with specifications and the verified prices of what the quotes should come back as please generate quotes using the specifications below
+
 
 All prices listed below include GST and are actual website results.
+
 
 ---
 

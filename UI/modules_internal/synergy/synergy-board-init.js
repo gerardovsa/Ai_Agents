@@ -805,10 +805,15 @@ window.synergyBoard = {
                     </div>
                 </div>
 
-                <!-- ROW 1: Priority + Status -->
+                <!-- ROW 1: Priority + Status + Visibility -->
                 <div class="synergy-row-1">
                     <span class="priority-badge priority-${(session.priority || 'medium').toLowerCase()}">${session.priority || 'Medium'}</span>
                     <span class="status-badge status-${statusClass}">${session.status || 'Active'}</span>
+                    ${(() => {
+                        const v = session.visibility || 'private';
+                        const cfg = { private: { icon:'fa-lock', cls:'visibility-private', label:'Private' }, shared: { icon:'fa-user-friends', cls:'visibility-shared', label:'Shared' }, team: { icon:'fa-users', cls:'visibility-team', label:'Team' } }[v] || { icon:'fa-lock', cls:'visibility-private', label:'Private' };
+                        return `<span class="synergy-visibility-badge ${cfg.cls}" title="Visibility: ${cfg.label}"><i class="fas ${cfg.icon}"></i></span>`;
+                    })()}
                 </div>
 
                 <!-- ROW 2: Description (truncated, hover for full) -->
@@ -1067,6 +1072,10 @@ window.synergyBoard = {
                 <i class="fas fa-edit" style="width: 20px; color: #3b82f6;"></i>
                 <span>Edit Session</span>
             </button>
+            <button class="synergy-dropdown-item" onclick="this.closest('.synergy-card-dropdown-menu').remove(); synergyBoard.openSharePopup('${sessionId}');">
+                <i class="fas fa-share-alt" style="width: 20px; color: #a855f7;"></i>
+                <span>Share &amp; Visibility</span>
+            </button>
             <button class="synergy-dropdown-item" onclick="synergyBoard.archiveCard('${sessionId}'); this.closest('.synergy-card-dropdown-menu').remove();">
                 <i class="fas fa-archive" style="width: 20px; color: #f59e0b;"></i>
                 <span>Archive</span>
@@ -1105,6 +1114,221 @@ window.synergyBoard = {
             }, 500);
         } else {
             alert('Edit functionality requires popup modal. Please enable it.');
+        }
+    },
+
+    /**
+     * Open Share & Visibility popup for a session
+     */
+    openSharePopup(sessionId) {
+        const session = this.sessions.find(s => s.session_id === sessionId);
+        if (!session) return;
+
+        const currentVisibility = session.visibility || 'private';
+        const popupId = `synergy-share-${sessionId}`;
+
+        // Reuse internalDocPopupContainer if present, else create one
+        let container = document.getElementById('internalDocPopupContainer');
+        if (!container) {
+            container = document.createElement('div');
+            container.id = 'internalDocPopupContainer';
+            container.style.cssText = 'position:fixed;inset:0;pointer-events:none;z-index:14000;';
+            document.body.appendChild(container);
+        }
+
+        // Remove existing if already open
+        const existing = document.getElementById(popupId);
+        if (existing) { existing.remove(); return; }
+
+        const width = 480;
+        const height = 530;
+        const left = Math.round((window.innerWidth - width) / 2);
+        const top  = Math.round((window.innerHeight - height) / 2);
+
+        const vOpt = (val, icon, color, bg, label, sub) => `
+            <div class="synergy-visibility-option${currentVisibility === val ? ' selected' : ''}" data-value="${val}"
+                onclick="synergyBoard.selectVisibility('${popupId}', '${val}')">
+                <div class="synergy-visibility-icon" style="background:${bg};color:${color};">
+                    <i class="fas ${icon}"></i>
+                </div>
+                <div>
+                    <div style="font-weight:600;font-size:14px;color:var(--text-primary);">${label}</div>
+                    <div style="font-size:12px;color:var(--text-muted);margin-top:2px;">${sub}</div>
+                </div>
+            </div>`;
+
+        container.insertAdjacentHTML('beforeend', `
+            <div class="internal-doc-popup active" id="${popupId}"
+                style="width:${width}px;height:${height}px;left:${left}px;top:${top}px;z-index:15000;pointer-events:all;">
+
+                <div class="internal-doc-popup-header" id="${popupId}-header" style="cursor:move;">
+                    <div class="internal-doc-popup-title">
+                        <i class="fas fa-share-alt" style="margin-right:8px;color:var(--accent-primary);"></i>
+                        Share &amp; Visibility
+                    </div>
+                    <div class="internal-doc-popup-controls">
+                        <button class="popup-control-btn close" title="Close"
+                            onclick="synergyBoard.closeSharePopup('${popupId}')">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="internal-doc-popup-body" style="padding:20px;overflow-y:auto;">
+
+                    <div style="font-size:13px;color:var(--text-muted);margin-bottom:16px;padding-bottom:12px;border-bottom:1px solid var(--border-secondary);">
+                        <i class="fas fa-layer-group" style="margin-right:6px;"></i>
+                        ${this.escapeHtml(session.title || sessionId)}
+                    </div>
+
+                    <div style="margin-bottom:20px;">
+                        <div style="font-size:11px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.6px;margin-bottom:10px;">Visibility</div>
+                        ${vOpt('private',  'fa-lock',        '#6b7280', 'rgba(107,114,128,0.12)', 'Private',  'Only you can see this session')}
+                        ${vOpt('shared',   'fa-user-friends','#3b82f6', 'rgba(59,130,246,0.12)',  'Shared',   'Invite specific people with roles')}
+                        ${vOpt('team',     'fa-users',       '#22c55e', 'rgba(34,197,94,0.12)',   'Team',     'Everyone in your organisation')}
+                    </div>
+
+                    <div id="${popupId}-invite-panel" style="display:${currentVisibility === 'shared' ? 'block' : 'none'};">
+                        <div style="font-size:11px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.6px;margin-bottom:10px;">People with access</div>
+                        <div id="${popupId}-members" style="margin-bottom:12px;min-height:28px;">
+                            <div style="color:var(--text-muted);font-size:13px;font-style:italic;">No members added yet</div>
+                        </div>
+                        <div style="display:flex;gap:8px;align-items:center;">
+                            <input type="text" id="${popupId}-invite-input"
+                                placeholder="Search name or email…"
+                                style="flex:1;padding:8px 12px;background:var(--bg-tertiary);border:1px solid var(--border-default);border-radius:6px;color:var(--text-primary);font-size:13px;"/>
+                            <select id="${popupId}-invite-role"
+                                style="padding:8px 10px;background:var(--bg-tertiary);border:1px solid var(--border-default);border-radius:6px;color:var(--text-primary);font-size:13px;cursor:pointer;">
+                                <option value="viewer">Viewer</option>
+                                <option value="editor" selected>Editor</option>
+                                <option value="admin">Admin</option>
+                            </select>
+                            <button onclick="synergyBoard.inviteMember('${sessionId}', '${popupId}')"
+                                style="padding:8px 14px;background:var(--accent-primary);border:none;border-radius:6px;color:#fff;font-size:13px;cursor:pointer;">
+                                <i class="fas fa-plus"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                </div>
+
+                <div class="internal-doc-popup-footer">
+                    <div class="popup-footer-left"></div>
+                    <div class="popup-footer-right">
+                        <button class="popup-action-btn" onclick="synergyBoard.closeSharePopup('${popupId}')">
+                            <i class="fas fa-times"></i> Cancel
+                        </button>
+                        <button class="popup-action-btn primary" onclick="synergyBoard.saveVisibility('${sessionId}', '${popupId}')">
+                            <i class="fas fa-check"></i> Save
+                        </button>
+                    </div>
+                </div>
+            </div>`);
+
+        // Make popup draggable via its header
+        const popup = document.getElementById(popupId);
+        const header = document.getElementById(`${popupId}-header`);
+        let dragging = false, ox = 0, oy = 0;
+        header.addEventListener('mousedown', e => {
+            if (e.target.closest('.popup-control-btn')) return;
+            dragging = true;
+            ox = e.clientX - popup.offsetLeft;
+            oy = e.clientY - popup.offsetTop;
+            popup.style.userSelect = 'none';
+        });
+        document.addEventListener('mousemove', e => {
+            if (!dragging) return;
+            popup.style.left = (e.clientX - ox) + 'px';
+            popup.style.top  = (e.clientY - oy) + 'px';
+        });
+        document.addEventListener('mouseup', () => { dragging = false; popup.style.userSelect = ''; });
+    },
+
+    closeSharePopup(popupId) {
+        const el = document.getElementById(popupId);
+        if (el) { el.classList.remove('active'); setTimeout(() => el.remove(), 200); }
+    },
+
+    selectVisibility(popupId, value) {
+        // Update selected state on options
+        document.querySelectorAll(`#${popupId} .synergy-visibility-option`).forEach(opt => {
+            opt.classList.toggle('selected', opt.dataset.value === value);
+        });
+        // Show/hide invite panel
+        const panel = document.getElementById(`${popupId}-invite-panel`);
+        if (panel) panel.style.display = value === 'shared' ? 'block' : 'none';
+    },
+
+    async saveVisibility(sessionId, popupId) {
+        const selectedOpt = document.querySelector(`#${popupId} .synergy-visibility-option.selected`);
+        const visibility = selectedOpt ? selectedOpt.dataset.value : 'private';
+
+        try {
+            const resp = await fetch(`/api/synergy/sessions/${sessionId}/visibility`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json', ...(window.UserAuth ? { 'Authorization': `Bearer ${window.UserAuth.token}` } : {}) },
+                body: JSON.stringify({ visibility })
+            });
+            if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+
+            // Update local state
+            const session = this.sessions.find(s => s.session_id === sessionId);
+            if (session) session.visibility = visibility;
+
+            // Refresh the badge on the card
+            const card = document.querySelector(`.synergy-session-item[data-session-id="${sessionId}"]`);
+            if (card) {
+                const badge = card.querySelector('.synergy-visibility-badge');
+                if (badge) {
+                    const cfgMap = { private: { icon:'fa-lock', cls:'visibility-private', label:'Private' }, shared: { icon:'fa-user-friends', cls:'visibility-shared', label:'Shared' }, team: { icon:'fa-users', cls:'visibility-team', label:'Team' } };
+                    const cfg = cfgMap[visibility] || cfgMap.private;
+                    badge.className = `synergy-visibility-badge ${cfg.cls}`;
+                    badge.title = `Visibility: ${cfg.label}`;
+                    badge.innerHTML = `<i class="fas ${cfg.icon}"></i>`;
+                }
+            }
+
+            this.closeSharePopup(popupId);
+        } catch (err) {
+            console.error('[SYNERGY] Failed to save visibility:', err);
+            alert('Could not save visibility. Please try again.');
+        }
+    },
+
+    async inviteMember(sessionId, popupId) {
+        const input = document.getElementById(`${popupId}-invite-input`);
+        const roleSelect = document.getElementById(`${popupId}-invite-role`);
+        const email = input ? input.value.trim() : '';
+        const role  = roleSelect ? roleSelect.value : 'viewer';
+        if (!email) return;
+
+        try {
+            const resp = await fetch(`/api/synergy/sessions/${sessionId}/members`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', ...(window.UserAuth ? { 'Authorization': `Bearer ${window.UserAuth.token}` } : {}) },
+                body: JSON.stringify({ email, role })
+            });
+            const data = await resp.json();
+            if (!resp.ok) throw new Error(data.error || `HTTP ${resp.status}`);
+
+            if (input) input.value = '';
+
+            // Add to displayed list
+            const list = document.getElementById(`${popupId}-members`);
+            if (list) {
+                const existing = list.querySelector('[data-placeholder]');
+                if (existing) existing.remove();
+                list.insertAdjacentHTML('beforeend', `
+                    <div class="synergy-member-row" data-email="${this.escapeHtml(email)}">
+                        <i class="fas fa-user-circle" style="color:var(--text-muted);"></i>
+                        <span style="flex:1;font-size:13px;">${this.escapeHtml(email)}</span>
+                        <span style="font-size:11px;padding:2px 8px;border-radius:4px;background:var(--bg-tertiary);color:var(--text-muted);">${role}</span>
+                        <button onclick="this.closest('.synergy-member-row').remove()" style="background:none;border:none;color:var(--text-muted);cursor:pointer;padding:0 4px;"><i class="fas fa-times"></i></button>
+                    </div>`);
+            }
+        } catch (err) {
+            console.error('[SYNERGY] Invite failed:', err);
+            alert(`Could not invite: ${err.message}`);
         }
     },
 

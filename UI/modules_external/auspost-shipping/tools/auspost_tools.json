@@ -1,0 +1,125 @@
+[
+  {
+    "name": "auspost_parse_order_labels",
+    "description": "Parse shipping label data to extract order details, products, and calculate total weight and dimensions. Supports label text with product codes (CFS, MVG, MVGEQ, MVGEM) and customer addresses.",
+    "short_description": "Parse label data and calculate order dimensions",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "label_data": {
+          "type": "string",
+          "description": "Raw label text containing customer details and product codes. Each order should be in format: 'TO: Name\\nAddress\\nCity Postcode\\nState, Country\\nPh: Phone\\nEmail: Email\\n\\n1 x PRODUCT_CODE'"
+        }
+      },
+      "required": ["label_data"]
+    },
+    "returns": {
+      "type": "object",
+      "description": "Parsed orders with calculated dimensions, weights, and box requirements"
+    },
+    "platform": "auspost-shipping"
+  },
+  {
+    "name": "auspost_calculate_single_postage",
+    "description": "Calculate postage cost for a single order using Australia Post PAC API. Supports both domestic (Australian) and international destinations. Returns available service options (Express Post, Parcel Post, etc.) with costs and delivery times.",
+    "short_description": "Calculate postage for one order",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "from_postcode": {
+          "type": "string",
+          "description": "Origin postcode (Australian postcode, e.g., '3020')"
+        },
+        "to_address": {
+          "type": "object",
+          "description": "Destination address details",
+          "properties": {
+            "postcode": {"type": "string", "description": "Destination postcode (or zip code for international)"},
+            "suburb": {"type": "string", "description": "Suburb or city name"},
+            "state": {"type": "string", "description": "State or province code"},
+            "country": {"type": "string", "description": "Country name (use 'Australia' for domestic)"}
+          },
+          "required": ["postcode", "country"]
+        },
+        "weight_kg": {
+          "type": "number",
+          "description": "Total package weight in kilograms (e.g., 0.5 for 500g)"
+        },
+        "length_cm": {
+          "type": "number",
+          "description": "Package length in centimeters"
+        },
+        "width_cm": {
+          "type": "number",
+          "description": "Package width in centimeters"
+        },
+        "height_cm": {
+          "type": "number",
+          "description": "Package height in centimeters"
+        },
+        "service_code": {
+          "type": "string",
+          "description": "Optional: Specific service code (e.g., 'AUS_PARCEL_REGULAR', 'AUS_PARCEL_EXPRESS'). If omitted, returns all available services."
+        }
+      },
+      "required": ["from_postcode", "to_address", "weight_kg", "length_cm", "width_cm", "height_cm"]
+    },
+    "returns": {
+      "type": "object",
+      "description": "Postage cost details with available services or specific service calculation"
+    },
+    "platform": "auspost-shipping"
+  },
+  {
+    "name": "auspost_batch_calculate_postage",
+    "description": "Process multiple orders from label data and calculate postage costs for each. Automatically parses labels, calculates dimensions, determines box sizes, and gets postage costs from Australia Post API. Returns comprehensive cost breakdown per order.",
+    "short_description": "Batch calculate postage for multiple orders",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "label_data": {
+          "type": "string",
+          "description": "Raw label text containing multiple orders separated by quotes. Format: \"TO: Name\\nAddress...\" \"TO: Name\\nAddress...\""
+        },
+        "from_postcode": {
+          "type": "string",
+          "description": "Origin postcode (Australian postcode, e.g., '3020')"
+        },
+        "service_preference": {
+          "type": "string",
+          "description": "Preferred service type: 'cheapest', 'fastest', 'regular', or 'express'",
+          "enum": ["cheapest", "fastest", "regular", "express"],
+          "default": "cheapest"
+        }
+      },
+      "required": ["label_data", "from_postcode"]
+    },
+    "returns": {
+      "type": "object",
+      "description": "Array of orders with parsed details, calculated postage costs, and service options"
+    },
+    "platform": "auspost-shipping"
+  },
+  {
+    "name": "auspost_get_service_options",
+    "description": "Get list of available Australia Post service options (Express Post, Parcel Post, Satchels, etc.) with descriptions and typical use cases. Helpful for understanding which service codes to use.",
+    "short_description": "List available Australia Post services",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "service_type": {
+          "type": "string",
+          "description": "Filter by service type: 'domestic', 'international', or 'all'",
+          "enum": ["domestic", "international", "all"],
+          "default": "all"
+        }
+      },
+      "required": []
+    },
+    "returns": {
+      "type": "object",
+      "description": "List of service codes with descriptions and typical costs"
+    },
+    "platform": "auspost-shipping"
+  }
+]

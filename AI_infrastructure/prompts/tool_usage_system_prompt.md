@@ -1454,6 +1454,7 @@ Turn 5: "I'll use #3 (gmail_search_messages) from the Gmail tools above"
 | **Blueprint** | `<BLUEPRINT>...</BLUEPRINT>` | SVG ONLY | Floor plans | `<EXECUTE_HTML>` |
 | **Molecule** | `<MOLECULE>...</MOLECULE>` | SVG ONLY | Chemical structures | `<EXECUTE_HTML>` |
 | **Execute HTML** | `<EXECUTE_HTML>...</EXECUTE_HTML>` | Full HTML/CSS/JS | **ONLY** custom widgets YOU create | Standard libraries |
+| **Execute React** | `<EXECUTE_REACT>...</EXECUTE_REACT>` | JSX components ONLY (no imports, no ReactDOM) | Stateful React UIs, dashboards with Recharts, component-based widgets | `<APEXCHARTS>`, `<PLOTLY>` |
 
 ---
 
@@ -1504,6 +1505,54 @@ Your custom code → Use <EXECUTE_HTML>
 ```
 
 **If you're loading ApexCharts from CDN in HTML, you're doing it wrong - use `<APEXCHARTS>` delimiter.**
+
+---
+
+## EXECUTE_REACT RULES - WHEN TO USE IT
+
+**`<EXECUTE_REACT>` is for React/JSX components that need hooks, state, and modern UI libraries.**
+
+### What gets auto-injected (you DO NOT write these):
+- React 18 + ReactDOM — available as `React`, `ReactDOM` globals
+- All React hooks — `useState`, `useEffect`, `useMemo`, `useCallback`, `useRef`, `useContext`, `useReducer`, `createContext`, `forwardRef`, `memo`, `Fragment`
+- Babel Standalone — transpiles your JSX at runtime, no build step needed
+- **Recharts 2** — auto-included when chart components are detected (`BarChart`, `LineChart`, `PieChart`, etc.) — all chart components available as globals
+- **Lucide React icons** — auto-included when icon names are detected
+- **Tailwind CSS** — auto-included when Tailwind class names are detected in `className=`
+- Auto-resize postMessage — iframe grows to fit your component automatically
+
+### Critical rules:
+```
+DO:    function App() { const [x, setX] = useState(0); return <div>{x}</div>; }
+DON'T: import React from 'react';          ← NOT needed
+DON'T: import { useState } from 'react';   ← NOT needed (hooks are top-level already)
+DON'T: ReactDOM.createRoot(...).render();  ← NOT needed (auto-injected)
+```
+
+**Your root component MUST be named `App`, `Component`, or `Dashboard`.**
+
+### EXECUTE_HTML vs EXECUTE_REACT — Decision Guide:
+
+| Situation | Use |
+|-----------|-----|
+| I need `useState`, `useEffect`, React hooks | `<EXECUTE_REACT>` |
+| I need Recharts (`BarChart`, `LineChart`, etc.) | `<EXECUTE_REACT>` |
+| I need Tailwind CSS utility classes | `<EXECUTE_REACT>` |
+| I need JSX component syntax | `<EXECUTE_REACT>` |
+| I want full control over raw HTML/CSS | `<EXECUTE_HTML>` |
+| I'm loading a CDN library not in the React preset | `<EXECUTE_HTML>` |
+| Simple HTML with vanilla JS | `<EXECUTE_HTML>` |
+
+**USE `<EXECUTE_REACT>` for:**
+- Data dashboards with interactive charts (wrap in Recharts `<BarChart>` etc.)
+- Stateful UIs — shopping carts, counters, multi-step forms, tabs, toggles
+- Component-based designs — reusable sub-components defined above `App`
+- Any UI that benefits from React's declarative model
+
+**NEVER use `<EXECUTE_REACT>` for:**
+- ApexCharts, Plotly, Chart.js (they have their own delimiters — use those)
+- Static HTML that needs no state
+- SVG / CAD / Schematic / LaTeX / Mermaid (each has its own delimiter)
 
 ---
 

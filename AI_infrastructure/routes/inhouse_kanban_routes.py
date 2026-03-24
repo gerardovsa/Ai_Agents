@@ -31,51 +31,105 @@ logger = logging.getLogger(__name__)
 # Create blueprint
 inhouse_kanban_bp = Blueprint('inhouse_kanban', __name__, url_prefix='/api/inhouse-kanban')
 
-# Database connection configuration
-# Uses pymssql (simpler than pyodbc, no ODBC driver needed)
-DB_CONFIG = {
-    'server': '3.25.76.138',
-    'port': 1433,
-    'database': 'InHousePrint',
-    'user': 'sa',
-    'password': 'Jack2011'
-}
-
 # Connection retry configuration
 MAX_RETRIES = 2
 RETRY_DELAY = 1  # seconds
+
+
+def get_inhouse_db_config(user_id=None):
+    """
+    Get InHousePrint database credentials from Supabase.
+
+    Tries the requesting user's credentials first, then falls back to
+    user_id=1 (platform-wide / shared credentials).  If Supabase is
+    unavailable the function raises so the caller can surface a clear error.
+
+    Returns:
+        dict with keys: server, port, user, password, database
+    """
+    from AI_infrastructure.shared.database_utils import execute_query
+
+    lookup_ids = []
+    if user_id and user_id != 1:
+        lookup_ids.append(user_id)
+    lookup_ids.append(1)  # platform-wide fallback
+
+    for uid in lookup_ids:
+        try:
+            row = execute_query(
+                """
+                SELECT credentials
+                FROM ai_infrastructure.user_platform_credentials
+                WHERE user_id = %s
+                  AND platform = 'inhouse_print'
+                  AND is_active = TRUE
+                LIMIT 1
+                """,
+                (uid,),
+                fetch_mode='one'
+            )
+            if row and row[0]:
+                creds = row[0]
+                # pymssql expects server WITHOUT instance name in the server arg;
+                # strip the "\INSTANCE" or ",port" part and pass port separately.
+                import re as _re
+                raw_server = creds.get('server', '')
+                server_host = _re.split(r'[\\,]', raw_server)[0] or raw_server
+                config = {
+                    'server': server_host,
+                    'port': int(creds.get('port', 1433)),
+                    'database': creds.get('database', 'InHousePrint'),
+                    'user': creds.get('user', 'sa'),
+                    'password': creds.get('password', ''),
+                }
+                logger.debug(
+                    f"[InHouseKanban] Using inhouse_print creds from user_id={uid} "
+                    f"(server={config['server']}:{config['port']})"
+                )
+                return config
+        except Exception as e:
+            logger.warning(f"[InHouseKanban] Could not fetch credentials for user_id={uid}: {e}")
+
+    raise RuntimeError(
+        "No active inhouse_print credentials found in Supabase "
+        "(checked user_id=%s and platform fallback user_id=1). "
+        "Add credentials via ai_infrastructure.user_platform_credentials." % user_id
+    )
 
 
 # ============================================
 # HELPER FUNCTIONS
 # ============================================
 
-def get_db_connection():
+def get_db_connection(user_id=None):
     """
-    Get SQL Server connection to InHousePrint database
-    Uses pymssql instead of pyodbc (no ODBC driver required)
-    
-    Implements retry logic for network issues
-    
-    FIXED: Proper exception handling, no cursor management needed here
+    Get SQL Server connection to InHousePrint (Fred) database.
+
+    Credentials are fetched dynamically from Supabase so any IP / password
+    change is picked up without a code deploy.  Falls back to the
+    platform-wide credentials stored under user_id=1.
+
+    Uses pymssql (no ODBC driver required).
     """
     import time
-    
+
+    db_config = get_inhouse_db_config(user_id=user_id)
+
     for attempt in range(MAX_RETRIES):
         try:
             conn = pymssql.connect(
-                server=DB_CONFIG['server'],
-                port=DB_CONFIG['port'],
-                user=DB_CONFIG['user'],
-                password=DB_CONFIG['password'],
-                database=DB_CONFIG['database'],
-                timeout=10,  # Reduced timeout for faster failure detection
+                server=db_config['server'],
+                port=db_config['port'],
+                user=db_config['user'],
+                password=db_config['password'],
+                database=db_config['database'],
+                timeout=10,
                 login_timeout=10
             )
             if attempt > 0:
                 logger.info(f"Connected to InHousePrint database (attempt {attempt + 1})")
             else:
-                logger.debug(f"Connected to InHousePrint database")
+                logger.debug("Connected to InHousePrint database")
             return conn
         except Exception as e:
             if attempt < MAX_RETRIES - 1:
@@ -215,6 +269,8 @@ def get_active_jobs():
     conn = None    # ✅ Initialize BEFORE try
     
     try:
+        # Get user_id from auth context for credential lookup (falls back to platform-wide creds)
+        user_id = getattr(request, 'user', {}).get('user_id') if hasattr(request, 'user') else None
         # Validate BEFORE creating resources
         timeframe_months = int(request.args.get('timeframe_months', -6))
         priority_filter = request.args.get('priority_filter', 'all').lower()
@@ -384,7 +440,7 @@ def get_active_jobs():
         query += " ORDER BY AIPriorityScore DESC, o.DateRequired ASC"
         
         # Execute query
-        conn = get_db_connection()
+        conn = get_db_connection(user_id=user_id)
         cursor = conn.cursor()
         
         params = [limit, timeframe_months]
@@ -489,6 +545,8 @@ def get_stage_summary():
     conn = None    # ✅ Initialize BEFORE try
     
     try:
+        # Get user_id from auth context for credential lookup (falls back to platform-wide creds)
+        user_id = getattr(request, 'user', {}).get('user_id') if hasattr(request, 'user') else None
         timeframe_months = int(request.args.get('timeframe_months', -6))
         
         query = """
@@ -508,7 +566,7 @@ def get_stage_summary():
         ORDER BY js.StageID
         """
         
-        conn = get_db_connection()
+        conn = get_db_connection(user_id=user_id)
         cursor = conn.cursor()
         cursor.execute(query, [timeframe_months])
         
@@ -579,6 +637,8 @@ def get_dashboard_metrics():
     conn = None    # ✅ Initialize BEFORE try
     
     try:
+        # Get user_id from auth context for credential lookup (falls back to platform-wide creds)
+        user_id = getattr(request, 'user', {}).get('user_id') if hasattr(request, 'user') else None
         timeframe_months = int(request.args.get('timeframe_months', -6))
         
         query = """
@@ -594,7 +654,7 @@ def get_dashboard_metrics():
             AND o.OrderDate >= DATEADD(month, %s, GETDATE())
         """
         
-        conn = get_db_connection()
+        conn = get_db_connection(user_id=user_id)
         cursor = conn.cursor()
         cursor.execute(query, [timeframe_months])
         
@@ -651,6 +711,8 @@ def get_job_details(ticket_id):
     conn = None    # ✅ Initialize BEFORE try
     
     try:
+        # Get user_id from auth context for credential lookup (falls back to platform-wide creds)
+        user_id = getattr(request, 'user', {}).get('user_id') if hasattr(request, 'user') else None
         query = """
         SELECT 
             jt.TicketID,
@@ -736,7 +798,7 @@ def get_job_details(ticket_id):
         WHERE jt.TicketID = %s
         """
         
-        conn = get_db_connection()
+        conn = get_db_connection(user_id=user_id)
         cursor = conn.cursor()
         cursor.execute(query, [ticket_id])
         
@@ -840,7 +902,10 @@ def health():
     conn = None    # ✅ Initialize BEFORE try
     
     try:
-        conn = get_db_connection()
+        # Get user_id from auth context for credential lookup (falls back to platform-wide creds)
+        user_id = getattr(request, 'user', {}).get('user_id') if hasattr(request, 'user') else None
+        db_cfg = get_inhouse_db_config(user_id=user_id)
+        conn = get_db_connection(user_id=user_id)
         cursor = conn.cursor()
         cursor.execute('SELECT COUNT(*) FROM JobTickets WHERE InternalInvoiceComplete = 0')
         active_jobs = cursor.fetchone()[0]
@@ -855,8 +920,8 @@ def health():
             'status': 'healthy',
             'database': 'connected',
             'active_jobs': active_jobs,
-            'server': DB_CONFIG['server'],
-            'database_name': DB_CONFIG['database']
+            'server': db_cfg['server'],
+            'database_name': db_cfg['database']
         })
         
     except Exception as e:

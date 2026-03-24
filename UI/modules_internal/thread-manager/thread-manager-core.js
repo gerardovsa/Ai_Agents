@@ -316,7 +316,14 @@ const ThreadManager = {
                     console.log('📥 [ThreadManager] Auto-loading prime thread...');
                     // Wait for assignment module to load (it extends ThreadManager with assignThread)
                     await this.waitForAssignmentModule();
-                    await this.autoLoadPrimeThread();
+                    // ✅ FIX: Wrap in try/catch - assignment API 502s (Render cold start) must not
+                    // crash the entire ThreadManager initialization. The thread loads fine locally;
+                    // the backend assignment syncs on next user interaction.
+                    try {
+                        await this.autoLoadPrimeThread();
+                    } catch (primeLoadErr) {
+                        console.warn('⚠️ [ThreadManager] autoLoadPrimeThread failed (non-fatal, likely server cold start):', primeLoadErr.message);
+                    }
                 } else {
                     console.log('✅ [ThreadManager] Prime thread already loaded, skipping auto-load');
                 }

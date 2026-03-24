@@ -187,6 +187,7 @@ from routes.kanban_routes import kanban_bp  # NEW: Kanban board with AI agent in
 from routes.database_visualizer_routes import database_visualizer_bp  # ✅ MIGRATED to Supabase PostgreSQL (2025-12-07)
 log_debug("Importing synergy_routes...")
 from routes.synergy_routes import synergy_bp  # NEW: Synergy Dashboard Kanban
+from routes.synergy_share_routes import synergy_share_bp  # NEW: Synergy visibility & member management (/api/synergy/sessions/*/visibility|members)
 from routes.synergy_file_search import synergy_search_bp  # NEW: Synergy Files global search (Gap #8 fix)
 log_debug("Importing scheduler_routes...")
 from routes.scheduler_routes import scheduler_bp  # NEW: AI Automation Scheduler
@@ -194,6 +195,8 @@ log_debug("Importing automation_routes...")
 from routes.automation_routes import automation_bp  # NEW: Visual Automation Canvas
 log_debug("Importing ml_routes...")
 from routes.ml_routes import ml_bp  # NEW: ML Analytics & Predictions (churn, payment timing, fraud detection)
+log_debug("Importing auspost_routes...")
+from routes.auspost_routes import auspost_bp  # NEW: Australia Post shipping calculations
 log_debug("Done with main route imports!")
 
 # Optional: InHousePrint production workflow (requires pymssql)
@@ -495,12 +498,14 @@ app.register_blueprint(account_linking_bp)                           # NEW: Acco
 app.register_blueprint(kanban_bp)                                    # NEW: Kanban board + AI agent bridge (8 endpoints)
 app.register_blueprint(database_visualizer_bp)                       # ✅ ENABLED (Migrated to Supabase 2025-12-07)
 app.register_blueprint(synergy_bp)                                   # NEW: Synergy Dashboard (6 endpoints: /api/synergy/*)
+app.register_blueprint(synergy_share_bp)                             # NEW: Synergy share/visibility & member management (/api/synergy/sessions/*/visibility|members)
 app.register_blueprint(synergy_search_bp, url_prefix='/api/synergy')  # NEW: Synergy file search (Gap #8 fix: 2 endpoints)
 app.register_blueprint(cloud_storage_bp)                             # NEW: Cloud storage sync (6 endpoints: Google Drive folders to database)
 app.register_blueprint(connections_bp)                               # Platform connections (2 endpoints: list, disconnect)
 app.register_blueprint(scheduler_bp)                                 # NEW: AI Automation Scheduler (10 endpoints: /api/scheduler/*)
 app.register_blueprint(automation_bp)                                # NEW: Visual Automation Canvas (9 endpoints: /api/automation/*)
 app.register_blueprint(ml_bp)                                        # NEW: ML Analytics & Predictions (6 endpoints: /api/ml/*)
+app.register_blueprint(auspost_bp)                                   # NEW: Australia Post shipping (2 endpoints: /api/auspost/*)
 if INHOUSE_KANBAN_AVAILABLE:
     app.register_blueprint(inhouse_kanban_bp)                        # NEW: InHousePrint production workflow (5 endpoints)
 app.register_blueprint(kanban_supabase_bp)                           # NEW: Kanban Supabase integration (10 endpoints: /api/kanban/supabase/*)
@@ -542,6 +547,14 @@ app.register_blueprint(monitoring_bp)                                # NEW: Conn
 app.register_blueprint(module_bp)                                    # NEW: Self-registering module system (8 endpoints: /api/modules/*)
 app.register_blueprint(task_sync_bp)                                 # NEW: Universal Task Sync (Google Tasks, Microsoft To Do, Calendar - /api/sync/*)
 # app.register_blueprint(quote_calc_bp)                                # DISABLED: In_House_SQL dependency
+
+# Organisation credentials & team management
+try:
+    from routes.organisation_credentials_routes import org_credentials_bp
+    app.register_blueprint(org_credentials_bp)                       # NEW: Organisation credentials vault + team management (11 endpoints: /api/org/*)
+    log_success(logger, "Organisation routes registered (11 endpoints: /api/org/*)")
+except Exception as e:
+    log_error(logger, f"Failed to register organisation_credentials routes: {e}")
 
 # 🛠️ DEV TOOLS: Module Creator & Verifier (Development-only endpoints)
 from routes.dev_tools_routes import dev_tools_bp
@@ -4072,6 +4085,61 @@ def log_request_info():
                 _last_health_log_time = current_time
         else:
             logger.info(f'➡️  {request.method} {request.path}')
+
+
+@app.before_request
+def set_rls_context_from_jwt():
+    """
+    MULTI-TENANT RLS MIDDLEWARE
+    ===========================
+    Extracts user_id and organisation_id from the JWT Bearer token and stores
+    them in Flask g so that database_utils.get_database_connection() can
+    automatically inject them as PostgreSQL session-level config vars
+    (app.current_user_id and app.current_organisation_id) required by RLS policies.
+
+    This runs on every request, before any route handler executes.
+    It is intentionally non-blocking: if the token is missing, invalid, or the
+    user has no org, g values are left as None and RLS policies will simply deny
+    access to protected rows (returning empty results rather than errors).
+
+    g attributes set:
+      g.rls_user_id         (int | None)
+      g.rls_organisation_id (int | None)
+    """
+    from flask import g
+    g.rls_user_id         = None
+    g.rls_organisation_id = None
+
+    # Skip Socket.IO and static assets — no JWT needed
+    if (request.path.startswith('/socket.io/')
+            or request.path.startswith('/static')
+            or request.path.startswith('/UI')):
+        return
+
+    auth_header = request.headers.get('Authorization', '')
+    if not auth_header.startswith('Bearer '):
+        return
+
+    token = auth_header[7:]
+    if not token:
+        return
+
+    try:
+        import jwt as pyjwt
+        import os
+        secret = os.environ.get('JWT_SECRET', '')
+        if not secret:
+            return
+        payload = pyjwt.decode(token, secret, algorithms=['HS256'])
+        user_id = payload.get('user_id')
+        org_id  = payload.get('organisation_id')
+        if user_id:
+            g.rls_user_id = int(user_id)
+        if org_id:
+            g.rls_organisation_id = int(org_id)
+    except Exception:
+        # Expired, invalid signature, etc. — leave g values as None
+        pass
 
 @app.after_request
 def log_response_info(response):

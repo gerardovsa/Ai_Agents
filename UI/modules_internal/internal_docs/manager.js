@@ -402,7 +402,7 @@ class InternalDocsManager {
                 background: transparent;
                 border: 1px solid var(--border-default);
                 border-radius: 6px;
-                font-size: 12px;
+                font-size: 14px;
                 font-weight: 500;
                 color: var(--text-secondary);
                 cursor: pointer;

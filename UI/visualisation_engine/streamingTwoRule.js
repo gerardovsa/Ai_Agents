@@ -118,7 +118,27 @@ class TwoRuleStreamProcessor {
         this.visualBufferEnd = 0;
 
         // ENDERING/QUEUE STATE
-        this.markdownContainer = null;
+        // CRITICAL FIX: Eagerly create the markdown wrapper and attach it to the
+        // streaming container NOW, before any content arrives.  The synchronous
+        // state-machine parser (parseNormalState) inserts anchors and loading
+        // indicators via `this.markdownContainer || this.container`.  When the
+        // markdown container only exists LAZILY (created later in async
+        // renderMarkdownPackage), any anchor or loading indicator created before
+        // the first async render fires lands as a direct child of this.container.
+        // That makes every subsequent markdownContainer (with all text) append
+        // AFTER those stranded viz/anchor nodes — resulting in all
+        // visualisations appearing above all markdown text.  Eager creation
+        // ensures every anchor, loading indicator and text block always go into
+        // the same wrapper, in stream order, from the very first chunk.
+        this.markdownContainer = document.createElement('div');
+        this.markdownContainer.className = 'two-rule-markdown-container';
+        this.markdownContainer.style.cssText = [
+            'line-height: 1.4',
+            'color: var(--text-primary)',
+            'word-wrap: break-word',
+        ].join(';');
+        this.container.appendChild(this.markdownContainer);
+
         this.loadingIndicator = null;
         this.isReleasing = false;
 
@@ -577,16 +597,12 @@ class TwoRuleStreamProcessor {
      * RULE: TYPE 1 content MUST be concatenated as flowing text, NOT fragmented
      */
     async renderMarkdownPackage(pkg) {
-        // Get or create markdown container
+        // markdownContainer is now eagerly created in the constructor; this
+        // guard is kept as a safety net only (should never be null in practice).
         if (!this.markdownContainer) {
             this.markdownContainer = document.createElement('div');
             this.markdownContainer.className = 'two-rule-markdown-container';
-            this.markdownContainer.style.cssText = `
-                line-height: 1.4;
-                color: var(--text-primary);
-      \*          white-space: pre-wrap;   *\
-                word-wrap: break-word;
-            `;
+            this.markdownContainer.style.cssText = 'line-height:1.4;color:var(--text-primary);word-wrap:break-word;';
             this.container.appendChild(this.markdownContainer);
         }
 
@@ -741,8 +757,27 @@ class TwoRuleStreamProcessor {
                 contentElement.innerHTML = `<div class="markdown-fallback" style="white-space: pre-wrap;">${safe}</div>`;
             }
 
-            // Store reference to this markdown container for future concatenation
-            this.markdownContainer.appendChild(contentElement);
+            // Position-aware insertion: place BEFORE any child with a higher stream position.
+            // This ensures that when a viz anchor sits at position 0 (inserted while
+            // markdownContainer was still empty), a markdown package arriving later
+            // with a LOWER actual position is correctly inserted BEFORE the anchor
+            // rather than blindly appended after it.
+            {
+                let insertBeforeChild = null;
+                const newPos = pkg.position;
+                for (const child of Array.from(this.markdownContainer.children)) {
+                    const childPos = parseInt(child.getAttribute('data-stream-position') || '-1', 10);
+                    if (childPos > newPos) {
+                        insertBeforeChild = child;
+                        break;
+                    }
+                }
+                if (insertBeforeChild) {
+                    this.markdownContainer.insertBefore(contentElement, insertBeforeChild);
+                } else {
+                    this.markdownContainer.appendChild(contentElement);
+                }
+            }
 
             // 🎨 ENHANCE CODE BLOCKS: Apply syntax highlighting to new content
             if (window.codeBlockEnhancer && window.codeBlockEnhancer.initialized) {
@@ -1224,6 +1259,7 @@ class TwoRuleStreamProcessor {
 
             // ✨ Interactive HTML
             { type: 'html', start: '<EXECUTE_HTML>', end: '</EXECUTE_HTML>' },
+            { type: 'react', start: '<EXECUTE_REACT>', end: '</EXECUTE_REACT>' },
 
             // ✨ SVG/Technical Diagrams
             { type: 'svg', start: '<SVG_VISUAL>', end: '</SVG_VISUAL>' },
@@ -1301,6 +1337,7 @@ class TwoRuleStreamProcessor {
             '<CHARTJS>', '<APEXCHARTS>',
             '<THREEJS>', '<GSAP>', '<LOTTIE>',
             '<EXECUTE_HTML>',
+            '<EXECUTE_REACT>',
             '<SVG_VISUAL>', '<CAD>', '<SCHEMATIC>', '<BLUEPRINT>', '<MOLECULE>',
             '<ENGINEERING_CAD>', '<TECHNICAL_DRAWING>', '<CONSTRAINTS_INFO>', '<BOM>',
             '<LATEX>'
@@ -1461,6 +1498,7 @@ class TwoRuleStreamProcessor {
             // ✨ NEW: Math & Interactive
             'latex': '<LATEX>',
             'html': '<EXECUTE_HTML>',
+            'react': '<EXECUTE_REACT>',
 
             // ✨ NEW: 3D & Animation
             'apexcharts': '<APEXCHARTS>',
@@ -1489,6 +1527,7 @@ class TwoRuleStreamProcessor {
             // ✨ NEW: Math & Interactive
             'latex': '</LATEX>',
             'html': '</EXECUTE_HTML>',
+            'react': '</EXECUTE_REACT>',
 
             // ✨ NEW: 3D & Animation
             'apexcharts': '</APEXCHARTS>',

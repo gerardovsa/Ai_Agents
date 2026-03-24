@@ -539,7 +539,17 @@ def get_database_connection(db_name: str = 'ai_infrastructure'):
         cursor.execute("SET statement_timeout = '60s'")
         cursor.close()
         conn.commit()
-        
+
+        # ✅ MULTI-TENANT: Inject RLS session vars (user_id + organisation_id)
+        # Required by Row-Level Security policies on all schemas.
+        # Values come from g.rls_user_id / g.rls_organisation_id set by JWT middleware.
+        # Non-fatal if outside Flask context (background tasks / migrations).
+        try:
+            from shared.rls_session_manager import inject_rls_vars
+            inject_rls_vars(conn)
+        except Exception:
+            pass  # Always non-fatal
+
         print(f" [POOL] Got connection from pool for '{schema_name}' (wait: {wait_time*1000:.1f}ms)")
         
         # Wrap connection to return to pool on close
@@ -560,33 +570,42 @@ def get_database_connection(db_name: str = 'ai_infrastructure'):
                 self._return_attempted = True  # ✅ Mark BEFORE putconn
                 
                 try:
-                    if not self._conn.closed:
-                        # ✅ CRITICAL: ALWAYS rollback before testing or returning
-                        # This handles aborted transactions that would cause putconn() to fail
+                    if self._conn.closed:
+                        # Connection was already closed by psycopg2 (network drop etc.)
+                        # Still count as returned so acquired/returned stays balanced.
+                        _pool_stats['connections_returned'] += 1
+                        self._closed = True
+                        return
+
+                    # ✅ CRITICAL: ALWAYS rollback before testing or returning
+                    # This handles aborted transactions that would cause putconn() to fail
+                    try:
+                        self._conn.rollback()
+                    except Exception as rollback_err:
+                        print(f"⚠️  [POOL] Rollback failed (connection may be dead): {rollback_err}")
+                    
+                    # ✅ FIX: Test connection liveness before returning to pool
+                    try:
+                        test_cursor = self._conn.cursor()
+                        test_cursor.execute("SELECT 1")
+                        test_cursor.close()
+                        # Connection alive - safe to return
+                        self._pool.putconn(self._conn)
+                        _pool_stats['connections_returned'] += 1
+                        self._closed = True
+                    except (psycopg2.DatabaseError, psycopg2.InterfaceError) as zombie_err:
+                        # Connection died during use - don't return zombie to pool
+                        # NOTE: Catching psycopg2.DatabaseError (parent) because Supabase raises it
+                        # directly for TCP timeout errors, not just OperationalError subclass.
+                        print(f"⚠️  [POOL] Discarding zombie connection (died during use): {zombie_err}")
                         try:
-                            self._conn.rollback()
-                        except Exception as rollback_err:
-                            print(f"⚠️  [POOL] Rollback failed (connection may be dead): {rollback_err}")
-                        
-                        # ✅ FIX: Test connection liveness before returning to pool
-                        try:
-                            test_cursor = self._conn.cursor()
-                            test_cursor.execute("SELECT 1")
-                            test_cursor.close()
-                            # Connection alive - safe to return
-                            self._pool.putconn(self._conn)
-                            _pool_stats['connections_returned'] += 1
-                            self._closed = True
-                        except (psycopg2.DatabaseError, psycopg2.InterfaceError) as zombie_err:
-                            # Connection died during use - don't return zombie to pool
-                            # NOTE: Catching psycopg2.DatabaseError (parent) because Supabase raises it
-                            # directly for TCP timeout errors, not just OperationalError subclass.
-                            print(f"⚠️  [POOL] Discarding zombie connection (died during use): {zombie_err}")
-                            try:
-                                self._pool.putconn(self._conn, close=True)  # Close instead of return
-                            except:
-                                pass
-                            self._closed = True
+                            self._pool.putconn(self._conn, close=True)  # Close instead of return
+                        except:
+                            pass
+                        # ✅ FIX: Must still count as returned - the acquired counter was incremented
+                        # and this connection (even if dead) is no longer held by user code.
+                        _pool_stats['connections_returned'] += 1
+                        self._closed = True
                 except Exception as e:
                     # ✅ Last resort: Try to rollback and return anyway
                     try:

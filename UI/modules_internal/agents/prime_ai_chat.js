@@ -1320,7 +1320,8 @@ async function sendChatMessage() {
                                                     return;
                                                 }
                                                 console.log('🔍 Opening message in popup (double-click)...');
-                                                openMessagePopup('assistant', fullResponse);
+                                                // Pass the rendered element so popup clones live HTML (avoids async re-render issues)
+                                                openMessagePopup('assistant', fullResponse, contentDiv);
                                             });
                                         }
 
@@ -2500,40 +2501,28 @@ async function addChatMessage(role, content, isThinking = false, checkDuplicates
 }
 
 // ==================== MESSAGE POPUP FUNCTIONS ====================
-function openMessagePopup(role, content) {
+function openMessagePopup(role, content, renderedEl) {
     const overlay = document.getElementById('message-popup-overlay');
     const body = document.getElementById('message-popup-body');
     const titleText = document.getElementById('message-popup-title-text');
 
     titleText.textContent = 'Message Details';
 
+    body.innerHTML = '';
+
     if (role === 'assistant') {
-        console.log('🎨 Rendering popup content...');
-
-        if (!window.USE_BASIC_RENDERER && typeof TwoRuleStreamProcessor !== 'undefined') {
-            try {
-                console.log('🎨 Using TwoRuleStreamProcessor for popup...');
-                body.innerHTML = '';
-                const processor = new TwoRuleStreamProcessor(body);
-                processor.processChunk(content);
-
-                if (typeof processor.finalize === 'function') {
-                    processor.finalize();
-                } else if (typeof processor.complete === 'function') {
-                    processor.complete();
-                }
-
-                if (!body.innerHTML || body.innerHTML.trim() === '') {
-                    console.warn('[WARN] Visualization engine produced empty popup content, using basic renderer');
-                    body.innerHTML = renderBasicMarkdown(content);
-                }
-            } catch (error) {
-                console.error('❌ Visualization engine error in popup:', error);
-                console.log('↩️ Falling back to basic markdown renderer');
-                body.innerHTML = renderBasicMarkdown(content);
-            }
+        // Preferred path: clone the already-rendered DOM element directly.
+        // This preserves all visualizations (CAD, SVG, Plotly etc.) without async re-render.
+        if (renderedEl && renderedEl.innerHTML && renderedEl.innerHTML.trim() !== '') {
+            console.log('🎨 Cloning rendered content into popup...');
+            const clone = renderedEl.cloneNode(true);
+            // Strip any resize handles or drag events from clone so popup is read-only display
+            clone.querySelectorAll('.viz-resize-handle').forEach(el => el.remove());
+            body.appendChild(clone);
+            console.log('✅ Popup content cloned from rendered element');
         } else {
-            console.log('📝 Using basic markdown renderer for popup');
+            // Fallback: re-render from raw content using basic markdown
+            console.log('📝 No rendered element provided, using markdown renderer for popup');
             body.innerHTML = renderBasicMarkdown(content);
         }
 

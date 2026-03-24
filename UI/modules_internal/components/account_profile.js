@@ -496,9 +496,23 @@ async function loadUserProfile() {
 
             const roleBadge = document.getElementById('roleBadge');
             if (roleBadge) {
-                roleBadge.textContent = profile.role;
-                if (profile.role === 'admin') {
-                    roleBadge.classList.add('admin');
+                // Show org name + org role when available, fallback to system role
+                if (profile.org_name && profile.org_role) {
+                    roleBadge.textContent = `${profile.org_name}  [${profile.org_role}]`;
+                } else {
+                    roleBadge.textContent = profile.role || 'user';
+                }
+                roleBadge.classList.toggle('admin', profile.role === 'admin');
+            }
+
+            // Update loading screen org badge
+            const authOrgBadge = document.getElementById('authOrgBadge');
+            if (authOrgBadge) {
+                if (profile.org_name) {
+                    authOrgBadge.textContent = profile.org_name;
+                    authOrgBadge.style.display = 'block';
+                } else {
+                    authOrgBadge.style.display = 'none';
                 }
             }
 
@@ -511,11 +525,13 @@ async function loadUserProfile() {
             if (sidebarUserName) sidebarUserName.textContent = profile.username || 'User';
             if (sidebarUserEmail) sidebarUserEmail.textContent = profile.email || 'No email';
             if (sidebarRoleBadge) {
-                sidebarRoleBadge.textContent = profile.role || 'user';
-                sidebarRoleBadge.className = 'role-badge'; // Reset classes
-                if (profile.role === 'admin') {
-                    sidebarRoleBadge.classList.add('admin');
+                if (profile.org_name && profile.org_role) {
+                    sidebarRoleBadge.textContent = `${profile.org_name}  [${profile.org_role}]`;
+                } else {
+                    sidebarRoleBadge.textContent = profile.role || 'user';
                 }
+                sidebarRoleBadge.className = 'role-badge';
+                if (profile.role === 'admin') sidebarRoleBadge.classList.add('admin');
             }
             if (authStatusDot) {
                 // Green dot for authenticated
@@ -2659,6 +2675,391 @@ if (document.readyState === 'loading') {
 } else {
     setupMicrosoft365LazyLoad();
 }
+
+// ============================================================================
+// ORGANISATION TAB
+// ============================================================================
+
+// State shared across org functions
+let _orgData = null;
+
+/** Tab switcher: General / Team Members / Organisation */
+function switchSettingsTab(tab, btn) {
+    document.querySelectorAll('.acct-tab-panel').forEach(p => p.style.display = 'none');
+    document.querySelectorAll('.acct-tab-btn').forEach(b => b.classList.remove('active'));
+    const panel = document.getElementById(`settings-tab-${tab}`);
+    if (panel) panel.style.display = 'flex';
+    if (btn)  btn.classList.add('active');
+    if (tab === 'org') loadOrgTab();
+}
+
+/** Sub-tab switcher inside the org dashboard */
+function switchOrgSubTab(subtab, btn) {
+    document.querySelectorAll('.org-sub-panel').forEach(p => { p.style.display = 'none'; });
+    document.querySelectorAll('.org-sub-tab').forEach(b => b.classList.remove('active'));
+    const panel = document.getElementById(`org-subtab-${subtab}`);
+    if (panel) panel.style.display = 'flex';
+    if (btn)  btn.classList.add('active');
+    if (subtab === 'members')     loadOrgMembers();
+    if (subtab === 'invitations') loadOrgInvitations();
+}
+
+/** Entry point: called when user opens the Organisation tab */
+async function loadOrgTab() {
+    const loading   = document.getElementById('orgLoading');
+    const empty     = document.getElementById('orgEmpty');
+    const dashboard = document.getElementById('orgDashboard');
+    const createForm= document.getElementById('orgCreateForm');
+
+    if (loading)    loading.style.display   = 'flex';
+    if (empty)      empty.style.display     = 'none';
+    if (dashboard)  dashboard.style.display = 'none';
+    if (createForm) createForm.style.display= 'none';
+
+    try {
+        const res  = await fetch(`${API_BASE_URL}/api/org/info`);
+        const data = await res.json();
+
+        if (loading) loading.style.display = 'none';
+
+        if (!data.success || !data.organisation) {
+            if (empty) empty.style.display = 'flex';
+            return;
+        }
+
+        _orgData = data.organisation;
+        _renderOrgDashboard(_orgData);
+    } catch (err) {
+        console.error('[ORG] Failed to load org tab:', err);
+        if (loading) loading.style.display = 'none';
+        if (empty)   empty.style.display   = 'flex';
+    }
+}
+
+function _renderOrgDashboard(org) {
+    const dashboard = document.getElementById('orgDashboard');
+    if (!dashboard) return;
+    dashboard.style.display = 'flex';
+
+    // Header identity card
+    const headerCard = document.getElementById('orgHeaderCard');
+    if (headerCard) {
+        const initials = (org.name || 'O').substring(0, 2).toUpperCase();
+        headerCard.style.cssText = 'display:flex;align-items:center;gap:14px;padding:18px 24px;border-bottom:1px solid var(--border-default);flex-shrink:0;';
+        headerCard.innerHTML = `
+                <div class="org-header-avatar">${initials}</div>
+                <div>
+                    <div class="org-header-name">${org.display_name || org.name}</div>
+                    <div class="org-header-meta">
+                        <span><i class="fas fa-tag"></i> ${org.slug}</span>
+                        <span><i class="fas fa-users"></i> <span id="orgMemberCountInline">...</span> members</span>
+                        <span style="color:var(--accent-primary);font-weight:700;">Your role: ${org.your_role || '—'}</span>
+                    </div>
+                </div>`;
+    }
+
+    // Populate overview form
+    const nameEl = document.getElementById('editOrgName');
+    const descEl = document.getElementById('editOrgDescription');
+    const visEl  = document.getElementById('editOrgVisibility');
+    const slugEl = document.getElementById('editOrgSlug');
+
+    if (nameEl) nameEl.value = org.display_name || org.name || '';
+    if (descEl) descEl.value = org.description || '';
+    if (visEl)  visEl.value  = org.visibility   || 'private';
+    if (slugEl) slugEl.value = org.slug          || '';
+
+    // Hide save button for non-owners
+    const saveBtn = document.getElementById('saveOrgSettingsBtn');
+    const isOwner = ['owner', 'admin'].includes(org.your_role);
+    if (saveBtn) saveBtn.style.display = isOwner ? 'inline-flex' : 'none';
+
+    // Load member count in the subtab badge
+    loadOrgMembers(/* countOnly */ true);
+}
+
+/** Save org overview settings */
+async function saveOrgSettings() {
+    const nameEl = document.getElementById('editOrgName');
+    const descEl = document.getElementById('editOrgDescription');
+    const visEl  = document.getElementById('editOrgVisibility');
+    const btn    = document.getElementById('saveOrgSettingsBtn');
+
+    const name = nameEl?.value.trim();
+    if (!name) { alert('Organisation name is required.'); return; }
+
+    if (btn) { btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving...'; }
+
+    try {
+        const res  = await fetch(`${API_BASE_URL}/api/org/info`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                name:        name,
+                description: descEl?.value.trim() || '',
+                visibility:  visEl?.value || 'private',
+            }),
+        });
+        const data = await res.json();
+        if (!data.success) throw new Error(data.error || 'Save failed');
+
+        const headerName = document.querySelector('.org-header-name');
+        if (headerName) headerName.textContent = name;
+        if (btn) { btn.disabled = false; btn.innerHTML = '<i class="fas fa-check"></i> Saved'; }
+        setTimeout(() => { if (btn) btn.innerHTML = '<i class="fas fa-save"></i> Save Settings'; }, 2000);
+    } catch (err) {
+        console.error('[ORG] saveOrgSettings error:', err);
+        alert(`Failed to save: ${err.message}`);
+        if (btn) { btn.disabled = false; btn.innerHTML = '<i class="fas fa-save"></i> Save Settings'; }
+    }
+}
+
+/** Create-org form helpers */
+function showCreateOrgForm() {
+    const empty = document.getElementById('orgEmpty');
+    const form  = document.getElementById('orgCreateForm');
+    if (empty) empty.style.display = 'none';
+    if (form)  form.style.display  = 'flex';
+}
+function hideCreateOrgForm() {
+    const empty = document.getElementById('orgEmpty');
+    const form  = document.getElementById('orgCreateForm');
+    if (form)  form.style.display  = 'none';
+    if (empty) empty.style.display = 'flex';
+}
+function updateOrgSlugPreview() {
+    const nameEl = document.getElementById('createOrgName');
+    const slugEl = document.getElementById('createOrgSlug');
+    if (!nameEl || !slugEl) return;
+    slugEl.value = (nameEl.value || '')
+        .toLowerCase()
+        .replace(/[^a-z0-9\s-]/g, '')
+        .trim()
+        .replace(/\s+/g, '-')
+        .substring(0, 50);
+}
+async function createOrganisation() {
+    const name   = document.getElementById('createOrgName')?.value.trim();
+    const slug   = document.getElementById('createOrgSlug')?.value.trim();
+    const desc   = document.getElementById('createOrgDescription')?.value.trim();
+    const vis    = document.getElementById('createOrgVisibility')?.value || 'private';
+    const btn    = document.getElementById('createOrgBtn');
+
+    if (!name) { alert('Organisation name is required.'); return; }
+
+    if (btn) { btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Creating...'; }
+
+    try {
+        const res  = await fetch(`${API_BASE_URL}/api/org/info`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ name, slug, description: desc, visibility: vis }),
+        });
+        const data = await res.json();
+        if (!data.success) throw new Error(data.error || 'Create failed');
+
+        // Reload the org tab to show the dashboard
+        await loadOrgTab();
+        document.getElementById('orgCreateForm').style.display = 'none';
+    } catch (err) {
+        console.error('[ORG] createOrganisation error:', err);
+        alert(`Failed to create organisation: ${err.message}`);
+        if (btn) { btn.disabled = false; btn.innerHTML = '<i class="fas fa-plus"></i> Create Organisation'; }
+    }
+}
+
+/** Load and render org members list */
+async function loadOrgMembers(countOnly = false) {
+    const listEl   = document.getElementById('orgMembersList');
+    const countEl  = document.getElementById('orgMemberCount');
+    const inlineEl = document.getElementById('orgMemberCountInline');
+
+    try {
+        const res  = await fetch(`${API_BASE_URL}/api/org/members`);
+        const data = await res.json();
+        if (!data.success) throw new Error(data.error);
+
+        const members = data.members || [];
+        const count   = members.length;
+
+        if (countEl)  countEl.textContent  = count;
+        if (inlineEl) inlineEl.textContent = count;
+
+        if (countOnly || !listEl) return;
+
+        const myUserId = UserAuth?.user?.user_id || UserAuth?.user?.id;
+        const isOwnerOrAdmin = _orgData && ['owner', 'admin'].includes(_orgData.your_role);
+
+        listEl.innerHTML = members.map(m => {
+            const isMe = m.id === myUserId;
+            const roleBadgeColor = { owner: '#f59e0b', admin: '#6366f1', manager: '#3b82f6', member: '#22c55e', viewer: '#64748b' }[m.org_role] || '#64748b';
+            return `
+                <div style="display:flex;justify-content:space-between;align-items:center;padding:12px 0;border-bottom:1px solid var(--border-default);">
+                    <div style="display:flex;align-items:center;gap:10px;">
+                        <div style="width:34px;height:34px;border-radius:50%;background:var(--bg-tertiary);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px;">
+                            ${(m.username || 'U')[0].toUpperCase()}
+                        </div>
+                        <div>
+                            <div style="font-size:13px;font-weight:600;">${m.username}${isMe ? ' <span style="font-size:10px;color:var(--text-muted)">(you)</span>' : ''}</div>
+                            <div style="font-size:11px;color:var(--text-muted);">${m.email}</div>
+                        </div>
+                    </div>
+                    <div style="display:flex;align-items:center;gap:8px;">
+                        <span style="font-size:11px;font-weight:700;padding:3px 8px;border-radius:4px;background:${roleBadgeColor}22;color:${roleBadgeColor};">${m.org_role}</span>
+                        ${isOwnerOrAdmin && !isMe && m.org_role !== 'owner' ? `
+                        <button onclick="removeMemberFromOrg(${m.id},'${m.username}')" class="btn btn-sm" style="padding:4px 8px;font-size:11px;background:transparent;border:1px solid var(--border-default);color:var(--text-muted);cursor:pointer;border-radius:4px;" title="Remove member">
+                            <i class="fas fa-times"></i>
+                        </button>` : ''}
+                    </div>
+                </div>`;
+        }).join('') || '<div style="padding:24px 0;text-align:center;color:var(--text-muted);font-size:13px;">No members found.</div>';
+
+    } catch (err) {
+        console.error('[ORG] loadOrgMembers error:', err);
+        if (listEl) listEl.innerHTML = '<div style="padding:20px;color:var(--text-muted);">Failed to load members.</div>';
+    }
+}
+
+async function removeMemberFromOrg(userId, username) {
+    if (!confirm(`Remove ${username} from the organisation?`)) return;
+    try {
+        const res  = await fetch(`${API_BASE_URL}/api/org/members/${userId}`, { method: 'DELETE' });
+        const data = await res.json();
+        if (!data.success) throw new Error(data.error);
+        loadOrgMembers();
+    } catch (err) {
+        alert(`Failed to remove member: ${err.message}`);
+    }
+}
+window.removeMemberFromOrg = removeMemberFromOrg;
+
+/** Invite member inline form */
+function showInviteMemberUI() {
+    const form = document.getElementById('inviteMemberForm');
+    if (form) form.style.display = 'block';
+    document.getElementById('inviteEmail')?.focus();
+}
+function hideInviteMemberUI() {
+    const form = document.getElementById('inviteMemberForm');
+    if (form) form.style.display = 'none';
+    if (document.getElementById('inviteEmail'))   document.getElementById('inviteEmail').value   = '';
+    if (document.getElementById('inviteRole'))    document.getElementById('inviteRole').value    = 'member';
+}
+async function inviteOrgMember() {
+    const email = document.getElementById('inviteEmail')?.value.trim();
+    const role  = document.getElementById('inviteRole')?.value || 'member';
+    const btn   = document.getElementById('sendInviteBtn');
+
+    if (!email || !email.includes('@')) { alert('Please enter a valid email address.'); return; }
+
+    if (btn) { btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Sending...'; }
+
+    try {
+        const res  = await fetch(`${API_BASE_URL}/api/org/invite`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email, role }),
+        });
+        const data = await res.json();
+        if (!data.success) throw new Error(data.error || 'Invite failed');
+
+        hideInviteMemberUI();
+
+        // Show the accept link so it can be copied/shared (until email is wired)
+        if (data.accept_url) {
+            const copied = await navigator.clipboard.writeText(data.accept_url).then(() => true).catch(() => false);
+            alert(`Invitation created for ${email}!\n\n` +
+                  `Invite link${copied ? ' (copied to clipboard)' : ''}:\n${data.accept_url}\n\n` +
+                  `Expires: ${data.expires_at ? new Date(data.expires_at).toLocaleDateString() : 'in 7 days'}`);
+        } else {
+            alert(`Invitation sent to ${email}!`);
+        }
+
+        loadOrgInvitations();
+    } catch (err) {
+        console.error('[ORG] inviteOrgMember error:', err);
+        alert(`Failed to send invitation: ${err.message}`);
+    } finally {
+        if (btn) { btn.disabled = false; btn.innerHTML = '<i class="fas fa-paper-plane"></i> Send Invite'; }
+    }
+}
+
+/** Load and render pending invitations */
+async function loadOrgInvitations() {
+    const listEl   = document.getElementById('orgInvitationsList');
+    const countEl  = document.getElementById('orgPendingCount');
+    if (!listEl) return;
+
+    listEl.innerHTML = '<div style="color:var(--text-muted);font-size:13px;"><i class="fas fa-spinner fa-spin"></i> Loading...</div>';
+
+    try {
+        const res  = await fetch(`${API_BASE_URL}/api/org/invite/pending`);
+        const data = await res.json();
+        if (!data.success) throw new Error(data.error);
+
+        const invites = data.invitations || [];
+        const pending = invites.filter(i => i.status === 'pending');
+        if (countEl) countEl.textContent = pending.length || '0';
+
+        if (!invites.length) {
+            listEl.innerHTML = '<div style="padding:24px 0;text-align:center;color:var(--text-muted);font-size:13px;">No invitations sent yet.</div>';
+            return;
+        }
+
+        listEl.innerHTML = invites.map(inv => {
+            const isPending  = inv.status === 'pending';
+            const isExpired  = inv.expires_at && new Date(inv.expires_at) < new Date();
+            const statusColor = isPending ? (isExpired ? '#ef4444' : '#f59e0b') :
+                                inv.status === 'accepted' ? '#22c55e' : '#64748b';
+            const statusText  = isExpired && isPending ? 'expired' : inv.status;
+            const expiry      = inv.expires_at ? new Date(inv.expires_at).toLocaleDateString() : '—';
+
+            return `
+                <div style="display:flex;justify-content:space-between;align-items:center;padding:11px 0;border-bottom:1px solid var(--border-default);gap:10px;">
+                    <div style="flex:1;min-width:0;">
+                        <div style="font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${inv.invited_email}</div>
+                        <div style="font-size:11px;color:var(--text-muted);margin-top:2px;">Role: ${inv.invited_role} &middot; Sent by ${inv.invited_by_username || 'admin'} &middot; Expires ${expiry}</div>
+                    </div>
+                    <div style="display:flex;align-items:center;gap:8px;flex-shrink:0;">
+                        <span style="font-size:11px;font-weight:700;padding:3px 8px;border-radius:4px;background:${statusColor}22;color:${statusColor};">${statusText}</span>
+                        ${isPending && !isExpired ? `
+                        <button onclick="revokeOrgInvite(${inv.id},'${inv.invited_email}')" class="btn btn-sm" style="padding:4px 8px;font-size:11px;background:transparent;border:1px solid var(--border-default);color:var(--text-muted);cursor:pointer;border-radius:4px;" title="Revoke invite">
+                            <i class="fas fa-times"></i>
+                        </button>` : ''}
+                    </div>
+                </div>`;
+        }).join('');
+    } catch (err) {
+        console.error('[ORG] loadOrgInvitations error:', err);
+        listEl.innerHTML = '<div style="padding:20px;color:var(--text-muted);">Failed to load invitations.</div>';
+    }
+}
+
+async function revokeOrgInvite(inviteId, email) {
+    if (!confirm(`Revoke invitation for ${email}?`)) return;
+    try {
+        const res  = await fetch(`${API_BASE_URL}/api/org/invite/${inviteId}`, { method: 'DELETE' });
+        const data = await res.json();
+        if (!data.success) throw new Error(data.error);
+        loadOrgInvitations();
+    } catch (err) {
+        alert(`Failed to revoke: ${err.message}`);
+    }
+}
+window.revokeOrgInvite = revokeOrgInvite;
+
+// Expose org functions globally (called from inline HTML onclick handlers)
+window.switchSettingsTab  = switchSettingsTab;
+window.switchOrgSubTab    = switchOrgSubTab;
+window.loadOrgTab         = loadOrgTab;
+window.saveOrgSettings    = saveOrgSettings;
+window.showCreateOrgForm  = showCreateOrgForm;
+window.hideCreateOrgForm  = hideCreateOrgForm;
+window.updateOrgSlugPreview = updateOrgSlugPreview;
+window.createOrganisation = createOrganisation;
+window.showInviteMemberUI = showInviteMemberUI;
+window.hideInviteMemberUI = hideInviteMemberUI;
+window.inviteOrgMember    = inviteOrgMember;
 
 // ✅ Export functions for external use
 window.initializeAccountProfile = initializeApp;

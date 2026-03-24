@@ -8,9 +8,7 @@
 To get a quote for Folded Flyers:
 
 ```
-Please calculate a quote for Folded Flyers with these specifications:
-[paste specifications from tests below]
-```
+We are testing the Folded Flyers Calculator below are test quote with specifications and the verified prices of what the quotes should come back as please generate quotes using the specifications below
 
 All prices listed below include GST and are actual website results.
 

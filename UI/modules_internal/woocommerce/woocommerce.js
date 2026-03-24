@@ -115,6 +115,86 @@ function createPrintLabel(order) {
     return parts.join('\n');
 }
 
+/**
+ * Calculate shipping cost for an order using Australia Post API
+ * @param {Object} order - WooCommerce order data
+ * @returns {Promise<Object>} - Shipping calculation result
+ */
+async function calculateShipping(order) {
+    try {
+        // Extract shipping address
+        const shippingAddress = {
+            postcode: extractPostcode(order.shipping_address),
+            state: extractState(order.shipping_address),
+            country: order.shipping_country || 'AU'
+        };
+        
+        // Validate postcode
+        if (!shippingAddress.postcode) {
+            return {
+                success: false,
+                error: 'No postcode'
+            };
+        }
+        
+        // Call Flask API endpoint
+        const response = await fetch('/api/auspost/calculate-order-shipping', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                line_items: order.line_items || [],
+                shipping_address: shippingAddress
+            })
+        });
+        
+        if (!response.ok) {
+            const errorData = await response.json();
+            return {
+                success: false,
+                error: errorData.error || 'API Error'
+            };
+        }
+        
+        const result = await response.json();
+        return result;
+        
+    } catch (error) {
+        console.error('[WC] Shipping calculation failed:', error);
+        return {
+            success: false,
+            error: 'Network Error'
+        };
+    }
+}
+
+/**
+ * Extract postcode from shipping address string
+ * @param {string} address - Multi-line shipping address
+ * @returns {string|null} - Extracted postcode or null
+ */
+function extractPostcode(address) {
+    if (!address) return null;
+    
+    // Australian postcode: 4 digits
+    const match = address.match(/\b(\d{4})\b/);
+    return match ? match[1] : null;
+}
+
+/**
+ * Extract state from shipping address string
+ * @param {string} address - Multi-line shipping address
+ * @returns {string|null} - Extracted state code or null
+ */
+function extractState(address) {
+    if (!address) return null;
+    
+    // Australian states: NSW, VIC, QLD, SA, WA, TAS, NT, ACT
+    const match = address.match(/\b(NSW|VIC|QLD|SA|WA|TAS|NT|ACT)\b/i);
+    return match ? match[1].toUpperCase() : null;
+}
+
 function renderOrdersTable(orders, container) {
     console.log(`[CHART] Rendering ${orders.length} orders in Tabulator table`);
 
@@ -338,6 +418,47 @@ function renderOrdersTable(orders, container) {
                     const row = cell.getRow().getData();
                     const printLabel = createPrintLabel(row);
                     return `<div style="line-height: 1.5; white-space: pre-wrap; font-family: monospace; background: var(--bg-primary); border-left: 3px solid var(--woocommerce-purple); padding: 8px; max-width: 300px; color: #ffffff;">${printLabel.replace(/\n/g, '<br>')}</div>`;
+                }
+            },
+            {
+                title: "Shipping",
+                field: "shipping_info",
+                width: 220,
+                headerSort: false,
+                formatter: function (cell) {
+                    const row = cell.getRow().getData();
+                    const cellElement = cell.getElement();
+                    
+                    // Check if already calculated (cached in row data)
+                    if (row._shippingData) {
+                        const data = row._shippingData;
+                        if (data.success) {
+                            return `<div style="line-height: 1.6; padding: 8px; background: var(--bg-primary); border-left: 3px solid var(--accent-success); color: #ffffff;">
+                                <div style="font-weight: 600; color: var(--accent-success);">📦 Box: ${data.box_type}</div>
+                                <div>⚖️ Wt: ${data.weight_grams}g</div>
+                                <div style="font-weight: 600; color: var(--accent-primary);">💰 ${data.postage_cost ? '$' + data.postage_cost.toFixed(2) : 'N/A'}</div>
+                            </div>`;
+                        } else {
+                            return `<div style="padding: 8px; color: var(--text-secondary);">❌ ${data.error || 'Calc Error'}</div>`;
+                        }
+                    }
+                    
+                    // Show loading state
+                    cellElement.innerHTML = `<div style="padding: 8px; color: var(--text-secondary);">
+                        <i class="fas fa-spinner fa-spin"></i> Calculating...
+                    </div>`;
+                    
+                    // Calculate shipping asynchronously
+                    calculateShipping(row).then(result => {
+                        row._shippingData = result;
+                        cell.getRow().reformat();
+                    }).catch(err => {
+                        console.error('[WC] Shipping calc error:', err);
+                        row._shippingData = { success: false, error: 'Calc Error' };
+                        cell.getRow().reformat();
+                    });
+                    
+                    return cellElement.innerHTML;
                 }
             },
             {

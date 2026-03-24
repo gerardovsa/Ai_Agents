@@ -27,9 +27,12 @@ class SchematicRenderer {
      * @param {string} chartId - Unique chart identifier
      */
     async render(item, contentArea, chartId) {
-        // DOM validation
-        if (!contentArea || !document.contains(contentArea)) {
+        // DOM validation — only null-check; container may be detached during deferred thread load
+        if (!contentArea) {
             throw new Error('Schematic: Invalid content area');
+        }
+        if (!document.contains(contentArea)) {
+            console.warn('⚠️ Schematic: Container not yet in DOM (deferred render) — proceeding anyway');
         }
 
         // Parse configuration - handle both SVG markup and JSON
