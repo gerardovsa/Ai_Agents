@@ -443,16 +443,52 @@ def google_drive_remove_permission(file_id, permission_id, _user_id=None, _injec
 
 # ==================== SEARCH & ADVANCED ====================
 
-def google_drive_search_files(query, max_results=10, _user_id=None, _injected_credentials=None, **kwargs):
+def google_drive_search_files(query=None, max_results=10, name_contains=None, mime_type=None,
+                               modified_after=None, modified_before=None, owner_email=None,
+                               shared_with_me=None, starred=None,
+                               _user_id=None, _injected_credentials=None, **kwargs):
     """
-    Search for files
-    
+    Search for files using either a raw Drive query string or schema-based filter parameters.
+
     Args:
-        query: Search query
+        query: Raw Google Drive API query string (e.g. "name contains 'dental'")
         max_results: Maximum results to return
+        name_contains: File name contains this text (builds Drive query automatically)
+        mime_type: Specific MIME type filter
+        modified_after: ISO 8601 date string - files modified after this date
+        modified_before: ISO 8601 date string - files modified before this date
+        owner_email: Filter by owner email address
+        shared_with_me: True to return only files shared with the user
+        starred: True to return only starred files
         _user_id: User ID for credential injection
         _injected_credentials: OAuth credentials flag
     """
+    # Build Drive API query from schema parameters if no raw query provided
+    if not query:
+        parts = []
+        if name_contains:
+            parts.append(f"name contains '{name_contains}'")
+        if mime_type:
+            parts.append(f"mimeType = '{mime_type}'")
+        if modified_after:
+            parts.append(f"modifiedTime > '{modified_after}'")
+        if modified_before:
+            parts.append(f"modifiedTime < '{modified_before}'")
+        if owner_email:
+            parts.append(f"'{owner_email}' in owners")
+        if shared_with_me is True:
+            parts.append("sharedWithMe = true")
+        if starred is True:
+            parts.append("starred = true")
+        # trashed = false is a sensible default
+        parts.append("trashed = false")
+        query = " and ".join(parts) if parts else None
+    else:
+        # If query looks like plain text (no Drive API operators), treat as name contains
+        drive_operators = ['contains', ' = ', ' != ', ' < ', ' > ', 'in owners', 'sharedWithMe', 'mimeType', 'modifiedTime', 'trashed']
+        if not any(op in query for op in drive_operators):
+            query = f"name contains '{query}' and trashed = false"
+
     return google_drive_list_files(max_results=max_results, query=query, _user_id=_user_id, _injected_credentials=_injected_credentials, **kwargs)
 
 
