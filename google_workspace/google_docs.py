@@ -76,8 +76,8 @@ def _get_docs_service(user_id=None, injected_credentials=None):
     if not HAS_DOCS_API:
         raise Exception("Google Docs API not available - install google-api-python-client")
     
-    # Use the unified Google Workspace authentication helper with user credentials
-    return build_docs_service(user_id=user_id, injected_credentials=injected_credentials)
+    # Pass user_id as _user_id so build_docs_service uses the new oauth_tokens path first
+    return build_docs_service(_user_id=user_id, user_id=user_id, injected_credentials=injected_credentials)
 
 
 # ==================== DOCUMENT OPERATIONS ====================

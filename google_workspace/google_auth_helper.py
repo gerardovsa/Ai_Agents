@@ -227,17 +227,33 @@ def build_docs_service(user_id=None, injected_credentials=None, _user_id=None, *
     return service
 
 
-def build_drive_service(user_id=None, injected_credentials=None):
+def build_drive_service(user_id=None, injected_credentials=None, _user_id=None, **kwargs):
     """Get authenticated Google Drive API service
     
     Args:
         user_id: User ID for OAuth credentials from database
         injected_credentials: OAuth credentials dict (from database)
+        _user_id: Injected user_id from credential_injector (PREFERRED)
     
     Returns:
         Authenticated Drive service using either user OAuth or service account
     """
-    # If user credentials provided, use them (don't cache per-user services)
+    # Priority 1: Use _user_id from credential injector (NEW METHOD - oauth_tokens table)
+    effective_user_id = _user_id or user_id
+    if effective_user_id and HAS_OAUTH_LOADER:
+        scopes = ['https://www.googleapis.com/auth/drive']
+        service = build_service_with_oauth(
+            user_id=effective_user_id,
+            service_name='drive',
+            version='v3',
+            scopes=scopes
+        )
+        if service:
+            print(f"✅ Drive service created with user {effective_user_id}'s OAuth credentials from database")
+            return service
+        print(f"⚠️  Failed to load OAuth credentials for Drive, falling back to legacy path")
+
+    # Priority 2: Legacy injected credentials dict
     if user_id and injected_credentials:
         print(f"🔑 Building Drive service with user {user_id}'s OAuth credentials")
         from google.oauth2.credentials import Credentials
