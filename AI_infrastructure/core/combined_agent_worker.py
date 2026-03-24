@@ -1879,6 +1879,7 @@ def run_simple_agent_worker(
         meta_tool_names = [
             'list_available_platforms',
             'list_platform_tools',
+            'search_tools',
             'get_tool_schema',
             'get_platform_guide',
             'recommend_tools_for_task'

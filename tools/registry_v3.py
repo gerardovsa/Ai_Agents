@@ -83,13 +83,15 @@ class RegistryV3:
         if not cache_hit:
             # Cache miss - load all components normally
             self._load_schemas()
-            self._load_implementations()
-            
-            # AUTO-LOAD MODULE PLUGINS (Quote Calculator, Stock Management, etc.)
-            self._load_module_plugins()
-            
             # Save to cache for next time (1-hour TTL)
             self._save_to_cache()
+        
+        # ALWAYS load implementations and plugins regardless of cache hit.
+        # The cache only stores JSON-serializable schemas (self.tools dict).
+        # Python callables (self.implementations) cannot be cached in Redis
+        # and MUST be reloaded every time to prevent "Tool not found" errors.
+        self._load_implementations()
+        self._load_module_plugins()
         
         logger.info(f"[OK] Registry V3 initialized: {len(self.tools)} tools loaded")
     
