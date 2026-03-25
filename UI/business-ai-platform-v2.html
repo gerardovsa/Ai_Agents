@@ -23024,6 +23024,11 @@
                                 <label class="acct-label">Slug (read-only)</label>
                                 <input type="text" id="editOrgSlug" class="acct-input acct-mono" disabled style="opacity:.55;">
                             </div>
+                            <div style="grid-column:1/-1;">
+                                <label class="acct-label">SSO Auto-Join Domains <span style="font-weight:400;color:var(--text-muted);font-size:11px;">(comma-separated, e.g. acme.com, acme.io)</span></label>
+                                <input type="text" id="editOrgAllowedDomains" class="acct-input acct-mono" placeholder="acme.com, acme.io">
+                                <div style="font-size:11px;color:var(--text-muted);margin-top:4px;">New users who sign in via Google or Microsoft SSO with a matching email domain will be automatically added to this organisation as members.</div>
+                            </div>
                         </div>
                         <div style="margin-top:20px;">
                             <button onclick="saveOrgSettings()" class="btn btn-primary" id="saveOrgSettingsBtn"><i class="fas fa-save"></i> Save Settings</button>

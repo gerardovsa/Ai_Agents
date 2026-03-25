@@ -303,6 +303,55 @@ def get_user_by_id(user_id: int):
                 pass
 
 
+def _auto_assign_org_by_domain(user_id: int, email: str) -> None:
+    """GAP-M6: Auto-add new SSO user to org if their email domain matches allowed_domains."""
+    try:
+        domain = email.split('@')[1].lower() if '@' in email else ''
+        if not domain:
+            return
+
+        from shared.database_utils import execute_query
+        org = execute_query(
+            """
+            SELECT id FROM ai_infrastructure.organisations
+            WHERE %s = ANY(allowed_domains)
+              AND is_active = TRUE
+            LIMIT 1
+            """,
+            (domain,),
+            fetch_mode='one'
+        )
+        if not org:
+            return
+
+        org_id = org['id'] if isinstance(org, dict) else org[0]
+
+        existing = execute_query(
+            "SELECT id FROM ai_infrastructure.organisation_members WHERE organisation_id = %s AND user_id = %s",
+            (org_id, user_id),
+            fetch_mode='one'
+        )
+        if existing:
+            return
+
+        execute_query(
+            """
+            INSERT INTO ai_infrastructure.organisation_members
+                (organisation_id, user_id, role, is_active, invited_by, joined_at, created_at)
+            VALUES (%s, %s, 'member', TRUE, NULL, NOW(), NOW())
+            """,
+            (org_id, user_id)
+        )
+        execute_query(
+            "UPDATE ai_infrastructure.users SET organisation_id = %s WHERE id = %s AND organisation_id IS NULL",
+            (org_id, user_id)
+        )
+        logger.info(f'[SSO AUTO-ASSIGN] User {user_id} ({email}) auto-joined org {org_id} via domain "{domain}"')
+
+    except Exception as e:
+        logger.warning(f'[SSO AUTO-ASSIGN] Domain org assignment failed for {email}: {e}')
+
+
 def create_user(email: str, username: str, role: str = 'user'):
     """
     Create new user in database with comprehensive error handling
@@ -772,6 +821,8 @@ def microsoft_callback():
             
             user_id = user['id']
             logger.info(f"User created: {user['username']} (ID: {user_id})")
+            # GAP-M6: Auto-assign to org if email domain matches allowed_domains
+            _auto_assign_org_by_domain(user_id, email)
         
         # ====================================================================
         # STEP 5: Store tokens in oauth_tokens table (THE FIX!)

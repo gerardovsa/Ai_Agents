@@ -885,26 +885,14 @@ Each gap is structured for systematic resolution. Work through them in the order
 ---
 
 #### GAP-M6: No `organisations.allowed_domains` for SSO Auto-Provisioning (MEDIUM)
-**Status:** `[ ]` Not Started  
-**Affected Files:** `AI_infrastructure/migrations/` (ALTER TABLE), `AI_infrastructure/routes/` (OAuth callbacks)  
-**Problem:** Google/Microsoft OAuth callbacks do not check org membership. A new SSO user gets created but is not assigned to any org, leaving them with no org context and broken functionality.  
-**Fix Steps:**
-1. Add column: `ALTER TABLE ai_infrastructure.organisations ADD COLUMN allowed_domains TEXT[] DEFAULT '{}';`
-2. In Google OAuth callback (`/api/auth/google/callback`) and Microsoft callback, after resolving the user email:
-   ```python
-   email_domain = email.split('@')[1]
-   org = execute_query(
-       "SELECT id FROM ai_infrastructure.organisations WHERE %s = ANY(allowed_domains)",
-       (email_domain,), fetch_mode='one'
-   )
-   if org:
-       # Auto-assign to org with member role
-       execute_query(
-           "UPDATE ai_infrastructure.users SET organisation_id = %s, org_role = 'member' WHERE id = %s",
-           (org['id'], user_id)
-       )
-   ```
-3. Add a UI field in org settings to manage `allowed_domains` (owner/admin only).  
+**Status:** `[x]` FIXED — Phase 6d  
+**Affected Files:** `AI_infrastructure/migrations/030_allowed_domains_for_sso.sql` (NEW), `AI_infrastructure/routes/google_auth_routes_V2_FIXED.py`, `AI_infrastructure/routes/microsoft_auth_routes_V2_FIXED.py`, `AI_infrastructure/routes/organisation_credentials_routes.py`, `UI/business-ai-platform-v2.html`, `UI/modules_internal/components/account_profile.js`  
+**Fix Applied:**  
+1. Migration `030_allowed_domains_for_sso.sql` — adds `allowed_domains TEXT[]` to `organisations` + GIN index (NOT YET RUN in Supabase)
+2. `_auto_assign_org_by_domain(user_id, email)` helper added to both Google and Microsoft OAuth callback files. Called after new user creation only — existing users unaffected.
+3. `PUT /api/org/info` updated to accept and validate `allowed_domains` array; `GET /api/org/info` returns it.  
+4. Org overview form in `business-ai-platform-v2.html` adds `#editOrgAllowedDomains` input field.  
+5. `saveOrgSettings()` / `_renderOrgDashboard()` in `account_profile.js` read/write `allowed_domains`.  
 **Verification Checkpoint:** Add `"testcorp.com"` to org 2's allowed_domains. Sign in with Google using a `@testcorp.com` email — user is automatically assigned to org 2 with `member` role.  
 **Dependencies:** GAP-H1 (org settings save) useful but not required.
 
@@ -1066,7 +1054,7 @@ Each gap is structured for systematic resolution. Work through them in the order
 | 🟡 MEDIUM | GAP-M3: No per-org AI provider/model | All orgs use same model |
 | 🟡 MEDIUM | GAP-M2: Conversations missing org FK | Chat history not org-isolated |
 | 🟡 MEDIUM | GAP-M4: Shopify/Xero not org-isolated | Integration data leakage |
-| 🟡 MEDIUM | GAP-M6: No allowed_domains for SSO | OAuth users not auto-provisioned |
+| ✅ FIXED  | GAP-M6: No allowed_domains for SSO | OAuth users not auto-provisioned |
 | 🟢 LOW | GAP-L1: JWT missing plan_tier | Extra DB hit per request |
 | 🟢 LOW | GAP-L2: Key rotation reminders unused | Silent stale keys |
 | 🟢 LOW | GAP-L3: No Test Connection button | UX gap |
@@ -1146,7 +1134,7 @@ Work through the phases in sequence. Each phase builds on the previous. Complete
 - `[ ]` **6a.** Fix GAP-M2: Add `organisation_id` to conversations table + RLS policy
 - `[ ]` **6b.** Fix GAP-M4: Audit Shopify/Xero tables, add org FK if missing
 - `[ ]` **6c.** Fix GAP-L4: Add org filter to realtime subscriptions
-- `[ ]` **6d.** Fix GAP-M6: Add `allowed_domains` column + OAuth auto-provisioning
+- `[x]` **6d.** Fix GAP-M6: Add `allowed_domains` column + OAuth auto-provisioning ✅
 
 **Phase 6 Checkpoint:** Two orgs, each with their own Shopify store connected. Each org's user sees only their store's products. Chat history from org 1 not visible to org 2 user.
 

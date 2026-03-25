@@ -2778,6 +2778,13 @@ function _renderOrgDashboard(org) {
     if (visEl)  visEl.value  = org.visibility   || 'private';
     if (slugEl) slugEl.value = org.slug          || '';
 
+    // Populate allowed_domains (SSO auto-provisioning)
+    const domainsEl = document.getElementById('editOrgAllowedDomains');
+    if (domainsEl) {
+        const domains = Array.isArray(org.allowed_domains) ? org.allowed_domains : [];
+        domainsEl.value = domains.join(', ');
+    }
+
     // Hide save button for non-owners
     const saveBtn = document.getElementById('saveOrgSettingsBtn');
     const isOwner = ['owner', 'admin'].includes(org.your_role);
@@ -2787,15 +2794,22 @@ function _renderOrgDashboard(org) {
     loadOrgMembers(/* countOnly */ true);
 }
 
-/** Save org overview settings */
 async function saveOrgSettings() {
-    const nameEl = document.getElementById('editOrgName');
-    const descEl = document.getElementById('editOrgDescription');
-    const visEl  = document.getElementById('editOrgVisibility');
-    const btn    = document.getElementById('saveOrgSettingsBtn');
+    const nameEl    = document.getElementById('editOrgName');
+    const descEl    = document.getElementById('editOrgDescription');
+    const visEl     = document.getElementById('editOrgVisibility');
+    const domainsEl = document.getElementById('editOrgAllowedDomains');
+    const btn       = document.getElementById('saveOrgSettingsBtn');
 
     const name = nameEl?.value.trim();
     if (!name) { alert('Organisation name is required.'); return; }
+
+    // Parse comma/space-separated domains, lowercase, strip empties
+    const rawDomains = domainsEl?.value || '';
+    const allowedDomains = rawDomains
+        .split(/[\s,]+/)
+        .map(d => d.trim().toLowerCase())
+        .filter(d => d.length > 0 && d.includes('.'));
 
     if (btn) { btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving...'; }
 
@@ -2804,9 +2818,10 @@ async function saveOrgSettings() {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-                name:        name,
-                description: descEl?.value.trim() || '',
-                visibility:  visEl?.value || 'private',
+                name:            name,
+                description:     descEl?.value.trim() || '',
+                visibility:      visEl?.value || 'private',
+                allowed_domains: allowedDomains,
             }),
         });
         const data = await res.json();

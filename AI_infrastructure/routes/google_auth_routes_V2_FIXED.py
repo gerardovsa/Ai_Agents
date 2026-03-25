@@ -221,6 +221,64 @@ def get_user_by_email_from_user_id(user_id):
             except:
                 pass
 
+
+def _auto_assign_org_by_domain(user_id: int, email: str) -> None:
+    """GAP-M6: If the user's email domain matches an org's allowed_domains, auto-add them as member.
+    Called after new SSO user creation. Silent on failure (non-critical path)."""
+    try:
+        domain = email.split('@')[1].lower() if '@' in email else ''
+        if not domain:
+            return
+
+        from shared.database_utils import execute_query
+        # Find org with matching domain (picks first match; domains should be globally unique)
+        org = execute_query(
+            """
+            SELECT id FROM ai_infrastructure.organisations
+            WHERE %s = ANY(allowed_domains)
+              AND is_active = TRUE
+            LIMIT 1
+            """,
+            (domain,),
+            fetch_mode='one'
+        )
+        if not org:
+            return
+
+        org_id = org['id'] if isinstance(org, dict) else org[0]
+
+        # Check user isn't already a member (idempotent)
+        existing = execute_query(
+            "SELECT id FROM ai_infrastructure.organisation_members WHERE organisation_id = %s AND user_id = %s",
+            (org_id, user_id),
+            fetch_mode='one'
+        )
+        if existing:
+            return
+
+        # Add as 'member' (not admin — principle of least privilege)
+        execute_query(
+            """
+            INSERT INTO ai_infrastructure.organisation_members
+                (organisation_id, user_id, role, is_active, invited_by, joined_at, created_at)
+            VALUES (%s, %s, 'member', TRUE, NULL, NOW(), NOW())
+            """,
+            (org_id, user_id)
+        )
+
+        # Update user's organisation_id (primary org)
+        execute_query(
+            "UPDATE ai_infrastructure.users SET organisation_id = %s WHERE id = %s AND organisation_id IS NULL",
+            (org_id, user_id)
+        )
+
+        print(f'[SSO AUTO-ASSIGN] User {user_id} ({email}) auto-joined org {org_id} via domain "{domain}"')
+
+    except Exception as e:
+        # Non-fatal — log and continue
+        print(f'[SSO AUTO-ASSIGN] Warning: domain org assignment failed for {email}: {e}')
+
+
 def create_user(email, username=None):
     """Create new user from OAuth login with comprehensive error handling"""
     if not username:
@@ -675,6 +733,8 @@ def google_callback():
                 user_id = create_user(email, email.split('@')[0])
                 user = get_user_by_email(email)
                 print(f'✅ [GOOGLE OAUTH] New user created: {user["username"]} (ID: {user_id})')
+                # GAP-M6: Auto-assign to org if email domain matches allowed_domains
+                _auto_assign_org_by_domain(user_id, email)
             except Exception as e:
                 print(f'❌ [GOOGLE OAUTH] Failed to create user: {e}')
                 from urllib.parse import quote

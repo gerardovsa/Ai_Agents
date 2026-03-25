@@ -87,6 +87,14 @@ def require_auth(f):
         if not token:
             return jsonify({'success': False, 'error': 'Authentication required'}), 401
 
+        # GAP-C4 FIX: Reject stale tokens that were invalidated by a role change.
+        # The before_request middleware in flask_app.py sets g.jwt_version_valid.
+        if not getattr(g, 'jwt_version_valid', True):
+            return jsonify({
+                'success': False,
+                'error': 'Session expired due to a permission change — please log in again.'
+            }), 401
+
         try:
             auth_manager = UserAuthManager()
             user = auth_manager.verify_token(token)
@@ -294,7 +302,8 @@ def get_org_info():
     org = execute_query(
         """
         SELECT id, name, slug, plan_tier, display_name, logo_url,
-               timezone, country_code, is_active, created_at
+               timezone, country_code, is_active, created_at,
+               description, visibility, allowed_domains
         FROM ai_infrastructure.organisations WHERE id = %s
         """,
         (ctx['organisation_id'],),
@@ -330,6 +339,9 @@ def get_org_info():
             'member_count':       member_count,
             'has_vault_password': bool(vault_hash),
             'created_at':         org['created_at'].isoformat() if org.get('created_at') else None,
+            'description':        org.get('description'),
+            'visibility':         org.get('visibility', 'private'),
+            'allowed_domains':    org.get('allowed_domains') or [],
         },
         'your_role': ctx['org_role'],
     })
@@ -337,13 +349,44 @@ def get_org_info():
 
 @org_credentials_bp.route('/info', methods=['PUT'])
 @require_auth
-@require_org_role('owner')
+@require_org_role('admin')
 def update_org_info():
-    """PUT /api/org/info — Update org metadata. Owner only."""
+    """PUT /api/org/info — Update org metadata. Admin+."""
     ctx = g.org_ctx
     data = request.get_json() or {}
-    allowed = ['display_name', 'logo_url', 'timezone', 'country_code']
-    updates = {k: v for k, v in data.items() if k in allowed}
+
+    # Simple scalar fields (all optional except name validation)
+    simple_allowed = ['display_name', 'logo_url', 'timezone', 'country_code', 'description']
+    updates = {k: v for k, v in data.items() if k in simple_allowed}
+
+    # name: non-empty string required if provided
+    if 'name' in data:
+        name = str(data['name']).strip()
+        if not name:
+            return jsonify({'success': False, 'error': 'Organisation name cannot be empty'}), 400
+        updates['name'] = name
+
+    # visibility: must be a known value
+    if 'visibility' in data:
+        visibility = str(data['visibility']).strip().lower()
+        if visibility not in ('private', 'unlisted', 'public'):
+            return jsonify({'success': False, 'error': 'visibility must be private, unlisted, or public'}), 400
+        updates['visibility'] = visibility
+
+    # allowed_domains: list of lowercase domain strings (GAP-M6)
+    if 'allowed_domains' in data:
+        raw = data['allowed_domains']
+        if not isinstance(raw, list):
+            return jsonify({'success': False, 'error': 'allowed_domains must be an array'}), 400
+        # Validate and normalise each domain
+        import re as _re
+        domain_re = _re.compile(r'^[a-z0-9]([a-z0-9\-]{0,61}[a-z0-9])?(\.[a-z0-9]([a-z0-9\-]{0,61}[a-z0-9])?)+$')
+        cleaned = []
+        for d in raw:
+            d = str(d).strip().lower()
+            if d and domain_re.match(d):
+                cleaned.append(d)
+        updates['allowed_domains'] = cleaned  # stored as TEXT[] in Postgres
 
     if not updates:
         return jsonify({'success': False, 'error': 'No valid fields to update'}), 400
@@ -434,12 +477,12 @@ def update_member_role(target_user_id: int):
             }), 403
 
     execute_query(
-        "UPDATE ai_infrastructure.users SET org_role = %s WHERE id = %s",
+        "UPDATE ai_infrastructure.users SET org_role = %s, jwt_version = COALESCE(jwt_version, 1) + 1 WHERE id = %s",
         (new_role, target_user_id)
     )
     return jsonify({
         'success': True,
-        'message': f'Role updated to {new_role}',
+        'message': f'Role updated to {new_role} — user must log in again for the change to take effect',
         'user_id': target_user_id,
         'new_role': new_role,
     })
@@ -463,8 +506,10 @@ def remove_member(target_user_id: int):
     if not target or target.get('organisation_id') != ctx['organisation_id']:
         return jsonify({'success': False, 'error': 'User not found in your organisation'}), 404
 
+    # GAP-C4 FIX: Increment jwt_version to invalidate all existing tokens for this user
     execute_query(
-        "UPDATE ai_infrastructure.users SET organisation_id = NULL, org_role = 'member' WHERE id = %s",
+        "UPDATE ai_infrastructure.users SET organisation_id = NULL, org_role = 'member', "
+        "jwt_version = COALESCE(jwt_version, 1) + 1 WHERE id = %s",
         (target_user_id,)
     )
     return jsonify({'success': True, 'message': 'Member removed from organisation'})
@@ -518,7 +563,20 @@ def add_credential():
     if not platform:
         return jsonify({'success': False, 'error': 'platform is required'}), 400
 
-    credential_value = data.get('credential_value', '').strip()
+    # GAP-M5 FIX: Validate platform against allowed list so free-text typos
+    # (e.g. "Anthropic" vs "anthropic") are caught before storage, ensuring
+    # resolve_api_key() can always match the stored value.
+    ALLOWED_PLATFORMS = {
+        'anthropic', 'openai', 'deepseek', 'assemblyai', 'pinecone',
+        'shopify', 'xero', 'sendgrid', 'twilio', 'auspost', 'stripe',
+        'google', 'microsoft', 'gmail_oauth', 'outlook_oauth',
+        'supabase', 'supabase_vsa', 'kajabi', 'hunter',
+    }
+    if platform not in ALLOWED_PLATFORMS:
+        return jsonify({
+            'success': False,
+            'error': f'Unknown platform "{platform}". Allowed values: {sorted(ALLOWED_PLATFORMS)}'
+        }), 400
     credentials_json = data.get('credentials', {})
 
     if not credential_value and not credentials_json:
