@@ -41,18 +41,37 @@ def get_db_connection():
     )
 
 
-def generate_embedding(text: str) -> List[float]:
+def generate_embedding(text: str, user_id: int = None) -> List[float]:
     """
-    Generate embedding for text using OpenAI
-    
+    Generate embedding for text using OpenAI.
+
+    Resolves the API key from the org vault for the given user (if provided)
+    and falls back to the OPENAI_API_KEY environment variable.
+
     Args:
-        text: Input text to embed
-        
+        text: Input text to embed.
+        user_id: Optional user ID to resolve per-org vault key (GAP-H3 fix).
+
     Returns:
-        List of embedding floats
+        List of embedding floats.
     """
+    # GAP-H3 FIX: Resolve key from org vault when user_id is available
+    api_key = os.getenv('OPENAI_API_KEY')
+    if user_id:
+        try:
+            from AI_infrastructure.shared.org_credentials_loader import resolve_api_key
+            vault_key = resolve_api_key(user_id, 'openai')
+            if vault_key:
+                api_key = vault_key
+        except Exception:
+            pass  # Fall through to env-var key
+
+    if not api_key:
+        raise ValueError("No OpenAI API key available (set OPENAI_API_KEY or add 'openai' to org vault)")
+
     try:
-        response = openai.embeddings.create(
+        client = openai.OpenAI(api_key=api_key)
+        response = client.embeddings.create(
             input=text,
             model=EMBEDDING_MODEL
         )

@@ -693,11 +693,15 @@ Each gap is structured for systematic resolution. Work through them in the order
 ---
 
 #### GAP-H3: `embedding_vector` Column Is Always NULL — Semantic Search Dead (HIGH)
-**Status:** `[ ]` Not Started  
-**Affected Files:** `AI_infrastructure/routes/` (wherever messages are saved), `AI_infrastructure/shared/pgvector_utils.py` (or equivalent)  
-**Problem:** `workspace_chats.messages` has an `embedding_vector` column (vector type) but no code populates it. Semantic search over chat history returns nothing. The IVFFlat index on this column is also non-functional until populated.  
-**Fix Steps:**
-1. Find where chat messages are saved (likely `POST /api/chat/message` or via SocketIO `handle_message` in `flask_app.py`).
+**Status:** ✅ **FIXED** (Session 5) — `generate_embedding()` updated with org vault key resolution; `message_manager.py` passes `user_id`.  
+**Affected Files:** `tools/implementations/conversation_memory.py`, `AI_infrastructure/threads/message_manager.py`  
+**Investigation Finding:** The actual AI chat messages table is `sessions.messages.content_embedding vector(1536)` (not `workspace_chats.messages`) — `message_manager.py` already called `generate_embedding()` but it used the global `openai.api_key = os.getenv('OPENAI_API_KEY')` set at module load, which is `None` on Render if the key is only in the org vault.  
+**Fix Applied:**
+1. Updated `generate_embedding(text, user_id=None)` in `conversation_memory.py` to resolve the API key from the org vault via `resolve_api_key(user_id, 'openai')` (same GAP-C3 pattern), with env var as fallback.
+2. Updated `message_manager.py` `create_message()` to pass `user_id=message_data.user_id` to `generate_embedding()`.
+3. `generate_embedding` raises `ValueError` (instead of silently returning None) if no key is available at all.  
+**Note on `workspace_chats.messages.embedding_vector`:** This is a separate workspace collaboration table. No Python code currently inserts into `workspace_chats.messages`, so its `embedding_vector` column is structurally unused — the workspace search feature has not been enabled yet. That is a separate scope beyond this gap.  
+**Verification Checkpoint:** Send 5 AI chat messages. Query: `SELECT COUNT(*) FROM sessions.messages WHERE content_embedding IS NOT NULL;` — must be > 0.  
 2. After saving the message row, add an async embedding call:
    ```python
    import threading
@@ -1053,7 +1057,7 @@ Each gap is structured for systematic resolution. Work through them in the order
 | ✅ FIXED | GAP-C3: UnifiedAIClient user_id=1 | Per-request resolve_api_key() for all 3 providers |
 | ✅ FIXED | GAP-C4: JWT stale on role change | jwt_version counter — migration 026 run |
 | ✅ FIXED | GAP-H2: Vault storage-only, never consumed | AssemblyAI + UnifiedAIClient wired |
-| 🟠 HIGH | GAP-H3: embedding_vector always NULL | Semantic search dead |
+| ✅ FIXED | GAP-H3: embedding_vector always NULL | `generate_embedding()` now resolves org vault key; `message_manager.py` passes user_id |
 | ✅ FIXED | GAP-H1: saveOrgSettings() undefined | PUT /api/org/info expanded + migration 027 |
 | ✅ FIXED | GAP-H4: Two parallel org UIs | Consolidated via DOM-move + Vault/Audit subtabs added |
 | ✅ FIXED | GAP-H5: Verify RLS injection working | INFO logging + role=authenticated confirmed |
@@ -1128,11 +1132,11 @@ Work through the phases in sequence. Each phase builds on the previous. Complete
 #### Phase 5 — Message Embeddings (HIGH semantic search)
 **Goal:** Populate `embedding_vector` for all new messages and enable semantic search.
 
-- `[ ]` **5a.** Fix GAP-H3: Add background embedding job after message save
-- `[ ]` **5b.** Test: Send 10 messages, confirm `embedding_vector IS NOT NULL` for all
-- `[ ]` **5c.** Test semantic search: query returns semantically relevant results
+- `[x]` **5a.** Fix GAP-H3: `generate_embedding()` in `conversation_memory.py` updated to accept `user_id` and resolve from org vault (GAP-C3 pattern); `message_manager.py` passes `user_id` ✅
+- `[ ]` **5b.** Test: Send 10 messages, confirm `content_embedding IS NOT NULL` in `sessions.messages` for all
+- `[ ]` **5c.** Test semantic search: `conversation_memory` tool query returns semantically relevant results
 
-**Phase 5 Checkpoint:** `SELECT COUNT(*) FROM workspace_chats.messages WHERE embedding_vector IS NOT NULL` returns > 0. Semantic search over chat history returns relevant results.
+**Phase 5 Checkpoint:** `SELECT COUNT(*) FROM sessions.messages WHERE content_embedding IS NOT NULL` returns > 0. Semantic search over chat history returns relevant results.
 
 ---
 

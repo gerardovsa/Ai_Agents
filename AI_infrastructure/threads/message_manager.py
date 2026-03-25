@@ -179,7 +179,11 @@ class MessageManager:
                     from tools.implementations.conversation_memory import generate_embedding
                     # Only embed substantive content (>20 chars)
                     if message_data.content and len(message_data.content.strip()) > 20:
-                        content_embedding = generate_embedding(message_data.content[:8000])  # Limit to 8K chars
+                        # GAP-H3 FIX: pass user_id so org vault key is used when available
+                        content_embedding = generate_embedding(
+                            message_data.content[:8000],
+                            user_id=message_data.user_id
+                        )
                 except Exception as e:
                     # Non-blocking: Continue even if embedding fails
                     logger.warning(f"Failed to generate message embedding: {e}")
