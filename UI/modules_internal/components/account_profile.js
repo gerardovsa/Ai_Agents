@@ -2728,6 +2728,15 @@ async function loadOrgTab() {
         }
 
         _orgData = data.organisation;
+        // GAP-H4: Sync OrgManager role state so Vault / Audit subtabs can gate access
+        if (typeof OrgManager !== 'undefined') {
+            const ROLE_LEVELS = { viewer: 1, member: 2, manager: 3, admin: 4, owner: 5 };
+            const userRole = data.your_role || data.organisation?.your_role || null;
+            OrgManager._userRole  = userRole;
+            OrgManager._userLevel = ROLE_LEVELS[userRole] || 0;
+            OrgManager._orgInfo   = data.organisation;
+            OrgManager._orgName   = data.organisation?.display_name || data.organisation?.name || 'our organisation';
+        }
         _renderOrgDashboard(_orgData);
     } catch (err) {
         console.error('[ORG] Failed to load org tab:', err);

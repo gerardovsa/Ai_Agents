@@ -22943,6 +22943,9 @@
 
             <!-- ORGANISATION TAB PANEL -->
             <div id="settings-tab-org" class="acct-tab-panel" style="flex-direction: column;">
+                <!-- GAP-H4: orgPanel is a movable container — AccountSidebar.loadOrganisationTab()
+                     detaches it into the sidebar; it is restored here when switching away. -->
+                <div id="orgPanel" style="display:flex;flex-direction:column;flex:1;overflow:hidden;">
                 <!-- Loading state -->
                 <div id="orgLoading" style="display:flex;flex-direction:column;align-items:center;padding:60px 20px;color:var(--text-muted);gap:12px;">
                     <i class="fas fa-spinner fa-spin" style="font-size:26px;"></i>
@@ -22995,6 +22998,8 @@
                         <button class="org-sub-tab active" data-subtab="overview" onclick="switchOrgSubTab('overview', this)"><i class="fas fa-cog"></i> Overview</button>
                         <button class="org-sub-tab" data-subtab="members" onclick="switchOrgSubTab('members', this)"><i class="fas fa-users"></i> Members <span class="acct-tab-badge" id="orgMemberCount">0</span></button>
                         <button class="org-sub-tab" data-subtab="invitations" onclick="switchOrgSubTab('invitations', this)"><i class="fas fa-envelope"></i> Invitations <span class="acct-tab-badge" id="orgPendingCount" style="background:#f59e0b;">0</span></button>
+                        <button class="org-sub-tab" data-subtab="vault" onclick="switchOrgSubTab('vault', this)"><i class="fas fa-key"></i> Vault</button>
+                        <button class="org-sub-tab" data-subtab="audit" onclick="switchOrgSubTab('audit', this)"><i class="fas fa-clipboard-list"></i> Audit</button>
                     </div>
                     <!-- Overview panel -->
                     <div id="org-subtab-overview" class="org-sub-panel" style="display:flex;flex-direction:column;padding:20px 24px;overflow-y:auto;flex:1;">
@@ -23060,7 +23065,36 @@
                             <div id="orgInvitationsList"></div>
                         </div>
                     </div>
+                    <!-- Vault panel (Credentials Vault + Vault Password) -->
+                    <div id="org-subtab-vault" class="org-sub-panel" style="flex:1;overflow-y:auto;padding:16px 20px;">
+                        <!-- Credentials list -->
+                        <div style="margin-bottom:20px;">
+                            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+                                <div style="font-size:13px;font-weight:700;color:var(--text-secondary);"><i class="fas fa-key" style="margin-right:6px;color:var(--accent-primary);"></i>Credentials Vault</div>
+                                <button class="add-connection-btn" id="orgAddCredBtn" onclick="OrgManager.openAddCredentialModal()" title="Add credential" style="display:none;"><i class="fas fa-plus"></i></button>
+                            </div>
+                            <div id="org-credentials-list" style="min-height:48px;">
+                                <div style="text-align:center;padding:20px;color:var(--text-muted);"><i class="fas fa-circle-notch fa-spin"></i> Loading…</div>
+                            </div>
+                        </div>
+                        <!-- Vault password -->
+                        <div id="orgVaultPasswordSection" style="display:none;">
+                            <div style="font-size:13px;font-weight:700;color:var(--text-secondary);margin-bottom:10px;"><i class="fas fa-lock" style="margin-right:6px;color:var(--accent-primary);"></i>Vault Password</div>
+                            <div id="orgVaultPasswordContent" style="padding:14px 16px;background:var(--bg-tertiary);border-radius:8px;"></div>
+                        </div>
+                    </div>
+                    <!-- Audit log panel -->
+                    <div id="org-subtab-audit" class="org-sub-panel" style="flex:1;overflow-y:auto;padding:16px 20px;">
+                        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+                            <div style="font-size:13px;font-weight:700;color:var(--text-secondary);"><i class="fas fa-clipboard-list" style="margin-right:6px;color:var(--accent-primary);"></i>Credential Access Log</div>
+                            <button class="add-connection-btn" onclick="OrgManager.loadAuditLog()" title="Refresh"><i class="fas fa-sync-alt"></i></button>
+                        </div>
+                        <div id="org-audit-log" style="min-height:48px;">
+                            <div style="text-align:center;padding:20px;color:var(--text-muted);"><i class="fas fa-circle-notch fa-spin"></i> Loading…</div>
+                        </div>
+                    </div>
                 </div>
+            </div><!-- close orgPanel -->
             </div><!-- Close settings-tab-org -->
 
         </div> <!-- Close modal-content -->
@@ -30257,6 +30291,17 @@
                 const contentContainer = document.getElementById('account-sidebar-content');
                 if (!contentContainer) return;
 
+                // GAP-H4: If #orgPanel was moved into this container, restore it to
+                // its home (#settings-tab-org) before we clear innerHTML.
+                const orgPanel = document.getElementById('orgPanel');
+                if (orgPanel && orgPanel.parentElement === contentContainer) {
+                    const settingsTabOrg = document.getElementById('settings-tab-org');
+                    if (settingsTabOrg) {
+                        settingsTabOrg.appendChild(orgPanel);
+                        orgPanel.style.display = ''; // let CSS/acct-tab-panel control visibility
+                    }
+                }
+
                 // Clear existing content
                 contentContainer.innerHTML = '';
 
@@ -30732,171 +30777,34 @@
             },
 
             /**
-             * Load Organisation tab content (full org management panel)
+             * Load Organisation tab content.
+             * GAP-H4 FIX: Delegate to the canonical account_profile.js org UI
+             * by moving the #orgPanel element into this sidebar container, then
+             * calling window.loadOrgTab() to populate it.  When the user
+             * switches away (handled in loadTabContent) #orgPanel is restored
+             * to its original home inside #settings-tab-org.
              */
             async loadOrganisationTab(container) {
-                // Initial skeleton while we load data
-                container.innerHTML = `
-                    <div class="org-tab-wrapper" style="padding:16px 0;">
-                        <div style="text-align:center;padding:40px 0;color:var(--text-muted);">
-                            <i class="fas fa-circle-notch fa-spin" style="font-size:24px;margin-bottom:12px;display:block;"></i>
-                            Loading organisation…
-                        </div>
-                    </div>`;
-
-                // Fetch org info to know the user's role
-                let orgInfo = null;
-                let userRole = null;
-                try {
-                    const r = await fetch('/api/org/info', { headers: OrgManager.authHeaders() });
-                    if (r.ok) {
-                        const data = await r.json();
-                        orgInfo = data.organisation;
-                        userRole = data.your_role;
-                    }
-                } catch (e) { /* handled below */ }
-
-                const ROLE_LEVELS = { viewer: 1, member: 2, manager: 3, admin: 4, owner: 5 };
-                const userLevel = ROLE_LEVELS[userRole] || 0;
-                const can = (minRole) => userLevel >= (ROLE_LEVELS[minRole] || 0);
-
-                // ----- Build HTML ----- //
-                let html = `<div class="org-tab-wrapper" style="padding:4px 0 20px;">`;
-
-                // ── Section A: Org Info Card ─────────────────────────────────────────
-                if (orgInfo) {
-                    html += `
-                    <div class="org-section" style="margin-bottom:20px;">
-                        <div class="connections-section-header" style="cursor:default;">
-                            <span><i class="fas fa-building" style="margin-right:8px;"></i>Organisation</span>
-                            ${can('owner') ? `<button class="add-connection-btn" onclick="OrgManager.openEditOrgModal()" title="Edit organisation details"><i class="fas fa-edit"></i></button>` : ''}
-
-                        </div>
-                        <div style="padding:14px 16px;background:var(--bg-tertiary);border-radius:8px;margin-top:8px;">
-                            <div style="display:flex;gap:16px;flex-wrap:wrap;">
-                                <div style="flex:1;min-width:160px;">
-                                    <div style="font-size:11px;color:var(--text-muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:3px;">Name</div>
-                                    <div style="font-weight:600;">${orgInfo.display_name || orgInfo.name || '—'}</div>
-                                </div>
-                                <div style="flex:1;min-width:140px;">
-                                    <div style="font-size:11px;color:var(--text-muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:3px;">Slug</div>
-                                    <div style="font-family:monospace;font-size:13px;">${orgInfo.slug || '—'}</div>
-                                </div>
-                                <div style="flex:1;min-width:120px;">
-                                    <div style="font-size:11px;color:var(--text-muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:3px;">Plan</div>
-                                    <div><span style="background:var(--accent-primary);color:#fff;border-radius:4px;padding:2px 8px;font-size:11px;font-weight:600;">${(orgInfo.plan_tier || 'free').toUpperCase()}</span></div>
-                                </div>
-                                <div style="flex:1;min-width:120px;">
-                                    <div style="font-size:11px;color:var(--text-muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:3px;">Members</div>
-                                    <div style="font-weight:600;">${orgInfo.member_count || 1}</div>
-                                </div>
-                                <div style="flex:1;min-width:120px;">
-                                    <div style="font-size:11px;color:var(--text-muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:3px;">Your Role</div>
-                                    <div>${OrgManager.roleBadge(userRole)}</div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>`;
-                } else {
-                    html += `<div style="padding:20px;text-align:center;color:var(--text-muted);background:var(--bg-tertiary);border-radius:8px;margin-bottom:20px;">
-                        <i class="fas fa-exclamation-circle" style="margin-right:6px;"></i>
-                        Could not load organisation info. You may not be a member of an organisation.
-                    </div>`;
-                }
-
-                // ── Section B: Team Members ──────────────────────────────────────────
-                if (can('manager')) {
-                    html += `
-                    <div class="org-section" style="margin-bottom:20px;">
-                        <div class="connections-section-header" style="cursor:default;">
-                            <span><i class="fas fa-users" style="margin-right:8px;"></i>Team Members</span>
-                        </div>
-                        <div id="org-members-list" style="margin-top:8px;">
-                            <div style="text-align:center;padding:20px;color:var(--text-muted);"><i class="fas fa-circle-notch fa-spin"></i> Loading…</div>
-                        </div>
-                    </div>`;
-                }
-
-                // ── Section C: Credentials Vault ────────────────────────────────────
-                if (can('manager')) {
-                    html += `
-                    <div class="org-section" style="margin-bottom:20px;">
-                        <div class="connections-section-header" style="cursor:default;">
-                            <span><i class="fas fa-key" style="margin-right:8px;"></i>Credentials Vault</span>
-                            ${can('admin') ? `<button class="add-connection-btn" onclick="OrgManager.openAddCredentialModal()" title="Add credential"><i class="fas fa-plus"></i></button>` : ''}
-                        </div>
-                        <div id="org-credentials-list" style="margin-top:8px;">
-                            <div style="text-align:center;padding:20px;color:var(--text-muted);"><i class="fas fa-circle-notch fa-spin"></i> Loading…</div>
-                        </div>
-                    </div>`;
-                }
-
-                // ── Section D: Vault Password ────────────────────────────────────────
-                if (can('owner')) {
-                    const hasVault = orgInfo && orgInfo.has_vault_password;
-                    html += `
-                    <div class="org-section" style="margin-bottom:20px;">
-                        <div class="connections-section-header" style="cursor:default;">
-                            <span><i class="fas fa-lock" style="margin-right:8px;"></i>Vault Password</span>
-                        </div>
-                        <div style="padding:14px 16px;background:var(--bg-tertiary);border-radius:8px;margin-top:8px;">
-                            <div style="margin-bottom:10px;font-size:13px;color:var(--text-secondary);">
-                                ${hasVault
-                                    ? '<i class="fas fa-check-circle" style="color:var(--accent-success,#4caf50);margin-right:6px;"></i>Vault password is <strong>set</strong>. Credentials require it to reveal.'
-                                    : '<i class="fas fa-exclamation-triangle" style="color:var(--accent-warning,#ff9800);margin-right:6px;"></i>No vault password set. Credentials can be revealed without extra authentication.'}
-                            </div>
-                            <div style="display:flex;gap:8px;flex-wrap:wrap;">
-                                <button class="connection-action-btn" onclick="OrgManager.openVaultPasswordModal(${hasVault})"
-                                    style="background:var(--accent-primary);color:#fff;border:none;padding:7px 14px;border-radius:6px;cursor:pointer;font-size:13px;">
-                                    <i class="fas fa-key" style="margin-right:5px;"></i>${hasVault ? 'Change Password' : 'Set Password'}
-                                </button>
-                                ${hasVault ? `<button class="connection-action-btn" onclick="OrgManager.removeVaultPassword()"
-                                    style="background:transparent;border:1px solid var(--border-color);color:var(--text-secondary);padding:7px 14px;border-radius:6px;cursor:pointer;font-size:13px;">
-                                    <i class="fas fa-unlock" style="margin-right:5px;"></i>Remove Password
-                                </button>` : ''}
-                            </div>
-                        </div>
-                    </div>`;
-                }
-
-                // ── Section E: Audit Log ─────────────────────────────────────────────
-                if (can('admin')) {
-                    html += `
-                    <div class="org-section" style="margin-bottom:8px;">
-                        <div class="connections-section-header" style="cursor:default;">
-                            <span><i class="fas fa-clipboard-list" style="margin-right:8px;"></i>Credential Access Log</span>
-                            <button class="add-connection-btn" onclick="OrgManager.loadAuditLog()" title="Refresh"><i class="fas fa-sync-alt"></i></button>
-                        </div>
-                        <div id="org-audit-log" style="margin-top:8px;">
-                            <div style="text-align:center;padding:20px;color:var(--text-muted);"><i class="fas fa-circle-notch fa-spin"></i> Loading…</div>
-                        </div>
-                    </div>`;
-                }
-
-                html += `</div>
-
-                <!-- ── Inline Modals ── -->
-                <div id="org-modal-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:10000;align-items:center;justify-content:center;">
-                    <div id="org-modal-box" style="background:var(--bg-secondary);border-radius:12px;padding:24px;min-width:340px;max-width:500px;width:90%;box-shadow:0 20px 60px rgba(0,0,0,.4);position:relative;">
-                        <button onclick="OrgManager.closeModal()" style="position:absolute;top:12px;right:12px;background:transparent;border:none;color:var(--text-muted);cursor:pointer;font-size:18px;"><i class="fas fa-times"></i></button>
-                        <div id="org-modal-content"></div>
-                    </div>
+                // Show a brief spinner while we re-parent the org panel
+                container.innerHTML = `<div style="display:flex;align-items:center;justify-content:center;padding:40px 16px;color:var(--text-muted);gap:10px;">
+                    <i class="fas fa-circle-notch fa-spin" style="font-size:22px;"></i>
+                    <span>Loading organisation…</span>
                 </div>`;
 
-                container.innerHTML = html;
-
-                // Trigger async data loads
-                // Cache role context so sub-loads can use it without re-fetching
-                OrgManager._userRole  = userRole;
-                OrgManager._userLevel = userLevel;
-                OrgManager._orgName   = (orgInfo && (orgInfo.display_name || orgInfo.name)) || 'our organisation';
-
-                if (can('manager')) {
-                    OrgManager.loadMembers();
-                    OrgManager.loadCredentials();
+                // Move #orgPanel (the canonical org UI) into this sidebar container
+                const orgPanel = document.getElementById('orgPanel');
+                if (orgPanel) {
+                    container.innerHTML = '';
+                    container.appendChild(orgPanel);
+                    orgPanel.style.display = 'flex';
+                    orgPanel.style.flexDirection = 'column';
+                    orgPanel.style.flex = '1';
+                    orgPanel.style.overflow = 'hidden';
                 }
-                if (can('admin')) {
-                    OrgManager.loadAuditLog();
+
+                // Use the canonical account_profile.js loader to populate everything
+                if (typeof window.loadOrgTab === 'function') {
+                    await window.loadOrgTab();
                 }
             }
         };
@@ -31003,7 +30911,9 @@
                 const data = await resp.json();
                 if (data.success) {
                     hideCreateOrgForm();
-                    AccountSidebar.loadOrganisationTab();
+                    // GAP-H4: orgPanel is already in place; just reload its data
+                    if (typeof window.loadOrgTab === 'function') window.loadOrgTab();
+                    else AccountSidebar.loadOrganisationTab(document.getElementById('account-sidebar-content'));
                 } else {
                     alert(data.error || 'Failed to create organisation');
                 }
@@ -31538,6 +31448,42 @@ Thanks`;
             if (panel) panel.style.display = 'flex';
             if (subtab === 'invitations') OrgManager.loadInvitations();
             if (subtab === 'members')     OrgManager.loadMembers();
+            if (subtab === 'vault') {
+                // Show add-credential button and vault password section for admins/owners
+                const userLevel = OrgManager._userLevel || 0;
+                const ROLE_LEVELS = { viewer: 1, member: 2, manager: 3, admin: 4, owner: 5 };
+                const addBtn = document.getElementById('orgAddCredBtn');
+                if (addBtn) addBtn.style.display = userLevel >= ROLE_LEVELS.admin ? 'flex' : 'none';
+                if (userLevel >= ROLE_LEVELS.manager) OrgManager.loadCredentials();
+                // Vault password section (owner only)
+                const vaultSection = document.getElementById('orgVaultPasswordSection');
+                if (vaultSection && userLevel >= ROLE_LEVELS.owner) {
+                    vaultSection.style.display = 'block';
+                    const orgInfo = OrgManager._orgInfo || {};
+                    const hasVault = !!orgInfo.has_vault_password;
+                    document.getElementById('orgVaultPasswordContent').innerHTML = `
+                        <div style="margin-bottom:10px;font-size:13px;color:var(--text-secondary);">
+                            ${hasVault
+                                ? '<i class="fas fa-check-circle" style="color:var(--accent-success,#4caf50);margin-right:6px;"></i>Vault password is <strong>set</strong>.'
+                                : '<i class="fas fa-exclamation-triangle" style="color:var(--accent-warning,#ff9800);margin-right:6px;"></i>No vault password set.'}
+                        </div>
+                        <div style="display:flex;gap:8px;flex-wrap:wrap;">
+                            <button class="connection-action-btn" onclick="OrgManager.openVaultPasswordModal(${hasVault})"
+                                style="background:var(--accent-primary);color:#fff;border:none;padding:7px 14px;border-radius:6px;cursor:pointer;font-size:13px;">
+                                <i class="fas fa-key" style="margin-right:5px;"></i>${hasVault ? 'Change Password' : 'Set Password'}
+                            </button>
+                            ${hasVault ? `<button class="connection-action-btn" onclick="OrgManager.removeVaultPassword()"
+                                style="background:transparent;border:1px solid var(--border-color);color:var(--text-secondary);padding:7px 14px;border-radius:6px;cursor:pointer;font-size:13px;">
+                                <i class="fas fa-unlock" style="margin-right:5px;"></i>Remove Password
+                            </button>` : ''}
+                        </div>`;
+                }
+            }
+            if (subtab === 'audit') {
+                const userLevel = OrgManager._userLevel || 0;
+                const ROLE_LEVELS = { viewer: 1, member: 2, manager: 3, admin: 4, owner: 5 };
+                if (userLevel >= ROLE_LEVELS.admin) OrgManager.loadAuditLog();
+            }
         }
 
         // ============================================================

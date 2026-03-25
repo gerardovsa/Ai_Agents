@@ -1,5 +1,5 @@
 # Organisation Credentials System — Master Analysis
-**Date:** March 23, 2026 (last updated March 23, 2026)**
+**Date:** March 23, 2026 (last updated **March 25, 2026**)
 **Purpose:** Complete authoritative reference for new chat sessions. Multi-tenant platform — one Render deployment, one Supabase database, all users types served.
 
 ---
@@ -505,6 +505,681 @@ api_key = resolve_api_key(user_id, 'anthropic')
 8. **No `organisations.allowed_domains` column** — needed to auto-provision Google Workspace / M365 users. E.g. store `["inhouseprint.com.au"]` so that anyone who SSOs with that domain gets added to that org automatically.
 
 9. **org_invitations table does not exist yet** — the invite system needs: DB table, `/api/org/invite` POST endpoint, email delivery (SendGrid/Resend), `/api/org/accept-invite?token=` GET/POST endpoint. Detailed design in `AUTH_FLOW_AND_ONBOARDING.md`.
+
+---
+
+## Session 5 — Gap Implementation (March 25, 2026)
+
+8 of 22 gaps fully implemented. All CRITICAL gaps resolved. All files committed.
+
+| Gap | Fix | Files Changed | Migration |
+|-----|-----|---------------|-----------|
+| **GAP-C1** | Pinecone namespace = `org_{id}` per request | `tools/implementations/pinecone/pinecone_tools.py` | — |
+| **GAP-C2** | `SET LOCAL ROLE authenticated` in `inject_rls_vars()` | `AI_infrastructure/shared/rls_session_manager.py` | `028_grant_authenticated_role.sql` ✅ run |
+| **GAP-C3** | Per-request `resolve_api_key()` for Anthropic / OpenAI / DeepSeek | `AI_infrastructure/core/unified_ai_client.py`, `flask_app.py` | — |
+| **GAP-C4** | jwt_version counter embeds in JWT, validated on every request, incremented on role change/remove | `user_auth.py`, `flask_app.py`, `organisation_credentials_routes.py` | `026_jwt_version_counter.sql` ✅ run |
+| **GAP-H1** | `PUT /api/org/info` expanded to accept `name`/`description`/`visibility`; `GET` returns new fields | `organisation_credentials_routes.py` | `027_org_description_visibility.sql` ✅ run |
+| **GAP-H2** | AssemblyAI client uses `org_credentials_loader.resolve_api_key()` | `tools/implementations/assemblyai.py` | — |
+| **GAP-H5** | `inject_rls_vars()` logs at INFO level; log line shows `role=authenticated` | `rls_session_manager.py` | — |
+| **GAP-M5** | `ALLOWED_PLATFORMS` set validates `platform` on `add_credential`; returns 400 for unknown names | `organisation_credentials_routes.py` | — |
+
+**Remaining open (Phase 1d checkpoint):** Manual RLS verification in Supabase — log in as org 2 user, confirm `organisation_platform_credentials` returns 0 org 1 rows.
+
+---
+
+## Session 4 — Full Platform Alignment Analysis (March 25, 2026)
+
+This section is the result of a comprehensive audit of the entire multi-tenant stack: database schema, auth/JWT, AI provider resolution, credential vault, vector DB isolation, module access, frontend UI, and Supabase/RLS configuration.
+
+### What Is Already Aligned ✅
+
+Before addressing gaps, the following components are working correctly and should not be broken:
+
+| Layer | What Works |
+|-------|-----------|
+| **DB: tenant isolation** | `organisations` table, `users.organisation_id` FK, `users.org_role` — correct design |
+| **DB: credential vault** | `organisation_platform_credentials` with role-gating columns, audit log, soft-delete |
+| **DB: invite system** | `org_invitations` table with token expiry (added March 23) |
+| **DB: pgvector isolation** | `vector_embeddings` table isolated by `user_id` + `namespace` |
+| **DB: document library** | `document_library` isolated by `owner_user_id` |
+| **DB: synergy sessions** | `synergy_sessions` with `organisation_id`, `visibility`, `session_members`, full RLS |
+| **Auth: JWT payload** | Login response includes `org_id`, `org_name`, `org_role`, `org_slug` |
+| **Auth: profile endpoint** | `GET /api/auth/profile` returns org fields from DB join |
+| **Auth: RLS session vars** | `rls_session_manager.py` sets `app.current_user_id` + `app.current_organisation_id` per connection |
+| **Auth: per-request injection** | `database_utils.py` calls `inject_rls_vars(conn)` after every connection checkout |
+| **Credential resolver** | `org_credentials_loader.py` — correct 3-tier resolver (user → org → env), source-tagged |
+| **Org credentials API** | Full CRUD at `/api/org/*` with role enforcement |
+| **Vault security** | Vault password, reveal gating, bcrypt hash, 30s auto-close, audit log |
+| **Frontend: org tab** | `loadOrganisationTab()` + `OrgManager` — complete for all roles |
+| **Frontend: invites** | Copy-to-clipboard, send via Gmail/Outlook, revoke invite — added March 25 |
+| **Frontend: role gating** | `applyOrgRoleVisibility()` hides UI by `data-org-min-role` attributes |
+
+---
+
+### Gap Registry
+
+Each gap is structured for systematic resolution. Work through them in the order shown in the **Systematic Build Order** section below.
+
+---
+
+#### GAP-C1: Pinecone Empty Namespace — DATA LEAKAGE (CRITICAL)
+**Status:** ✅ **FIXED** (March 25, 2026)  
+**Affected Files:** `tools/implementations/pinecone/pinecone_tools.py`  
+**Problem:** `namespace = creds.get('namespace', '')` defaults to an empty string. Every organisation's Pinecone vectors land in the same default namespace. One user can overwrite or query another user's vectors.  
+**Fix Steps:**
+1. In `_get_pinecone_client()` (or wherever the index is called), resolve `organisation_id` for the calling user.
+2. Replace the namespace extraction line:
+   ```python
+   # Before:
+   namespace = creds.get('namespace', '')
+   
+   # After:
+   from AI_infrastructure.shared.database_utils import execute_query
+   org_row = execute_query(
+       "SELECT organisation_id FROM ai_infrastructure.users WHERE id = %s",
+       (user_id,), fetch_mode='one'
+   )
+   org_id = org_row['organisation_id'] if org_row else None
+   namespace = f"org_{org_id}" if org_id else f"user_{user_id}"
+   ```
+3. Pass `namespace` to every `upsert`, `query`, and `delete` call in the file.  
+**Verification Checkpoint:** Upsert a vector as user in org 1. Query Pinecone and confirm it is in namespace `org_1`. Log in as user in org 2, run a query — the `org_1` vector must NOT appear.  
+**Dependencies:** None — standalone fix.
+
+---
+
+#### GAP-C2: service_role Key Bypasses All RLS — SECURITY (CRITICAL)
+**Status:** ✅ **FIXED** (March 25, 2026)  
+**Affected Files:** `AI_infrastructure/shared/rls_session_manager.py`, `AI_infrastructure/migrations/028_grant_authenticated_role.sql`  
+**Problem:** `supabase_client.py` connects using the `SUPABASE_SERVICE_ROLE_KEY` (or the DB `SUPABASE_DB_PASSWORD` which is the Postgres superuser). The service role bypasses every RLS policy. Even though `rls_session_manager.py` sets `app.current_organisation_id`, RLS policies on the `organisation_platform_credentials` table are never evaluated because the connection's role is `service_role` / `postgres`.  
+**Fix Applied:**
+- `inject_rls_vars()` now calls `SET LOCAL ROLE authenticated` after setting the session vars (only when a user context exists). `SET LOCAL` is transaction-scoped — reverts automatically when `PooledConnection.close()` calls `rollback()`. Pool-safe.
+- Migration `028_grant_authenticated_role.sql` grants `USAGE` + `SELECT/INSERT/UPDATE/DELETE` on all three app schemas (`ai_infrastructure`, `synergy_sessions`, `sessions`) to the `authenticated` role so the role-switch doesn't fail with permission errors.  
+**Verification Checkpoint:** Log in as user in org 2. Attempt `SELECT * FROM ai_infrastructure.organisation_platform_credentials` via raw DB call (not via Flask API). Result must be 0 rows (RLS filters org 1's rows).  
+**Dependencies:** Migration `028_grant_authenticated_role.sql` must be run in Supabase before deploying.  
+**Note:** Background tasks (cron, embeddings) stay as `postgres` — `inject_rls_vars()` is a no-op outside Flask request context.
+
+---
+
+#### GAP-C3: UnifiedAIClient Uses user_id=1 for ALL Requests — WRONG BILLING KEY (CRITICAL)
+**Status:** ✅ **FIXED** (March 25, 2026)  
+**Affected Files:** `AI_infrastructure/core/unified_ai_client.py`  
+**Problem:** `UnifiedAIClient.__init__()` calls `self._get_api_key_from_supabase('anthropic', user_id=1)` once at server startup. Every AI request from every org uses user 1's personal Anthropic key. Org-level credentials in the vault are never reached.  
+**Fix Steps:**
+1. Remove the startup API key initialisation from `__init__()` — do NOT store `self.anthropic_api_key` as an instance variable.
+2. In the method that makes the actual API call (e.g. `call_anthropic()`, `call_openai()`), add a `user_id` parameter.
+3. At call time, resolve the key:
+   ```python
+   from AI_infrastructure.shared.org_credentials_loader import resolve_api_key
+   
+   def call_anthropic(self, messages, user_id: int, **kwargs):
+       api_key = resolve_api_key(user_id, 'anthropic')
+       client = anthropic.Anthropic(api_key=api_key)
+       # ... rest of call
+   ```
+4. Update all callers that pass to `UnifiedAIClient` to include `user_id` (get it from `g.user_id` or `flask.request`).
+5. Verify `openai.api_key = ...` global assignment (thread-unsafe) is also replaced with per-call client instantiation.  
+**Verification Checkpoint:** Log in as user in org 2 (which has a different Anthropic key stored). Send a chat message. Check Anthropic usage dashboard — the billing must appear under org 2's key, not org 1's.  
+**Dependencies:** `org_credentials_loader.py` is already built (no additional changes needed there). Needs `user_id` threaded through the call chain.
+
+---
+
+#### GAP-C4: JWT org_role Not Invalidated on Role Change — STALE PERMISSIONS (CRITICAL)
+**Status:** ✅ **FIXED** (March 25, 2026) — Migration `026_jwt_version_counter.sql` run in Supabase.  
+**Affected Files:** `AI_infrastructure/auth/user_auth.py`, `AI_infrastructure/routes/organisation_credentials_routes.py`  
+**Problem:** JWT tokens have a 30-day expiry. When an admin demotes a member or removes them from an org, the user's existing JWT still contains the old `org_role`. They retain elevated permissions for up to 30 days.  
+**Fix Steps:**
+
+*Option A — JWT Version Counter (recommended):*
+1. Add a `jwt_version` integer column to the `users` table (default 1).
+2. Include `jwt_version` in the JWT payload at login.
+3. In `require_auth` middleware, after decoding the JWT, query `SELECT jwt_version FROM users WHERE id = %s` and compare. If DB version > token version, return 401 "Session expired, please log in again".
+4. In the role-change endpoint (`PATCH /api/org/members/:user_id/role`) and remove-member endpoint, increment `jwt_version` for the affected user.
+
+*Option B — Short-lived tokens with refresh (more complex):*
+1. Issue 15-minute access tokens + 7-day refresh tokens.
+2. Build `POST /api/auth/refresh` endpoint.
+3. On every access token expiry, client calls refresh — backend can deny refresh for demoted users.
+
+*Recommended:* Option A first (minimal changes), Option B later.  
+**Verification Checkpoint:** Log in as user, get JWT. In DB, change `users.org_role` to a lower level AND increment `jwt_version`. Make an API request with the old token — must get 401. Log in again with new JWT — correct role returned.  
+**Dependencies:** None — standalone.
+
+---
+
+#### GAP-H1: `saveOrgSettings()` Undefined — BROKEN BUTTON (HIGH)
+**Status:** ✅ **FIXED** (March 25, 2026) — Migration `027_org_description_visibility.sql` run in Supabase.  
+**Affected Files:** `UI/business-ai-platform-v2.html`  
+**Problem:** The `org-subtab-overview` panel has a "Save Settings" button with `onclick="saveOrgSettings()"`. This function does not exist in any JavaScript block. Clicking it throws `ReferenceError: saveOrgSettings is not defined`.  
+**Fix Steps:**
+1. Search the HTML for the "Save Settings" button in `org-subtab-overview`.
+2. Determine what settings it should save (org name, description, allowed domains, AI provider preference, etc.).
+3. Implement the function:
+   ```javascript
+   async function saveOrgSettings() {
+       const orgName = document.getElementById('org-settings-name')?.value;
+       const orgDesc = document.getElementById('org-settings-description')?.value;
+       // ... gather other fields
+       
+       const response = await fetch('/api/org/settings', {
+           method: 'PATCH',
+           headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${authToken}` },
+           body: JSON.stringify({ name: orgName, description: orgDesc })
+       });
+       const data = await response.json();
+       if (data.success) showNotification('Settings saved', 'success');
+       else showNotification(data.error || 'Save failed', 'error');
+   }
+   ```
+4. Add a `PATCH /api/org/settings` endpoint in `organisation_credentials_routes.py` if it does not already exist (check the route file first).  
+**Verification Checkpoint:** Click "Save Settings" button — no console errors. Settings persist after page reload.  
+**Dependencies:** None.
+
+---
+
+#### GAP-H2: Org Credentials Vault Is Storage-Only — AI Engine Ignores It (HIGH)
+**Status:** ✅ **FIXED** (March 25, 2026)  
+**Affected Files:** `AI_infrastructure/core/unified_ai_client.py`, `AI_infrastructure/core/tool_use_agent.py`, `AI_infrastructure/shared/org_credentials_loader.py`  
+**Problem:** Users can add Anthropic/OpenAI/AssemblyAI keys to the org vault via the UI, but the AI engine never retrieves them. All AI calls still use the env-var fallback or user_id=1's personal key (see GAP-C3). The vault is a UI feature with no backend consumers.  
+**Fix Steps:**
+1. Complete GAP-C3 first (wire `resolve_api_key` into `UnifiedAIClient`).
+2. In `tool_use_agent.py`, wherever an AI client is created (e.g. `anthropic.Anthropic(api_key=...)`), replace with `resolve_api_key(user_id, 'anthropic')`.
+3. For AssemblyAI: find where its client is initialised and replace the env-var read with `resolve_api_key(user_id, 'assemblyai')`.
+4. For OpenAI embeddings: find `openai.api_key = ...` or `OpenAI(api_key=...)` and apply the same pattern.
+5. Test by storing a *different* key in the org vault and confirming AI calls fail (key is intentionally wrong) — this proves the vault key is actually being used.  
+**Verification Checkpoint:** Store a deliberately invalid Anthropic key in org 2's vault. Log in as org 2 user. Send a message. Anthropic returns 401 (key invalid) — proves the vault key is being consumed, not the env var.  
+**Dependencies:** GAP-C3 must be done first.
+
+---
+
+#### GAP-H3: `embedding_vector` Column Is Always NULL — Semantic Search Dead (HIGH)
+**Status:** `[ ]` Not Started  
+**Affected Files:** `AI_infrastructure/routes/` (wherever messages are saved), `AI_infrastructure/shared/pgvector_utils.py` (or equivalent)  
+**Problem:** `workspace_chats.messages` has an `embedding_vector` column (vector type) but no code populates it. Semantic search over chat history returns nothing. The IVFFlat index on this column is also non-functional until populated.  
+**Fix Steps:**
+1. Find where chat messages are saved (likely `POST /api/chat/message` or via SocketIO `handle_message` in `flask_app.py`).
+2. After saving the message row, add an async embedding call:
+   ```python
+   import threading
+   
+   def _embed_message_async(message_id: int, content: str, user_id: int):
+       """Run in background thread to avoid blocking chat response."""
+       try:
+           from AI_infrastructure.shared.org_credentials_loader import resolve_api_key
+           api_key = resolve_api_key(user_id, 'openai')
+           client = openai.OpenAI(api_key=api_key)
+           response = client.embeddings.create(model="text-embedding-3-small", input=content)
+           embedding = response.data[0].embedding
+           execute_query(
+               "UPDATE workspace_chats.messages SET embedding_vector = %s WHERE id = %s",
+               (embedding, message_id)
+           )
+       except Exception as e:
+           logger.warning(f"[EMBED] Failed to embed message {message_id}: {e}")
+   
+   threading.Thread(target=_embed_message_async, args=(msg_id, content, user_id), daemon=True).start()
+   ```
+3. Verify the IVFFlat index. Note: IVFFlat requires ≥500 rows before the index is effective. Use `ivfflat` with `lists=1` until you have enough rows, then rebuild with `lists=100`.  
+**Verification Checkpoint:** Send 5 messages. Query: `SELECT COUNT(*) FROM workspace_chats.messages WHERE embedding_vector IS NOT NULL;` — must be > 0. Then query: `SELECT content FROM workspace_chats.messages ORDER BY embedding_vector <=> '[...]'::vector LIMIT 3;` — must return semantically relevant results.  
+**Dependencies:** GAP-C3 helpful but not required (can use env var for OpenAI key initially).
+
+---
+
+#### GAP-H4: Two Parallel Org UI Panels Out of Sync (HIGH)
+**Status:** ✅ **FIXED** (Session 5) — Consolidated using DOM-move pattern.  
+**Affected Files:** `UI/business-ai-platform-v2.html`, `UI/modules_internal/components/account_profile.js`  
+**Fix Applied:**
+1. Wrapped the org panel content inside `settings-tab-org` in a new `<div id="orgPanel">` container.
+2. Replaced the 174-line `AccountSidebar.loadOrganisationTab(container)` with a delegating function that moves `#orgPanel` into the sidebar container and calls `window.loadOrgTab()` (the canonical `account_profile.js` loader).
+3. `loadTabContent()` now restores `#orgPanel` back to `#settings-tab-org` before clearing the container, so the account-settings modal always has the org panel available.
+4. Added **Vault** and **Audit** subtabs to `orgDashboard` (matching the old sidebar's Credentials Vault + Audit Log sections), driven by `OrgManager.loadCredentials()` / `OrgManager.loadAuditLog()`.
+5. Updated `switchOrgSubTab()` to handle `vault` and `audit` cases with role-gating.
+6. `loadOrgTab()` in `account_profile.js` now syncs `OrgManager._userRole`, `_userLevel`, `_orgInfo` after fetch so vault/audit subtabs know the user's permission level.
+7. Fixed `createOrganisation()` post-create reload to call `window.loadOrgTab()` directly.
+
+---
+
+#### GAP-H5: `g.rls_organisation_id` Injection — Verify Working in Production (HIGH)
+**Status:** ✅ **FIXED** (March 25, 2026) — Logging upgraded to INFO; now logs `role=authenticated` as part of GAP-C2 fix.  
+**Affected Files:** `AI_infrastructure/auth/user_auth.py` (`require_auth` decorator), `AI_infrastructure/shared/rls_session_manager.py`, `AI_infrastructure/shared/database_utils.py`  
+**Problem:** Session 3 implemented `rls_session_manager.py` and `inject_rls_vars(conn)`. However the service_role key bypass (GAP-C2) means RLS policies are never evaluated regardless. Additionally, there is a risk that `inject_rls_vars` is called but `g.rls_organisation_id` is `None` for requests that don't go through `require_auth` (unauthenticated endpoints, background tasks).  
+**Fix Steps:**
+1. Add a log line in `inject_rls_vars()`: `logger.debug(f"[RLS] Setting org={org_id}, user={user_id}")`.
+2. Make a test request and confirm the log appears.
+3. Add a guard: if `org_id` is None, `set_config` should NOT be called (avoids setting empty string which could accidentally match).
+4. After fixing GAP-C2 (anon role), run the RLS test: org 2 user must get 0 rows from org 1's credentials table.  
+**Verification Checkpoint:** Make a `GET /api/org/credentials` request as org 2 user. Check DB query log — must show `set_config('app.current_organisation_id', '2', true)` was executed. The result must not contain any org 1 rows.  
+**Dependencies:** GAP-C2 must be fixed for this to have any effect.
+
+---
+
+#### GAP-M1: No `org_module_access` Table — No Feature Gating (MEDIUM)
+**Status:** `[ ]` Not Started  
+**Affected Files:** `AI_infrastructure/migrations/` (new migration needed), `tools/registry_v3.py`, `AI_infrastructure/core/tool_use_agent.py`  
+**Problem:** `organisations.plan_tier` column exists (`starter`, `professional`, `enterprise`) but there are no tables defining which modules/tools each plan can access. Every org can use every tool regardless of plan. There is no per-org tool filtering in `ToolUseAgent`.  
+**Fix Steps:**
+1. Create migration `026_org_module_access.sql`:
+   ```sql
+   CREATE TABLE ai_infrastructure.org_module_access (
+       id SERIAL PRIMARY KEY,
+       organisation_id INTEGER NOT NULL REFERENCES ai_infrastructure.organisations(id) ON DELETE CASCADE,
+       module_name VARCHAR(100) NOT NULL,  -- e.g. 'shopify', 'xero', 'inhouse_print'
+       is_enabled BOOLEAN NOT NULL DEFAULT TRUE,
+       enabled_at TIMESTAMPTZ DEFAULT NOW(),
+       enabled_by INTEGER REFERENCES ai_infrastructure.users(id),
+       UNIQUE(organisation_id, module_name)
+   );
+   
+   -- Default access table by plan tier
+   CREATE TABLE ai_infrastructure.plan_modules (
+       plan_tier VARCHAR(50) NOT NULL,  -- 'starter', 'professional', 'enterprise'
+       module_name VARCHAR(100) NOT NULL,
+       PRIMARY KEY (plan_tier, module_name)
+   );
+   
+   -- Seed defaults
+   INSERT INTO ai_infrastructure.plan_modules VALUES
+       ('starter', 'core_chat'), ('starter', 'documents'),
+       ('professional', 'core_chat'), ('professional', 'documents'),
+       ('professional', 'shopify'), ('professional', 'xero'),
+       ('enterprise', 'core_chat'), ('enterprise', 'documents'),
+       ('enterprise', 'shopify'), ('enterprise', 'xero'),
+       ('enterprise', 'inhouse_print'), ('enterprise', 'quote_calculator');
+   ```
+2. In `ToolUseAgent` (or `registry_v3.py`), before building the tools list, filter by org's enabled modules:
+   ```python
+   enabled_modules = get_org_enabled_modules(organisation_id)  # query the table
+   tools = [t for t in all_tools if t.get('platform') in enabled_modules]
+   ```  
+**Verification Checkpoint:** Set org 2 to `starter` plan. `ToolUseAgent` for org 2 user must not include `shopify` or `xero` tools in its tool list.  
+**Dependencies:** None.
+
+---
+
+#### GAP-M2: `organisation_id` Missing from Conversations/Threads (MEDIUM)
+**Status:** `[ ]` Needs Investigation  
+**Affected Files:** `AI_infrastructure/migrations/` (possibly), tables: `workspace_chats.conversations` or equivalent  
+**Problem:** The conversations/threads tables may not have an `organisation_id` column. If an org admin wants to see all team conversations, or if conversation history needs to be isolated by org (so org 2 can't read org 1's chats), the org FK must exist on the conversations table.  
+**Fix Steps:**
+1. Run: `SELECT column_name FROM information_schema.columns WHERE table_name = 'conversations';` — check if `organisation_id` exists.
+2. If missing, add it: `ALTER TABLE workspace_chats.conversations ADD COLUMN organisation_id INTEGER REFERENCES ai_infrastructure.organisations(id);`
+3. Backfill from user: `UPDATE workspace_chats.conversations c SET organisation_id = u.organisation_id FROM ai_infrastructure.users u WHERE c.user_id = u.id;`
+4. Add RLS policy: conversations only visible if `organisation_id = current_setting(...)::int`.  
+**Verification Checkpoint:** A DB query for conversations by org 2 user must return only org 2's conversations.  
+**Dependencies:** GAP-C2 (service_role bypass must be fixed for RLS to matter).
+
+---
+
+#### GAP-M3: No Per-Org AI Provider / Model Selection (MEDIUM)
+**Status:** `[ ]` Not Started  
+**Affected Files:** `AI_infrastructure/migrations/` (ALTER TABLE), `AI_infrastructure/core/unified_ai_client.py`, org settings UI  
+**Problem:** There is no way to configure which AI provider (Anthropic/OpenAI/DeepSeek) or which model (`claude-3-5-sonnet`, `gpt-4o`, etc.) an organisation uses. Every org gets whatever is hardcoded in `UnifiedAIClient`.  
+**Fix Steps:**
+1. Add columns to `organisations`:
+   ```sql
+   ALTER TABLE ai_infrastructure.organisations
+       ADD COLUMN ai_provider VARCHAR(50) DEFAULT 'anthropic',
+       ADD COLUMN ai_model VARCHAR(100) DEFAULT 'claude-3-5-sonnet-20241022',
+       ADD COLUMN ai_max_tokens INTEGER DEFAULT 8192;
+   ```
+2. In `UnifiedAIClient.call()` (after GAP-C3 fix), look up the org's preferred provider:
+   ```python
+   org = execute_query("SELECT ai_provider, ai_model FROM ai_infrastructure.organisations WHERE id = %s", (org_id,), fetch_mode='one')
+   provider = org['ai_provider']
+   model = org['ai_model']
+   ```
+3. Route to the correct provider based on `provider`.
+4. Expose in org settings UI: a dropdown for provider + model selection (admin/owner only).  
+**Verification Checkpoint:** Set org 2's provider to `openai` and model to `gpt-4o`. Send a chat message as org 2 user. Check OpenAI usage dashboard — request must appear there, not in Anthropic.  
+**Dependencies:** GAP-C3 must be done first.
+
+---
+
+#### GAP-M4: Xero/Shopify Cache Uses `business_id` — Not Linked to `organisations` (MEDIUM)
+**Status:** `[ ]` Needs Investigation  
+**Affected Files:** `UI/modules_external/shopify/`, `UI/modules_external/xero/`, `AI_infrastructure/migrations/`  
+**Problem:** Xero and Shopify caches / integration tables may use a `business_id` column that is not a FK to `ai_infrastructure.organisations`. If a different org logs in, there is no guarantee their cached Shopify/Xero data is isolated from another org's data.  
+**Fix Steps:**
+1. Find all Shopify/Xero DB tables: search migrations for `CREATE TABLE` containing `shopify` or `xero`.
+2. Check if they have `organisation_id` or only `user_id` / `business_id`.
+3. If `business_id` is used and it's not linked to `organisations.id`, add an `organisation_id` column and FK.
+4. Add RLS policies to these tables.  
+**Verification Checkpoint:** Two orgs with different Shopify stores — each sees only their own products in the Shopify tool.  
+**Dependencies:** None.
+
+---
+
+#### GAP-M5: Platform Name in Vault Is Free-Text — Typo Breaks Matching (MEDIUM)
+**Status:** ✅ **FIXED** (March 25, 2026)  
+**Affected Files:** `UI/business-ai-platform-v2.html` (org credentials add form), `AI_infrastructure/routes/organisation_credentials_routes.py`  
+**Problem:** When adding a credential to the vault, the platform name is a free-text input. A user typing `"Anthropic"` vs `"anthropic"` vs `"anthropic_api"` will never match what `resolve_api_key(user_id, 'anthropic')` queries. The key is stored but silently never used.  
+**Fix Steps:**
+1. Change the add-credential form to use a `<select>` dropdown with standardised platform names:
+   ```html
+   <select id="new-cred-platform">
+       <option value="anthropic">Anthropic (Claude)</option>
+       <option value="openai">OpenAI (GPT)</option>
+       <option value="assemblyai">AssemblyAI</option>
+       <option value="pinecone">Pinecone</option>
+       <option value="deepseek">DeepSeek</option>
+       <option value="shopify">Shopify</option>
+       <option value="xero">Xero</option>
+       <option value="sendgrid">SendGrid</option>
+       <option value="twilio">Twilio</option>
+   </select>
+   ```
+2. In `organisation_credentials_routes.py`, validate `platform` on the backend against the allowed list:
+   ```python
+   ALLOWED_PLATFORMS = {'anthropic', 'openai', 'assemblyai', 'pinecone', 'deepseek', 'shopify', 'xero', 'sendgrid', 'twilio', 'auspost', 'stripe'}
+   if platform not in ALLOWED_PLATFORMS:
+       return jsonify({'error': f'Unknown platform: {platform}'}), 400
+   ```
+3. Add a DB check constraint on `organisation_platform_credentials.platform` (or at minimum a CHECK with a comment noting the allowed values).  
+**Verification Checkpoint:** Try adding a credential with platform `"Anthropic"` (capital A) — backend returns 400. Add `"anthropic"` (lowercase) — succeeds and matches `resolve_api_key(user_id, 'anthropic')`.  
+**Dependencies:** None.
+
+---
+
+#### GAP-M6: No `organisations.allowed_domains` for SSO Auto-Provisioning (MEDIUM)
+**Status:** `[ ]` Not Started  
+**Affected Files:** `AI_infrastructure/migrations/` (ALTER TABLE), `AI_infrastructure/routes/` (OAuth callbacks)  
+**Problem:** Google/Microsoft OAuth callbacks do not check org membership. A new SSO user gets created but is not assigned to any org, leaving them with no org context and broken functionality.  
+**Fix Steps:**
+1. Add column: `ALTER TABLE ai_infrastructure.organisations ADD COLUMN allowed_domains TEXT[] DEFAULT '{}';`
+2. In Google OAuth callback (`/api/auth/google/callback`) and Microsoft callback, after resolving the user email:
+   ```python
+   email_domain = email.split('@')[1]
+   org = execute_query(
+       "SELECT id FROM ai_infrastructure.organisations WHERE %s = ANY(allowed_domains)",
+       (email_domain,), fetch_mode='one'
+   )
+   if org:
+       # Auto-assign to org with member role
+       execute_query(
+           "UPDATE ai_infrastructure.users SET organisation_id = %s, org_role = 'member' WHERE id = %s",
+           (org['id'], user_id)
+       )
+   ```
+3. Add a UI field in org settings to manage `allowed_domains` (owner/admin only).  
+**Verification Checkpoint:** Add `"testcorp.com"` to org 2's allowed_domains. Sign in with Google using a `@testcorp.com` email — user is automatically assigned to org 2 with `member` role.  
+**Dependencies:** GAP-H1 (org settings save) useful but not required.
+
+---
+
+#### GAP-L1: JWT Lacks `plan_tier` / `org_name` — Extra DB Hit per Request (LOW)
+**Status:** `[ ]` Not Started  
+**Affected Files:** `AI_infrastructure/auth/user_auth.py`  
+**Problem:** `plan_tier` and `org_name` are not in the JWT payload. Any code that needs the plan tier must query the DB. This adds latency on every tool call that checks feature access.  
+**Fix Steps:**
+1. In `user_auth.py` login function, add `plan_tier` to JWT payload (it's already in the organisations row returned by the JOIN):
+   ```python
+   jwt_payload = {
+       'user_id': user['id'],
+       'org_id': user['organisation_id'],
+       'org_role': user['org_role'],
+       'org_name': user.get('org_name', ''),
+       'plan_tier': user.get('plan_tier', 'starter'),  # ADD THIS
+       'jwt_version': user.get('jwt_version', 1),      # ADD THIS (for GAP-C4)
+   }
+   ```
+2. In `require_auth` decorator, extract `plan_tier` from JWT into `g.plan_tier`.  
+**Verification Checkpoint:** After login, decode JWT — must contain `plan_tier` field.  
+**Dependencies:** GAP-C4 implementation (adding `jwt_version`).
+
+---
+
+#### GAP-L2: Key Rotation Reminders Never Fired (LOW)
+**Status:** `[ ]` Not Started  
+**Affected Files:** `AI_infrastructure/routes/organisation_credentials_routes.py`, `AI_infrastructure/migrations/`  
+**Problem:** `organisation_platform_credentials` has a `rotation_due_at` column but nothing reads it or sends reminders. Keys are never flagged as overdue.  
+**Fix Steps:**
+1. Add a background scheduled task (use APScheduler if already in use, or Render cron job) that runs daily:
+   ```python
+   def check_key_rotation():
+       overdue = execute_query(
+           "SELECT oc.id, oc.platform, o.name as org_name, u.email FROM ai_infrastructure.organisation_platform_credentials oc "
+           "JOIN ai_infrastructure.organisations o ON o.id = oc.organisation_id "
+           "JOIN ai_infrastructure.users u ON u.organisation_id = o.id AND u.org_role = 'owner' "
+           "WHERE oc.rotation_due_at < NOW() AND oc.deleted_at IS NULL",
+           fetch_mode='all'
+       )
+       for row in overdue:
+           # Send email to org owner
+           send_email(row['email'], f"API key rotation overdue for {row['platform']} in {row['org_name']}")
+   ```
+2. Add a banner in the org credentials UI for overdue keys.  
+**Verification Checkpoint:** Set `rotation_due_at` to yesterday for a test credential. Run the cron job. Owner receives an email notification.  
+**Dependencies:** Email delivery must be configured (SendGrid/Resend).
+
+---
+
+#### GAP-L3: No "Test Connection" for Vault Credentials (LOW)
+**Status:** `[ ]` Not Started  
+**Affected Files:** `AI_infrastructure/routes/organisation_credentials_routes.py`, `UI/business-ai-platform-v2.html`  
+**Problem:** After adding an API key to the vault, there is no way to verify it works without triggering a real AI call. A typo in the key is only discovered during actual usage.  
+**Fix Steps:**
+1. Add `POST /api/org/credentials/:id/test` endpoint:
+   ```python
+   @org_credentials_bp.route('/credentials/<int:cred_id>/test', methods=['POST'])
+   @require_org_role('manager')
+   def test_credential(cred_id):
+       cred = get_credential_plaintext(cred_id, g.rls_organisation_id)  # existing reveal logic
+       platform = cred['platform']
+       if platform == 'anthropic':
+           result = test_anthropic_key(cred['credential_value'])
+       elif platform == 'openai':
+           result = test_openai_key(cred['credential_value'])
+       # etc.
+       return jsonify({'success': result['ok'], 'message': result['message']})
+   ```
+2. Add a "Test" button in the credentials table in the UI (visible to admin/owner).  
+**Verification Checkpoint:** Add a valid Anthropic key and click Test — returns `{"success": true}`. Add an invalid key and click Test — returns `{"success": false, "message": "Invalid API key"}`.  
+**Dependencies:** Vault reveal logic (already built).
+
+---
+
+#### GAP-L4: `realtime_messages` Has No Org Scoping (LOW)
+**Status:** `[ ]` Needs Investigation  
+**Affected Files:** `AI_infrastructure/migrations/`, Supabase realtime settings  
+**Problem:** If a `realtime_messages` table (or channel) is used for live chat updates, it may broadcast to all connected clients regardless of org. An org 2 user could receive org 1's real-time messages.  
+**Fix Steps:**
+1. Check if a `realtime_messages` table exists and how Supabase Realtime is subscribed in the frontend.
+2. If using row-level Supabase realtime subscriptions, add `filter: 'organisation_id=eq.{org_id}'` to the subscription.
+3. Add RLS policy on the table if not already present.  
+**Verification Checkpoint:** Two browser tabs logged into different orgs both open. A message sent in org 1 must not appear in org 2's real-time feed.  
+**Dependencies:** GAP-C2 (RLS must work first).
+
+---
+
+#### GAP-L5: DeepSeek Env-Var Only — No DB Lookup (LOW)
+**Status:** `[ ]` Not Started  
+**Affected Files:** `AI_infrastructure/core/unified_ai_client.py`  
+**Problem:** DeepSeek API key is only read from `os.getenv('DEEPSEEK_API_KEY')`. There is no path for storing a DeepSeek key in the org vault and having it resolved via `resolve_api_key`.  
+**Fix Steps:**
+1. In `org_credentials_loader.py`, ensure `platform='deepseek'` is handled (it should already work generically — just needs verification).
+2. Add `deepseek` to the allowed platforms list (GAP-M5).
+3. In `UnifiedAIClient.call_deepseek()` (after GAP-C3 fix), use `resolve_api_key(user_id, 'deepseek')` instead of `os.getenv`.  
+**Verification Checkpoint:** Store a DeepSeek key in org vault with platform `deepseek`. Route a DeepSeek request as that org's user. Confirm `os.getenv` fallback is NOT hit (add a log line to verify).  
+**Dependencies:** GAP-C3, GAP-M5.
+
+---
+
+#### GAP-L6: `is_sub_user` Referenced in UI but Not in DB Schema (LOW)
+**Status:** ✅ **VERIFIED FIXED** (Session 5) — Column exists via `team_id_management_migration.sql` (line 70: `ADD COLUMN is_sub_user BOOLEAN DEFAULT FALSE` with `IF NOT EXISTS` guard). Index also created (`idx_users_is_sub_user`).  
+**Affected Files:** `UI/business-ai-platform-v2.html` (`applyOrgRoleVisibility()`), `AI_infrastructure/migrations/`  
+**Problem:** `applyOrgRoleVisibility()` checks for `is_sub_user` in the user data but this column may not exist on the `users` table. If it exists only in the JWT payload without a DB column, it can be forged.  
+**Fix Steps:**
+1. Check: `SELECT column_name FROM information_schema.columns WHERE table_name = 'users' AND column_name = 'is_sub_user';`
+2. If missing, add it: `ALTER TABLE ai_infrastructure.users ADD COLUMN is_sub_user BOOLEAN DEFAULT FALSE;`
+3. In `require_auth`, read `is_sub_user` from DB (not JWT) so it can't be forged.
+4. Define what sub-user restrictions mean (which tools/tabs are hidden).  
+**Verification Checkpoint:** Set a user's `is_sub_user = true`. Reload the app — restricted tabs/features must be hidden.  
+**Dependencies:** None.
+
+---
+
+#### GAP-L7: Credential Encryption at Rest (LOW — Future Hardening)
+**Status:** `[ ]` Not Started  
+**Affected Files:** `AI_infrastructure/routes/organisation_credentials_routes.py`, `AI_infrastructure/migrations/`  
+**Problem:** API keys are stored as plain text in `organisation_platform_credentials.credential_value`. A DB dump, SQL injection attack, or Supabase misconfiguration exposes all keys.  
+**Fix Steps:**
+1. Use application-layer AES-256-GCM encryption:
+   ```python
+   from cryptography.fernet import Fernet
+   
+   ENCRYPTION_KEY = os.environ['CREDENTIAL_ENCRYPTION_KEY']  # 32-byte key, store in env
+   f = Fernet(ENCRYPTION_KEY)
+   
+   def encrypt_credential(plaintext: str) -> str:
+       return f.encrypt(plaintext.encode()).decode()
+   
+   def decrypt_credential(ciphertext: str) -> str:
+       return f.decrypt(ciphertext.encode()).decode()
+   ```
+2. On save: encrypt before INSERT.
+3. On retrieve (for actual use, not masking): decrypt after SELECT.
+4. Run a migration to encrypt existing plaintext values.  
+**Verification Checkpoint:** Query `organisation_platform_credentials.credential_value` directly in Supabase SQL editor — must show encrypted ciphertext, not the actual API key.  
+**Dependencies:** None — but do this AFTER the system is working correctly (easier to debug unencrypted first).
+
+---
+
+### Priority Matrix
+
+| Priority | Gap | Impact |
+|----------|-----|--------|
+| ✅ FIXED | GAP-C2: service_role bypasses RLS | SET LOCAL ROLE authenticated + migration 028 |
+| ✅ FIXED | GAP-C1: Pinecone empty namespace | Namespace = `org_{id}` per request |
+| ✅ FIXED | GAP-C3: UnifiedAIClient user_id=1 | Per-request resolve_api_key() for all 3 providers |
+| ✅ FIXED | GAP-C4: JWT stale on role change | jwt_version counter — migration 026 run |
+| ✅ FIXED | GAP-H2: Vault storage-only, never consumed | AssemblyAI + UnifiedAIClient wired |
+| 🟠 HIGH | GAP-H3: embedding_vector always NULL | Semantic search dead |
+| ✅ FIXED | GAP-H1: saveOrgSettings() undefined | PUT /api/org/info expanded + migration 027 |
+| ✅ FIXED | GAP-H4: Two parallel org UIs | Consolidated via DOM-move + Vault/Audit subtabs added |
+| ✅ FIXED | GAP-H5: Verify RLS injection working | INFO logging + role=authenticated confirmed |
+| ✅ FIXED | GAP-M5: Platform name free-text | ALLOWED_PLATFORMS validation + dropdown |
+| 🟡 MEDIUM | GAP-M1: No org_module_access table | No feature gating by plan |
+| 🟡 MEDIUM | GAP-M3: No per-org AI provider/model | All orgs use same model |
+| 🟡 MEDIUM | GAP-M2: Conversations missing org FK | Chat history not org-isolated |
+| 🟡 MEDIUM | GAP-M4: Shopify/Xero not org-isolated | Integration data leakage |
+| 🟡 MEDIUM | GAP-M6: No allowed_domains for SSO | OAuth users not auto-provisioned |
+| 🟢 LOW | GAP-L1: JWT missing plan_tier | Extra DB hit per request |
+| 🟢 LOW | GAP-L2: Key rotation reminders unused | Silent stale keys |
+| 🟢 LOW | GAP-L3: No Test Connection button | UX gap |
+| 🟢 LOW | GAP-L4: realtime_messages not scoped | Possible real-time leakage |
+| 🟢 LOW | GAP-L5: DeepSeek env-var only | DeepSeek not vault-compatible |
+| ✅ FIXED | GAP-L6: is_sub_user not in DB | Column confirmed in team_id_management_migration.sql |
+| 🟢 LOW | GAP-L7: Credentials plain text at rest | Future hardening |
+
+---
+
+### Systematic Build Order
+
+Work through the phases in sequence. Each phase builds on the previous. Complete the checkpoint before starting the next phase.
+
+---
+
+#### Phase 1 — Foundation Security (CRITICAL data leakage)
+**Goal:** Prevent cross-org data exposure at the DB and vector layer.
+
+- `[x]` **1a.** Fix GAP-C1: Add `org_{id}` namespace enforcement in `pinecone_tools.py` ✅
+- `[x]` **1b.** Fix GAP-C2: `SET LOCAL ROLE authenticated` in `inject_rls_vars()` + migration `028_grant_authenticated_role.sql` ✅
+- `[x]` **1c.** Verify GAP-H5: `inject_rls_vars()` now logs at INFO level, shows `role=authenticated` ✅
+- `[ ]` **1d.** Run RLS test: org 2 user sees 0 rows from org 1's credentials table ⬅ still needs manual verification
+
+**Phase 1 Checkpoint:** Two users in different orgs. Neither can read the other's vault credentials, vectors, or conversations via raw DB access.
+
+---
+
+#### Phase 2 — AI Engine Wiring (CRITICAL wrong billing, HIGH broken vault)
+**Goal:** Make the org credential vault actually drive AI calls.
+
+- `[x]` **2a.** Fix GAP-C3: Per-request `resolve_api_key()` in `_process_anthropic/deepseek/openai/create_message()` ✅
+- `[x]` **2b.** Fix GAP-H2: `resolve_api_key` wired into AssemblyAI; GAP-C3 covers UnifiedAIClient ✅
+- `[ ]` **2c.** Fix GAP-L5: Wire DeepSeek into `resolve_api_key` path ⬅ still to do
+- `[x]` **2d.** Fix GAP-M5: `ALLOWED_PLATFORMS` validation on backend; dropdown in UI ✅
+
+**Phase 2 Checkpoint:** Store a deliberately invalid Anthropic key in org 2's vault. Org 2 user sends a message — gets Anthropic 401 error (proves vault key is used, not env var). Org 1 user (with valid key) still works normally.
+
+---
+
+#### Phase 3 — Auth Hardening (CRITICAL stale permissions)
+**Goal:** JWT role changes take effect immediately.
+
+- `[x]` **3a.** Fix GAP-C4: Migration `026`, login embeds version, require_auth checks DB, role-change/remove increments ✅
+- `[ ]` **3b.** Fix GAP-L1: Add `plan_tier` to JWT payload ⬅ still to do (`jwt_version` already added)
+- `[x]` **3c.** Update `require_auth` to check `jwt_version` against DB ✅
+
+**Phase 3 Checkpoint:** Log in as admin. In DB, demote to member AND increment `jwt_version`. Make an API request with old token — must get 401. Log in again — new token has `org_role: 'member'`.
+
+---
+
+#### Phase 4 — UI Fixes (HIGH broken functionality)
+**Goal:** Remove broken UI elements and consolidate org management.
+
+- `[x]` **4a.** Fix GAP-H1: `saveOrgSettings()` existed in `account_profile.js`; expanded `PUT /api/org/info` + migration `027_org_description_visibility.sql` ✅
+- `[x]` **4b.** Fix GAP-H4: Consolidated via DOM-move pattern; Vault + Audit subtabs added to `orgDashboard`; `account_profile.js` syncs `OrgManager` role state ✅
+- `[x]` **4c.** Fix GAP-L6: `is_sub_user` confirmed in `team_id_management_migration.sql` (ADD COLUMN IF NOT EXISTS) ✅
+
+**Phase 4 Checkpoint:** Every button in the org management UI functions without console errors. No `ReferenceError` on any click.
+
+---
+
+#### Phase 5 — Message Embeddings (HIGH semantic search)
+**Goal:** Populate `embedding_vector` for all new messages and enable semantic search.
+
+- `[ ]` **5a.** Fix GAP-H3: Add background embedding job after message save
+- `[ ]` **5b.** Test: Send 10 messages, confirm `embedding_vector IS NOT NULL` for all
+- `[ ]` **5c.** Test semantic search: query returns semantically relevant results
+
+**Phase 5 Checkpoint:** `SELECT COUNT(*) FROM workspace_chats.messages WHERE embedding_vector IS NOT NULL` returns > 0. Semantic search over chat history returns relevant results.
+
+---
+
+#### Phase 6 — Org Scoping Completeness (MEDIUM multi-tenancy)
+**Goal:** Ensure all data tables are org-isolated.
+
+- `[ ]` **6a.** Fix GAP-M2: Add `organisation_id` to conversations table + RLS policy
+- `[ ]` **6b.** Fix GAP-M4: Audit Shopify/Xero tables, add org FK if missing
+- `[ ]` **6c.** Fix GAP-L4: Add org filter to realtime subscriptions
+- `[ ]` **6d.** Fix GAP-M6: Add `allowed_domains` column + OAuth auto-provisioning
+
+**Phase 6 Checkpoint:** Two orgs, each with their own Shopify store connected. Each org's user sees only their store's products. Chat history from org 1 not visible to org 2 user.
+
+---
+
+#### Phase 7 — Per-Org AI Configuration (MEDIUM feature differentiation)
+**Goal:** Each org can choose their AI provider and model.
+
+- `[ ]` **7a.** Fix GAP-M3: Add `ai_provider`, `ai_model` columns to organisations table
+- `[ ]` **7b.** Update `UnifiedAIClient` to read org's preferred provider
+- `[ ]` **7c.** Add provider/model selector in org settings UI (owner/admin only)
+
+**Phase 7 Checkpoint:** Org 2 set to use OpenAI/gpt-4o. Chat message from org 2 user appears in OpenAI usage dashboard, not Anthropic.
+
+---
+
+#### Phase 8 — Feature Gating (MEDIUM plan enforcement)
+**Goal:** Plan tier controls which modules are accessible.
+
+- `[ ]` **8a.** Fix GAP-M1: Create migration `026_org_module_access.sql` with `org_module_access` + `plan_modules` tables
+- `[ ]` **8b.** Seed plan modules with starter/professional/enterprise defaults
+- `[ ]` **8c.** Wire module access check into `ToolUseAgent` tool list building
+- `[ ]` **8d.** Wire module access check into frontend module loading
+
+**Phase 8 Checkpoint:** Org with `starter` plan — `ToolUseAgent` tool list excludes Shopify and Xero tools. Org with `enterprise` plan — all tools available.
+
+---
+
+#### Phase 9 — Polish & Hardening (LOW)
+**Goal:** Security hardening and operational improvements.
+
+- `[ ]` **9a.** Fix GAP-L2: Add scheduled key rotation reminder (APScheduler/cron)
+- `[ ]` **9b.** Fix GAP-L3: Add "Test Connection" button + `POST /api/org/credentials/:id/test` endpoint
+- `[ ]` **9c.** Fix GAP-L7: Implement AES-256-GCM encryption for credential values at rest
+- `[ ]` **9d.** Add `deepseek` to vault UI platform dropdown (from GAP-M5 work)
+
+**Phase 9 Checkpoint:** Test Connection returns success/failure without triggering a real chat. DB dump of `credential_value` column shows encrypted ciphertext, not plaintext API keys.
 
 ---
 
