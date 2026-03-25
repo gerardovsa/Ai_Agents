@@ -31065,14 +31065,39 @@
                     const data = await r.json();
                     const creds = data.credentials || [];
                     if (!creds.length) { el.innerHTML = '<div style="padding:12px;color:var(--text-muted);font-size:13px;">No credentials stored yet.</div>'; return; }
-                    const rows = creds.map(c => `
-                        <div style="display:flex;align-items:center;gap:10px;padding:10px 14px;background:var(--bg-tertiary);border-radius:7px;margin-bottom:6px;flex-wrap:wrap;">
+                    // GAP-L2: rotation reminder banner
+                    const now = Date.now();
+                    const overdue = creds.filter(c => c.rotation_due_at && new Date(c.rotation_due_at).getTime() < now);
+                    const dueSoon = creds.filter(c => c.rotation_due_at && !overdue.includes(c) && new Date(c.rotation_due_at).getTime() < now + 7*24*3600*1000);
+                    let banner = '';
+                    if (overdue.length) {
+                        banner = `<div style="background:rgba(244,67,54,.12);border:1px solid var(--accent-danger,#f44336);border-radius:7px;padding:10px 14px;margin-bottom:10px;font-size:13px;color:var(--accent-danger,#f44336);">
+                            <i class="fas fa-exclamation-triangle" style="margin-right:6px;"></i>
+                            <strong>${overdue.length} credential${overdue.length>1?'s':''} overdue for rotation:</strong>
+                            ${overdue.map(c => this.esc(c.display_name || c.platform)).join(', ')}
+                        </div>`;
+                    } else if (dueSoon.length) {
+                        banner = `<div style="background:rgba(255,152,0,.1);border:1px solid #ff9800;border-radius:7px;padding:10px 14px;margin-bottom:10px;font-size:13px;color:#ff9800;">
+                            <i class="fas fa-clock" style="margin-right:6px;"></i>
+                            <strong>${dueSoon.length} credential${dueSoon.length>1?'s':''} due for rotation within 7 days.</strong>
+                        </div>`;
+                    }
+                    const rows = creds.map(c => {
+                        const isOverdue = c.rotation_due_at && new Date(c.rotation_due_at).getTime() < now;
+                        const rotBadge = isOverdue
+                            ? `<span style="font-size:10px;color:var(--accent-danger,#f44336);margin-left:4px;" title="Rotation overdue since ${new Date(c.rotation_due_at).toLocaleDateString()}"><i class="fas fa-exclamation-circle"></i></span>`
+                            : '';
+                        return `
+                        <div style="display:flex;align-items:center;gap:10px;padding:10px 14px;background:var(--bg-tertiary);border-radius:7px;margin-bottom:6px;flex-wrap:wrap;${isOverdue?'border:1px solid var(--accent-danger,#f44336);':''}">
                             <div style="flex:1;min-width:140px;">
-                                <div style="font-weight:600;font-size:13px;">${this.esc(c.display_name || c.platform)}</div>
+                                <div style="font-weight:600;font-size:13px;">${this.esc(c.display_name || c.platform)}${rotBadge}</div>
                                 <div style="font-size:11px;color:var(--text-muted);">${this.esc(c.platform || '')} · ${this.esc(c.environment || 'production')}</div>
                             </div>
                             <div style="font-family:monospace;font-size:12px;color:var(--text-muted);flex:1;min-width:100px;">${this.esc(c.credential_value || '••••••••')}</div>
                             <div style="display:flex;gap:6px;">
+                                <button onclick="OrgManager.testCredential(${c.id})" id="org-test-cred-${c.id}"
+                                    style="padding:5px 10px;background:transparent;border:1px solid var(--accent-success,#4caf50);color:var(--accent-success,#4caf50);border-radius:5px;cursor:pointer;font-size:12px;" title="Test connectivity">
+                                    <i class="fas fa-plug"></i></button>
                                 ${data.can_reveal ? `<button onclick="OrgManager.openRevealModal(${c.id})"
                                     style="padding:5px 10px;background:var(--accent-primary);color:#fff;border:none;border-radius:5px;cursor:pointer;font-size:12px;" title="Reveal value">
                                     <i class="fas fa-eye"></i></button>` : ''}
@@ -31084,8 +31109,9 @@
                                     style="padding:5px 10px;background:transparent;border:1px solid var(--accent-danger,#f44336);color:var(--accent-danger,#f44336);border-radius:5px;cursor:pointer;font-size:12px;" title="Delete">
                                     <i class="fas fa-trash"></i></button>` : ''}
                             </div>
-                        </div>`).join('');
-                    el.innerHTML = rows;
+                        </div>`;
+                    }).join('');
+                    el.innerHTML = banner + rows;
                 } catch (e) { this.showError(el, e.message); }
             },
 
@@ -31163,6 +31189,41 @@
                     if (!r.ok) { const d = await r.json(); alert(d.error || 'Failed to delete.'); return; }
                     this.loadCredentials();
                 } catch (e) { alert(e.message); }
+            },
+
+            // GAP-L3: Test credential connectivity
+            async testCredential(id) {
+                const btn = document.getElementById(`org-test-cred-${id}`);
+                if (btn) { btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>'; }
+                try {
+                    const r = await fetch(`/api/org/credentials/${id}/test`, {
+                        method: 'POST', headers: this.authHeaders()
+                    });
+                    const data = await r.json();
+                    const ok = data.success;
+                    const latency = data.latency_ms ? ` (${data.latency_ms}ms)` : '';
+                    const msg = (data.message || (ok ? 'Connection OK' : 'Test failed')) + latency;
+                    if (btn) {
+                        btn.disabled = false;
+                        btn.style.borderColor = ok ? 'var(--accent-success,#4caf50)' : 'var(--accent-danger,#f44336)';
+                        btn.style.color       = ok ? 'var(--accent-success,#4caf50)' : 'var(--accent-danger,#f44336)';
+                        btn.innerHTML = ok ? '<i class="fas fa-check"></i>' : '<i class="fas fa-times"></i>';
+                        btn.title = msg;
+                        // Reset icon after 4 seconds
+                        setTimeout(() => {
+                            if (btn) {
+                                btn.style.borderColor = 'var(--accent-success,#4caf50)';
+                                btn.style.color       = 'var(--accent-success,#4caf50)';
+                                btn.innerHTML = '<i class="fas fa-plug"></i>';
+                                btn.title = 'Test connectivity';
+                            }
+                        }, 4000);
+                    }
+                    if (!ok) alert(`Test failed: ${data.message || 'Unknown error'}`);
+                } catch (e) {
+                    if (btn) { btn.disabled = false; btn.innerHTML = '<i class="fas fa-plug"></i>'; }
+                    alert(`Test error: ${e.message}`);
+                }
             },
 
             openRevealModal(id) {

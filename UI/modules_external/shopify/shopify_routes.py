@@ -33,7 +33,7 @@ import sys
 import os
 import traceback
 from datetime import datetime, timedelta
-from flask import jsonify, request
+from flask import jsonify, request, g
 from flask_cors import cross_origin
 from pathlib import Path
 
@@ -118,8 +118,12 @@ def get_woocommerce_credentials(user_id=None):
         dict: credentials with consumer_key, consumer_secret, base_url
     """
     if user_id is None:
-        # Use platform-wide credentials (user_id=1)
-        user_id = 1
+        # GAP-M4: resolve from request context so each org gets its own creds
+        try:
+            user_id = getattr(g, 'rls_user_id', None) or 1
+        except RuntimeError:
+            # Outside request context (e.g. tests / background jobs)
+            user_id = 1
     
     try:
         # Fetch credentials from Supabase

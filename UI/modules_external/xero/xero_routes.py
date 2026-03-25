@@ -31,7 +31,7 @@ import os
 import traceback
 import re
 from datetime import datetime, timedelta
-from flask import jsonify, request
+from flask import jsonify, request, g
 from flask_cors import cross_origin
 from pathlib import Path
 import requests
@@ -149,7 +149,14 @@ class XeroAPIClient:
         
         self.business_id = business_id
         self.config = BUSINESS_CONFIGS[business_id]
-        self.user_id = user_id or 1  # Default to user 1 if not provided
+        # GAP-M4: resolve user_id from request context so each org gets its own creds
+        if user_id is None:
+            try:
+                user_id = getattr(g, 'rls_user_id', None) or 1
+            except RuntimeError:
+                # Outside request context (e.g. tests / background jobs)
+                user_id = 1
+        self.user_id = user_id
         
         # Get credentials from database
         self.client_id, self.client_secret = self._get_credentials_from_db()

@@ -110,6 +110,7 @@ python-dateutil==2.8.2
 # Authentication & Security (NEW)
 bcrypt==4.0.1
 PyJWT==2.8.0
+cryptography>=42.0.0  # GAP-L7: Fernet AES credential encryption
 
 # Engineering & CAD Libraries (Dec 12, 2025 - EXACT VERSIONS)
 # Using exact versions from working local environment to avoid pip backtracking

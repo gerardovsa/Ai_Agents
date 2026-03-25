@@ -47,6 +47,7 @@ from typing import Optional
 from flask import Blueprint, request, jsonify, g
 
 from AI_infrastructure.shared.database_utils import execute_query
+from AI_infrastructure.shared.credential_crypto import encrypt_credential, decrypt_credential
 
 logger = logging.getLogger(__name__)
 
@@ -198,7 +199,8 @@ def log_credential_access(
 
 
 def format_credential_row(row: dict, reveal: bool = False) -> dict:
-    raw_cred_value = row.get('credential_value') or ''
+    # GAP-L7: decrypt on read so masking / reveal both operate on plaintext
+    raw_cred_value  = decrypt_credential(row.get('credential_value') or '')
     raw_credentials = row.get('credentials') or {}
     if isinstance(raw_credentials, str):
         try:
@@ -637,6 +639,9 @@ def add_credential():
             'error': f'A credential named "{display_name}" for {platform} already exists.'
         }), 409
 
+    # GAP-L7: encrypt credential at rest before storing
+    encrypted_value = encrypt_credential(credential_value) if credential_value else None
+
     new_id = execute_query(
         """
         INSERT INTO ai_infrastructure.organisation_platform_credentials
@@ -648,7 +653,7 @@ def add_credential():
         """,
         (
             ctx['organisation_id'], platform, display_name, environment,
-            credential_value or None,
+            encrypted_value,
             json.dumps(credentials_json) if credentials_json else None,
             visible_to_role, reveal_requires_role,
             notes, expires_at, rotation_due_at, g.user_id
@@ -696,6 +701,10 @@ def edit_credential(cred_id: int):
     if 'credentials' in updates and isinstance(updates['credentials'], dict):
         updates['credentials'] = json.dumps(updates['credentials'])
 
+    # GAP-L7: encrypt any new credential_value before storing
+    if 'credential_value' in updates and updates['credential_value']:
+        updates['credential_value'] = encrypt_credential(updates['credential_value'])
+
     set_clause = ', '.join(f"{k} = %s" for k in updates)
     execute_query(
         f"UPDATE ai_infrastructure.organisation_platform_credentials "
@@ -736,6 +745,119 @@ def delete_credential(cred_id: int):
         credential_id=cred_id, platform=existing['platform'], display_name=existing.get('display_name')
     )
     return jsonify({'success': True, 'message': 'Credential deleted'})
+
+
+# ============================================================================
+# ROUTE: TEST CREDENTIAL CONNECTIVITY (GAP-L3)
+# ============================================================================
+
+@org_credentials_bp.route('/credentials/<int:cred_id>/test', methods=['POST'])
+@require_auth
+@require_org_role('manager')
+def test_credential(cred_id: int):
+    """
+    POST /api/org/credentials/<id>/test
+    Makes a minimal live API call to verify the credential is valid.
+    Supported platforms: anthropic, openai, deepseek, auspost, shopify, xero_*.
+    """
+    ctx = g.org_ctx
+
+    row = execute_query(
+        "SELECT id, platform, credential_value, display_name "
+        "FROM ai_infrastructure.organisation_platform_credentials "
+        "WHERE id = %s AND organisation_id = %s AND is_active = TRUE",
+        (cred_id, ctx['organisation_id']),
+        fetch_mode='one'
+    )
+    if not row:
+        return jsonify({'success': False, 'error': 'Credential not found'}), 404
+
+    platform      = row['platform']
+    cred_value    = decrypt_credential(row['credential_value'] or '')  # GAP-L7 decrypt
+    display_name  = row.get('display_name') or platform
+
+    if not cred_value:
+        return jsonify({'success': False, 'error': 'Credential has no value stored'}), 400
+
+    result = _test_platform_credential(platform, cred_value)
+
+    log_credential_access(
+        ctx['organisation_id'], g.user_id,
+        'tested_ok' if result['success'] else 'tested_fail',
+        credential_id=cred_id, platform=platform, display_name=display_name
+    )
+
+    return jsonify(result), 200 if result['success'] else 400
+
+
+def _test_platform_credential(platform: str, cred_value: str) -> dict:
+    """
+    Perform a minimal connectivity test for the given platform credential.
+    Returns {'success': bool, 'message': str, 'latency_ms': int}.
+    """
+    import time
+
+    t0 = time.monotonic()
+
+    try:
+        # ---- Anthropic -------------------------------------------------------
+        if platform == 'anthropic':
+            import anthropic
+            client = anthropic.Anthropic(api_key=cred_value)
+            client.messages.create(
+                model='claude-haiku-4-5',
+                max_tokens=1,
+                messages=[{'role': 'user', 'content': 'ping'}]
+            )
+            return {'success': True, 'message': 'Anthropic API key is valid',
+                    'latency_ms': int((time.monotonic() - t0) * 1000)}
+
+        # ---- OpenAI ----------------------------------------------------------
+        elif platform == 'openai':
+            import openai
+            client = openai.OpenAI(api_key=cred_value)
+            client.models.list()
+            return {'success': True, 'message': 'OpenAI API key is valid',
+                    'latency_ms': int((time.monotonic() - t0) * 1000)}
+
+        # ---- DeepSeek --------------------------------------------------------
+        elif platform == 'deepseek':
+            import requests as rq
+            resp = rq.get(
+                'https://api.deepseek.com/models',
+                headers={'Authorization': f'Bearer {cred_value}'},
+                timeout=8
+            )
+            if resp.status_code == 200:
+                return {'success': True, 'message': 'DeepSeek API key is valid',
+                        'latency_ms': int((time.monotonic() - t0) * 1000)}
+            return {'success': False, 'message': f'DeepSeek returned HTTP {resp.status_code}',
+                    'latency_ms': int((time.monotonic() - t0) * 1000)}
+
+        # ---- AusPost ---------------------------------------------------------
+        elif platform == 'auspost':
+            import requests as rq
+            resp = rq.get(
+                'https://digitalapi.auspost.com.au/postage/stamp/domestic/variable.json',
+                headers={'AUTH-KEY': cred_value},
+                timeout=8
+            )
+            if resp.status_code == 200:
+                return {'success': True, 'message': 'AusPost API key is valid',
+                        'latency_ms': int((time.monotonic() - t0) * 1000)}
+            return {'success': False, 'message': f'AusPost returned HTTP {resp.status_code}',
+                    'latency_ms': int((time.monotonic() - t0) * 1000)}
+
+        # ---- Unsupported platform -------------------------------------------
+        else:
+            return {'success': False,
+                    'message': f'Connectivity test not supported for platform "{platform}"',
+                    'latency_ms': 0}
+
+    except Exception as exc:
+        latency = int((time.monotonic() - t0) * 1000)
+        logger.warning(f"[CRED_TEST] Test failed for platform={platform}: {exc}")
+        return {'success': False, 'message': str(exc), 'latency_ms': latency}
 
 
 # ============================================================================

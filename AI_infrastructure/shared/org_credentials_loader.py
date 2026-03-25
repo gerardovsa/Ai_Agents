@@ -329,6 +329,14 @@ def _normalise_row(row: dict) -> Dict[str, Any]:
     """
     result = dict(row)
 
+    # GAP-L7: decrypt credential_value if it was stored encrypted
+    try:
+        from AI_infrastructure.shared.credential_crypto import decrypt_credential
+        if result.get('credential_value'):
+            result['credential_value'] = decrypt_credential(result['credential_value'])
+    except Exception:
+        pass  # passthrough if module unavailable
+
     # Parse JSONB credentials if it came back as a string
     credentials = row.get('credentials')
     if isinstance(credentials, str):
@@ -492,5 +500,76 @@ def get_org_ai_config(user_id: int) -> Dict[str, Any]:
         }
 
     except Exception as e:
-        logger.warning(f"[ORG_AI_CONFIG] Could not load org AI config for user {user_id}: {e} — using defaults")
+        logger.warning(f"[ORG_AI_CONFIG] Could not load org AI config for user {user_id}: {e} – using defaults")
         return default
+
+
+# ---------------------------------------------------------------------------
+# GAP-M1: Per-org module access helper
+# ---------------------------------------------------------------------------
+
+def get_org_enabled_modules(user_id: int) -> set:
+    """
+    Return the set of module_name strings that are enabled for the organisation
+    that *user_id* belongs to.
+
+    Resolution order:
+        1. Explicit overrides in org_module_access (is_enabled=TRUE/FALSE).
+        2. Plan-tier defaults from plan_modules (for modules NOT in overrides).
+
+    Returns an empty set on any error (fail-open: callers must handle gracefully).
+    """
+    try:
+        from AI_infrastructure.shared.database_utils import execute_query
+
+        # Look up the org's plan tier
+        org_row = execute_query(
+            """
+            SELECT o.id AS org_id, o.plan_tier
+            FROM   ai_infrastructure.users u
+            JOIN   ai_infrastructure.organisations o ON o.id = u.organisation_id
+            WHERE  u.id = %s
+            LIMIT 1
+            """,
+            (user_id,),
+            fetch_mode='one'
+        )
+        if not org_row:
+            return set()
+
+        org_id    = org_row['org_id']
+        plan_tier = (org_row.get('plan_tier') or 'free').lower()
+
+        # Fetch plan defaults for this tier
+        plan_rows = execute_query(
+            """
+            SELECT module_name
+            FROM   ai_infrastructure.plan_modules
+            WHERE  plan_tier = %s
+            """,
+            (plan_tier,),
+            fetch_mode='all'
+        ) or []
+        enabled = {r['module_name'] for r in plan_rows}
+
+        # Apply per-org overrides
+        override_rows = execute_query(
+            """
+            SELECT module_name, is_enabled
+            FROM   ai_infrastructure.org_module_access
+            WHERE  organisation_id = %s
+            """,
+            (org_id,),
+            fetch_mode='all'
+        ) or []
+        for r in override_rows:
+            if r['is_enabled']:
+                enabled.add(r['module_name'])
+            else:
+                enabled.discard(r['module_name'])
+
+        return enabled
+
+    except Exception as e:
+        logger.warning(f"[ORG_MODULES] Could not load module access for user {user_id}: {e}")
+        return set()
