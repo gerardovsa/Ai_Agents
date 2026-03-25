@@ -315,11 +315,14 @@ Always explain what you're doing when using these tools so the user understands 
         prompt: str,
         files: Optional[List] = None,
         provider: Literal['anthropic', 'deepseek', 'openai'] = 'anthropic',
-        sse_callback: Optional[Callable] = None
+        sse_callback: Optional[Callable] = None,
+        user_id: Optional[int] = None,
+        org_model: Optional[str] = None,
+        org_max_tokens: Optional[int] = None,
     ) -> List[Dict]:
         """
         Process AI request with streaming (unified interface for all providers)
-        
+
         Args:
             session_id: Session identifier
             session_data: Session data from UnifiedSessionManager
@@ -327,20 +330,26 @@ Always explain what you're doing when using these tools so the user understands 
             files: Optional files (for Claude Vision)
             provider: AI provider to use
             sse_callback: Callback for SSE events (lambda event: queue.put(event))
-        
+            user_id: Requesting user — used for per-org key + model resolution (GAP-M3)
+            org_model: Per-org model override (GAP-M3) — None falls back to startup default
+            org_max_tokens: Per-org max_tokens override (GAP-M3)
+
         Returns:
             Updated conversation history
         """
         # Route to appropriate provider
         if provider == 'anthropic':
-            return self._process_anthropic(session_id, session_data, prompt, files, sse_callback)
-        
+            return self._process_anthropic(session_id, session_data, prompt, files, sse_callback,
+                                           user_id=user_id, org_model=org_model, org_max_tokens=org_max_tokens)
+
         elif provider == 'deepseek':
-            return self._process_deepseek(session_id, session_data, prompt, sse_callback)
-        
+            return self._process_deepseek(session_id, session_data, prompt, sse_callback,
+                                          user_id=user_id, org_model=org_model, org_max_tokens=org_max_tokens)
+
         elif provider == 'openai':
-            return self._process_openai(session_id, session_data, prompt, sse_callback)
-        
+            return self._process_openai(session_id, session_data, prompt, sse_callback,
+                                        user_id=user_id, org_model=org_model, org_max_tokens=org_max_tokens)
+
         else:
             raise ValueError(f"Unknown provider: {provider}")
     
@@ -350,9 +359,31 @@ Always explain what you're doing when using these tools so the user understands 
         session_data: Dict,
         prompt: str,
         files: Optional[List],
-        sse_callback: Optional[Callable]
+        sse_callback: Optional[Callable],
+        user_id: Optional[int] = None,
+        org_model: Optional[str] = None,
+        org_max_tokens: Optional[int] = None,
     ) -> List[Dict]:
         """Process with Anthropic Claude (streaming with tools)"""
+        # GAP-C3 FIX: Resolve API key per-request so each org uses its own key.
+        # Falls back to the startup-initialised client when no user context is available.
+        anthropic_client = self.anthropic_client
+        try:
+            if user_id:
+                from AI_infrastructure.shared.org_credentials_loader import resolve_api_key
+                per_request_key = resolve_api_key(user_id, 'anthropic')
+                if per_request_key:
+                    from anthropic import Anthropic as _Anthropic
+                    anthropic_client = _Anthropic(
+                        api_key=per_request_key,
+                        timeout=120.0,
+                        max_retries=3,
+                    )
+        except Exception as _key_err:
+            import logging as _log
+            _log.getLogger(__name__).warning(
+                f"[UnifiedAIClient] Per-request key resolution failed, using startup key: {_key_err}"
+            )
         
         # Get system prompt
         system_prompt = self.get_system_prompt(
@@ -520,9 +551,9 @@ Always explain what you're doing when using these tools so the user understands 
             final_temperature = custom_temperature
             print(f"[UnifiedAIClient] ⚙️  Temperature set to {final_temperature} (thinking disabled)")
         
-        with self.anthropic_client.messages.stream(
-            model=self.anthropic_model,
-            max_tokens=12000,
+        with anthropic_client.messages.stream(
+            model=org_model or self.anthropic_model,
+            max_tokens=org_max_tokens or 12000,
             temperature=final_temperature,
             system=system_prompt,
             messages=conversation,
@@ -678,9 +709,22 @@ Always explain what you're doing when using these tools so the user understands 
         session_id: str,
         session_data: Dict,
         prompt: str,
-        sse_callback: Optional[Callable]
+        sse_callback: Optional[Callable],
+        user_id: Optional[int] = None,
+        org_model: Optional[str] = None,
+        org_max_tokens: Optional[int] = None,
     ) -> List[Dict]:
         """Process with DeepSeek (streaming)"""
+        # GAP-C3/L5 FIX: Resolve DeepSeek key per-request from org vault.
+        deepseek_api_key = self.deepseek_api_key
+        try:
+            if user_id:
+                from AI_infrastructure.shared.org_credentials_loader import resolve_api_key
+                per_request_key = resolve_api_key(user_id, 'deepseek')
+                if per_request_key:
+                    deepseek_api_key = per_request_key
+        except Exception:
+            pass
         
         # Get system prompt
         system_prompt = self.get_system_prompt(
@@ -715,15 +759,15 @@ Always explain what you're doing when using these tools so the user understands 
         
         # Call DeepSeek API (streaming)
         headers = {
-            'Authorization': f'Bearer {self.deepseek_api_key}',
+            'Authorization': f'Bearer {deepseek_api_key}',
             'Content-Type': 'application/json'
         }
         
         payload = {
-            'model': self.deepseek_model,
+            'model': org_model or self.deepseek_model,
             'messages': messages,
             'stream': True,
-            'max_tokens': 8000
+            'max_tokens': org_max_tokens or 8000
         }
         
         response = requests.post(
@@ -774,9 +818,22 @@ Always explain what you're doing when using these tools so the user understands 
         session_id: str,
         session_data: Dict,
         prompt: str,
-        sse_callback: Optional[Callable]
+        sse_callback: Optional[Callable],
+        user_id: Optional[int] = None,
+        org_model: Optional[str] = None,
+        org_max_tokens: Optional[int] = None,
     ) -> List[Dict]:
         """Process with OpenAI GPT (streaming)"""
+        # GAP-C3 FIX: Resolve OpenAI key per-request from org vault.
+        openai_key = getattr(openai, 'api_key', None) or os.environ.get('OPENAI_API_KEY', '')
+        try:
+            if user_id:
+                from AI_infrastructure.shared.org_credentials_loader import resolve_api_key
+                per_request_key = resolve_api_key(user_id, 'openai')
+                if per_request_key:
+                    openai_key = per_request_key
+        except Exception:
+            pass
         
         # Get system prompt
         system_prompt = self.get_system_prompt(
@@ -808,12 +865,14 @@ Always explain what you're doing when using these tools so the user understands 
         # Add new user message
         messages.append({'role': 'user', 'content': prompt})
         
-        # Call OpenAI API (streaming)
-        response = openai.chat.completions.create(
-            model=self.openai_model,
+        # Call OpenAI API (streaming) — use per-request key via openai.OpenAI() client
+        import openai as _openai_mod
+        _openai_client = _openai_mod.OpenAI(api_key=openai_key)
+        response = _openai_client.chat.completions.create(
+            model=org_model or self.openai_model,
             messages=messages,
             stream=True,
-            max_tokens=8000
+            max_tokens=org_max_tokens or 8000
         )
         
         assistant_text = ''
@@ -1021,7 +1080,8 @@ Always explain what you're doing when using these tools so the user understands 
         thinking_budget: int = 5000,
         temperature: float = 1.0,
         enable_web_search: bool = True,
-        enable_web_fetch: bool = False
+        enable_web_fetch: bool = False,
+        user_id: Optional[int] = None,
     ) -> Dict:
         """
         Create a non-streaming message with Extended Thinking + Server Tools
@@ -1045,7 +1105,23 @@ Always explain what you're doing when using these tools so the user understands 
         if provider == 'anthropic':
             if not self.anthropic_client:
                 raise ValueError("Anthropic client not initialized. Set ANTHROPIC_API_KEY.")
-            
+
+            # GAP-C3 FIX: Resolve per-request API key from org vault
+            anthropic_client_nonstream = self.anthropic_client
+            try:
+                if user_id:
+                    from AI_infrastructure.shared.org_credentials_loader import resolve_api_key
+                    per_request_key = resolve_api_key(user_id, 'anthropic')
+                    if per_request_key:
+                        from anthropic import Anthropic as _Anthropic
+                        anthropic_client_nonstream = _Anthropic(
+                            api_key=per_request_key,
+                            timeout=120.0,
+                            max_retries=3,
+                        )
+            except Exception:
+                pass
+
             # Use specified model or default
             model = model or self.anthropic_model
             
@@ -1224,7 +1300,7 @@ Always explain what you're doing when using these tools so the user understands 
             print(f"\n[UnifiedAIClient] 📤 Sending request to Anthropic API...\n")
             
             # Call Anthropic API
-            response = self.anthropic_client.messages.create(**api_params)
+            response = anthropic_client_nonstream.messages.create(**api_params)
             
             # Debug: Print raw response
             print(f"\n[DEBUG] Raw response from Anthropic:")
@@ -1295,9 +1371,20 @@ Always explain what you're doing when using these tools so the user understands 
                     content = ''.join(text_parts)
                 openai_messages.append({'role': msg['role'], 'content': content})
             
+            # GAP-L5 FIX: Resolve DeepSeek key per-request from org vault
+            deepseek_key_nonstream = self.deepseek_api_key
+            try:
+                if user_id:
+                    from AI_infrastructure.shared.org_credentials_loader import resolve_api_key
+                    per_request_key = resolve_api_key(user_id, 'deepseek')
+                    if per_request_key:
+                        deepseek_key_nonstream = per_request_key
+            except Exception:
+                pass
+
             # Call DeepSeek API
             headers = {
-                'Authorization': f'Bearer {self.deepseek_api_key}',
+                'Authorization': f'Bearer {deepseek_key_nonstream}',
                 'Content-Type': 'application/json'
             }
             

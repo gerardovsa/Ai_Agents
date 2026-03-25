@@ -303,7 +303,8 @@ def get_org_info():
         """
         SELECT id, name, slug, plan_tier, display_name, logo_url,
                timezone, country_code, is_active, created_at,
-               description, visibility, allowed_domains
+               description, visibility, allowed_domains,
+               ai_provider, ai_model, ai_max_tokens
         FROM ai_infrastructure.organisations WHERE id = %s
         """,
         (ctx['organisation_id'],),
@@ -342,6 +343,9 @@ def get_org_info():
             'description':        org.get('description'),
             'visibility':         org.get('visibility', 'private'),
             'allowed_domains':    org.get('allowed_domains') or [],
+            'ai_provider':        org.get('ai_provider') or 'anthropic',
+            'ai_model':           org.get('ai_model') or '',
+            'ai_max_tokens':      org.get('ai_max_tokens') or 8192,
         },
         'your_role': ctx['org_role'],
     })
@@ -387,6 +391,28 @@ def update_org_info():
             if d and domain_re.match(d):
                 cleaned.append(d)
         updates['allowed_domains'] = cleaned  # stored as TEXT[] in Postgres
+
+    # ai_provider: must be one of the supported providers (GAP-M3)
+    if 'ai_provider' in data:
+        provider = str(data['ai_provider']).strip().lower()
+        if provider not in ('anthropic', 'openai', 'deepseek'):
+            return jsonify({'success': False, 'error': 'ai_provider must be anthropic, openai, or deepseek'}), 400
+        updates['ai_provider'] = provider
+
+    # ai_model: free-form model string (GAP-M3)
+    if 'ai_model' in data:
+        model = str(data.get('ai_model') or '').strip()
+        updates['ai_model'] = model or None
+
+    # ai_max_tokens: integer 1024-32768 (GAP-M3)
+    if 'ai_max_tokens' in data:
+        try:
+            max_tokens = int(data['ai_max_tokens'])
+        except (TypeError, ValueError):
+            return jsonify({'success': False, 'error': 'ai_max_tokens must be an integer'}), 400
+        if not (1024 <= max_tokens <= 32768):
+            return jsonify({'success': False, 'error': 'ai_max_tokens must be between 1024 and 32768'}), 400
+        updates['ai_max_tokens'] = max_tokens
 
     if not updates:
         return jsonify({'success': False, 'error': 'No valid fields to update'}), 400

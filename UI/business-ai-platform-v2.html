@@ -23029,6 +23029,19 @@
                                 <input type="text" id="editOrgAllowedDomains" class="acct-input acct-mono" placeholder="acme.com, acme.io">
                                 <div style="font-size:11px;color:var(--text-muted);margin-top:4px;">New users who sign in via Google or Microsoft SSO with a matching email domain will be automatically added to this organisation as members.</div>
                             </div>
+                            <!-- GAP-M3: AI provider / model override -->
+                            <div>
+                                <label class="acct-label">AI Provider <span style="font-weight:400;color:var(--text-muted);font-size:11px;">(overrides global default for all users in this org)</span></label>
+                                <select id="editOrgAiProvider" class="acct-input">
+                                    <option value="anthropic">Anthropic (Claude)</option>
+                                    <option value="openai">OpenAI (GPT)</option>
+                                    <option value="deepseek">DeepSeek</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="acct-label">AI Model <span style="font-weight:400;color:var(--text-muted);font-size:11px;">(leave blank to use provider default)</span></label>
+                                <input type="text" id="editOrgAiModel" class="acct-input acct-mono" placeholder="e.g. claude-sonnet-4-5-20250929">
+                            </div>
                         </div>
                         <div style="margin-top:20px;">
                             <button onclick="saveOrgSettings()" class="btn btn-primary" id="saveOrgSettingsBtn"><i class="fas fa-save"></i> Save Settings</button>

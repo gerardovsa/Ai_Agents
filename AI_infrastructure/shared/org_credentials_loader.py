@@ -413,3 +413,84 @@ def get_credential_source_info(user_id: int, platform: str) -> dict:
         'resolution_source':      source,
         'org_name':               org_name,
     }
+
+# ============================================================================
+# GAP-M3: PER-ORG AI PROVIDER / MODEL CONFIG
+# ============================================================================
+
+# Provider → default model fallbacks used when the org row has no model set
+_PROVIDER_DEFAULT_MODELS: Dict[str, str] = {
+    'anthropic': 'claude-sonnet-4-5-20250929',
+    'openai':    'gpt-4o',
+    'deepseek':  'deepseek-chat',
+}
+
+_PROVIDER_DEFAULT_MAX_TOKENS: Dict[str, int] = {
+    'anthropic': 8192,
+    'openai':    4096,
+    'deepseek':  8192,
+}
+
+
+def get_org_ai_config(user_id: int) -> Dict[str, Any]:
+    """
+    Return the AI provider, model, and max_tokens configured for the user's
+    organisation.  Falls back to sensible defaults if the columns are missing
+    (e.g. migration 031 not yet applied) or the user has no org.
+
+    Returns:
+        {
+            'provider':   'anthropic',                    # str
+            'model':      'claude-sonnet-4-5-20250929',   # str
+            'max_tokens': 8192,                           # int
+        }
+
+    Usage (in flask_app.py / process_streaming):
+        from AI_infrastructure.shared.org_credentials_loader import get_org_ai_config
+        ai_cfg = get_org_ai_config(user_id)
+        provider = ai_cfg['provider']
+        model    = ai_cfg['model']
+    """
+    default = {
+        'provider':   'anthropic',
+        'model':      _PROVIDER_DEFAULT_MODELS['anthropic'],
+        'max_tokens': _PROVIDER_DEFAULT_MAX_TOKENS['anthropic'],
+    }
+
+    if not user_id:
+        return default
+
+    try:
+        row = execute_query(
+            """
+            SELECT o.ai_provider, o.ai_model, o.ai_max_tokens
+            FROM ai_infrastructure.users u
+            JOIN ai_infrastructure.organisations o ON o.id = u.organisation_id
+            WHERE u.id = %s
+            LIMIT 1
+            """,
+            (user_id,),
+            fetch_mode='one'
+        )
+        if not row:
+            return default
+
+        provider = (row.get('ai_provider') or 'anthropic').lower()
+        model    = row.get('ai_model') or _PROVIDER_DEFAULT_MODELS.get(provider, 'claude-sonnet-4-5-20250929')
+        max_tok  = row.get('ai_max_tokens') or _PROVIDER_DEFAULT_MAX_TOKENS.get(provider, 8192)
+
+        # Validate provider is known
+        if provider not in _PROVIDER_DEFAULT_MODELS:
+            logger.warning(f"[ORG_AI_CONFIG] Unknown provider '{provider}' for user {user_id}, defaulting to anthropic")
+            provider = 'anthropic'
+            model    = _PROVIDER_DEFAULT_MODELS['anthropic']
+
+        return {
+            'provider':   provider,
+            'model':      model,
+            'max_tokens': int(max_tok),
+        }
+
+    except Exception as e:
+        logger.warning(f"[ORG_AI_CONFIG] Could not load org AI config for user {user_id}: {e} — using defaults")
+        return default

@@ -2785,6 +2785,12 @@ function _renderOrgDashboard(org) {
         domainsEl.value = domains.join(', ');
     }
 
+    // Populate AI provider/model (GAP-M3)
+    const aiProviderEl = document.getElementById('editOrgAiProvider');
+    const aiModelEl    = document.getElementById('editOrgAiModel');
+    if (aiProviderEl) aiProviderEl.value = org.ai_provider || 'anthropic';
+    if (aiModelEl)    aiModelEl.value    = org.ai_model    || '';
+
     // Hide save button for non-owners
     const saveBtn = document.getElementById('saveOrgSettingsBtn');
     const isOwner = ['owner', 'admin'].includes(org.your_role);
@@ -2795,11 +2801,13 @@ function _renderOrgDashboard(org) {
 }
 
 async function saveOrgSettings() {
-    const nameEl    = document.getElementById('editOrgName');
-    const descEl    = document.getElementById('editOrgDescription');
-    const visEl     = document.getElementById('editOrgVisibility');
-    const domainsEl = document.getElementById('editOrgAllowedDomains');
-    const btn       = document.getElementById('saveOrgSettingsBtn');
+    const nameEl       = document.getElementById('editOrgName');
+    const descEl       = document.getElementById('editOrgDescription');
+    const visEl        = document.getElementById('editOrgVisibility');
+    const domainsEl    = document.getElementById('editOrgAllowedDomains');
+    const aiProviderEl = document.getElementById('editOrgAiProvider');
+    const aiModelEl    = document.getElementById('editOrgAiModel');
+    const btn          = document.getElementById('saveOrgSettingsBtn');
 
     const name = nameEl?.value.trim();
     if (!name) { alert('Organisation name is required.'); return; }
@@ -2814,15 +2822,20 @@ async function saveOrgSettings() {
     if (btn) { btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving...'; }
 
     try {
+        const payload = {
+            name:            name,
+            description:     descEl?.value.trim() || '',
+            visibility:      visEl?.value || 'private',
+            allowed_domains: allowedDomains,
+        };
+        // GAP-M3: include AI provider/model if the fields exist in the DOM
+        if (aiProviderEl) payload.ai_provider = aiProviderEl.value || 'anthropic';
+        if (aiModelEl)    payload.ai_model    = aiModelEl.value.trim();
+
         const res  = await fetch(`${API_BASE_URL}/api/org/info`, {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                name:            name,
-                description:     descEl?.value.trim() || '',
-                visibility:      visEl?.value || 'private',
-                allowed_domains: allowedDomains,
-            }),
+            body: JSON.stringify(payload),
         });
         const data = await res.json();
         if (!data.success) throw new Error(data.error || 'Save failed');

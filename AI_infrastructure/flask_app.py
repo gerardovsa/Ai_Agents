@@ -3059,6 +3059,21 @@ def send_message():
         lock = session_manager.get_lock(session_id)
         
         # Process in background thread
+        # Capture user_id from Flask g before entering background thread (g is not available in threads)
+        _requesting_user_id = getattr(g, 'rls_user_id', None)
+
+        # GAP-M3: Resolve per-org AI config (provider/model defaults)
+        _org_ai_cfg = {}
+        if _requesting_user_id:
+            try:
+                from AI_infrastructure.shared.org_credentials_loader import get_org_ai_config
+                _org_ai_cfg = get_org_ai_config(_requesting_user_id)
+            except Exception:
+                pass
+        # Client-supplied provider takes precedence; otherwise fall back to org config then global default
+        _resolved_provider = data.get('provider') or _org_ai_cfg.get('provider', 'anthropic')
+        _org_model_override = _org_ai_cfg.get('model')      # None when no org config
+
         def process():
             with lock:
                 try:
@@ -3067,8 +3082,10 @@ def send_message():
                         session_id=session_id,
                         session_data=session,
                         prompt=data['prompt'],
-                        provider=data.get('provider', 'anthropic'),
-                        sse_callback=lambda event: queue.put(event)
+                        provider=_resolved_provider,
+                        org_model=_org_model_override,
+                        sse_callback=lambda event: queue.put(event),
+                        user_id=_requesting_user_id,
                     )
                     
                     # Save conversation
@@ -3181,6 +3198,8 @@ def send_message_with_files():
         lock = session_manager.get_lock(session_id)
         
         # Process in background
+        # Capture user_id from Flask g before entering background thread
+        _requesting_user_id = getattr(g, 'rls_user_id', None)
         def process():
             with lock:
                 try:
@@ -3191,7 +3210,8 @@ def send_message_with_files():
                         prompt=prompt,
                         files=files_data if files_data else None,
                         provider='anthropic',  # Only Claude supports Vision
-                        sse_callback=lambda event: queue.put(event)
+                        sse_callback=lambda event: queue.put(event),
+                        user_id=_requesting_user_id,
                     )
                     
                     # Save
@@ -4105,10 +4125,12 @@ def set_rls_context_from_jwt():
     g attributes set:
       g.rls_user_id         (int | None)
       g.rls_organisation_id (int | None)
+      g.plan_tier           (str | None)  — JWT claim, avoids extra DB hit per request
     """
     from flask import g
     g.rls_user_id         = None
     g.rls_organisation_id = None
+    g.plan_tier           = None
 
     # Skip Socket.IO and static assets — no JWT needed
     if (request.path.startswith('/socket.io/')
@@ -4133,10 +4155,35 @@ def set_rls_context_from_jwt():
         payload = pyjwt.decode(token, secret, algorithms=['HS256'])
         user_id = payload.get('user_id')
         org_id  = payload.get('organisation_id')
+
+        # GAP-C4 FIX: jwt_version check — instantly revoke tokens after role change.
+        # If the DB's jwt_version for this user is higher than the token's version,
+        # the token has been invalidated (role changed, org removed, etc.).
+        # We set a flag on g so individual route decorators can return a 401.
+        g.jwt_version_valid = True
+        token_version = payload.get('jwt_version')
+        if user_id and token_version is not None:
+            try:
+                from AI_infrastructure.shared.database_utils import execute_query
+                row = execute_query(
+                    "SELECT COALESCE(jwt_version, 1) AS jwt_version FROM ai_infrastructure.users WHERE id = %s",
+                    (int(user_id),), fetch_mode='one'
+                )
+                if row and int(row['jwt_version']) > int(token_version):
+                    g.jwt_version_valid = False
+                    logger.info(f"[JWT] Stale token rejected for user_id={user_id} "
+                                f"(token_v={token_version}, db_v={row['jwt_version']})")
+            except Exception as _jv_err:
+                logger.warning(f"[JWT] jwt_version check failed (non-fatal): {_jv_err}")
+
         if user_id:
             g.rls_user_id = int(user_id)
         if org_id:
             g.rls_organisation_id = int(org_id)
+        # GAP-L1 FIX: Expose plan_tier from JWT so routes don't need an extra DB hit
+        plan_tier = payload.get('plan_tier')
+        if plan_tier:
+            g.plan_tier = plan_tier
     except Exception:
         # Expired, invalid signature, etc. — leave g values as None
         pass

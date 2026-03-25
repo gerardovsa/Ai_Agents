@@ -801,9 +801,10 @@ Each gap is structured for systematic resolution. Work through them in the order
 ---
 
 #### GAP-M2: `organisation_id` Missing from Conversations/Threads (MEDIUM)
-**Status:** `[ ]` Needs Investigation  
-**Affected Files:** `AI_infrastructure/migrations/` (possibly), tables: `workspace_chats.conversations` or equivalent  
-**Problem:** The conversations/threads tables may not have an `organisation_id` column. If an org admin wants to see all team conversations, or if conversation history needs to be isolated by org (so org 2 can't read org 1's chats), the org FK must exist on the conversations table.  
+**Status:** `[x]` FIXED — Phase 6b. Migration `029_org_id_on_threads.sql` run in Supabase (March 25, 2026).  
+**Fix Applied:** `sessions.threads.organisation_id` column added + backfill trigger + index. Auto-fills from `users.organisation_id` on every new INSERT.  
+**Affected Files:** `AI_infrastructure/migrations/029_org_id_on_threads.sql`  
+**Original Problem:** The conversations/threads tables did not have an `organisation_id` column. If an org admin wants to see all team conversations, or if conversation history needs to be isolated by org (so org 2 can't read org 1's chats), the org FK must exist on the conversations table.  
 **Fix Steps:**
 1. Run: `SELECT column_name FROM information_schema.columns WHERE table_name = 'conversations';` — check if `organisation_id` exists.
 2. If missing, add it: `ALTER TABLE workspace_chats.conversations ADD COLUMN organisation_id INTEGER REFERENCES ai_infrastructure.organisations(id);`
@@ -815,25 +816,17 @@ Each gap is structured for systematic resolution. Work through them in the order
 ---
 
 #### GAP-M3: No Per-Org AI Provider / Model Selection (MEDIUM)
-**Status:** `[ ]` Not Started  
-**Affected Files:** `AI_infrastructure/migrations/` (ALTER TABLE), `AI_infrastructure/core/unified_ai_client.py`, org settings UI  
-**Problem:** There is no way to configure which AI provider (Anthropic/OpenAI/DeepSeek) or which model (`claude-3-5-sonnet`, `gpt-4o`, etc.) an organisation uses. Every org gets whatever is hardcoded in `UnifiedAIClient`.  
-**Fix Steps:**
-1. Add columns to `organisations`:
-   ```sql
-   ALTER TABLE ai_infrastructure.organisations
-       ADD COLUMN ai_provider VARCHAR(50) DEFAULT 'anthropic',
-       ADD COLUMN ai_model VARCHAR(100) DEFAULT 'claude-3-5-sonnet-20241022',
-       ADD COLUMN ai_max_tokens INTEGER DEFAULT 8192;
-   ```
-2. In `UnifiedAIClient.call()` (after GAP-C3 fix), look up the org's preferred provider:
-   ```python
-   org = execute_query("SELECT ai_provider, ai_model FROM ai_infrastructure.organisations WHERE id = %s", (org_id,), fetch_mode='one')
-   provider = org['ai_provider']
-   model = org['ai_model']
-   ```
-3. Route to the correct provider based on `provider`.
-4. Expose in org settings UI: a dropdown for provider + model selection (admin/owner only).  
+**Status:** `[x]` FIXED — Phase 7. Migration `031_org_ai_provider_model.sql` created (run in Supabase required). March 25, 2026.  
+**Affected Files:** `AI_infrastructure/migrations/031_org_ai_provider_model.sql` (⚠️ NOT YET RUN), `AI_infrastructure/core/unified_ai_client.py`, `AI_infrastructure/shared/org_credentials_loader.py`, `AI_infrastructure/flask_app.py`, `AI_infrastructure/routes/organisation_credentials_routes.py`, `UI/business-ai-platform-v2.html`, `UI/modules_internal/components/account_profile.js`  
+**Fix Applied:**
+1. Migration `031_org_ai_provider_model.sql` — adds `ai_provider VARCHAR(50)`, `ai_model VARCHAR(100)`, `ai_max_tokens INTEGER` to `organisations` with CHECK constraints.
+2. `get_org_ai_config(user_id)` in `org_credentials_loader.py` — 3-tier lookup: org config → provider default → hardcoded default. Falls back gracefully if migration not run.
+3. `unified_ai_client.py` — `process_streaming()` + all `_process_*` methods accept `org_model: Optional[str] = None` and use it if set.
+4. `flask_app.py` — resolves org AI config before background thread; passes `_resolved_provider` + `_org_model_override` to `process_streaming()`.
+5. `GET /api/org/info` — returns `ai_provider`, `ai_model`, `ai_max_tokens`.
+6. `PUT /api/org/info` — accepts and validates `ai_provider` (enum check), `ai_model` (string), `ai_max_tokens` (int 1024-32768).
+7. Org overview form — `#editOrgAiProvider` select + `#editOrgAiModel` input added.
+8. `account_profile.js` — `_renderOrgDashboard()` populates fields; `saveOrgSettings()` sends them.  
 **Verification Checkpoint:** Set org 2's provider to `openai` and model to `gpt-4o`. Send a chat message as org 2 user. Check OpenAI usage dashboard — request must appear there, not in Anthropic.  
 **Dependencies:** GAP-C3 must be done first.
 
@@ -885,8 +878,8 @@ Each gap is structured for systematic resolution. Work through them in the order
 ---
 
 #### GAP-M6: No `organisations.allowed_domains` for SSO Auto-Provisioning (MEDIUM)
-**Status:** `[x]` FIXED — Phase 6d  
-**Affected Files:** `AI_infrastructure/migrations/030_allowed_domains_for_sso.sql` (NEW), `AI_infrastructure/routes/google_auth_routes_V2_FIXED.py`, `AI_infrastructure/routes/microsoft_auth_routes_V2_FIXED.py`, `AI_infrastructure/routes/organisation_credentials_routes.py`, `UI/business-ai-platform-v2.html`, `UI/modules_internal/components/account_profile.js`  
+**Status:** `[x]` FIXED — Phase 6d. Migration `030_allowed_domains_for_sso.sql` run in Supabase (March 25, 2026).  
+**Affected Files:** `AI_infrastructure/migrations/030_allowed_domains_for_sso.sql` (run ✅), `AI_infrastructure/routes/google_auth_routes_V2_FIXED.py`, `AI_infrastructure/routes/microsoft_auth_routes_V2_FIXED.py`, `AI_infrastructure/routes/organisation_credentials_routes.py`, `UI/business-ai-platform-v2.html`, `UI/modules_internal/components/account_profile.js`  
 **Fix Applied:**  
 1. Migration `030_allowed_domains_for_sso.sql` — adds `allowed_domains TEXT[]` to `organisations` + GIN index (NOT YET RUN in Supabase)
 2. `_auto_assign_org_by_domain(user_id, email)` helper added to both Google and Microsoft OAuth callback files. Called after new user creation only — existing users unaffected.
@@ -1052,7 +1045,7 @@ Each gap is structured for systematic resolution. Work through them in the order
 | ✅ FIXED | GAP-M5: Platform name free-text | ALLOWED_PLATFORMS validation + dropdown |
 | 🟡 MEDIUM | GAP-M1: No org_module_access table | No feature gating by plan |
 | 🟡 MEDIUM | GAP-M3: No per-org AI provider/model | All orgs use same model |
-| 🟡 MEDIUM | GAP-M2: Conversations missing org FK | Chat history not org-isolated |
+| ✅ FIXED  | GAP-M2: Conversations missing org FK | sessions.threads.organisation_id + trigger (029) |
 | 🟡 MEDIUM | GAP-M4: Shopify/Xero not org-isolated | Integration data leakage |
 | ✅ FIXED  | GAP-M6: No allowed_domains for SSO | OAuth users not auto-provisioned |
 | 🟢 LOW | GAP-L1: JWT missing plan_tier | Extra DB hit per request |
