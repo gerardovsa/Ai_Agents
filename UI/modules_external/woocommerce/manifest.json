@@ -7,10 +7,11 @@
     "type": "external",
     "category": "ecommerce",
     "main_script": "woocommerce-v4.js",
+    "js_file": "woocommerce-v4.js",
     "styles": [
         "woocommerce-v4.css"
     ],
-    "show_in_sidebar": true,
+    "show_in_sidebar": false,
     "tab_id": "tab-sales-v4",
     "dependencies": [
         "https://cdn.plot.ly/plotly-2.27.0.min.js",

@@ -161,13 +161,13 @@ from routes.message_operations import message_ops_bp  # NEW: Message operations 
 log_debug("Importing export_routes...")
 from routes.export_routes import export_bp
 
-# ⚠️ WooCommerce: Disabled on Render (local development only)
+# WooCommerce routes (always registered; tools may not be available on Render)
 IS_RENDER = os.getenv('RENDER', 'false').lower() == 'true'
-if not IS_RENDER:
-    log_debug("Importing woocommerce_routes...")
+log_debug("Importing woocommerce_routes...")
+try:
     from routes.woocommerce_routes import woocommerce_bp
-else:
-    log_config(logger, "[CONFIG] WooCommerce disabled on Render deployment")
+except Exception as _wc_err:
+    log_config(logger, f"[CONFIG] WooCommerce routes could not be imported: {_wc_err}")
     woocommerce_bp = None
 
 log_debug("Importing auth_routes...")

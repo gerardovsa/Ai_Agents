@@ -425,7 +425,13 @@ export default {
         panel.appendChild(createLoadingSpinner(`Loading ${tabId}...`));
 
         try {
+            // Generate a stable per-user thread slug for this WooCommerce sub-tab.
+            // The agent route requires thread_slug to persist conversation context.
+            const userId = window.UserAuth?.user?.id || window.UserAuth?.user?.user_id || localStorage.getItem('user_id') || '0';
+            const threadSlug = `woocommerce-${tabId}-user-${userId}`;
+
             const data = await this.api.post('/api/agent/agent/1/start', {
+                thread_slug: threadSlug,
                 message,
                 context: { tab: 'woocommerce', action: `load_${tabId}`, tools_enabled: true },
             });

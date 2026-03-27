@@ -92,6 +92,7 @@ stripe>=13.0.0          # Payment processing integration
 # E-commerce & Accounting Integrations
 xero-python>=9.3.0      # Xero accounting API integration
 ShopifyAPI>=12.7.0      # Shopify e-commerce API integration
+WooCommerce>=3.0.0      # WooCommerce REST API Python wrapper
 
 # Background Task Processing
 celery>=5.5.0           # Async task queue for scheduled workflows
