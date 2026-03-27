@@ -34,6 +34,12 @@ const UserAuth = {
 
             // Verify token is still valid
             const valid = await this.verifyToken();
+            if (!valid && this.token) {
+                // verifyToken returned false but kept the token (transient network error)
+                // Treat as authenticated with cached data so HTTP calls still work
+                console.warn('⚠️ [AUTH] verifyToken returned false but token intact — using cached session');
+                return true;
+            }
             return valid;
         }
         return false;
@@ -172,20 +178,22 @@ const UserAuth = {
             });
 
             if (!response.ok) {
-                // Token is invalid - clear it from storage to prevent flickering
-                console.log('🗑️ Clearing invalid token from storage');
-                localStorage.removeItem('authToken');  // ✅ FIXED: Use correct key (camelCase)
-                sessionStorage.removeItem('authToken');  // Also clear sessionStorage fallback
-                this.token = null;
+                if (response.status === 401) {
+                    // Token is genuinely invalid or expired — clear it
+                    console.log('🗑️ [AUTH] Token rejected by server (401) — clearing from storage');
+                    localStorage.removeItem('authToken');
+                    sessionStorage.removeItem('authToken');
+                    this.token = null;
+                } else {
+                    // Server error (500, 503) or other transient issue — keep token, retry later
+                    console.warn(`⚠️ [AUTH] verifyToken got HTTP ${response.status} — keeping token (may be transient)`);
+                }
             }
 
             return response.ok;
         } catch (error) {
-            console.error('❌ Token verification failed:', error);
-            // Clear token on network error too
-            localStorage.removeItem('authToken');  // ✅ FIXED: Use correct key (camelCase)
-            sessionStorage.removeItem('authToken');  // Also clear sessionStorage fallback
-            this.token = null;
+            // Network error / Render cold-start — don't clear the token, just return false
+            console.warn('⚠️ [AUTH] verifyToken network error — keeping token for retry:', error.message);
             return false;
         }
     },
