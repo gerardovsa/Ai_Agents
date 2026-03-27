@@ -2996,11 +2996,6 @@
             animation: fadeIn 0.3s ease;
         }
 
-        /* Module visibility — set by initModulesFromOrg(). Overrides .active. */
-        .tab-content.module-hidden {
-            display: none !important;
-        }
-
         .tab-content.active {
             display: flex;
             flex-direction: column;
@@ -18453,8 +18448,8 @@
                 <div class="auth-progress-fill" id="authProgressFill"></div>
             </div>
 
-            <!-- Display Name Input (shown only for team logins) -->
-            <div id="authDisplayNameBlock" style="display: none; margin-top: 16px; padding: 12px; background: var(--surface-secondary); border-radius: 6px;">
+            <!-- Display Name Input (simple inline) -->
+            <div style="margin-top: 16px; padding: 12px; background: var(--surface-secondary); border-radius: 6px;">
                 <label
                     style="display: block; font-size: 11px; color: var(--text-secondary); margin-bottom: 6px;">Display
                     Name:</label>
@@ -18531,65 +18526,22 @@
 
                 <div class="oauth-divider">OR</div>
 
-                <!-- ===== STANDARD LOGIN PANEL ===== -->
-                <div id="standardLoginPanel">
-                    <!-- Traditional Login (Secondary Method) -->
-                    <div class="form-group">
-                        <label for="username">Username or Email</label>
-                        <input type="text" id="username" name="username" required autocomplete="username"
-                            placeholder="admin or email@example.com">
-                    </div>
-
-                    <div class="form-group">
-                        <label for="password">Password</label>
-                        <input type="password" id="password" name="password" required autocomplete="current-password"
-                            placeholder="Enter your password">
-                    </div>
-
-                    <button type="submit" class="login-btn" id="loginBtn">
-                        <i class="fas fa-sign-in-alt"></i> Sign In
-                    </button>
-
-                    <button type="button" class="login-btn" id="switchToTeamLoginBtn"
-                        onclick="showTeamLoginPanel()"
-                        style="margin-top: 8px; background: var(--bg-secondary); color: var(--text-secondary); border: 1px solid var(--border-color);">
-                        <i class="fas fa-users"></i> Sign in with Team
-                    </button>
+                <!-- Traditional Login (Secondary Method) -->
+                <div class="form-group">
+                    <label for="username">Username or Email</label>
+                    <input type="text" id="username" name="username" required autocomplete="username"
+                        placeholder="admin or email@example.com">
                 </div>
 
-                <!-- ===== TEAM LOGIN PANEL (hidden by default) ===== -->
-                <div id="teamLoginPanel" style="display: none;">
-                    <div class="form-group">
-                        <label for="teamLoginEmail">Your Email (Primary Account)</label>
-                        <input type="email" id="teamLoginEmail" autocomplete="email"
-                            placeholder="gerardo@company.com" required>
-                    </div>
-
-                    <div class="form-group">
-                        <label for="teamLoginName">Team Name</label>
-                        <input type="text" id="teamLoginName" autocomplete="off"
-                            placeholder="e.g. sales_team" required
-                            style="text-transform: lowercase;"
-                            oninput="this.value = this.value.toLowerCase().replace(/[^a-z0-9_]/g, '')">
-                    </div>
-
-                    <div class="form-group">
-                        <label for="teamLoginPassword">Team Password</label>
-                        <input type="password" id="teamLoginPassword" autocomplete="current-password"
-                            placeholder="Enter team password" required>
-                    </div>
-
-                    <div class="login-error" id="teamLoginError" style="display: none;"></div>
-
-                    <button type="button" class="login-btn" id="teamLoginBtn" onclick="handleTeamLogin()">
-                        <i class="fas fa-users"></i> Sign in as Team
-                    </button>
-
-                    <button type="button" onclick="hideTeamLoginPanel()"
-                        style="width: 100%; margin-top: 8px; padding: 10px; background: transparent; border: none; color: var(--text-secondary); cursor: pointer; font-size: 14px;">
-                        <i class="fas fa-arrow-left"></i> Back to standard login
-                    </button>
+                <div class="form-group">
+                    <label for="password">Password</label>
+                    <input type="password" id="password" name="password" required autocomplete="current-password"
+                        placeholder="Enter your password">
                 </div>
+
+                <button type="submit" class="login-btn" id="loginBtn">
+                    <i class="fas fa-sign-in-alt"></i> Sign In
+                </button>
             </form>
         </div>
     </div>
@@ -18629,7 +18581,7 @@
                 <i class="fas fa-comments"></i>
             </button>
 
-            <button class="sidebar-icon-btn" data-tab="sales" data-module="woocommerce" title="Sales & E-Commerce" style="display:none">
+            <button class="sidebar-icon-btn" data-tab="sales" title="Sales & E-Commerce">
                 <i class="fas fa-shopping-cart"></i>
             </button>
 
@@ -18669,18 +18621,6 @@
 
             <button class="sidebar-icon-btn" data-action="vectordb" title="Vector Database - Document Management">
                 <i class="fas fa-database"></i>
-            </button>
-
-            <!-- VSA Veterinary Alerts — org-specific optional module, hidden until enabled -->
-            <button class="sidebar-icon-btn" data-tab="vsa-veterinary-alerts" data-module="vsa_veterinary"
-                title="VSA Veterinary Alerts" style="display:none">
-                <i class="fas fa-stethoscope"></i>
-            </button>
-
-            <!-- InHouse Kanban — org-specific optional module, hidden until enabled -->
-            <button class="sidebar-icon-btn" data-tab="inhouse-kanban" data-module="inhouse_kanban"
-                title="InHouse Kanban" style="display:none">
-                <i class="fas fa-columns"></i>
             </button>
 
             <!-- <button class="sidebar-icon-btn" data-tab="card-test" title="Thread Card Test Dashboard">
@@ -18818,7 +18758,6 @@
                             <div class="dropdown-user-email" id="dropdownUserEmail">Loading...</div>
                             <div class="dropdown-user-role" id="dropdownUserRole">
                                 <span class="role-badge" id="roleBadge">User</span>
-                                <span id="dropdownTeamBadge" style="display:none; align-items:center; gap:3px; background:#3498db; color:white; padding:2px 8px; border-radius:12px; font-size:10px; font-weight:600; margin-top:4px; width:fit-content;"><i class="fas fa-users"></i>&nbsp;<span id="dropdownTeamBadgeText"></span></span>
                             </div>
                         </div>
                     </div>
@@ -21300,7 +21239,6 @@
                         <div style="display: flex; align-items: center; gap: 12px; flex: 1;">
                             <div class="account-user-name" id="sidebarUserName">Loading...</div>
                             <span class="role-badge" id="sidebarRoleBadge">User</span>
-                            <span id="sidebarTeamBadge" style="display:none; align-items:center; gap:3px; background:#3498db; color:white; padding:2px 8px; border-radius:12px; font-size:10px; font-weight:600; max-width:130px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;"><i class="fas fa-users"></i>&nbsp;<span id="sidebarTeamBadgeText"></span></span>
                         </div>
                         <i class="fas fa-chevron-down" id="userExpandChevron"
                             style="font-size: 12px; color: var(--text-secondary); transition: transform 0.2s;"></i>
@@ -21734,29 +21672,27 @@
                             <select id="modelSelect" onchange="saveSettings()">
                                 <!-- ── Anthropic ─────────────────────────────────── -->
                                 <optgroup label="Anthropic">
-                                    <option value="claude-opus-4-6">Claude Opus 4.6 (Most Powerful)</option>
-                                    <option value="claude-sonnet-4-6" selected>Claude Sonnet 4.6 ★ Recommended</option>
-                                    <option value="claude-haiku-4-5-20251001">Claude Haiku 4.5 (Fast)</option>
+                                    <option value="claude-sonnet-4-6-20260213" selected>Claude Sonnet 4.6 ★ Recommended</option>
                                     <option value="claude-sonnet-4-5-20250929">Claude Sonnet 4.5</option>
+                                    <option value="claude-haiku-4-5-20251001">Claude Haiku 4.5 (Fast)</option>
+                                    <option value="claude-sonnet-4-20250514">Claude Sonnet 4</option>
                                     <option value="claude-3-7-sonnet-20250219">Claude 3.7 Sonnet</option>
                                     <option value="claude-3-5-sonnet-20241022">Claude 3.5 Sonnet (Legacy)</option>
                                 </optgroup>
                                 <!-- ── OpenAI ────────────────────────────────────── -->
                                 <optgroup label="OpenAI">
-                                    <option value="gpt-5.4">GPT-5.4 (Frontier)</option>
-                                    <option value="gpt-5.1">GPT-5.1 (Coding / Agents)</option>
-                                    <option value="gpt-5-mini">GPT-5 Mini (Fast)</option>
-                                    <option value="gpt-4o">GPT-4o (Legacy)</option>
-                                    <option value="gpt-4o-mini">GPT-4o Mini (Budget)</option>
-                                    <option value="o3">o3 (Reasoning)</option>
-                                    <option value="o4-mini">o4-mini (Fast Reasoning)</option>
-                                    <option value="o3-mini">o3-mini (Reasoning)</option>
-                                    <option value="o1">o1 (Reasoning)</option>
+                                    <option value="gpt-4o">GPT-4o</option>
+                                    <option value="gpt-4o-mini">GPT-4o Mini (Fast)</option>
+                                    <option value="gpt-4.5-preview">GPT-4.5 Preview</option>
+                                    <option value="o3">OpenAI o3 (Reasoning)</option>
+                                    <option value="o3-mini">OpenAI o3-mini (Reasoning)</option>
+                                    <option value="o1">OpenAI o1 (Reasoning)</option>
+                                    <option value="o1-mini">OpenAI o1-mini (Reasoning)</option>
                                 </optgroup>
                                 <!-- ── DeepSeek ──────────────────────────────────── -->
                                 <optgroup label="DeepSeek">
-                                    <option value="deepseek-chat">DeepSeek Chat V3.2 (Fast)</option>
-                                    <option value="deepseek-reasoner">DeepSeek R1 V3.2 (Reasoning)</option>
+                                    <option value="deepseek-chat">DeepSeek Chat V3 (Fast)</option>
+                                    <option value="deepseek-reasoner">DeepSeek R1 (Reasoning)</option>
                                 </optgroup>
                             </select>
                             <small style="color: var(--text-muted); margin-top: 4px; display: block;">Select the
@@ -21879,12 +21815,12 @@
         </div>
     </div>
 
-    <!-- ==================== TEAM CREATE/EDIT MODAL (NEW: Email + Team Name + Password) ==================== -->
+    <!-- ==================== TEAM ID CREATE/EDIT MODAL ==================== -->
     <div class="edit-card-modal" id="team-id-modal" style="display: none;">
-        <div class="modal-content" style="max-width: 620px;">
+        <div class="modal-content" style="max-width: 550px;">
             <div class="modal-header">
                 <h3>
-                    <i class="fas fa-users"></i> <span id="teamIdModalTitle">Create Team</span>
+                    <i class="fas fa-users"></i> <span id="teamIdModalTitle">Create Team ID</span>
                 </h3>
                 <button class="modal-close" onclick="closeTeamIdModal()">
                     <i class="fas fa-times"></i>
@@ -21893,64 +21829,49 @@
             <div class="modal-body" style="padding: var(--space-4);">
                 <input type="hidden" id="editTeamIdOriginal" value="">
 
-                <!-- Info box explaining the system -->
-                <div style="background: var(--bg-secondary); border-left: 4px solid var(--accent-primary); padding: 12px 14px; border-radius: 4px; margin-bottom: 20px; font-size: 13px; color: var(--text-secondary); line-height: 1.6;">
-                    <strong style="color: var(--text-primary);">How Teams Work:</strong><br>
-                    Your email is used as the primary identifier. Team members log in with: Your Email + Team Name + Team Password. All team members share your API credentials (Anthropic, Shopify, Xero, etc.).
-                </div>
-
-                <!-- Email (read-only) -->
-                <div style="margin-bottom: 16px;">
-                    <label for="teamIdEmailReadonly" style="display: block; margin-bottom: 6px; font-weight: 600;">
-                        <i class="fas fa-envelope"></i> Your Email <span style="color: var(--danger);">*</span>
-                    </label>
-                    <input type="email" id="teamIdEmailReadonly" readonly
-                        style="width: 100%; padding: 10px; background: var(--bg-tertiary); border: 1px solid var(--border-default); border-radius: 6px; color: var(--text-muted); font-size: 14px; opacity: 0.7;">
-                    <small style="color: var(--text-muted); font-size: 11px; display: block; margin-top: 4px;">
-                        This is your login email. Combined with Team Name for uniqueness.
-                    </small>
-                </div>
-
-                <!-- Team Name -->
                 <div style="margin-bottom: 16px;">
                     <label for="teamIdName" style="display: block; margin-bottom: 6px; font-weight: 600;">
-                        <i class="fas fa-tag"></i> Team Name <span style="color: var(--danger);">*</span>
+                        <i class="fas fa-user"></i> Team ID Name <span style="color: var(--danger);">*</span>
                     </label>
                     <input type="text" id="teamIdName" placeholder="e.g., sales_team, support_team"
                         style="width: 100%; padding: 10px; background: var(--bg-primary); border: 1px solid var(--border-default); border-radius: 6px; color: var(--text-primary); font-size: 14px;">
-                    <small style="color: var(--text-muted); font-size: 11px; display: block; margin-top: 4px;">
-                        Alphanumeric + underscore only. Example: <code style="color: var(--text-secondary); background: var(--bg-secondary); padding: 2px 6px; border-radius: 3px; font-size: 11px;">sales_team</code>
+                    <small style="color: var(--text-muted); font-size: 12px; display: block; margin-top: 4px;">
+                        Used for filtering threads. Min 2 characters, alphanumeric + underscore.
                     </small>
                 </div>
 
-                <!-- Team Password -->
+                <div style="margin-bottom: 16px;">
+                    <label for="teamIdEmail" style="display: block; margin-bottom: 6px; font-weight: 600;">
+                        <i class="fas fa-envelope"></i> Email
+                    </label>
+                    <input type="email" id="teamIdEmail" placeholder="team@company.com"
+                        style="width: 100%; padding: 10px; background: var(--bg-primary); border: 1px solid var(--border-default); border-radius: 6px; color: var(--text-primary); font-size: 14px;">
+                </div>
+
                 <div style="margin-bottom: 16px;">
                     <label for="teamIdPassword" style="display: block; margin-bottom: 6px; font-weight: 600;">
-                        <i class="fas fa-key"></i> Team Password <span style="color: var(--danger);">*</span>
+                        <i class="fas fa-key"></i> Password
                     </label>
-                    <input type="password" id="teamIdPassword" placeholder="Create a strong password"
+                    <input type="password" id="teamIdPassword" placeholder="Leave blank for auto-generated"
                         style="width: 100%; padding: 10px; background: var(--bg-primary); border: 1px solid var(--border-default); border-radius: 6px; color: var(--text-primary); font-size: 14px;">
-                    <small style="color: var(--text-muted); font-size: 11px; display: block; margin-top: 4px;">
-                        Team members will use this password to log in. Min 8 characters, mix of letters, numbers, symbols recommended.
+                    <small style="color: var(--text-muted); font-size: 12px; display: block; margin-top: 4px;">
+                        Leave empty to auto-generate a secure password.
                     </small>
                 </div>
 
-                <!-- Display Name (optional) -->
                 <div style="margin-bottom: 16px;">
-                    <label for="teamIdDisplayName" style="display: block; margin-bottom: 6px; font-weight: 600;">
-                        <i class="fas fa-briefcase"></i> Team Display Name
+                    <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+                        <input type="checkbox" id="teamIdActive" checked>
+                        <span style="font-weight: 600;"><i class="fas fa-toggle-on"></i> Active</span>
                     </label>
-                    <input type="text" id="teamIdDisplayName" placeholder="e.g., Sales Department"
-                        style="width: 100%; padding: 10px; background: var(--bg-primary); border: 1px solid var(--border-default); border-radius: 6px; color: var(--text-primary); font-size: 14px;">
-                    <small style="color: var(--text-muted); font-size: 11px; display: block; margin-top: 4px;">
-                        Shown in the UI instead of team name. Optional.
+                    <small style="color: var(--text-muted); font-size: 12px; display: block; margin-top: 4px;">
+                        Inactive Team IDs cannot access threads.
                     </small>
                 </div>
 
-                <!-- Color -->
                 <div style="margin-bottom: 16px;">
                     <label for="teamIdColor" style="display: block; margin-bottom: 6px; font-weight: 600;">
-                        <i class="fas fa-palette"></i> Team Color
+                        <i class="fas fa-palette"></i> Color
                     </label>
                     <div style="display: flex; gap: 8px; align-items: center;">
                         <input type="color" id="teamIdColor" value="#3498db"
@@ -21958,8 +21879,8 @@
                         <input type="text" id="teamIdColorHex" value="#3498db" placeholder="#3498db"
                             style="flex: 1; padding: 10px; background: var(--bg-primary); border: 1px solid var(--border-default); border-radius: 6px; color: var(--text-primary); font-size: 14px;">
                     </div>
-                    <small style="color: var(--text-muted); font-size: 11px; display: block; margin-top: 4px;">
-                        Color-codes team threads in the sidebar and chat list.
+                    <small style="color: var(--text-muted); font-size: 12px; display: block; margin-top: 4px;">
+                        Used to color-code threads from this Team ID.
                     </small>
                 </div>
             </div>
@@ -22920,7 +22841,7 @@
                             </div>
                             <div>
                                 <label class="acct-label">AI Model <span style="font-weight:400;color:var(--text-muted);font-size:11px;">(leave blank to use provider default)</span></label>
-                                <input type="text" id="editOrgAiModel" class="acct-input acct-mono" placeholder="e.g. claude-sonnet-4-6">
+                                <input type="text" id="editOrgAiModel" class="acct-input acct-mono" placeholder="e.g. claude-sonnet-4-5-20250929">
                             </div>
                         </div>
                         <div style="margin-top:20px;">
@@ -23219,78 +23140,6 @@
             console.log('?? Full OAuth URL:', oauthUrl);
 
             window.location.href = oauthUrl;
-        }
-
-        // ==================== TEAM LOGIN FUNCTIONS ====================
-
-        function showTeamLoginPanel() {
-            document.getElementById('standardLoginPanel').style.display = 'none';
-            document.getElementById('teamLoginPanel').style.display = 'block';
-            document.getElementById('teamLoginError').style.display = 'none';
-            document.getElementById('teamLoginError').textContent = '';
-        }
-
-        function hideTeamLoginPanel() {
-            document.getElementById('teamLoginPanel').style.display = 'none';
-            document.getElementById('standardLoginPanel').style.display = 'block';
-        }
-
-        async function handleTeamLogin() {
-            const email    = (document.getElementById('teamLoginEmail').value || '').trim().toLowerCase();
-            const teamName = (document.getElementById('teamLoginName').value || '').trim().toLowerCase();
-            const password = document.getElementById('teamLoginPassword').value || '';
-            const errorEl  = document.getElementById('teamLoginError');
-            const btn      = document.getElementById('teamLoginBtn');
-
-            errorEl.style.display = 'none';
-            errorEl.textContent = '';
-
-            if (!email || !teamName || !password) {
-                errorEl.textContent = 'Please fill in all fields.';
-                errorEl.style.display = 'block';
-                return;
-            }
-
-            btn.disabled = true;
-            btn.innerHTML = '<i class="fas fa-circle-notch fa-spin"></i> Signing in...';
-
-            try {
-                const baseUrl = window.API_BASE_URL || 'http://localhost:5001';
-                const response = await fetch(`${baseUrl}/api/auth/login/team`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ email, team_name: teamName, password })
-                });
-
-                const data = await response.json();
-
-                if (data.success && data.token) {
-                    // Store token exactly like normal login
-                    localStorage.setItem('authToken', data.token);
-
-                    // Mark team context in session storage for UI indicators
-                    if (data.user && data.user.login_mode === 'team') {
-                        sessionStorage.setItem('teamLoginMode', 'true');
-                        sessionStorage.setItem('teamName', data.user.team_name || '');
-                        sessionStorage.setItem('teamDisplayName', data.user.team_display_name || '');
-                        sessionStorage.setItem('teamColor', data.user.team_color || '#3498db');
-                    }
-
-                    // Reload the page to trigger the normal post-login initialisation
-                    window.location.reload();
-                } else {
-                    errorEl.textContent = data.error || 'Invalid team credentials.';
-                    errorEl.style.display = 'block';
-                    btn.disabled = false;
-                    btn.innerHTML = '<i class="fas fa-users"></i> Sign in as Team';
-                }
-            } catch (err) {
-                console.error('[TEAM LOGIN] Error:', err);
-                errorEl.textContent = 'Login failed. Please check your connection and try again.';
-                errorEl.style.display = 'block';
-                btn.disabled = false;
-                btn.innerHTML = '<i class="fas fa-users"></i> Sign in as Team';
-            }
         }
 
         // ==================== CONFIRMATION MODAL FUNCTIONS ====================
@@ -29150,58 +28999,65 @@
         async function loadTeamIdList() {
             try {
                 const token = localStorage.getItem('authToken');
-                const response = await fetch(`${API_BASE_URL}/api/auth/teams`, {
+                const response = await fetch(`${API_BASE_URL}/api/auth/team-ids/stats`, {
                     headers: { 'Authorization': `Bearer ${token}` }
                 });
 
-                if (!response.ok) throw new Error('Failed to load Teams');
+                if (!response.ok) {
+                    throw new Error('Failed to load Team IDs');
+                }
 
                 const data = await response.json();
-                const teams = data.teams || [];
+                const teamIds = data.team_ids || [];
 
                 // Update count badge
-                document.getElementById('teamIdCount').textContent = teams.length;
+                document.getElementById('teamIdCount').textContent = data.total_team_ids || 0;
 
-                // Update active count stat
-                const activeCount = teams.filter(t => t.is_active).length;
-                const statActiveEl = document.getElementById('statActiveTeams');
-                if (statActiveEl) statActiveEl.textContent = activeCount;
-                const statsEl = document.getElementById('teamIdStats');
-                if (statsEl) statsEl.style.display = teams.length > 0 ? 'block' : 'none';
+                // Update stats
+                document.getElementById('statTotalThreads').textContent = data.total_threads || 0;
+                document.getElementById('statTotalMessages').textContent = data.total_messages || 0;
+                document.getElementById('statActiveTeams').textContent = data.active_team_ids || 0;
+                document.getElementById('teamIdStats').style.display = teamIds.length > 0 ? 'block' : 'none';
 
-                // Render team list
+                // Render Team ID list
                 const container = document.getElementById('teamIdsList');
-                if (teams.length === 0) {
+                if (teamIds.length === 0) {
                     container.innerHTML = `
                         <div style="text-align: center; padding: 40px 20px; color: var(--text-muted);">
                             <i class="fas fa-users" style="font-size: 32px; margin-bottom: 12px; opacity: 0.5;"></i>
-                            <p>No Teams created yet</p>
-                            <small>Click "Create Team" to get started</small>
+                            <p>No Team IDs created yet</p>
+                            <small>Click "Create Team ID" to get started</small>
                         </div>
                     `;
                     return;
                 }
 
-                container.innerHTML = teams.map(team => {
-                    const color = team.color || getTeamIdColor(team.team_name);
+                container.innerHTML = teamIds.map(team => {
+                    const color = getTeamIdColor(team.team_id);
+                    const lastActive = team.last_active ? new Date(team.last_active).toLocaleString() : 'Never';
+
                     return `
                         <div style="padding: 12px; background: var(--bg-secondary); border-radius: 8px; margin-bottom: 8px; border-left: 4px solid ${color};">
                             <div style="display: flex; align-items: center; justify-content: space-between; gap: 12px;">
                                 <div style="flex: 1; min-width: 0;">
                                     <div style="font-weight: 600; color: var(--text-primary); margin-bottom: 4px; display: flex; align-items: center; gap: 8px;">
-                                        <span>${team.display_name || team.team_name}</span>
-                                        <code style="font-size: 11px; background: var(--bg-tertiary); padding: 1px 6px; border-radius: 4px; color: var(--text-secondary);">${team.team_name}</code>
+                                        <span>${team.team_id}</span>
                                         ${team.is_active ? '<span style="background: #22c55e; color: white; padding: 2px 8px; border-radius: 12px; font-size: 10px; font-weight: 600;">ACTIVE</span>' : '<span style="background: #94a3b8; color: white; padding: 2px 8px; border-radius: 12px; font-size: 10px; font-weight: 600;">INACTIVE</span>'}
                                     </div>
-                                    <div style="font-size: 12px; color: var(--text-secondary);">
-                                        ${team.description ? `<span>${team.description}</span>` : '<span style="opacity:0.5;">No description</span>'}
+                                    <div style="font-size: 12px; color: var(--text-secondary); display: flex; align-items: center; gap: 16px; flex-wrap: wrap;">
+                                        <span><i class="fas fa-comment-alt"></i> ${team.thread_count} threads</span>
+                                        <span><i class="fas fa-envelope"></i> ${team.message_count} messages</span>
+                                        <span><i class="fas fa-clock"></i> ${lastActive}</span>
                                     </div>
                                 </div>
                                 <div style="display: flex; gap: 6px;">
-                                    <button class="btn btn-sm btn-secondary" onclick="editTeamId('${team.team_name}')" title="Edit">
+                                    <button class="btn btn-sm btn-secondary" onclick="showTeamIdAnalytics('${team.team_id}')" title="Analytics">
+                                        <i class="fas fa-chart-line"></i>
+                                    </button>
+                                    <button class="btn btn-sm btn-secondary" onclick="editTeamId('${team.team_id}')" title="Edit">
                                         <i class="fas fa-edit"></i>
                                     </button>
-                                    <button class="btn btn-sm btn-danger" onclick="deleteTeamId('${team.team_name}')" title="Delete">
+                                    <button class="btn btn-sm btn-danger" onclick="deleteTeamId('${team.team_id}')" title="Delete">
                                         <i class="fas fa-trash"></i>
                                     </button>
                                 </div>
@@ -29211,10 +29067,10 @@
                 }).join('');
 
             } catch (error) {
-                console.error('[TEAMS] Error loading:', error);
+                console.error('[TEAM IDs] Error loading:', error);
                 document.getElementById('teamIdsList').innerHTML = `
                     <div style="text-align: center; padding: 20px; color: var(--danger);">
-                        <i class="fas fa-exclamation-triangle"></i> Failed to load Teams
+                        <i class="fas fa-exclamation-triangle"></i> Failed to load Team IDs
                     </div>
                 `;
             }
@@ -29232,56 +29088,49 @@
          * Show create Team ID modal
          */
         function showCreateTeamIdModal() {
-            document.getElementById('teamIdModalTitle').textContent = 'Create Team';
+            document.getElementById('teamIdModalTitle').textContent = 'Create Team ID';
             document.getElementById('editTeamIdOriginal').value = '';
-            
-            // Populate current user's email (read-only)
-            const userEmail = localStorage.getItem('userEmail') || 'user@example.com';
-            document.getElementById('teamIdEmailReadonly').value = userEmail;
-            
-            // Clear form fields
             document.getElementById('teamIdName').value = '';
+            document.getElementById('teamIdEmail').value = '';
             document.getElementById('teamIdPassword').value = '';
-            document.getElementById('teamIdDisplayName').value = '';
+            document.getElementById('teamIdActive').checked = true;
             document.getElementById('teamIdColor').value = '#3498db';
             document.getElementById('teamIdColorHex').value = '#3498db';
             document.getElementById('team-id-modal').style.display = 'flex';
-            
-            // Focus on team name field
-            document.getElementById('teamIdName').focus();
         }
 
         /**
          * Edit Team ID
          */
-        async function editTeamId(teamName) {
+        async function editTeamId(teamId) {
             try {
                 const token = localStorage.getItem('authToken');
-                const response = await fetch(`${API_BASE_URL}/api/auth/teams`, {
+                const response = await fetch(`${API_BASE_URL}/api/auth/team-ids`, {
                     headers: { 'Authorization': `Bearer ${token}` }
                 });
 
                 const data = await response.json();
-                const team = (data.teams || []).find(t => t.team_name === teamName);
+                const team = data.team_ids.find(t => t.team_id === teamId);
 
-                if (!team) throw new Error('Team not found');
+                if (!team) throw new Error('Team ID not found');
 
-                document.getElementById('teamIdModalTitle').textContent = 'Edit Team';
-                document.getElementById('editTeamIdOriginal').value = teamName;
-                document.getElementById('teamIdName').value = teamName;
+                document.getElementById('teamIdModalTitle').textContent = 'Edit Team ID';
+                document.getElementById('editTeamIdOriginal').value = teamId;
+                document.getElementById('teamIdName').value = teamId;
                 document.getElementById('teamIdName').disabled = true; // Cannot rename
-                document.getElementById('teamIdDisplayName').value = team.display_name || '';
-                document.getElementById('teamIdPassword').value = ''; // Leave blank to keep existing password
+                document.getElementById('teamIdEmail').value = team.email || '';
+                document.getElementById('teamIdPassword').value = ''; // Don't show existing password
+                document.getElementById('teamIdActive').checked = team.is_active;
 
-                const color = team.color || '#3498db';
+                const color = getTeamIdColor(teamId);
                 document.getElementById('teamIdColor').value = color;
                 document.getElementById('teamIdColorHex').value = color;
 
                 document.getElementById('team-id-modal').style.display = 'flex';
 
             } catch (error) {
-                console.error('[TEAMS] Error editing:', error);
-                showToast('Failed to load Team details', 'error');
+                console.error('[TEAM IDs] Error editing:', error);
+                showToast('Failed to load Team ID details', 'error');
             }
         }
 
@@ -29299,54 +29148,29 @@
         async function saveTeamId() {
             try {
                 const isEdit = !!document.getElementById('editTeamIdOriginal').value;
-                const email = document.getElementById('teamIdEmailReadonly').value.trim();
-                const teamName = document.getElementById('teamIdName').value.trim();
-                const teamPassword = document.getElementById('teamIdPassword').value;
-                const displayName = document.getElementById('teamIdDisplayName').value.trim();
+                const teamId = document.getElementById('teamIdName').value.trim();
+                const email = document.getElementById('teamIdEmail').value.trim();
+                const password = document.getElementById('teamIdPassword').value;
+                const isActive = document.getElementById('teamIdActive').checked;
                 const color = document.getElementById('teamIdColor').value;
 
-                // Validation
-                if (!teamName || teamName.length < 2) {
-                    showToast('Team Name must be at least 2 characters', 'error');
+                if (!teamId || teamId.length < 2) {
+                    showToast('Team ID must be at least 2 characters', 'error');
                     return;
                 }
-
-                // Validate team name format (alphanumeric + underscore)
-                if (!/^[a-zA-Z0-9_]+$/.test(teamName)) {
-                    showToast('Team Name can only contain letters, numbers, and underscores', 'error');
-                    return;
-                }
-
-                if (!isEdit && (!teamPassword || teamPassword.length < 8)) {
-                    showToast('Team Password must be at least 8 characters', 'error');
-                    return;
-                }
-
-                // For edit mode, only send password if provided (optional update)
-                // For create mode, password is required
 
                 // Save color
-                setTeamIdColor(teamName, color);
+                setTeamIdColor(teamId, color);
 
                 const token = localStorage.getItem('authToken');
                 const url = isEdit
-                    ? `${API_BASE_URL}/api/auth/teams/${teamName}`
-                    : `${API_BASE_URL}/api/auth/teams/create`;
+                    ? `${API_BASE_URL}/api/auth/team-ids/${teamId}`
+                    : `${API_BASE_URL}/api/auth/team-ids/add`;
 
                 const method = isEdit ? 'PUT' : 'POST';
                 const body = isEdit
-                    ? { 
-                        display_name: displayName,
-                        color: color,
-                        ...(teamPassword && { password: teamPassword })
-                      }
-                    : { 
-                        email: email,
-                        team_name: teamName,
-                        password: teamPassword,
-                        display_name: displayName || teamName,
-                        color: color
-                      };
+                    ? { is_active: isActive, ...(password && { password }) }
+                    : { team_id: teamId, email, password };
 
                 const response = await fetch(url, {
                     method,
@@ -29359,15 +29183,15 @@
 
                 if (!response.ok) {
                     const error = await response.json();
-                    throw new Error(error.error || 'Failed to save Team');
+                    throw new Error(error.error || 'Failed to save Team ID');
                 }
 
-                showToast(isEdit ? 'Team updated' : 'Team created successfully', 'success');
+                showToast(isEdit ? 'Team ID updated' : 'Team ID created', 'success');
                 closeTeamIdModal();
                 loadTeamIdList();
 
             } catch (error) {
-                console.error('[TEAMS] Error saving:', error);
+                console.error('[TEAM IDs] Error saving:', error);
                 showToast(error.message, 'error');
             }
         }
@@ -29382,17 +29206,17 @@
 
             try {
                 const token = localStorage.getItem('authToken');
-                const response = await fetch(`${API_BASE_URL}/api/auth/teams/${teamId}`, {
+                const response = await fetch(`${API_BASE_URL}/api/auth/team-ids/${teamId}`, {
                     method: 'DELETE',
                     headers: { 'Authorization': `Bearer ${token}` }
                 });
 
                 if (!response.ok) {
                     const error = await response.json();
-                    throw new Error(error.error || 'Failed to delete Team');
+                    throw new Error(error.error || 'Failed to delete Team ID');
                 }
 
-                showToast(`Team "${teamId}" deleted`, 'success');
+                showToast(`Team ID "${teamId}" deleted`, 'success');
                 loadTeamIdList();
 
             } catch (error) {
@@ -29601,7 +29425,7 @@
             try {
                 const response = await fetch('/api/auth/team-ids', {
                     headers: {
-                        'Authorization': `Bearer ${window.UserAuth?.token || localStorage.getItem('authToken') || ''}`
+                        'Authorization': `Bearer ${window.UserAuth?.token || localStorage.getItem('auth_token')}`
                     }
                 });
 
@@ -29769,55 +29593,20 @@
                 });
             }
 
-            // Populate display name inputs — only show on loading screen for team logins
+            // Populate display name inputs from localStorage
             const displayName = localStorage.getItem('session_display_name') || '';
             const authInput = document.getElementById('authDisplayNameInput');
-            const authDisplayNameBlock = document.getElementById('authDisplayNameBlock');
             const sidebarInput = document.getElementById('sidebarDisplayNameInput');
 
-            const isTeamLogin = sessionStorage.getItem('teamLoginMode') === 'true';
-            if (isTeamLogin && authDisplayNameBlock) {
-                authDisplayNameBlock.style.display = 'block';
-                // Pre-fill with team display name, then fall back to stored display name
-                const teamDisplayName = sessionStorage.getItem('teamDisplayName') || '';
-                const nameToShow = teamDisplayName || displayName;
-                if (authInput && nameToShow) {
-                    authInput.value = nameToShow;
-                    authInput.readOnly = true;
-                    authInput.style.cursor = 'default';
-                    const authBtn = document.getElementById('authDisplayNameBtn');
-                    if (authBtn) {
-                        authBtn.innerHTML = '<i class="fas fa-edit"></i> Edit';
-                        authBtn.title = 'Edit display name';
-                    }
+            if (authInput && displayName) {
+                authInput.value = displayName;
+                authInput.readOnly = true;
+                authInput.style.cursor = 'default';
+                const authBtn = document.getElementById('authDisplayNameBtn');
+                if (authBtn) {
+                    authBtn.innerHTML = '<i class="fas fa-edit"></i> Edit';
+                    authBtn.title = 'Edit display name';
                 }
-            }
-
-            // Apply persistent team badge — runs now + after profile loading overwrites role badge
-            if (isTeamLogin) {
-                const _teamName        = sessionStorage.getItem('teamName') || '';
-                const _teamDisplayName = sessionStorage.getItem('teamDisplayName') || _teamName;
-                const _teamColor       = sessionStorage.getItem('teamColor') || '#3498db';
-                const _badgeLabel      = _teamDisplayName || _teamName;
-                const applyTeamBadges = () => {
-                    const sidebarBadge      = document.getElementById('sidebarTeamBadge');
-                    const sidebarBadgeText  = document.getElementById('sidebarTeamBadgeText');
-                    const dropdownBadge     = document.getElementById('dropdownTeamBadge');
-                    const dropdownBadgeText = document.getElementById('dropdownTeamBadgeText');
-                    if (sidebarBadge) {
-                        sidebarBadge.style.background = _teamColor;
-                        sidebarBadge.style.display = 'inline-flex';
-                        if (sidebarBadgeText) sidebarBadgeText.textContent = _badgeLabel;
-                    }
-                    if (dropdownBadge) {
-                        dropdownBadge.style.background = _teamColor;
-                        dropdownBadge.style.display = 'inline-flex';
-                        if (dropdownBadgeText) dropdownBadgeText.textContent = _badgeLabel;
-                    }
-                };
-                applyTeamBadges();
-                setTimeout(applyTeamBadges, 800);   // After profile loads
-                setTimeout(applyTeamBadges, 2500);  // Safety re-apply
             }
 
             if (sidebarInput && displayName) {
@@ -30873,136 +30662,6 @@
          *   - manager (3) → show AI Settings; hide Connections, Security
          *   - admin / owner (4-5) → show all
          */
-        // ============================================================
-        // DB-DRIVEN MODULE VISIBILITY  (March 2026)
-        // Called after login and org switch. Reads /api/org/modules
-        // and shows/hides sidebar items + tab-content divs accordingly.
-        // ============================================================
-
-        /**
-         * Map of module_name → { sidebarSelector, tabId }
-         * for modules that are hardcoded/built-in to Zone 1 of the sidebar
-         * and must be gated by org_module_access.
-         */
-        const MODULE_GATE_MAP = {
-            'woocommerce':      { selector: '[data-module="woocommerce"]',    tabId: 'tab-sales' },
-            'inhouse_kanban':   { selector: '[data-module="inhouse_kanban"]', tabId: 'tab-inhouse-kanban' },
-            'vsa_veterinary':   { selector: '[data-module="vsa_veterinary"]', tabId: 'tab-vsa-veterinary-alerts' },
-        };
-
-        /**
-         * Dynamic modules that live in Zone 2 (#sidebarModulesSection).
-         * These are rendered from the DB rather than manifest.json.
-         * Order here controls the order of sidebar icons.
-         */
-        const DYNAMIC_SIDEBAR_MODULES = [
-            { module_name: 'stock_management',     tabId: 'tab-stock',          action: null },
-            { module_name: 'inhouse_print',        tabId: null,                 action: 'inhouse-print' },
-            { module_name: 'quote_calculator',     tabId: null,                 action: 'calculator-tests' },
-            { module_name: 'xero',                 tabId: null,                 action: 'xero-dashboard' },
-            { module_name: 'shopify',              tabId: null,                 action: 'shopify-dashboard' },
-            { module_name: 'auspost_shipping',     tabId: null,                 action: 'auspost' },
-            { module_name: 'customer_reactivation',tabId: null,                 action: 'customer-reactivation' },
-            { module_name: 'database_visualizer',  tabId: null,                 action: 'database-visualizer' },
-            { module_name: 'github',               tabId: null,                 action: 'github' },
-            { module_name: 'render_management',    tabId: null,                 action: 'render-management' },
-        ];
-
-        /**
-         * Called on login and org switch.
-         * @param {string[]} enabledModules - array of module_name strings that are enabled for this org
-         * @param {Object[]} moduleCatalog  - full catalog rows from /api/org/modules/catalog (for icon/color/label)
-         */
-        async function initModulesFromOrg(enabledModules, moduleCatalog) {
-            const enabledSet = new Set(enabledModules || []);
-
-            console.log('[MODULE VISIBILITY] Enabled modules:', [...enabledSet]);
-
-            // ── 1. Gate Zone 1 optional hardcoded items ──────────────────────────
-            for (const [moduleName, spec] of Object.entries(MODULE_GATE_MAP)) {
-                const visible = enabledSet.has(moduleName);
-                const btn = document.querySelector(spec.selector);
-                if (btn) btn.style.display = visible ? '' : 'none';
-                const tab = spec.tabId ? document.getElementById(spec.tabId) : null;
-                if (tab) {
-                    if (visible) {
-                        tab.classList.remove('module-hidden');
-                    } else {
-                        tab.classList.add('module-hidden');
-                    }
-                }
-            }
-
-            // ── 2. Rebuild Zone 2 (#sidebarModulesSection) from DB data ──────────
-            const container = document.getElementById('sidebarModulesSection');
-            if (container) {
-                container.innerHTML = '';
-
-                // Build a lookup from the catalog
-                const catalogByName = {};
-                (moduleCatalog || []).forEach(function(m) { catalogByName[m.module_name] = m; });
-
-                for (const def of DYNAMIC_SIDEBAR_MODULES) {
-                    if (!enabledSet.has(def.module_name)) continue;
-
-                    const meta = catalogByName[def.module_name] || {};
-                    const btn = document.createElement('button');
-                    btn.className = 'sidebar-icon-btn';
-                    btn.title = meta.display_name || def.module_name;
-
-                    // Wire the click to either a tab or a data-action
-                    if (def.tabId) {
-                        btn.dataset.tab = def.tabId.replace('tab-', '');
-                    } else if (def.action) {
-                        btn.dataset.action = def.action;
-                    }
-
-                    const iconClass = meta.icon_class || 'fas fa-cube';
-                    const iconColor = meta.icon_color || '#6B7280';
-                    btn.innerHTML = `<i class="${iconClass}" style="color:${iconColor}"></i>`;
-                    container.appendChild(btn);
-                }
-
-                console.log(`[MODULE VISIBILITY] Zone 2 rebuilt: ${container.children.length} icons`);
-            }
-        }
-
-        /**
-         * Fetch org modules from the API and call initModulesFromOrg().
-         * Safe to call multiple times (e.g. on org switch).
-         */
-        async function loadAndApplyOrgModules() {
-            try {
-                const token = localStorage.getItem('authToken');
-                if (!token) return; // Not authenticated — skip
-
-                const [modulesRes, catalogRes] = await Promise.all([
-                    fetch(`${window.API_BASE_URL}/api/org/modules`, {
-                        headers: { 'Authorization': `Bearer ${token}` }
-                    }),
-                    fetch(`${window.API_BASE_URL}/api/org/modules/catalog`, {
-                        headers: { 'Authorization': `Bearer ${token}` }
-                    })
-                ]);
-
-                const modulesData  = modulesRes.ok  ? await modulesRes.json()  : {};
-                const catalogData  = catalogRes.ok  ? await catalogRes.json()  : {};
-
-                const enabledList  = modulesData.enabled_modules  || [];
-                const catalogList  = catalogData.modules          || [];
-
-                await initModulesFromOrg(enabledList, catalogList);
-
-            } catch (err) {
-                console.warn('[MODULE VISIBILITY] loadAndApplyOrgModules failed (non-fatal):', err);
-            }
-        }
-
-        // Expose so org-switch events can trigger a refresh
-        window.loadAndApplyOrgModules = loadAndApplyOrgModules;
-
-        // ============================================================
-
         function applyOrgRoleVisibility(profile) {
             const ROLE_LEVELS = { viewer: 1, member: 2, manager: 3, admin: 4, owner: 5 };
             const orgRole = profile.org_role || null;
@@ -31541,7 +31200,7 @@
                 el.innerHTML = '<div style="text-align:center;padding:20px;color:var(--text-muted);"><i class="fas fa-circle-notch fa-spin"></i> Loading&hellip;</div>';
                 try {
                     const resp = await fetch('/api/org/modules/catalog', {
-                        headers: { 'Authorization': `Bearer ${localStorage.getItem('authToken') || ''}` }
+                        headers: { 'Authorization': `Bearer ${localStorage.getItem('auth_token') || ''}` }
                     });
                     const data = await resp.json();
                     if (!resp.ok) throw new Error(data.error || 'Failed to load modules');
@@ -31619,18 +31278,13 @@
                         method: 'PUT',
                         headers: {
                             'Content-Type': 'application/json',
-                            'Authorization': `Bearer ${localStorage.getItem('authToken') || ''}`
+                            'Authorization': `Bearer ${localStorage.getItem('auth_token') || ''}`
                         },
                         body: JSON.stringify({ enabled })
                     });
                     const data = await resp.json();
                     if (!resp.ok) { alert(data.error || 'Failed to update module'); await this.loadModuleCatalog(); return; }
                     console.log(`[MODULES] ${moduleName} ${enabled ? 'enabled' : 'disabled'}`);
-                    // Refresh module catalog UI and sidebar visibility immediately
-                    await this.loadModuleCatalog();
-                    if (window.loadAndApplyOrgModules) {
-                        await window.loadAndApplyOrgModules();
-                    }
                 } catch (e) {
                     alert('Error updating module: ' + e.message);
                     this.loadModuleCatalog();
@@ -31936,7 +31590,7 @@ Thanks`;
                 auth_platform: document.getElementById('authPlatform')?.value || 'auto',
 
                 // AI Settings
-                ai_model: document.getElementById('modelSelect')?.value || 'claude-sonnet-4-6',
+                ai_model: document.getElementById('modelSelect')?.value || 'claude-sonnet-4-5-20250929',
                 ai_temperature: parseFloat(document.getElementById('temperature')?.value || 1.0),
                 ai_top_p: parseFloat(document.getElementById('topP')?.value || 1.0),
                 ai_max_tokens: parseInt(document.getElementById('maxTokens')?.value || 16000),
@@ -31984,7 +31638,7 @@ Thanks`;
                     auth_platform: document.getElementById('authPlatform')?.value || 'auto',
 
                     // AI Settings
-                    ai_model: document.getElementById('modelSelect')?.value || 'claude-sonnet-4-6',
+                    ai_model: document.getElementById('modelSelect')?.value || 'claude-sonnet-4-5-20250929',
                     ai_temperature: parseFloat(document.getElementById('temperature')?.value || 1.0),
                     ai_top_p: parseFloat(document.getElementById('topP')?.value || 1.0),
                     ai_max_tokens: parseInt(document.getElementById('maxTokens')?.value || 16000),
