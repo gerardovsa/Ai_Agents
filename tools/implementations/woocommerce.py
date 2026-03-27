@@ -6,6 +6,7 @@ This module provides tool implementations for WooCommerce e-commerce.
 """
 
 import os
+import json
 from woocommerce import API
 
 # Load WooCommerce credentials from environment (matching .env.master variable names)
@@ -28,6 +29,28 @@ except ImportError:
               os.getenv('WOOCOMMERCE_CONSUMER_KEY'))
     wc_secret = (os.getenv('WC_CONSUMER_SECRET') or 
                  os.getenv('WOOCOMMERCE_CONSUMER_SECRET'))
+
+# If credentials not found in environment, try loading from database
+if not (wc_key and wc_secret):
+    try:
+        from AI_infrastructure.shared.database_utils import execute_query
+        
+        # Fetch WooCommerce credentials from database (user_id=12 is gerardo)
+        creds = execute_query(
+            """SELECT credentials FROM ai_infrastructure.user_platform_credentials 
+               WHERE user_id=12 AND platform='woocommerce' AND is_active=TRUE LIMIT 1""",
+            (),
+            fetch_mode='one'
+        )
+        
+        if creds and creds.get('credentials'):
+            cred_data = json.loads(creds['credentials']) if isinstance(creds['credentials'], str) else creds['credentials']
+            wc_key = cred_data.get('consumer_key') or wc_key
+            wc_secret = cred_data.get('consumer_secret') or wc_secret
+            wc_url = cred_data.get('base_url') or wc_url
+            print(f"✅ Loaded WooCommerce credentials from database")
+    except Exception as e:
+        print(f"⚠️ Could not load WooCommerce credentials from database: {e}")
 
 print(f"[CONFIG] WooCommerce API Configuration:")
 print(f"   URL: {wc_url}")

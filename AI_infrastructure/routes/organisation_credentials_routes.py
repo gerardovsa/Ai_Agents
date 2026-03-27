@@ -133,7 +133,10 @@ def get_user_org_context(user_id: int) -> Optional[dict]:
         (user_id,),
         fetch_mode='one'
     )
-    return row if row and row.get('organisation_id') else None
+    logger.info(f"[ORG_DEBUG] get_user_org_context(user_id={user_id}): row={row}")
+    result = row if row and row.get('organisation_id') else None
+    logger.info(f"[ORG_DEBUG] get_user_org_context returning: {result}")
+    return result
 
 
 def require_org_role(minimum_role: str):
@@ -305,6 +308,7 @@ def create_organisation():
 def get_org_info():
     """GET /api/org/info — Org details for any org member."""
     ctx = g.org_ctx
+    logger.info(f"[ORG_DEBUG] get_org_info(): ctx={ctx}")
 
     org = execute_query(
         """
@@ -317,7 +321,9 @@ def get_org_info():
         (ctx['organisation_id'],),
         fetch_mode='one'
     )
+    logger.info(f"[ORG_DEBUG] get_org_info() query result: org={org}")
     if not org:
+        logger.error(f"[ORG_DEBUG] Organisation not found for org_id={ctx['organisation_id']}")
         return jsonify({'success': False, 'error': 'Organisation not found'}), 404
 
     member_count = execute_query(

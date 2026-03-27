@@ -131,7 +131,7 @@ def get_woocommerce_credentials(user_id=None):
             """
             SELECT credentials 
             FROM ai_infrastructure.user_platform_credentials
-            WHERE user_id = %s AND platform = 'shopify' AND is_active = TRUE
+            WHERE user_id = %s AND platform = 'woocommerce' AND is_active = TRUE
             LIMIT 1
             """,
             (user_id,),
