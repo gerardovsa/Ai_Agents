@@ -2913,7 +2913,7 @@ async function createOrganisation() {
     if (btn) { btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Creating...'; }
 
     try {
-        const res  = await fetch(`${API_BASE_URL}/api/org/info`, {
+        const res  = await fetch(`${API_BASE_URL}/api/org/create`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',

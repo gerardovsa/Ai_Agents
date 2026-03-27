@@ -105,7 +105,8 @@ def require_auth(f):
             user = auth_manager.verify_token(token)
             if not user:
                 return jsonify({'success': False, 'error': 'Invalid or expired token'}), 401
-            g.user_id = user['id']
+            # verify_token returns the JWT payload which uses 'user_id' key, not 'id'
+            g.user_id = user.get('user_id') or user.get('id')
             g.user = user
         except Exception as e:
             logger.error(f"[ORG_CREDS] Auth error: {e}")

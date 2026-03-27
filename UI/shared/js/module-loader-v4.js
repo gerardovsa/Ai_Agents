@@ -583,6 +583,7 @@ class ModuleLoaderV4 {
         for (const [moduleId, module] of this.modules) {
             if (!module.available) continue;
             if (module.module_type === 'component') continue;
+            if (module.show_in_sidebar === false) continue;
 
             const button = document.createElement('button');
             button.className = 'sidebar-icon-btn';

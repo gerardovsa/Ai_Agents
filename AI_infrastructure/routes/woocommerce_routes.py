@@ -198,6 +198,8 @@ def get_orders():
             page=page
         )
         
+        if not isinstance(result, dict):
+            return format_error_response(f'WooCommerce tool returned unexpected response: {str(result)[:200]}', 500)
         if 'error' in result:
             return format_error_response(result['error'], 500)
         
