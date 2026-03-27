@@ -1510,10 +1510,53 @@
         });
     </script>
 
-    <!-- ==================== WOOCOMMERCE MODULE ==================== -->
+    <!-- ==================== WOOCOMMERCE MODULE (LEGACY) ==================== -->
     <!-- ? DEFERRED: Loads AFTER authentication -->
     <!-- WooCommerce integration for order management and product sync -->
+    <!-- TODO: Remove this script tag once V4 module is verified and #tab-sales is deleted -->
     <script data-post-auth defer src="modules_internal/woocommerce/woocommerce.js"></script>
+
+    <!-- ==================== WOOCOMMERCE V4 MODULE BOOTSTRAP ==================== -->
+    <!-- ES module: loaded on-demand when user first clicks the V4 sidebar button   -->
+    <script type="module">
+        // Bootstrap the external WooCommerce V4 module.
+        // Runs once when the sidebar button for data-tab="sales-v4" is clicked.
+        (function() {
+            let _loaded = false;
+            let _module = null;
+
+            async function bootWooV4() {
+                if (_loaded) {
+                    // Already initialised — just call lifecycle hook again
+                    if (_module) await _module.onDashboardLoad(null);
+                    return;
+                }
+                _loaded = true;
+                try {
+                    const mod = await import('./modules_external/woocommerce/woocommerce-v4.js');
+                    _module = mod.default;
+                    await _module.onDashboardLoad(null);
+                } catch (err) {
+                    console.error('[WooV4] Failed to load module:', err);
+                    const el = document.getElementById('tab-sales-v4');
+                    if (el) el.innerHTML = `<div style="padding:40px;text-align:center;color:var(--accent-error);"><i class="fas fa-exclamation-triangle" style="font-size:48px;"></i><br><br>Failed to load WooCommerce V4 module.<br><small style="color:var(--text-secondary);">${err.message}</small></div>`;
+                }
+            }
+
+            // Hook into the existing tab-switching mechanism.
+            // The host page fires tab buttons via data-tab attribute clicks —
+            // we observe tab-sales-v4 becoming active.
+            document.addEventListener('DOMContentLoaded', function() {
+                document.addEventListener('click', function(e) {
+                    const btn = e.target.closest('[data-tab="sales-v4"]');
+                    if (btn) bootWooV4();
+                });
+
+                // Also expose globally so it can be called programmatically
+                window.bootWooCommerceV4 = bootWooV4;
+            });
+        })();
+    </script>
 
     <style>
         /* ==================== ROOT VARIABLES ==================== */
@@ -18581,8 +18624,14 @@
                 <i class="fas fa-comments"></i>
             </button>
 
-            <button class="sidebar-icon-btn" data-tab="sales" title="Sales & E-Commerce">
+            <button class="sidebar-icon-btn" data-tab="sales" title="WooCommerce (Legacy)">
                 <i class="fas fa-shopping-cart"></i>
+            </button>
+
+            <!-- WooCommerce V4 external module (runs alongside legacy for testing) -->
+            <button class="sidebar-icon-btn" data-tab="sales-v4" data-module="woocommerce" title="WooCommerce V4 (New)" style="position:relative;">
+                <i class="fab fa-wordpress"></i>
+                <span style="position:absolute;top:2px;right:2px;font-size:7px;background:#7f54b3;color:#fff;padding:1px 4px;border-radius:4px;font-weight:700;line-height:1.4;">V4</span>
             </button>
 
             <button class="sidebar-icon-btn" data-tab="analytics" title="Analytics & Reports">
@@ -19745,6 +19794,14 @@
                             </div>
                         </div>
                     </div>
+                </div>
+
+                <!-- ==================== WOOCOMMERCE V4 TAB (External Module) ==================== -->
+                <!-- This tab is driven by UI/modules_external/woocommerce/woocommerce-v4.js        -->
+                <!-- The module bootstraps itself when onDashboardLoad() is called by the loader.   -->
+                <!-- To remove legacy: delete #tab-sales block above + modules_internal/woocommerce -->
+                <div class="tab-content" id="tab-sales-v4">
+                    <!-- content injected by woocommerce-v4.js onDashboardLoad() -->
                 </div>
 
                 <!-- ==================== ANALYTICS TAB ==================== -->

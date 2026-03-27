@@ -1,0 +1,32 @@
+{
+    "id": "woocommerce",
+    "name": "WooCommerce",
+    "version": "2.0.0",
+    "description": "WooCommerce order management, analytics, products, customers and finance (V4 external module)",
+    "icon": "fab fa-wordpress",
+    "type": "external",
+    "category": "ecommerce",
+    "main_script": "woocommerce-v4.js",
+    "styles": [
+        "woocommerce-v4.css"
+    ],
+    "show_in_sidebar": true,
+    "tab_id": "tab-sales-v4",
+    "dependencies": [
+        "https://cdn.plot.ly/plotly-2.27.0.min.js",
+        "https://unpkg.com/tabulator-tables@5.5.0/dist/css/tabulator.min.css",
+        "https://unpkg.com/tabulator-tables@5.5.0/dist/js/tabulator.min.js",
+        "/css/tabulator-enhancements.css"
+    ],
+    "colors": {
+        "primary": "#7f54b3",
+        "secondary": "#5b3d83",
+        "hover": "#9b72cc"
+    },
+    "author": "InHouse Print",
+    "settings": {
+        "api_endpoint": "/api/woocommerce"
+    },
+    "data_module": "woocommerce",
+    "notes": "V4 external rewrite. The legacy tab-sales tab still exists in the HTML for comparison testing. Once this V4 module is verified, delete the hardcoded tab-sales block and the modules_internal/woocommerce/woocommerce.js loader."
+}
