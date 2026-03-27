@@ -478,6 +478,279 @@ Org Owner / Admin
 Org Member
   └── Sees whatever modules the org has enabled
       MINUS any modules an admin has restricted for them specifically
+
+---
+
+### New Database Table: `ai_infrastructure.user_module_access`
+
+Created by Migration 039. Stores only *restriction* rows — absence = inherit from org.
+
+```sql
+CREATE TABLE IF NOT EXISTS ai_infrastructure.user_module_access (
+    user_id         INT  NOT NULL REFERENCES ai_infrastructure.users(id) ON DELETE CASCADE,
+    organisation_id INT  NOT NULL REFERENCES ai_infrastructure.organisations(id) ON DELETE CASCADE,
+    module_name     VARCHAR(100) NOT NULL,
+    is_enabled      BOOLEAN NOT NULL DEFAULT FALSE,
+    set_at          TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    set_by          INT REFERENCES ai_infrastructure.users(id) ON DELETE SET NULL,
+    PRIMARY KEY (user_id, module_name)
+);
+```
+
+**Design principle:** A row only exists when a user is *restricted* (`is_enabled=FALSE`).
+If no row exists, that user inherits the org's setting. This means:
+- Pre-039 users are unaffected — fallback to `get_org_enabled_modules()` works automatically
+- Restricting then un-restricting a user deletes the row (back to org default)
+- You cannot grant a user access beyond what the org has enabled
+
+---
+
+### New API Endpoints (Member Module Management)
+
+All require `admin` role minimum. Prefix: `/api/org/`
+
+| Method | Path | Body | Description |
+|--------|------|------|-------------|
+| GET | `/api/org/members/<id>/modules` | — | Returns all org modules with per-user enabled state |
+| PUT | `/api/org/members/<id>/modules/<name>` | `{"enabled": true/false}` | `true` = remove restriction; `false` = add restriction |
+| DELETE | `/api/org/members/<id>/modules` | — | Reset all restrictions for this member (back to org defaults) |
+
+**GET response shape:**
+```json
+{
+  "success": true,
+  "user_id": 42,
+  "modules": [
+    { "module_name": "shopify",  "display_name": "Shopify",  "is_enabled": true  },
+    { "module_name": "xero",     "display_name": "Xero",     "is_enabled": false }
+  ]
+}
+```
+
+---
+
+### Backend Resolver: `get_user_enabled_modules(user_id)`
+
+**File:** `AI_infrastructure/shared/org_credentials_loader.py`
+
+```python
+def get_user_enabled_modules(user_id: int) -> set:
+    # Step 1: Get what the org has enabled
+    org_modules = get_org_enabled_modules(user_id)
+    # Step 2: Subtract any user-specific restrictions
+    # Rows in user_module_access where is_enabled=FALSE are restrictions
+    # Returns set of module_name strings
+```
+
+`GET /api/org/modules` now calls `get_user_enabled_modules()`, so every user automatically gets their personalised filtered set.
+
+---
+
+### Frontend: "Manage Modules" per Member
+
+In **Org Settings → Members tab**, each member row has a puzzle-piece icon button.
+Clicking it expands a panel showing all org-enabled modules as checkboxes.
+- Checked = user has access (default)
+- Unchecked = user is restricted
+
+JS functions added to `account_profile.js`:
+- `toggleMemberModulesPanel(userId)` — fetches and renders the panel
+- `setMemberModuleAccess(userId, moduleName, enabled)` — calls PUT endpoint
+- `resetMemberModuleAccess(userId)` — calls DELETE endpoint, re-renders panel
+
+---
+
+## Module System — Developer & User Guide
+**Last Updated: March 27, 2026**
+
+This section is the authoritative reference for how modules work end-to-end: how they are defined, how they are enabled for organisations, how they are restricted per-user, and what gaps still remain on the frontend side.
+
+---
+
+### How a Module Gets to a User's Sidebar — The Full Chain
+
+```
+1. PLATFORM       module_catalog row exists with min_plan_tier
+2. PLAN           org.plan_tier >= module.min_plan_tier  →  module is "available"
+3. ORG ADMIN      org_module_access row with is_enabled=TRUE  →  module is "active for org"
+4. USER ADMIN     user_module_access row with is_enabled=FALSE  →  user is "restricted"
+5. FRONTEND       GET /api/org/modules  →  returns user's final enabled set
+6. SIDEBAR ⚠️     initModulesFromOrg() reads the response and shows/hides items
+                  ← THIS STEP IS NOT YET IMPLEMENTED (see Module Redesign Spec)
+```
+
+**Right now, steps 1–5 work correctly.** Step 6 — wiring the DB response to actual sidebar
+visibility — is the pending work documented in `.github/MODULE_REDESIGN_SPEC.md`.
+
+---
+
+### How to Enable a Module for an Organisation (Backend)
+
+#### Option A: Via the UI (recommended for day-to-day)
+1. Log in as `admin` or `owner` of the org
+2. Go to **Settings → Organisation → Modules** subtab
+3. Find the module in the catalog
+4. Toggle the switch to ON
+5. The `PUT /api/org/modules/<module_name>` endpoint writes to `org_module_access`
+
+#### Option B: Via SQL (for initial setup / bulk operations)
+```sql
+-- Enable a single module for an org
+INSERT INTO ai_infrastructure.org_module_access
+    (organisation_id, module_name, is_enabled, enabled_at, enabled_by)
+VALUES
+    (1, 'shopify', TRUE, NOW(), <admin_user_id>)
+ON CONFLICT (organisation_id, module_name)
+DO UPDATE SET is_enabled = TRUE, enabled_at = NOW();
+
+-- Enable ALL professional modules for org 1
+INSERT INTO ai_infrastructure.org_module_access
+    (organisation_id, module_name, is_enabled, enabled_at)
+SELECT 1, module_name, TRUE, NOW()
+FROM ai_infrastructure.module_catalog
+WHERE min_plan_tier IN ('free','starter','professional')
+  AND is_active = TRUE
+ON CONFLICT (organisation_id, module_name) DO UPDATE SET is_enabled = TRUE;
+
+-- Disable a module
+UPDATE ai_infrastructure.org_module_access
+SET is_enabled = FALSE, enabled_at = NOW()
+WHERE organisation_id = 1 AND module_name = 'shopify';
+```
+
+#### Option C: Via the API (programmatic / migration scripts)
+```powershell
+# Requires admin JWT token
+$token = "<your_jwt>"
+Invoke-RestMethod -Uri "http://localhost:5000/api/org/modules/shopify" `
+    -Method PUT `
+    -Headers @{ Authorization="Bearer $token"; 'Content-Type'='application/json' } `
+    -Body '{"enabled": true}'
+```
+
+---
+
+### How to Add a Brand-New Module to the Catalog
+
+#### Step 1: Create the DB catalog entry (required)
+```sql
+INSERT INTO ai_infrastructure.module_catalog (
+    module_name,        -- snake_case, unique key used everywhere
+    display_name,       -- shown in UI
+    description,        -- shown in Modules panel
+    icon_class,         -- FontAwesome class e.g. "fas fa-chart-bar"
+    icon_color,         -- hex color e.g. "#3B82F6"
+    category,           -- "core" | "ecommerce" | "finance" | "ai" | "operations" | "dev"
+    min_plan_tier,      -- "free" | "starter" | "professional" | "enterprise"
+    required_platforms, -- ARRAY of platform_name strings from platform_catalog
+    sort_order          -- lower = higher in list
+) VALUES (
+    'my_new_module',
+    'My New Module',
+    'What it does in one sentence',
+    'fas fa-star',
+    '#F59E0B',
+    'operations',
+    'professional',
+    ARRAY[]::TEXT[],    -- no platform credentials required, or ARRAY['shopify']
+    50
+);
+```
+
+Once this row exists, the module catalog API (`GET /api/org/modules/catalog`) returns
+it, and org admins can enable it via the Modules panel.
+
+#### Step 2: Create the module folder structure (required for backend tools)
+```
+UI/modules_external/my-new-module/
+├── manifest.json               ← module metadata (id, icon, capabilities)
+├── my-module.js                ← frontend: V4 composition pattern
+├── my-module.css               ← CSS: only module-specific overrides
+├── routes/
+│   └── blueprint.py            ← Flask Blueprint, auto-discovered by loader
+├── tools/
+│   └── my_tools.json           ← AI tool definitions
+└── implementations/
+    └── my_wrapper.py           ← AI tool implementations (@tool_executor)
+```
+
+#### Step 3: Add to `DYNAMIC_MODULES` in `initModulesFromOrg()` ← **NOT YET ACTIVE**
+Until the frontend redesign (Step 6 in the chain above) is complete, also add to
+`UI/modules_external/manifest.json` so the static loader renders the sidebar icon.
+
+---
+
+### How to Restrict a Module for a Specific User
+
+#### Option A: Via the UI (recommended)
+1. Log in as `admin` or `owner`
+2. Go to **Settings → Organisation → Members**
+3. Click the puzzle-piece icon on a member row
+4. Uncheck the modules you want to restrict for that user
+5. Done — takes effect immediately on next page load for that user
+
+#### Option B: Via SQL
+```sql
+-- Restrict a user from the shopify module
+INSERT INTO ai_infrastructure.user_module_access
+    (user_id, organisation_id, module_name, is_enabled, set_by)
+VALUES
+    (42, 1, 'shopify', FALSE, <admin_user_id>)
+ON CONFLICT (user_id, module_name) DO UPDATE SET is_enabled = FALSE;
+
+-- Remove restriction (restore to org default)
+DELETE FROM ai_infrastructure.user_module_access
+WHERE user_id = 42 AND module_name = 'shopify';
+```
+
+---
+
+### How to Verify What Modules a User Can Access
+
+```sql
+-- What does the org have enabled?
+SELECT module_name, is_enabled
+FROM ai_infrastructure.org_module_access
+WHERE organisation_id = 1 AND is_enabled = TRUE;
+
+-- What restrictions does user 42 have?
+SELECT module_name, is_enabled
+FROM ai_infrastructure.user_module_access
+WHERE user_id = 42;
+
+-- What is user 42's FINAL effective set?
+-- (org enabled MINUS user restrictions)
+SELECT oma.module_name
+FROM ai_infrastructure.org_module_access oma
+WHERE oma.organisation_id = 1
+  AND oma.is_enabled = TRUE
+  AND oma.module_name NOT IN (
+      SELECT module_name FROM ai_infrastructure.user_module_access
+      WHERE user_id = 42 AND is_enabled = FALSE
+  );
+```
+
+Or hit the API:
+```powershell
+Invoke-RestMethod -Uri "http://localhost:5000/api/org/modules" `
+    -Headers @{ Authorization="Bearer <user_jwt>" }
+# Returns the user's personalised filtered module set
+```
+
+---
+
+### What the Frontend Currently Does (and Doesn't Do)
+
+| Behaviour | Status |
+|-----------|--------|
+| Org admin toggles module ON in Modules panel | ✅ Works — writes to `org_module_access` |
+| Admin restricts user from a module via puzzle-piece button | ✅ Works — writes to `user_module_access` |
+| `GET /api/org/modules` returns user-filtered set | ✅ Works — calls `get_user_enabled_modules()` |
+| Sidebar shows/hides items based on enabled modules | ❌ **NOT IMPLEMENTED** — `initModulesFromOrg()` not yet wired |
+| WooCommerce tab gated by `woocommerce` module toggle | ❌ **NOT IMPLEMENTED** — hardcoded always visible |
+| Zone 2 sidebar icons driven by DB instead of manifest.json | ❌ **NOT IMPLEMENTED** — still uses static file |
+
+> **See `.github/MODULE_REDESIGN_SPEC.md` for the full specification and implementation plan for the frontend wiring.**
       (no individual grant-beyond-org — org is always the ceiling)
 ```
 
