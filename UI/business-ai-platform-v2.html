@@ -30968,8 +30968,39 @@
                         const rotBadge = isOverdue
                             ? `<span style="font-size:10px;color:var(--accent-danger,#f44336);margin-left:4px;" title="Rotation overdue since ${new Date(c.rotation_due_at).toLocaleDateString()}"><i class="fas fa-exclamation-circle"></i></span>`
                             : '';
+                        // Platform icon lookup for vault rows
+                        const _vaultIcons = {
+                            anthropic:'fas fa-brain',    openai:'fas fa-robot',        pinecone:'fas fa-database',
+                            shopify:'fab fa-shopify',    xero:'fas fa-receipt',        woocommerce:'fab fa-wordpress',
+                            stripe:'fab fa-stripe',      paypal:'fab fa-paypal',       twilio:'fas fa-phone',
+                            assemblyai:'fas fa-microphone', deepseek:'fas fa-robot',   voyager:'fas fa-vector-square',
+                            sendgrid:'fas fa-paper-plane', hunter:'fas fa-search',     auspost:'fas fa-truck',
+                            google:'fab fa-google',      microsoft:'fab fa-microsoft', gmail_oauth:'fas fa-envelope',
+                            outlook_oauth:'fas fa-envelope', kajabi:'fas fa-graduation-cap',
+                            supabase:'fas fa-database',  supabase_vsa:'fas fa-database',
+                            sql_database:'fas fa-database', inhouseprint_sql:'fas fa-print',
+                            render:'fas fa-server',      cloudflare:'fab fa-cloudflare',
+                        };
+                        const _vaultColors = {
+                            anthropic:'#6366f1', openai:'#10a37f',   pinecone:'#7C3AED',
+                            shopify:'#96bf48',   xero:'#13B5EA',     woocommerce:'#96588A',
+                            stripe:'#635BFF',    paypal:'#00457C',   twilio:'#F22F46',
+                            assemblyai:'#FF6B6B', deepseek:'#4169E1', voyager:'#8B5CF6',
+                            sendgrid:'#1A82E2',  hunter:'#F97316',   auspost:'#FF4B27',
+                            google:'#4285f4',    microsoft:'#00a4ef', gmail_oauth:'#EA4335',
+                            outlook_oauth:'#0078D4', kajabi:'#7B68EE',
+                            supabase:'#3ECF8E',  supabase_vsa:'#3ECF8E',
+                            sql_database:'#0078D4', inhouseprint_sql:'#FF6B35',
+                            render:'#46E3B7',    cloudflare:'#F38020',
+                        };
+                        const piKey = (c.platform || '').toLowerCase();
+                        const piIcon  = _vaultIcons[piKey]  || 'fas fa-plug';
+                        const piColor = _vaultColors[piKey] || '#64748b';
                         return `
                         <div style="display:flex;align-items:center;gap:10px;padding:10px 14px;background:var(--bg-tertiary);border-radius:7px;margin-bottom:6px;flex-wrap:wrap;${isOverdue?'border:1px solid var(--accent-danger,#f44336);':''}">
+                            <div style="width:36px;height:36px;border-radius:8px;background:${piColor}22;display:flex;align-items:center;justify-content:center;color:${piColor};font-size:16px;flex-shrink:0;">
+                                <i class="${piIcon}"></i>
+                            </div>
                             <div style="flex:1;min-width:140px;">
                                 <div style="font-weight:600;font-size:13px;">${this.esc(c.display_name || c.platform)}${rotBadge}</div>
                                 <div style="font-size:11px;color:var(--text-muted);">${this.esc(c.platform || '')} · ${this.esc(c.environment || 'production')}</div>
@@ -32371,7 +32402,27 @@ Thanks`;
                 'calculator': { icon: 'fas fa-calculator', color: '#F687B3', authType: 'none', displayName: 'Calculator' },
                 'data_analysis': { icon: 'fas fa-chart-bar', color: '#4FD1C5', authType: 'none', displayName: 'Data Analysis' },
 
+                // OAuth / communication platforms missing from original list
+                'gmail_oauth':   { icon: 'fas fa-envelope',        color: '#EA4335', authType: 'oauth',   displayName: 'Gmail' },
+                'outlook_oauth': { icon: 'fas fa-envelope',        color: '#0078D4', authType: 'oauth',   displayName: 'Outlook' },
+                'google':        { icon: 'fab fa-google',          color: '#4285f4', authType: 'oauth',   displayName: 'Google' },
+                'microsoft':     { icon: 'fab fa-microsoft',       color: '#00a4ef', authType: 'oauth',   displayName: 'Microsoft' },
+                'sendgrid':      { icon: 'fas fa-paper-plane',     color: '#1A82E2', authType: 'api_key', displayName: 'SendGrid' },
+                'hunter':        { icon: 'fas fa-search',          color: '#F97316', authType: 'api_key', displayName: 'Hunter.io' },
+                'auspost':       { icon: 'fas fa-truck',           color: '#FF4B27', authType: 'api_key', displayName: 'Australia Post' },
+                'kajabi':        { icon: 'fas fa-graduation-cap',  color: '#7B68EE', authType: 'api_key', displayName: 'Kajabi' },
+                'deepseek':      { icon: 'fas fa-robot',           color: '#4169E1', authType: 'api_key', displayName: 'DeepSeek' },
+                'supabase_vsa':  { icon: 'fas fa-database',        color: '#3ECF8E', authType: 'database', displayName: 'Supabase (VSA)' },
                 'default': { icon: 'fas fa-plug', color: '#64748b', authType: 'api_key', displayName: 'Unknown Platform' }
+            };
+
+            // Robust lookup: exact → lowercase → humanize platform name
+            const getPlatformMeta = (platform) => {
+                if (!platform) return platformMeta['default'];
+                return platformMeta[platform]
+                    || platformMeta[platform.toLowerCase()]
+                    || { icon: 'fas fa-plug', color: '#64748b', authType: 'api_key',
+                         displayName: platform.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()) };
             };
 
             // Sort connections: active first, then by platform name
@@ -32386,7 +32437,7 @@ Thanks`;
             if (sortedConnections.length > 0) {
                 html += '<div style="margin-bottom: 16px;">';
                 html += sortedConnections.map(conn => {
-                    const meta = platformMeta[conn.platform] || platformMeta['default'];
+                    const meta = getPlatformMeta(conn.platform);
                     const isActive = conn.is_active;
                     const createdDate = new Date(conn.created_at).toLocaleDateString();
 

@@ -2702,6 +2702,16 @@ function switchOrgSubTab(subtab, btn) {
     if (btn)  btn.classList.add('active');
     if (subtab === 'members')     loadOrgMembers();
     if (subtab === 'invitations') loadOrgInvitations();
+    if (subtab === 'modules' && typeof OrgManager !== 'undefined') OrgManager.loadModuleCatalog();
+    if (subtab === 'vault' && typeof OrgManager !== 'undefined') {
+        const userLevel = OrgManager._userLevel || 0;
+        const addBtn = document.getElementById('orgAddCredBtn');
+        if (addBtn) addBtn.style.display = userLevel >= 4 ? 'flex' : 'none';
+        if (userLevel >= 3) OrgManager.loadCredentials();
+    }
+    if (subtab === 'audit' && typeof OrgManager !== 'undefined') {
+        if ((OrgManager._userLevel || 0) >= 4) OrgManager.loadAuditLog();
+    }
 }
 
 /** Entry point: called when user opens the Organisation tab */
