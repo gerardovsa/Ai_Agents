@@ -112,22 +112,51 @@ def init_shopify_routes(app, config_path=None, db_available=True):
 
 def get_shopify_credentials(user_id=None):
     """
-    Get Shopify credentials from Supabase
-    
+    Get Shopify credentials from Supabase.
+    Resolution order:
+      1. Organisation-level credentials (organisation_platform_credentials)
+      2. User-level credentials (user_platform_credentials)
+      3. Platform-wide fallback (user_id=1)
+
     Args:
         user_id: User ID (defaults to 1 for platform-wide credentials)
-        
+
     Returns:
         dict: Credentials with shop_name, access_token, api_version
         None: If credentials not found or invalid
     """
     if user_id is None:
         user_id = 1
-    
+
     try:
+        # 1. Try organisation credentials first (GAP-M4: org isolation)
+        if user_id != 1:
+            try:
+                org_row = execute_query(
+                    """
+                    SELECT c.credentials
+                    FROM ai_infrastructure.organisation_platform_credentials c
+                    JOIN ai_infrastructure.users u ON u.organisation_id = c.organisation_id
+                    WHERE u.id = %s AND c.platform = 'shopify' AND c.is_active = TRUE
+                    ORDER BY c.updated_at DESC
+                    LIMIT 1
+                    """,
+                    (user_id,),
+                    fetch_mode='one'
+                )
+                if org_row:
+                    org_creds = org_row.get('credentials') or {}
+                    if isinstance(org_creds, str):
+                        org_creds = json.loads(org_creds)
+                    if 'shop_name' in org_creds and 'access_token' in org_creds:
+                        return org_creds
+            except Exception as _org_err:
+                print(f"[Shopify] Org credential lookup failed, falling back: {_org_err}")
+
+        # 2. User or platform-wide credentials
         result = execute_query(
             """
-            SELECT credentials 
+            SELECT credentials
             FROM ai_infrastructure.user_platform_credentials
             WHERE user_id = %s AND platform = 'shopify' AND is_active = TRUE
             LIMIT 1

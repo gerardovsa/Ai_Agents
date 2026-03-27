@@ -25,8 +25,9 @@ THINKING_BUDGET = 10000
 # ANTHROPIC API SETTINGS
 # ============================================================
 
-# Model selection
-CLAUDE_MODEL = "claude-sonnet-4-5-20250929"
+# Model selection — Claude Sonnet 4.6 (no date suffix; alias always points to latest snapshot)
+# Source: https://docs.anthropic.com/en/docs/about-claude/models/overview
+CLAUDE_MODEL = "claude-sonnet-4-6"
 
 # Beta headers for advanced features
 # Format: List of beta feature names (Anthropic SDK expects list, not dict)

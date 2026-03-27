@@ -442,26 +442,42 @@ def create_thread():
         thread_id = str(int(datetime.now().timestamp() * 1000))
         created = datetime.now().isoformat()
         
-        # NEW: Get user's Team ID if they are a sub-user
+        # NEW: Get user's Team ID if they are a sub-user or new-style team login
         team_id = None
-        with get_database_connection('ai_infrastructure') as user_conn:
-            with user_conn.cursor() as user_cursor:
-                
-                user_sql, user_params = convert_sql_placeholders(
-                    "SELECT is_sub_user, username FROM ai_infrastructure.users WHERE id = %s",
-                    (user_id,)
-                )
-                user_cursor.execute(user_sql, user_params)
-                user_row = user_cursor.fetchone()
-                
-                if user_row:
-                    is_sub_user = user_row[0] if isinstance(user_row, tuple) else user_row.get('is_sub_user')
-                    username = user_row[1] if isinstance(user_row, tuple) else user_row.get('username')
+
+        # Check JWT for new-style team login (migration 038)
+        _auth_header = request.headers.get('Authorization', '')
+        if _auth_header.startswith('Bearer '):
+            try:
+                import jwt as _jwt
+                _token = _auth_header.split(' ')[1]
+                _payload = _jwt.decode(_token, options={"verify_signature": False})
+                if _payload.get('login_mode') == 'team':
+                    team_id = _payload.get('team_id')  # integer teams.id — avoids INT/string type mismatch
+                    print(f"✅ [THREAD CREATE] New-style team login, team_id: {team_id}")
+            except Exception:
+                pass
+
+        # Fallback: check old sub-user model
+        if not team_id:
+            with get_database_connection('ai_infrastructure') as user_conn:
+                with user_conn.cursor() as user_cursor:
                     
-                    # If user is a sub-user (Team ID), store their username as team_id
-                    if is_sub_user:
-                        team_id = username
-                        print(f"✅ [THREAD CREATE] User is Team ID: {team_id}")
+                    user_sql, user_params = convert_sql_placeholders(
+                        "SELECT is_sub_user, username FROM ai_infrastructure.users WHERE id = %s",
+                        (user_id,)
+                    )
+                    user_cursor.execute(user_sql, user_params)
+                    user_row = user_cursor.fetchone()
+                    
+                    if user_row:
+                        is_sub_user = user_row[0] if isinstance(user_row, tuple) else user_row.get('is_sub_user')
+                        username = user_row[1] if isinstance(user_row, tuple) else user_row.get('username')
+                        
+                        # If user is a sub-user (Team ID), store their username as team_id
+                        if is_sub_user:
+                            team_id = username
+                            print(f"✅ [THREAD CREATE] User is Team ID (sub-user): {team_id}")
         
         with get_database_connection('sessions') as conn:
             with conn.cursor() as cursor:
@@ -549,6 +565,19 @@ def upsert_thread():
         
         if not thread_id or not user_id:
             return error_response('thread_id and user_id required', 400)
+
+        # Extract team_id from JWT for team login attribution
+        _upsert_team_id = None
+        _upsert_auth = request.headers.get('Authorization', '')
+        if _upsert_auth.startswith('Bearer '):
+            try:
+                import jwt as _jwt
+                _t = _upsert_auth.split(' ')[1]
+                _p = _jwt.decode(_t, options={"verify_signature": False})
+                if _p.get('login_mode') == 'team':
+                    _upsert_team_id = _p.get('team_id')
+            except Exception:
+                pass
         
         with get_database_connection('sessions') as conn:
             with conn.cursor() as cursor:
@@ -557,9 +586,9 @@ def upsert_thread():
                 sql, params = convert_sql_placeholders("""
                     INSERT INTO sessions.threads (
                         thread_slug, workspace_id, name, user_id, created_at, updated_at,
-                        metadata, location, tags, synergy_card_id
+                        metadata, location, tags, synergy_card_id, team_id
                     ) VALUES (
-                        %s, %s, %s, %s, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, %s, %s, %s, %s
+                        %s, %s, %s, %s, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, %s, %s, %s, %s, %s
                     )
                     ON CONFLICT (thread_slug) DO UPDATE SET
                         name = EXCLUDED.name,
@@ -576,7 +605,8 @@ def upsert_thread():
                     json.dumps({}),
                     location,
                     json.dumps(tags),
-                    synergy_card_id
+                    synergy_card_id,
+                    _upsert_team_id
                 ))
                 
                 cursor.execute(sql, params)

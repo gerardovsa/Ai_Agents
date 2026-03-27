@@ -2119,14 +2119,22 @@ Use tools in multiple rounds with interleaved thinking."""
     print(f"[STREAM] ✅ System prompt complete: {len(system_prompt):,} characters")
     
     # Extract AI preferences
-    ai_model = user_prefs.get('ai_model', 'claude-sonnet-4-5-20250929') if user_prefs else 'claude-sonnet-4-5-20250929'
+    ai_model = user_prefs.get('ai_model', 'claude-sonnet-4-6') if user_prefs else 'claude-sonnet-4-6'
     ai_temperature = float(user_prefs.get('ai_temperature', 1.0)) if user_prefs else 1.0
     ai_max_tokens = int(user_prefs.get('ai_max_tokens', 16000)) if user_prefs else 16000
     ai_thinking_enabled = bool(user_prefs.get('ai_thinking_enabled', 1)) if user_prefs else True
     ai_thinking_budget = int(user_prefs.get('ai_thinking_budget', 10000)) if user_prefs else 10000
-    
+
+    # Auto-detect provider from model ID so GPT / DeepSeek models route correctly
+    try:
+        from AI_infrastructure.shared.org_credentials_loader import get_provider_for_model
+        ai_provider = get_provider_for_model(ai_model)
+    except Exception:
+        ai_provider = 'anthropic'
+
     print(f"[STREAM] 🧠 AI Preferences:")
     print(f"  Model: {ai_model}")
+    print(f"  Provider: {ai_provider}")
     print(f"  Temperature: {ai_temperature}")
     print(f"  Max Tokens: {ai_max_tokens}")
     print(f"  Extended Thinking: {'Enabled' if ai_thinking_enabled else 'Disabled'}")
@@ -2203,6 +2211,7 @@ Use tools in multiple rounds with interleaved thinking."""
                 user_id=user_id,
                 thread_id=thread_slug,  # Pass thread_id for database saves
                 ai_model=ai_model,
+                ai_provider=ai_provider,
                 ai_temperature=ai_temperature,
                 ai_max_tokens=ai_max_tokens,
                 ai_thinking_enabled=ai_thinking_enabled,

@@ -1717,6 +1717,387 @@ def revoke_session(session_id):
         }), 500
 
 
+# ============================================================================
+# NEW TEAMS SYSTEM (Migration 038) — Email + Team Name + Password
+# ============================================================================
+
+@auth_bp.route('/teams/create', methods=['POST'])
+@require_auth
+def create_team():
+    """
+    Create a new team under the authenticated user.
+    Body: { team_name, password, display_name (optional), description (optional), color (optional) }
+    """
+    import bcrypt
+    import re
+    try:
+        user_id = request.user_id
+        data = request.get_json() or {}
+
+        team_name    = (data.get('team_name') or '').strip().lower()
+        password     = data.get('password') or data.get('team_password', '')
+        display_name = (data.get('display_name') or '').strip()
+        description  = (data.get('description') or '').strip()
+        color        = (data.get('color') or '#3498db').strip()
+
+        # Validate team_name (alphanumeric + underscore only)
+        if not team_name:
+            return jsonify({'success': False, 'error': 'team_name is required'}), 400
+        if not re.match(r'^[a-z0-9_]{2,50}$', team_name):
+            return jsonify({'success': False, 'error': 'team_name must be 2-50 chars, lowercase letters, digits, underscores only'}), 400
+
+        # Validate password
+        if not password or len(password) < 8:
+            return jsonify({'success': False, 'error': 'Password must be at least 8 characters'}), 400
+
+        # Hash password
+        team_password_hash = bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
+
+        # Get parent user's email
+        with get_database_connection() as conn:
+            with conn.cursor() as cursor:
+                cursor.execute(
+                    'SELECT email FROM ai_infrastructure.users WHERE id = %s',
+                    (user_id,)
+                )
+                row = cursor.fetchone()
+                if not row:
+                    return jsonify({'success': False, 'error': 'User not found'}), 404
+                parent_email = row[0] if not isinstance(row, dict) else row['email']
+
+            # Insert team
+            with conn.cursor() as cursor:
+                cursor.execute(
+                    convert_sql_placeholders('''
+                        INSERT INTO ai_infrastructure.teams
+                            (parent_user_id, parent_email, team_name, team_password_hash,
+                             display_name, description, color, created_by)
+                        VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+                        RETURNING id, team_name, display_name, color, created_at
+                    '''),
+                    (user_id, parent_email, team_name, team_password_hash,
+                     display_name or None, description or None, color, user_id)
+                )
+                team = cursor.fetchone()
+            conn.commit()
+
+        if isinstance(team, dict):
+            team_id, created_team_name, dn, col, cat = (
+                team['id'], team['team_name'], team['display_name'], team['color'], team['created_at']
+            )
+        else:
+            team_id, created_team_name, dn, col, cat = team
+
+        return jsonify({
+            'success': True,
+            'team': {
+                'id': team_id,
+                'team_name': created_team_name,
+                'display_name': dn,
+                'color': col,
+                'created_at': str(cat)
+            }
+        }), 201
+
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        # Unique constraint violation
+        if 'teams_unique_per_email' in str(e) or 'unique' in str(e).lower():
+            return jsonify({'success': False, 'error': f'Team name "{team_name}" already exists under your account'}), 409
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@auth_bp.route('/teams', methods=['GET'])
+@require_auth
+def list_teams():
+    """List all teams belonging to the authenticated user."""
+    try:
+        user_id = request.user_id
+
+        with get_database_connection() as conn:
+            with conn.cursor() as cursor:
+                cursor.execute(
+                    convert_sql_placeholders('''
+                        SELECT id, team_name, display_name, description, color,
+                               member_count, is_active, created_at, updated_at
+                        FROM ai_infrastructure.teams
+                        WHERE parent_user_id = %s AND is_active = TRUE
+                        ORDER BY created_at ASC
+                    '''),
+                    (user_id,)
+                )
+                rows = cursor.fetchall()
+
+        teams = []
+        for row in rows:
+            if isinstance(row, dict):
+                teams.append({
+                    'id': row['id'],
+                    'team_name': row['team_name'],
+                    'display_name': row['display_name'],
+                    'description': row['description'],
+                    'color': row['color'],
+                    'member_count': row['member_count'],
+                    'is_active': row['is_active'],
+                    'created_at': str(row['created_at']),
+                    'updated_at': str(row['updated_at'])
+                })
+            else:
+                teams.append({
+                    'id': row[0],
+                    'team_name': row[1],
+                    'display_name': row[2],
+                    'description': row[3],
+                    'color': row[4],
+                    'member_count': row[5],
+                    'is_active': row[6],
+                    'created_at': str(row[7]),
+                    'updated_at': str(row[8])
+                })
+
+        return jsonify({'success': True, 'teams': teams, 'total': len(teams)})
+
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@auth_bp.route('/teams/<team_name>', methods=['PUT'])
+@require_auth
+def update_team(team_name):
+    """
+    Update a team's display_name, description, or color.
+    Cannot change team_name (it's the login identifier).
+    Body: { display_name, description, color }
+    """
+    try:
+        user_id = request.user_id
+        data = request.get_json() or {}
+
+        display_name = data.get('display_name', '').strip() or None
+        description  = data.get('description', '').strip() or None
+        color        = data.get('color', '').strip() or None
+        new_password = data.get('password') or data.get('team_password', '')
+
+        with get_database_connection() as conn:
+            with conn.cursor() as cursor:
+                # Only update fields that were provided
+                fields = []
+                values = []
+                if 'display_name' in data:
+                    fields.append('display_name = %s')
+                    values.append(display_name)
+                if 'description' in data:
+                    fields.append('description = %s')
+                    values.append(description)
+                if 'color' in data:
+                    fields.append('color = %s')
+                    values.append(color)
+                if new_password:
+                    import bcrypt as _bcrypt
+                    if len(new_password) < 8:
+                        return jsonify({'success': False, 'error': 'Password must be at least 8 characters'}), 400
+                    fields.append('team_password_hash = %s')
+                    values.append(_bcrypt.hashpw(new_password.encode('utf-8'), _bcrypt.gensalt()).decode('utf-8'))
+
+                if not fields:
+                    return jsonify({'success': False, 'error': 'No fields to update'}), 400
+
+                fields.append('updated_at = NOW()')
+                values.extend([user_id, team_name])
+
+                cursor.execute(
+                    convert_sql_placeholders(
+                        f"UPDATE ai_infrastructure.teams SET {', '.join(fields)} "
+                        f"WHERE parent_user_id = %s AND team_name = %s AND is_active = TRUE"
+                    ),
+                    values
+                )
+                if cursor.rowcount == 0:
+                    return jsonify({'success': False, 'error': 'Team not found or access denied'}), 404
+            conn.commit()
+
+        return jsonify({'success': True, 'message': f'Team "{team_name}" updated'})
+
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@auth_bp.route('/teams/<team_name>', methods=['DELETE'])
+@require_auth
+def delete_team(team_name):
+    """Soft-delete a team (sets is_active = FALSE)."""
+    try:
+        user_id = request.user_id
+
+        with get_database_connection() as conn:
+            with conn.cursor() as cursor:
+                cursor.execute(
+                    convert_sql_placeholders('''
+                        UPDATE ai_infrastructure.teams
+                        SET is_active = FALSE, updated_at = NOW()
+                        WHERE parent_user_id = %s AND team_name = %s AND is_active = TRUE
+                    '''),
+                    (user_id, team_name)
+                )
+                if cursor.rowcount == 0:
+                    return jsonify({'success': False, 'error': 'Team not found or access denied'}), 404
+            conn.commit()
+
+        return jsonify({'success': True, 'message': f'Team "{team_name}" deleted'})
+
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+# ============================================================================
+# TEAM LOGIN ENDPOINT
+# ============================================================================
+
+@auth_bp.route('/login/team', methods=['POST'])
+def login_team():
+    """
+    Login as a team.
+    Body: { email, team_name, password }
+
+    On success, returns a JWT where:
+      - user_id   = parent user's ID  (so ALL credential lookups work automatically)
+      - team_id   = teams.id
+      - team_name = the team_name string
+      - login_mode = 'team'
+    """
+    import bcrypt
+    import jwt as pyjwt
+    from datetime import datetime, timedelta
+    import json
+    try:
+        data = request.get_json() or {}
+        email     = (data.get('email') or '').strip().lower()
+        team_name = (data.get('team_name') or '').strip().lower()
+        password  = data.get('password', '')
+
+        if not email or not team_name or not password:
+            return jsonify({'success': False, 'error': 'email, team_name and password are required'}), 400
+
+        with get_database_connection() as conn:
+            with conn.cursor() as cursor:
+                # Look up active team by email + team_name
+                cursor.execute(
+                    convert_sql_placeholders('''
+                        SELECT t.id, t.team_name, t.team_password_hash, t.display_name,
+                               t.color, t.parent_user_id,
+                               u.username, u.email AS parent_email, u.role,
+                               u.organisation_id, u.org_role,
+                               COALESCE(u.jwt_version, 1) AS jwt_version,
+                               COALESCE(o.plan_tier, 'starter') AS plan_tier
+                        FROM ai_infrastructure.teams t
+                        JOIN ai_infrastructure.users u ON u.id = t.parent_user_id
+                        LEFT JOIN ai_infrastructure.organisations o ON o.id = u.organisation_id
+                        WHERE LOWER(t.parent_email) = %s
+                          AND t.team_name = %s
+                          AND t.is_active = TRUE
+                    '''),
+                    (email, team_name)
+                )
+                row = cursor.fetchone()
+
+        if not row:
+            return jsonify({'success': False, 'error': 'Invalid credentials'}), 401
+
+        if isinstance(row, dict):
+            team_id           = row['id']
+            stored_team_name  = row['team_name']
+            password_hash     = row['team_password_hash']
+            display_name      = row['display_name']
+            color             = row['color']
+            parent_user_id    = row['parent_user_id']
+            username          = row['username']
+            parent_email      = row['parent_email']
+            role              = row['role']
+            organisation_id   = row['organisation_id']
+            org_role          = row['org_role']
+            jwt_version       = int(row['jwt_version'])
+            plan_tier         = row['plan_tier']
+        else:
+            (team_id, stored_team_name, password_hash, display_name,
+             color, parent_user_id, username, parent_email, role,
+             organisation_id, org_role, jwt_version, plan_tier) = row
+
+        # Verify password
+        if not bcrypt.checkpw(password.encode('utf-8'), password_hash.encode('utf-8')):
+            return jsonify({'success': False, 'error': 'Invalid credentials'}), 401
+
+        # Build JWT — user_id = parent_user_id so all credential lookups work automatically
+        jwt_secret = user_auth_manager.jwt_secret
+        exp_time   = datetime.utcnow() + timedelta(days=30)
+        token_payload = {
+            'user_id':         parent_user_id,   # Parent's ID — inherits all credentials
+            'username':        username,
+            'email':           parent_email,
+            'role':            role,
+            'organisation_id': organisation_id,
+            'org_role':        org_role,
+            'jwt_version':     jwt_version,
+            'plan_tier':       plan_tier,
+            'team_id':         team_id,
+            'team_name':       stored_team_name,
+            'team_display_name': display_name or stored_team_name,
+            'team_color':      color or '#3498db',
+            'login_mode':      'team',
+            'exp':             int(exp_time.timestamp())
+        }
+
+        token = pyjwt.encode(token_payload, jwt_secret, algorithm='HS256')
+
+        # Store session
+        try:
+            ip_address = request.remote_addr
+            user_agent = request.headers.get('User-Agent', '')
+            with get_database_connection() as conn:
+                with conn.cursor() as cursor:
+                    cursor.execute(
+                        convert_sql_placeholders('''
+                            INSERT INTO ai_infrastructure.user_sessions
+                                (user_id, token, expires_at, ip_address, user_agent, device_info)
+                            VALUES (%s, %s, %s, %s, %s, %s)
+                        '''),
+                        (parent_user_id, token, exp_time.strftime('%Y-%m-%d %H:%M:%S'),
+                         ip_address, user_agent, '{}')
+                    )
+                conn.commit()
+        except Exception as session_err:
+            print(f'[TEAM LOGIN] Session store warning: {session_err}')
+
+        return jsonify({
+            'success': True,
+            'token': token,
+            'user': {
+                'id':            parent_user_id,
+                'username':      username,
+                'email':         parent_email,
+                'role':          role,
+                'login_mode':    'team',
+                'team_id':       team_id,
+                'team_name':     stored_team_name,
+                'team_display_name': display_name or stored_team_name,
+                'team_color':    color or '#3498db',
+                'organisation_id': organisation_id,
+                'org_role':      org_role
+            }
+        })
+
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
 # ============================================================
 # UTILITY FUNCTIONS
 # ============================================================

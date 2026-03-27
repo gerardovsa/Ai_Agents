@@ -2996,6 +2996,11 @@
             animation: fadeIn 0.3s ease;
         }
 
+        /* Module visibility — set by initModulesFromOrg(). Overrides .active. */
+        .tab-content.module-hidden {
+            display: none !important;
+        }
+
         .tab-content.active {
             display: flex;
             flex-direction: column;
@@ -18448,8 +18453,8 @@
                 <div class="auth-progress-fill" id="authProgressFill"></div>
             </div>
 
-            <!-- Display Name Input (simple inline) -->
-            <div style="margin-top: 16px; padding: 12px; background: var(--surface-secondary); border-radius: 6px;">
+            <!-- Display Name Input (shown only for team logins) -->
+            <div id="authDisplayNameBlock" style="display: none; margin-top: 16px; padding: 12px; background: var(--surface-secondary); border-radius: 6px;">
                 <label
                     style="display: block; font-size: 11px; color: var(--text-secondary); margin-bottom: 6px;">Display
                     Name:</label>
@@ -18526,22 +18531,65 @@
 
                 <div class="oauth-divider">OR</div>
 
-                <!-- Traditional Login (Secondary Method) -->
-                <div class="form-group">
-                    <label for="username">Username or Email</label>
-                    <input type="text" id="username" name="username" required autocomplete="username"
-                        placeholder="admin or email@example.com">
+                <!-- ===== STANDARD LOGIN PANEL ===== -->
+                <div id="standardLoginPanel">
+                    <!-- Traditional Login (Secondary Method) -->
+                    <div class="form-group">
+                        <label for="username">Username or Email</label>
+                        <input type="text" id="username" name="username" required autocomplete="username"
+                            placeholder="admin or email@example.com">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="password">Password</label>
+                        <input type="password" id="password" name="password" required autocomplete="current-password"
+                            placeholder="Enter your password">
+                    </div>
+
+                    <button type="submit" class="login-btn" id="loginBtn">
+                        <i class="fas fa-sign-in-alt"></i> Sign In
+                    </button>
+
+                    <button type="button" class="login-btn" id="switchToTeamLoginBtn"
+                        onclick="showTeamLoginPanel()"
+                        style="margin-top: 8px; background: var(--bg-secondary); color: var(--text-secondary); border: 1px solid var(--border-color);">
+                        <i class="fas fa-users"></i> Sign in with Team
+                    </button>
                 </div>
 
-                <div class="form-group">
-                    <label for="password">Password</label>
-                    <input type="password" id="password" name="password" required autocomplete="current-password"
-                        placeholder="Enter your password">
-                </div>
+                <!-- ===== TEAM LOGIN PANEL (hidden by default) ===== -->
+                <div id="teamLoginPanel" style="display: none;">
+                    <div class="form-group">
+                        <label for="teamLoginEmail">Your Email (Primary Account)</label>
+                        <input type="email" id="teamLoginEmail" autocomplete="email"
+                            placeholder="gerardo@company.com" required>
+                    </div>
 
-                <button type="submit" class="login-btn" id="loginBtn">
-                    <i class="fas fa-sign-in-alt"></i> Sign In
-                </button>
+                    <div class="form-group">
+                        <label for="teamLoginName">Team Name</label>
+                        <input type="text" id="teamLoginName" autocomplete="off"
+                            placeholder="e.g. sales_team" required
+                            style="text-transform: lowercase;"
+                            oninput="this.value = this.value.toLowerCase().replace(/[^a-z0-9_]/g, '')">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="teamLoginPassword">Team Password</label>
+                        <input type="password" id="teamLoginPassword" autocomplete="current-password"
+                            placeholder="Enter team password" required>
+                    </div>
+
+                    <div class="login-error" id="teamLoginError" style="display: none;"></div>
+
+                    <button type="button" class="login-btn" id="teamLoginBtn" onclick="handleTeamLogin()">
+                        <i class="fas fa-users"></i> Sign in as Team
+                    </button>
+
+                    <button type="button" onclick="hideTeamLoginPanel()"
+                        style="width: 100%; margin-top: 8px; padding: 10px; background: transparent; border: none; color: var(--text-secondary); cursor: pointer; font-size: 14px;">
+                        <i class="fas fa-arrow-left"></i> Back to standard login
+                    </button>
+                </div>
             </form>
         </div>
     </div>
@@ -18581,7 +18629,7 @@
                 <i class="fas fa-comments"></i>
             </button>
 
-            <button class="sidebar-icon-btn" data-tab="sales" title="Sales & E-Commerce">
+            <button class="sidebar-icon-btn" data-tab="sales" data-module="woocommerce" title="Sales & E-Commerce" style="display:none">
                 <i class="fas fa-shopping-cart"></i>
             </button>
 
@@ -18621,6 +18669,18 @@
 
             <button class="sidebar-icon-btn" data-action="vectordb" title="Vector Database - Document Management">
                 <i class="fas fa-database"></i>
+            </button>
+
+            <!-- VSA Veterinary Alerts — org-specific optional module, hidden until enabled -->
+            <button class="sidebar-icon-btn" data-tab="vsa-veterinary-alerts" data-module="vsa_veterinary"
+                title="VSA Veterinary Alerts" style="display:none">
+                <i class="fas fa-stethoscope"></i>
+            </button>
+
+            <!-- InHouse Kanban — org-specific optional module, hidden until enabled -->
+            <button class="sidebar-icon-btn" data-tab="inhouse-kanban" data-module="inhouse_kanban"
+                title="InHouse Kanban" style="display:none">
+                <i class="fas fa-columns"></i>
             </button>
 
             <!-- <button class="sidebar-icon-btn" data-tab="card-test" title="Thread Card Test Dashboard">
@@ -18758,6 +18818,7 @@
                             <div class="dropdown-user-email" id="dropdownUserEmail">Loading...</div>
                             <div class="dropdown-user-role" id="dropdownUserRole">
                                 <span class="role-badge" id="roleBadge">User</span>
+                                <span id="dropdownTeamBadge" style="display:none; align-items:center; gap:3px; background:#3498db; color:white; padding:2px 8px; border-radius:12px; font-size:10px; font-weight:600; margin-top:4px; width:fit-content;"><i class="fas fa-users"></i>&nbsp;<span id="dropdownTeamBadgeText"></span></span>
                             </div>
                         </div>
                     </div>
@@ -21239,6 +21300,7 @@
                         <div style="display: flex; align-items: center; gap: 12px; flex: 1;">
                             <div class="account-user-name" id="sidebarUserName">Loading...</div>
                             <span class="role-badge" id="sidebarRoleBadge">User</span>
+                            <span id="sidebarTeamBadge" style="display:none; align-items:center; gap:3px; background:#3498db; color:white; padding:2px 8px; border-radius:12px; font-size:10px; font-weight:600; max-width:130px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;"><i class="fas fa-users"></i>&nbsp;<span id="sidebarTeamBadgeText"></span></span>
                         </div>
                         <i class="fas fa-chevron-down" id="userExpandChevron"
                             style="font-size: 12px; color: var(--text-secondary); transition: transform 0.2s;"></i>
@@ -21670,13 +21732,36 @@
                         <div class="settings-field">
                             <label>AI Model</label>
                             <select id="modelSelect" onchange="saveSettings()">
-                                <option value="claude-sonnet-4-5-20250929">Claude Sonnet 4.5 (Recommended)
-                                </option>
-                                <option value="claude-haiku-4-5-20251001">Claude Haiku 4.5</option>
+                                <!-- ── Anthropic ─────────────────────────────────── -->
+                                <optgroup label="Anthropic">
+                                    <option value="claude-opus-4-6">Claude Opus 4.6 (Most Powerful)</option>
+                                    <option value="claude-sonnet-4-6" selected>Claude Sonnet 4.6 ★ Recommended</option>
+                                    <option value="claude-haiku-4-5-20251001">Claude Haiku 4.5 (Fast)</option>
+                                    <option value="claude-sonnet-4-5-20250929">Claude Sonnet 4.5</option>
+                                    <option value="claude-3-7-sonnet-20250219">Claude 3.7 Sonnet</option>
+                                    <option value="claude-3-5-sonnet-20241022">Claude 3.5 Sonnet (Legacy)</option>
+                                </optgroup>
+                                <!-- ── OpenAI ────────────────────────────────────── -->
+                                <optgroup label="OpenAI">
+                                    <option value="gpt-5.4">GPT-5.4 (Frontier)</option>
+                                    <option value="gpt-5.1">GPT-5.1 (Coding / Agents)</option>
+                                    <option value="gpt-5-mini">GPT-5 Mini (Fast)</option>
+                                    <option value="gpt-4o">GPT-4o (Legacy)</option>
+                                    <option value="gpt-4o-mini">GPT-4o Mini (Budget)</option>
+                                    <option value="o3">o3 (Reasoning)</option>
+                                    <option value="o4-mini">o4-mini (Fast Reasoning)</option>
+                                    <option value="o3-mini">o3-mini (Reasoning)</option>
+                                    <option value="o1">o1 (Reasoning)</option>
+                                </optgroup>
+                                <!-- ── DeepSeek ──────────────────────────────────── -->
+                                <optgroup label="DeepSeek">
+                                    <option value="deepseek-chat">DeepSeek Chat V3.2 (Fast)</option>
+                                    <option value="deepseek-reasoner">DeepSeek R1 V3.2 (Reasoning)</option>
+                                </optgroup>
                             </select>
                             <small style="color: var(--text-muted); margin-top: 4px; display: block;">Select the
-                                AI
-                                model to use for agent processing</small>
+                                AI model to use for agent processing &mdash;
+                                <span id="modelSelectHint" style="font-style:italic;"></span></small>
                         </div>
 
                         <div class="settings-field">
@@ -21794,12 +21879,12 @@
         </div>
     </div>
 
-    <!-- ==================== TEAM ID CREATE/EDIT MODAL ==================== -->
+    <!-- ==================== TEAM CREATE/EDIT MODAL (NEW: Email + Team Name + Password) ==================== -->
     <div class="edit-card-modal" id="team-id-modal" style="display: none;">
-        <div class="modal-content" style="max-width: 550px;">
+        <div class="modal-content" style="max-width: 620px;">
             <div class="modal-header">
                 <h3>
-                    <i class="fas fa-users"></i> <span id="teamIdModalTitle">Create Team ID</span>
+                    <i class="fas fa-users"></i> <span id="teamIdModalTitle">Create Team</span>
                 </h3>
                 <button class="modal-close" onclick="closeTeamIdModal()">
                     <i class="fas fa-times"></i>
@@ -21808,49 +21893,64 @@
             <div class="modal-body" style="padding: var(--space-4);">
                 <input type="hidden" id="editTeamIdOriginal" value="">
 
+                <!-- Info box explaining the system -->
+                <div style="background: var(--bg-secondary); border-left: 4px solid var(--accent-primary); padding: 12px 14px; border-radius: 4px; margin-bottom: 20px; font-size: 13px; color: var(--text-secondary); line-height: 1.6;">
+                    <strong style="color: var(--text-primary);">How Teams Work:</strong><br>
+                    Your email is used as the primary identifier. Team members log in with: Your Email + Team Name + Team Password. All team members share your API credentials (Anthropic, Shopify, Xero, etc.).
+                </div>
+
+                <!-- Email (read-only) -->
+                <div style="margin-bottom: 16px;">
+                    <label for="teamIdEmailReadonly" style="display: block; margin-bottom: 6px; font-weight: 600;">
+                        <i class="fas fa-envelope"></i> Your Email <span style="color: var(--danger);">*</span>
+                    </label>
+                    <input type="email" id="teamIdEmailReadonly" readonly
+                        style="width: 100%; padding: 10px; background: var(--bg-tertiary); border: 1px solid var(--border-default); border-radius: 6px; color: var(--text-muted); font-size: 14px; opacity: 0.7;">
+                    <small style="color: var(--text-muted); font-size: 11px; display: block; margin-top: 4px;">
+                        This is your login email. Combined with Team Name for uniqueness.
+                    </small>
+                </div>
+
+                <!-- Team Name -->
                 <div style="margin-bottom: 16px;">
                     <label for="teamIdName" style="display: block; margin-bottom: 6px; font-weight: 600;">
-                        <i class="fas fa-user"></i> Team ID Name <span style="color: var(--danger);">*</span>
+                        <i class="fas fa-tag"></i> Team Name <span style="color: var(--danger);">*</span>
                     </label>
                     <input type="text" id="teamIdName" placeholder="e.g., sales_team, support_team"
                         style="width: 100%; padding: 10px; background: var(--bg-primary); border: 1px solid var(--border-default); border-radius: 6px; color: var(--text-primary); font-size: 14px;">
-                    <small style="color: var(--text-muted); font-size: 12px; display: block; margin-top: 4px;">
-                        Used for filtering threads. Min 2 characters, alphanumeric + underscore.
+                    <small style="color: var(--text-muted); font-size: 11px; display: block; margin-top: 4px;">
+                        Alphanumeric + underscore only. Example: <code style="color: var(--text-secondary); background: var(--bg-secondary); padding: 2px 6px; border-radius: 3px; font-size: 11px;">sales_team</code>
                     </small>
                 </div>
 
-                <div style="margin-bottom: 16px;">
-                    <label for="teamIdEmail" style="display: block; margin-bottom: 6px; font-weight: 600;">
-                        <i class="fas fa-envelope"></i> Email
-                    </label>
-                    <input type="email" id="teamIdEmail" placeholder="team@company.com"
-                        style="width: 100%; padding: 10px; background: var(--bg-primary); border: 1px solid var(--border-default); border-radius: 6px; color: var(--text-primary); font-size: 14px;">
-                </div>
-
+                <!-- Team Password -->
                 <div style="margin-bottom: 16px;">
                     <label for="teamIdPassword" style="display: block; margin-bottom: 6px; font-weight: 600;">
-                        <i class="fas fa-key"></i> Password
+                        <i class="fas fa-key"></i> Team Password <span style="color: var(--danger);">*</span>
                     </label>
-                    <input type="password" id="teamIdPassword" placeholder="Leave blank for auto-generated"
+                    <input type="password" id="teamIdPassword" placeholder="Create a strong password"
                         style="width: 100%; padding: 10px; background: var(--bg-primary); border: 1px solid var(--border-default); border-radius: 6px; color: var(--text-primary); font-size: 14px;">
-                    <small style="color: var(--text-muted); font-size: 12px; display: block; margin-top: 4px;">
-                        Leave empty to auto-generate a secure password.
+                    <small style="color: var(--text-muted); font-size: 11px; display: block; margin-top: 4px;">
+                        Team members will use this password to log in. Min 8 characters, mix of letters, numbers, symbols recommended.
                     </small>
                 </div>
 
+                <!-- Display Name (optional) -->
                 <div style="margin-bottom: 16px;">
-                    <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
-                        <input type="checkbox" id="teamIdActive" checked>
-                        <span style="font-weight: 600;"><i class="fas fa-toggle-on"></i> Active</span>
+                    <label for="teamIdDisplayName" style="display: block; margin-bottom: 6px; font-weight: 600;">
+                        <i class="fas fa-briefcase"></i> Team Display Name
                     </label>
-                    <small style="color: var(--text-muted); font-size: 12px; display: block; margin-top: 4px;">
-                        Inactive Team IDs cannot access threads.
+                    <input type="text" id="teamIdDisplayName" placeholder="e.g., Sales Department"
+                        style="width: 100%; padding: 10px; background: var(--bg-primary); border: 1px solid var(--border-default); border-radius: 6px; color: var(--text-primary); font-size: 14px;">
+                    <small style="color: var(--text-muted); font-size: 11px; display: block; margin-top: 4px;">
+                        Shown in the UI instead of team name. Optional.
                     </small>
                 </div>
 
+                <!-- Color -->
                 <div style="margin-bottom: 16px;">
                     <label for="teamIdColor" style="display: block; margin-bottom: 6px; font-weight: 600;">
-                        <i class="fas fa-palette"></i> Color
+                        <i class="fas fa-palette"></i> Team Color
                     </label>
                     <div style="display: flex; gap: 8px; align-items: center;">
                         <input type="color" id="teamIdColor" value="#3498db"
@@ -21858,8 +21958,8 @@
                         <input type="text" id="teamIdColorHex" value="#3498db" placeholder="#3498db"
                             style="flex: 1; padding: 10px; background: var(--bg-primary); border: 1px solid var(--border-default); border-radius: 6px; color: var(--text-primary); font-size: 14px;">
                     </div>
-                    <small style="color: var(--text-muted); font-size: 12px; display: block; margin-top: 4px;">
-                        Used to color-code threads from this Team ID.
+                    <small style="color: var(--text-muted); font-size: 11px; display: block; margin-top: 4px;">
+                        Color-codes team threads in the sidebar and chat list.
                     </small>
                 </div>
             </div>
@@ -22163,238 +22263,17 @@
                 </button>
             </div>
             <div class="modal-body" style="font-size: 14px;">
-                <!-- Platform Selection -->
+                <!-- Platform Selection — content loaded dynamically from /api/org/platforms -->
                 <div id="platformSelectionView">
                     <p style="font-size: 15px; color: var(--text-muted); margin-bottom: 18px; line-height: 1.5;">
                         Select a platform to connect. AI agents will use these credentials to perform actions on your
-                        behalf. Each platform has specific requirements and setup steps explained below.
+                        behalf.
                     </p>
-
-                    <!-- Team Platforms -->
-                    <div style="margin-bottom: 20px;">
-                        <div
-                            style="font-size: 16px; font-weight: 600; color: var(--text-primary); margin-bottom: 12px; display: flex; align-items: center; gap: 8px;">
-                            <i class="fas fa-users" style="color: #4F46E5;"></i> Team Platforms
-                            <span
-                                style="font-size: 11px; background: var(--bg-tertiary); color: var(--accent-primary); padding: 3px 8px; border-radius: 4px;">OAuth
-                                2.0</span>
-                        </div>
-                        <div
-                            style="display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 10px;">
-                            <button onclick="connectGoogle()" class="platform-connect-btn">
-                                <i class="fab fa-google" style="color: #4285f4;"></i> Google Workspace
-                            </button>
-                            <button onclick="connectMicrosoft()" class="platform-connect-btn">
-                                <i class="fab fa-microsoft" style="color: #00a4ef;"></i> Microsoft 365
-                            </button>
-                            <button onclick="showComingSoon('Slack')" class="platform-connect-btn"
-                                style="opacity: 0.6;">
-                                <i class="fab fa-slack" style="color: #4A154B;"></i> Slack <small
-                                    style="font-size: 9px;">(Soon)</small>
-                            </button>
-                            <button onclick="showComingSoon('GitHub')" class="platform-connect-btn"
-                                style="opacity: 0.6;">
-                                <i class="fab fa-github" style="color: #333;"></i> GitHub <small
-                                    style="font-size: 9px;">(Soon)</small>
-                            </button>
-                        </div>
+                    <div id="dynamicPlatformGrid" style="text-align:center;padding:30px;color:var(--text-muted);">
+                        <i class="fas fa-circle-notch fa-spin"></i> Loading platforms&hellip;
                     </div>
 
-                    <!-- AI Providers -->
-                    <div style="margin-bottom: 20px;">
-                        <div
-                            style="font-size: 16px; font-weight: 600; color: var(--text-primary); margin-bottom: 12px; display: flex; align-items: center; gap: 8px;">
-                            <i class="fas fa-brain" style="color: #10a37f;"></i> AI Providers
-                            <span
-                                style="font-size: 11px; background: var(--bg-tertiary); color: var(--text-primary); padding: 3px 8px; border-radius: 4px;">API
-                                Key</span>
-                        </div>
-                        <div
-                            style="display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 12px;">
-                            <button onclick="showApiKeyForm('openai', 'OpenAI', 'fas fa-robot', '#10a37f')"
-                                class="platform-connect-btn">
-                                <i class="fas fa-robot" style="color: #10a37f;"></i> OpenAI
-                            </button>
-                            <button onclick="showApiKeyForm('anthropic', 'Anthropic Claude', 'fas fa-brain', '#6366f1')"
-                                class="platform-connect-btn">
-                                <i class="fas fa-brain" style="color: #6366f1;"></i> Anthropic
-                            </button>
-                            <button onclick="showApiKeyForm('assemblyai', 'AssemblyAI', 'fas fa-microphone', '#FF6B6B')"
-                                class="platform-connect-btn">
-                                <i class="fas fa-microphone" style="color: #FF6B6B;"></i> AssemblyAI
-                            </button>
-                        </div>
-                    </div>
-
-                    <!-- Vector Database & Embedding Providers -->
-                    <div style="margin-bottom: 20px;">
-                        <div
-                            style="font-size: 16px; font-weight: 600; color: var(--text-primary); margin-bottom: 12px; display: flex; align-items: center; gap: 8px;">
-                            <i class="fas fa-database" style="color: #7C3AED;"></i> Vector Database & Embedding AI
-                            <span
-                                style="font-size: 11px; background: var(--bg-tertiary); color: var(--text-primary); padding: 3px 8px; border-radius: 4px;">API
-                                Key</span>
-                        </div>
-                        <div
-                            style="display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 12px;">
-                            <button onclick="showApiKeyForm('pinecone', 'Pinecone', 'fas fa-database', '#7C3AED')"
-                                class="platform-connect-btn">
-                                <i class="fas fa-database" style="color: #7C3AED;"></i> Pinecone
-                            </button>
-                            <button onclick="showApiKeyForm('voyager', 'Voyager AI', 'fas fa-vector-square', '#8B5CF6')"
-                                class="platform-connect-btn">
-                                <i class="fas fa-vector-square" style="color: #8B5CF6;"></i> Voyager AI
-                            </button>
-                        </div>
-                    </div>
-
-                    <!-- Online Stores -->
-                    <div style="margin-bottom: 20px;">
-                        <div
-                            style="font-size: 16px; font-weight: 600; color: var(--text-primary); margin-bottom: 12px; display: flex; align-items: center; gap: 8px;">
-                            <i class="fas fa-shopping-cart" style="color: #96bf48;"></i> Online Stores
-                            <span
-                                style="font-size: 11px; background: #ECFCCB; color: #3F6212; padding: 3px 8px; border-radius: 4px;">API
-                                Key</span>
-                        </div>
-                        <div
-                            style="display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 12px;">
-                            <button onclick="showApiKeyForm('shopify', 'Shopify', 'fab fa-shopify', '#96bf48')"
-                                class="platform-connect-btn">
-                                <i class="fab fa-shopify" style="color: #96bf48;"></i> Shopify
-                            </button>
-                        </div>
-                    </div>
-
-                    <!-- Hosting & Servers -->
-                    <div style="margin-bottom: 20px;">
-                        <div
-                            style="font-size: 16px; font-weight: 600; color: var(--text-primary); margin-bottom: 12px; display: flex; align-items: center; gap: 8px;">
-                            <i class="fas fa-server" style="color: #46E3B7;"></i> Hosting & Servers
-                            <span
-                                style="font-size: 11px; background: #CCFBF1; color: #0F766E; padding: 3px 8px; border-radius: 4px;">API
-                                Key</span>
-                        </div>
-                        <div
-                            style="display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 12px;">
-                            <button onclick="showApiKeyForm('render', 'Render', 'fas fa-server', '#46E3B7')"
-                                class="platform-connect-btn">
-                                <i class="fas fa-server" style="color: #46E3B7;"></i> Render
-                            </button>
-                            <button onclick="showApiKeyForm('cloudflare', 'Cloudflare', 'fab fa-cloudflare', '#F38020')"
-                                class="platform-connect-btn">
-                                <i class="fab fa-cloudflare" style="color: #F38020;"></i> Cloudflare
-                            </button>
-                        </div>
-                    </div>
-
-                    <!-- Payment Services -->
-                    <div style="margin-bottom: 20px;">
-                        <div
-                            style="font-size: 16px; font-weight: 600; color: var(--text-primary); margin-bottom: 12px; display: flex; align-items: center; gap: 8px;">
-                            <i class="fas fa-credit-card" style="color: #635BFF;"></i> Payment Services
-                            <span
-                                style="font-size: 11px; background: #EEF2FF; color: #4338CA; padding: 3px 8px; border-radius: 4px;">API
-                                Key</span>
-                        </div>
-                        <div
-                            style="display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 12px;">
-                            <button onclick="showApiKeyForm('stripe', 'Stripe', 'fab fa-stripe', '#635BFF')"
-                                class="platform-connect-btn">
-                                <i class="fab fa-stripe" style="color: #635BFF;"></i> Stripe
-                            </button>
-                            <button onclick="showApiKeyForm('paypal', 'PayPal', 'fab fa-paypal', '#00457C')"
-                                class="platform-connect-btn">
-                                <i class="fab fa-paypal" style="color: #00457C;"></i> PayPal
-                            </button>
-                        </div>
-                    </div>
-
-                    <!-- Financial & Accounting -->
-                    <div style="margin-bottom: 20px;">
-                        <div
-                            style="font-size: 16px; font-weight: 600; color: var(--text-primary); margin-bottom: 12px; display: flex; align-items: center; gap: 8px;">
-                            <i class="fas fa-receipt" style="color: #13B5EA;"></i> Financial & Accounting
-                            <span
-                                style="font-size: 11px; background: #CFFAFE; color: #0E7490; padding: 3px 8px; border-radius: 4px;">API
-                                Key</span>
-                        </div>
-                        <div
-                            style="display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 12px;">
-                            <button onclick="showApiKeyForm('xero', 'Xero', 'fas fa-receipt', '#13B5EA')"
-                                class="platform-connect-btn">
-                                <i class="fas fa-receipt" style="color: #13B5EA;"></i> Xero
-                            </button>
-                        </div>
-                    </div>
-
-                    <!-- Communication -->
-                    <div style="margin-bottom: 20px;">
-                        <div
-                            style="font-size: 16px; font-weight: 600; color: var(--text-primary); margin-bottom: 12px; display: flex; align-items: center; gap: 8px;">
-                            <i class="fas fa-phone" style="color: #F22F46;"></i> Communication
-                            <span
-                                style="font-size: 11px; background: #FEE2E2; color: #991B1B; padding: 3px 8px; border-radius: 4px;">API
-                                Key</span>
-                        </div>
-                        <div
-                            style="display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 12px;">
-                            <button onclick="showApiKeyForm('twilio', 'Twilio', 'fas fa-phone', '#F22F46')"
-                                class="platform-connect-btn">
-                                <i class="fas fa-phone" style="color: #F22F46;"></i> Twilio
-                            </button>
-                        </div>
-                    </div>
-
-                    <!-- Database Platforms -->
-                    <div style="margin-bottom: 12px;">
-                        <div
-                            style="font-size: 16px; font-weight: 600; color: var(--text-primary); margin-bottom: 12px; display: flex; align-items: center; gap: 8px;">
-                            <i class="fas fa-database" style="color: #1E40AF;"></i> Database Platforms
-                            <span
-                                style="font-size: 11px; background: var(--bg-tertiary); color: var(--text-primary); padding: 3px 8px; border-radius: 4px;">Connection
-                                Details</span>
-                        </div>
-                        <div
-                            style="padding: 12px; background: var(--bg-tertiary); border-left: 3px solid var(--accent-primary); border-radius: 6px; margin-bottom: 14px;">
-                            <div style="font-size: 13px; color: var(--text-secondary); line-height: 1.6;">
-                                <strong>?? Security Notes:</strong> Database connections require network access and
-                                proper credentials:
-                                <ul style="margin: 8px 0 0 20px; padding: 0;">
-                                    <li><strong>Firewall Rules:</strong> Ensure database server allows connections from
-                                        this application's IP</li>
-                                    <li><strong>User Permissions:</strong> Create a dedicated database user with minimal
-                                        required permissions (not admin)</li>
-                                    <li><strong>SSL/TLS:</strong> Use encrypted connections when possible (enabled by
-                                        default for cloud databases)</li>
-                                    <li><strong>Port Configuration:</strong> Default ports - SQL Server: 1433,
-                                        PostgreSQL: 5432, MySQL: 3306</li>
-                                </ul>
-                                <div
-                                    style="margin-top: 8px; padding: 8px; background: rgba(59, 130, 246, 0.1); border-radius: 4px;">
-                                    ?? <strong>Tip:</strong> Test connection from your network first using tools like
-                                    SQL Server Management Studio or pgAdmin before adding here.
-                                </div>
-                            </div>
-                        </div>
-                        <div
-                            style="display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 12px;">
-                            <button
-                                onclick="showDatabaseForm('sql_database', 'SQL Database', 'fas fa-database', '#0078D4')"
-                                class="platform-connect-btn">
-                                <i class="fas fa-database" style="color: #0078D4;"></i> SQL Database
-                            </button>
-                            <button onclick="showDatabaseForm('supabase', 'Supabase', 'fas fa-database', '#3ECF8E')"
-                                class="platform-connect-btn">
-                                <i class="fas fa-database" style="color: #3ECF8E;"></i> Supabase
-                            </button>
-                            <button
-                                onclick="showDatabaseForm('inhouseprint_sql', 'InHousePrint SQL', 'fas fa-print', '#FF6B35')"
-                                class="platform-connect-btn">
-                                <i class="fas fa-print" style="color: #FF6B35;"></i> InHousePrint SQL
-                            </button>
-                        </div>
-                    </div>
+                    <!-- LEGACY FALLBACK (hidden) — all content now loaded from /api/org/platforms -->
                 </div>
 
                 <!-- API Key Form (Hidden by default) -->
@@ -22462,7 +22341,7 @@
                         </div>
 
                         <div class="settings-field">
-                            <label style="font-size: 14px; font-weight: 600;">API Key <span
+                            <label id="apiKeyLabel" style="font-size: 14px; font-weight: 600;">API Key <span
                                     style="color: var(--danger);">*</span></label>
                             <input type="password" id="apiKeyValue" placeholder="sk-..." required
                                 style="padding: 10px 14px; border: 1px solid var(--border-default); border-radius: 4px; font-size: 14px; width: 100%;">
@@ -22999,6 +22878,7 @@
                         <button class="org-sub-tab" data-subtab="members" onclick="switchOrgSubTab('members', this)"><i class="fas fa-users"></i> Members <span class="acct-tab-badge" id="orgMemberCount">0</span></button>
                         <button class="org-sub-tab" data-subtab="invitations" onclick="switchOrgSubTab('invitations', this)"><i class="fas fa-envelope"></i> Invitations <span class="acct-tab-badge" id="orgPendingCount" style="background:#f59e0b;">0</span></button>
                         <button class="org-sub-tab" data-subtab="vault" onclick="switchOrgSubTab('vault', this)"><i class="fas fa-key"></i> Vault</button>
+                        <button class="org-sub-tab" data-subtab="modules" onclick="switchOrgSubTab('modules', this)"><i class="fas fa-puzzle-piece"></i> Modules</button>
                         <button class="org-sub-tab" data-subtab="audit" onclick="switchOrgSubTab('audit', this)"><i class="fas fa-clipboard-list"></i> Audit</button>
                     </div>
                     <!-- Overview panel -->
@@ -23040,7 +22920,7 @@
                             </div>
                             <div>
                                 <label class="acct-label">AI Model <span style="font-weight:400;color:var(--text-muted);font-size:11px;">(leave blank to use provider default)</span></label>
-                                <input type="text" id="editOrgAiModel" class="acct-input acct-mono" placeholder="e.g. claude-sonnet-4-5-20250929">
+                                <input type="text" id="editOrgAiModel" class="acct-input acct-mono" placeholder="e.g. claude-sonnet-4-6">
                             </div>
                         </div>
                         <div style="margin-top:20px;">
@@ -23099,6 +22979,21 @@
                         <div id="orgVaultPasswordSection" style="display:none;">
                             <div style="font-size:13px;font-weight:700;color:var(--text-secondary);margin-bottom:10px;"><i class="fas fa-lock" style="margin-right:6px;color:var(--accent-primary);"></i>Vault Password</div>
                             <div id="orgVaultPasswordContent" style="padding:14px 16px;background:var(--bg-tertiary);border-radius:8px;"></div>
+                        </div>
+                    </div>
+                    <!-- Modules management panel -->
+                    <div id="org-subtab-modules" class="org-sub-panel" style="flex:1;overflow-y:auto;padding:16px 20px;">
+                        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
+                            <div style="font-size:13px;font-weight:700;color:var(--text-secondary);">
+                                <i class="fas fa-puzzle-piece" style="margin-right:6px;color:var(--accent-primary);"></i>Feature Modules
+                            </div>
+                            <button class="add-connection-btn" onclick="OrgManager.loadModuleCatalog()" title="Refresh modules"><i class="fas fa-sync-alt"></i></button>
+                        </div>
+                        <div style="font-size:12px;color:var(--text-muted);margin-bottom:16px;line-height:1.5;">
+                            Modules your organisation can access based on your plan. Admins can enable or disable individual modules.
+                        </div>
+                        <div id="org-modules-catalog" style="min-height:60px;">
+                            <div style="text-align:center;padding:20px;color:var(--text-muted);"><i class="fas fa-circle-notch fa-spin"></i> Loading&hellip;</div>
                         </div>
                     </div>
                     <!-- Audit log panel -->
@@ -23324,6 +23219,78 @@
             console.log('?? Full OAuth URL:', oauthUrl);
 
             window.location.href = oauthUrl;
+        }
+
+        // ==================== TEAM LOGIN FUNCTIONS ====================
+
+        function showTeamLoginPanel() {
+            document.getElementById('standardLoginPanel').style.display = 'none';
+            document.getElementById('teamLoginPanel').style.display = 'block';
+            document.getElementById('teamLoginError').style.display = 'none';
+            document.getElementById('teamLoginError').textContent = '';
+        }
+
+        function hideTeamLoginPanel() {
+            document.getElementById('teamLoginPanel').style.display = 'none';
+            document.getElementById('standardLoginPanel').style.display = 'block';
+        }
+
+        async function handleTeamLogin() {
+            const email    = (document.getElementById('teamLoginEmail').value || '').trim().toLowerCase();
+            const teamName = (document.getElementById('teamLoginName').value || '').trim().toLowerCase();
+            const password = document.getElementById('teamLoginPassword').value || '';
+            const errorEl  = document.getElementById('teamLoginError');
+            const btn      = document.getElementById('teamLoginBtn');
+
+            errorEl.style.display = 'none';
+            errorEl.textContent = '';
+
+            if (!email || !teamName || !password) {
+                errorEl.textContent = 'Please fill in all fields.';
+                errorEl.style.display = 'block';
+                return;
+            }
+
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-circle-notch fa-spin"></i> Signing in...';
+
+            try {
+                const baseUrl = window.API_BASE_URL || 'http://localhost:5001';
+                const response = await fetch(`${baseUrl}/api/auth/login/team`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email, team_name: teamName, password })
+                });
+
+                const data = await response.json();
+
+                if (data.success && data.token) {
+                    // Store token exactly like normal login
+                    localStorage.setItem('authToken', data.token);
+
+                    // Mark team context in session storage for UI indicators
+                    if (data.user && data.user.login_mode === 'team') {
+                        sessionStorage.setItem('teamLoginMode', 'true');
+                        sessionStorage.setItem('teamName', data.user.team_name || '');
+                        sessionStorage.setItem('teamDisplayName', data.user.team_display_name || '');
+                        sessionStorage.setItem('teamColor', data.user.team_color || '#3498db');
+                    }
+
+                    // Reload the page to trigger the normal post-login initialisation
+                    window.location.reload();
+                } else {
+                    errorEl.textContent = data.error || 'Invalid team credentials.';
+                    errorEl.style.display = 'block';
+                    btn.disabled = false;
+                    btn.innerHTML = '<i class="fas fa-users"></i> Sign in as Team';
+                }
+            } catch (err) {
+                console.error('[TEAM LOGIN] Error:', err);
+                errorEl.textContent = 'Login failed. Please check your connection and try again.';
+                errorEl.style.display = 'block';
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fas fa-users"></i> Sign in as Team';
+            }
         }
 
         // ==================== CONFIRMATION MODAL FUNCTIONS ====================
@@ -29183,65 +29150,58 @@
         async function loadTeamIdList() {
             try {
                 const token = localStorage.getItem('authToken');
-                const response = await fetch(`${API_BASE_URL}/api/auth/team-ids/stats`, {
+                const response = await fetch(`${API_BASE_URL}/api/auth/teams`, {
                     headers: { 'Authorization': `Bearer ${token}` }
                 });
 
-                if (!response.ok) {
-                    throw new Error('Failed to load Team IDs');
-                }
+                if (!response.ok) throw new Error('Failed to load Teams');
 
                 const data = await response.json();
-                const teamIds = data.team_ids || [];
+                const teams = data.teams || [];
 
                 // Update count badge
-                document.getElementById('teamIdCount').textContent = data.total_team_ids || 0;
+                document.getElementById('teamIdCount').textContent = teams.length;
 
-                // Update stats
-                document.getElementById('statTotalThreads').textContent = data.total_threads || 0;
-                document.getElementById('statTotalMessages').textContent = data.total_messages || 0;
-                document.getElementById('statActiveTeams').textContent = data.active_team_ids || 0;
-                document.getElementById('teamIdStats').style.display = teamIds.length > 0 ? 'block' : 'none';
+                // Update active count stat
+                const activeCount = teams.filter(t => t.is_active).length;
+                const statActiveEl = document.getElementById('statActiveTeams');
+                if (statActiveEl) statActiveEl.textContent = activeCount;
+                const statsEl = document.getElementById('teamIdStats');
+                if (statsEl) statsEl.style.display = teams.length > 0 ? 'block' : 'none';
 
-                // Render Team ID list
+                // Render team list
                 const container = document.getElementById('teamIdsList');
-                if (teamIds.length === 0) {
+                if (teams.length === 0) {
                     container.innerHTML = `
                         <div style="text-align: center; padding: 40px 20px; color: var(--text-muted);">
                             <i class="fas fa-users" style="font-size: 32px; margin-bottom: 12px; opacity: 0.5;"></i>
-                            <p>No Team IDs created yet</p>
-                            <small>Click "Create Team ID" to get started</small>
+                            <p>No Teams created yet</p>
+                            <small>Click "Create Team" to get started</small>
                         </div>
                     `;
                     return;
                 }
 
-                container.innerHTML = teamIds.map(team => {
-                    const color = getTeamIdColor(team.team_id);
-                    const lastActive = team.last_active ? new Date(team.last_active).toLocaleString() : 'Never';
-
+                container.innerHTML = teams.map(team => {
+                    const color = team.color || getTeamIdColor(team.team_name);
                     return `
                         <div style="padding: 12px; background: var(--bg-secondary); border-radius: 8px; margin-bottom: 8px; border-left: 4px solid ${color};">
                             <div style="display: flex; align-items: center; justify-content: space-between; gap: 12px;">
                                 <div style="flex: 1; min-width: 0;">
                                     <div style="font-weight: 600; color: var(--text-primary); margin-bottom: 4px; display: flex; align-items: center; gap: 8px;">
-                                        <span>${team.team_id}</span>
+                                        <span>${team.display_name || team.team_name}</span>
+                                        <code style="font-size: 11px; background: var(--bg-tertiary); padding: 1px 6px; border-radius: 4px; color: var(--text-secondary);">${team.team_name}</code>
                                         ${team.is_active ? '<span style="background: #22c55e; color: white; padding: 2px 8px; border-radius: 12px; font-size: 10px; font-weight: 600;">ACTIVE</span>' : '<span style="background: #94a3b8; color: white; padding: 2px 8px; border-radius: 12px; font-size: 10px; font-weight: 600;">INACTIVE</span>'}
                                     </div>
-                                    <div style="font-size: 12px; color: var(--text-secondary); display: flex; align-items: center; gap: 16px; flex-wrap: wrap;">
-                                        <span><i class="fas fa-comment-alt"></i> ${team.thread_count} threads</span>
-                                        <span><i class="fas fa-envelope"></i> ${team.message_count} messages</span>
-                                        <span><i class="fas fa-clock"></i> ${lastActive}</span>
+                                    <div style="font-size: 12px; color: var(--text-secondary);">
+                                        ${team.description ? `<span>${team.description}</span>` : '<span style="opacity:0.5;">No description</span>'}
                                     </div>
                                 </div>
                                 <div style="display: flex; gap: 6px;">
-                                    <button class="btn btn-sm btn-secondary" onclick="showTeamIdAnalytics('${team.team_id}')" title="Analytics">
-                                        <i class="fas fa-chart-line"></i>
-                                    </button>
-                                    <button class="btn btn-sm btn-secondary" onclick="editTeamId('${team.team_id}')" title="Edit">
+                                    <button class="btn btn-sm btn-secondary" onclick="editTeamId('${team.team_name}')" title="Edit">
                                         <i class="fas fa-edit"></i>
                                     </button>
-                                    <button class="btn btn-sm btn-danger" onclick="deleteTeamId('${team.team_id}')" title="Delete">
+                                    <button class="btn btn-sm btn-danger" onclick="deleteTeamId('${team.team_name}')" title="Delete">
                                         <i class="fas fa-trash"></i>
                                     </button>
                                 </div>
@@ -29251,10 +29211,10 @@
                 }).join('');
 
             } catch (error) {
-                console.error('[TEAM IDs] Error loading:', error);
+                console.error('[TEAMS] Error loading:', error);
                 document.getElementById('teamIdsList').innerHTML = `
                     <div style="text-align: center; padding: 20px; color: var(--danger);">
-                        <i class="fas fa-exclamation-triangle"></i> Failed to load Team IDs
+                        <i class="fas fa-exclamation-triangle"></i> Failed to load Teams
                     </div>
                 `;
             }
@@ -29272,49 +29232,56 @@
          * Show create Team ID modal
          */
         function showCreateTeamIdModal() {
-            document.getElementById('teamIdModalTitle').textContent = 'Create Team ID';
+            document.getElementById('teamIdModalTitle').textContent = 'Create Team';
             document.getElementById('editTeamIdOriginal').value = '';
+            
+            // Populate current user's email (read-only)
+            const userEmail = localStorage.getItem('userEmail') || 'user@example.com';
+            document.getElementById('teamIdEmailReadonly').value = userEmail;
+            
+            // Clear form fields
             document.getElementById('teamIdName').value = '';
-            document.getElementById('teamIdEmail').value = '';
             document.getElementById('teamIdPassword').value = '';
-            document.getElementById('teamIdActive').checked = true;
+            document.getElementById('teamIdDisplayName').value = '';
             document.getElementById('teamIdColor').value = '#3498db';
             document.getElementById('teamIdColorHex').value = '#3498db';
             document.getElementById('team-id-modal').style.display = 'flex';
+            
+            // Focus on team name field
+            document.getElementById('teamIdName').focus();
         }
 
         /**
          * Edit Team ID
          */
-        async function editTeamId(teamId) {
+        async function editTeamId(teamName) {
             try {
                 const token = localStorage.getItem('authToken');
-                const response = await fetch(`${API_BASE_URL}/api/auth/team-ids`, {
+                const response = await fetch(`${API_BASE_URL}/api/auth/teams`, {
                     headers: { 'Authorization': `Bearer ${token}` }
                 });
 
                 const data = await response.json();
-                const team = data.team_ids.find(t => t.team_id === teamId);
+                const team = (data.teams || []).find(t => t.team_name === teamName);
 
-                if (!team) throw new Error('Team ID not found');
+                if (!team) throw new Error('Team not found');
 
-                document.getElementById('teamIdModalTitle').textContent = 'Edit Team ID';
-                document.getElementById('editTeamIdOriginal').value = teamId;
-                document.getElementById('teamIdName').value = teamId;
+                document.getElementById('teamIdModalTitle').textContent = 'Edit Team';
+                document.getElementById('editTeamIdOriginal').value = teamName;
+                document.getElementById('teamIdName').value = teamName;
                 document.getElementById('teamIdName').disabled = true; // Cannot rename
-                document.getElementById('teamIdEmail').value = team.email || '';
-                document.getElementById('teamIdPassword').value = ''; // Don't show existing password
-                document.getElementById('teamIdActive').checked = team.is_active;
+                document.getElementById('teamIdDisplayName').value = team.display_name || '';
+                document.getElementById('teamIdPassword').value = ''; // Leave blank to keep existing password
 
-                const color = getTeamIdColor(teamId);
+                const color = team.color || '#3498db';
                 document.getElementById('teamIdColor').value = color;
                 document.getElementById('teamIdColorHex').value = color;
 
                 document.getElementById('team-id-modal').style.display = 'flex';
 
             } catch (error) {
-                console.error('[TEAM IDs] Error editing:', error);
-                showToast('Failed to load Team ID details', 'error');
+                console.error('[TEAMS] Error editing:', error);
+                showToast('Failed to load Team details', 'error');
             }
         }
 
@@ -29332,29 +29299,54 @@
         async function saveTeamId() {
             try {
                 const isEdit = !!document.getElementById('editTeamIdOriginal').value;
-                const teamId = document.getElementById('teamIdName').value.trim();
-                const email = document.getElementById('teamIdEmail').value.trim();
-                const password = document.getElementById('teamIdPassword').value;
-                const isActive = document.getElementById('teamIdActive').checked;
+                const email = document.getElementById('teamIdEmailReadonly').value.trim();
+                const teamName = document.getElementById('teamIdName').value.trim();
+                const teamPassword = document.getElementById('teamIdPassword').value;
+                const displayName = document.getElementById('teamIdDisplayName').value.trim();
                 const color = document.getElementById('teamIdColor').value;
 
-                if (!teamId || teamId.length < 2) {
-                    showToast('Team ID must be at least 2 characters', 'error');
+                // Validation
+                if (!teamName || teamName.length < 2) {
+                    showToast('Team Name must be at least 2 characters', 'error');
                     return;
                 }
 
+                // Validate team name format (alphanumeric + underscore)
+                if (!/^[a-zA-Z0-9_]+$/.test(teamName)) {
+                    showToast('Team Name can only contain letters, numbers, and underscores', 'error');
+                    return;
+                }
+
+                if (!isEdit && (!teamPassword || teamPassword.length < 8)) {
+                    showToast('Team Password must be at least 8 characters', 'error');
+                    return;
+                }
+
+                // For edit mode, only send password if provided (optional update)
+                // For create mode, password is required
+
                 // Save color
-                setTeamIdColor(teamId, color);
+                setTeamIdColor(teamName, color);
 
                 const token = localStorage.getItem('authToken');
                 const url = isEdit
-                    ? `${API_BASE_URL}/api/auth/team-ids/${teamId}`
-                    : `${API_BASE_URL}/api/auth/team-ids/add`;
+                    ? `${API_BASE_URL}/api/auth/teams/${teamName}`
+                    : `${API_BASE_URL}/api/auth/teams/create`;
 
                 const method = isEdit ? 'PUT' : 'POST';
                 const body = isEdit
-                    ? { is_active: isActive, ...(password && { password }) }
-                    : { team_id: teamId, email, password };
+                    ? { 
+                        display_name: displayName,
+                        color: color,
+                        ...(teamPassword && { password: teamPassword })
+                      }
+                    : { 
+                        email: email,
+                        team_name: teamName,
+                        password: teamPassword,
+                        display_name: displayName || teamName,
+                        color: color
+                      };
 
                 const response = await fetch(url, {
                     method,
@@ -29367,15 +29359,15 @@
 
                 if (!response.ok) {
                     const error = await response.json();
-                    throw new Error(error.error || 'Failed to save Team ID');
+                    throw new Error(error.error || 'Failed to save Team');
                 }
 
-                showToast(isEdit ? 'Team ID updated' : 'Team ID created', 'success');
+                showToast(isEdit ? 'Team updated' : 'Team created successfully', 'success');
                 closeTeamIdModal();
                 loadTeamIdList();
 
             } catch (error) {
-                console.error('[TEAM IDs] Error saving:', error);
+                console.error('[TEAMS] Error saving:', error);
                 showToast(error.message, 'error');
             }
         }
@@ -29390,17 +29382,17 @@
 
             try {
                 const token = localStorage.getItem('authToken');
-                const response = await fetch(`${API_BASE_URL}/api/auth/team-ids/${teamId}`, {
+                const response = await fetch(`${API_BASE_URL}/api/auth/teams/${teamId}`, {
                     method: 'DELETE',
                     headers: { 'Authorization': `Bearer ${token}` }
                 });
 
                 if (!response.ok) {
                     const error = await response.json();
-                    throw new Error(error.error || 'Failed to delete Team ID');
+                    throw new Error(error.error || 'Failed to delete Team');
                 }
 
-                showToast(`Team ID "${teamId}" deleted`, 'success');
+                showToast(`Team "${teamId}" deleted`, 'success');
                 loadTeamIdList();
 
             } catch (error) {
@@ -29609,7 +29601,7 @@
             try {
                 const response = await fetch('/api/auth/team-ids', {
                     headers: {
-                        'Authorization': `Bearer ${window.UserAuth?.token || localStorage.getItem('auth_token')}`
+                        'Authorization': `Bearer ${window.UserAuth?.token || localStorage.getItem('authToken') || ''}`
                     }
                 });
 
@@ -29777,20 +29769,55 @@
                 });
             }
 
-            // Populate display name inputs from localStorage
+            // Populate display name inputs — only show on loading screen for team logins
             const displayName = localStorage.getItem('session_display_name') || '';
             const authInput = document.getElementById('authDisplayNameInput');
+            const authDisplayNameBlock = document.getElementById('authDisplayNameBlock');
             const sidebarInput = document.getElementById('sidebarDisplayNameInput');
 
-            if (authInput && displayName) {
-                authInput.value = displayName;
-                authInput.readOnly = true;
-                authInput.style.cursor = 'default';
-                const authBtn = document.getElementById('authDisplayNameBtn');
-                if (authBtn) {
-                    authBtn.innerHTML = '<i class="fas fa-edit"></i> Edit';
-                    authBtn.title = 'Edit display name';
+            const isTeamLogin = sessionStorage.getItem('teamLoginMode') === 'true';
+            if (isTeamLogin && authDisplayNameBlock) {
+                authDisplayNameBlock.style.display = 'block';
+                // Pre-fill with team display name, then fall back to stored display name
+                const teamDisplayName = sessionStorage.getItem('teamDisplayName') || '';
+                const nameToShow = teamDisplayName || displayName;
+                if (authInput && nameToShow) {
+                    authInput.value = nameToShow;
+                    authInput.readOnly = true;
+                    authInput.style.cursor = 'default';
+                    const authBtn = document.getElementById('authDisplayNameBtn');
+                    if (authBtn) {
+                        authBtn.innerHTML = '<i class="fas fa-edit"></i> Edit';
+                        authBtn.title = 'Edit display name';
+                    }
                 }
+            }
+
+            // Apply persistent team badge — runs now + after profile loading overwrites role badge
+            if (isTeamLogin) {
+                const _teamName        = sessionStorage.getItem('teamName') || '';
+                const _teamDisplayName = sessionStorage.getItem('teamDisplayName') || _teamName;
+                const _teamColor       = sessionStorage.getItem('teamColor') || '#3498db';
+                const _badgeLabel      = _teamDisplayName || _teamName;
+                const applyTeamBadges = () => {
+                    const sidebarBadge      = document.getElementById('sidebarTeamBadge');
+                    const sidebarBadgeText  = document.getElementById('sidebarTeamBadgeText');
+                    const dropdownBadge     = document.getElementById('dropdownTeamBadge');
+                    const dropdownBadgeText = document.getElementById('dropdownTeamBadgeText');
+                    if (sidebarBadge) {
+                        sidebarBadge.style.background = _teamColor;
+                        sidebarBadge.style.display = 'inline-flex';
+                        if (sidebarBadgeText) sidebarBadgeText.textContent = _badgeLabel;
+                    }
+                    if (dropdownBadge) {
+                        dropdownBadge.style.background = _teamColor;
+                        dropdownBadge.style.display = 'inline-flex';
+                        if (dropdownBadgeText) dropdownBadgeText.textContent = _badgeLabel;
+                    }
+                };
+                applyTeamBadges();
+                setTimeout(applyTeamBadges, 800);   // After profile loads
+                setTimeout(applyTeamBadges, 2500);  // Safety re-apply
             }
 
             if (sidebarInput && displayName) {
@@ -30506,6 +30533,10 @@
                         container.innerHTML = modalBody.innerHTML;
                     }
                 }
+                // Dynamically populate model list from DB catalog (migration 037)
+                if (typeof loadModelCatalog === 'function') {
+                    loadModelCatalog();
+                }
             },
 
             /**
@@ -30842,6 +30873,136 @@
          *   - manager (3) → show AI Settings; hide Connections, Security
          *   - admin / owner (4-5) → show all
          */
+        // ============================================================
+        // DB-DRIVEN MODULE VISIBILITY  (March 2026)
+        // Called after login and org switch. Reads /api/org/modules
+        // and shows/hides sidebar items + tab-content divs accordingly.
+        // ============================================================
+
+        /**
+         * Map of module_name → { sidebarSelector, tabId }
+         * for modules that are hardcoded/built-in to Zone 1 of the sidebar
+         * and must be gated by org_module_access.
+         */
+        const MODULE_GATE_MAP = {
+            'woocommerce':      { selector: '[data-module="woocommerce"]',    tabId: 'tab-sales' },
+            'inhouse_kanban':   { selector: '[data-module="inhouse_kanban"]', tabId: 'tab-inhouse-kanban' },
+            'vsa_veterinary':   { selector: '[data-module="vsa_veterinary"]', tabId: 'tab-vsa-veterinary-alerts' },
+        };
+
+        /**
+         * Dynamic modules that live in Zone 2 (#sidebarModulesSection).
+         * These are rendered from the DB rather than manifest.json.
+         * Order here controls the order of sidebar icons.
+         */
+        const DYNAMIC_SIDEBAR_MODULES = [
+            { module_name: 'stock_management',     tabId: 'tab-stock',          action: null },
+            { module_name: 'inhouse_print',        tabId: null,                 action: 'inhouse-print' },
+            { module_name: 'quote_calculator',     tabId: null,                 action: 'calculator-tests' },
+            { module_name: 'xero',                 tabId: null,                 action: 'xero-dashboard' },
+            { module_name: 'shopify',              tabId: null,                 action: 'shopify-dashboard' },
+            { module_name: 'auspost_shipping',     tabId: null,                 action: 'auspost' },
+            { module_name: 'customer_reactivation',tabId: null,                 action: 'customer-reactivation' },
+            { module_name: 'database_visualizer',  tabId: null,                 action: 'database-visualizer' },
+            { module_name: 'github',               tabId: null,                 action: 'github' },
+            { module_name: 'render_management',    tabId: null,                 action: 'render-management' },
+        ];
+
+        /**
+         * Called on login and org switch.
+         * @param {string[]} enabledModules - array of module_name strings that are enabled for this org
+         * @param {Object[]} moduleCatalog  - full catalog rows from /api/org/modules/catalog (for icon/color/label)
+         */
+        async function initModulesFromOrg(enabledModules, moduleCatalog) {
+            const enabledSet = new Set(enabledModules || []);
+
+            console.log('[MODULE VISIBILITY] Enabled modules:', [...enabledSet]);
+
+            // ── 1. Gate Zone 1 optional hardcoded items ──────────────────────────
+            for (const [moduleName, spec] of Object.entries(MODULE_GATE_MAP)) {
+                const visible = enabledSet.has(moduleName);
+                const btn = document.querySelector(spec.selector);
+                if (btn) btn.style.display = visible ? '' : 'none';
+                const tab = spec.tabId ? document.getElementById(spec.tabId) : null;
+                if (tab) {
+                    if (visible) {
+                        tab.classList.remove('module-hidden');
+                    } else {
+                        tab.classList.add('module-hidden');
+                    }
+                }
+            }
+
+            // ── 2. Rebuild Zone 2 (#sidebarModulesSection) from DB data ──────────
+            const container = document.getElementById('sidebarModulesSection');
+            if (container) {
+                container.innerHTML = '';
+
+                // Build a lookup from the catalog
+                const catalogByName = {};
+                (moduleCatalog || []).forEach(function(m) { catalogByName[m.module_name] = m; });
+
+                for (const def of DYNAMIC_SIDEBAR_MODULES) {
+                    if (!enabledSet.has(def.module_name)) continue;
+
+                    const meta = catalogByName[def.module_name] || {};
+                    const btn = document.createElement('button');
+                    btn.className = 'sidebar-icon-btn';
+                    btn.title = meta.display_name || def.module_name;
+
+                    // Wire the click to either a tab or a data-action
+                    if (def.tabId) {
+                        btn.dataset.tab = def.tabId.replace('tab-', '');
+                    } else if (def.action) {
+                        btn.dataset.action = def.action;
+                    }
+
+                    const iconClass = meta.icon_class || 'fas fa-cube';
+                    const iconColor = meta.icon_color || '#6B7280';
+                    btn.innerHTML = `<i class="${iconClass}" style="color:${iconColor}"></i>`;
+                    container.appendChild(btn);
+                }
+
+                console.log(`[MODULE VISIBILITY] Zone 2 rebuilt: ${container.children.length} icons`);
+            }
+        }
+
+        /**
+         * Fetch org modules from the API and call initModulesFromOrg().
+         * Safe to call multiple times (e.g. on org switch).
+         */
+        async function loadAndApplyOrgModules() {
+            try {
+                const token = localStorage.getItem('authToken');
+                if (!token) return; // Not authenticated — skip
+
+                const [modulesRes, catalogRes] = await Promise.all([
+                    fetch(`${window.API_BASE_URL}/api/org/modules`, {
+                        headers: { 'Authorization': `Bearer ${token}` }
+                    }),
+                    fetch(`${window.API_BASE_URL}/api/org/modules/catalog`, {
+                        headers: { 'Authorization': `Bearer ${token}` }
+                    })
+                ]);
+
+                const modulesData  = modulesRes.ok  ? await modulesRes.json()  : {};
+                const catalogData  = catalogRes.ok  ? await catalogRes.json()  : {};
+
+                const enabledList  = modulesData.enabled_modules  || [];
+                const catalogList  = catalogData.modules          || [];
+
+                await initModulesFromOrg(enabledList, catalogList);
+
+            } catch (err) {
+                console.warn('[MODULE VISIBILITY] loadAndApplyOrgModules failed (non-fatal):', err);
+            }
+        }
+
+        // Expose so org-switch events can trigger a refresh
+        window.loadAndApplyOrgModules = loadAndApplyOrgModules;
+
+        // ============================================================
+
         function applyOrgRoleVisibility(profile) {
             const ROLE_LEVELS = { viewer: 1, member: 2, manager: 3, admin: 4, owner: 5 };
             const orgRole = profile.org_role || null;
@@ -31065,21 +31226,25 @@
                     const data = await r.json();
                     const creds = data.credentials || [];
                     if (!creds.length) { el.innerHTML = '<div style="padding:12px;color:var(--text-muted);font-size:13px;">No credentials stored yet.</div>'; return; }
-                    // GAP-L2: rotation reminder banner
+                    // GAP-L2: rotation reminder banner (non-blocking, dismissible per session)
                     const now = Date.now();
+                    const thirtyDays = 30 * 24 * 3600 * 1000;
                     const overdue = creds.filter(c => c.rotation_due_at && new Date(c.rotation_due_at).getTime() < now);
-                    const dueSoon = creds.filter(c => c.rotation_due_at && !overdue.includes(c) && new Date(c.rotation_due_at).getTime() < now + 7*24*3600*1000);
+                    const dueSoon = creds.filter(c => c.rotation_due_at && !overdue.includes(c) && new Date(c.rotation_due_at).getTime() < now + thirtyDays);
+                    const _rotDismissed = sessionStorage.getItem('orgRotBannerDismissed') === '1';
                     let banner = '';
-                    if (overdue.length) {
-                        banner = `<div style="background:rgba(244,67,54,.12);border:1px solid var(--accent-danger,#f44336);border-radius:7px;padding:10px 14px;margin-bottom:10px;font-size:13px;color:var(--accent-danger,#f44336);">
-                            <i class="fas fa-exclamation-triangle" style="margin-right:6px;"></i>
+                    if (!_rotDismissed && overdue.length) {
+                        banner = `<div id="org-rotation-banner" style="background:rgba(244,67,54,.12);border:1px solid var(--accent-danger,#f44336);border-radius:7px;padding:10px 14px;margin-bottom:10px;font-size:13px;color:var(--accent-danger,#f44336);display:flex;align-items:flex-start;justify-content:space-between;gap:8px;">
+                            <div><i class="fas fa-exclamation-triangle" style="margin-right:6px;"></i>
                             <strong>${overdue.length} credential${overdue.length>1?'s':''} overdue for rotation:</strong>
-                            ${overdue.map(c => this.esc(c.display_name || c.platform)).join(', ')}
+                            ${overdue.map(c => this.esc(c.display_name || c.platform)).join(', ')}</div>
+                            <button onclick="OrgManager.dismissRotationBanner()" title="Dismiss" style="background:none;border:none;cursor:pointer;color:inherit;font-size:16px;line-height:1;flex-shrink:0;padding:0 2px;">&times;</button>
                         </div>`;
-                    } else if (dueSoon.length) {
-                        banner = `<div style="background:rgba(255,152,0,.1);border:1px solid #ff9800;border-radius:7px;padding:10px 14px;margin-bottom:10px;font-size:13px;color:#ff9800;">
-                            <i class="fas fa-clock" style="margin-right:6px;"></i>
-                            <strong>${dueSoon.length} credential${dueSoon.length>1?'s':''} due for rotation within 7 days.</strong>
+                    } else if (!_rotDismissed && dueSoon.length) {
+                        banner = `<div id="org-rotation-banner" style="background:rgba(255,152,0,.1);border:1px solid #ff9800;border-radius:7px;padding:10px 14px;margin-bottom:10px;font-size:13px;color:#ff9800;display:flex;align-items:flex-start;justify-content:space-between;gap:8px;">
+                            <div><i class="fas fa-clock" style="margin-right:6px;"></i>
+                            <strong>${dueSoon.length} credential${dueSoon.length>1?'s':''} due for rotation within 30 days.</strong></div>
+                            <button onclick="OrgManager.dismissRotationBanner()" title="Dismiss" style="background:none;border:none;cursor:pointer;color:inherit;font-size:16px;line-height:1;flex-shrink:0;padding:0 2px;">&times;</button>
                         </div>`;
                     }
                     const rows = creds.map(c => {
@@ -31102,7 +31267,7 @@
                                     style="padding:5px 10px;background:var(--accent-primary);color:#fff;border:none;border-radius:5px;cursor:pointer;font-size:12px;" title="Reveal value">
                                     <i class="fas fa-eye"></i></button>` : ''}
                                 ${data.can_add_edit ? `
-                                <button onclick="OrgManager.openEditCredentialModal(${c.id},'${this.esc(c.display_name||'')}','${this.esc(c.platform||'')}','${this.esc(c.environment||'production')}')"
+                                <button onclick="OrgManager.openEditCredentialModal(${c.id},'${this.esc(c.display_name||'')}','${this.esc(c.platform||'')}','${this.esc(c.environment||'production')}','${this.esc(c.rotation_due_at||'')}')"
                                     style="padding:5px 10px;background:transparent;border:1px solid var(--border-color);color:var(--text-secondary);border-radius:5px;cursor:pointer;font-size:12px;" title="Edit">
                                     <i class="fas fa-edit"></i></button>
                                 <button onclick="OrgManager.deleteCredential(${c.id})"
@@ -31126,10 +31291,10 @@
                     </div>`);
             },
 
-            openEditCredentialModal(id, displayName, platform, environment) {
+            openEditCredentialModal(id, displayName, platform, environment, rotationDueAt) {
                 this.openModal(`
                     <h3 style="margin:0 0 16px;font-size:16px;">Edit Credential</h3>
-                    ${this._credentialFormFields(displayName, platform, environment)}
+                    ${this._credentialFormFields(displayName, platform, environment, rotationDueAt || '')}
                     <div id="org-cred-error" style="margin-bottom:8px;"></div>
                     <div style="display:flex;justify-content:flex-end;gap:8px;">
                         <button onclick="OrgManager.closeModal()" style="padding:8px 16px;background:transparent;border:1px solid var(--border-color);color:var(--text-secondary);border-radius:6px;cursor:pointer;">Cancel</button>
@@ -31137,8 +31302,10 @@
                     </div>`);
             },
 
-            _credentialFormFields(displayName='', platform='', environment='production') {
+            _credentialFormFields(displayName='', platform='', environment='production', rotationDueAt='') {
                 const envs = ['production', 'staging', 'test'];
+                // Format ISO date to YYYY-MM-DD for <input type="date">
+                const rotDateVal = rotationDueAt ? rotationDueAt.split('T')[0] : '';
                 return `
                     <div style="margin-bottom:10px;">
                         <label style="font-size:12px;color:var(--text-muted);display:block;margin-bottom:4px;">Display Name</label>
@@ -31148,11 +31315,17 @@
                         <label style="font-size:12px;color:var(--text-muted);display:block;margin-bottom:4px;">Platform</label>
                         <input id="org-cred-platform" type="text" value="${this.esc(platform)}" placeholder="e.g. openai, shopify, stripe" style="width:100%;padding:8px 10px;background:var(--bg-tertiary);border:1px solid var(--border-color);border-radius:6px;color:var(--text-primary);font-size:14px;box-sizing:border-box;" />
                     </div>
-                    <div style="margin-bottom:10px;">
-                        <label style="font-size:12px;color:var(--text-muted);display:block;margin-bottom:4px;">Environment</label>
-                        <select id="org-cred-environment" style="width:100%;padding:8px 10px;background:var(--bg-tertiary);border:1px solid var(--border-color);border-radius:6px;color:var(--text-primary);font-size:14px;">
-                            ${envs.map(e => `<option value="${e}" ${environment===e?'selected':''}>${e}</option>`).join('')}
-                        </select>
+                    <div style="margin-bottom:10px;display:flex;gap:10px;">
+                        <div style="flex:1;">
+                            <label style="font-size:12px;color:var(--text-muted);display:block;margin-bottom:4px;">Environment</label>
+                            <select id="org-cred-environment" style="width:100%;padding:8px 10px;background:var(--bg-tertiary);border:1px solid var(--border-color);border-radius:6px;color:var(--text-primary);font-size:14px;">
+                                ${envs.map(e => `<option value="${e}" ${environment===e?'selected':''}>${e}</option>`).join('')}
+                            </select>
+                        </div>
+                        <div style="flex:1;">
+                            <label style="font-size:12px;color:var(--text-muted);display:block;margin-bottom:4px;">Rotate by <span style="color:var(--text-muted);font-size:11px;">(optional)</span></label>
+                            <input id="org-cred-rotation-due" type="date" value="${rotDateVal}" style="width:100%;padding:8px 10px;background:var(--bg-tertiary);border:1px solid var(--border-color);border-radius:6px;color:var(--text-primary);font-size:14px;box-sizing:border-box;" />
+                        </div>
                     </div>
                     <div style="margin-bottom:14px;">
                         <label style="font-size:12px;color:var(--text-muted);display:block;margin-bottom:4px;">Value <span style="color:var(--text-muted);font-size:11px;">(encrypted at rest)</span></label>
@@ -31161,11 +31334,13 @@
             },
 
             async saveCredential(id) {
+                const rotVal = (document.getElementById('org-cred-rotation-due') || {}).value || '';
                 const body = {
                     display_name: document.getElementById('org-cred-display-name').value.trim(),
                     platform: document.getElementById('org-cred-platform').value.trim(),
                     environment: document.getElementById('org-cred-environment').value,
-                    credential_value: document.getElementById('org-cred-value').value
+                    credential_value: document.getElementById('org-cred-value').value,
+                    rotation_due_at: rotVal || null,
                 };
                 if (!body.platform || !body.credential_value) {
                     this.showError('org-cred-error', 'Platform and value are required.');
@@ -31351,6 +31526,117 @@
             },
 
             // ── Utilities ─────────────────────────────────────────────────────
+            dismissRotationBanner() {
+                sessionStorage.setItem('orgRotBannerDismissed', '1');
+                const b = document.getElementById('org-rotation-banner');
+                if (b) b.remove();
+            },
+
+            // -----------------------------------------------------------------
+            // MODULE CATALOG  (GET /api/org/modules/catalog)
+            // -----------------------------------------------------------------
+            async loadModuleCatalog() {
+                const el = document.getElementById('org-modules-catalog');
+                if (!el) return;
+                el.innerHTML = '<div style="text-align:center;padding:20px;color:var(--text-muted);"><i class="fas fa-circle-notch fa-spin"></i> Loading&hellip;</div>';
+                try {
+                    const resp = await fetch('/api/org/modules/catalog', {
+                        headers: { 'Authorization': `Bearer ${localStorage.getItem('authToken') || ''}` }
+                    });
+                    const data = await resp.json();
+                    if (!resp.ok) throw new Error(data.error || 'Failed to load modules');
+                    this.renderModuleCatalog(data.modules || [], el);
+                } catch (e) {
+                    el.innerHTML = `<div style="color:var(--danger);padding:12px;">${this.esc(e.message)}</div>`;
+                }
+            },
+
+            renderModuleCatalog(modules, container) {
+                if (!modules.length) {
+                    container.innerHTML = '<div style="color:var(--text-muted);padding:12px;">No modules found.</div>';
+                    return;
+                }
+
+                const isAdmin = (this._userLevel || 0) >= 4; // admin = 4, owner = 5
+                const PLAN_BADGE = { free: '#6B7280', starter: '#3B82F6', professional: '#8B5CF6', enterprise: '#F59E0B' };
+
+                // Group by category
+                const groups = {};
+                for (const m of modules) {
+                    const cat = m.category || 'other';
+                    if (!groups[cat]) groups[cat];
+                    (groups[cat] = groups[cat] || []).push(m);
+                }
+
+                const catOrder = ['core', 'productivity', 'ecommerce', 'finance', 'logistics', 'operations', 'marketing', 'ai', 'dev', 'other'];
+                const sorted = [...catOrder.filter(c => groups[c]), ...Object.keys(groups).filter(c => !catOrder.includes(c))];
+
+                const html = sorted.map(cat => {
+                    const catModules = groups[cat];
+                    const catLabel = cat.charAt(0).toUpperCase() + cat.slice(1);
+
+                    const cards = catModules.map(m => {
+                        const planColor = PLAN_BADGE[m.min_plan_tier] || '#6B7280';
+                        const icon = m.icon_class || 'fas fa-cube';
+                        const color = m.icon_color || '#6B7280';
+                        const enabled = m.is_enabled;
+                        const reqPlatforms = (m.required_platforms || []).join(', ');
+                        const toggleHtml = isAdmin ? `
+                            <label style="display:inline-flex;align-items:center;gap:6px;cursor:pointer;flex-shrink:0;" title="${enabled ? 'Click to disable' : 'Click to enable'}">
+                                <input type="checkbox" ${enabled ? 'checked' : ''} onchange="OrgManager.toggleModule('${m.module_name}', this.checked)"
+                                    style="width:16px;height:16px;cursor:pointer;accent-color:var(--accent-primary);">
+                                <span style="font-size:12px;color:${enabled ? 'var(--success,#22c55e)' : 'var(--text-muted)'};">${enabled ? 'On' : 'Off'}</span>
+                            </label>` : `<span style="font-size:12px;color:${enabled ? 'var(--success,#22c55e)' : 'var(--text-muted)'};">${enabled ? 'Enabled' : 'Disabled'}</span>`;
+
+                        return `<div style="display:flex;align-items:flex-start;gap:12px;padding:12px;background:var(--bg-tertiary);border-radius:8px;border:1px solid ${enabled ? 'var(--accent-primary)' : 'var(--border-default)'};opacity:${enabled ? '1' : '0.7'};">
+                            <div style="width:36px;height:36px;border-radius:8px;background:${color}22;display:flex;align-items:center;justify-content:center;color:${color};font-size:16px;flex-shrink:0;">
+                                <i class="${icon}"></i>
+                            </div>
+                            <div style="flex:1;min-width:0;">
+                                <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:3px;">
+                                    <span style="font-size:13px;font-weight:600;color:var(--text-primary);">${this.esc(m.display_name)}</span>
+                                    <span style="font-size:10px;padding:2px 6px;border-radius:3px;background:${planColor}22;color:${planColor};font-weight:600;text-transform:uppercase;">${m.min_plan_tier}</span>
+                                </div>
+                                ${m.description ? `<div style="font-size:12px;color:var(--text-muted);line-height:1.4;">${this.esc(m.description)}</div>` : ''}
+                                ${reqPlatforms ? `<div style="font-size:11px;color:var(--text-muted);margin-top:4px;"><i class="fas fa-link" style="font-size:10px;"></i> Requires: ${this.esc(reqPlatforms)}</div>` : ''}
+                            </div>
+                            <div style="flex-shrink:0;">${toggleHtml}</div>
+                        </div>`;
+                    }).join('');
+
+                    return `<div style="margin-bottom:20px;">
+                        <div style="font-size:11px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:var(--text-muted);margin-bottom:10px;">${catLabel}</div>
+                        <div style="display:flex;flex-direction:column;gap:8px;">${cards}</div>
+                    </div>`;
+                }).join('');
+
+                container.innerHTML = html;
+            },
+
+            async toggleModule(moduleName, enabled) {
+                try {
+                    const resp = await fetch(`/api/org/modules/${encodeURIComponent(moduleName)}`, {
+                        method: 'PUT',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${localStorage.getItem('authToken') || ''}`
+                        },
+                        body: JSON.stringify({ enabled })
+                    });
+                    const data = await resp.json();
+                    if (!resp.ok) { alert(data.error || 'Failed to update module'); await this.loadModuleCatalog(); return; }
+                    console.log(`[MODULES] ${moduleName} ${enabled ? 'enabled' : 'disabled'}`);
+                    // Refresh module catalog UI and sidebar visibility immediately
+                    await this.loadModuleCatalog();
+                    if (window.loadAndApplyOrgModules) {
+                        await window.loadAndApplyOrgModules();
+                    }
+                } catch (e) {
+                    alert('Error updating module: ' + e.message);
+                    this.loadModuleCatalog();
+                }
+            },
+
             esc(str) {
                 return String(str || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#x27;');
             },
@@ -31527,6 +31813,7 @@ Thanks`;
             if (panel) panel.style.display = 'flex';
             if (subtab === 'invitations') OrgManager.loadInvitations();
             if (subtab === 'members')     OrgManager.loadMembers();
+            if (subtab === 'modules')     OrgManager.loadModuleCatalog();
             if (subtab === 'vault') {
                 // Show add-credential button and vault password section for admins/owners
                 const userLevel = OrgManager._userLevel || 0;
@@ -31649,7 +31936,7 @@ Thanks`;
                 auth_platform: document.getElementById('authPlatform')?.value || 'auto',
 
                 // AI Settings
-                ai_model: document.getElementById('modelSelect')?.value || 'claude-sonnet-4-5-20250929',
+                ai_model: document.getElementById('modelSelect')?.value || 'claude-sonnet-4-6',
                 ai_temperature: parseFloat(document.getElementById('temperature')?.value || 1.0),
                 ai_top_p: parseFloat(document.getElementById('topP')?.value || 1.0),
                 ai_max_tokens: parseInt(document.getElementById('maxTokens')?.value || 16000),
@@ -31697,7 +31984,7 @@ Thanks`;
                     auth_platform: document.getElementById('authPlatform')?.value || 'auto',
 
                     // AI Settings
-                    ai_model: document.getElementById('modelSelect')?.value || 'claude-sonnet-4-5-20250929',
+                    ai_model: document.getElementById('modelSelect')?.value || 'claude-sonnet-4-6',
                     ai_temperature: parseFloat(document.getElementById('temperature')?.value || 1.0),
                     ai_top_p: parseFloat(document.getElementById('topP')?.value || 1.0),
                     ai_max_tokens: parseInt(document.getElementById('maxTokens')?.value || 16000),
@@ -32520,13 +32807,15 @@ Thanks`;
         }
 
         /**
-         * Show Add Connection Modal
+         * Show Add Connection Modal — loads platform catalog from API dynamically
          */
         function showAddConnectionModal() {
             document.getElementById('add-connection-modal').style.display = 'flex';
             document.getElementById('platformSelectionView').style.display = 'block';
             document.getElementById('apiKeyFormView').style.display = 'none';
             document.getElementById('databaseFormView').style.display = 'none';
+            // Load platform catalog from backend (cached after first load)
+            loadPlatformCatalog();
         }
 
         /**
@@ -32546,6 +32835,233 @@ Thanks`;
             document.getElementById('platformSelectionView').style.display = 'block';
             document.getElementById('apiKeyFormView').style.display = 'none';
             document.getElementById('databaseFormView').style.display = 'none';
+        }
+
+        /**
+         * ============================================================
+         * DYNAMIC PLATFORM CATALOG
+         * Fetches from GET /api/org/platforms and renders the
+         * #dynamicPlatformGrid inside the Add Connection modal.
+         * ============================================================
+         */
+        let _orgPlatformCatalog = null;   // cached after first fetch
+
+        const CATEGORY_META = {
+            'ai':           { label: 'AI Providers',              icon: 'fas fa-brain',         color: '#10a37f', badgeText: 'API Key' },
+            'vector_db':    { label: 'Vector Database',           icon: 'fas fa-database',      color: '#7C3AED', badgeText: 'API Key' },
+            'ecommerce':    { label: 'Online Stores',             icon: 'fas fa-shopping-cart', color: '#96bf48', badgeText: 'API Key' },
+            'accounting':   { label: 'Financial & Accounting',    icon: 'fas fa-receipt',       color: '#13B5EA', badgeText: 'OAuth 2.0' },
+            'payment':      { label: 'Payment Services',          icon: 'fas fa-credit-card',   color: '#635BFF', badgeText: 'API Key' },
+            'communication':{ label: 'Communication',             icon: 'fas fa-phone',         color: '#F22F46', badgeText: 'API Key' },
+            'shipping':     { label: 'Logistics & Shipping',      icon: 'fas fa-box',           color: '#B00020', badgeText: 'API Key' },
+            'team':         { label: 'Team Platforms',            icon: 'fas fa-users',         color: '#4F46E5', badgeText: 'OAuth 2.0' },
+            'database':     { label: 'Database Platforms',        icon: 'fas fa-database',      color: '#1E40AF', badgeText: 'Connection' },
+            'hosting':      { label: 'Hosting & DevOps',          icon: 'fas fa-server',        color: '#46E3B7', badgeText: 'API Key' },
+            'other':        { label: 'Other Platforms',           icon: 'fas fa-plug',          color: '#6B7280', badgeText: 'API Key' },
+        };
+
+        /** Preferred display order of categories */
+        const CATEGORY_ORDER = [
+            'ai', 'vector_db', 'ecommerce', 'accounting', 'payment',
+            'communication', 'shipping', 'team', 'database', 'hosting', 'other'
+        ];
+
+        // ── AI Model Catalog ─────────────────────────────────────────────────
+        // Dynamically populate #modelSelect from /api/org/models (migration 037).
+        // Falls back gracefully to the static optgroups already in the HTML.
+
+        let _modelCatalogCache = null;
+
+        // Map provider → friendly label + tier label shown in the select
+        const PROVIDER_LABELS = {
+            anthropic: 'Anthropic (Claude)',
+            openai:    'OpenAI (GPT / o-series)',
+            deepseek:  'DeepSeek',
+        };
+        const TIER_BADGES = {
+            fast:      ' ⚡',
+            balanced:  '',
+            powerful:  ' ✦',
+            reasoning: ' 🧠',
+        };
+
+        // Infer provider client-side from model ID prefix (mirrors backend logic)
+        function inferProviderFromModel(modelId) {
+            if (!modelId) return 'anthropic';
+            if (modelId.startsWith('claude-')) return 'anthropic';
+            if (modelId.startsWith('gpt-') || /^o[0-9]/.test(modelId)) return 'openai';
+            if (modelId.startsWith('deepseek-')) return 'deepseek';
+            return 'anthropic';
+        }
+
+        async function loadModelCatalog() {
+            const sel = document.getElementById('modelSelect');
+            if (!sel) return;
+
+            // Retrieve current saved value before rebuilding the list
+            const currentValue = sel.value || localStorage.getItem('accountSettings')
+                ? JSON.parse(localStorage.getItem('accountSettings') || '{}').ai_model
+                : null;
+
+            const token = localStorage.getItem('authToken') || localStorage.getItem('auth_token') || '';
+            if (!token) return; // Not logged in — static optgroups remain
+
+            try {
+                if (!_modelCatalogCache) {
+                    const resp = await fetch('/api/org/models', {
+                        headers: { 'Authorization': `Bearer ${token}` }
+                    });
+                    if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+                    _modelCatalogCache = await resp.json();
+                }
+
+                const byProvider = _modelCatalogCache.by_provider || {};
+                if (!Object.keys(byProvider).length) return; // Empty — keep static fallback
+
+                // Rebuild the <select> with dynamic optgroups
+                sel.innerHTML = '';
+                const providerOrder = ['anthropic', 'openai', 'deepseek'];
+                // Any provider not in preferred order goes last
+                const extraProviders = Object.keys(byProvider).filter(p => !providerOrder.includes(p));
+                const orderedProviders = [...providerOrder, ...extraProviders].filter(p => byProvider[p]?.length);
+
+                for (const prov of orderedProviders) {
+                    const models = byProvider[prov];
+                    const grp = document.createElement('optgroup');
+                    grp.label = PROVIDER_LABELS[prov] || prov.charAt(0).toUpperCase() + prov.slice(1);
+
+                    for (const m of models) {
+                        const opt = document.createElement('option');
+                        opt.value = m.model_id;
+                        const tier = TIER_BADGES[m.tier] || '';
+                        const rec  = m.is_recommended ? ' \u2605 Recommended' : '';
+                        opt.textContent = `${m.display_name}${tier}${rec}`;
+                        if (m.description) opt.title = m.description;
+                        grp.appendChild(opt);
+                    }
+                    sel.appendChild(grp);
+                }
+
+                // Restore previously selected model (or recommended default)
+                if (currentValue && [...sel.options].some(o => o.value === currentValue)) {
+                    sel.value = currentValue;
+                } else {
+                    // Fall back to the recommended model
+                    const allModels = _modelCatalogCache.models || [];
+                    const rec = allModels.find(m => m.is_recommended);
+                    if (rec) sel.value = rec.model_id;
+                }
+
+                // Update hint text with description of currently selected model
+                updateModelHint(sel.value);
+
+            } catch (e) {
+                console.warn('[MODEL_CATALOG] Failed to load dynamic catalog, using static fallback:', e);
+            }
+        }
+
+        function updateModelHint(modelId) {
+            const hint = document.getElementById('modelSelectHint');
+            if (!hint) return;
+            if (!_modelCatalogCache) return;
+            const allModels = _modelCatalogCache.models || [];
+            const m = allModels.find(m => m.model_id === modelId);
+            hint.textContent = m?.description || '';
+        }
+
+        // Reload hint whenever model changes
+        document.addEventListener('DOMContentLoaded', () => {
+            const sel = document.getElementById('modelSelect');
+            if (sel) {
+                sel.addEventListener('change', () => updateModelHint(sel.value));
+            }
+        });
+
+        async function loadPlatformCatalog() {
+            const grid = document.getElementById('dynamicPlatformGrid');
+            if (!grid) return;
+
+            // Use cached catalog if available
+            if (_orgPlatformCatalog) {
+                renderPlatformGrid(_orgPlatformCatalog.by_category);
+                return;
+            }
+
+            grid.innerHTML = '<div style="text-align:center;padding:30px;color:var(--text-muted);"><i class="fas fa-circle-notch fa-spin"></i> Loading platforms&hellip;</div>';
+
+            try {
+                const resp = await fetch('/api/org/platforms', { headers: { 'Authorization': `Bearer ${localStorage.getItem('auth_token') || ''}` } });
+                if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+                const data = await resp.json();
+                _orgPlatformCatalog = data;
+                renderPlatformGrid(data.by_category || {});
+            } catch (e) {
+                console.error('[PLATFORM_CATALOG] Failed to load:', e);
+                grid.innerHTML = `<div style="text-align:center;padding:20px;color:var(--danger);">
+                    <i class="fas fa-exclamation-triangle"></i> Could not load platforms. <button onclick="loadPlatformCatalog()" style="background:none;border:none;color:var(--accent-primary);cursor:pointer;text-decoration:underline;">Retry</button>
+                </div>`;
+            }
+        }
+
+        function renderPlatformGrid(byCategory) {
+            const grid = document.getElementById('dynamicPlatformGrid');
+            if (!grid) return;
+
+            // Build sections in preferred order
+            const sections = [];
+            const handled = new Set();
+
+            for (const cat of CATEGORY_ORDER) {
+                const platforms = byCategory[cat];
+                if (!platforms || !platforms.length) continue;
+                handled.add(cat);
+                sections.push({ cat, platforms });
+            }
+            // Any remaining categories not in CATEGORY_ORDER
+            for (const [cat, platforms] of Object.entries(byCategory)) {
+                if (!handled.has(cat) && platforms && platforms.length) {
+                    sections.push({ cat, platforms });
+                }
+            }
+
+            if (!sections.length) {
+                grid.innerHTML = '<div style="text-align:center;padding:20px;color:var(--text-muted);">No platforms available.</div>';
+                return;
+            }
+
+            const html = sections.map(({ cat, platforms }) => {
+                const meta  = CATEGORY_META[cat] || CATEGORY_META['other'];
+                const btns  = platforms.map(p => {
+                    // Determine click handler based on auth_type
+                    const escapedName = (p.display_name || p.platform_name).replace(/'/g, "\\'");
+                    const escapedIcon = (p.icon_class || 'fas fa-plug').replace(/'/g, "\\'");
+                    const escapedColor = (p.icon_color || '#6B7280').replace(/'/g, "\\'");
+
+                    let handler;
+                    if (p.auth_type === 'oauth2' && p.platform_name === 'google')
+                        handler = `connectGoogle()`;
+                    else if (p.auth_type === 'oauth2' && p.platform_name === 'microsoft')
+                        handler = `connectMicrosoft()`;
+                    else if (p.auth_type === 'connection_string' || cat === 'database')
+                        handler = `showDatabaseForm('${p.platform_name}', '${escapedName}', '${escapedIcon}', '${escapedColor}')`;
+                    else
+                        handler = `showApiKeyForm('${p.platform_name}', '${escapedName}', '${escapedIcon}', '${escapedColor}')`;
+
+                    return `<button onclick="${handler}" class="platform-connect-btn" title="${p.description || ''}">
+                        <i class="${p.icon_class || 'fas fa-plug'}" style="color:${p.icon_color || '#6B7280'};"></i> ${p.display_name || p.platform_name}
+                    </button>`;
+                }).join('');
+
+                return `<div style="margin-bottom:20px;">
+                    <div style="font-size:16px;font-weight:600;color:var(--text-primary);margin-bottom:12px;display:flex;align-items:center;gap:8px;">
+                        <i class="${meta.icon}" style="color:${meta.color};"></i> ${meta.label}
+                        <span style="font-size:11px;background:var(--bg-tertiary);color:var(--text-secondary);padding:3px 8px;border-radius:4px;">${meta.badgeText}</span>
+                    </div>
+                    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:10px;">${btns}</div>
+                </div>`;
+            }).join('');
+
+            grid.innerHTML = html;
         }
 
         /**
@@ -32735,96 +33251,65 @@ Thanks`;
             // Load existing credentials for this platform
             await loadExistingCredentials(platform);
 
-            // Clear additional fields
-            document.getElementById('additionalApiFields').innerHTML = '';
+            // Render additional fields driven by platform_catalog required_fields
+            const additionalContainer = document.getElementById('additionalApiFields');
+            additionalContainer.innerHTML = '';
 
-            // Add platform-specific fields with increased font sizes
-            if (platform === 'twilio') {
-                document.getElementById('additionalApiFields').innerHTML = `
-                    <div class="settings-field">
-                        <label style="font-size: 14px; font-weight: 600;">Account SID <span style="color: var(--danger);">*</span></label>
-                        <input type="text" id="twilioSid" placeholder="ACxxxxxxxxxxxxx" required
-                            style="padding: 10px 14px; border: 1px solid var(--border-default); border-radius: 4px; font-size: 14px; width: 100%;">
-                        <div style="font-size: 13px; color: var(--text-muted); margin-top: 5px;">
-                            Found in Twilio Console dashboard
-                        </div>
-                    </div>
-                `;
-            } else if (platform === 'shopify') {
-                document.getElementById('additionalApiFields').innerHTML = `
-                    <div class="settings-field">
-                        <label style="font-size: 14px; font-weight: 600;">Store URL <span style="color: var(--danger);">*</span></label>
-                        <input type="text" id="shopifyUrl" placeholder="your-store.myshopify.com" required
-                            style="padding: 10px 14px; border: 1px solid var(--border-default); border-radius: 4px; font-size: 14px; width: 100%;">
-                        <div style="font-size: 13px; color: var(--text-muted); margin-top: 5px;">
-                            Your Shopify store domain
-                        </div>
-                    </div>
-                `;
-            } else if (platform === 'stripe') {
-                document.getElementById('additionalApiFields').innerHTML = `
-                    <div class="settings-field">
-                        <label style="font-size: 14px; font-weight: 600;">Environment</label>
-                        <select id="stripeEnv" style="padding: 10px 14px; border: 1px solid var(--border-default); border-radius: 4px; font-size: 14px; width: 100%;">
-                            <option value="test">Test/Development</option>
-                            <option value="production">Production (Live)</option>
-                        </select>
-                        <div style="font-size: 13px; color: var(--text-muted); margin-top: 5px;">
-                            Always start with test keys for development
-                        </div>
-                    </div>
-                `;
-            } else if (platform === 'pinecone') {
-                document.getElementById('additionalApiFields').innerHTML = `
-                    <div class="settings-field">
-                        <label style="font-size: 14px; font-weight: 600;">Index Name <span style="color: var(--danger);">*</span></label>
-                        <input type="text" id="pineconeIndex" placeholder="my-vector-index" required
-                            style="padding: 10px 14px; border: 1px solid var(--border-default); border-radius: 4px; font-size: 14px; width: 100%;">
-                        <div style="font-size: 13px; color: var(--text-muted); margin-top: 5px;">
-                            Your Pinecone index name (found in Pinecone Console)
-                        </div>
-                    </div>
-                    <div class="settings-field">
-                        <label style="font-size: 14px; font-weight: 600;">Environment <span style="color: var(--danger);">*</span></label>
-                        <input type="text" id="pineconeEnv" placeholder="us-west1-gcp" required
-                            style="padding: 10px 14px; border: 1px solid var(--border-default); border-radius: 4px; font-size: 14px; width: 100%;">
-                        <div style="font-size: 13px; color: var(--text-muted); margin-top: 5px;">
-                            Cloud environment (e.g., us-west1-gcp, us-east-1-aws)
-                        </div>
-                    </div>
-                    <div class="settings-field">
-                        <label style="font-size: 14px; font-weight: 600;">Namespace</label>
-                        <input type="text" id="pineconeNamespace" placeholder="default (optional)"
-                            style="padding: 10px 14px; border: 1px solid var(--border-default); border-radius: 4px; font-size: 14px; width: 100%;">
-                        <div style="font-size: 13px; color: var(--text-muted); margin-top: 5px;">
-                            Optional namespace for organizing vectors (leave empty for default)
-                        </div>
-                    </div>
-                `;
-            } else if (platform === 'voyager') {
-                document.getElementById('additionalApiFields').innerHTML = `
-                    <div class="settings-field">
-                        <label style="font-size: 14px; font-weight: 600;">Model <span style="color: var(--danger);">*</span></label>
-                        <select id="voyagerModel" required
-                            style="padding: 10px 14px; border: 1px solid var(--border-default); border-radius: 4px; font-size: 14px; width: 100%;">
-                            <option value="">-- Select Embedding Model --</option>
-                            <option value="voyage-2">voyage-2 (1024 dimensions, general purpose)</option>
-                            <option value="voyage-large-2">voyage-large-2 (1536 dimensions, high quality)</option>
-                            <option value="voyage-code-2">voyage-code-2 (1536 dimensions, optimized for code)</option>
-                        </select>
-                        <div style="font-size: 13px; color: var(--text-muted); margin-top: 5px;">
-                            Select embedding model based on your use case
-                        </div>
-                    </div>
-                    <div style="padding: 10px; background: #F0F9FF; border-left: 3px solid #3B82F6; border-radius: 6px; margin-top: 10px;">
-                        <div style="font-size: 12px; color: #1E40AF; line-height: 1.6;">
-                            <strong>Model Selection Guide:</strong><br>
-                            � <strong>voyage-2</strong>: Best for general text, documents, and semantic search (1024 dims)<br>
-                            � <strong>voyage-large-2</strong>: Higher quality embeddings, better accuracy (1536 dims)<br>
-                            � <strong>voyage-code-2</strong>: Optimized for code, technical documentation, and programming content (1536 dims)
-                        </div>
-                    </div>
-                `;
+            // Try catalog first, fall back to legacy hardcoded fields
+            const catalogEntry = _orgPlatformCatalog?.platforms?.find(p => p.platform_name === platform);
+            const requiredFields = catalogEntry?.required_fields || [];
+
+            // Update the main API-key label from catalog if available
+            const mainFieldLabel = document.getElementById('apiKeyLabel');
+            if (mainFieldLabel && requiredFields.length > 0) {
+                mainFieldLabel.textContent = `${requiredFields[0].label}${requiredFields[0].required ? ' *' : ''}`;
+            }
+            const mainFieldInput = document.getElementById('apiKeyValue');
+            if (mainFieldInput && requiredFields.length > 0) {
+                mainFieldInput.placeholder = requiredFields[0].placeholder || '';
+            }
+
+            if (requiredFields.length > 1) {
+                // Render additional fields (index 1+) from catalog
+                requiredFields.slice(1).forEach(field => {
+                    const reqStar = field.required ? ' <span style="color:var(--danger);">*</span>' : '';
+                    const inputEl = field.type === 'textarea'
+                        ? `<textarea id="dyn-field-${field.name}" placeholder="${field.placeholder || ''}" ${field.required ? 'required' : ''}
+                                style="padding:10px 14px;border:1px solid var(--border-default);border-radius:4px;font-size:14px;width:100%;min-height:80px;resize:vertical;"></textarea>`
+                        : `<input type="${field.type || 'text'}" id="dyn-field-${field.name}" placeholder="${field.placeholder || ''}" ${field.required ? 'required' : ''}
+                                style="padding:10px 14px;border:1px solid var(--border-default);border-radius:4px;font-size:14px;width:100%;">`;
+                    additionalContainer.innerHTML += `
+                        <div class="settings-field">
+                            <label style="font-size:14px;font-weight:600;">${field.label}${reqStar}</label>
+                            ${inputEl}
+                            ${field.help_text ? `<div style="font-size:13px;color:var(--text-muted);margin-top:5px;">${field.help_text}</div>` : ''}
+                        </div>`;
+                });
+            } else if (!requiredFields.length) {
+                // Legacy fallback for platforms not yet in catalog
+                if (platform === 'twilio') {
+                    additionalContainer.innerHTML = `
+                        <div class="settings-field">
+                            <label style="font-size:14px;font-weight:600;">Account SID <span style="color:var(--danger);">*</span></label>
+                            <input type="text" id="dyn-field-account_sid" placeholder="ACxxxxxxxxxxxxx" required
+                                style="padding:10px 14px;border:1px solid var(--border-default);border-radius:4px;font-size:14px;width:100%;">
+                            <div style="font-size:13px;color:var(--text-muted);margin-top:5px;">Found in Twilio Console dashboard</div>
+                        </div>`;
+                } else if (platform === 'shopify') {
+                    additionalContainer.innerHTML = `
+                        <div class="settings-field">
+                            <label style="font-size:14px;font-weight:600;">Store URL <span style="color:var(--danger);">*</span></label>
+                            <input type="text" id="dyn-field-shop_url" placeholder="your-store.myshopify.com" required
+                                style="padding:10px 14px;border:1px solid var(--border-default);border-radius:4px;font-size:14px;width:100%;">
+                        </div>`;
+                } else if (platform === 'pinecone') {
+                    additionalContainer.innerHTML = `
+                        <div class="settings-field">
+                            <label style="font-size:14px;font-weight:600;">Environment</label>
+                            <input type="text" id="dyn-field-environment" placeholder="us-east-1-aws"
+                                style="padding:10px 14px;border:1px solid var(--border-default);border-radius:4px;font-size:14px;width:100%;">
+                        </div>`;
+                }
             }
         }
 
@@ -32863,41 +33348,24 @@ Thanks`;
             const credentialKey = document.getElementById('apiKeyName').value;
             const credentialValue = document.getElementById('apiKeyValue').value;
 
-            // Build credentials object with platform-specific fields
-            const credentials = {
-                api_key: credentialValue
-            };
-
+            // Collect any dynamically-rendered additional fields (dyn-field-* IDs)
+            const catalogEntry = _orgPlatformCatalog?.platforms?.find(p => p.platform_name === platform);
+            const requiredFields = catalogEntry?.required_fields || [];
+            const credentials = { api_key: credentialValue };
             const metadata = {};
-
-            // Add platform-specific fields
-            if (platform === 'twilio') {
-                const sid = document.getElementById('twilioSid')?.value;
-                if (sid) credentials.account_sid = sid;
-            } else if (platform === 'shopify') {
-                const url = document.getElementById('shopifyUrl')?.value;
-                if (url) metadata.store_url = url;
-            } else if (platform === 'stripe') {
-                const env = document.getElementById('stripeEnv')?.value;
-                if (env) metadata.environment = env;
-            } else if (platform === 'pinecone') {
-                const indexName = document.getElementById('pineconeIndex')?.value;
-                const environment = document.getElementById('pineconeEnv')?.value;
-                const namespace = document.getElementById('pineconeNamespace')?.value;
-                if (indexName) credentials.index_name = indexName;
-                if (environment) credentials.environment = environment;
-                if (namespace) credentials.namespace = namespace;
-            } else if (platform === 'voyager') {
-                const model = document.getElementById('voyagerModel')?.value;
-                if (model) {
-                    credentials.model = model;
-                    // Set dimensions based on model
-                    if (model === 'voyage-2') {
-                        credentials.dimensions = 1024;
-                    } else if (model === 'voyage-large-2' || model === 'voyage-code-2') {
-                        credentials.dimensions = 1536;
-                    }
-                }
+            // Additional fields are required_fields[1+]; field IDs are dyn-field-{name}
+            requiredFields.slice(1).forEach(field => {
+                const el = document.getElementById(`dyn-field-${field.name}`);
+                if (el && el.value) credentials[field.name] = el.value;
+            });
+            // Legacy fallback: collect old field IDs that may still be present
+            const legacyFieldIds = { twilioSid: 'account_sid', shopifyUrl: 'shop_url', pineconeIndex: 'index_name', pineconeEnv: 'environment', pineconeNamespace: 'namespace', voyagerModel: 'model', stripeEnv: 'environment' };
+            for (const [oldId, credKey] of Object.entries(legacyFieldIds)) {
+                const el = document.getElementById(oldId);
+                if (el && el.value && !credentials[credKey]) credentials[credKey] = el.value;
+            }
+            if (platform === 'voyager' && credentials.model) {
+                credentials.dimensions = credentials.model === 'voyage-2' ? 1024 : 1536;
             }
 
             try {

@@ -33,13 +33,13 @@ def _get_assemblyai_client(user_id: int = None):
     if not ASSEMBLYAI_AVAILABLE:
         return None
     
-    # Try user-specific credentials first
+    # Try user-specific credentials first — uses full 3-tier resolver (user → org → env)
     if user_id:
         try:
-            from AI_infrastructure.shared.platform_credentials_loader import get_assemblyai_key
-            api_key = get_assemblyai_key(user_id)
+            from AI_infrastructure.shared.org_credentials_loader import resolve_api_key
+            api_key = resolve_api_key(user_id, 'assemblyai')
             if api_key:
-                print(f"[AssemblyAI] ✅ Using user credentials (user_id={user_id})")
+                print(f"[AssemblyAI] ✅ Using resolved credentials (user_id={user_id})")
                 aai.settings.api_key = api_key
                 return aai
         except Exception as e:

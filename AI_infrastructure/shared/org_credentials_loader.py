@@ -426,10 +426,48 @@ def get_credential_source_info(user_id: int, platform: str) -> dict:
 # GAP-M3: PER-ORG AI PROVIDER / MODEL CONFIG
 # ============================================================================
 
+def get_provider_for_model(model_id: str) -> str:
+    """Infer the API provider from a model identifier.
+
+    Used when user selects a model in the UI without explicitly choosing a
+    provider.  Lookup order:
+      1. ai_model_catalog DB table (most accurate)
+      2. Regex prefix fallback (always succeeds)
+
+    Returns one of: 'anthropic', 'openai', 'deepseek'
+    """
+    import re
+    if not model_id:
+        return 'anthropic'
+
+    # Fast prefix-based detection (no DB hit required)
+    if model_id.startswith('claude-'):
+        return 'anthropic'
+    if model_id.startswith(('gpt-', 'chatgpt-', 'text-davinci', 'davinci')) or \
+       re.match(r'^o[0-9]', model_id):
+        return 'openai'
+    if model_id.startswith('deepseek-'):
+        return 'deepseek'
+
+    # Fallback: try the catalog table for exotic model names
+    try:
+        row = execute_query(
+            "SELECT provider FROM ai_infrastructure.ai_model_catalog WHERE model_id = %s LIMIT 1",
+            (model_id,),
+            fetch_mode='one'
+        )
+        if row:
+            return row['provider']
+    except Exception:
+        pass
+
+    return 'anthropic'
+
+
 # Provider → default model fallbacks used when the org row has no model set
 _PROVIDER_DEFAULT_MODELS: Dict[str, str] = {
-    'anthropic': 'claude-sonnet-4-5-20250929',
-    'openai':    'gpt-4o',
+    'anthropic': 'claude-sonnet-4-6',   # Claude Sonnet 4.6 — recommended (no date suffix)
+    'openai':    'gpt-5.4',
     'deepseek':  'deepseek-chat',
 }
 
@@ -484,7 +522,7 @@ def get_org_ai_config(user_id: int) -> Dict[str, Any]:
             return default
 
         provider = (row.get('ai_provider') or 'anthropic').lower()
-        model    = row.get('ai_model') or _PROVIDER_DEFAULT_MODELS.get(provider, 'claude-sonnet-4-5-20250929')
+        model    = row.get('ai_model') or _PROVIDER_DEFAULT_MODELS.get(provider, 'claude-sonnet-4-6')
         max_tok  = row.get('ai_max_tokens') or _PROVIDER_DEFAULT_MAX_TOKENS.get(provider, 8192)
 
         # Validate provider is known
@@ -540,17 +578,21 @@ def get_org_enabled_modules(user_id: int) -> set:
         org_id    = org_row['org_id']
         plan_tier = (org_row.get('plan_tier') or 'free').lower()
 
-        # Fetch plan defaults for this tier
-        plan_rows = execute_query(
-            """
-            SELECT module_name
-            FROM   ai_infrastructure.plan_modules
-            WHERE  plan_tier = %s
-            """,
-            (plan_tier,),
-            fetch_mode='all'
-        ) or []
-        enabled = {r['module_name'] for r in plan_rows}
+        # Fetch plan defaults for this tier (plan_modules table added in migration 038)
+        try:
+            plan_rows = execute_query(
+                """
+                SELECT module_name
+                FROM   ai_infrastructure.plan_modules
+                WHERE  plan_tier = %s
+                """,
+                (plan_tier,),
+                fetch_mode='all'
+            ) or []
+            enabled = {r['module_name'] for r in plan_rows}
+        except Exception as plan_err:
+            logger.warning(f"[ORG_MODULES] plan_modules table not found (migration 038 pending): {plan_err}")
+            enabled = set()
 
         # Apply per-org overrides
         override_rows = execute_query(
@@ -573,3 +615,49 @@ def get_org_enabled_modules(user_id: int) -> set:
     except Exception as e:
         logger.warning(f"[ORG_MODULES] Could not load module access for user {user_id}: {e}")
         return set()
+
+
+def get_user_enabled_modules(user_id: int) -> set:
+    """
+    Return the set of module_name strings that are effectively enabled for
+    a specific user, applying BOTH org-level enablement and per-user restrictions.
+
+    Resolution order:
+        1. Start with org-enabled modules  (from get_org_enabled_modules)
+        2. Remove any modules where user_module_access.is_enabled = FALSE
+
+    Key constraint: user overrides can only RESTRICT.
+    A user can never access a module their organisation has disabled.
+    Absence of a user_module_access row = inherit the org setting.
+
+    Falls back to get_org_enabled_modules() if the user_module_access table
+    does not yet exist (pre-migration 039), so this function is always safe to call.
+    """
+    try:
+        org_enabled = get_org_enabled_modules(user_id)
+        if not org_enabled:
+            return set()
+
+        restriction_rows = execute_query(
+            """
+            SELECT module_name
+            FROM   ai_infrastructure.user_module_access
+            WHERE  user_id    = %s
+              AND  is_enabled = FALSE
+            """,
+            (user_id,),
+            fetch_mode='all'
+        ) or []
+
+        for r in restriction_rows:
+            org_enabled.discard(r['module_name'])
+
+        return org_enabled
+
+    except Exception as e:
+        # Graceful fallback: if table doesn't exist yet, return org-level modules
+        logger.warning(
+            f"[USER_MODULES] user_module_access unavailable for user {user_id} "
+            f"(migration 039 pending?): {e}"
+        )
+        return get_org_enabled_modules(user_id)

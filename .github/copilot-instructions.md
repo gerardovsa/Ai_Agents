@@ -1,5 +1,5 @@
 # GitHub Copilot Instructions - AI Agents Project
-**Last Updated: January 22, 2026**
+**Last Updated: March 26, 2026**
 
 > **⚠️ When generating SVG diagrams:** Always reference `.github/SVG_CAD_GENERATION_RULES.md` for proper title block spacing and Y-coordinate calculations to prevent text overlap.
 
@@ -77,6 +77,665 @@ Multi-tenant AI agent system with Flask backend, custom HTML/JavaScript frontend
 - **ALWAYS follow:** `.github/SVG_CAD_GENERATION_RULES.md`
 - Key rules: Title blocks need 40-60px clearance, text Y-position = block top + (font × 1.2)
 - Templates available for schematics (1200×900px) and blueprints (1400×1100px)
+
+### **Finding Org / Platform / Module system:**
+- Routes: `AI_infrastructure/routes/organisation_credentials_routes.py`
+- Catalog migration: `AI_infrastructure/migrations/036_platform_module_catalog.sql`
+- Encryption: `AI_infrastructure/shared/credential_crypto.py`
+- Frontend org panel: search for `OrgManager` in `UI/business-ai-platform-v2.html`
+- See full section: **Org, Team, Roles, Platform Catalog & Module System** (below)
+
+### **Finding Sidebar / Dashboard / Module Visibility:**
+- Full architecture doc: `.github/MODULE_VISIBILITY_ARCHITECTURE.md`
+- Sidebar HTML zones: `UI/business-ai-platform-v2.html` lines ~18571–18660
+- Dynamic module section: `#sidebarModulesSection` (line ~18632)
+- Static module loader (to be replaced): `UI/modules_external/manifest.json`
+- Module show/hide function design: see `initModulesFromOrg()` in the architecture doc
+- **⚠️ WooCommerce tab (`tab-sales`) is HARDCODED — always visible, needs to be gated**
+- DB module toggles DO NOT currently affect sidebar — gap documented in architecture doc
+
+---
+
+## Org, Team, Roles, Platform Catalog & Module System
+**Implemented: March 2026 — Migration 036**
+
+This section documents the complete multi-tenant organisation system: org structure, role-based access, credential vault, extensible platform catalog, and per-org module management. This is the authoritative technical reference for any developer working on org features.
+
+---
+
+### Architecture Overview
+
+```
+Organisations
+  └── Members (users with roles: viewer/member/manager/admin/owner)
+  └── Credentials Vault (encrypted API keys, OAuth tokens, DB strings)
+        └── Validated against → platform_catalog (DB-driven, extensible)
+  └── Module Access (enabled/disabled per org)
+        └── Defined in → module_catalog (DB-driven, plan-tiered)
+```
+
+**Key principle:** Adding a new platform or module requires only a DB `INSERT` — zero code changes.
+
+---
+
+### Role Hierarchy
+
+| Role | Level | Key Permissions |
+|------|-------|-----------------|
+| `viewer` | 1 | No credential access (403 on vault) |
+| `member` | 2 | Read org info, view platform/module catalog |
+| `manager` | 3 | + List credentials (masked), view audit log |
+| `admin` | 4 | + Add/edit/delete credentials, toggle modules, invite members |
+| `owner` | 5 | + Reveal secrets, vault password, remove members, change roles |
+
+**JWT Invalidation:** When a user's role changes, their `jwt_version` is incremented in `ai_infrastructure.users`. Every request validates `g.jwt_version_valid` via the `@require_auth` middleware — stale tokens are rejected with `"Session expired due to a permission change"`.
+
+**Vault Password:** Optional per-org `bcrypt` hash stored on the `organisations` row. If set, revealing any credential requires the vault password in addition to admin+ role.
+
+---
+
+### Database Tables
+
+All tables live in the `ai_infrastructure` PostgreSQL schema.
+
+#### `ai_infrastructure.organisations`
+| Column | Type | Notes |
+|--------|------|-------|
+| `id` | SERIAL PK | |
+| `name` | VARCHAR(255) | Unique, URL-safe slug |
+| `slug` | VARCHAR(100) | URL identifier |
+| `plan_tier` | VARCHAR(50) | `free` / `starter` / `professional` / `enterprise` |
+| `display_name` | VARCHAR(255) | Shown in UI |
+| `logo_url` | TEXT | |
+| `timezone` | VARCHAR(100) | |
+| `country_code` | VARCHAR(10) | |
+| `is_active` | BOOLEAN | |
+| `description` | TEXT | |
+| `visibility` | VARCHAR(50) | |
+| `allowed_domains` | TEXT[] | Restrict invite by email domain |
+| `ai_provider` | VARCHAR(50) | Default AI model provider |
+| `ai_model` | VARCHAR(100) | |
+| `ai_max_tokens` | INTEGER | |
+| `vault_password_hash` | TEXT | bcrypt hash; NULL = no vault lock |
+| `created_at` | TIMESTAMPTZ | |
+| `updated_at` | TIMESTAMPTZ | |
+
+#### `ai_infrastructure.users` (org-relevant columns)
+| Column | Type | Notes |
+|--------|------|-------|
+| `organisation_id` | INT | FK to organisations.id |
+| `org_role` | VARCHAR(50) | `viewer`/`member`/`manager`/`admin`/`owner` |
+| `jwt_version` | INT | Incremented on role change to invalidate tokens |
+| `last_login` | TIMESTAMPTZ | |
+
+#### `ai_infrastructure.organisation_platform_credentials`
+| Column | Type | Notes |
+|--------|------|-------|
+| `id` | SERIAL PK | |
+| `organisation_id` | INT | FK to organisations |
+| `platform` | VARCHAR(100) | e.g. `shopify`, `anthropic`; validated against `platform_catalog` |
+| `display_name` | VARCHAR(255) | User-defined label (e.g. "Production Shopify") |
+| `environment` | VARCHAR(50) | e.g. `production`, `staging` |
+| `credential_value` | TEXT | **Encrypted** single secret. Prefix `enc:v1:` marks encrypted values |
+| `credentials` | TEXT (JSON) | **Encrypted** multi-field dict e.g. `{"api_key":"...","shop_url":"..."}` |
+| `visible_to_role` | VARCHAR(50) | Min role to list (default `manager`) |
+| `reveal_requires_role` | VARCHAR(50) | Min role to reveal plaintext (default `admin`) |
+| `expires_at` | TIMESTAMPTZ | Optional expiry |
+| `rotation_due_at` | TIMESTAMPTZ | Optional rotation reminder |
+| `last_used_at` | TIMESTAMPTZ | Updated on reveal/test |
+| `is_active` | BOOLEAN | FALSE = soft-deleted |
+| `created_by_user_id` | INT | FK to users.id |
+| `created_at` | TIMESTAMPTZ | |
+| `updated_at` | TIMESTAMPTZ | |
+
+#### `ai_infrastructure.credential_access_log`
+| Column | Type | Notes |
+|--------|------|-------|
+| `id` | SERIAL PK | |
+| `organisation_id` | INT | |
+| `credential_id` | INT | |
+| `user_id` | INT | |
+| `action` | VARCHAR | `list`, `add`, `edit`, `delete`, `reveal`, `test` |
+| `platform` | VARCHAR(100) | |
+| `display_name` | VARCHAR(255) | |
+| `ip_address` | VARCHAR(45) | |
+| `user_agent` | TEXT | |
+| `vault_password_used` | BOOLEAN | |
+| `performed_at` | TIMESTAMPTZ | |
+
+#### `ai_infrastructure.org_invitations`
+| Column | Type | Notes |
+|--------|------|-------|
+| `id` | SERIAL PK | |
+| `organisation_id` | INT | |
+| `invited_email` | VARCHAR(255) | Optional — nullable |
+| `invited_role` | VARCHAR(50) | Role assigned on accept |
+| `status` | VARCHAR | `pending` / `accepted` / `expired` / `revoked` |
+| `invite_token` | UUID | Shared via email link |
+| `expires_at` | TIMESTAMPTZ | |
+| `created_at` | TIMESTAMPTZ | |
+| `invited_by` | INT | FK to users.id |
+| `accepted_at` | TIMESTAMPTZ | |
+| `accepted_by` | INT | FK to users.id |
+
+---
+
+### Platform Catalog Tables (Migration 036 — March 2026)
+
+#### `ai_infrastructure.platform_catalog`
+| Column | Type | Notes |
+|--------|------|-------|
+| `platform_name` | VARCHAR(100) PK | Snake-case key e.g. `shopify`, `anthropic` |
+| `display_name` | VARCHAR(255) | Human label e.g. `"Shopify"` |
+| `icon_class` | VARCHAR(100) | FontAwesome class e.g. `"fab fa-shopify"` |
+| `icon_color` | VARCHAR(20) | Hex color e.g. `"#96bf48"` |
+| `category` | VARCHAR(50) | See **Platform Categories** below |
+| `auth_type` | VARCHAR(50) | `api_key` / `oauth2` / `multi_field` / `connection_string` |
+| `required_fields` | JSONB | Array of field descriptors — drives the credential form |
+| `description` | TEXT | Short description |
+| `docs_url` | TEXT | Link to vendor docs |
+| `is_active` | BOOLEAN | Default TRUE; set FALSE to hide without deleting |
+| `sort_order` | INTEGER | Sort within category; lower = first |
+| `created_at` | TIMESTAMPTZ | |
+
+**`required_fields` JSONB schema** (each element):
+```json
+{
+  "name": "api_key",           // HTML id="dyn-field-api_key"
+  "label": "API Key",          // Label text shown in form
+  "type": "password",          // input type: text|password|select|textarea
+  "placeholder": "sk-ant-...", // Placeholder text
+  "required": true,            // Whether field is required
+  "help_text": "Found in..."   // Small hint text below input
+}
+```
+> The **first element** in `required_fields` maps to the existing `apiKeyValue` input and `apiKeyLabel` label. All subsequent elements are rendered dynamically with IDs `dyn-field-{name}` by `showApiKeyForm()` in the frontend.
+
+**`auth_type` Behaviour:**
+- `api_key` — Single secret field shown
+- `multi_field` — All `required_fields` rendered (index 0 uses main input, 1+ use `dyn-field-*`)
+- `oauth2` — Client ID + Secret fields; indicates OAuth flow
+- `connection_string` — Single connection URL field
+
+**Platform Categories:**
+| Category | Platforms |
+|----------|-----------|
+| `ai` | anthropic, openai, deepseek, assemblyai |
+| `vector_db` | pinecone, voyager |
+| `ecommerce` | shopify, woocommerce |
+| `accounting` | xero, stripe, paypal |
+| `communication` | sendgrid, twilio, hunter |
+| `shipping` | auspost |
+| `team` | google, microsoft, gmail_oauth, outlook_oauth, kajabi |
+| `database` | supabase, supabase_vsa, sql_database, inhouseprint_sql |
+| `hosting` | render, cloudflare |
+
+**All 27 Seeded Platforms (Migration 036):**
+
+| platform_name | display_name | auth_type | category | sort_order |
+|--------------|--------------|-----------|----------|------------|
+| `anthropic` | Anthropic Claude | api_key | ai | 10 |
+| `openai` | OpenAI | api_key | ai | 11 |
+| `deepseek` | DeepSeek | api_key | ai | 12 |
+| `assemblyai` | AssemblyAI | api_key | ai | 13 |
+| `pinecone` | Pinecone | api_key | vector_db | 20 |
+| `voyager` | Voyager AI | api_key | vector_db | 21 |
+| `shopify` | Shopify | api_key | ecommerce | 30 |
+| `woocommerce` | WooCommerce | multi_field | ecommerce | 31 |
+| `xero` | Xero | oauth2 | accounting | 40 |
+| `stripe` | Stripe | api_key | accounting | 41 |
+| `paypal` | PayPal | multi_field | accounting | 42 |
+| `sendgrid` | SendGrid | api_key | communication | 50 |
+| `twilio` | Twilio | multi_field | communication | 51 |
+| `hunter` | Hunter.io | api_key | communication | 52 |
+| `auspost` | Australia Post | api_key | shipping | 60 |
+| `google` | Google Workspace | oauth2 | team | 70 |
+| `microsoft` | Microsoft 365 | oauth2 | team | 71 |
+| `gmail_oauth` | Gmail OAuth | oauth2 | team | 72 |
+| `outlook_oauth` | Outlook OAuth | oauth2 | team | 73 |
+| `kajabi` | Kajabi | api_key | team | 74 |
+| `supabase` | Supabase | multi_field | database | 80 |
+| `supabase_vsa` | Supabase (VSA) | multi_field | database | 81 |
+| `sql_database` | SQL Database | connection_string | database | 82 |
+| `inhouseprint_sql` | InHousePrint SQL | connection_string | database | 83 |
+| `render` | Render | api_key | hosting | 90 |
+| `cloudflare` | Cloudflare | multi_field | hosting | 91 |
+
+---
+
+#### `ai_infrastructure.module_catalog`
+| Column | Type | Notes |
+|--------|------|-------|
+| `module_name` | VARCHAR(100) PK | Snake-case key e.g. `shopify`, `core_chat` |
+| `display_name` | VARCHAR(255) | Human label |
+| `description` | TEXT | Shown in module catalog UI |
+| `icon_class` | VARCHAR(100) | FontAwesome class |
+| `icon_color` | VARCHAR(20) | Hex color |
+| `category` | VARCHAR(50) | e.g. `core`, `ecommerce`, `finance`, `ai`, `operations`, `dev` |
+| `min_plan_tier` | VARCHAR(50) | `free` / `starter` / `professional` / `enterprise` |
+| `required_platforms` | TEXT[] | e.g. `ARRAY['shopify']` — platform credentials needed |
+| `is_active` | BOOLEAN | Default TRUE |
+| `sort_order` | INTEGER | |
+| `created_at` | TIMESTAMPTZ | |
+
+#### `ai_infrastructure.org_module_access`
+| Column | Type | Notes |
+|--------|------|-------|
+| `organisation_id` | INT | FK to organisations |
+| `module_name` | VARCHAR(100) | FK to module_catalog (CASCADE) |
+| `is_enabled` | BOOLEAN | TRUE = org-level override to enable |
+| `enabled_at` | TIMESTAMPTZ | Last toggle time |
+| `enabled_by` | INT | FK to users.id |
+
+Primary key: `(organisation_id, module_name)` — upsert on conflict.
+
+**All 26 Seeded Modules (Migration 036):**
+
+| module_name | display_name | min_plan_tier | required_platforms |
+|------------|--------------|--------------|--------------------|
+| `core_chat` | AI Chat | free | — |
+| `documents` | Documents | free | — |
+| `prompt_library` | Prompt Library | free | — |
+| `notifications` | Notifications | free | — |
+| `universal_search` | Universal Search | starter | — |
+| `synergy` | Synergy | starter | — |
+| `automation` | Automation | starter | — |
+| `thread_cards` | Thread Cards | starter | — |
+| `shopify` | Shopify | professional | `['shopify']` |
+| `xero` | Xero Accounting | professional | `['xero']` |
+| `auspost_shipping` | Australia Post | professional | `['auspost']` |
+| `stock_management` | Stock Management | professional | — |
+| `transcription` | Voice Transcription | professional | `['assemblyai']` |
+| `vector_database` | Vector Search | professional | `['pinecone']` |
+| `customer_reactivation` | Customer Reactivation | professional | — |
+| `inhouse_print` | InHouse Print | enterprise | `['inhouseprint_sql']` |
+| `inhouse_kanban` | InHouse Kanban | enterprise | `['inhouseprint_sql']` |
+| `quote_calculator` | Quote Calculator | enterprise | — |
+| `database_visualizer` | DB Visualizer | enterprise | — |
+| `github` | GitHub | enterprise | — |
+| `render_management` | Render Management | enterprise | `['render']` |
+| `local_filesystem` | Local Filesystem | enterprise | — |
+| `woocommerce` | WooCommerce | enterprise | `['woocommerce']` |
+
+---
+
+### Credential Encryption
+
+**File:** `AI_infrastructure/shared/credential_crypto.py`
+**Algorithm:** Fernet (AES-128-CBC + HMAC-SHA256) — authenticated symmetric encryption
+
+**Setup:**
+```bash
+# Generate a new key (one-time, store in .env)
+python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"
+# Add to .env:
+CREDENTIAL_ENCRYPTION_KEY=<base64-key>
+```
+
+**Storage format:** `enc:v1:<fernet_token>` — prefix `enc:v1:` is the sentinel that marks an encrypted value. Without the prefix, the value is treated as legacy plaintext.
+
+**Functions:**
+```python
+from AI_infrastructure.shared.credential_crypto import (
+    encrypt_credential,   # str -> "enc:v1:..."
+    decrypt_credential,   # "enc:v1:..." -> plaintext; passthrough for unencrypted
+    is_encryption_enabled # -> bool
+)
+```
+
+**Behaviour when key is missing:** Passthrough mode — values stored/returned as plaintext. Logs a warning. Never crashes.
+
+---
+
+### All Organisation API Endpoints
+
+**File:** `AI_infrastructure/routes/organisation_credentials_routes.py`
+**Blueprint prefix:** (no prefix — routes start with `/api/org/`)
+
+| Method | Path | Min Role | Description |
+|--------|------|----------|-------------|
+| POST | `/api/org/create` | Any auth | Create new org; caller becomes owner |
+| GET | `/api/org/info` | member | Org details, member count, vault status |
+| PUT | `/api/org/info` | admin | Update org settings |
+| GET | `/api/org/members` | manager | List members with roles |
+| PUT | `/api/org/members/<user_id>/role` | admin | Change member role |
+| DELETE | `/api/org/members/<user_id>` | owner | Remove member |
+| GET | `/api/org/credentials` | manager | List credentials (masked) + audit log access |
+| POST | `/api/org/credentials` | admin | Add new credential (encrypted on save) |
+| PUT | `/api/org/credentials/<id>` | admin | Edit credential |
+| DELETE | `/api/org/credentials/<id>` | admin | Soft-delete credential (`is_active=FALSE`) |
+| POST | `/api/org/credentials/<id>/test` | manager | Test connectivity (anthropic, openai, shopify, xero…) |
+| POST | `/api/org/credentials/<id>/reveal` | admin | Reveal plaintext (+ vault password if set) |
+| GET | `/api/org/credentials/audit-log` | admin | Full audit trail with IP, user-agent, timestamps |
+| POST | `/api/org/vault-password` | owner | Set/change vault password |
+| DELETE | `/api/org/vault-password` | owner | Remove vault password lock |
+| **GET** | **`/api/org/platforms`** | member | **Platform catalog grouped by category** |
+| **GET** | **`/api/org/modules`** | member | **Enabled module set for this org** |
+| **GET** | **`/api/org/modules/catalog`** | member | **Full module catalog with is_enabled per module** |
+| **PUT** | **`/api/org/modules/<module_name>`** | admin | **Enable/disable module override** |
+| POST | `/api/org/invite` | admin | Create invite (optional email send) |
+| GET | `/api/org/invite/pending` | admin | List pending invitations |
+| DELETE | `/api/org/invite/<id>` | admin | Revoke invitation |
+| GET | `/api/org/invite/accept?token=<uuid>` | None | Validate token, return invite details |
+| POST | `/api/org/invite/accept` | Any auth | Accept invite, link user to org |
+| POST | `/api/org/invite/<id>/send-email` | admin | Send invite via Gmail/Outlook OAuth |
+
+---
+
+### Frontend Integration
+
+**File:** `UI/business-ai-platform-v2.html`
+**Pattern:** Vanilla JS `OrgManager` object + module-level helper functions
+
+**Platform catalog flow:**
+1. User opens "Add Connection" modal → `showAddConnectionModal()` calls `loadPlatformCatalog()`
+2. `loadPlatformCatalog()` fetches `GET /api/org/platforms`, caches in `_orgPlatformCatalog`
+3. `renderPlatformGrid(byCategory)` renders category sections with platform buttons in `#dynamicPlatformGrid`
+4. Clicking a platform calls `showApiKeyForm(platform)` (api_key/multi_field) or OAuth handlers
+5. `showApiKeyForm()` reads `required_fields` from `_orgPlatformCatalog` → renders `dyn-field-{name}` inputs
+6. `submitApiKeyForm()` collects `dyn-field-{name}` values → POSTs to `/api/org/credentials`
+
+**Module catalog flow:**
+1. Admin clicks "Modules" subtab in org panel → `OrgManager.loadModuleCatalog()`
+2. Fetches `GET /api/org/modules/catalog`, calls `renderModuleCatalog()`
+3. Module cards rendered in `#org-modules-catalog` with plan tier badge, required platforms, enable toggle
+4. Toggle calls `OrgManager.toggleModule(name, enabled)` → `PUT /api/org/modules/<name>`
+
+**Key JS identifiers (search for these):**
+```javascript
+_orgPlatformCatalog         // Cache object for platform catalog
+CAT_META / CATEGORY_ORDER   // Category display metadata
+loadPlatformCatalog()       // Fetch + cache platforms from API
+renderPlatformGrid()        // Render platform buttons by category
+showApiKeyForm(platform)    // Render credential form with catalog fields
+submitApiKeyForm(event)     // Collect dyn-field-* + POST /api/org/credentials
+OrgManager.loadModuleCatalog()  // Fetch + render module catalog
+OrgManager.renderModuleCatalog() // Render module cards
+OrgManager.toggleModule()   // PUT /api/org/modules/<name>
+```
+
+**Key HTML element IDs:**
+```html
+#dynamicPlatformGrid        <!-- Platform buttons container (Add Connection modal) -->
+#additionalApiFields        <!-- dyn-field-* inputs rendered here -->
+#apiKeyLabel                <!-- Main credential field label (updated per platform) -->
+#apiKeyValue                <!-- Main credential input -->
+#apiKeyPlatform             <!-- Hidden input: current platform name -->
+#org-subtab-modules         <!-- Modules management panel -->
+#org-modules-catalog        <!-- Module cards container -->
+```
+
+---
+
+### How to Add a New Platform
+
+> **Zero code changes required.** Only a DB `INSERT` is needed.
+
+**Step 1: INSERT into platform_catalog**
+```sql
+INSERT INTO ai_infrastructure.platform_catalog (
+    platform_name,
+    display_name,
+    icon_class,
+    icon_color,
+    category,
+    auth_type,
+    required_fields,
+    description,
+    docs_url,
+    sort_order
+) VALUES (
+    'facebook_ads',                     -- snake_case, unique key
+    'Facebook Ads',                     -- shown in UI
+    'fab fa-facebook',                  -- FontAwesome class
+    '#1877F2',                          -- brand hex
+    'advertising',                      -- new or existing category
+    'multi_field',                      -- api_key | multi_field | oauth2 | connection_string
+    '[
+        {"name": "access_token", "label": "Access Token", "type": "password",
+         "placeholder": "EAAxxxxx", "required": true,
+         "help_text": "Get from Meta Business Manager > System Users"},
+        {"name": "account_id", "label": "Ad Account ID", "type": "text",
+         "placeholder": "act_123456789", "required": true}
+    ]'::jsonb,
+    'Meta Facebook Ads API for campaign management',
+    'https://developers.facebook.com/docs/marketing-apis',
+    100
+);
+```
+
+**Step 2: Verify** — Hit `GET /api/org/platforms` — the new platform appears immediately.
+
+**Notes:**
+- `required_fields[0]` maps to the main `#apiKeyValue` input
+- `required_fields[1+]` are rendered as `dyn-field-{name}` inputs below it
+- `auth_type: 'oauth2'` platforms need a corresponding OAuth handler in the backend; the catalog entry alone won't wire up OAuth flow
+- `is_active: false` hides the platform from the UI without deleting it
+
+**Adding a new category:**
+```javascript
+// In business-ai-platform-v2.html, update CATEGORY_META to add display name + icon:
+const CATEGORY_META = {
+    ...existing...,
+    'advertising': { label: 'Advertising', icon: 'fas fa-ad', color: '#1877F2' }
+};
+// And add to CATEGORY_ORDER array at the desired position.
+```
+
+---
+
+### How to Add a New Module
+
+> **Zero code changes required for catalog entry.** The actual module implementation still lives in `UI/modules_external/`.
+
+**Step 1: INSERT into module_catalog**
+```sql
+INSERT INTO ai_infrastructure.module_catalog (
+    module_name,
+    display_name,
+    description,
+    icon_class,
+    icon_color,
+    category,
+    min_plan_tier,
+    required_platforms,
+    sort_order
+) VALUES (
+    'facebook_ads',
+    'Facebook Ads',
+    'Manage Facebook ad campaigns, view spend and ROAS, pause/resume ad sets',
+    'fab fa-facebook',
+    '#1877F2',
+    'marketing',
+    'professional',
+    ARRAY['facebook_ads'],   -- platform credentials required
+    35
+);
+```
+
+**Step 2 (optional): Pre-enable for an org**
+```sql
+INSERT INTO ai_infrastructure.org_module_access (organisation_id, module_name, is_enabled, enabled_at, enabled_by)
+VALUES (1, 'facebook_ads', TRUE, NOW(), <admin_user_id>)
+ON CONFLICT (organisation_id, module_name) DO UPDATE
+  SET is_enabled = TRUE, enabled_at = NOW();
+```
+
+**Step 3: Create the module implementation** — Follow the Module Plugin System pattern in `UI/modules_external/` (see Module Plugin System Details section below).
+
+---
+
+### Quick Verification Scripts
+
+**Check platform catalog contents:**
+```sql
+-- Run in Supabase SQL editor
+SELECT platform_name, display_name, category, auth_type, sort_order
+FROM ai_infrastructure.platform_catalog
+WHERE is_active = TRUE
+ORDER BY category, sort_order;
+```
+
+**Check module catalog + org enabled state:**
+```sql
+SELECT mc.module_name, mc.display_name, mc.min_plan_tier,
+       oma.is_enabled AS org_override
+FROM ai_infrastructure.module_catalog mc
+LEFT JOIN ai_infrastructure.org_module_access oma
+  ON oma.module_name = mc.module_name AND oma.organisation_id = 1
+ORDER BY mc.sort_order;
+```
+
+**Test platform catalog API:**
+```powershell
+# With JWT token
+$token = "<your_jwt>"
+Invoke-RestMethod -Uri "http://localhost:5000/api/org/platforms" `
+  -Headers @{Authorization="Bearer $token"} | ConvertTo-Json -Depth 5
+```
+
+**Test module catalog API:**
+```powershell
+Invoke-RestMethod -Uri "http://localhost:5000/api/org/modules/catalog" `
+  -Headers @{Authorization="Bearer $token"} | ConvertTo-Json -Depth 5
+```
+
+**Toggle a module via API:**
+```powershell
+Invoke-RestMethod -Uri "http://localhost:5000/api/org/modules/shopify" `
+  -Method PUT `
+  -Headers @{Authorization="Bearer $token"; 'Content-Type'='application/json'} `
+  -Body '{"enabled": true}'
+```
+
+**Verify migration 036 was applied:**
+```sql
+SELECT COUNT(*) FROM ai_infrastructure.platform_catalog;  -- expect 27
+SELECT COUNT(*) FROM ai_infrastructure.module_catalog;    -- expect 26
+```
+
+---
+
+### Key Files Reference (Org/Platform/Module System)
+
+| File | Purpose |
+|------|---------|
+| `AI_infrastructure/routes/organisation_credentials_routes.py` | All org API routes (25 endpoints) |
+| `AI_infrastructure/migrations/036_platform_module_catalog.sql` | Creates `platform_catalog`, `module_catalog`; seeds all data |
+| `AI_infrastructure/migrations/032_org_module_access.sql` | Creates `org_module_access` table |
+| `AI_infrastructure/shared/credential_crypto.py` | Fernet encryption for credential values |
+| `AI_infrastructure/shared/database_utils.py` | `execute_query()` — all DB operations use this |
+| `UI/business-ai-platform-v2.html` | Frontend: `OrgManager` + `loadPlatformCatalog()` + `renderPlatformGrid()` + Modules tab |
+
+---
+
+### Change History
+
+| Date | Migration | Description |
+|------|-----------|-------------|
+| March 2026 | 036 | `platform_catalog` + `module_catalog` tables. 27 platforms, 26 modules seeded. Dynamic frontend grid. Modules management subtab. Per-org module enable/disable via `org_module_access`. |
+| Jan 2026 | 032 | `org_module_access` table (pre-catalog, plan-tier driven logic). |
+| Late 2025 | 028–031 | Org credentials vault, audit log, reveal/test endpoints. |
+| Late 2025 | 025–027 | Org invitations system (invite tokens, role assignment). |
+| Late 2025 | 020–024 | Org member management (roles, JWT invalidation, vault password). |
+
+---
+
+## Pending Work — What Still Needs Building
+
+> **For any AI agent picking up this codebase:** The items below are DESIGNED and DOCUMENTED but NOT yet coded into the application. The database schema and API endpoints are live. The frontend implementation is the missing piece.
+
+### 1. `initModulesFromOrg()` — DB-Driven Sidebar Visibility
+
+**Status: NOT implemented. Design spec exists.**  
+**Reference:** `.github/MODULE_VISIBILITY_ARCHITECTURE.md` — Section 6 (full function code provided)
+
+**What it is:** A JavaScript function that runs on login/org switch, calls `GET /api/org/modules`, then shows/hides sidebar items and tab content based on which modules the org has enabled.
+
+**Why it matters:** Right now, ALL sidebar items are visible to ALL users regardless of org or role. The DB module catalog (`org_module_access`) records which modules each org has enabled — but that data is never read to affect the UI. This function is the bridge that connects the DB to the sidebar.
+
+**What the function must do:**
+1. Call `GET /api/org/modules` → get `{ enabled_modules: ['core_chat', 'shopify', ...] }`
+2. For Zone 1 hardcoded items: check `data-module` attribute on each `<li>` → hide if not in enabled list
+3. For Zone 2 dynamic items: replace `manifest.json`-driven `ModuleManager` with DB-driven rendering
+4. For Zone 3 (account/settings): always visible — no gating needed
+5. Add CSS class `.module-hidden` (display:none) to disabled items
+
+**Files to edit:**
+- `UI/business-ai-platform-v2.html` — add `initModulesFromOrg()` function, call it after login/org switch
+- Add `data-module="<module_name>"` attributes to all Zone 1 sidebar `<li>` items
+
+**CSS needed (add once to `<style>` block):**
+```css
+.module-hidden { display: none !important; }
+```
+
+---
+
+### 2. WooCommerce Tab Hardcoded — No Gating
+
+**Status: KNOWN ISSUE — hardcoded always-visible**  
+**File:** `UI/business-ai-platform-v2.html`  
+**Search for:** `data-tab="sales"` (sidebar button) and `id="tab-sales"` (tab content)
+
+The WooCommerce tab (`tab-sales`) is hardcoded in the sidebar with a shopping cart icon and zero module/role gating. It appears for every user in every org. It should only appear when:
+- The org has `woocommerce` module enabled in `org_module_access`
+- The user has at least `member` role (standard access)
+
+**Fix:** Add `data-module="woocommerce"` to the sidebar `<li>` button and handle it in `initModulesFromOrg()`.
+
+---
+
+### 3. Zone 2 Sidebar Still Driven by `manifest.json`
+
+**Status: Static file still active — DB catalog NOT yet wired to sidebar**  
+**File:** `UI/modules_external/manifest.json`
+
+The `ModuleManager` JS class reads `manifest.json` (lists 7 modules: inhouse-kanban, inhouse-print, quote-calculator, stock-management, xero, shopify, local-filesystem) and renders icon buttons in `#sidebarModulesSection`. This is identical for every user.
+
+**What needs changing:** Replace the `ModuleManager` manifest-loading with a DB-driven call. When `initModulesFromOrg()` runs, it should render only the modules the org has enabled, using `icon_class` and `icon_color` from `module_catalog`.
+
+**`manifest.json` format (for reference):**
+```json
+{ "modules": [{ "id": "shopify", "name": "Shopify", "icon": "fab fa-shopify", "color": "#96bf48", "tab": "tab-shopify" }] }
+```
+This maps directly to `module_catalog` columns — migration is straightforward.
+
+---
+
+### 4. Role-Based Sidebar Gating Not Implemented
+
+**Status: Designed but not applied**
+
+Some sidebar items should be hidden not just by module but by role. Example: viewers shouldn't see org settings. The design calls for `data-org-min-role="admin"` attributes on `<li>` items.
+
+**No code added yet.** After `initModulesFromOrg()` loads modules, a second pass should check `data-org-min-role` vs the user's current `org_role` and hide items the user's role doesn't meet.
+
+---
+
+### 5. Orphaned Tab: `tab-vsa-veterinary-alerts`
+
+**Status: Dead code — inaccessible**  
+**File:** `UI/business-ai-platform-v2.html` — approximately line 19202
+
+A tab content div `id="tab-vsa-veterinary-alerts"` exists in the HTML with no corresponding sidebar button — it was never linked up. There is also no `vsa_veterinary_alerts` entry in `module_catalog`. This tab is completely inaccessible to users.
+
+**Action needed:** Either add a sidebar entry + module catalog entry, or delete the orphaned HTML block entirely.
+
+---
+
+### Summary: What a New AI Should Implement Next
+
+| # | Task | File(s) | Complexity |
+|---|------|---------|------------|
+| 1 | Build `initModulesFromOrg()` | `business-ai-platform-v2.html` | Medium — see Section 6 in `MODULE_VISIBILITY_ARCHITECTURE.md` |
+| 2 | Add `data-module` attributes to Zone 1 sidebar items | `business-ai-platform-v2.html` | Low |
+| 3 | Gate WooCommerce `tab-sales` with `data-module="woocommerce"` | `business-ai-platform-v2.html` | Low |
+| 4 | Replace `manifest.json` Zone 2 rendering with DB-driven | `business-ai-platform-v2.html` | Medium |
+| 5 | Add `data-org-min-role` checks for role-based gating | `business-ai-platform-v2.html` | Low |
+| 6 | Resolve orphaned `tab-vsa-veterinary-alerts` | `business-ai-platform-v2.html` | Low |
+
+> **Architecture doc:** All implementation details (full function code, CSS, module inventory table) are in `.github/MODULE_VISIBILITY_ARCHITECTURE.md`.
 
 ---
 
@@ -174,7 +833,37 @@ UI/modules_external/my-module/
 **"How do I add a new tool?"**
 → Look at `UI/modules_external/quote-calculator/implementations/calculator_wrapper.py` as template
 
-**"Database connection issues"**
+**"How do I add a new platform (Facebook, Instagram, etc.)?"**
+→ See **How to Add a New Platform** in the Org/Platform/Module section above
+→ Only a DB `INSERT INTO ai_infrastructure.platform_catalog` is needed — no code changes
+→ `required_fields` JSONB drives the entire credential form automatically
+
+**"How do I add a new module to the catalog?"**
+→ See **How to Add a New Module** in the Org/Platform/Module section above
+→ `INSERT INTO ai_infrastructure.module_catalog` then build implementation in `UI/modules_external/`
+
+**"Platform not showing in Add Connection modal"**
+→ Check `is_active = TRUE` in `ai_infrastructure.platform_catalog`
+→ Hit `GET /api/org/platforms` to confirm it's returned by API
+→ If migration 036 not run: falls back to `LEGACY_ALLOWED_PLATFORMS` hardcoded set in the route file
+
+**"Module toggle not working / module not appearing"**
+→ Check `ai_infrastructure.module_catalog` — `is_active = TRUE`?
+→ Check `ai_infrastructure.org_module_access` for existing overrides
+→ Admin+ role required for PUT `/api/org/modules/<name>`
+
+**"Credential not saving / 'platform not allowed' error"**
+→ `add_credential()` validates via `platform_catalog`; add platform to table if missing
+→ Fallback: add to `LEGACY_ALLOWED_PLATFORMS` set in `organisation_credentials_routes.py`
+
+**"Credential value is garbled / decrypt error"**
+→ Check `CREDENTIAL_ENCRYPTION_KEY` is set in `.env`
+→ Values with `enc:v1:` prefix are Fernet-encrypted; must use same key to decrypt
+→ See `AI_infrastructure/shared/credential_crypto.py`
+
+**"User lost access after role change"**
+→ Expected: `jwt_version` incremented on role change invalidates JWT
+→ User must log in again to get fresh token with new role
 → Check `AI_infrastructure/shared/database_utils.py` connection pooling
 → Look at recent migrations in `AI_infrastructure/migrations/`
 
@@ -389,7 +1078,13 @@ Required in `.env` file:
 SUPABASE_URL=https://your-project.supabase.co
 SUPABASE_KEY=your-anon-key
 SUPABASE_DB_PASSWORD=your-db-password
+SUPABASE_DB_URL=postgresql://postgres:<password>@<host>:5432/postgres
 POOL_ENABLED=True
+
+# Security
+CREDENTIAL_ENCRYPTION_KEY=<base64-fernet-key>  # REQUIRED for credential vault encryption
+# Generate: python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"
+# WARNING: Changing this key makes all existing encrypted credentials unreadable
 
 # AI APIs
 ANTHROPIC_API_KEY=sk-ant-...

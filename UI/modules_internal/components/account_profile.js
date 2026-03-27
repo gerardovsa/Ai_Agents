@@ -2717,7 +2717,9 @@ async function loadOrgTab() {
     if (createForm) createForm.style.display= 'none';
 
     try {
-        const res  = await fetch(`${API_BASE_URL}/api/org/info`);
+        const res  = await fetch(`${API_BASE_URL}/api/org/info`, {
+            headers: { 'Authorization': `Bearer ${localStorage.getItem('authToken') || ''}` }
+        });
         const data = await res.json();
 
         if (loading) loading.style.display = 'none';
@@ -2728,6 +2730,8 @@ async function loadOrgTab() {
         }
 
         _orgData = data.organisation;
+        // Merge your_role (top-level in API response) into org object so _renderOrgDashboard can display it
+        if (data.your_role) _orgData.your_role = data.your_role;
         // GAP-H4: Sync OrgManager role state so Vault / Audit subtabs can gate access
         if (typeof OrgManager !== 'undefined') {
             const ROLE_LEVELS = { viewer: 1, member: 2, manager: 3, admin: 4, owner: 5 };
@@ -2738,11 +2742,30 @@ async function loadOrgTab() {
             OrgManager._orgName   = data.organisation?.display_name || data.organisation?.name || 'our organisation';
         }
         _renderOrgDashboard(_orgData);
+        _gateOrgSubTabs(_orgData.your_role);
     } catch (err) {
         console.error('[ORG] Failed to load org tab:', err);
         if (loading) loading.style.display = 'none';
         if (empty)   empty.style.display   = 'flex';
     }
+}
+
+/**
+ * Hide org sub-tab buttons the current user's role is not permitted to access.
+ * Vault: manager+, Modules: member+, Audit: admin+
+ */
+function _gateOrgSubTabs(userRole) {
+    const ROLE_LEVELS = { viewer: 1, member: 2, manager: 3, admin: 4, owner: 5 };
+    const level = ROLE_LEVELS[userRole] || 0;
+    const rules = {
+        vault:   ROLE_LEVELS.manager,   // manager+
+        modules: ROLE_LEVELS.member,    // member+
+        audit:   ROLE_LEVELS.admin,     // admin+
+    };
+    Object.entries(rules).forEach(([subtab, minLevel]) => {
+        const btn = document.querySelector(`.org-sub-tab[data-subtab="${subtab}"]`);
+        if (btn) btn.style.display = level >= minLevel ? '' : 'none';
+    });
 }
 
 function _renderOrgDashboard(org) {
@@ -2834,7 +2857,10 @@ async function saveOrgSettings() {
 
         const res  = await fetch(`${API_BASE_URL}/api/org/info`, {
             method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${localStorage.getItem('authToken') || ''}`
+            },
             body: JSON.stringify(payload),
         });
         const data = await res.json();
@@ -2889,7 +2915,10 @@ async function createOrganisation() {
     try {
         const res  = await fetch(`${API_BASE_URL}/api/org/info`, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${localStorage.getItem('authToken') || ''}`
+            },
             body: JSON.stringify({ name, slug, description: desc, visibility: vis }),
         });
         const data = await res.json();
@@ -2912,7 +2941,9 @@ async function loadOrgMembers(countOnly = false) {
     const inlineEl = document.getElementById('orgMemberCountInline');
 
     try {
-        const res  = await fetch(`${API_BASE_URL}/api/org/members`);
+        const res  = await fetch(`${API_BASE_URL}/api/org/members`, {
+            headers: { 'Authorization': `Bearer ${localStorage.getItem('authToken') || ''}` }
+        });
         const data = await res.json();
         if (!data.success) throw new Error(data.error);
 
@@ -2930,24 +2961,33 @@ async function loadOrgMembers(countOnly = false) {
         listEl.innerHTML = members.map(m => {
             const isMe = m.id === myUserId;
             const roleBadgeColor = { owner: '#f59e0b', admin: '#6366f1', manager: '#3b82f6', member: '#22c55e', viewer: '#64748b' }[m.org_role] || '#64748b';
+            const canManage = isOwnerOrAdmin && !isMe && m.org_role !== 'owner';
             return `
-                <div style="display:flex;justify-content:space-between;align-items:center;padding:12px 0;border-bottom:1px solid var(--border-default);">
-                    <div style="display:flex;align-items:center;gap:10px;">
-                        <div style="width:34px;height:34px;border-radius:50%;background:var(--bg-tertiary);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px;">
-                            ${(m.username || 'U')[0].toUpperCase()}
+                <div id="member-wrapper-${m.id}" style="border-bottom:1px solid var(--border-default);">
+                    <div style="display:flex;justify-content:space-between;align-items:center;padding:12px 0;">
+                        <div style="display:flex;align-items:center;gap:10px;">
+                            <div style="width:34px;height:34px;border-radius:50%;background:var(--bg-tertiary);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px;">
+                                ${(m.username || 'U')[0].toUpperCase()}
+                            </div>
+                            <div>
+                                <div style="font-size:13px;font-weight:600;">${m.username}${isMe ? ' <span style="font-size:10px;color:var(--text-muted)">(you)</span>' : ''}</div>
+                                <div style="font-size:11px;color:var(--text-muted);">${m.email}</div>
+                            </div>
                         </div>
-                        <div>
-                            <div style="font-size:13px;font-weight:600;">${m.username}${isMe ? ' <span style="font-size:10px;color:var(--text-muted)">(you)</span>' : ''}</div>
-                            <div style="font-size:11px;color:var(--text-muted);">${m.email}</div>
+                        <div style="display:flex;align-items:center;gap:8px;">
+                            <span style="font-size:11px;font-weight:700;padding:3px 8px;border-radius:4px;background:${roleBadgeColor}22;color:${roleBadgeColor};">${m.org_role}</span>
+                            ${canManage ? `
+                            <button onclick="toggleMemberModulesPanel(${m.id})" class="btn btn-sm"
+                                style="padding:4px 8px;font-size:11px;background:transparent;border:1px solid var(--border-default);color:var(--text-muted);cursor:pointer;border-radius:4px;"
+                                title="Manage module access for this member" id="member-modules-btn-${m.id}">
+                                <i class="fas fa-puzzle-piece"></i>
+                            </button>
+                            <button onclick="removeMemberFromOrg(${m.id},'${m.username}')" class="btn btn-sm" style="padding:4px 8px;font-size:11px;background:transparent;border:1px solid var(--border-default);color:var(--text-muted);cursor:pointer;border-radius:4px;" title="Remove member">
+                                <i class="fas fa-times"></i>
+                            </button>` : ''}
                         </div>
                     </div>
-                    <div style="display:flex;align-items:center;gap:8px;">
-                        <span style="font-size:11px;font-weight:700;padding:3px 8px;border-radius:4px;background:${roleBadgeColor}22;color:${roleBadgeColor};">${m.org_role}</span>
-                        ${isOwnerOrAdmin && !isMe && m.org_role !== 'owner' ? `
-                        <button onclick="removeMemberFromOrg(${m.id},'${m.username}')" class="btn btn-sm" style="padding:4px 8px;font-size:11px;background:transparent;border:1px solid var(--border-default);color:var(--text-muted);cursor:pointer;border-radius:4px;" title="Remove member">
-                            <i class="fas fa-times"></i>
-                        </button>` : ''}
-                    </div>
+                    <div id="member-modules-panel-${m.id}" style="display:none;"></div>
                 </div>`;
         }).join('') || '<div style="padding:24px 0;text-align:center;color:var(--text-muted);font-size:13px;">No members found.</div>';
 
@@ -2960,7 +3000,10 @@ async function loadOrgMembers(countOnly = false) {
 async function removeMemberFromOrg(userId, username) {
     if (!confirm(`Remove ${username} from the organisation?`)) return;
     try {
-        const res  = await fetch(`${API_BASE_URL}/api/org/members/${userId}`, { method: 'DELETE' });
+        const res  = await fetch(`${API_BASE_URL}/api/org/members/${userId}`, {
+            method: 'DELETE',
+            headers: { 'Authorization': `Bearer ${localStorage.getItem('authToken') || ''}` }
+        });
         const data = await res.json();
         if (!data.success) throw new Error(data.error);
         loadOrgMembers();
@@ -2968,7 +3011,150 @@ async function removeMemberFromOrg(userId, username) {
         alert(`Failed to remove member: ${err.message}`);
     }
 }
+
+/**
+ * Toggle the per-member module access panel below the member row.
+ * Opens on first click (fetches live data), closes on second click.
+ */
+async function toggleMemberModulesPanel(userId) {
+    const panel = document.getElementById(`member-modules-panel-${userId}`);
+    const btn   = document.getElementById(`member-modules-btn-${userId}`);
+    if (!panel) return;
+
+    // If already open, close it
+    if (panel.style.display !== 'none') {
+        panel.style.display = 'none';
+        if (btn) btn.style.borderColor = '';
+        return;
+    }
+
+    // Open and load
+    panel.style.display = 'block';
+    if (btn) btn.style.borderColor = 'var(--accent-primary)';
+    panel.innerHTML = '<div style="padding:10px 12px 12px 44px;"><i class="fas fa-spinner fa-spin" style="color:var(--text-muted);"></i></div>';
+
+    try {
+        const res  = await fetch(`${API_BASE_URL}/api/org/members/${userId}/modules`, {
+            headers: { 'Authorization': `Bearer ${localStorage.getItem('authToken') || ''}` }
+        });
+        const data = await res.json();
+        if (!data.success) throw new Error(data.error || 'Failed to load module access');
+
+        const modules  = data.modules || [];
+        const username = data.username || 'this member';
+
+        if (!modules.length) {
+            panel.innerHTML = `
+                <div style="padding:10px 12px 14px 44px;font-size:12px;color:var(--text-muted);">
+                    No modules currently enabled for this organisation.
+                </div>`;
+            return;
+        }
+
+        const rows = modules.map(m => `
+            <div style="display:flex;align-items:center;gap:10px;padding:6px 0;border-bottom:1px solid var(--border-default);">
+                <div style="width:24px;height:24px;border-radius:5px;flex-shrink:0;
+                            background:${m.icon_color || '#6B7280'}22;
+                            display:flex;align-items:center;justify-content:center;">
+                    <i class="${m.icon_class || 'fas fa-cube'}" style="color:${m.icon_color || '#6B7280'};font-size:11px;"></i>
+                </div>
+                <span style="flex:1;font-size:12px;color:var(--text-primary);">${m.display_name}</span>
+                <label style="display:inline-flex;align-items:center;gap:5px;cursor:pointer;flex-shrink:0;">
+                    <input type="checkbox" ${m.effective ? 'checked' : ''}
+                        onchange="setMemberModuleAccess(${userId}, '${m.module_name}', this.checked)"
+                        style="width:14px;height:14px;cursor:pointer;accent-color:var(--accent-primary);">
+                    <span id="umf-label-${userId}-${m.module_name}"
+                          style="font-size:11px;color:${m.effective ? 'var(--success,#22c55e)' : 'var(--text-muted)'};"
+                    >${m.effective ? 'On' : 'Restricted'}</span>
+                </label>
+            </div>`).join('');
+
+        panel.innerHTML = `
+            <div style="background:var(--bg-secondary);border-top:1px solid var(--border-default);
+                        border-radius:0 0 6px 6px;padding:12px 12px 14px 44px;margin-bottom:2px;">
+                <div style="font-size:11px;font-weight:700;letter-spacing:.4px;text-transform:uppercase;
+                            color:var(--text-muted);margin-bottom:4px;">
+                    <i class="fas fa-puzzle-piece" style="margin-right:5px;"></i>Module Access — ${username}
+                </div>
+                <div style="font-size:11px;color:var(--text-muted);margin-bottom:10px;">
+                    Uncheck to restrict this member from an org-enabled module.
+                    Changes take effect on their next page load.
+                </div>
+                ${rows}
+                <div style="margin-top:10px;">
+                    <button onclick="resetMemberModuleAccess(${userId})" style="
+                        font-size:11px;padding:4px 10px;background:transparent;
+                        border:1px solid var(--border-default);color:var(--text-muted);
+                        border-radius:4px;cursor:pointer;">
+                        <i class="fas fa-undo"></i> Reset to org defaults
+                    </button>
+                </div>
+            </div>`;
+
+    } catch (err) {
+        panel.innerHTML = `<div style="padding:8px 12px 12px 44px;font-size:12px;color:var(--danger,#ef4444);">${err.message}</div>`;
+    }
+}
+
+/**
+ * Set (or remove) a per-user module restriction.
+ * enabled=true  → removes restriction (inherits org access)
+ * enabled=false → writes restriction row (user cannot use this module)
+ */
+async function setMemberModuleAccess(userId, moduleName, enabled) {
+    try {
+        const res  = await fetch(`${API_BASE_URL}/api/org/members/${userId}/modules/${moduleName}`, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${localStorage.getItem('authToken') || ''}`
+            },
+            body: JSON.stringify({ enabled })
+        });
+        const data = await res.json();
+        if (!data.success) {
+            alert(data.error || 'Failed to update module access');
+            // Re-open panel to restore correct checkbox state
+            const panel = document.getElementById(`member-modules-panel-${userId}`);
+            if (panel) { panel.style.display = 'none'; }
+            toggleMemberModulesPanel(userId);
+            return;
+        }
+        // Update label inline without reloading the panel
+        const label = document.getElementById(`umf-label-${userId}-${moduleName}`);
+        if (label) {
+            label.textContent = enabled ? 'On' : 'Restricted';
+            label.style.color = enabled ? 'var(--success,#22c55e)' : 'var(--text-muted)';
+        }
+    } catch (err) {
+        alert('Error updating module access: ' + err.message);
+    }
+}
+
+/**
+ * Reset ALL per-user module overrides for a member (restore org defaults).
+ */
+async function resetMemberModuleAccess(userId) {
+    if (!confirm('Reset all module restrictions for this member? They will inherit the org defaults.')) return;
+    try {
+        const res  = await fetch(`${API_BASE_URL}/api/org/members/${userId}/modules`, {
+            method: 'DELETE',
+            headers: { 'Authorization': `Bearer ${localStorage.getItem('authToken') || ''}` }
+        });
+        const data = await res.json();
+        if (!data.success) throw new Error(data.error);
+        // Reload the panel to reflect reset state
+        const panel = document.getElementById(`member-modules-panel-${userId}`);
+        if (panel) { panel.style.display = 'none'; }
+        toggleMemberModulesPanel(userId);
+    } catch (err) {
+        alert('Failed to reset: ' + err.message);
+    }
+}
 window.removeMemberFromOrg = removeMemberFromOrg;
+window.toggleMemberModulesPanel  = toggleMemberModulesPanel;
+window.setMemberModuleAccess     = setMemberModuleAccess;
+window.resetMemberModuleAccess   = resetMemberModuleAccess;
 
 /** Invite member inline form */
 function showInviteMemberUI() {
@@ -2994,7 +3180,10 @@ async function inviteOrgMember() {
     try {
         const res  = await fetch(`${API_BASE_URL}/api/org/invite`, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${localStorage.getItem('authToken') || ''}`
+            },
             body: JSON.stringify({ email, role }),
         });
         const data = await res.json();
@@ -3030,7 +3219,9 @@ async function loadOrgInvitations() {
     listEl.innerHTML = '<div style="color:var(--text-muted);font-size:13px;"><i class="fas fa-spinner fa-spin"></i> Loading...</div>';
 
     try {
-        const res  = await fetch(`${API_BASE_URL}/api/org/invite/pending`);
+        const res  = await fetch(`${API_BASE_URL}/api/org/invite/pending`, {
+            headers: { 'Authorization': `Bearer ${localStorage.getItem('authToken') || ''}` }
+        });
         const data = await res.json();
         if (!data.success) throw new Error(data.error);
 
@@ -3075,7 +3266,10 @@ async function loadOrgInvitations() {
 async function revokeOrgInvite(inviteId, email) {
     if (!confirm(`Revoke invitation for ${email}?`)) return;
     try {
-        const res  = await fetch(`${API_BASE_URL}/api/org/invite/${inviteId}`, { method: 'DELETE' });
+        const res  = await fetch(`${API_BASE_URL}/api/org/invite/${inviteId}`, {
+            method: 'DELETE',
+            headers: { 'Authorization': `Bearer ${localStorage.getItem('authToken') || ''}` }
+        });
         const data = await res.json();
         if (!data.success) throw new Error(data.error);
         loadOrgInvitations();

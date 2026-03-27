@@ -68,9 +68,22 @@ def inject_rls_vars(
                 "SELECT set_config('app.current_organisation_id', %s, true)",
                 (str(resolved_org_id),)
             )
+
+        # GAP-C2 FIX: Switch to 'authenticated' role so RLS policies actually fire.
+        # The postgres superuser bypasses ALL Row-Level Security regardless of session
+        # vars.  'authenticated' is a non-superuser role built into every Supabase
+        # project — it IS subject to RLS.  SET LOCAL reverts at transaction end,
+        # which is called by PooledConnection.close() → conn.rollback().  POOL-SAFE.
+        # Only switch when we have a user context (background tasks stay as postgres).
+        if resolved_user_id is not None:
+            cursor.execute("SET LOCAL ROLE authenticated")
+
         cursor.close()
-        logger.debug(
-            f"[RLS] Set user_id={resolved_user_id} org_id={resolved_org_id}"
+        # GAP-H5 FIX: Use INFO level so RLS injection is visible in production logs
+        # without requiring DEBUG mode.  Helps verify multi-tenant isolation is active.
+        logger.info(
+            f"[RLS] Injected — user_id={resolved_user_id} org_id={resolved_org_id} "
+            f"role=authenticated"
         )
     except Exception as e:
         # Non-fatal: log and continue. RLS policies use 'true' (missing-ok) so they

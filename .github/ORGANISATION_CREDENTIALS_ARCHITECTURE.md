@@ -1,5 +1,6 @@
 # Organisation Credentials Architecture
-**Date**: March 2026
+**Date**: March 26, 2026 (Last Updated: March 26, 2026)
+**Status**: ✅ Migration 036 complete. All architecture described herein is LIVE in Supabase (platform_catalog, module_catalog, org_module_access, organisation_platform_credentials tables). See `.github/copilot-instructions.md` for complete organization system documentation.
 
 ---
 
@@ -345,3 +346,263 @@ WHERE id = 1;
 - [ ] `resolve_api_key(user_id, 'anthropic')` returns org key
 - [ ] Audit log shows the reveal event with correct username + timestamp
 - [ ] User from different org cannot see this org's credentials (RLS test)
+
+---
+
+## Bug Audit — March 26, 2026
+**Status: ALL BUGS FIXED**
+
+A full cross-system audit was performed across `organisation_credentials_routes.py`, `business-ai-platform-v2.html`, and `UI/modules_internal/components/account_profile.js`. The following bugs were found and fixed.
+
+---
+
+### BUG-1 (CRITICAL) — Org tab completely broken: ALL org API calls missing `Authorization` header
+**Files**: `UI/modules_internal/components/account_profile.js`  
+**Severity**: Critical — org tab showed a permanently broken/empty state for every user  
+**Root cause**: Every function in `account_profile.js` that calls `/api/org/*` was sending unauthenticated requests. All backend endpoints require `@require_auth` → every call returned 401.  
+**Fixed**: Added `Authorization: Bearer <authToken>` header to all 8 affected calls:
+
+| Function | Endpoint | Method |
+|---|---|---|
+| `loadOrgTab()` | `/api/org/info` | GET |
+| `saveOrgSettings()` | `/api/org/info` | PUT |
+| `createOrganisation()` | `/api/org/info` | POST |
+| `loadOrgMembers()` | `/api/org/members` | GET |
+| `removeMemberFromOrg()` | `/api/org/members/:id` | DELETE |
+| `inviteOrgMember()` | `/api/org/invite` | POST |
+| `loadOrgInvitations()` | `/api/org/invite/pending` | GET |
+| `revokeOrgInvite()` | `/api/org/invite/:id` | DELETE |
+
+---
+
+### BUG-2 (HIGH) — User role always displayed as "—" in org header card
+**Files**: `UI/modules_internal/components/account_profile.js` (`_renderOrgDashboard`)  
+**Severity**: High — user's org role was invisible; Save Settings button incorrectly hidden for admins  
+**Root cause**: `_renderOrgDashboard(org)` received `data.organisation` (which has no `your_role` field). The API response has `your_role` at the **root level** (`data.your_role`), not nested inside `data.organisation`. So `org.your_role` was always `undefined`.  
+**Fixed**: In `loadOrgTab()`, merged `data.your_role` into `_orgData` before passing to the render function:
+```javascript
+_orgData = data.organisation;
+if (data.your_role) _orgData.your_role = data.your_role;  // ← fix
+```
+This also fixed the Save Settings button visibility check (`['owner','admin'].includes(org.your_role)`).
+
+---
+
+### BUG-3 (HIGH) — Module catalog never loads: `localStorage.getItem('auth_token')` typo in `loadModuleCatalog()`
+**Files**: `UI/business-ai-platform-v2.html` (`OrgManager.loadModuleCatalog`)  
+**Severity**: High — clicking "Modules" subtab always showed an error; org admins could not enable/disable modules  
+**Root cause**: Snake_case key `'auth_token'` returns `null` from localStorage. The app-wide standard is camelCase `'authToken'`. The fetch sent an empty Bearer token → 401.  
+**Fixed**: Changed `localStorage.getItem('auth_token')` → `localStorage.getItem('authToken')`.
+
+---
+
+### BUG-4 (HIGH) — Team IDs never load: `localStorage.getItem('auth_token')` typo in `loadTeamIdCheckboxList()`
+**Files**: `UI/business-ai-platform-v2.html` (`loadTeamIdCheckboxList`)  
+**Severity**: High — team ID selection in any form requiring team filtering was always empty  
+**Root cause**: Same snake_case typo as BUG-3. The function had a partial fallback `window.UserAuth?.token || localStorage.getItem('auth_token')` — the fallback would work if `UserAuth` was set, but not otherwise.  
+**Fixed**: Changed to `window.UserAuth?.token || localStorage.getItem('authToken') || ''`.
+
+---
+
+### BUG-5 (MEDIUM) — InHouse Kanban module gating silently broken
+**Files**: `UI/business-ai-platform-v2.html` (sidebar HTML)  
+**Severity**: Medium — `MODULE_GATE_MAP` referenced `[data-module="inhouse_kanban"]` but no sidebar button with that attribute existed; the module could never be hidden even when disabled in the org  
+**Root cause**: The sidebar button was never added to the HTML when the InHouse Kanban tab was built. All other optional modules (woocommerce, vsa_veterinary) had their buttons.  
+**Fixed**: Added the missing sidebar button (hidden by default):
+```html
+<button class="sidebar-icon-btn" data-tab="inhouse-kanban" data-module="inhouse_kanban"
+    title="InHouse Kanban" style="display:none">
+    <i class="fas fa-columns"></i>
+</button>
+```
+
+---
+
+### BUG-6 (MEDIUM) — Org subtab buttons (Vault, Modules, Audit) visible to all roles
+**Files**: `UI/modules_internal/components/account_profile.js` (new `_gateOrgSubTabs()` function)  
+**Severity**: Medium — viewers and members saw "Vault", "Modules", and "Audit" buttons in the org panel; clicking them showed empty or broken panels since the data-loading was already role-gated but the buttons were not  
+**Root cause**: `switchOrgSubTab()` correctly gates data *loading* by role (e.g., only admin+ can trigger `loadAuditLog()`), but the button visibility was never set — all 6 buttons rendered unconditionally.  
+**Fixed**: Added `_gateOrgSubTabs(userRole)` called from `loadOrgTab()` after role is known. Hides buttons per role:
+
+| Subtab | Minimum role to see |
+|---|---|
+| Vault | `manager` (3) |
+| Modules | `member` (2) |
+| Audit | `admin` (4) |
+
+```javascript
+function _gateOrgSubTabs(userRole) {
+    const ROLE_LEVELS = { viewer: 1, member: 2, manager: 3, admin: 4, owner: 5 };
+    const level = ROLE_LEVELS[userRole] || 0;
+    const rules = { vault: 3, modules: 2, audit: 4 };
+    Object.entries(rules).forEach(([subtab, minLevel]) => {
+        const btn = document.querySelector(`.org-sub-tab[data-subtab="${subtab}"]`);
+        if (btn) btn.style.display = level >= minLevel ? '' : 'none';
+    });
+}
+```
+
+---
+
+### Items NOT Fixed (Handled Separately)
+| Item | Reason |
+|---|---|
+| Team management section (member list rendering, role-change UI, member count) | Being handled in a separate chat session |
+| `tab-vsa-veterinary-alerts` orphaned tab (no sidebar link, no module catalog entry) | Tracked in `MODULE_VISIBILITY_ARCHITECTURE.md` pending items |
+| Zone 2 sidebar still driven by `manifest.json` instead of DB catalog | Tracked in `MODULE_VISIBILITY_ARCHITECTURE.md` pending items |
+
+---
+
+## Per-User Module Access — March 26, 2026
+**Migration 039 — Status: IMPLEMENTED**
+
+Extends the existing two-tier module system (plan tier → org override) with a
+third tier: per-user restrictions applied on top of the org setting.
+
+---
+
+### Hierarchy (three tiers)
+
+```
+Developer / Platform Admin
+  └── Sets plan_tier on org (free / starter / professional / enterprise)
+  └── Seeds module_catalog with min_plan_tier per module
+  └── Can force-enable modules via org_module_access INSERT
+
+Org Owner / Admin
+  └── Toggles modules ON/OFF for the WHOLE organisation
+      (within what their plan tier permits)
+  └── Can additionally RESTRICT specific members from individual modules
+      via the new "Manage Modules" button in Settings → Members
+
+Org Member
+  └── Sees whatever modules the org has enabled
+      MINUS any modules an admin has restricted for them specifically
+      (no individual grant-beyond-org — org is always the ceiling)
+```
+
+---
+
+### Resolution Logic
+
+```
+GET /api/org/modules  (called by every logged-in user)
+        │
+        ▼
+get_user_enabled_modules(user_id)
+        │
+        ├─ 1. get_org_enabled_modules(user_id)
+        │      ├─ Plan-tier defaults (plan_modules table)
+        │      └─ Org overrides (org_module_access table)
+        │
+        └─ 2. Apply user restrictions
+               SELECT module_name FROM user_module_access
+               WHERE user_id = X AND is_enabled = FALSE
+               → discard each restricted module from set
+
+        Returns: final set of modules this specific user can access
+```
+
+---
+
+### Database: `user_module_access` table
+
+```
+user_module_access
+├── user_id          INT  → FK users.id  CASCADE DELETE
+├── organisation_id  INT  → FK organisations.id  CASCADE DELETE
+├── module_name      VARCHAR(100)
+├── is_enabled       BOOLEAN               ← always FALSE (restriction rows only)
+├── set_at           TIMESTAMPTZ
+└── set_by           INT  → FK users.id   (the admin who created the restriction)
+
+PK: (user_id, module_name)
+```
+
+**Key point**: Only `is_enabled=FALSE` rows exist in practice. Absence of a row
+means "inherit org setting" (full access if org has it). This keeps the table small
+and the logic simple.
+
+---
+
+### New API Endpoints
+
+| Method | Path | Min Role | Description |
+|--------|------|----------|-------------|
+| GET | `/api/org/members/<id>/modules` | admin | List org-enabled modules with per-user access state |
+| PUT | `/api/org/members/<id>/modules/<name>` | admin | Restrict (`enabled=false`) or restore (`enabled=true`) |
+| DELETE | `/api/org/members/<id>/modules` | admin | Reset ALL restrictions for a member (restore org defaults) |
+
+**GET response shape:**
+```json
+{
+  "success": true,
+  "user_id": 5,
+  "username": "Alice",
+  "modules": [
+    {
+      "module_name":     "shopify",
+      "display_name":    "Shopify",
+      "icon_class":      "fab fa-shopify",
+      "icon_color":      "#96bf48",
+      "org_enabled":     true,
+      "user_restricted": false,
+      "effective":       true
+    },
+    {
+      "module_name":     "xero",
+      "display_name":    "Xero Accounting",
+      "org_enabled":     true,
+      "user_restricted": true,
+      "effective":       false
+    }
+  ]
+}
+```
+
+Only org-enabled modules appear — admins cannot grant modules the org doesn't have.
+
+**PUT body:** `{ "enabled": true | false }`
+- `enabled: false` → writes restriction (user loses access)
+- `enabled: true`  → deletes restriction row (user inherits org access again)
+
+---
+
+### Frontend: Members Panel
+
+In **Settings → Organisation → Members**, admins (and owners) now see a
+**puzzle-piece button** on each manageable member row.
+
+Clicking it toggles an **inline expandable panel** below that member showing:
+- All org-enabled modules
+- A checkbox per module (checked = user can access, unchecked = restricted)
+- A "Reset to org defaults" button that clears all restrictions
+
+The panel is live-updating — unchecking a module calls the PUT endpoint immediately
+and updates the label inline without reloading.
+
+**JS functions (all exported to `window`):**
+```javascript
+toggleMemberModulesPanel(userId)          // Open/close the panel; fetches live data on open
+setMemberModuleAccess(userId, module, enabled) // PUT restriction or restore
+resetMemberModuleAccess(userId)           // DELETE all restrictions for member
+```
+
+---
+
+### Files Changed (Migration 039)
+
+| File | Change |
+|------|--------|
+| `AI_infrastructure/migrations/039_user_module_access.sql` | **NEW** — creates `user_module_access` table + indexes |
+| `AI_infrastructure/shared/org_credentials_loader.py` | **NEW** `get_user_enabled_modules()` — applies user restrictions on top of org set |
+| `AI_infrastructure/routes/organisation_credentials_routes.py` | Updated `get_org_modules()` to call `get_user_enabled_modules()`; added 3 new member-module routes |
+| `UI/modules_internal/components/account_profile.js` | Updated `loadOrgMembers()` member row template; added `toggleMemberModulesPanel()`, `setMemberModuleAccess()`, `resetMemberModuleAccess()` |
+
+---
+
+### Backward Compatibility
+
+- **Pre-migration 039**: `get_user_enabled_modules()` catches the missing-table exception and falls back to `get_org_enabled_modules()` — existing behaviour preserved.
+- **No impact on module catalog page**: `GET /api/org/modules/catalog` still shows org-level toggles (not affected by user restrictions — admins always see the full org state).
+- **`loadAndApplyOrgModules()` in the frontend**: No change needed — it already calls `GET /api/org/modules` which now returns user-filtered results automatically.

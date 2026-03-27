@@ -2652,7 +2652,8 @@ def execute_streaming_request(
     thread_id: Optional[str] = None,  # Thread slug for database saves
     max_rounds: int = 30,
     current_round: int = 1,
-    ai_model: str = 'claude-sonnet-4-5-20250929',
+    ai_model: str = 'claude-sonnet-4-6',
+    ai_provider: str = 'anthropic',
     ai_temperature: float = 1.0,
     ai_max_tokens: int = 16000,
     ai_thinking_enabled: bool = True,
@@ -3518,6 +3519,7 @@ Proceed to the NEXT step now."""
                 max_rounds=max_rounds,
                 current_round=current_round + 1,
                 ai_model=ai_model,
+                ai_provider=ai_provider,
                 ai_temperature=ai_temperature,
                 ai_max_tokens=ai_max_tokens,
                 ai_thinking_enabled=ai_thinking_enabled,

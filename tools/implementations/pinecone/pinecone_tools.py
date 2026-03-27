@@ -65,8 +65,25 @@ def _get_pinecone_client(user_id: int, **kwargs):
         api_key = creds['api_key']
         index_name = creds.get('index_name')
         environment = creds.get('environment', 'us-east-1')
-        namespace = creds.get('namespace', '')
-        
+
+        # GAP-C1 FIX: Always derive namespace from organisation_id for tenant isolation.
+        # If the credential has an explicit namespace set (non-empty), use it as-is to
+        # preserve any legacy personal-user namespaces.  Otherwise derive from org.
+        explicit_namespace = creds.get('namespace', '')
+        if explicit_namespace:
+            namespace = explicit_namespace
+        else:
+            try:
+                from AI_infrastructure.shared.database_utils import execute_query
+                org_row = execute_query(
+                    "SELECT organisation_id FROM ai_infrastructure.users WHERE id = %s",
+                    (user_id,), fetch_mode='one'
+                )
+                org_id = org_row['organisation_id'] if org_row and org_row.get('organisation_id') else None
+            except Exception:
+                org_id = None
+            namespace = f"org_{org_id}" if org_id else f"user_{user_id}"
+
         if not index_name:
             raise PineconeToolsError("Index name not configured")
         

@@ -484,11 +484,14 @@ class UserAuthManager:
                 with conn.cursor() as cursor:
                     
                     # Find user by username or email
+                    # GAP-L1 FIX: JOIN organisations to include plan_tier in JWT
                     cursor.execute('''
-                        SELECT id, username, email, password_hash, role, primary_gmail,
-                               organisation_id, org_role
-                        FROM ai_infrastructure.users
-                        WHERE username = %s OR email = %s
+                        SELECT u.id, u.username, u.email, u.password_hash, u.role, u.primary_gmail,
+                               u.organisation_id, u.org_role, COALESCE(u.jwt_version, 1) AS jwt_version,
+                               COALESCE(o.plan_tier, 'starter') AS plan_tier
+                        FROM ai_infrastructure.users u
+                        LEFT JOIN ai_infrastructure.organisations o ON o.id = u.organisation_id
+                        WHERE u.username = %s OR u.email = %s
                     ''', (username, username))
                     
                     row = cursor.fetchone()
@@ -504,6 +507,8 @@ class UserAuthManager:
                     primary_gmail = row['primary_gmail'] if isinstance(row, dict) else row[5]
                     organisation_id = row['organisation_id'] if isinstance(row, dict) else row[6]
                     org_role = row['org_role'] if isinstance(row, dict) else row[7]
+                    jwt_version = int(row['jwt_version'] if isinstance(row, dict) else row[8])
+                    plan_tier = row['plan_tier'] if isinstance(row, dict) else row[9]
                     
                     # Verify password
                     if not bcrypt.checkpw(password.encode('utf-8'), password_hash.encode('utf-8')):
@@ -547,6 +552,8 @@ class UserAuthManager:
                         'role': role,
                         'organisation_id': organisation_id,
                         'org_role': org_role,
+                        'jwt_version': jwt_version,  # GAP-C4: version counter for instant revocation
+                        'plan_tier': plan_tier,       # GAP-L1: avoids extra DB hit per request
                         'exp': exp_timestamp
                     }
                     

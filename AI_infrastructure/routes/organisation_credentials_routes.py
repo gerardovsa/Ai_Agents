@@ -26,6 +26,10 @@ ENDPOINT SUMMARY:
     GET    /api/org/credentials/audit-log         → Audit trail (admin+)
     POST   /api/org/vault-password                → Set/change vault password (owner)
     DELETE /api/org/vault-password                → Remove vault password (owner)
+    GET    /api/org/platforms                     → Platform catalog (member+)
+    GET    /api/org/modules                       → Enabled modules for this org (member+)
+    GET    /api/org/modules/catalog               → Full module catalog + enabled state (member+)
+    PUT    /api/org/modules/<module_name>         → Enable/disable module override (admin+)
     POST   /api/org/invite                        → Send invitation email (admin+)
     GET    /api/org/invite/pending                → List pending invitations (admin+)
     DELETE /api/org/invite/<id>                   → Revoke invitation (admin+)
@@ -591,20 +595,43 @@ def add_credential():
     if not platform:
         return jsonify({'success': False, 'error': 'platform is required'}), 400
 
-    # GAP-M5 FIX: Validate platform against allowed list so free-text typos
-    # (e.g. "Anthropic" vs "anthropic") are caught before storage, ensuring
-    # resolve_api_key() can always match the stored value.
-    ALLOWED_PLATFORMS = {
-        'anthropic', 'openai', 'deepseek', 'assemblyai', 'pinecone',
-        'shopify', 'xero', 'sendgrid', 'twilio', 'auspost', 'stripe',
-        'google', 'microsoft', 'gmail_oauth', 'outlook_oauth',
-        'supabase', 'supabase_vsa', 'kajabi', 'hunter',
-    }
-    if platform not in ALLOWED_PLATFORMS:
-        return jsonify({
-            'success': False,
-            'error': f'Unknown platform "{platform}". Allowed values: {sorted(ALLOWED_PLATFORMS)}'
-        }), 400
+    # Validate platform against platform_catalog table (migration 036).
+    # Falls back to the legacy hardcoded set so the route works before the
+    # migration has been run (e.g. local dev without the new table yet).
+    platform_valid = False
+    try:
+        row = execute_query(
+            "SELECT platform_name FROM ai_infrastructure.platform_catalog WHERE platform_name = %s AND is_active = TRUE",
+            (platform,),
+            fetch_mode='one'
+        )
+        platform_valid = row is not None
+        if not platform_valid:
+            # Provide a helpful list from the catalog
+            catalog_names = execute_query(
+                "SELECT platform_name FROM ai_infrastructure.platform_catalog WHERE is_active = TRUE ORDER BY platform_name",
+                fetch_mode='all'
+            ) or []
+            allowed_list = sorted(r['platform_name'] for r in catalog_names)
+            return jsonify({
+                'success': False,
+                'error': f'Unknown platform "{platform}". Allowed values: {allowed_list}'
+            }), 400
+    except Exception:
+        # platform_catalog table not yet created — fall back to hardcoded set
+        LEGACY_ALLOWED_PLATFORMS = {
+            'anthropic', 'openai', 'deepseek', 'assemblyai', 'pinecone',
+            'shopify', 'xero', 'sendgrid', 'twilio', 'auspost', 'stripe',
+            'google', 'microsoft', 'gmail_oauth', 'outlook_oauth',
+            'supabase', 'supabase_vsa', 'kajabi', 'hunter',
+        }
+        if platform not in LEGACY_ALLOWED_PLATFORMS:
+            return jsonify({
+                'success': False,
+                'error': f'Unknown platform "{platform}". Allowed values: {sorted(LEGACY_ALLOWED_PLATFORMS)}'
+            }), 400
+
+    credential_value = data.get('credential_value', '').strip()
     credentials_json = data.get('credentials', {})
 
     if not credential_value and not credentials_json:
@@ -1064,6 +1091,517 @@ def get_audit_log():
         ],
         'total': len(rows),
     })
+
+
+# ============================================================================
+# ROUTE: ORG MODULE ACCESS (GAP-M1)
+# ============================================================================
+
+@org_credentials_bp.route('/modules', methods=['GET'])
+@require_auth
+@require_org_role('member')
+def get_org_modules():
+    """GET /api/org/modules — Return the enabled module set for the requesting user.
+    Applies both org-level enablement and per-user restrictions (migration 039).
+    Any org member can call this; used by the frontend to gate UI panels.
+    """
+    ctx = g.org_ctx
+    try:
+        from AI_infrastructure.shared.org_credentials_loader import get_user_enabled_modules
+        enabled = get_user_enabled_modules(g.user_id)
+    except Exception as e:
+        logger.warning(f"[ORG_MODULES] Could not load enabled modules: {e}")
+        enabled = set()
+
+    return jsonify({
+        'success':         True,
+        'enabled_modules': sorted(enabled),
+        'your_role':       ctx['org_role'],
+        'organisation_id': ctx['organisation_id'],
+    })
+
+
+# ============================================================================
+# AI MODEL CATALOG  (migration 037)
+# GET /api/org/models — Return every active model grouped by provider.
+# No secrets involved; any authenticated member can fetch this.
+# ============================================================================
+
+# Fallback hardcoded list used when the ai_model_catalog table doesn't exist yet
+_FALLBACK_MODEL_CATALOG = [
+    # Anthropic — source: https://docs.anthropic.com/en/docs/about-claude/models/overview
+    {'provider': 'anthropic', 'model_id': 'claude-opus-4-6',
+     'display_name': 'Claude Opus 4.6', 'tier': 'powerful',
+     'is_recommended': False, 'supports_tools': True, 'supports_vision': True,
+     'supports_thinking': True, 'sort_order': 5},
+    {'provider': 'anthropic', 'model_id': 'claude-sonnet-4-6',
+     'display_name': 'Claude Sonnet 4.6', 'tier': 'balanced',
+     'is_recommended': True,  'supports_tools': True, 'supports_vision': True,
+     'supports_thinking': True, 'sort_order': 10},
+    {'provider': 'anthropic', 'model_id': 'claude-haiku-4-5-20251001',
+     'display_name': 'Claude Haiku 4.5', 'tier': 'fast',
+     'is_recommended': False, 'supports_tools': True, 'supports_vision': True,
+     'supports_thinking': True, 'sort_order': 30},
+    {'provider': 'anthropic', 'model_id': 'claude-sonnet-4-5-20250929',
+     'display_name': 'Claude Sonnet 4.5', 'tier': 'balanced',
+     'is_recommended': False, 'supports_tools': True, 'supports_vision': True,
+     'supports_thinking': True, 'sort_order': 40},
+    {'provider': 'anthropic', 'model_id': 'claude-3-7-sonnet-20250219',
+     'display_name': 'Claude 3.7 Sonnet', 'tier': 'powerful',
+     'is_recommended': False, 'supports_tools': True, 'supports_vision': True,
+     'supports_thinking': True, 'sort_order': 50},
+    # OpenAI — source: https://developers.openai.com/api/docs/models
+    {'provider': 'openai', 'model_id': 'gpt-5.4',
+     'display_name': 'GPT-5.4', 'tier': 'powerful',
+     'is_recommended': False, 'supports_tools': True, 'supports_vision': True,
+     'supports_thinking': True, 'sort_order': 100},
+    {'provider': 'openai', 'model_id': 'gpt-5.1',
+     'display_name': 'GPT-5.1', 'tier': 'powerful',
+     'is_recommended': False, 'supports_tools': True, 'supports_vision': True,
+     'supports_thinking': True, 'sort_order': 105},
+    {'provider': 'openai', 'model_id': 'gpt-5-mini',
+     'display_name': 'GPT-5 Mini', 'tier': 'fast',
+     'is_recommended': False, 'supports_tools': True, 'supports_vision': True,
+     'supports_thinking': False, 'sort_order': 108},
+    {'provider': 'openai', 'model_id': 'gpt-4o',
+     'display_name': 'GPT-4o', 'tier': 'balanced',
+     'is_recommended': False, 'supports_tools': True, 'supports_vision': True,
+     'supports_thinking': False, 'sort_order': 110},
+    {'provider': 'openai', 'model_id': 'gpt-4o-mini',
+     'display_name': 'GPT-4o Mini', 'tier': 'fast',
+     'is_recommended': False, 'supports_tools': True, 'supports_vision': True,
+     'supports_thinking': False, 'sort_order': 120},
+    {'provider': 'openai', 'model_id': 'o3',
+     'display_name': 'OpenAI o3', 'tier': 'reasoning',
+     'is_recommended': False, 'supports_tools': True, 'supports_vision': True,
+     'supports_thinking': True, 'sort_order': 130},
+    {'provider': 'openai', 'model_id': 'o4-mini',
+     'display_name': 'OpenAI o4-mini', 'tier': 'reasoning',
+     'is_recommended': False, 'supports_tools': True, 'supports_vision': True,
+     'supports_thinking': True, 'sort_order': 135},
+    {'provider': 'openai', 'model_id': 'o3-mini',
+     'display_name': 'OpenAI o3-mini', 'tier': 'reasoning',
+     'is_recommended': False, 'supports_tools': True, 'supports_vision': False,
+     'supports_thinking': True, 'sort_order': 140},
+    {'provider': 'openai', 'model_id': 'o1',
+     'display_name': 'OpenAI o1', 'tier': 'reasoning',
+     'is_recommended': False, 'supports_tools': True, 'supports_vision': False,
+     'supports_thinking': True, 'sort_order': 150},
+    # DeepSeek — source: https://api-docs.deepseek.com/quick_start/pricing
+    {'provider': 'deepseek', 'model_id': 'deepseek-chat',
+     'display_name': 'DeepSeek Chat (V3.2)', 'tier': 'fast',
+     'is_recommended': False, 'supports_tools': True, 'supports_vision': False,
+     'supports_thinking': False, 'sort_order': 210},
+    {'provider': 'deepseek', 'model_id': 'deepseek-reasoner',
+     'display_name': 'DeepSeek Reasoner (V3.2)', 'tier': 'reasoning',
+     'is_recommended': False, 'supports_tools': True, 'supports_vision': False,
+     'supports_thinking': True, 'sort_order': 220},
+]
+
+
+@org_credentials_bp.route('/models', methods=['GET'])
+@require_auth
+@require_org_role('member')
+def get_model_catalog():
+    """GET /api/org/models — Full AI model catalog grouped by provider.
+    Returns every active model with display metadata for populating the
+    model selector. No secrets; any org member can read it.
+    """
+    try:
+        rows = execute_query(
+            """
+            SELECT provider, model_id, display_name, description, tier,
+                   context_window, is_recommended, supports_tools,
+                   supports_vision, supports_thinking, sort_order
+            FROM ai_infrastructure.ai_model_catalog
+            WHERE is_active = TRUE
+            ORDER BY sort_order, display_name
+            """,
+            fetch_mode='all'
+        ) or []
+
+        if not rows:
+            rows = _FALLBACK_MODEL_CATALOG
+
+        by_provider: dict = {}
+        for r in rows:
+            prov = r['provider'] if isinstance(r, dict) else r.get('provider', 'anthropic')
+            if prov not in by_provider:
+                by_provider[prov] = []
+            by_provider[prov].append(dict(r))
+
+        return jsonify({
+            'success':     True,
+            'models':      [dict(r) for r in rows],
+            'by_provider': by_provider,
+        })
+    except Exception as e:
+        logger.warning(f"[ORG_MODELS] ai_model_catalog not yet created, using fallback: {e}")
+        by_provider: dict = {}
+        for r in _FALLBACK_MODEL_CATALOG:
+            prov = r['provider']
+            if prov not in by_provider:
+                by_provider[prov] = []
+            by_provider[prov].append(r)
+        return jsonify({
+            'success':     True,
+            'models':      _FALLBACK_MODEL_CATALOG,
+            'by_provider': by_provider,
+            'source':      'fallback',
+        })
+
+
+@org_credentials_bp.route('/platforms', methods=['GET'])
+@require_auth
+@require_org_role('member')
+def get_platform_catalog():
+    """GET /api/org/platforms — Return the full platform catalog with field definitions.
+    Used by the frontend to dynamically render the Add Connection modal.
+    Any org member can fetch this; it contains no secrets.
+    """
+    try:
+        rows = execute_query(
+            """
+            SELECT platform_name, display_name, icon_class, icon_color,
+                   category, auth_type, required_fields, description,
+                   docs_url, sort_order
+            FROM ai_infrastructure.platform_catalog
+            WHERE is_active = TRUE
+            ORDER BY sort_order, display_name
+            """,
+            fetch_mode='all'
+        ) or []
+
+        # Group by category for convenient frontend consumption
+        by_category: dict = {}
+        for r in rows:
+            cat = r['category']
+            if cat not in by_category:
+                by_category[cat] = []
+            entry = dict(r)
+            # required_fields may arrive as a string depending on psycopg2 version
+            if isinstance(entry.get('required_fields'), str):
+                import json as _json
+                entry['required_fields'] = _json.loads(entry['required_fields'])
+            by_category[cat].append(entry)
+
+        return jsonify({
+            'success':     True,
+            'platforms':   rows,          # flat list (full detail)
+            'by_category': by_category,   # grouped for modal sections
+        })
+    except Exception as e:
+        logger.warning(f"[ORG_PLATFORMS] platform_catalog not yet created: {e}")
+        # Graceful fallback: return the legacy hardcoded list so the UI
+        # still works before migration 036 has been run.
+        fallback = [
+            {'platform_name': p, 'display_name': p.replace('_', ' ').title(),
+             'icon_class': 'fas fa-plug', 'icon_color': '#6B7280',
+             'category': 'other', 'auth_type': 'api_key',
+             'required_fields': [{'name': 'api_key', 'label': 'API Key',
+                                   'type': 'password', 'required': True}],
+             'description': None, 'docs_url': None, 'sort_order': 100}
+            for p in sorted([
+                'anthropic', 'openai', 'deepseek', 'assemblyai', 'pinecone',
+                'shopify', 'xero', 'sendgrid', 'twilio', 'auspost', 'stripe',
+                'google', 'microsoft', 'gmail_oauth', 'outlook_oauth',
+                'supabase', 'supabase_vsa', 'kajabi', 'hunter',
+            ])
+        ]
+        return jsonify({'success': True, 'platforms': fallback, 'by_category': {'other': fallback}})
+
+
+@org_credentials_bp.route('/modules/catalog', methods=['GET'])
+@require_auth
+@require_org_role('member')
+def get_module_catalog():
+    """GET /api/org/modules/catalog — Full module catalog with metadata.
+    Returns every module with its display info, required platforms, and whether
+    this org currently has it enabled.  Any member can read it.
+    """
+    ctx = g.org_ctx
+    try:
+        from AI_infrastructure.shared.org_credentials_loader import get_org_enabled_modules
+        enabled = get_org_enabled_modules(g.user_id)
+    except Exception:
+        enabled = set()
+
+    try:
+        rows = execute_query(
+            """
+            SELECT mc.module_name, mc.display_name, mc.description,
+                   mc.icon_class, mc.icon_color, mc.category,
+                   mc.min_plan_tier, mc.required_platforms, mc.sort_order,
+                   -- per-org override (NULL = using plan default)
+                   oma.is_enabled AS org_override
+            FROM ai_infrastructure.module_catalog mc
+            LEFT JOIN ai_infrastructure.org_module_access oma
+                   ON oma.module_name     = mc.module_name
+                  AND oma.organisation_id = %s
+            WHERE mc.is_active = TRUE
+            ORDER BY mc.sort_order, mc.display_name
+            """,
+            (ctx['organisation_id'],),
+            fetch_mode='all'
+        ) or []
+
+        catalog = []
+        for r in rows:
+            entry = dict(r)
+            entry['is_enabled']     = r['module_name'] in enabled
+            entry['has_org_override'] = r['org_override'] is not None
+            catalog.append(entry)
+
+        return jsonify({'success': True, 'modules': catalog})
+    except Exception as e:
+        logger.warning(f"[ORG_MODULE_CATALOG] module_catalog not yet created: {e}")
+        return jsonify({'success': True, 'modules': [], 'warning': 'Module catalog not yet available'})
+
+
+@org_credentials_bp.route('/modules/<module_name>', methods=['PUT'])
+@require_auth
+@require_org_role('admin')
+def toggle_org_module(module_name: str):
+    """PUT /api/org/modules/<module_name> — Enable or disable a module for this org.
+    Body: { "enabled": true|false }
+    Admins+ can override the plan defaults at org level.
+    """
+    ctx  = g.org_ctx
+    data = request.get_json() or {}
+
+    if 'enabled' not in data:
+        return jsonify({'success': False, 'error': '"enabled" boolean is required'}), 400
+
+    is_enabled = bool(data['enabled'])
+
+    # Validate module exists
+    module = execute_query(
+        "SELECT module_name, min_plan_tier FROM ai_infrastructure.module_catalog WHERE module_name = %s",
+        (module_name,),
+        fetch_mode='one'
+    )
+    # Graceful: if catalog table not yet created (pre-036) just trust the name
+    if module is None:
+        # Check against plan_modules as fallback
+        known = execute_query(
+            "SELECT module_name FROM ai_infrastructure.plan_modules WHERE module_name = %s LIMIT 1",
+            (module_name,),
+            fetch_mode='one'
+        )
+        if not known:
+            return jsonify({'success': False, 'error': f'Unknown module: {module_name}'}), 404
+
+    # Upsert org override
+    execute_query(
+        """
+        INSERT INTO ai_infrastructure.org_module_access
+            (organisation_id, module_name, is_enabled, enabled_at, enabled_by)
+        VALUES (%s, %s, %s, NOW(), %s)
+        ON CONFLICT (organisation_id, module_name)
+        DO UPDATE SET is_enabled = EXCLUDED.is_enabled,
+                      enabled_at = NOW(),
+                      enabled_by = EXCLUDED.enabled_by
+        """,
+        (ctx['organisation_id'], module_name, is_enabled, g.user_id)
+    )
+
+    action = 'enabled' if is_enabled else 'disabled'
+    logger.info(
+        f"[ORG_MODULE] Module '{module_name}' {action} for org {ctx['organisation_id']} "
+        f"by user {g.user_id}"
+    )
+
+    return jsonify({
+        'success':     True,
+        'module_name': module_name,
+        'is_enabled':  is_enabled,
+        'message':     f'Module {module_name} {action} for this organisation.',
+    })
+
+
+# ============================================================================
+# PER-USER MODULE ACCESS  (migration 039)
+# Admins can restrict individual members from org-enabled modules.
+# Semantics: user override can only restrict, never grant beyond org level.
+# ============================================================================
+
+@org_credentials_bp.route('/members/<int:target_user_id>/modules', methods=['GET'])
+@require_auth
+@require_org_role('admin')
+def get_member_modules(target_user_id: int):
+    """GET /api/org/members/<id>/modules
+    Returns every org-enabled module annotated with whether this specific
+    member has been restricted from it.  Admin+ only.
+    """
+    ctx = g.org_ctx
+    org_id = ctx['organisation_id']
+
+    # Verify target user belongs to this org
+    target = execute_query(
+        "SELECT id, username, email FROM ai_infrastructure.users "
+        "WHERE id = %s AND organisation_id = %s",
+        (target_user_id, org_id),
+        fetch_mode='one'
+    )
+    if not target:
+        return jsonify({'success': False, 'error': 'Member not found in this organisation'}), 404
+
+    # Get org-enabled modules
+    try:
+        from AI_infrastructure.shared.org_credentials_loader import get_org_enabled_modules
+        org_enabled = get_org_enabled_modules(target_user_id)
+    except Exception:
+        org_enabled = set()
+
+    if not org_enabled:
+        return jsonify({'success': True, 'user_id': target_user_id,
+                        'username': target['username'], 'modules': []})
+
+    # Get user-level restrictions
+    try:
+        restriction_rows = execute_query(
+            "SELECT module_name FROM ai_infrastructure.user_module_access "
+            "WHERE user_id = %s AND is_enabled = FALSE",
+            (target_user_id,),
+            fetch_mode='all'
+        ) or []
+        restricted = {r['module_name'] for r in restriction_rows}
+    except Exception:
+        restricted = set()  # table may not exist yet (pre-039)
+
+    # Fetch display metadata for org-enabled modules
+    try:
+        meta_rows = execute_query(
+            """
+            SELECT module_name, display_name, icon_class, icon_color, category
+            FROM ai_infrastructure.module_catalog
+            WHERE module_name = ANY(%s) AND is_active = TRUE
+            ORDER BY sort_order, display_name
+            """,
+            (list(org_enabled),),
+            fetch_mode='all'
+        ) or []
+        meta_by_name = {r['module_name']: dict(r) for r in meta_rows}
+    except Exception:
+        meta_by_name = {}
+
+    modules = []
+    for mod_name in sorted(org_enabled):
+        meta = meta_by_name.get(mod_name, {})
+        user_restricted = mod_name in restricted
+        modules.append({
+            'module_name':     mod_name,
+            'display_name':    meta.get('display_name', mod_name.replace('_', ' ').title()),
+            'icon_class':      meta.get('icon_class', 'fas fa-cube'),
+            'icon_color':      meta.get('icon_color', '#6B7280'),
+            'category':        meta.get('category', 'other'),
+            'org_enabled':     True,
+            'user_restricted': user_restricted,
+            'effective':       not user_restricted,
+        })
+
+    return jsonify({
+        'success':  True,
+        'user_id':  target_user_id,
+        'username': target['username'],
+        'modules':  modules,
+    })
+
+
+@org_credentials_bp.route('/members/<int:target_user_id>/modules/<module_name>', methods=['PUT'])
+@require_auth
+@require_org_role('admin')
+def set_member_module(target_user_id: int, module_name: str):
+    """PUT /api/org/members/<id>/modules/<module_name>
+    Body: { "enabled": true | false }
+    - enabled=true:  removes restriction (user inherits org access)
+    - enabled=false: restricts this user from an org-enabled module
+    Admin+ only.  Cannot grant access to org-disabled modules.
+    """
+    ctx  = g.org_ctx
+    data = request.get_json() or {}
+
+    if 'enabled' not in data:
+        return jsonify({'success': False, 'error': '"enabled" boolean is required'}), 400
+
+    is_enabled = bool(data['enabled'])
+    org_id     = ctx['organisation_id']
+
+    # Verify target belongs to this org
+    target = execute_query(
+        "SELECT id FROM ai_infrastructure.users WHERE id = %s AND organisation_id = %s",
+        (target_user_id, org_id), fetch_mode='one'
+    )
+    if not target:
+        return jsonify({'success': False, 'error': 'Member not found in this organisation'}), 404
+
+    # Prevent self-restriction
+    if target_user_id == g.user_id:
+        return jsonify({'success': False, 'error': 'Cannot modify your own module access'}), 403
+
+    if is_enabled:
+        # Remove any restriction row (restore org default = full access)
+        execute_query(
+            "DELETE FROM ai_infrastructure.user_module_access "
+            "WHERE user_id = %s AND module_name = %s",
+            (target_user_id, module_name)
+        )
+        action = 're-enabled'
+    else:
+        # Upsert a restriction row
+        execute_query(
+            """
+            INSERT INTO ai_infrastructure.user_module_access
+                (user_id, organisation_id, module_name, is_enabled, set_at, set_by)
+            VALUES (%s, %s, %s, FALSE, NOW(), %s)
+            ON CONFLICT (user_id, module_name)
+            DO UPDATE SET is_enabled = FALSE, set_at = NOW(), set_by = EXCLUDED.set_by
+            """,
+            (target_user_id, org_id, module_name, g.user_id)
+        )
+        action = 'restricted'
+
+    logger.info(
+        f"[USER_MODULE] Module '{module_name}' {action} for user {target_user_id} "
+        f"in org {org_id} by admin {g.user_id}"
+    )
+    return jsonify({
+        'success':     True,
+        'module_name': module_name,
+        'user_id':     target_user_id,
+        'is_enabled':  is_enabled,
+        'message':     f'Module {module_name} {action} for this member.',
+    })
+
+
+@org_credentials_bp.route('/members/<int:target_user_id>/modules', methods=['DELETE'])
+@require_auth
+@require_org_role('admin')
+def reset_member_modules(target_user_id: int):
+    """DELETE /api/org/members/<id>/modules
+    Removes ALL per-user module overrides for this member, restoring
+    them to the org defaults.  Useful when re-onboarding a member.
+    Admin+ only.
+    """
+    ctx    = g.org_ctx
+    org_id = ctx['organisation_id']
+
+    target = execute_query(
+        "SELECT id FROM ai_infrastructure.users WHERE id = %s AND organisation_id = %s",
+        (target_user_id, org_id), fetch_mode='one'
+    )
+    if not target:
+        return jsonify({'success': False, 'error': 'Member not found in this organisation'}), 404
+
+    execute_query(
+        "DELETE FROM ai_infrastructure.user_module_access WHERE user_id = %s",
+        (target_user_id,)
+    )
+    logger.info(
+        f"[USER_MODULE] All overrides reset for user {target_user_id} "
+        f"in org {org_id} by admin {g.user_id}"
+    )
+    return jsonify({'success': True, 'message': 'All module overrides reset to org defaults.'})
 
 
 # ============================================================================

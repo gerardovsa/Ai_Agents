@@ -529,6 +529,16 @@ const UserAuth = {
             }
             this.setLoadingProgress(60, 'Modules loaded');
 
+            // ── DB-driven module visibility (org_module_access → sidebar) ──
+            if (typeof window.loadAndApplyOrgModules === 'function') {
+                try {
+                    await window.loadAndApplyOrgModules();
+                    console.log('✅ [AUTH] Org module visibility applied');
+                } catch (err) {
+                    console.warn('⚠️ [AUTH] Org module visibility failed (non-fatal):', err);
+                }
+            }
+
             // Load real-time subscriptions script dynamically (if not already loaded)
             if (!window.RealtimeSubscriptionsInit) {
                 console.log('📦 [AUTH] Loading real-time subscriptions script...');

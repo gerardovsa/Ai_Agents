@@ -3321,6 +3321,7 @@ def get_conversations():
                         FROM ai_infrastructure.realtime_messages
                         WHERE (sender_user_id = %s OR recipient_user_id = %s)
                         AND message_type = 'direct'
+                        AND (organisation_id = (SELECT organisation_id FROM ai_infrastructure.users WHERE id = %s) OR organisation_id IS NULL)
                     ),
                     latest_messages AS (
                         SELECT 
@@ -3343,6 +3344,7 @@ def get_conversations():
                         WHERE recipient_user_id = %s
                         AND message_type = 'direct'
                         AND NOT (%s = ANY(read_by))
+                        AND (organisation_id = (SELECT organisation_id FROM ai_infrastructure.users WHERE id = %s) OR organisation_id IS NULL)
                         GROUP BY sender_user_id
                     )
                     SELECT 
@@ -3354,7 +3356,7 @@ def get_conversations():
                     FROM latest_messages lm
                     LEFT JOIN unread_counts uc ON lm.other_user_id = uc.other_user_id
                     ORDER BY lm.last_message_time DESC
-                """, (user_id, user_id, user_id, user_id, user_id))
+                """, (user_id, user_id, user_id, user_id, user_id, user_id, user_id))
                 
                 rows = cursor.fetchall()
                 
@@ -3427,9 +3429,10 @@ def get_conversation(other_user_id):
                         OR (sender_user_id = %s AND recipient_user_id = %s)
                     )
                     AND message_type = 'direct'
+                    AND (organisation_id = (SELECT organisation_id FROM ai_infrastructure.users WHERE id = %s) OR organisation_id IS NULL)
                     ORDER BY created_at DESC
                     LIMIT %s OFFSET %s
-                """, (user_id, other_user_id, other_user_id, user_id, limit, offset))
+                """, (user_id, other_user_id, other_user_id, user_id, user_id, limit, offset))
                 
                 rows = cursor.fetchall()
                 
