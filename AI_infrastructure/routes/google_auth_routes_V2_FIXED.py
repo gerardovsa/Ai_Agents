@@ -367,7 +367,7 @@ def generate_jwt_token(user_data):
         'user_id': user_data.get('id'),
         'email': user_data.get('email'),
         'username': user_data.get('username'),
-        'exp': int((datetime.utcnow() + timedelta(days=7)).timestamp())  # 7-day expiry as Unix timestamp
+        'exp': int((datetime.utcnow() + timedelta(days=30)).timestamp())  # 30-day expiry (consistent with password login)
     }
     
     secret_key = os.getenv('JWT_SECRET', 'your-secret-key-change-in-production')
@@ -382,7 +382,7 @@ def generate_jwt_token(user_data):
         
         with conn.cursor() as cursor:
             
-            expires_at = (datetime.utcnow() + timedelta(days=7)).strftime('%Y-%m-%d %H:%M:%S')
+            expires_at = (datetime.utcnow() + timedelta(days=30)).strftime('%Y-%m-%d %H:%M:%S')
             
             # Use ai_infrastructure.user_sessions with SERIAL id (auto-increment)
             sql = '''

@@ -205,6 +205,13 @@ def get_orders():
         
         # Format orders for dashboard
         orders = result.get('orders', [])
+
+        # Guard: WooCommerce API may return an error dict instead of a list
+        # (e.g. {"code":"woocommerce_rest_...", "message":"..."})
+        if not isinstance(orders, list):
+            err_msg = orders.get('message', str(orders)) if isinstance(orders, dict) else str(orders)
+            return format_error_response(f'WooCommerce API error: {err_msg}', 500)
+
         formatted_orders = []
         
         for order in orders:

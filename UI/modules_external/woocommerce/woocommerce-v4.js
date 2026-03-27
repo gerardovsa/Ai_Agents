@@ -31,7 +31,7 @@
  * LAST MODIFIED: 2026-03-27 — Initial V4 external module creation
  */
 
-import { ModuleAPI } from '../../shared/js/module-api.js';
+import { ModuleAPI } from '/shared/js/module-api.js';
 import {
     createKpiCard,
     updateKpiCard,
@@ -39,7 +39,7 @@ import {
     createLoadingSpinner,
     createEmptyState,
     createErrorMessage,
-} from '../../shared/js/module-components.js';
+} from '/shared/js/module-components.js';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Constants
