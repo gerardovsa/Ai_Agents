@@ -3,67 +3,79 @@ WooCommerce Tool Implementations
 =================================
 
 This module provides tool implementations for WooCommerce e-commerce.
+Uses multi-tenant credential resolution via resolve_api_key() for user/org isolation.
 """
 
 import os
 import json
+from flask import g
 from woocommerce import API
 
-# Load WooCommerce credentials from environment (matching .env.master variable names)
-try:
-    from config import get_api_key_enhanced
-    # Try WC_ prefix first (matching .env.master), fallback to WOOCOMMERCE_ prefix
-    wc_url = (get_api_key_enhanced('WC_STORE_URL') or 
-              get_api_key_enhanced('WOOCOMMERCE_URL') or 
-              'https://minivetguide.com')
-    wc_key = (get_api_key_enhanced('WC_CONSUMER_KEY') or 
-              get_api_key_enhanced('WOOCOMMERCE_CONSUMER_KEY'))
-    wc_secret = (get_api_key_enhanced('WC_CONSUMER_SECRET') or 
-                 get_api_key_enhanced('WOOCOMMERCE_CONSUMER_SECRET'))
-except ImportError:
-    # Fallback to direct environment variable access
+# ============================================================================
+# RUNTIME CREDENTIAL RESOLVER (Multi-tenant Safe)
+# ============================================================================
+
+def _get_woocommerce_api():
+    """
+    Get WooCommerce API instance with credentials for current user.
+    
+    Credential resolution hierarchy:
+    1. User-specific credentials from database (using g.user_id)
+    2. Org-shared credentials (if user is part of an org)
+    3. Environment variables
+    4. Fallback defaults
+    
+    Returns:
+        woocommerce.API instance configured with appropriate credentials
+        
+    Raises:
+        RuntimeError: If no valid credentials found
+    """
+    from AI_infrastructure.shared.org_credentials_loader import resolve_api_key
+    
+    user_id = getattr(g, 'user_id', None)
+    if not user_id:
+        raise RuntimeError("No user context available - cannot resolve WooCommerce credentials")
+    
+    # Try to get credentials via the resolve function (3-tier: user → org → env → hardcoded)
+    try:
+        api_key_dict = resolve_api_key(user_id, 'woocommerce')
+        
+        if api_key_dict:
+            # Parse credential format from database
+            wc_url = api_key_dict.get('base_url') or os.getenv('WOOCOMMERCE_URL', 'https://minivetguide.com')
+            wc_key = api_key_dict.get('consumer_key')
+            wc_secret = api_key_dict.get('consumer_secret')
+            
+            if wc_key and wc_secret:
+                return API(
+                    url=wc_url,
+                    consumer_key=wc_key,
+                    consumer_secret=wc_secret,
+                    version="wc/v3"
+                )
+    except Exception as e:
+        print(f"[WARN] Error resolving WooCommerce credentials for user {user_id}: {e}")
+    
+    # Fallback to environment variables as last resort
     wc_url = (os.getenv('WC_STORE_URL') or 
               os.getenv('WOOCOMMERCE_URL') or 
               'https://minivetguide.com')
-    wc_key = (os.getenv('WC_CONSUMER_KEY') or 
-              os.getenv('WOOCOMMERCE_CONSUMER_KEY'))
-    wc_secret = (os.getenv('WC_CONSUMER_SECRET') or 
-                 os.getenv('WOOCOMMERCE_CONSUMER_SECRET'))
-
-# If credentials not found in environment, try loading from database
-if not (wc_key and wc_secret):
-    try:
-        from AI_infrastructure.shared.database_utils import execute_query
-        
-        # Fetch WooCommerce credentials from database (user_id=12 is gerardo)
-        creds = execute_query(
-            """SELECT credentials FROM ai_infrastructure.user_platform_credentials 
-               WHERE user_id=12 AND platform='woocommerce' AND is_active=TRUE LIMIT 1""",
-            (),
-            fetch_mode='one'
+    wc_key = os.getenv('WC_CONSUMER_KEY') or os.getenv('WOOCOMMERCE_CONSUMER_KEY')
+    wc_secret = os.getenv('WC_CONSUMER_SECRET') or os.getenv('WOOCOMMERCE_CONSUMER_SECRET')
+    
+    if not (wc_key and wc_secret):
+        raise RuntimeError(
+            f"[ERROR] WooCommerce credentials not found for user {user_id}. "
+            "Please add credentials via Settings → Organisation → Credentials."
         )
-        
-        if creds and creds.get('credentials'):
-            cred_data = json.loads(creds['credentials']) if isinstance(creds['credentials'], str) else creds['credentials']
-            wc_key = cred_data.get('consumer_key') or wc_key
-            wc_secret = cred_data.get('consumer_secret') or wc_secret
-            wc_url = cred_data.get('base_url') or wc_url
-            print(f"✅ Loaded WooCommerce credentials from database")
-    except Exception as e:
-        print(f"⚠️ Could not load WooCommerce credentials from database: {e}")
-
-print(f"[CONFIG] WooCommerce API Configuration:")
-print(f"   URL: {wc_url}")
-print(f"   Consumer Key: {'[SET]' if wc_key else '[MISSING]'}")
-print(f"   Consumer Secret: {'[SET]' if wc_secret else '[MISSING]'}")
-
-# Initialize WooCommerce API
-wcapi = API(
-    url=wc_url,
-    consumer_key=wc_key,
-    consumer_secret=wc_secret,
-    version="wc/v3"
-)
+    
+    return API(
+        url=wc_url,
+        consumer_key=wc_key,
+        consumer_secret=wc_secret,
+        version="wc/v3"
+    )
 
 
 def woocommerce_get_orders(status: str = None, limit: int = 10, page: int = 1):
@@ -81,6 +93,7 @@ def woocommerce_get_orders(status: str = None, limit: int = 10, page: int = 1):
     print(f"🔧 Fetching WooCommerce orders (status: {status}, limit: {limit})")
     
     try:
+        wcapi = _get_woocommerce_api()
         params = {
             'per_page': limit,
             'page': page
@@ -118,6 +131,7 @@ def woocommerce_create_product(name: str, price: float, description: str = None,
     print(f"🔧 Creating WooCommerce product: {name}")
     
     try:
+        wcapi = _get_woocommerce_api()
         data = {
             'name': name,
             'type': 'simple',
@@ -157,6 +171,7 @@ def woocommerce_update_order(order_id: int, status: str = None, note: str = None
     print(f"🔧 Updating WooCommerce order: {order_id}")
     
     try:
+        wcapi = _get_woocommerce_api()
         data = {}
         
         if status:
@@ -194,6 +209,7 @@ def woocommerce_get_products(limit: int = 10, search: str = None):
     print(f"🔧 Fetching WooCommerce products (limit: {limit})")
     
     try:
+        wcapi = _get_woocommerce_api()
         params = {
             'per_page': limit
         }
@@ -217,6 +233,7 @@ def woocommerce_get_order(order_id: int):
     """Get a single order by ID"""
     print(f"🔧 Fetching WooCommerce order: {order_id}")
     try:
+        wcapi = _get_woocommerce_api()
         response = wcapi.get(f"orders/{order_id}")
         return {'order': response.json(), 'status_code': response.status_code}
     except Exception as e:
@@ -228,6 +245,7 @@ def woocommerce_create_order(customer_id: int = None, line_items: list = None, b
     """Create a new order"""
     print(f"🔧 Creating WooCommerce order")
     try:
+        wcapi = _get_woocommerce_api()
         data = {}
         if customer_id:
             data['customer_id'] = customer_id
@@ -249,6 +267,7 @@ def woocommerce_delete_order(order_id: int, force: bool = False):
     """Delete an order"""
     print(f"🔧 Deleting WooCommerce order: {order_id}")
     try:
+        wcapi = _get_woocommerce_api()
         params = {'force': force}
         response = wcapi.delete(f"orders/{order_id}", params=params)
         return {'deleted': True, 'order_id': order_id, 'status_code': response.status_code}
@@ -261,6 +280,7 @@ def woocommerce_get_product(product_id: int):
     """Get a single product by ID"""
     print(f"🔧 Fetching WooCommerce product: {product_id}")
     try:
+        wcapi = _get_woocommerce_api()
         response = wcapi.get(f"products/{product_id}")
         return {'product': response.json(), 'status_code': response.status_code}
     except Exception as e:
@@ -272,6 +292,7 @@ def woocommerce_update_product(product_id: int, name: str = None, price: float =
     """Update an existing product"""
     print(f"🔧 Updating WooCommerce product: {product_id}")
     try:
+        wcapi = _get_woocommerce_api()
         data = {}
         if name:
             data['name'] = name
@@ -293,6 +314,7 @@ def woocommerce_delete_product(product_id: int, force: bool = False):
     """Delete a product"""
     print(f"🔧 Deleting WooCommerce product: {product_id}")
     try:
+        wcapi = _get_woocommerce_api()
         params = {'force': force}
         response = wcapi.delete(f"products/{product_id}", params=params)
         return {'deleted': True, 'product_id': product_id, 'status_code': response.status_code}
