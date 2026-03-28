@@ -32,6 +32,7 @@ from flask import Blueprint, request, jsonify
 import sys
 import os
 import logging
+from AI_infrastructure.auth.user_auth import require_auth
 
 # Add tools directory to path
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', '..', 'tools'))
@@ -161,6 +162,7 @@ def format_success_response(data, status_code=200):
 # ======================================================================
 
 @woocommerce_bp.route('/orders', methods=['GET'])
+@require_auth
 def get_orders():
     """
     Get WooCommerce orders with optional filtering.
@@ -272,6 +274,7 @@ def get_orders():
 
 
 @woocommerce_bp.route('/orders/<int:order_id>', methods=['GET'])
+@require_auth
 def get_order(order_id):
     """
     Get detailed information for a specific order.
@@ -297,6 +300,7 @@ def get_order(order_id):
 
 
 @woocommerce_bp.route('/products', methods=['GET'])
+@require_auth
 def get_products():
     """
     Get WooCommerce products with optional filtering.
@@ -338,6 +342,7 @@ def get_products():
 
 
 @woocommerce_bp.route('/customers', methods=['GET'])
+@require_auth
 def get_customers():
     """
     Get WooCommerce customers.
@@ -373,6 +378,7 @@ def get_customers():
 
 
 @woocommerce_bp.route('/reports/sales', methods=['GET'])
+@require_auth
 def get_sales_report():
     """
     Get sales report data.
@@ -410,6 +416,7 @@ def get_sales_report():
 
 
 @woocommerce_bp.route('/reports/top-sellers', methods=['GET'])
+@require_auth
 def get_top_sellers():
     """
     Get top selling products.
@@ -446,6 +453,7 @@ def get_top_sellers():
 
 
 @woocommerce_bp.route('/system/status', methods=['GET'])
+@require_auth
 def get_system_status():
     """
     Get WooCommerce system status.
