@@ -1,7 +1,7 @@
 # Organisation Credentials System — Master Analysis
-**Date:** March 26, 2026 (Last Updated: March 26, 2026)
+**Date:** March 26, 2026 (Last Updated: March 28, 2026)
 **Purpose:** Complete authoritative reference for new chat sessions. Multi-tenant platform — one Render deployment, one Supabase database, all user types served.
-**Status:** ✅ All migration 020–036 work complete. Platform catalog (27 platforms), module catalog (26 modules), org/user/role system, credential vault, and DB-driven permission model are LIVE in Supabase.
+**Status:** ✅ All migration 020–036 work complete. Platform catalog (27 platforms), module catalog (26 modules), org/user/role system, credential vault, and DB-driven permission model are LIVE in Supabase. ✅ March 28: Added module visibility section + org table schema reference.
 
 ---
 
@@ -51,6 +51,98 @@ synergy_routes.py list_sessions()
     ▼
 Response
 ```
+
+---
+
+## Module Visibility & Credential Requirements
+
+The organisation system also gates **feature modules** based on four layers of visibility control:
+
+### Layer 1: Module Enablement Per Org
+
+**Table**: `ai_infrastructure.org_module_access`
+
+Admin toggles modules on/off for the organisation:
+- If enabled: module sidebar tab shows in UI
+- If disabled: module tab hidden for all users in that org
+- Example: Customer A enables Xero, Customer B disables it
+
+### Layer 2: User Role Permissions
+
+**Column**: `ai_infrastructure.users.org_role`
+
+Role hierarchy: `viewer (1) < member (2) < manager (3) < admin (4) < owner (5)`
+
+- **Viewers** cannot see Settings, Credentials, or admin-only modules
+- **Members** can use enabled modules but not manage them
+- **Managers+** can view/edit credentials
+- **Admins+** can enable/disable modules for the org
+- **Owners** have full access including vault password reveal
+
+### Layer 3: Sub-User Inheritance
+
+**Columns**: `parent_user_id`, `is_sub_user` on `ai_infrastructure.users`
+
+Sub-users inherit parent's enabled modules but operate within their own role level:
+- Parent (owner) enables Xero module → sub-user (viewer) can see Xero tab
+- But sub-user (viewer) cannot edit Xero settings (role restriction)
+- Sub-user can view only, cannot write or configure
+
+### Layer 4: Required Platform Credentials
+
+**Column**: `ai_infrastructure.module_catalog.required_platforms`
+
+Modules require specific credential to function:
+- Xero module requires `xero` platform credential in org vault
+- WooCommerce module requires `woocommerce` credential
+- If credential missing: module shows "Configuration Required" message
+- If credential exists: module fully accessible
+
+### Module Gating Example Flow
+
+```
+1. Admin enables Xero module for org
+   → org_module_access[organisation_id=1, module_name='xero'].is_enabled = TRUE
+
+2. Admin adds Xero credential to org vault
+   → organisation_platform_credentials[organisation_id=1, platform='xero'] added
+
+3. Member logs in
+   → GET /api/org/modules returns { enabled_modules: ['xero', ...] }
+   → Frontend shows Xero tab in sidebar
+
+4. Member clicks Xero tab
+   → Checks if 'xero' credential exists in vault
+   → Credential found → full access ✓
+   → Member can view/manage Xero integration
+
+5. Admin disables Xero for the org
+   → org_module_access.is_enabled = FALSE
+   → Member's Xero tab disappears on next page reload
+```
+
+**See also:** [MODULE_VISIBILITY_ARCHITECTURE.md](.github/MODULE_VISIBILITY_ARCHITECTURE.md) for the complete 4-layer visibility model and `initModulesFromOrg()` implementation design.
+
+---
+
+## Organisation Table Schema
+
+The `ai_infrastructure.organisations` table defines the multi-tenant entity. Complete schema with all 20 columns (across 4 migrations) documented in:
+
+→ **[ORG_DOCUMENTATION_AND_UI_ALIGNMENT_SUMMARY_MAR28_2026.md](../ORG_DOCUMENTATION_AND_UI_ALIGNMENT_SUMMARY_MAR28_2026.md)**
+
+Key columns:
+- `id`, `name`, `slug` — org identity
+- `plan_tier` — free/starter/professional/enterprise (gates feature availability)
+- `visibility` — org-level default (private/unlisted/public) inherited by sessions
+- `allowed_domains` — SSO auto-join email domains
+- `ai_provider`, `ai_model`, `ai_max_tokens` — org-wide AI model defaults
+- `vault_password_hash` — optional extra security lock on credential reveal
+
+All users in the same `organisation_id` share:
+- Enabled feature modules (from `org_module_access` table)
+- Credential vault (from `organisation_platform_credentials` table)
+- Team-visibility sessions (visible to all members with same org_id)
 
 ---
 
@@ -1190,3 +1282,40 @@ Work through the phases in sequence. Each phase builds on the previous. Complete
 | `.github/ORGANISATION_CREDENTIALS_ARCHITECTURE.md` | ~270 | Architecture narrative + API quick reference |
 | `.github/AUTH_FLOW_AND_ONBOARDING.md` | — | Auth UI/UX flows, org setup, invite system design |
 | `UI/business-ai-platform-v2.html` (line 30340) | — | `loadOrganisationTab()` + `OrgManager` JS object |
+
+---
+
+## Changelog & TODO
+
+### Last Updated: March 28, 2026
+
+#### Recent Changes
+- ✅ **March 28** — Consolidated to 3 core documents; removed duplicate analysis files
+- ✅ **March 28** — Added "Module Visibility & Credential Requirements" section
+- ✅ **March 28** — Added "Organisation Table Schema" reference section
+- ✅ **March 28** — Added cross-references to MODULE_VISIBILITY_ARCHITECTURE.md and ORG_DOCUMENTATION
+- ✅ **March 26** — Complete multi-tenant architecture with credential vault and RLS policies
+
+#### TODO (By Priority)
+
+**HIGH PRIORITY — Block Implementation:**
+- [ ] **GAP-C2** — Fix `service_role` bypass so RLS policies actually enforce (currently all queries bypass RLS)
+- [ ] **GAP-C4** — Add `jwt_version` to JWT + `@require_auth` decorator to invalidate tokens on role change
+
+**MEDIUM PRIORITY — Feature Gating:**
+- [ ] **GAP-M1** — Create `org_module_access` + `plan_modules` tables for plan-tier feature gating
+- [ ] **GAP-M2** — Add `organisation_id` FK to conversations/threads (migration applied, needs verification in code)
+
+**MEDIUM PRIORITY — Sub-User System:**
+- [ ] **GAP-E2** — Implement sub-user role restrictions (child accounts can't promote themselves above parent's role)
+- [ ] **GAP-E3** — Implement sub-user credential vault access (only see parent's credentials, read-only)
+
+**LOW PRIORITY — Polish & Hardening:**
+- [ ] **GAP-L2** — Add scheduled key rotation reminders (APScheduler + email notification)
+- [ ] **GAP-L3** — Add "Test Connection" button for vault credentials
+- [ ] **GAP-L4** — Add AES-256-GCM encryption at rest for credential values
+
+#### Related Files (Keep These 3 as Source of Truth)
+- `../MODULE_VISIBILITY_ARCHITECTURE.md` — Module visibility model, sidebar gating, 4-layer framework
+- `../ORG_DOCUMENTATION_AND_UI_ALIGNMENT_SUMMARY_MAR28_2026.md` — Organisation table schema, UI forms, API endpoints
+- This file — Credentials, vault, multi-tenancy, RLS, role hierarchy, sub-user system

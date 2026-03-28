@@ -733,6 +733,8 @@ def start_agent(agent_id):
             session_token = request.form.get('session_token')
         else:
             print(f"[START] Processing as JSON")
+            print(f"[DEBUG] request.content_type: {request.content_type}")
+            print(f"[DEBUG] request.json raw: {request.json}")
             data = request.json or {}
             thread_slug = data.get('thread_slug') or data.get('thread_id')
             message = data.get('message', '')
@@ -745,6 +747,8 @@ def start_agent(agent_id):
             
             # ✅ OPTION 2: Support metadata from Communication Hub (email_id, message_type:'email', etc.)
             request_metadata = data.get('metadata', {})
+            print(f"[DEBUG] thread_slug extracted: '{thread_slug}'")
+            print(f"[DEBUG] message extracted: '{message[:50] if message else 'EMPTY'}'")
             print(f"[START] 🆕 Received metadata: {request_metadata}")
         
         # ✅ REALTIME SYNC: Extract session token from header if not in body

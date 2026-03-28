@@ -7,6 +7,7 @@
 ## Table of Contents
 
 1. [Executive Summary](#1-executive-summary)
+1b. [The 4-Layer Visibility Model](#1b-the-4-layer-visibility-model)
 2. [Current Sidebar — What Is Hardcoded](#2-current-sidebar--what-is-hardcoded)
 3. [All Dashboards & Modules — Complete Inventory](#3-all-dashboards--modules--complete-inventory)
 4. [How the Current Show/Hide System Works (and Gaps)](#4-how-the-current-showhide-system-works-and-gaps)
@@ -32,6 +33,80 @@ The platform currently has **two separate, disconnected module systems**:
 1. Which sidebar icons appear
 2. Which `tab-content` divs are allowed to be accessed
 3. Which hardcoded tabs (WooCommerce, Stock, etc.) are shown or hidden
+
+---
+
+## 1b. The 4-Layer Visibility Model
+
+Modules are **conditionally displayed and functional** based on four independent layers of gating. All must permit access for a module to be fully functional.
+
+### Layer 1: Organisation Level
+
+- **Table**: `ai_infrastructure.org_module_access`
+- **Control**: Admin toggles module on/off per organisation
+- **Example**: Customer A enables Xero module, Customer B disables it
+- **What shows**: If disabled, module tab is hidden in sidebar
+- **Gating Code**: `if (!enabledModules.includes('xero')) { hideTab('tab-xero'); }`
+
+### Layer 2: User Role Level
+
+- **Column**: `ai_infrastructure.users.org_role`
+- **Hierarchy**: `viewer (1) < member (2) < manager (3) < admin (4) < owner (5)`
+- **Pattern**: `data-org-min-role="admin"` attributes on sidebar buttons gate by role
+- **Example**: Viewers can't see Credentials vault or Settings tabs; only managers+ can manage them
+- **Gating Code**: `if (roleLevel < requiredRoleLevel) { hideTab(); }`
+
+### Layer 3: Team / Sub-User System
+
+- **Columns**: `parent_user_id`, `is_sub_user` on `ai_infrastructure.users` table
+- **Rule**: Sub-users inherit parent's enabled modules but operate within their own role level
+- **Example**: Parent (owner) creates sub-user (viewer):
+  - Sub-user CAN see enabled module tabs (parent has them enabled in org)
+  - Sub-user CAN'T edit credentials (viewer role prevents writing)
+  - Sub-user CAN'T create automations (viewer role prevents advanced features)
+- **Gating Code**: `if (profile.is_sub_user && org_role === 'viewer') { restrictAccessToReadOnly(); }`
+
+### Layer 4: Module-Specific Requirements
+
+- **Column**: `ai_infrastructure.module_catalog.required_platforms`
+- **Rule**: Module requires specific platform credentials to function
+- **Example**: Xero module requires `xero` platform credential in organisation vault
+- **What shows**:
+  - If credential exists: tab fully functional
+  - If credential missing: tab shows "Configuration Required" message with setup instructions
+- **Gating Code**: `if (!vaultHasCredential('xero')) { showConfigurationRequired(); return; }`
+
+### How Layers Combine — The Decision Tree
+
+A module is **fully accessible** only if ALL four layers permit it:
+
+```
+Evaluation Order:
+
+1. Is module in org_module_access AND is_enabled = TRUE?
+   ├─ NO  → HIDE TAB
+   └─ YES ↓
+
+2. Is user's org_role high enough to see this tab?
+   ├─ NO  → HIDE TAB
+   └─ YES ↓
+
+3. Is user a sub-user with role-based restrictions?
+   ├─ YES & role='viewer' → RESTRICT TO READ-ONLY ACCESS
+   └─ NO or higher role ↓
+
+4. Does module require credentials? Are they in org vault?
+   ├─ REQUIRED & MISSING → SHOW "CONFIGURATION REQUIRED"
+   ├─ REQUIRED & EXISTS  → FULLY ACCESSIBLE ✓
+   └─ NOT REQUIRED       → FULLY ACCESSIBLE ✓
+```
+
+### Related Documentation
+
+- **Section 5**: How `org_module_access` (Layer 1) is managed via Org Settings
+- **`ORG_DOCUMENTATION_AND_UI_ALIGNMENT_SUMMARY_MAR28_2026.md`**: Complete role hierarchy details (Layer 2) and user table schema
+- **`ORG_CREDENTIALS_MASTER_ANALYSIS.md`**: Sub-user system and credential vault architecture (Layer 3 + 4)
+- **Section 7** (Module Status Table): Module-specific requirements and plan tier constraints (Layer 4)
 
 ---
 
@@ -508,7 +583,50 @@ Follow the Module Plugin System pattern documented in `copilot-instructions.md`.
 | Date | Change | Author |
 |------|--------|--------|
 | March 26, 2026 | Document created — full audit of current architecture, gap analysis, design spec for DB-driven visibility | AI Agents dev session |
+| March 28, 2026 | Added Section 1b: The 4-Layer Visibility Model + cross-references to org system docs | AI Agents dev session |
+
+---
+
+## Cross-Document References
+
+For complete information on the Organisation system that governs module visibility, see:
+
+- **[ORG_DOCUMENTATION_AND_UI_ALIGNMENT_SUMMARY_MAR28_2026.md](../ORG_DOCUMENTATION_AND_UI_ALIGNMENT_SUMMARY_MAR28_2026.md)** — Complete organisation table schema (20 columns), all 4 migrations, UI form mappings, API endpoints
+- **[ORG_CREDENTIALS_MASTER_ANALYSIS.md](./ORG_CREDENTIALS_MASTER_ANALYSIS.md)** — Multi-tenancy architecture, credential vault, role hierarchy, RLS policies, sub-user system
+- **[../copilot-instructions.md](../copilot-instructions.md)** — Org/Platform/Module system reference (Section: Org, Team, Roles, Platform Catalog & Module System)
 
 ---
 
 *Next step: Implement `initModulesFromOrg()` in `business-ai-platform-v2.html` and gate `tab-sales` (WooCommerce) behind `woocommerce` module flag.*
+
+---
+
+## Changelog & TODO
+
+### Last Updated: March 28, 2026
+
+#### Recent Changes
+- ✅ **March 28** — Added Section 1b: "The 4-Layer Visibility Model" with complete framework explanation
+- ✅ **March 28** — Added cross-references linking to ORG_CREDENTIALS_MASTER_ANALYSIS.md and ORG_DOCUMENTATION
+- ✅ **March 28** — Consolidated to 3 core documents; removed duplicate analysis files
+- ✅ **March 26** — Initial MODULE_VISIBILITY_ARCHITECTURE.md creation with implementation design
+
+#### TODO (Ready to Implement)
+- [ ] **High Priority** — Implement `initModulesFromOrg()` function
+  - Calls `GET /api/org/modules` on login
+  - Reads org's enabled modules from `org_module_access` table
+  - Shows/hides sidebar items based on 4-layer visibility model
+  - Location: `UI/business-ai-platform-v2.html`
+  
+- [ ] **High Priority** — Gate WooCommerce `tab-sales` with `data-module="woocommerce"` attribute
+  
+- [ ] **Medium Priority** — Replace `manifest.json` Zone 2 rendering with DB-driven module loading
+  
+- [ ] **Medium Priority** — Add role-based gating with `data-org-min-role` attributes
+  
+- [ ] **Low Priority** — Resolve orphaned `tab-vsa-veterinary-alerts` (delete or add to module catalog)
+
+#### Related Files (Keep These 3 as Source of Truth)
+- `../ORG_CREDENTIALS_MASTER_ANALYSIS.md` — Credentials, vault, role hierarchy, sub-user system
+- `../ORG_DOCUMENTATION_AND_UI_ALIGNMENT_SUMMARY_MAR28_2026.md` — Organisation table schema, UI forms
+- This file — Module visibility model, implementation design, sidebar gating logic
