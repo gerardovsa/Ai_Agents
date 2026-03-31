@@ -53,7 +53,7 @@ import bcrypt
 import jwt
 from datetime import datetime, timedelta
 from typing import Optional, Dict, List
-from flask import request, jsonify
+from flask import request, jsonify, g
 from functools import wraps
 
 
@@ -1898,6 +1898,7 @@ def require_auth(f):
         
         # Add user data to request context
         request.user = user_data
+        g.user_id = user_data.get('user_id')  # ← CRITICAL: Tools use g.user_id for credential resolution
         
         print(f"\n✅ STAGE 3 COMPLETE: Authentication successful")
         print(f"   User: {user_data.get('username')}")
