@@ -47,18 +47,39 @@ def _get_woocommerce_api():
             #   required_fields[1] = consumer_key → stored in credentials JSONB
             #   required_fields[2] = consumer_secret → stored in credentials JSONB
             cred_dict = cred.get('credentials') or {}
+            raw_cv = cred.get('credential_value') or ''
 
-            wc_url = (cred.get('credential_value') or        # store_url (field[0])
-                      cred_dict.get('store_url') or
-                      cred_dict.get('base_url') or
-                      os.getenv('WOOCOMMERCE_URL', 'https://minivetguide.com'))
+            # DEBUG: log exactly what came back from the DB
+            print(f"[WooCommerce] 🔍 cred keys: {list(cred.keys())}")
+            print(f"[WooCommerce] 🔍 credential_value={repr(raw_cv[:60])}")
+            print(f"[WooCommerce] 🔍 credentials JSONB keys={list(cred_dict.keys())}")
+
+            # Build candidate URL list from all possible locations
+            def _valid_url(v):
+                return bool(v and isinstance(v, str) and
+                            (v.startswith('http://') or v.startswith('https://')))
+
+            wc_url = (
+                next((v for v in [
+                    cred_dict.get('store_url'),         # multi_field JSONB: store_url field
+                    cred_dict.get('base_url'),          # legacy key
+                    cred_dict.get('api_key'),           # submitApiKeyForm stores field[0] value as credentials.api_key
+                    cred_dict.get('main_credential'),   # connection_routes.py adds this
+                    raw_cv,                             # credential_value column
+                ] if _valid_url(v)), None)
+                or os.getenv('WC_STORE_URL')
+                or os.getenv('WOOCOMMERCE_URL')
+            )
 
             wc_key = (cred_dict.get('consumer_key') or       # consumer_key (field[1])
-                      cred.get('credential_value'))           # fallback: old single-field storage
+                      cred_dict.get('consumer_key_field'))
 
-            wc_secret = cred_dict.get('consumer_secret')     # consumer_secret (field[2])
-            
-            if wc_key and wc_secret:
+            wc_secret = (cred_dict.get('consumer_secret') or  # consumer_secret (field[2])
+                         cred_dict.get('consumer_secret_field'))
+
+            print(f"[WooCommerce] 🔍 resolved wc_url={repr(wc_url)}, wc_key_present={bool(wc_key)}, wc_secret_present={bool(wc_secret)}")
+
+            if wc_key and wc_secret and wc_url:
                 print(f"[WooCommerce] ✅ Using credentials for user {user_id} (source: {cred.get('_source', 'unknown')})")
                 return API(
                     url=wc_url,
@@ -66,8 +87,14 @@ def _get_woocommerce_api():
                     consumer_secret=wc_secret,
                     version="wc/v3"
                 )
+            elif wc_key and wc_secret and not wc_url:
+                raise RuntimeError(
+                    f"[ERROR] WooCommerce credential found for user {user_id} but store URL is missing or invalid "
+                    f"(got: {repr(raw_cv[:80])}). "
+                    "Please edit your WooCommerce credential and enter a valid Store URL (e.g. https://yourstore.com)."
+                )
             else:
-                print(f"[WooCommerce] ⚠️ Credential found but missing consumer_key/consumer_secret. cred_dict keys: {list(cred_dict.keys())}")
+                print(f"[WooCommerce] ⚠️ Credential found but incomplete. keys in JSONB: {list(cred_dict.keys())}, credential_value={repr(raw_cv[:40])}")
     except Exception as e:
         print(f"[WARN] Error resolving WooCommerce credentials for user {user_id}: {e}")
     
