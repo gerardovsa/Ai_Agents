@@ -762,25 +762,29 @@ def get_assigned_threads():
 @thread_bp.route('/list', methods=['GET'])
 def list_threads():
     """
-    List threads from database for a specific user
+    Lazy-load threads for a specific user (optimized like ValorAI)
+    Only loads recent threads without heavy aggregations.
     
     Query params:
         ?user_id=1 (required): User ID to list threads for
-        ?limit=50 (optional): Max threads to return
+        ?limit=50 (optional): Max threads to return (default: 50, max: 100)
     """
     try:
         user_id = request.args.get('user_id')
         if not user_id:
             return error_response("user_id is required", 400)
         
+        # Enforce reasonable limits
         limit = int(request.args.get('limit', 50))
+        limit = min(limit, 100)  # Safety: never load more than 100
         
-        print(f"\n🔍 [THREAD API] /api/threads/list called")
+        print(f"\n🔍 [THREAD API] /api/threads/list called (LAZY-LOAD MODE)")
         print(f"📊 [THREAD API] Parameters: user_id={user_id}, limit={limit}")
         
         with get_database_connection('sessions') as conn:
             with conn.cursor() as cursor:
-                
+                # ✅ OPTIMIZED: Simplified query without heavy aggregations
+                # Load only essential thread metadata; message counts are approximate
                 query = """
                     SELECT 
                         t.id,
@@ -805,25 +809,11 @@ def list_threads():
                         t.email_thread_id,
                         t.email_subject,
                         t.email_participants,
-                        COUNT(CASE 
-                            WHEN m.role = 'user' AND (
-                                m.metadata IS NULL 
-                                OR m.metadata::jsonb->>'tool_results' IS NULL 
-                                OR m.metadata::jsonb->>'tool_results' != 'true'
-                            ) THEN 1
-                            WHEN m.role = 'assistant' AND m.content::jsonb::text LIKE '%%"type": "text"%%' THEN 1
-                            ELSE NULL
-                        END) as message_count,
-                        MAX(m.created_at) as last_message_time,
+                        (SELECT COUNT(*) FROM sessions.messages WHERE thread_id = t.id) as message_count,
+                        (SELECT MAX(created_at) FROM sessions.messages WHERE thread_id = t.id) as last_message_time,
                         (SELECT role FROM sessions.messages WHERE thread_id = t.id ORDER BY created_at DESC LIMIT 1) as last_message_role
                     FROM sessions.threads t
-                    LEFT JOIN sessions.messages m ON t.id = m.thread_id
                     WHERE t.user_id = %s
-                    GROUP BY t.id, t.thread_slug, t.name, t.user_id, t.created_at, t.updated_at, 
-                             t.metadata, t.location, t.tags, t.synergy_card_id, t.synergy_card_name,
-                             t.parent_thread_id, t.branch_name, t.workflow_id, t.workflow_name,
-                             t.workflow_slug, t.workflow_title, t.internal_doc_slug, t.internal_doc_title,
-                             t.email_thread_id, t.email_subject, t.email_participants
                     ORDER BY t.updated_at DESC
                     LIMIT %s
                 """

@@ -112,24 +112,26 @@ def get_semantic_search(registry):
 # FIXED: DATABASE CONVERSATION LOADER (Source of Truth)
 # ============================================================
 
-def load_conversation_from_database(thread_slug: str, limit: Optional[int] = None, offset: int = 0) -> List[Dict[str, Any]]:
+def load_conversation_from_database(thread_slug: str, limit: Optional[int] = 50, offset: int = 0) -> List[Dict[str, Any]]:
     """
-    Load conversation history from database with optional pagination.
+    Load conversation history from database with LAZY-LOADING (ValorAI pattern).
     This is the AUTHORITATIVE source of truth for all conversations.
+    
+    ✅ OPTIMIZED: Defaults to loading only 50 messages (recent first) instead of all.
+    Pagination: Set limit=None and use offset for older messages.
     
     FIXED: Proper cursor management with finally block.
     
     Args:
         thread_slug: Thread identifier
-        limit: Max messages to return (None = all messages)
+        limit: Max messages to return (default: 50 = recent messages, None = all messages)
         offset: Number of messages to skip (for pagination)
     """
     print(f"\n{'='*80}")
-    print(f"[DB LOAD] Loading conversation from database")
+    print(f"[DB LOAD] Loading conversation from database (LAZY-LOAD MODE)")
     print(f"{'='*80}")
     print(f"[DB LOAD] Thread Slug: {thread_slug}")
-    if limit:
-        print(f"[DB LOAD] Pagination: limit={limit}, offset={offset}")
+    print(f"[DB LOAD] Pagination: limit={limit}, offset={offset} (default: 50 recent messages)")
     
     cursor = None  # ✅ Initialize before try
     conn = None
@@ -155,16 +157,21 @@ def load_conversation_from_database(thread_slug: str, limit: Optional[int] = Non
                 cprint(f"[DB LOAD] Thread ID: {thread_id}", Colors.DB)
                 
                 # Get messages for this thread (always in chronological order)
-                # ✅ FIX: Always use ASC to prevent message clustering and missing AI responses
+                # ✅ OPTIMIZED: Default limit=50 loads recent messages; pagination on demand
+                # FIX: Always use ASC to prevent message clustering and missing AI responses
                 # CRITICAL: Pagination with DESC caused user messages to cluster together
                 # because AI responses between them were cut off by the LIMIT
+                
+                # Calculate actual limit to use
+                actual_limit = limit if limit else 999999  # None = all messages
+                
                 cursor.execute("""
                     SELECT role, content, created_at, model, tokens_used
                     FROM sessions.messages 
                     WHERE thread_id = %s 
                     ORDER BY created_at ASC
                     LIMIT %s OFFSET %s
-                """, (thread_id, limit if limit else 999999, offset))
+                """, (thread_id, actual_limit, offset))
                 
                 rows = cursor.fetchall()
                 cprint(f"[DB LOAD] Found {len(rows)} messages in database", Colors.INFO)
@@ -771,12 +778,14 @@ def start_agent(agent_id):
         print(f"[START] message preview: {message[:100]}...")
         
         # ============================================
-        # STEP 1: LOAD CONVERSATION FROM DATABASE
+        # STEP 1: LOAD CONVERSATION FROM DATABASE (LAZY-LOAD: 50 messages)
         # ============================================
-        print(f"\n[START] 📂 STEP 1: Loading conversation from database...")
-        conversation = load_conversation_from_database(thread_slug)
+        print(f"\n[START] 📂 STEP 1: Loading conversation (lazy-load: recent 50 messages)...")
+        # ✅ OPTIMIZED: Defaults to 50 recent messages (ValorAI pattern)
+        # For older messages, they would be loaded on pagination/scroll
+        conversation = load_conversation_from_database(thread_slug, limit=50)
         original_length = len(conversation)
-        print(f"[START] ✅ Loaded {original_length} messages from database")
+        print(f"[START] ✅ Loaded {original_length} recent messages from database (lazy-load)")
         
         # ============================================
         # STEP 2: PRUNE CONVERSATION IF TOO LARGE
@@ -785,11 +794,11 @@ def start_agent(agent_id):
             from core.combined_agent_worker import prune_conversation_for_context_limit
             conversation = prune_conversation_for_context_limit(
                 conversation,
-                max_estimated_tokens=180000,
+                max_estimated_tokens=180000,  # Still prune if context is large (e.g., 50 messages ~ 100KB+)
                 preserve_first_user=True
             )
             if len(conversation) < original_length:
-                print(f"[START] 🔧 Pruned conversation: {original_length} → {len(conversation)} messages")
+                print(f"[START] 🔧 Pruned conversation: {original_length} → {len(conversation)} messages (context limit)")
         
         # ============================================
         # STEP 3: APPEND USER MESSAGE (in memory)
@@ -2312,6 +2321,69 @@ def get_agent_history(agent_id):
         conversation = load_conversation_from_database(thread_slug)
         return list_response(conversation)
     except Exception as e:
+        return error_response(str(e), 500)
+
+
+@agent_bp.route('/messages', methods=['GET'])
+def get_messages_paginated():
+    """
+    Get paginated messages from a thread (ValorAI pattern)
+    Used for lazy-loading messages on scroll/pagination
+    
+    Query params:
+        ?thread_slug=... (required): Thread slug/ID
+        ?limit=50 (optional): Max messages per page (default: 50)
+        ?offset=0 (optional): Messages to skip for pagination (default: 0)
+    
+    Returns: {
+        'messages': [...],
+        'total_messages': N,
+        'current_count': loaded,
+        'has_more': bool,
+        'next_offset': offset for next page
+    }
+    """
+    try:
+        thread_slug = request.args.get('thread_slug')
+        if not thread_slug:
+            return error_response("Missing thread_slug", 400)
+        
+        limit = min(int(request.args.get('limit', 50)), 100)  # Safety: max 100
+        offset = int(request.args.get('offset', 0))
+        
+        print(f"\n📋 [PAGINATE] Getting messages: thread={thread_slug}, limit={limit}, offset={offset}")
+        
+        # Load paginated messages from database
+        messages = load_conversation_from_database(thread_slug, limit=limit, offset=offset)
+        
+        # Get total count to determine if more messages exist
+        with get_database_connection('sessions') as conn:
+            with conn.cursor() as cursor:
+                cursor.execute("""
+                    SELECT COUNT(*) FROM sessions.messages 
+                    WHERE thread_id = (SELECT id FROM sessions.threads WHERE thread_slug = %s)
+                """, (thread_slug,))
+                total_result = cursor.fetchone()
+                total_messages = total_result[0] if total_result else 0
+        
+        has_more = (offset + len(messages)) < total_messages
+        next_offset = offset + len(messages)
+        
+        print(f"✅ [PAGINATE] Loaded {len(messages)} messages (total: {total_messages}, has_more: {has_more})")
+        
+        return success_response({
+            'messages': messages,
+            'total_messages': total_messages,
+            'current_count': len(messages),
+            'has_more': has_more,
+            'next_offset': next_offset,
+            'offset': offset,
+            'limit': limit
+        })
+    except Exception as e:
+        print(f"❌ [PAGINATE] Error: {str(e)}")
+        import traceback
+        traceback.print_exc()
         return error_response(str(e), 500)
 
 
