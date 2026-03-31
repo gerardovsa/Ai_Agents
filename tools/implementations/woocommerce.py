@@ -31,29 +31,43 @@ def _get_woocommerce_api():
     Raises:
         RuntimeError: If no valid credentials found
     """
-    from AI_infrastructure.shared.org_credentials_loader import resolve_api_key
+    from AI_infrastructure.shared.org_credentials_loader import resolve_credentials
     
     user_id = getattr(g, 'user_id', None)
     if not user_id:
         raise RuntimeError("No user context available - cannot resolve WooCommerce credentials")
     
-    # Try to get credentials via the resolve function (3-tier: user → org → env → hardcoded)
+    # Try to get credentials via the resolve function (3-tier: user → org → env)
     try:
-        api_key_dict = resolve_api_key(user_id, 'woocommerce')
+        cred = resolve_credentials(user_id, 'woocommerce')
         
-        if api_key_dict:
-            # Parse credential format from database
-            wc_url = api_key_dict.get('base_url') or os.getenv('WOOCOMMERCE_URL', 'https://minivetguide.com')
-            wc_key = api_key_dict.get('consumer_key')
-            wc_secret = api_key_dict.get('consumer_secret')
+        if cred:
+            # WooCommerce uses multi_field storage (platform_catalog required_fields):
+            #   required_fields[0] = store_url  → stored in credential_value
+            #   required_fields[1] = consumer_key → stored in credentials JSONB
+            #   required_fields[2] = consumer_secret → stored in credentials JSONB
+            cred_dict = cred.get('credentials') or {}
+
+            wc_url = (cred.get('credential_value') or        # store_url (field[0])
+                      cred_dict.get('store_url') or
+                      cred_dict.get('base_url') or
+                      os.getenv('WOOCOMMERCE_URL', 'https://minivetguide.com'))
+
+            wc_key = (cred_dict.get('consumer_key') or       # consumer_key (field[1])
+                      cred.get('credential_value'))           # fallback: old single-field storage
+
+            wc_secret = cred_dict.get('consumer_secret')     # consumer_secret (field[2])
             
             if wc_key and wc_secret:
+                print(f"[WooCommerce] ✅ Using credentials for user {user_id} (source: {cred.get('_source', 'unknown')})")
                 return API(
                     url=wc_url,
                     consumer_key=wc_key,
                     consumer_secret=wc_secret,
                     version="wc/v3"
                 )
+            else:
+                print(f"[WooCommerce] ⚠️ Credential found but missing consumer_key/consumer_secret. cred_dict keys: {list(cred_dict.keys())}")
     except Exception as e:
         print(f"[WARN] Error resolving WooCommerce credentials for user {user_id}: {e}")
     
