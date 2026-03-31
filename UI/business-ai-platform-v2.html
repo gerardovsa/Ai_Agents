@@ -5404,7 +5404,18 @@
 
         /* Settings section styles for account sidebar */
         .account-sidebar-content .settings-section {
+            display: flex;
+            flex-direction: column;
             margin-bottom: var(--space-4);
+            height: 100%;
+        }
+
+        .account-sidebar-content .settings-section-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow-y: auto;
+            min-height: 0;
         }
 
         .account-sidebar-content .settings-field {
@@ -18585,6 +18596,53 @@
                 <button type="submit" class="login-btn" id="loginBtn">
                     <i class="fas fa-sign-in-alt"></i> Sign In
                 </button>
+
+                <!-- Team Login Toggle -->
+                <div style="margin-top: var(--space-3); padding-top: var(--space-3); border-top: 1px solid var(--border-default); text-align: center;">
+                    <button type="button" class="link-btn" onclick="showTeamLoginPanel()" style="font-size: 13px; color: var(--accent-primary); text-decoration: none; background: none; border: none; cursor: pointer; padding: 0;">
+                        <i class="fas fa-users" style="margin-right: 4px;"></i> Sign in with Team
+                    </button>
+                </div>
+            </form>
+
+            <!-- ==================== TEAM LOGIN FORM ==================== -->
+            <form class="login-form" id="teamLoginForm" style="display: none;" onsubmit="handleTeamLogin(event)">
+                <div class="login-error" id="teamLoginError"></div>
+
+                <div style="margin-bottom: var(--space-3); padding-bottom: var(--space-3); border-bottom: 1px solid var(--border-default);">
+                    <button type="button" class="link-btn" onclick="hideTeamLoginPanel()" style="font-size: 13px; color: var(--accent-primary); text-decoration: none; background: none; border: none; cursor: pointer; padding: 0; display: flex; align-items: center; gap: 6px; width: 100%; justify-content: center;">
+                        <i class="fas fa-arrow-left"></i> Back to Standard Login
+                    </button>
+                </div>
+
+                <div class="form-group">
+                    <label for="teamEmail">Your Email</label>
+                    <input type="email" id="teamEmail" name="teamEmail" required autocomplete="email"
+                        placeholder="Your account email (primary user)">
+                    <small style="font-size: 12px; color: var(--text-muted); margin-top: 4px; display: block;">
+                        The primary account holder's email address
+                    </small>
+                </div>
+
+                <div class="form-group">
+                    <label for="teamName">Team Name</label>
+                    <input type="text" id="teamName" name="teamName" required autocomplete="off"
+                        placeholder="e.g., sales_team"
+                        style="text-transform: lowercase;">
+                    <small style="font-size: 12px; color: var(--text-muted); margin-top: 4px; display: block;">
+                        Lowercase letters, numbers, and underscores only
+                    </small>
+                </div>
+
+                <div class="form-group">
+                    <label for="teamPassword">Team Password</label>
+                    <input type="password" id="teamPassword" name="teamPassword" required autocomplete="current-password"
+                        placeholder="Team-specific password">
+                </div>
+
+                <button type="submit" class="login-btn" id="teamLoginBtn" style="background: var(--accent-primary); color: white;">
+                    <i class="fas fa-sign-in-alt"></i> Sign in as Team
+                </button>
             </form>
         </div>
     </div>
@@ -21296,6 +21354,10 @@
                         <div style="display: flex; align-items: center; gap: 12px; flex: 1;">
                             <div class="account-user-name" id="sidebarUserName">Loading...</div>
                             <span class="role-badge" id="sidebarRoleBadge">User</span>
+                            <!-- Team Badge - Shows when logged in as a team -->
+                            <span class="team-badge" id="sidebarTeamBadge" style="display: none; padding: 3px 10px; border-radius: 12px; font-size: 11px; font-weight: 600; white-space: nowrap; background: var(--accent-primary); color: white;">
+                                <i class="fas fa-users" style="margin-right: 4px;"></i><span id="sidebarTeamName">Team</span>
+                            </span>
                         </div>
                         <i class="fas fa-chevron-down" id="userExpandChevron"
                             style="font-size: 12px; color: var(--text-secondary); transition: transform 0.2s;"></i>
@@ -21558,19 +21620,24 @@
                     </p>
 
                     <!-- Team ID Quick Actions -->
-                    <div style="display: flex; gap: 8px; margin-bottom: var(--space-3);">
-                        <button class="btn btn-primary" onclick="showCreateTeamIdModal()" style="flex: 1;">
+                    <div style="display: flex; flex-direction: column; gap: 8px; margin-bottom: var(--space-3);">
+                        <!-- Primary action: Create Team ID (full width) -->
+                        <button class="btn btn-primary" onclick="showCreateTeamIdModal()" style="width: 100%;">
                             <i class="fas fa-plus"></i> Create Team ID
                         </button>
-                        <button class="btn btn-secondary" onclick="showTeamIdImportModal()">
-                            <i class="fas fa-file-upload"></i> Import CSV
-                        </button>
-                        <button class="btn btn-secondary" onclick="exportTeamIdsToCSV()">
-                            <i class="fas fa-file-download"></i> Export CSV
-                        </button>
-                        <button class="btn btn-secondary" onclick="refreshTeamIdList()" title="Refresh">
-                            <i class="fas fa-sync"></i>
-                        </button>
+                        
+                        <!-- Secondary actions: Import, Export, Refresh (compact row) -->
+                        <div style="display: flex; gap: 6px;">
+                            <button class="btn btn-secondary" onclick="showTeamIdImportModal()" style="flex: 1; font-size: 12px;">
+                                <i class="fas fa-file-upload" style="margin-right: 4px;"></i>Import
+                            </button>
+                            <button class="btn btn-secondary" onclick="exportTeamIdsToCSV()" style="flex: 1; font-size: 12px;">
+                                <i class="fas fa-file-download" style="margin-right: 4px;"></i>Export
+                            </button>
+                            <button class="btn btn-secondary" onclick="refreshTeamIdList()" title="Refresh" style="flex: 1; display: flex; align-items: center; justify-content: center;">
+                                <i class="fas fa-sync"></i>
+                            </button>
+                        </div>
                     </div>
 
                     <!-- Team IDs List -->
@@ -21877,7 +21944,7 @@
         <div class="modal-content" style="max-width: 550px;">
             <div class="modal-header">
                 <h3>
-                    <i class="fas fa-users"></i> <span id="teamIdModalTitle">Create Team ID</span>
+                    <i class="fas fa-users"></i> <span id="teamIdModalTitle">Create Team</span>
                 </h3>
                 <button class="modal-close" onclick="closeTeamIdModal()">
                     <i class="fas fa-times"></i>
@@ -21886,18 +21953,42 @@
             <div class="modal-body" style="padding: var(--space-4);">
                 <input type="hidden" id="editTeamIdOriginal" value="">
 
+                <!-- Team Name (login identifier) -->
                 <div style="margin-bottom: 16px;">
                     <label for="teamIdName" style="display: block; margin-bottom: 6px; font-weight: 600;">
-                        <i class="fas fa-user"></i> Team ID Name <span style="color: var(--danger);">*</span>
+                        <i class="fas fa-at"></i> Team Name (Login ID) <span style="color: var(--danger);">*</span>
                     </label>
                     <input type="text" id="teamIdName" placeholder="e.g., sales_team, support_team"
-                        style="width: 100%; padding: 10px; background: var(--bg-primary); border: 1px solid var(--border-default); border-radius: 6px; color: var(--text-primary); font-size: 14px;">
+                        style="width: 100%; padding: 10px; background: var(--bg-primary); border: 1px solid var(--border-default); border-radius: 6px; color: var(--text-primary); font-size: 14px; text-transform: lowercase;">
                     <small style="color: var(--text-muted); font-size: 12px; display: block; margin-top: 4px;">
-                        Used for filtering threads. Min 2 characters, alphanumeric + underscore.
+                        Lowercase letters, numbers, and underscores only. Cannot change after creation.
                     </small>
                 </div>
 
+                <!-- Display Name (human readable name) -->
                 <div style="margin-bottom: 16px;">
+                    <label for="teamIdDisplayName" style="display: block; margin-bottom: 6px; font-weight: 600;">
+                        <i class="fas fa-tag"></i> Display Name
+                    </label>
+                    <input type="text" id="teamIdDisplayName" placeholder="e.g., Sales Team"
+                        style="width: 100%; padding: 10px; background: var(--bg-primary); border: 1px solid var(--border-default); border-radius: 6px; color: var(--text-primary); font-size: 14px;">
+                    <small style="color: var(--text-muted); font-size: 12px; display: block; margin-top: 4px;">
+                        Human-readable name shown in the interface.
+                    </small>
+                </div>
+
+                <!-- Description -->
+                <div style="margin-bottom: 16px;">
+                    <label for="teamIdDescription" style="display: block; margin-bottom: 6px; font-weight: 600;">
+                        <i class="fas fa-align-left"></i> Description
+                    </label>
+                    <textarea id="teamIdDescription" placeholder="e.g., Sales team for Q1 campaigns"
+                        style="width: 100%; padding: 10px; background: var(--bg-primary); border: 1px solid var(--border-default); border-radius: 6px; color: var(--text-primary); font-size: 14px; resize: vertical; min-height: 60px;">
+                    </textarea>
+                </div>
+
+                <!-- Email field - hidden in new system -->
+                <div style="margin-bottom: 16px; display: none;">
                     <label for="teamIdEmail" style="display: block; margin-bottom: 6px; font-weight: 600;">
                         <i class="fas fa-envelope"></i> Email
                     </label>
@@ -21905,30 +21996,33 @@
                         style="width: 100%; padding: 10px; background: var(--bg-primary); border: 1px solid var(--border-default); border-radius: 6px; color: var(--text-primary); font-size: 14px;">
                 </div>
 
+                <!-- Password -->
                 <div style="margin-bottom: 16px;">
                     <label for="teamIdPassword" style="display: block; margin-bottom: 6px; font-weight: 600;">
-                        <i class="fas fa-key"></i> Password
+                        <i class="fas fa-key"></i> Password <span style="color: var(--danger);">*</span>
                     </label>
-                    <input type="password" id="teamIdPassword" placeholder="Leave blank for auto-generated"
+                    <input type="password" id="teamIdPassword" placeholder="Team password for login"
                         style="width: 100%; padding: 10px; background: var(--bg-primary); border: 1px solid var(--border-default); border-radius: 6px; color: var(--text-primary); font-size: 14px;">
                     <small style="color: var(--text-muted); font-size: 12px; display: block; margin-top: 4px;">
-                        Leave empty to auto-generate a secure password.
+                        Required for new teams. Leave blank when editing to keep existing password.
                     </small>
                 </div>
 
-                <div style="margin-bottom: 16px;">
+                <!-- Active Status -->
+                <div style="margin-bottom: 16px; display: none;">
                     <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
                         <input type="checkbox" id="teamIdActive" checked>
                         <span style="font-weight: 600;"><i class="fas fa-toggle-on"></i> Active</span>
                     </label>
                     <small style="color: var(--text-muted); font-size: 12px; display: block; margin-top: 4px;">
-                        Inactive Team IDs cannot access threads.
+                        Inactive teams cannot log in.
                     </small>
                 </div>
 
+                <!-- Color -->
                 <div style="margin-bottom: 16px;">
                     <label for="teamIdColor" style="display: block; margin-bottom: 6px; font-weight: 600;">
-                        <i class="fas fa-palette"></i> Color
+                        <i class="fas fa-palette"></i> Team Color
                     </label>
                     <div style="display: flex; gap: 8px; align-items: center;">
                         <input type="color" id="teamIdColor" value="#3498db"
@@ -21937,7 +22031,7 @@
                             style="flex: 1; padding: 10px; background: var(--bg-primary); border: 1px solid var(--border-default); border-radius: 6px; color: var(--text-primary); font-size: 14px;">
                     </div>
                     <small style="color: var(--text-muted); font-size: 12px; display: block; margin-top: 4px;">
-                        Used to color-code threads from this Team ID.
+                        Displayed in team badges throughout the interface.
                     </small>
                 </div>
             </div>
@@ -21947,7 +22041,7 @@
                     <i class="fas fa-times"></i> Cancel
                 </button>
                 <button class="btn btn-primary" onclick="saveTeamId()" style="flex: 1;">
-                    <i class="fas fa-save"></i> Save
+                    <i class="fas fa-save"></i> Save Team
                 </button>
             </div>
         </div>
@@ -29021,6 +29115,153 @@
         }
 
         // ============================================================================
+        // TEAM LOGIN PANEL FUNCTIONS (NEW TEAMS SYSTEM)
+        // ============================================================================
+
+        /**
+         * Show Team Login Panel
+         */
+        function showTeamLoginPanel() {
+            const standardForm = document.getElementById('loginForm');
+            const teamForm = document.getElementById('teamLoginForm');
+            
+            if (standardForm) standardForm.style.display = 'none';
+            if (teamForm) teamForm.style.display = 'block';
+            
+            // Clear and focus
+            document.getElementById('teamEmail').value = '';
+            document.getElementById('teamName').value = '';
+            document.getElementById('teamPassword').value = '';
+            document.getElementById('teamLoginError').textContent = '';
+            
+            setTimeout(() => document.getElementById('teamEmail').focus(), 100);
+        }
+
+        /**
+         * Hide Team Login Panel
+         */
+        function hideTeamLoginPanel() {
+            const standardForm = document.getElementById('loginForm');
+            const teamForm = document.getElementById('teamLoginForm');
+            
+            if (standardForm) standardForm.style.display = 'block';
+            if (teamForm) teamForm.style.display = 'none';
+            
+            // Clear form
+            document.getElementById('teamEmail').value = '';
+            document.getElementById('teamName').value = '';
+            document.getElementById('teamPassword').value = '';
+            document.getElementById('teamLoginError').textContent = '';
+        }
+
+        /**
+         * Handle Team Login
+         */
+        async function handleTeamLogin(event) {
+            event.preventDefault();
+
+            const email = document.getElementById('teamEmail').value.trim();
+            const teamName = document.getElementById('teamName').value.trim().toLowerCase();
+            const password = document.getElementById('teamPassword').value;
+            const errorDiv = document.getElementById('teamLoginError');
+            const loginBtn = document.getElementById('teamLoginBtn');
+
+            // Validation
+            if (!email || !teamName || !password) {
+                errorDiv.textContent = 'All fields are required';
+                errorDiv.style.display = 'block';
+                return;
+            }
+
+            if (!/^[a-z0-9_]+$/.test(teamName)) {
+                errorDiv.textContent = 'Team name must contain only lowercase letters, numbers, and underscores';
+                errorDiv.style.display = 'block';
+                return;
+            }
+
+            try {
+                loginBtn.disabled = true;
+                loginBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Signing in...';
+                errorDiv.style.display = 'none';
+
+                const response = await fetch(`${API_BASE_URL}/api/auth/login/team`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        email: email,
+                        team_name: teamName,
+                        password: password
+                    })
+                });
+
+                if (!response.ok) {
+                    const error = await response.json();
+                    throw new Error(error.error || error.message || 'Login failed');
+                }
+
+                const data = await response.json();
+
+                // Store token and team info
+                localStorage.setItem('authToken', data.token);
+                sessionStorage.setItem('teamLoginMode', 'true');
+                sessionStorage.setItem('teamId', data.user.team_id);
+                sessionStorage.setItem('teamName', data.user.team_name);
+                sessionStorage.setItem('teamDisplayName', data.user.team_display_name);
+                sessionStorage.setItem('teamColor', data.user.team_color);
+
+                console.log('[TEAM LOGIN] Success:', data.user.team_name);
+
+                // Reload page to show team badges and initialize team context
+                window.location.href = '/';
+
+            } catch (error) {
+                console.error('[TEAM LOGIN] Error:', error);
+                loginBtn.disabled = false;
+                loginBtn.innerHTML = '<i class="fas fa-sign-in-alt"></i> Sign in as Team';
+                errorDiv.textContent = error.message || 'Login failed. Please check your credentials.';
+                errorDiv.style.display = 'block';
+            }
+        }
+
+        /**
+         * Apply Team Session Badges
+         * Shows badges when user is logged in as a team member
+         */
+        function applyTeamBadges() {
+            const teamLoginMode = sessionStorage.getItem('teamLoginMode');
+            if (teamLoginMode !== 'true') return;
+
+            const teamName = sessionStorage.getItem('teamDisplayName') || sessionStorage.getItem('teamName') || '';
+            const teamColor = sessionStorage.getItem('teamColor') || '#7f54b3';
+
+            // Sidebar Team Badge
+            const sidebarBadge = document.getElementById('sidebarTeamBadge');
+            const sidebarTeamName = document.getElementById('sidebarTeamName');
+            if (sidebarBadge && sidebarTeamName) {
+                sidebarTeamName.textContent = teamName;
+                sidebarBadge.style.display = 'inline-flex';
+                sidebarBadge.style.backgroundColor = teamColor;
+                sidebarBadge.align = 'center';
+                console.log('[TEAM BADGES] Sidebar badge applied:', teamName, teamColor);
+            }
+
+            // Auth Display Name Block (on loading screen) - if it exists
+            const authDisplayBlock = document.getElementById('authDisplayNameBlock');
+            if (authDisplayBlock) {
+                authDisplayBlock.style.display = 'block';
+                authDisplayBlock.innerHTML = `
+                    <div style="padding: 8px 12px; background: ${teamColor}; color: white; border-radius: 4px; font-size: 13px; font-weight: 600; text-align: center;">
+                        <i class="fas fa-users" style="margin-right: 4px;"></i>
+                        Team: ${teamName}
+                    </div>
+                `;
+                console.log('[TEAM BADGES] Auth display applied:', teamName);
+            }
+        }
+
+        // ============================================================================
         // TEAM ID MANAGEMENT FUNCTIONS
         // ============================================================================
 
@@ -29056,65 +29297,67 @@
         async function loadTeamIdList() {
             try {
                 const token = localStorage.getItem('authToken');
-                const response = await fetch(`${API_BASE_URL}/api/auth/team-ids/stats`, {
+                // Use NEW endpoint: /api/auth/teams (March 26, 2026 Teams System)
+                const response = await fetch(`${API_BASE_URL}/api/auth/teams`, {
                     headers: { 'Authorization': `Bearer ${token}` }
                 });
 
                 if (!response.ok) {
-                    throw new Error('Failed to load Team IDs');
+                    throw new Error('Failed to load Teams');
                 }
 
                 const data = await response.json();
-                const teamIds = data.team_ids || [];
+                const teams = data.teams || [];
 
                 // Update count badge
-                document.getElementById('teamIdCount').textContent = data.total_team_ids || 0;
+                document.getElementById('teamIdCount').textContent = data.total || 0;
 
-                // Update stats
-                document.getElementById('statTotalThreads').textContent = data.total_threads || 0;
-                document.getElementById('statTotalMessages').textContent = data.total_messages || 0;
-                document.getElementById('statActiveTeams').textContent = data.active_team_ids || 0;
-                document.getElementById('teamIdStats').style.display = teamIds.length > 0 ? 'block' : 'none';
+                // Update stats - note: new system doesn't track thread/message counts per team
+                const activeTeams = teams.filter(t => t.is_active).length;
+                document.getElementById('statTotalThreads').textContent = '—'; // Not available in new system
+                document.getElementById('statTotalMessages').textContent = '—'; // Not available in new system
+                document.getElementById('statActiveTeams').textContent = activeTeams;
+                document.getElementById('teamIdStats').style.display = teams.length > 0 ? 'block' : 'none';
 
-                // Render Team ID list
+                // Render Teams list
                 const container = document.getElementById('teamIdsList');
-                if (teamIds.length === 0) {
+                if (teams.length === 0) {
                     container.innerHTML = `
                         <div style="text-align: center; padding: 40px 20px; color: var(--text-muted);">
                             <i class="fas fa-users" style="font-size: 32px; margin-bottom: 12px; opacity: 0.5;"></i>
-                            <p>No Team IDs created yet</p>
-                            <small>Click "Create Team ID" to get started</small>
+                            <p>No Teams created yet</p>
+                            <small>Click "Create Team" to get started</small>
                         </div>
                     `;
                     return;
                 }
 
-                container.innerHTML = teamIds.map(team => {
-                    const color = getTeamIdColor(team.team_id);
-                    const lastActive = team.last_active ? new Date(team.last_active).toLocaleString() : 'Never';
+                container.innerHTML = teams.map(team => {
+                    const color = team.color || '#3498db';
+                    const createdAt = team.created_at ? new Date(team.created_at).toLocaleString() : 'Unknown';
+                    const displayName = team.display_name || team.team_name;
 
                     return `
                         <div style="padding: 12px; background: var(--bg-secondary); border-radius: 8px; margin-bottom: 8px; border-left: 4px solid ${color};">
                             <div style="display: flex; align-items: center; justify-content: space-between; gap: 12px;">
                                 <div style="flex: 1; min-width: 0;">
                                     <div style="font-weight: 600; color: var(--text-primary); margin-bottom: 4px; display: flex; align-items: center; gap: 8px;">
-                                        <span>${team.team_id}</span>
+                                        <span style="padding: 4px 8px; background: ${color}; color: white; border-radius: 4px; font-size: 11px;">●</span>
+                                        <span>${displayName}</span>
                                         ${team.is_active ? '<span style="background: #22c55e; color: white; padding: 2px 8px; border-radius: 12px; font-size: 10px; font-weight: 600;">ACTIVE</span>' : '<span style="background: #94a3b8; color: white; padding: 2px 8px; border-radius: 12px; font-size: 10px; font-weight: 600;">INACTIVE</span>'}
                                     </div>
                                     <div style="font-size: 12px; color: var(--text-secondary); display: flex; align-items: center; gap: 16px; flex-wrap: wrap;">
-                                        <span><i class="fas fa-comment-alt"></i> ${team.thread_count} threads</span>
-                                        <span><i class="fas fa-envelope"></i> ${team.message_count} messages</span>
-                                        <span><i class="fas fa-clock"></i> ${lastActive}</span>
+                                        <span><i class="fas fa-lock"></i> ${team.team_name}</span>
+                                        <span><i class="fas fa-users"></i> ${team.member_count || 1} member(s)</span>
+                                        <span><i class="fas fa-calendar"></i> ${createdAt}</span>
                                     </div>
+                                    ${team.description ? `<div style="font-size: 12px; color: var(--text-muted); margin-top: 6px;">${team.description}</div>` : ''}
                                 </div>
                                 <div style="display: flex; gap: 6px;">
-                                    <button class="btn btn-sm btn-secondary" onclick="showTeamIdAnalytics('${team.team_id}')" title="Analytics">
-                                        <i class="fas fa-chart-line"></i>
-                                    </button>
-                                    <button class="btn btn-sm btn-secondary" onclick="editTeamId('${team.team_id}')" title="Edit">
+                                    <button class="btn btn-sm btn-secondary" onclick="editTeamId('${team.team_name}')" title="Edit">
                                         <i class="fas fa-edit"></i>
                                     </button>
-                                    <button class="btn btn-sm btn-danger" onclick="deleteTeamId('${team.team_id}')" title="Delete">
+                                    <button class="btn btn-sm btn-danger" onclick="deleteTeamId('${team.team_name}')" title="Delete">
                                         <i class="fas fa-trash"></i>
                                     </button>
                                 </div>
@@ -29124,10 +29367,10 @@
                 }).join('');
 
             } catch (error) {
-                console.error('[TEAM IDs] Error loading:', error);
+                console.error('[TEAMS] Error loading:', error);
                 document.getElementById('teamIdsList').innerHTML = `
                     <div style="text-align: center; padding: 20px; color: var(--danger);">
-                        <i class="fas fa-exclamation-triangle"></i> Failed to load Team IDs
+                        <i class="fas fa-exclamation-triangle"></i> Failed to load Teams
                     </div>
                 `;
             }
@@ -29145,54 +29388,105 @@
          * Show create Team ID modal
          */
         function showCreateTeamIdModal() {
-            document.getElementById('teamIdModalTitle').textContent = 'Create Team ID';
+            // Reset form for create mode
+            document.getElementById('teamIdModalTitle').textContent =  'Create Team';
             document.getElementById('editTeamIdOriginal').value = '';
+            
+            // Team Name (required, cannot change after creation)
             document.getElementById('teamIdName').value = '';
+            document.getElementById('teamIdName').disabled = false;
+            document.getElementById('teamIdName').placeholder = 'e.g., sales_team';
+            
+            // Email field - not used in new system but kept for reference
             document.getElementById('teamIdEmail').value = '';
+            document.getElementById('teamIdEmail').style.display = 'none';
+            
+            // Password (required for create, optional for edit)
             document.getElementById('teamIdPassword').value = '';
+            document.getElementById('teamIdPassword').placeholder = 'Team password';
+            
+            // New fields for display_name and description
+            if (document.getElementById('teamIdDisplayName')) {
+                document.getElementById('teamIdDisplayName').value = '';
+                document.getElementById('teamIdDisplayName').style.display = 'block';
+            }
+            if (document.getElementById('teamIdDescription')) {
+                document.getElementById('teamIdDescription').value = '';
+                document.getElementById('teamIdDescription').style.display = 'block';
+            }
+            
+            // Active and Color
             document.getElementById('teamIdActive').checked = true;
             document.getElementById('teamIdColor').value = '#3498db';
             document.getElementById('teamIdColorHex').value = '#3498db';
+            
             document.getElementById('team-id-modal').style.display = 'flex';
         }
 
         /**
-         * Edit Team ID
+         * Edit Team (NEW /api/auth/teams/* endpoints)
          */
-        async function editTeamId(teamId) {
+        async function editTeamId(teamName) {
             try {
+                if (!teamName) {
+                    showToast('Team name is required', 'error');
+                    return;
+                }
+
                 const token = localStorage.getItem('authToken');
-                const response = await fetch(`${API_BASE_URL}/api/auth/team-ids`, {
+                const response = await fetch(`${API_BASE_URL}/api/auth/teams`, {
                     headers: { 'Authorization': `Bearer ${token}` }
                 });
 
+                if (!response.ok) throw new Error('Failed to load teams');
+
                 const data = await response.json();
-                const team = data.team_ids.find(t => t.team_id === teamId);
+                const team = data.teams.find(t => t.team_name === teamName);
 
-                if (!team) throw new Error('Team ID not found');
+                if (!team) throw new Error('Team not found');
 
-                document.getElementById('teamIdModalTitle').textContent = 'Edit Team ID';
-                document.getElementById('editTeamIdOriginal').value = teamId;
-                document.getElementById('teamIdName').value = teamId;
-                document.getElementById('teamIdName').disabled = true; // Cannot rename
-                document.getElementById('teamIdEmail').value = team.email || '';
-                document.getElementById('teamIdPassword').value = ''; // Don't show existing password
+                // Set form to edit mode
+                document.getElementById('teamIdModalTitle').textContent = `Edit Team: ${team.display_name || team.team_name}`;
+                document.getElementById('editTeamIdOriginal').value = teamName;
+                
+                // Team Name (locked in edit mode)
+                document.getElementById('teamIdName').value = team.team_name;
+                document.getElementById('teamIdName').disabled = true;
+                
+                // Email field - hidden in new system
+                document.getElementById('teamIdEmail').style.display = 'none';
+                document.getElementById('teamIdEmail').value = '';
+                
+                // Password - optional for edit (leave blank to keep existing)
+                document.getElementById('teamIdPassword').value = '';
+                document.getElementById('teamIdPassword').placeholder = '(Leave blank to keep existing)';
+                
+                // Display name and description
+                if (document.getElementById('teamIdDisplayName')) {
+                    document.getElementById('teamIdDisplayName').value = team.display_name || '';
+                    document.getElementById('teamIdDisplayName').style.display = 'block';
+                }
+                if (document.getElementById('teamIdDescription')) {
+                    document.getElementById('teamIdDescription').value = team.description || '';
+                    document.getElementById('teamIdDescription').style.display = 'block';
+                }
+                
+                // Active and Color
                 document.getElementById('teamIdActive').checked = team.is_active;
-
-                const color = getTeamIdColor(teamId);
+                const color = team.color || '#3498db';
                 document.getElementById('teamIdColor').value = color;
                 document.getElementById('teamIdColorHex').value = color;
 
                 document.getElementById('team-id-modal').style.display = 'flex';
 
             } catch (error) {
-                console.error('[TEAM IDs] Error editing:', error);
-                showToast('Failed to load Team ID details', 'error');
+                console.error('[TEAMS] Error editing:', error);
+                showToast('Failed to load team details: ' + error.message, 'error');
             }
         }
 
         /**
-         * Close Team ID modal
+         * Close Team modal
          */
         function closeTeamIdModal() {
             document.getElementById('team-id-modal').style.display = 'none';
@@ -29200,34 +29494,61 @@
         }
 
         /**
-         * Save Team ID (create or update)
+         * Save Team (create or update) - Uses NEW /api/auth/teams/* endpoints
          */
         async function saveTeamId() {
             try {
                 const isEdit = !!document.getElementById('editTeamIdOriginal').value;
-                const teamId = document.getElementById('teamIdName').value.trim();
-                const email = document.getElementById('teamIdEmail').value.trim();
+                const teamName = document.getElementById('teamIdName').value.trim();
                 const password = document.getElementById('teamIdPassword').value;
-                const isActive = document.getElementById('teamIdActive').checked;
+                const displayName = document.getElementById('teamIdDisplayName')?.value.trim() || '';
+                const description = document.getElementById('teamIdDescription')?.value.trim() || '';
                 const color = document.getElementById('teamIdColor').value;
 
-                if (!teamId || teamId.length < 2) {
-                    showToast('Team ID must be at least 2 characters', 'error');
+                // Validation
+                if (!teamName) {
+                    showToast('Team name is required', 'error');
                     return;
                 }
 
-                // Save color
-                setTeamIdColor(teamId, color);
+                if (!isEdit && !password) {
+                    showToast('Password is required for new teams', 'error');
+                    return;
+                }
+
+                if (!/^[a-z0-9_]+$/.test(teamName)) {
+                    showToast('Team name must contain only lowercase letters, numbers, and underscores', 'error');
+                    return;
+                }
 
                 const token = localStorage.getItem('authToken');
-                const url = isEdit
-                    ? `${API_BASE_URL}/api/auth/team-ids/${teamId}`
-                    : `${API_BASE_URL}/api/auth/team-ids/add`;
+                let url, method, body;
 
-                const method = isEdit ? 'PUT' : 'POST';
-                const body = isEdit
-                    ? { is_active: isActive, ...(password && { password }) }
-                    : { team_id: teamId, email, password };
+                if (isEdit) {
+                    // UPDATE existing team
+                    url = `${API_BASE_URL}/api/auth/teams/${teamName}`;
+                    method = 'PUT';
+                    body = {
+                        display_name: displayName || teamName,
+                        description: description,
+                        color: color
+                    };
+                    // Only include password if provided (non-empty)
+                    if (password) {
+                        body.password = password;
+                    }
+                } else {
+                    // CREATE new team
+                    url = `${API_BASE_URL}/api/auth/teams/create`;
+                    method = 'POST';
+                    body = {
+                        team_name: teamName,
+                        password: password,
+                        display_name: displayName || teamName,
+                        description: description,
+                        color: color
+                    };
+                }
 
                 const response = await fetch(url, {
                     method,
@@ -29240,44 +29561,47 @@
 
                 if (!response.ok) {
                     const error = await response.json();
-                    throw new Error(error.error || 'Failed to save Team ID');
+                    throw new Error(error.error || error.message || 'Failed to save team');
                 }
 
-                showToast(isEdit ? 'Team ID updated' : 'Team ID created', 'success');
+                showToast(isEdit ? 'Team updated' : 'Team created', 'success');
                 closeTeamIdModal();
                 loadTeamIdList();
 
             } catch (error) {
-                console.error('[TEAM IDs] Error saving:', error);
+                console.error('[TEAMS] Error saving:', error);
                 showToast(error.message, 'error');
             }
         }
 
         /**
-         * Delete Team ID
+         * Delete Team (soft-delete via new API)
          */
-        async function deleteTeamId(teamId) {
-            if (!confirm(`Are you sure you want to delete Team ID "${teamId}"? This will deactivate the Team ID and revoke all sessions.`)) {
+        async function deleteTeamId(teamName) {
+            if (!confirm(`Are you sure you want to delete team "${teamName}"? This cannot be undone.`)) {
                 return;
             }
 
             try {
                 const token = localStorage.getItem('authToken');
-                const response = await fetch(`${API_BASE_URL}/api/auth/team-ids/${teamId}`, {
+                const response = await fetch(`${API_BASE_URL}/api/auth/teams/${teamName}`, {
                     method: 'DELETE',
-                    headers: { 'Authorization': `Bearer ${token}` }
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    }
                 });
 
                 if (!response.ok) {
                     const error = await response.json();
-                    throw new Error(error.error || 'Failed to delete Team ID');
+                    throw new Error(error.error || error.message || 'Failed to delete team');
                 }
 
-                showToast(`Team ID "${teamId}" deleted`, 'success');
+                showToast(`Team "${teamName}" deleted`, 'success');
                 loadTeamIdList();
 
             } catch (error) {
-                console.error('[TEAM IDs] Error deleting:', error);
+                console.error('[TEAMS] Error deleting:', error);
                 showToast(error.message, 'error');
             }
         }
@@ -29456,6 +29780,14 @@
 
         // Color picker sync
         document.addEventListener('DOMContentLoaded', () => {
+            // Apply team badges if user is logged in as a team
+            applyTeamBadges();
+
+            // Periodically refresh team badges to survive DOM updates
+            setInterval(applyTeamBadges, 800);
+            setTimeout(applyTeamBadges, 0);
+            setTimeout(applyTeamBadges, 2500);
+
             const colorPicker = document.getElementById('teamIdColor');
             const colorHex = document.getElementById('teamIdColorHex');
 
@@ -32431,12 +32763,24 @@ Thanks`;
                 return a.platform.localeCompare(b.platform);
             });
 
-            let html = '';
+            // Generate connections list content
+            let connectionsListHtml = '';
+            const connectionsButtonHtml = `
+                <div style="padding: 16px; border: 2px dashed var(--border-default); border-radius: 8px; background: var(--bg-tertiary); flex-shrink: 0;">
+                    <div style="font-size: 13px; color: var(--text-secondary); margin-bottom: 14px; font-weight: 600;">
+                        <i class="fas fa-plus-circle"></i> Add New Connection
+                    </div>
+                    <button onclick="showAddConnectionModal()" 
+                        style="width: 100%; padding: 10px 16px; background: var(--accent-primary); color: white; border: none; border-radius: 6px; font-size: 13px; font-weight: 600; cursor: pointer; transition: all 0.2s;">
+                        <i class="fas fa-plug"></i> Connect Platform
+                    </button>
+                </div>
+            `;
 
             // Display existing connections
             if (sortedConnections.length > 0) {
-                html += '<div style="margin-bottom: 16px;">';
-                html += sortedConnections.map(conn => {
+                connectionsListHtml = '<div style="display: flex; flex-direction: column; gap: 12px;">';
+                connectionsListHtml += sortedConnections.map(conn => {
                     const meta = getPlatformMeta(conn.platform);
                     const isActive = conn.is_active;
                     const createdDate = new Date(conn.created_at).toLocaleDateString();
@@ -32452,40 +32796,13 @@ Thanks`;
                     }
 
                     return `
-                        <div style="padding: 14px; background: var(--bg-secondary); border: 1px solid ${isActive ? meta.color + '40' : 'var(--border-default)'}; border-left: 3px solid ${meta.color}; border-radius: 8px; margin-bottom: 10px;">
-                            <div style="display: flex; align-items: center; gap: 12px;">
-                                <div class="connection-icon" style="color: ${meta.color}; border: 1px solid ${meta.color}33;">
+                        <div style="padding: 14px; background: var(--bg-secondary); border: 1px solid ${isActive ? meta.color + '40' : 'var(--border-default)'}; border-left: 3px solid ${meta.color}; border-radius: 8px; display: flex; flex-direction: column; gap: 12px;">
+                            <!-- Top row: Icon, buttons -->
+                            <div style="display: flex; align-items: flex-start; gap: 12px;">
+                                <div class="connection-icon" style="color: ${meta.color}; border: 1px solid ${meta.color}33; flex-shrink: 0;">
                                     <i class="${meta.icon}"></i>
                                 </div>
-                                <div style="flex: 1; min-width: 0;">
-                                    <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 4px;">
-                                        <span style="font-weight: 600; color: var(--text-primary); font-size: 14px;">${meta.displayName}</span>
-                                        ${typeBadge}
-                                        <div class="connection-status">
-                                            <div class="connection-status-dot ${isActive ? 'active' : 'inactive'}"></div>
-                                            <span class="connection-status-text ${isActive ? 'active' : 'inactive'}">
-                                                ${isActive ? 'Active' : 'Inactive'}
-                                            </span>
-                                        </div>
-                                    </div>
-                                    <div style="font-size: 11px; color: var(--text-secondary); display: flex; flex-direction: column; gap: 4px;">
-                                        <div style="display: flex; gap: 12px;">
-                                            <span><i class="fas fa-calendar" style="font-size: 9px;"></i> ${createdDate}</span>
-                                            ${conn.metadata && conn.metadata.email ? `<span><i class="fas fa-envelope" style="font-size: 9px;"></i> ${conn.metadata.email}</span>` : ''}
-                                            ${conn.account_name ? `<span><i class="fas fa-user-circle" style="font-size: 9px;"></i> ${conn.account_name}</span>` : ''}
-                                        </div>
-                                        ${conn.credential_value_masked || conn.credential_key ? `
-                                            <div style="display: flex; gap: 8px; align-items: center;">
-                                                ${conn.credential_value_masked ? `
-                                                    <span style="font-family: monospace; background: var(--bg-tertiary); padding: 3px 8px; border-radius: 4px; font-size: 10px; border: 1px solid var(--border-default);">
-                                                        <i class="fas fa-key" style="font-size: 8px; margin-right: 4px;"></i>${conn.credential_value_masked}
-                                                    </span>
-                                                ` : ''}
-                                                ${conn.credential_key ? `<span style="opacity: 0.7; font-size: 10px;">(${conn.credential_key})</span>` : ''}
-                                            </div>
-                                        ` : ''}
-                                    </div>
-                                </div>
+                                <div style="flex: 1;"></div>
                                 <div style="display: flex; gap: 6px; flex-shrink: 0;">
                                     <button onclick="testPlatformConnection('${conn.id}')" title="Test Connection" class="connection-btn test">
                                         <i class="fas fa-flask"></i>
@@ -32500,13 +32817,69 @@ Thanks`;
                                     </button>
                                 </div>
                             </div>
+                            
+                            <!-- Info rows -->
+                            <div style="display: flex; flex-direction: column; gap: 8px; font-size: 13px;">
+                                <!-- Platform name and badge row -->
+                                <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+                                    <span style="font-weight: 600; color: var(--text-primary); font-size: 14px;">${meta.displayName}</span>
+                                    ${typeBadge}
+                                </div>
+                                
+                                <!-- Status and created date row -->
+                                <div style="display: flex; gap: 16px; align-items: center; color: var(--text-secondary); font-size: 12px;">
+                                    <div style="display: flex; align-items: center; gap: 6px;">
+                                        <div class="connection-status" style="display: flex; align-items: center; gap: 4px;">
+                                            <div class="connection-status-dot ${isActive ? 'active' : 'inactive'}" style="width: 8px; height: 8px; border-radius: 50%; background: ${isActive ? '#10B981' : '#EF4444'};"></div>
+                                            <span class="connection-status-text ${isActive ? 'active' : 'inactive'}" style="color: ${isActive ? '#10B981' : '#EF4444'};">
+                                                ${isActive ? 'Active' : 'Inactive'}
+                                            </span>
+                                        </div>
+                                    </div>
+                                    <div style="display: flex; align-items: center; gap: 4px;">
+                                        <i class="fas fa-calendar" style="font-size: 10px;"></i>
+                                        <span>${createdDate}</span>
+                                    </div>
+                                </div>
+                                
+                                <!-- Account name row (if available) -->
+                                ${conn.account_name ? `
+                                    <div style="display: flex; align-items: center; gap: 6px; color: var(--text-secondary); font-size: 12px;">
+                                        <i class="fas fa-user-circle" style="font-size: 12px;"></i>
+                                        <span>${conn.account_name}</span>
+                                    </div>
+                                ` : ''}
+                                
+                                <!-- Email row (if available) -->
+                                ${conn.metadata && conn.metadata.email ? `
+                                    <div style="display: flex; align-items: center; gap: 6px; color: var(--text-secondary); font-size: 12px;">
+                                        <i class="fas fa-envelope" style="font-size: 10px;"></i>
+                                        <span>${conn.metadata.email}</span>
+                                    </div>
+                                ` : ''}
+                                
+                                <!-- Key/credential row (if available) -->
+                                ${conn.credential_value_masked || conn.credential_key ? `
+                                    <div style="display: flex; align-items: center; gap: 8px; color: var(--text-secondary); font-size: 12px;">
+                                        ${conn.credential_value_masked ? `
+                                            <div style="display: flex; align-items: center; gap: 4px;">
+                                                <i class="fas fa-key" style="font-size: 10px;"></i>
+                                                <span style="font-family: monospace; background: var(--bg-tertiary); padding: 2px 6px; border-radius: 3px; border: 1px solid var(--border-default); font-size: 11px;">
+                                                    ${conn.credential_value_masked}
+                                                </span>
+                                            </div>
+                                        ` : ''}
+                                        ${conn.credential_key ? `<span style="opacity: 0.7; font-size: 11px;">(${conn.credential_key})</span>` : ''}
+                                    </div>
+                                ` : ''}
+                            </div>
                         </div>
                     `;
                 }).join('');
-                html += '</div>';
+                connectionsListHtml += '</div>';
             } else {
-                html += `
-                    <div style="text-align: center; padding: 30px 20px; color: var(--text-muted); background: var(--bg-tertiary); border-radius: 8px; margin-bottom: 16px;">
+                connectionsListHtml = `
+                    <div style="text-align: center; padding: 30px 20px; color: var(--text-muted); background: var(--bg-tertiary); border-radius: 8px;">
                         <i class="fas fa-plug" style="font-size: 40px; margin-bottom: 12px; opacity: 0.3;"></i>
                         <div style="font-size: 15px; font-weight: 600; margin-bottom: 6px;">No Connections Yet</div>
                         <div style="font-size: 12px;">Connect platforms below to enable AI agent access</div>
@@ -32514,20 +32887,17 @@ Thanks`;
                 `;
             }
 
-            // Add new connection button
-            html += `
-                <div style="padding: 16px; border: 2px dashed var(--border-default); border-radius: 8px; background: var(--bg-tertiary);">
-                    <div style="font-size: 13px; color: var(--text-secondary); margin-bottom: 14px; font-weight: 600;">
-                        <i class="fas fa-plus-circle"></i> Add New Connection
+            // Wrap everything in a container that handles scrolling properly
+            const wrappedHtml = `
+                <div style="display: flex; flex-direction: column; gap: 12px; height: 100%; overflow: hidden;">
+                    <div style="flex: 1; overflow-y: auto; min-height: 0;">
+                        ${connectionsListHtml}
                     </div>
-                    <button onclick="showAddConnectionModal()" 
-                        style="width: 100%; padding: 10px 16px; background: var(--accent-primary); color: white; border: none; border-radius: 6px; font-size: 13px; font-weight: 600; cursor: pointer; transition: all 0.2s;">
-                        <i class="fas fa-plug"></i> Connect Platform
-                    </button>
+                    ${connectionsButtonHtml}
                 </div>
             `;
 
-            container.innerHTML = html;
+            container.innerHTML = wrappedHtml;
 
             // Update connection count badge
             const badge = document.getElementById('connectionsCount');
