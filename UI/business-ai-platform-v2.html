@@ -2454,6 +2454,11 @@
             z-index: 10000;
         }
 
+        /* Module visibility — controlled by initModulesFromOrg() */
+        .module-hidden {
+            display: none !important;
+        }
+
         .sidebar-icon-btn {
             width: 44px;
             height: 44px;
@@ -18682,7 +18687,7 @@
                 <i class="fas fa-comments"></i>
             </button>
 
-            <button class="sidebar-icon-btn" data-tab="sales" title="WooCommerce (Legacy)">
+            <button class="sidebar-icon-btn" data-tab="sales" data-module="woocommerce" title="WooCommerce (Legacy)">
                 <i class="fas fa-shopping-cart"></i>
             </button>
 
@@ -30434,6 +30439,28 @@
                         // Apply org role visibility gating for restricted tabs/buttons
                         applyOrgRoleVisibility(profile);
 
+                        // Load DB-driven module visibility (sidebar gating)
+                        // Only for org members — legacy/standalone users have no org modules
+                        if (profile.org_role) {
+                            const _token = localStorage.getItem('auth_token') || localStorage.getItem('token') || '';
+                            const _apiBase = window.API_BASE_URL || '';
+                            fetch(_apiBase + '/api/org/modules', {
+                                headers: {
+                                    'Authorization': 'Bearer ' + _token,
+                                    'Content-Type':  'application/json'
+                                }
+                            })
+                            .then(function(r) { return r.json(); })
+                            .then(function(data) {
+                                if (data.success && window.initModulesFromOrg) {
+                                    window.initModulesFromOrg(data.modules || [], profile.org_role);
+                                }
+                            })
+                            .catch(function(err) {
+                                console.warn('[MODULE GATE] Could not load org modules:', err);
+                            });
+                        }
+
                         // ? Auto-load OAuth connections after user info loads
                         console.log('[ACCOUNT SIDEBAR] Auto-loading OAuth connections after profile load');
                         this.loadOAuthConnections();
@@ -31052,10 +31079,11 @@
          *   - admin / owner (4-5) → show all
          */
         function applyOrgRoleVisibility(profile) {
-            const ROLE_LEVELS = { viewer: 1, member: 2, manager: 3, admin: 4, owner: 5 };
+            const ROLE_LEVELS = { viewer: 1, member: 2, manager: 3, admin: 4, owner: 5, platform_developer: 10 };
             const orgRole = profile.org_role || null;
             const isSubUser = profile.is_sub_user || false;
-            const systemAdmin = profile.role === 'admin';
+            // System admins and platform developers bypass all gating unconditionally
+            const systemAdmin = profile.role === 'admin' || profile.role === 'platform_developer';
 
             // Legacy user (no org) or system admin — show everything unconditionally
             if (!orgRole || systemAdmin) return;
@@ -31077,6 +31105,110 @@
             console.log('[ORG ROLE GATE] Applied visibility for org_role:', orgRole,
                 '| is_sub_user:', isSubUser, '| effective level:', userLevel);
         }
+
+        // ============================================================
+        // DB-DRIVEN SIDEBAR MODULE VISIBILITY
+        // initModulesFromOrg(modules, userRole)
+        //
+        // Called after login / org switch with the response from
+        // GET /api/org/modules.
+        //
+        //  modules  — array of { module_name, display_name, icon_class, icon_color }
+        //  userRole — string ('viewer' | 'member' | 'manager' | 'admin' | 'owner')
+        //
+        // Responsibilities:
+        //   1. Gate Zone 1 hardcoded buttons that have data-module attributes
+        //   2. Rebuild #sidebarModulesSection (Zone 2) from DB catalog data
+        // ============================================================
+        async function initModulesFromOrg(modules, userRole) {
+            const enabledSet = new Set((modules || []).map(function(m) { return m.module_name; }));
+
+            // platform_developer sees everything — skip set-based gating
+            const isPlatformDev = (userRole === 'platform_developer');
+
+            console.log('[MODULE GATE] initModulesFromOrg — enabled:', Array.from(enabledSet),
+                '| role:', userRole, isPlatformDev ? '(super — all modules visible)' : '');
+
+            // ── 1. Gate Zone 1 buttons with data-module attribute ─────────────
+            document.querySelectorAll('[data-module]').forEach(function(btn) {
+                const mod = btn.dataset.module;
+                if (!mod) return;
+                const visible = isPlatformDev || enabledSet.has(mod);
+                btn.style.display = visible ? '' : 'none';
+            });
+
+            // ── 2. Rebuild #sidebarModulesSection from DB data ────────────────
+            // These are the modules that live in Zone 2 (external modules folder).
+            // They all have corresponding manifest.json entries historically.
+            // Map: module_name → { action: string used in data-action, tabId (optional) }
+            const ZONE2_MODULES = {
+                'inhouse_kanban':        { action: 'inhouse-kanban',         tabId: 'tab-inhouse-kanban' },
+                'inhouse_print':         { action: 'inhouse-print',          tabId: null },
+                'quote_calculator':      { action: 'calculator-tests',       tabId: null },
+                'stock_management':      { action: 'stock-management',       tabId: 'tab-stock' },
+                'xero':                  { action: 'xero-dashboard',         tabId: null },
+                'shopify':               { action: 'shopify-dashboard',      tabId: null },
+                'auspost_shipping':      { action: 'auspost',                tabId: null },
+                'customer_reactivation': { action: 'customer-reactivation',  tabId: null },
+                'database_visualizer':   { action: 'database-visualizer',    tabId: null },
+                'github':                { action: 'github',                  tabId: null },
+                'render_management':     { action: 'render-management',      tabId: null },
+                'local_filesystem':      { action: 'local-filesystem',       tabId: null },
+                'woocommerce':           { action: 'woocommerce-v4',         tabId: 'tab-sales-v4' },
+                'vsa_veterinary':        { action: 'vsa-veterinary',         tabId: 'tab-vsa-veterinary-alerts' },
+            };
+
+            const container = document.getElementById('sidebarModulesSection');
+            if (!container) {
+                console.warn('[MODULE GATE] #sidebarModulesSection not found');
+                return;
+            }
+
+            // Build lookup for catalog metadata (icon, color, label)
+            const catalogMap = {};
+            (modules || []).forEach(function(m) { catalogMap[m.module_name] = m; });
+
+            container.innerHTML = '';
+
+            Object.entries(ZONE2_MODULES).forEach(function([moduleName, spec]) {
+                if (!isPlatformDev && !enabledSet.has(moduleName)) return;
+
+                // Skip modules already shown as Zone 1 buttons (woocommerce has two
+                // dedicated Zone 1 buttons; don't duplicate in Zone 2)
+                if (moduleName === 'woocommerce') return;
+
+                const catalog = catalogMap[moduleName] || {};
+                const iconClass = catalog.icon_class || 'fas fa-cube';
+                const iconColor = catalog.icon_color  || '';
+                const label     = catalog.display_name || moduleName.replace(/_/g, ' ');
+
+                const btn = document.createElement('button');
+                btn.className = 'sidebar-icon-btn';
+                btn.title = label;
+                btn.setAttribute('data-action', spec.action);
+                if (spec.tabId) btn.setAttribute('data-tab', spec.tabId);
+                btn.innerHTML = '<i class="' + iconClass + '"'
+                    + (iconColor ? ' style="color:' + iconColor + '"' : '')
+                    + '></i>';
+
+                // Click handler: delegate to existing switchTab / sidebar action system
+                btn.addEventListener('click', function() {
+                    if (spec.tabId && typeof switchTab === 'function') {
+                        switchTab(spec.tabId);
+                    } else if (typeof handleSidebarAction === 'function') {
+                        handleSidebarAction(spec.action);
+                    }
+                });
+
+                container.appendChild(btn);
+            });
+
+            console.log('[MODULE GATE] Zone 2 rebuilt — '
+                + container.children.length + ' module buttons rendered');
+        }
+
+        // ── Expose globally so profile load can call it ───────────────────────
+        window.initModulesFromOrg = initModulesFromOrg;
 
         // Re-apply role visibility whenever the account sidebar is opened
         const _originalToggleSidebar = AccountSidebar.toggleSidebar.bind(AccountSidebar);
@@ -31891,7 +32023,7 @@ Thanks`;
             if (subtab === 'vault') {
                 // Show add-credential button and vault password section for admins/owners
                 const userLevel = OrgManager._userLevel || 0;
-                const ROLE_LEVELS = { viewer: 1, member: 2, manager: 3, admin: 4, owner: 5 };
+                const ROLE_LEVELS = { viewer: 1, member: 2, manager: 3, admin: 4, owner: 5, platform_developer: 10 };
                 const addBtn = document.getElementById('orgAddCredBtn');
                 if (addBtn) addBtn.style.display = userLevel >= ROLE_LEVELS.admin ? 'flex' : 'none';
                 if (userLevel >= ROLE_LEVELS.manager) OrgManager.loadCredentials();
@@ -31921,7 +32053,7 @@ Thanks`;
             }
             if (subtab === 'audit') {
                 const userLevel = OrgManager._userLevel || 0;
-                const ROLE_LEVELS = { viewer: 1, member: 2, manager: 3, admin: 4, owner: 5 };
+                const ROLE_LEVELS = { viewer: 1, member: 2, manager: 3, admin: 4, owner: 5, platform_developer: 10 };
                 if (userLevel >= ROLE_LEVELS.admin) OrgManager.loadAuditLog();
             }
         }

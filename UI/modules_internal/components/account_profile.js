@@ -2765,10 +2765,10 @@ async function loadOrgTab() {
  * Vault: manager+, Modules: member+, Audit: admin+
  */
 function _gateOrgSubTabs(userRole) {
-    const ROLE_LEVELS = { viewer: 1, member: 2, manager: 3, admin: 4, owner: 5 };
+    const ROLE_LEVELS = { viewer: 1, member: 2, manager: 3, admin: 4, owner: 5, platform_developer: 10 };
     const level = ROLE_LEVELS[userRole] || 0;
     const rules = {
-        vault:   ROLE_LEVELS.manager,   // manager+
+        vault:   ROLE_LEVELS.admin,     // admin+ only (owners/admins see credentials)
         modules: ROLE_LEVELS.member,    // member+
         audit:   ROLE_LEVELS.admin,     // admin+
     };

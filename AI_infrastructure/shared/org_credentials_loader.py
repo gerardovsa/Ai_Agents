@@ -623,6 +623,7 @@ def get_user_enabled_modules(user_id: int) -> set:
     a specific user, applying BOTH org-level enablement and per-user restrictions.
 
     Resolution order:
+        0. Owner role  → ALL active modules (bypass plan / org / user restrictions).
         1. Start with org-enabled modules  (from get_org_enabled_modules)
         2. Remove any modules where user_module_access.is_enabled = FALSE
 
@@ -633,6 +634,32 @@ def get_user_enabled_modules(user_id: int) -> set:
     Falls back to get_org_enabled_modules() if the user_module_access table
     does not yet exist (pre-migration 039), so this function is always safe to call.
     """
+    try:
+        # ── Layer 0: platform_developer / admin / owner bypass ALL restrictions ─
+        # Check both system-level role (users.role) and org-level role (users.org_role)
+        role_row = execute_query(
+            "SELECT org_role, role AS system_role FROM ai_infrastructure.users WHERE id = %s",
+            (user_id,),
+            fetch_mode='one'
+        )
+        is_super = (
+            role_row and (
+                role_row.get('system_role') in ('platform_developer', 'admin')
+                or role_row.get('org_role') == 'owner'
+            )
+        )
+        if is_super:
+            all_modules = execute_query(
+                "SELECT module_name FROM ai_infrastructure.module_catalog WHERE is_active = TRUE",
+                fetch_mode='all'
+            ) or []
+            effective = role_row.get('system_role') or role_row.get('org_role')
+            logger.debug(f"[USER_MODULES] Super user {user_id} ({effective}) — returning all {len(all_modules)} active modules")
+            return {r['module_name'] for r in all_modules}
+    except Exception as e:
+        logger.warning(f"[USER_MODULES] Role check failed for user {user_id}: {e}")
+        # Fall through to normal resolution
+
     try:
         org_enabled = get_org_enabled_modules(user_id)
         if not org_enabled:

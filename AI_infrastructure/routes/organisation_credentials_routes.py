@@ -62,12 +62,19 @@ org_credentials_bp = Blueprint('org_credentials', __name__, url_prefix='/api/org
 # ============================================================================
 
 ROLE_LEVELS = {
-    'viewer':  1,
-    'member':  2,
-    'manager': 3,
-    'admin':   4,
-    'owner':   5,
+    'viewer':             1,
+    'member':             2,
+    'manager':            3,
+    'admin':              4,
+    'owner':              5,
+    'platform_developer': 10,   # system-level super role; stored in users.role, not org_role
 }
+
+# Values permitted in users.org_role (DB CHECK constraint)
+VALID_ORG_ROLES = {'viewer', 'member', 'manager', 'admin', 'owner'}
+
+# System-level roles stored in users.role that bypass all org-level restrictions
+SYSTEM_SUPER_ROLES = {'platform_developer'}
 
 
 def role_level(role_name: str) -> int:
@@ -117,12 +124,16 @@ def require_auth(f):
 
 
 def get_user_org_context(user_id: int) -> Optional[dict]:
-    """Fetch the user's org membership + role. Returns None if no org."""
+    """Fetch the user's org membership + role. Returns None if no org.
+    Also surfaces the system-level 'role' column so callers can detect
+    platform_developer super-users.
+    """
     row = execute_query(
         """
         SELECT
             u.organisation_id,
             u.org_role,
+            u.role             AS system_role,
             o.name             AS org_name,
             o.slug             AS org_slug,
             o.vault_password_hash
@@ -134,13 +145,23 @@ def get_user_org_context(user_id: int) -> Optional[dict]:
         fetch_mode='one'
     )
     logger.info(f"[ORG_DEBUG] get_user_org_context(user_id={user_id}): row={row}")
-    result = row if row and row.get('organisation_id') else None
+    if not row:
+        return None
+    # Platform developers bypass org membership requirement
+    if row.get('system_role') in SYSTEM_SUPER_ROLES:
+        result = dict(row)
+        result['org_role'] = 'platform_developer'  # virtual org_role for decorators
+        logger.info(f"[ORG_DEBUG] platform_developer super-user — bypassing org membership")
+        return result
+    result = row if row.get('organisation_id') else None
     logger.info(f"[ORG_DEBUG] get_user_org_context returning: {result}")
     return result
 
 
 def require_org_role(minimum_role: str):
-    """Decorator factory. Enforces minimum org_role. Apply AFTER @require_auth."""
+    """Decorator factory. Enforces minimum org_role. Apply AFTER @require_auth.
+    platform_developer (system_role) bypasses all org-role checks.
+    """
     def decorator(f):
         @wraps(f)
         def decorated(*args, **kwargs):
@@ -151,7 +172,9 @@ def require_org_role(minimum_role: str):
                     'error': 'You are not a member of any organisation'
                 }), 403
 
-            if role_level(ctx['org_role']) < role_level(minimum_role):
+            # Platform developers have effective level 10 — pass all role gates
+            effective_level = role_level(ctx['org_role'])
+            if effective_level < role_level(minimum_role):
                 return jsonify({
                     'success': False,
                     'error': f'Requires {minimum_role}+ role. Your role: {ctx["org_role"]}'
@@ -313,7 +336,8 @@ def get_org_info():
     org = execute_query(
         """
         SELECT id, name, slug, plan_tier, display_name, logo_url,
-               timezone, country_code, is_active, created_at,
+               timezone, country_code, is_active, created_at, updated_at,
+               vault_password_hash, metadata,
                description, visibility, allowed_domains,
                ai_provider, ai_model, ai_max_tokens
         FROM ai_infrastructure.organisations WHERE id = %s
@@ -491,10 +515,11 @@ def update_member_role(target_user_id: int):
     data = request.get_json() or {}
     new_role = data.get('role', '').strip()
 
-    if new_role not in ROLE_LEVELS:
+    if new_role not in VALID_ORG_ROLES:
         return jsonify({
             'success': False,
-            'error': f'Invalid role. Must be one of: {", ".join(ROLE_LEVELS)}'
+            'error': f'Invalid org role. Must be one of: {", ".join(sorted(VALID_ORG_ROLES))}. '
+                     f'(platform_developer is a system role set separately)'
         }), 400
 
     if target_user_id == g.user_id:
@@ -1111,6 +1136,11 @@ def get_org_modules():
     """GET /api/org/modules — Return the enabled module set for the requesting user.
     Applies both org-level enablement and per-user restrictions (migration 039).
     Any org member can call this; used by the frontend to gate UI panels.
+
+    Response includes:
+        modules         — full module objects (module_name, display_name, icon_class,
+                          icon_color, category) for use by initModulesFromOrg()
+        enabled_modules — sorted list of module_name strings (backward compat)
     """
     ctx = g.org_ctx
     try:
@@ -1120,9 +1150,32 @@ def get_org_modules():
         logger.warning(f"[ORG_MODULES] Could not load enabled modules: {e}")
         enabled = set()
 
+    # Fetch full module metadata for enabled modules so the frontend can render
+    # sidebar icons without a second round-trip.
+    modules = []
+    if enabled:
+        try:
+            rows = execute_query(
+                """
+                SELECT module_name, display_name, icon_class, icon_color,
+                       category, description, sort_order
+                FROM   ai_infrastructure.module_catalog
+                WHERE  module_name = ANY(%s)
+                  AND  is_active   = TRUE
+                ORDER  BY sort_order, module_name
+                """,
+                (list(enabled),),
+                fetch_mode='all'
+            ) or []
+            modules = [dict(r) for r in rows]
+        except Exception as e:
+            logger.warning(f"[ORG_MODULES] Could not fetch module metadata: {e}")
+            modules = [{'module_name': m} for m in sorted(enabled)]
+
     return jsonify({
         'success':         True,
-        'enabled_modules': sorted(enabled),
+        'modules':         modules,           # full objects for initModulesFromOrg()
+        'enabled_modules': sorted(enabled),   # backward-compat list of strings
         'your_role':       ctx['org_role'],
         'organisation_id': ctx['organisation_id'],
     })
