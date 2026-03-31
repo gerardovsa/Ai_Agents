@@ -2744,7 +2744,7 @@ async function loadOrgTab() {
         if (data.your_role) _orgData.your_role = data.your_role;
         // GAP-H4: Sync OrgManager role state so Vault / Audit subtabs can gate access
         if (typeof OrgManager !== 'undefined') {
-            const ROLE_LEVELS = { viewer: 1, member: 2, manager: 3, admin: 4, owner: 5 };
+            const ROLE_LEVELS = { viewer: 1, member: 2, manager: 3, admin: 4, owner: 5, platform_developer: 10 };
             const userRole = data.your_role || data.organisation?.your_role || null;
             OrgManager._userRole  = userRole;
             OrgManager._userLevel = ROLE_LEVELS[userRole] || 0;

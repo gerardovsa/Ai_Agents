@@ -30440,8 +30440,9 @@
                         applyOrgRoleVisibility(profile);
 
                         // Load DB-driven module visibility (sidebar gating)
-                        // Only for org members — legacy/standalone users have no org modules
-                        if (profile.org_role) {
+                        // Org members + platform_developer (who may have no org_role in DB)
+                        const _isPlatformDev = (profile.role === 'platform_developer');
+                        if (profile.org_role || _isPlatformDev) {
                             const _token = localStorage.getItem('auth_token') || localStorage.getItem('token') || '';
                             const _apiBase = window.API_BASE_URL || '';
                             fetch(_apiBase + '/api/org/modules', {
@@ -30453,7 +30454,9 @@
                             .then(function(r) { return r.json(); })
                             .then(function(data) {
                                 if (data.success && window.initModulesFromOrg) {
-                                    window.initModulesFromOrg(data.modules || [], profile.org_role);
+                                    // Pass 'platform_developer' as userRole so isPlatformDev flag fires
+                                    const _effectiveRole = _isPlatformDev ? 'platform_developer' : profile.org_role;
+                                    window.initModulesFromOrg(data.modules || [], _effectiveRole);
                                 }
                             })
                             .catch(function(err) {
