@@ -1700,7 +1700,7 @@ def revoke_session(session_id):
     ✅ NO DATABASE OPERATIONS - Mock implementation
     """
     try:
-        user_id = request.user_id
+        user_id = request.user['user_id']
         
         print(f'[REVOKE SESSION] User {user_id} revoked session {session_id}')
         
@@ -1731,7 +1731,7 @@ def create_team():
     import bcrypt
     import re
     try:
-        user_id = request.user_id
+        user_id = request.user['user_id']
         data = request.get_json() or {}
 
         team_name    = (data.get('team_name') or '').strip().lower()
@@ -1813,7 +1813,7 @@ def create_team():
 def list_teams():
     """List all teams belonging to the authenticated user."""
     try:
-        user_id = request.user_id
+        user_id = request.user['user_id']
 
         with get_database_connection() as conn:
             with conn.cursor() as cursor:
@@ -1873,7 +1873,7 @@ def update_team(team_name):
     Body: { display_name, description, color }
     """
     try:
-        user_id = request.user_id
+        user_id = request.user['user_id']
         data = request.get_json() or {}
 
         display_name = data.get('display_name', '').strip() or None
@@ -1932,7 +1932,7 @@ def update_team(team_name):
 def delete_team(team_name):
     """Soft-delete a team (sets is_active = FALSE)."""
     try:
-        user_id = request.user_id
+        user_id = request.user['user_id']
 
         with get_database_connection() as conn:
             with conn.cursor() as cursor:
