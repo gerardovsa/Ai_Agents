@@ -106,6 +106,67 @@ def _get_gmail_service(user_email=None, _user_id=None, _injected_credentials=Non
     )
 
 
+def get_gmail_service_from_cred_dict(cred_dict):
+    """Build a Gmail API service from a credentials dict (already fetched from DB).
+
+    Unlike _get_gmail_service, this does NOT hit the database at all.
+    It properly sets token expiry so the library can detect stale tokens, and
+    proactively refreshes if the token is already expired before making any API calls.
+
+    Use this when you already hold the credentials dict (e.g. from
+    get_user_google_oauth_credentials) and want to reuse a single service for
+    many consecutive API calls, avoiding the per-call DB lookup + token-refresh
+    overhead.
+
+    Args:
+        cred_dict: Dict with keys: access_token, refresh_token, token_uri,
+                   client_id, client_secret, scopes, expires_at
+
+    Returns:
+        Authenticated Gmail API service
+    """
+    if not HAS_GMAIL_API:
+        raise Exception("Gmail API not available - install google-api-python-client")
+
+    from datetime import datetime, timezone
+
+    # Parse expiry so the google-auth library knows when the token expires
+    expiry = None
+    expires_at = cred_dict.get('expires_at')
+    if expires_at:
+        try:
+            if isinstance(expires_at, str):
+                expiry = datetime.fromisoformat(str(expires_at).replace('Z', '+00:00'))
+            elif hasattr(expires_at, 'year'):  # datetime object
+                expiry = expires_at
+        except Exception:
+            pass
+    if expiry is not None and expiry.tzinfo is None:
+        expiry = expiry.replace(tzinfo=timezone.utc)
+
+    credentials = Credentials(
+        token=cred_dict['access_token'],
+        refresh_token=cred_dict.get('refresh_token'),
+        token_uri=cred_dict['token_uri'],
+        client_id=cred_dict['client_id'],
+        client_secret=cred_dict['client_secret'],
+        scopes=cred_dict['scopes'],
+        expiry=expiry,
+    )
+
+    # Proactively refresh if the token is already expired so the first API call
+    # succeeds immediately instead of triggering a per-call 401 + refresh cycle.
+    if not credentials.valid:
+        try:
+            import google.auth.transport.requests as _google_requests
+            credentials.refresh(_google_requests.Request())
+            print(f"🔄 Gmail token refreshed proactively")
+        except Exception as e:
+            print(f"⚠️ Gmail token refresh failed ({e}) — proceeding with existing token")
+
+    return build('gmail', 'v1', credentials=credentials)
+
+
 # ==================== EMAIL SENDING ====================
 
 def gmail_send_email(to, subject, body, cc=None, bcc=None, attachments=None, **kwargs):
