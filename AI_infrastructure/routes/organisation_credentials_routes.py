@@ -50,8 +50,8 @@ from typing import Optional
 
 from flask import Blueprint, request, jsonify, g
 
-from AI_infrastructure.shared.database_utils import execute_query
-from AI_infrastructure.shared.credential_crypto import encrypt_credential, decrypt_credential
+from shared.database_utils import execute_query
+from shared.credential_crypto import encrypt_credential, decrypt_credential
 
 logger = logging.getLogger(__name__)
 
@@ -89,7 +89,7 @@ def require_auth(f):
     """JWT authentication decorator. Sets g.user_id and g.user."""
     @wraps(f)
     def decorated(*args, **kwargs):
-        from AI_infrastructure.auth.user_auth import UserAuthManager
+        from auth.user_auth import UserAuthManager
         token = None
 
         auth_header = request.headers.get('Authorization', '')
