@@ -4163,21 +4163,30 @@ def set_rls_context_from_jwt():
         # If the DB's jwt_version for this user is higher than the token's version,
         # the token has been invalidated (role changed, org removed, etc.).
         # We set a flag on g so individual route decorators can return a 401.
+        # BACKFILL FIX: also look up organisation_id from DB when it's absent from
+        # the JWT (old tokens issued before org was assigned / before org_id was added
+        # to the JWT payload) — zero extra DB round-trips when either check is needed.
         g.jwt_version_valid = True
         token_version = payload.get('jwt_version')
-        if user_id and token_version is not None:
+        if user_id and (token_version is not None or not org_id):
             try:
                 from AI_infrastructure.shared.database_utils import execute_query
                 row = execute_query(
-                    "SELECT COALESCE(jwt_version, 1) AS jwt_version FROM ai_infrastructure.users WHERE id = %s",
+                    "SELECT COALESCE(jwt_version, 1) AS jwt_version, organisation_id "
+                    "FROM ai_infrastructure.users WHERE id = %s",
                     (int(user_id),), fetch_mode='one'
                 )
-                if row and int(row['jwt_version']) > int(token_version):
-                    g.jwt_version_valid = False
-                    logger.info(f"[JWT] Stale token rejected for user_id={user_id} "
-                                f"(token_v={token_version}, db_v={row['jwt_version']})")
+                if row:
+                    if token_version is not None and int(row['jwt_version']) > int(token_version):
+                        g.jwt_version_valid = False
+                        logger.info(f"[JWT] Stale token rejected for user_id={user_id} "
+                                    f"(token_v={token_version}, db_v={row['jwt_version']})")
+                    # Backfill org_id from DB when absent from JWT
+                    if not org_id and row.get('organisation_id'):
+                        org_id = row['organisation_id']
+                        logger.info(f"[JWT] Backfilled org_id={org_id} from DB for user_id={user_id}")
             except Exception as _jv_err:
-                logger.warning(f"[JWT] jwt_version check failed (non-fatal): {_jv_err}")
+                logger.warning(f"[JWT] DB lookup failed (non-fatal): {_jv_err}")
 
         if user_id:
             g.rls_user_id = int(user_id)
