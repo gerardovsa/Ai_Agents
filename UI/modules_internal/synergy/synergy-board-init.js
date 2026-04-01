@@ -391,10 +391,8 @@ window.synergyBoard = {
             console.log(`[SYNERGY] 📄 Total internal docs: ${totalDocs}`);
 
         } catch (error) {
-            console.warn('[SYNERGY] API unavailable, using mock data:', error.message);
-            // Fallback to mock data if API is unavailable
-            this.sessions = this.getMockSessions();
-            console.log('[SYNERGY] Mock sessions loaded:', this.sessions.length);
+            console.warn('[SYNERGY] API unavailable, showing empty board:', error.message);
+            this.sessions = [];
         }
     },
 

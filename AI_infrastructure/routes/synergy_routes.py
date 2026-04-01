@@ -53,6 +53,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 
 # Import database utility with auto-detection
 from shared.database_utils import get_database_connection, is_using_supabase, convert_sql_placeholders
+from auth.user_auth import require_auth
 
 synergy_bp = Blueprint('synergy', __name__, url_prefix='/api/synergy')
 
@@ -460,6 +461,7 @@ def get_sessions_simple():
 
 
 @synergy_bp.route('/sessions/batch', methods=['GET'])
+@require_auth
 def get_sessions_with_internal_docs():
     """
     Batch load all sessions with their internal docs count in a SINGLE optimized query.

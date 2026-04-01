@@ -128,8 +128,10 @@ class SynergySidebarController {
                 const data = await this.documentService.fetchSessionsBatch();
                 this.sessions = data.sessions || data || [];
             } else {
-                // Fallback to direct API call
-                const response = await fetch(`${this.API_BASE_URL}/api/synergy/sessions`, {
+                // Fallback to direct API call — read URL at call time (window.API_BASE_URL
+                // is set after this script loads, so the constructor value is stale)
+                const apiBase = window.API_BASE_URL || window.location.origin || 'http://localhost:5001';
+                const response = await fetch(`${apiBase}/api/synergy/sessions`, {
                     method: 'GET',
                     headers: {
                         'Content-Type': 'application/json'
