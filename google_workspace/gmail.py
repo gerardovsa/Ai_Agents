@@ -161,6 +161,33 @@ def get_gmail_service_from_cred_dict(cred_dict):
             import google.auth.transport.requests as _google_requests
             credentials.refresh(_google_requests.Request())
             print(f"🔄 Gmail token refreshed proactively")
+
+            # Persist the new access token so the next request starts fresh
+            user_id = cred_dict.get('user_id')
+            if user_id:
+                try:
+                    sys.path.insert(0, str(Path(__file__).parent / 'AI_infrastructure'))
+                    from shared.db_connection_wrapper import get_connection
+                    conn = get_connection('ai_infrastructure')
+                    try:
+                        with conn.cursor() as cur:
+                            cur.execute(
+                                "UPDATE ai_infrastructure.oauth_tokens "
+                                "SET access_token = %s, expires_at = %s, updated_at = CURRENT_TIMESTAMP "
+                                "WHERE user_id = %s AND platform = 'google'",
+                                (
+                                    credentials.token,
+                                    credentials.expiry.isoformat() if credentials.expiry else None,
+                                    user_id,
+                                )
+                            )
+                        conn.commit()
+                        print(f"💾 Saved refreshed Google token for user {user_id}")
+                    finally:
+                        conn.close()
+                except Exception as save_err:
+                    print(f"⚠️ Could not save refreshed token: {save_err}")
+
         except Exception as e:
             print(f"⚠️ Gmail token refresh failed ({e}) — proceeding with existing token")
 

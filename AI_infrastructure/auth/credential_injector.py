@@ -128,17 +128,33 @@ def create_google_service_with_user_credentials(user_id: int, service_name: str,
     print(f"🔓 Decrypted Google credentials for user {user_id}")
     
     # Create Google OAuth Credentials object
+    from datetime import datetime, timezone as _tz
+
+    expiry = None
+    expires_at = cred_dict.get('expires_at')
+    if expires_at:
+        try:
+            if isinstance(expires_at, str):
+                expiry = datetime.fromisoformat(str(expires_at).replace('Z', '+00:00'))
+            elif hasattr(expires_at, 'year'):
+                expiry = expires_at
+        except Exception:
+            pass
+    if expiry is not None and expiry.tzinfo is None:
+        expiry = expiry.replace(tzinfo=_tz.utc)
+
     credentials = Credentials(
         token=cred_dict['access_token'],
         refresh_token=cred_dict.get('refresh_token'),
         token_uri=cred_dict['token_uri'],
         client_id=cred_dict['client_id'],
         client_secret=cred_dict['client_secret'],
-        scopes=cred_dict['scopes']
+        scopes=cred_dict['scopes'],
+        expiry=expiry,
     )
     
     # ✅ AUTO-REFRESH: Check if token is expired and refresh if needed
-    if credentials.expired and credentials.refresh_token:
+    if not credentials.valid and credentials.refresh_token:
         print(f"🔄 Google OAuth token expired for user {user_id}, refreshing...")
         try:
             credentials.refresh(Request())
