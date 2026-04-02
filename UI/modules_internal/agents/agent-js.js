@@ -2686,17 +2686,27 @@ async function initMultiAgent() {
         return;
     }
 
-    // CRITICAL: Load all threads FIRST before trying to use them
+    // Load threads in BACKGROUND (non-blocking) - UI renders immediately with empty agents
+    // Threads populate the columns after they load
     if (typeof ThreadManager !== 'undefined' && typeof ThreadManager.loadThreadsFromBackend === 'function') {
-        console.log('📥 [initMultiAgent] Loading threads from backend FIRST...');
-        await ThreadManager.loadThreadsFromBackend();
-        console.log(`✅ [initMultiAgent] Threads loaded: ${ThreadManager.threads?.length || 0} threads in memory`);
+        console.log('📥 [initMultiAgent] Loading threads in background (non-blocking)...');
+        ThreadManager.loadThreadsFromBackend()  // NO AWAIT - fire and forget
+            .then(() => {
+                console.log(`✅ [initMultiAgent] Threads loaded: ${ThreadManager.threads?.length || 0} threads in memory`);
+                // Threads now available - refresh dashboard to show thread assignments
+                if (typeof MultiAgent !== 'undefined' && typeof MultiAgent.updateDashboardStats === 'function') {
+                    MultiAgent.updateDashboardStats();
+                    console.log('🔄 [initMultiAgent] Dashboard stats updated with loaded threads');
+                }
+            })
+            .catch(err => console.error('❌ [initMultiAgent] Thread loading failed:', err));
     } else {
         console.error('❌ [initMultiAgent] ThreadManager.loadThreadsFromBackend not available!');
     }
 
     // STEP 1: Calculate agent count from threads' location field (source of truth)
     // ✅ FIX DEC 28: Use thread.location from database instead of separate assignments API
+    // Note: If threads aren't loaded yet, this will default to creating 3 agents
     const agentIdsWithThreads = [];
 
     if (typeof ThreadManager !== 'undefined' && Array.isArray(ThreadManager.threads)) {
