@@ -434,18 +434,35 @@ def validate_and_reorder_assistant_content(content: List[Dict]) -> tuple[List[Di
         cprint(f"[Combined Worker] SUCCESS: Inserted minimal text block at position {thinking_count}", Colors.SUCCESS)
         cprint(f"[Combined Worker] INFO: New structure: {[b.get('type') for b in validated_blocks]}", Colors.INFO)
     
-    # STEP 5: Reorder: thinking blocks first, then others (only if thinking not already first)
-    thinking_blocks = [
-        b for b in validated_blocks 
-        if b.get('type') in ('thinking', 'redacted_thinking')
-    ]
-    other_blocks = [
-        b for b in validated_blocks 
-        if b.get('type') not in ('thinking', 'redacted_thinking')
-    ]
-    
-    cprint(f"[Combined Worker] INFO: Reordered: {len(thinking_blocks)} thinking + {len(other_blocks)} other blocks", Colors.INFO)
-    return thinking_blocks + other_blocks, extracted_tool_results
+    # STEP 5: Block ordering
+    # CRITICAL FIX (Apr 2026): With interleaved thinking, blocks MUST stay in their original order.
+    # Only reorder (put thinking first) when there is NO interleaved thinking
+    # (i.e. no thinking/redacted_thinking block appears after a tool_use block).
+    # Interleaved example: [thinking_1, tool_use_1, redacted_thinking_2, tool_use_2]
+    # — reordering this to [thinking_1, redacted_thinking_2, tool_use_1, tool_use_2]
+    # would cause: "thinking/redacted_thinking blocks cannot be modified"
+    thinking_types = ('thinking', 'redacted_thinking')
+    has_interleaved = False
+    seen_tool_use = False
+    for b in validated_blocks:
+        if isinstance(b, dict):
+            t = b.get('type')
+            if t == 'tool_use':
+                seen_tool_use = True
+            elif t in thinking_types and seen_tool_use:
+                has_interleaved = True
+                break
+
+    if has_interleaved:
+        # Interleaved thinking: preserve original block order exactly
+        cprint(f"[Combined Worker] INFO: Interleaved thinking detected - preserving original block order", Colors.INFO)
+        return validated_blocks, extracted_tool_results
+    else:
+        # Non-interleaved: safe to put thinking blocks first
+        thinking_blocks = [b for b in validated_blocks if b.get('type') in thinking_types]
+        other_blocks = [b for b in validated_blocks if b.get('type') not in thinking_types]
+        cprint(f"[Combined Worker] INFO: Reordered: {len(thinking_blocks)} thinking + {len(other_blocks)} other blocks", Colors.INFO)
+        return thinking_blocks + other_blocks, extracted_tool_results
 
 
 def validate_user_content(content: List[Dict], messages: List[Dict]) -> List[Dict]:
@@ -2912,13 +2929,36 @@ def execute_streaming_request(
         if ai_thinking_enabled:
             print(f"  Thinking Budget: {ai_thinking_budget} tokens")
         
-        # Build thinking parameter based on user preference
-        thinking_param = {'type': 'enabled', 'budget_tokens': ai_thinking_budget} if ai_thinking_enabled else None
-        
+        # Build thinking parameter based on user preference + model capability
+        # claude-sonnet-4-6 and claude-opus-4-6 use `type: "adaptive"` (budget_tokens deprecated).
+        # All earlier Claude models use `type: "enabled"` with budget_tokens.
+        # Non-Anthropic models (GPT, DeepSeek) don't support thinking at all.
+        ADAPTIVE_THINKING_MODELS = {'claude-sonnet-4-6', 'claude-opus-4-6'}
+        SUPPORTS_THINKING_MODELS = {
+            'claude-sonnet-4-6', 'claude-opus-4-6',
+            'claude-opus-4-5-20251101', 'claude-sonnet-4-5-20250929',
+            'claude-opus-4-1-20250805', 'claude-opus-4-20250514',
+            'claude-sonnet-4-20250514', 'claude-haiku-4-5-20251001',
+            'claude-3-7-sonnet-20250219',
+        }
+        model_supports_thinking = (ai_provider == 'anthropic' and
+                                   ai_model in SUPPORTS_THINKING_MODELS)
+        if ai_thinking_enabled and model_supports_thinking:
+            if ai_model in ADAPTIVE_THINKING_MODELS:
+                thinking_param = {'type': 'adaptive'}
+                print(f"{log_prefix} 🧠 Using adaptive thinking (model: {ai_model})")
+            else:
+                thinking_param = {'type': 'enabled', 'budget_tokens': ai_thinking_budget}
+                print(f"{log_prefix} 🧠 Using extended thinking budget={ai_thinking_budget} (model: {ai_model})")
+        else:
+            thinking_param = None
+            if ai_thinking_enabled and not model_supports_thinking:
+                print(f"{log_prefix} ⚠️  Thinking requested but model '{ai_model}' (provider: {ai_provider}) does not support it — disabled")
+
         # CRITICAL: When thinking is enabled, temperature MUST be 1.0 (Anthropic API requirement)
         # This overrides user preferences automatically
-        final_temperature = 1.0 if ai_thinking_enabled else ai_temperature
-        if ai_thinking_enabled and ai_temperature != 1.0:
+        final_temperature = 1.0 if thinking_param else ai_temperature
+        if thinking_param and ai_temperature != 1.0:
             print(f"{log_prefix} ⚙️  Temperature overridden: {ai_temperature} → 1.0 (required when thinking enabled)")
         
         # CRITICAL: Final validation before API call (Nov 22, 2025)
@@ -3192,15 +3232,19 @@ def execute_streaming_request(
             'system': system_prompt,
             'messages': messages,
             'tools': tools,
-            'extra_headers': {
+        }
+
+        # Beta headers only apply to Anthropic models
+        # interleaved-thinking header is only valid on specific Anthropic Claude models
+        if ai_provider == 'anthropic':
+            stream_params['extra_headers'] = {
                 'anthropic-beta': 'web-fetch-2025-09-10,interleaved-thinking-2025-05-14'
             }
-        }
-        
-        # Only add thinking parameter if enabled
+
+        # Only add thinking parameter if enabled for this model
         if thinking_param:
             stream_params['thinking'] = thinking_param
-            print(f"{log_prefix} 🧠 Interleaved Thinking enabled (allows thinking between tool calls)")
+            print(f"{log_prefix} 🧠 Thinking enabled: {thinking_param}")
         
         with client.messages.stream(**stream_params) as stream:
             # Process streaming events
@@ -3260,28 +3304,39 @@ def execute_streaming_request(
                             tool_uses.append({'id': block.id, 'name': block.name, 'input': block.input})
                             yield {'type': 'tool_input_complete', 'tool_name': block.name, 'tool_id': block.id, 'tool_input': block.input}
         
-        # Serialize content blocks
+        # Serialize content blocks - PRESERVE ORIGINAL BLOCK ORDER (critical for interleaved thinking)
+        # CRITICAL FIX (Apr 2026): Do NOT reorder blocks. Anthropic requires thinking blocks
+        # to remain exactly as generated, including their position in the sequence.
+        # With interleaved thinking, blocks appear as: [thinking_1, tool_use_1, redacted_thinking_2, ...]
+        # Moving thinking blocks to the front BREAKS this structure and causes 400 errors.
         serialized_content = []
         for block in all_content_blocks:
             if hasattr(block, 'type'):
                 if block.type == 'thinking':
-                    # Include signature only if it exists and is not empty
-                    print(f"[Combined Worker] 🔍 Serializing thinking block:")
-                    print(f"  - Has signature attr: {hasattr(block, 'signature')}")
-                    if hasattr(block, 'signature'):
-                        sig_preview = str(block.signature)[:20] + '...' if len(str(block.signature)) > 20 else str(block.signature)
-                        print(f"  - Signature value: {repr(sig_preview)}")
-                        print(f"  - Signature is truthy: {bool(block.signature)}")
-                    
-                    thinking_dict = {'type': 'thinking', 'thinking': block.thinking}
-                    if hasattr(block, 'signature') and block.signature:
-                        thinking_dict['signature'] = block.signature
-                        print(f"  - ✅ Including signature in dict")
-                    else:
-                        print(f"  - ⚠️ Omitting signature from dict")
-                    
-                    print(f"  - Final dict keys: {list(thinking_dict.keys())}")
+                    # CRITICAL: Always include signature exactly as received - never omit it
+                    # Anthropic API requires thinking blocks to be passed back UNMODIFIED
+                    thinking_dict = {
+                        'type': 'thinking',
+                        'thinking': block.thinking,
+                        'signature': block.signature if hasattr(block, 'signature') else ''
+                    }
+                    sig_len = len(str(thinking_dict.get('signature', '')))
+                    print(f"{log_prefix} Serializing thinking block (thinking_len={len(block.thinking)}, sig_len={sig_len})")
                     serialized_content.append(thinking_dict)
+
+                elif block.type == 'redacted_thinking':
+                    # CRITICAL FIX (Apr 2026): Preserve redacted_thinking blocks EXACTLY
+                    # These appear in interleaved thinking mode between tool calls and MUST NOT be dropped.
+                    # Dropping them causes: "messages.X.content.Y: thinking/redacted_thinking blocks
+                    # in the latest assistant message cannot be modified."
+                    redacted_dict = {
+                        'type': 'redacted_thinking',
+                        'data': block.data if hasattr(block, 'data') else ''
+                    }
+                    data_len = len(str(redacted_dict.get('data', '')))
+                    print(f"{log_prefix} Serializing redacted_thinking block (data_len={data_len})")
+                    serialized_content.append(redacted_dict)
+
                 elif block.type == 'text':
                     # CRITICAL FIX (Nov 27, 2025): Preserve citations from web search/fetch
                     # Citations are embedded in text blocks and must be preserved for UI display
@@ -3299,18 +3354,17 @@ def execute_streaming_request(
                             }
                             for citation in block.citations
                         ]
-                        print(f"{log_prefix} 📚 Preserved {len(block.citations)} citations in text block")
+                        print(f"{log_prefix} Preserved {len(block.citations)} citations in text block")
                     
                     serialized_content.append(text_block)
                 elif block.type == 'tool_use':
                     serialized_content.append({'type': 'tool_use', 'id': block.id, 'name': block.name, 'input': block.input})
-        
-        # CRITICAL: Reorder blocks - thinking MUST be first if present (Anthropic API requirement)
-        thinking_blocks = [b for b in serialized_content if b.get('type') == 'thinking']
-        other_blocks = [b for b in serialized_content if b.get('type') != 'thinking']
-        serialized_content = thinking_blocks + other_blocks
-        
-        print(f"{log_prefix} Serialized {len(serialized_content)} blocks (thinking blocks first: {len(thinking_blocks)})")
+
+        # NOTE: Block order is intentionally preserved as-is from Anthropic's response.
+        # The old "reorder thinking blocks to front" code has been removed because it breaks
+        # interleaved thinking (where redacted_thinking blocks appear between tool_use blocks).
+        thinking_count = sum(1 for b in serialized_content if b.get('type') in ('thinking', 'redacted_thinking'))
+        print(f"{log_prefix} Serialized {len(serialized_content)} blocks ({thinking_count} thinking/redacted_thinking, order preserved)")
         
         # Add assistant response to history (with ALL blocks including thinking)
         # CRITICAL (Jan 19, 2026): Add source tracking for debugging duplicate message issues

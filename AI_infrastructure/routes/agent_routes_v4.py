@@ -2145,6 +2145,52 @@ Use tools in multiple rounds with interleaved thinking."""
     except Exception:
         ai_provider = 'anthropic'
 
+    # ── MODEL-SWITCH SAFETY (Apr 2026) ───────────────────────────────────────
+    # Claude 4-5 and earlier stripped thinking blocks automatically.
+    # Claude 4-6+ preserves them and requires them to be passed back UNMODIFIED.
+    # When a user switches FROM a thinking-preserving model TO a non-preserving
+    # model (or to a non-Anthropic model), any prior thinking/redacted_thinking
+    # blocks in history will cause a 400 error.  Strip them preemptively here.
+    #
+    # Anthropic models that preserve thinking blocks across turns:
+    THINKING_PRESERVING_MODELS = {
+        'claude-sonnet-4-6', 'claude-opus-4-6',
+        'claude-opus-4-5-20251101', 'claude-opus-4-1-20250805',
+        'claude-opus-4-20250514', 'claude-sonnet-4-20250514',
+    }
+    # Non-Anthropic providers never support thinking blocks at all
+    current_model_preserves = ai_model in THINKING_PRESERVING_MODELS and ai_provider == 'anthropic'
+
+    def _history_has_thinking_blocks(history):
+        for msg in history:
+            content = msg.get('content', [])
+            if isinstance(content, list):
+                if any(isinstance(b, dict) and b.get('type') in ('thinking', 'redacted_thinking')
+                       for b in content):
+                    return True
+        return False
+
+    def _strip_thinking_from_history(history):
+        """Remove thinking/redacted_thinking blocks from all messages in history."""
+        cleaned = []
+        for msg in history:
+            content = msg.get('content', [])
+            if isinstance(content, list):
+                new_content = [b for b in content
+                               if not (isinstance(b, dict) and
+                                       b.get('type') in ('thinking', 'redacted_thinking'))]
+                cleaned.append({**msg, 'content': new_content})
+            else:
+                cleaned.append(msg)
+        return cleaned
+
+    if not current_model_preserves and _history_has_thinking_blocks(conversation_without_current):
+        print(f"[STREAM] ⚠️  Model switch detected: '{ai_model}' does not preserve thinking blocks")
+        print(f"[STREAM] 🧹 Stripping thinking/redacted_thinking blocks from history before sending")
+        conversation_without_current = _strip_thinking_from_history(conversation_without_current)
+        print(f"[STREAM] ✅ History cleaned: {len(conversation_without_current)} messages, no thinking blocks")
+    # ─────────────────────────────────────────────────────────────────────────
+
     print(f"[STREAM] 🧠 AI Preferences:")
     print(f"  Model: {ai_model}")
     print(f"  Provider: {ai_provider}")
