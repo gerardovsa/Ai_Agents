@@ -1561,8 +1561,11 @@ window.communicationHub = {
             return;
         }
 
+        // Clear any stale persisted layout from localStorage (was saved with old Tabulator 4.x "select" editor)
+        try { localStorage.removeItem('tabulator-communication-hub-inbox-layout'); } catch(e) {}
+
         // Create table (WooCommerce Gold Standard Pattern)
-        // Phase 2 Features: Header filters, pagination with size selector, movable/resizable columns, persistent layout
+        // Phase 2 Features: Header filters, pagination with size selector, movable/resizable columns
         const tableData = this.state.collapsedEmails.length > 0 ? this.state.collapsedEmails : this.state.emails;
         this.state.tabulatorTable = new Tabulator(container, {
             data: tableData,
@@ -1581,8 +1584,6 @@ window.communicationHub = {
             // User control (WooCommerce pattern)
             movableColumns: true,
             resizableColumns: true,
-            persistentLayout: true,
-            persistentLayoutID: "communication-hub-inbox-layout",
 
             // Selection
             selectable: true,  // Multi-selection enabled
@@ -1641,7 +1642,7 @@ window.communicationHub = {
                     field: "is_read",
                     width: 100,
                     hozAlign: "center",
-                    headerFilter: "select",
+                    headerFilter: "list",
                     headerFilterParams: { values: { "": "All", "false": "Unread", "true": "Read" } },
                     headerFilterPlaceholder: "Filter...",
                     formatter: (cell) => {
@@ -1671,7 +1672,7 @@ window.communicationHub = {
                     field: "provider",
                     width: 120,
                     hozAlign: "center",
-                    headerFilter: "select",
+                    headerFilter: "list",
                     headerFilterParams: { values: { "": "All", "gmail": "Gmail", "outlook": "Outlook" } },
                     headerFilterPlaceholder: "Filter...",
                     formatter: (cell) => {
