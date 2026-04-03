@@ -54,15 +54,14 @@ from auth.user_auth import UserAuthManager
 from auth.user_auth import require_auth
 
 from google_workspace.gmail import (
-    gmail_list_messages,
+    gmail_list_messages, 
     gmail_get_message,  # Used to fetch full message details (already imported)
     gmail_get_thread,  # ✅ FIX (Jan 19, 2026): Added for Gmail thread fetching
     gmail_get_attachment,  # NEW: Download Gmail attachments
     gmail_send_email,
     gmail_mark_as_read,
     gmail_delete_message,
-    gmail_search_messages,
-    get_gmail_service_from_cred_dict,  # ⚡ Build service once, reuse for batch fetches
+    gmail_search_messages
 )
 
 # Setup logging
@@ -255,28 +254,27 @@ def list_emails():
         try:
             print(f"[Communication Hub] 📧 Fetching Gmail messages for user {user_id}...")
 
-            # ⚡ Build Gmail service ONCE from the already-fetched google_creds.
-            # Previously, every gmail_get_message() call created a fresh Credentials
-            # object from the DB (200+ DB round-trips) without ever setting `expiry`,
-            # so each call hit the expired token → 401 → token-refresh cycle (200+
-            # refresh requests ≈ 60 s).  Building the service once and refreshing
-            # proactively reduces this to a single DB lookup + at most one refresh.
-            gmail_service = get_gmail_service_from_cred_dict(google_creds)
-            print(f"[Communication Hub] ✅ Gmail service ready for user {user_id}")
-
+            # ✅ FIX (Jan 18, 2026): Use threads().get() API when thread_id specified
+            # This fetches ALL messages in conversation (sent + received folders)
             if thread_id:
                 # Gmail thread_id format: "gmail_<actual_thread_id>"
                 actual_thread_id = thread_id.replace('gmail_', '') if thread_id.startswith('gmail_') else thread_id
                 print(f"[Communication Hub] 🔍 Fetching Gmail THREAD: {actual_thread_id}")
-
-                # Use the pre-built service directly (no extra DB lookup)
-                thread_data = gmail_service.users().threads().get(
-                    userId='me', id=actual_thread_id, format='metadata'
-                ).execute()
-
+                
+                from google_workspace.gmail import gmail_get_thread
+                
+                # Get entire thread with all messages (format='metadata' for lightweight response)
+                thread_data = gmail_get_thread(
+                    thread_id=actual_thread_id,
+                    format='metadata',
+                    _user_id=user_id,
+                    _injected_credentials=True
+                )
+                
+                # Parse each message in thread
                 for msg in thread_data.get('messages', []):
                     headers = {h['name'].lower(): h['value'] for h in msg.get('payload', {}).get('headers', [])}
-
+                    
                     emails.append({
                         'id': f"gmail_{msg['id']}",
                         'provider': 'gmail',
@@ -289,59 +287,74 @@ def list_emails():
                         'has_attachments': any(p.get('filename') for p in msg.get('payload', {}).get('parts', [])),
                         'thread_id': msg.get('threadId')
                     })
-
+                
                 print(f"[Communication Hub] ✅ Got {len(emails)} messages from Gmail thread")
-
+            
             else:
-                # No thread filter - list messages then parallel-fetch details
-                gmail_api_result = gmail_service.users().messages().list(
-                    userId='me', maxResults=limit
-                ).execute()
-
-                raw_messages = gmail_api_result.get('messages', [])
-                gmail_count = len(raw_messages)
-                print(f"[Communication Hub] ✅ Got {gmail_count} Gmail message IDs")
-
-                # ⚡ PARALLEL FETCH: reuse the single pre-built service across all workers
-                # (no per-worker DB lookup, no per-worker token refresh)
-                from concurrent.futures import ThreadPoolExecutor, as_completed
-                import time
-
-                def fetch_single_message(msg_summary):
-                    """Fetch one message's metadata using the shared Gmail service."""
-                    try:
-                        msg = gmail_service.users().messages().get(
-                            userId='me', id=msg_summary['id'], format='metadata'
-                        ).execute()
-
-                        headers = {h['name'].lower(): h['value'] for h in msg.get('payload', {}).get('headers', [])}
-
-                        return {
-                            'id': f"gmail_{msg['id']}",
-                            'provider': 'gmail',
-                            'from': headers.get('from', 'Unknown'),
-                            'to': headers.get('to', ''),
-                            'subject': headers.get('subject', 'No Subject'),
-                            'date': headers.get('date', ''),
-                            'is_read': 'UNREAD' not in msg.get('labelIds', []),
-                            'snippet': msg.get('snippet', ''),
-                            'has_attachments': any(p.get('filename') for p in msg.get('payload', {}).get('parts', [])),
-                            'thread_id': msg.get('threadId')
-                        }
-                    except Exception as msg_err:
-                        print(f"[Communication Hub] ⚠️  Failed to fetch message {msg_summary['id']}: {msg_err}")
-                        return None
-
-                start_time = time.time()
-                with ThreadPoolExecutor(max_workers=10) as executor:
-                    future_to_msg = {executor.submit(fetch_single_message, msg): msg for msg in raw_messages}
-                    for future in as_completed(future_to_msg):
-                        result = future.result()
-                        if result:
-                            emails.append(result)
-
-                elapsed = time.time() - start_time
-                print(f"[Communication Hub] ⚡ Fetched {len(emails)} emails in {elapsed:.2f}s (parallel)")
+                # No thread filter - list messages normally
+                gmail_params = {
+                    'max_results': limit,
+                    'skip': skip,  # ✅ PAGINATION: Pass skip to Gmail wrapper
+                    '_user_id': user_id,
+                    '_injected_credentials': True
+                }
+                
+                gmail_result = gmail_list_messages(**gmail_params)
+                
+                # gmail_list_messages returns {'messages': [], 'count': N, 'next_page_token': ...}
+                if 'messages' in gmail_result:
+                    gmail_count = len(gmail_result.get('messages', []))
+                    print(f"[Communication Hub] ✅ Got {gmail_count} Gmail message IDs")
+                    
+                    # ⚡ PARALLEL FETCH: Get all message details at once using ThreadPoolExecutor
+                    from concurrent.futures import ThreadPoolExecutor, as_completed
+                    import time
+                    
+                    def fetch_single_message(msg_summary, uid):
+                        """Fetch a single message metadata using database credentials"""
+                        try:
+                            msg = gmail_get_message(
+                                message_id=msg_summary['id'],
+                                format='metadata',
+                                _user_id=uid,
+                                _injected_credentials=True
+                            )
+                            
+                            # Parse message headers
+                            headers = {h['name'].lower(): h['value'] for h in msg.get('payload', {}).get('headers', [])}
+                            
+                            return {
+                                'id': f"gmail_{msg['id']}",
+                                'provider': 'gmail',
+                                'from': headers.get('from', 'Unknown'),
+                                'to': headers.get('to', ''),
+                                'subject': headers.get('subject', 'No Subject'),
+                                'date': headers.get('date', ''),
+                                'is_read': 'UNREAD' not in msg.get('labelIds', []),
+                                'snippet': msg.get('snippet', ''),
+                                'has_attachments': any(p.get('filename') for p in msg.get('payload', {}).get('parts', [])),
+                                'thread_id': msg.get('threadId')
+                            }
+                        except Exception as msg_err:
+                            print(f"[Communication Hub] ⚠️  Failed to fetch message {msg_summary['id']}: {msg_err}")
+                            return None
+                    
+                    # Execute all fetches in parallel (max 10 workers to respect connection pool limits)
+                    start_time = time.time()
+                    with ThreadPoolExecutor(max_workers=10) as executor:
+                        # Submit all tasks at once with user_id
+                        future_to_msg = {executor.submit(fetch_single_message, msg, user_id): msg for msg in gmail_result.get('messages', [])}
+                        
+                        # Collect results as they complete
+                        for future in as_completed(future_to_msg):
+                            result = future.result()
+                            if result:
+                                emails.append(result)
+                    
+                    elapsed = time.time() - start_time
+                    print(f"[Communication Hub] ⚡ Fetched {len(emails)} emails in {elapsed:.2f}s (parallel)")
+                else:
+                    print(f"[Communication Hub] ⚠️  Gmail returned unexpected format: {list(gmail_result.keys())}")
 
         except Exception as e:
             print(f"[Communication Hub] ❌ Gmail error: {e}")
