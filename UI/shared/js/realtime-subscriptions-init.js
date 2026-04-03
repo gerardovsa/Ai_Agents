@@ -177,6 +177,15 @@ window.RealtimeSubscriptionsInit = (function () {
         console.log(`📡 [Realtime Init] Setting up subscriptions for user ${userId}...`);
 
         try {
+            // 0. INIT - Initialize SupabaseRealtimeManager (sets supabaseClient + heartbeat channel)
+            //    Must be called BEFORE any subscribe() calls or supabaseClient will be null.
+            const managerReady = await SupabaseRealtimeManager.initialize();
+            if (!managerReady) {
+                console.error('❌ [Realtime Init] SupabaseRealtimeManager failed to initialize');
+                updateStatusIndicator('error', 0);
+                return false;
+            }
+
             // 1. HEARTBEAT - Server health monitoring
             await subscribeToHeartbeat();
 

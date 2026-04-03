@@ -85,7 +85,8 @@ def _get_woocommerce_api():
                     url=wc_url,
                     consumer_key=wc_key,
                     consumer_secret=wc_secret,
-                    version="wc/v3"
+                    version="wc/v3",
+                    user_agent="Mozilla/5.0 (compatible; WooCommerce/3.0; +https://woocommerce.com)"
                 )
             elif wc_key and wc_secret and not wc_url:
                 raise RuntimeError(
@@ -115,7 +116,8 @@ def _get_woocommerce_api():
         url=wc_url,
         consumer_key=wc_key,
         consumer_secret=wc_secret,
-        version="wc/v3"
+        version="wc/v3",
+        user_agent="Mozilla/5.0 (compatible; WooCommerce/3.0; +https://woocommerce.com)"
     )
 
 
