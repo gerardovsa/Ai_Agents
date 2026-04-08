@@ -1725,6 +1725,16 @@ def send_invite_email(invite_id: int):
             _user_id=g.user_id,
             _injected_credentials=True
         )
+        
+        # Update invitation with email_sent status
+        execute_query(
+            """
+            UPDATE ai_infrastructure.org_invitations
+            SET email_sent = TRUE, email_sent_at = NOW(), email_sent_provider = %s
+            WHERE id = %s
+            """,
+            ('gmail', invite_id)
+        )
 
     except Exception as e:
         logger.error(f'[ORG_INVITE] send-email failed: {e}', exc_info=True)
@@ -1829,6 +1839,16 @@ def send_invite():
                     _user_id=g.user_id, _injected_credentials=True
                 )
                 email_sent = True
+                
+                # Update invitation with email_sent status
+                execute_query(
+                    """
+                    UPDATE ai_infrastructure.org_invitations
+                    SET email_sent = TRUE, email_sent_at = NOW(), email_sent_provider = %s
+                    WHERE id = %s
+                    """,
+                    ('gmail', invite_id)
+                )
                 logger.info(f"[ORG_INVITE] Invitation email sent to {email}")
 
             except Exception as mail_err:
@@ -1867,6 +1887,9 @@ def list_pending_invites():
             i.invite_token,
             i.expires_at,
             i.created_at,
+            i.email_sent,
+            i.email_sent_at,
+            i.email_sent_provider,
             u.username  AS invited_by_username,
             u.email     AS invited_by_email
         FROM ai_infrastructure.org_invitations i
@@ -1891,6 +1914,9 @@ def list_pending_invites():
                 'invite_token':         str(r['invite_token']),
                 'expires_at':           r['expires_at'].isoformat() if r.get('expires_at') else None,
                 'created_at':           r['created_at'].isoformat() if r.get('created_at') else None,
+                'email_sent':           r.get('email_sent', False),
+                'email_sent_at':        r['email_sent_at'].isoformat() if r.get('email_sent_at') else None,
+                'email_sent_provider':  r.get('email_sent_provider'),
                 'invited_by_username':  r.get('invited_by_username'),
                 'invited_by_email':     r.get('invited_by_email'),
             }

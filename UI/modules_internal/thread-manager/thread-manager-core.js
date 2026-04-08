@@ -316,7 +316,12 @@ const ThreadManager = {
 
                 // ✅ SMART: Only auto-load prime if not already loaded
                 const primeThreadId = this.threads.find(t => t.location === 'prime')?.id;
-                const primeAlreadyLoaded = typeof AppState !== 'undefined' && AppState.currentThreadId === primeThreadId;
+                // ✅ FIX (Apr 9, 2026): Also treat prime as loaded if _assignmentsRestored is true.
+                // restoreThreadAssignments() loads prime via loadThreadIntoAgent('prime', ...) but does NOT
+                // set AppState.currentThreadId, so the AppState check alone incorrectly fires autoLoadPrimeThread
+                // a second time, causing two concurrent message fetches for the same thread → 502.
+                const primeAlreadyLoaded = (typeof AppState !== 'undefined' && AppState.currentThreadId === primeThreadId)
+                    || (this._assignmentsRestored && !!primeThreadId);
 
                 if (!primeAlreadyLoaded && primeThreadId) {
                     console.log('📥 [ThreadManager] Auto-loading prime thread...');
