@@ -1,31 +1,35 @@
 -- =============================================================================
 -- Migration 040: Fix infinite recursion in session_members RLS policies
 -- =============================================================================
--- PROBLEM:
---   `session_members_select` policy queries `synergy_sessions` table.
---   `synergy_sessions_select` policy queries `session_members` table (for 'shared' visibility).
---   This creates a mutual dependency → "infinite recursion detected in policy for
---   relation session_members" → 500 error on every Synergy board load.
+-- PROBLEM (double recursion identified April 8, 2026):
+--
+-- Cycle A:
+--   SELECT synergy_sessions → synergy_sessions_select USING
+--   → queries session_members (visibility='shared' check)
+--   → session_members_write (FOR ALL) USING evaluated
+--   → queries synergy_sessions → synergy_sessions_select → ♾️
+--
+-- Cycle B (inside session_members_write itself):
+--   session_members_write USING queries session_members sm (role='admin' check)
+--   → session_members_write USING evaluated again → ♾️
 --
 -- FIX:
---   Rewrite `session_members_select` to ONLY check user_id directly — no subquery
---   to synergy_sessions. A user may only see their own membership records.
---   This is sufficient for the synergy_sessions_select visibility check to work:
---   the EXISTS clause just needs to know if the current user IS a member, which
---   is correctly satisfied by returning only that user's own row.
+--   1. session_members_select: direct user_id check (no subquery).
+--      Applied April 3 — correct, stays.
 --
---   `session_members_write` already only uses synergy_sessions.owner_user_id for
---   its primary check (not causing additional recursion once select is fixed).
+--   2. session_members_write: replaced with SECURITY DEFINER function.
+--      The function runs as postgres (superuser) which bypasses RLS entirely,
+--      so it can safely query both synergy_sessions and session_members without
+--      triggering any RLS policy evaluation → no recursion possible.
+--      Applied April 8 — this is the key fix.
 --
--- IDEMPOTENT: Yes — uses DROP POLICY IF EXISTS before CREATE POLICY
--- CREATED: April 3, 2026
+-- IDEMPOTENT: Yes — uses CREATE OR REPLACE FUNCTION + DROP POLICY IF EXISTS
 -- =============================================================================
 
 -- ---------------------------------------------------------------------------
--- Drop and recreate the SELECT policy on session_members
--- OLD: EXISTS (SELECT 1 FROM synergy_sessions.synergy_sessions s WHERE ...)
---      → triggers synergy_sessions_select → triggers session_members_select → ♾️
--- NEW: user_id = current_user_id (direct check, zero recursion)
+-- PART 1: session_members_select (SELECT only)
+-- Direct user_id check — zero recursion.
+-- Applied April 3, confirmed still correct.
 -- ---------------------------------------------------------------------------
 DROP POLICY IF EXISTS session_members_select ON synergy_sessions.session_members;
 
@@ -33,14 +37,54 @@ CREATE POLICY session_members_select
     ON synergy_sessions.session_members
     FOR SELECT
     USING (
-        -- A user may only read their own membership record.
-        -- This breaks the mutual recursion with synergy_sessions_select,
-        -- while still satisfying the EXISTS check in that policy for 'shared' sessions.
         user_id = current_setting('app.current_user_id', true)::integer
     );
 
 -- ---------------------------------------------------------------------------
--- Verify: the write policy (session_members_write) does not need changes.
---   Its inner session_members subquery (checking role='admin') now resolves
---   cleanly against the fixed select policy above.
+-- PART 2: SECURITY DEFINER helper function
+-- Runs as postgres (superuser) → bypasses RLS on all tables → no recursion.
+-- Checks whether the current app user owns the session OR is an admin member.
 -- ---------------------------------------------------------------------------
+CREATE OR REPLACE FUNCTION synergy_sessions.current_user_can_manage_session(p_session_id text)
+RETURNS boolean
+LANGUAGE plpgsql
+STABLE
+SECURITY DEFINER
+AS $$
+DECLARE
+    v_result boolean;
+BEGIN
+    -- Executes as postgres (superuser) — RLS is bypassed here, no recursion risk
+    SELECT EXISTS (
+        SELECT 1
+        FROM synergy_sessions.synergy_sessions s
+        WHERE s.session_id = p_session_id
+          AND (
+              s.owner_user_id = current_setting('app.current_user_id', true)::integer
+              OR EXISTS (
+                  SELECT 1
+                  FROM synergy_sessions.session_members sm
+                  WHERE sm.session_id = s.session_id
+                    AND sm.user_id = current_setting('app.current_user_id', true)::integer
+                    AND sm.role = 'admin'
+              )
+          )
+    ) INTO v_result;
+
+    RETURN COALESCE(v_result, false);
+EXCEPTION WHEN OTHERS THEN
+    RETURN false;
+END;
+$$;
+
+-- ---------------------------------------------------------------------------
+-- PART 3: session_members_write (FOR ALL)
+-- Uses the SECURITY DEFINER function — zero recursion.
+-- ---------------------------------------------------------------------------
+DROP POLICY IF EXISTS session_members_write ON synergy_sessions.session_members;
+
+CREATE POLICY session_members_write
+    ON synergy_sessions.session_members
+    FOR ALL
+    USING (synergy_sessions.current_user_can_manage_session(session_id))
+    WITH CHECK (synergy_sessions.current_user_can_manage_session(session_id));

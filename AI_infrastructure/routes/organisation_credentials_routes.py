@@ -474,7 +474,7 @@ def list_members():
     ctx = g.org_ctx
     members = execute_query(
         """
-        SELECT id, username, email, org_role, is_active, last_login, created_at
+        SELECT id, username, email, org_role, is_active, last_active, created_at
         FROM ai_infrastructure.users
         WHERE organisation_id = %s
         ORDER BY
@@ -497,7 +497,7 @@ def list_members():
                 'email':     m['email'],
                 'org_role':  m['org_role'],
                 'is_active': m['is_active'],
-                'last_login': m['last_login'].isoformat() if m.get('last_login') else None,
+                'last_login': m['last_active'].isoformat() if m.get('last_active') else None,
                 'joined_at': m['created_at'].isoformat() if m.get('created_at') else None,
             }
             for m in members
