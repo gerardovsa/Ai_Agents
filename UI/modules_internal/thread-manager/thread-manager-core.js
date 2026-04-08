@@ -266,34 +266,40 @@ const ThreadManager = {
                 await this.loadModules();
                 await this.ensureCorrectUserData();
 
-                // ✅ FIX: Check if MultiAgent already loaded threads (prevents duplicate load + assignment query)
+                // ✅ GUARD (Apr 8, 2026): ThreadManager.init() is now deferred until AFTER hideLoadingOverlay() (user_auth.js).
+                //    This gives initMultiAgent()'s fire-and-forget loadThreadsFromBackend() enough time to complete,
+                //    so `this.threadsLoaded` is usually true by the time we get here (no duplicate API call).
+                //    The `multiAgentAlreadyLoaded` fallback handles edge cases where threads finish in-flight.
                 const multiAgentAlreadyLoaded = typeof MultiAgent !== 'undefined' &&
                     MultiAgent.loadedThreads && Object.keys(MultiAgent.loadedThreads).length > 0;
 
-                // ✅ SMART: Only load threads if not already loaded by initMultiAgent
+                // Only load threads if not already loaded by initMultiAgent's fire-and-forget call
                 if (!this.threadsLoaded || this.threads.length === 0) {
                     if (multiAgentAlreadyLoaded) {
-                        console.log('⏭️ [ThreadManager] Skipping loadThreadsFromBackend (MultiAgent already loaded ' +
+                        console.log('⏭️ [ThreadManager] Skipping loadThreadsFromBackend (initMultiAgent already loaded ' +
                             Object.keys(MultiAgent.loadedThreads).length + ' threads)');
                         this.threads = Object.values(MultiAgent.loadedThreads);
                         this.threadsLoaded = true;
                     } else {
-                        console.log('📥 [ThreadManager] Loading threads (not yet loaded)...');
+                        console.log('📥 [ThreadManager] Loading threads (not yet loaded by initMultiAgent fire-and-forget)...');
                         await this.loadThreadsFromBackend();
                     }
                 } else {
-                    console.log('✅ [ThreadManager] Threads already loaded (count: ' + this.threads.length + '), skipping reload');
+                    console.log('✅ [ThreadManager] Threads already loaded by initMultiAgent fire-and-forget (count: ' + this.threads.length + '), skipping duplicate API call');
                 }
 
-                // ✅ SMART: Only restore assignments if not already done by initMultiAgent
-                if (typeof MultiAgent !== 'undefined' && MultiAgent.loadedThreads && Object.keys(MultiAgent.loadedThreads).length > 0) {
-                    console.log('✅ [ThreadManager] Threads already assigned by initMultiAgent, skipping restoreThreadAssignments');
+                // ✅ FIX (Apr 8, 2026): Use _assignmentsRestored flag instead of MultiAgent.loadedThreads.
+                // MultiAgent.loadedThreads can be non-empty from stale localStorage state, causing this
+                // guard to incorrectly skip restoreThreadAssignments() and leave columns empty.
+                if (this._assignmentsRestored) {
+                    console.log('⏭️ [ThreadManager] Assignments already restored by fire-and-forget, skipping duplicate');
                 } else if (typeof this.restoreThreadAssignments === 'function') {
                     console.log('📥 [ThreadManager] Restoring thread assignments...');
                     await this.restoreThreadAssignments();
+                    this._assignmentsRestored = true;
                 } else {
                     console.warn('⚠️ [ThreadManager] restoreThreadAssignments not loaded yet (assignment module loading asynchronously)');
-                    console.warn('This is expected if modules load asynchronously - assignments will be handled by initMultiAgent');
+                    console.warn('This is expected if modules load asynchronously - assignments will be handled by fire-and-forget');
                 }
 
                 // ✅ FIX: Make realtime subscription optional (loads asynchronously)
