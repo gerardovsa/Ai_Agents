@@ -2794,7 +2794,8 @@ textarea.form-control {
     display: flex;
     flex-direction: column;
     gap: 24px;
-    max-height: 500px;
+    flex: 1;
+    min-height: 0;
     overflow-y: auto;
     transition: all 0.3s ease;
 }

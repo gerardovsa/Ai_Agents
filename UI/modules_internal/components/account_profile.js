@@ -21,6 +21,8 @@ async function handleLogin(event) {
     if (result.success) {
         // Success - UserAuth.showMainApp() already called
         console.log('Login successful');
+        // Check for any pending org invite stored before login
+        await checkPendingInvite();
     } else {
         // Show error
         errorDiv.textContent = result.error;
@@ -2130,7 +2132,7 @@ function addPreferredTool() {
 
     if (!tool) return;
     if (preferredTools.includes(tool)) {
-        alert('This tool is already in your preferences');
+        _showGeneralNotification('This instruction is already in your preferences.', 'warning');
         return;
     }
 
@@ -2201,7 +2203,7 @@ function addCustomPreference() {
 
     if (!preference) return;
     if (customPreferences.includes(preference)) {
-        alert('This preference is already saved');
+        _showGeneralNotification('This preference is already saved.', 'warning');
         return;
     }
 
@@ -2480,6 +2482,17 @@ async function initializeApp() {
     const urlParams = new URLSearchParams(window.location.search);
     const token = urlParams.get('token');
     const error = urlParams.get('error');
+    const acceptInviteToken = urlParams.get('accept_invite');
+
+    // If an invite token is in the URL, stash it for after login and clean the URL
+    if (acceptInviteToken) {
+        sessionStorage.setItem('pendingInviteToken', acceptInviteToken);
+        urlParams.delete('accept_invite');
+        const newSearch = urlParams.toString();
+        window.history.replaceState({}, document.title,
+            window.location.pathname + (newSearch ? '?' + newSearch : ''));
+        console.log('[INVITE] Pending invite token stored from URL');
+    }
 
     if (error) {
         console.error(' OAuth error:', error);
@@ -2589,6 +2602,9 @@ async function initializeApp() {
         await UserAuth.showMainApp();
         console.log('✅ [OAUTH CALLBACK] Main app initialized successfully');
 
+        // Check for pending org invite (stored before login)
+        await checkPendingInvite();
+
         // Mark as initialized to prevent duplicate calls
         isInitialized = true;
 
@@ -2617,6 +2633,9 @@ async function initializeApp() {
             console.log('🚀 [AUTH] Calling UserAuth.showMainApp() with profile data...');
             await UserAuth.showMainApp(profile);
             console.log('✅ [AUTH] Main app initialized successfully');
+
+            // Check for pending org invite (stored before login)
+            await checkPendingInvite();
 
             isInitialized = true;
             return;
@@ -2677,6 +2696,409 @@ if (document.readyState === 'loading') {
 }
 
 // ============================================================================
+// NOTIFICATION HELPERS  (General tab, Team tab, Org tab)
+// ============================================================================
+
+function _showGeneralNotification(message, type) {
+    const existing = document.getElementById('generalNotification');
+    if (existing) existing.remove();
+    const palette = {
+        error:   { bg: 'rgba(239,68,68,0.12)',  border: '#ef4444', icon: 'fa-exclamation-circle',   color: '#ef4444' },
+        warning: { bg: 'rgba(245,158,11,0.12)', border: '#f59e0b', icon: 'fa-exclamation-triangle', color: '#f59e0b' },
+        success: { bg: 'rgba(34,197,94,0.12)',  border: '#22c55e', icon: 'fa-check-circle',         color: '#22c55e' }
+    };
+    const c = palette[type] || palette.error;
+    const el = document.createElement('div');
+    el.id = 'generalNotification';
+    el.setAttribute('role', 'alert');
+    el.style.cssText = `margin:0 0 16px;padding:10px 14px;background:${c.bg};border:1px solid ${c.border};` +
+        `border-radius:6px;font-size:13px;color:${c.color};display:flex;align-items:center;gap:8px;flex-shrink:0;`;
+    el.innerHTML = `<i class="fas ${c.icon}"></i>` +
+        `<span style="flex:1;">${message}</span>` +
+        `<button onclick="this.closest('#generalNotification').remove()" aria-label="Dismiss"` +
+        ` style="background:none;border:none;cursor:pointer;color:${c.color};padding:0;font-size:14px;line-height:1;">` +
+        `<i class="fas fa-times"></i></button>`;
+    const body = document.querySelector('#settings-tab-general .modal-body');
+    if (body) body.insertBefore(el, body.firstChild);
+    if (type === 'success' || type === 'warning') setTimeout(() => el.remove(), 3500);
+}
+
+function _showOrgNotification(message, type) {
+    const existing = document.getElementById('orgNotification');
+    if (existing) existing.remove();
+    const palette = {
+        error:   { bg: 'rgba(239,68,68,0.12)',  border: '#ef4444', icon: 'fa-exclamation-circle',   color: '#ef4444' },
+        warning: { bg: 'rgba(245,158,11,0.12)', border: '#f59e0b', icon: 'fa-exclamation-triangle', color: '#f59e0b' },
+        success: { bg: 'rgba(34,197,94,0.12)',  border: '#22c55e', icon: 'fa-check-circle',         color: '#22c55e' },
+        info:    { bg: 'rgba(59,130,246,0.12)', border: '#3b82f6', icon: 'fa-info-circle',          color: '#3b82f6' }
+    };
+    const c = palette[type] || palette.error;
+    const el = document.createElement('div');
+    el.id = 'orgNotification';
+    el.setAttribute('role', 'alert');
+    el.style.cssText = `margin:0 0 14px;padding:10px 14px;background:${c.bg};border:1px solid ${c.border};` +
+        `border-radius:6px;font-size:13px;color:${c.color};display:flex;align-items:flex-start;gap:8px;flex-shrink:0;`;
+    el.innerHTML = `<i class="fas ${c.icon}" style="margin-top:1px;"></i>` +
+        `<span style="flex:1;line-height:1.45;">${message}</span>` +
+        `<button onclick="this.closest('#orgNotification').remove()" aria-label="Dismiss"` +
+        ` style="background:none;border:none;cursor:pointer;color:${c.color};padding:0;font-size:14px;line-height:1;flex-shrink:0;">` +
+        `<i class="fas fa-times"></i></button>`;
+    // Insert at top of active sub-panel, or fall back to orgPanel
+    const activeSubPanel = Array.from(document.querySelectorAll('.org-sub-panel')).find(p => p.style.display === 'flex');
+    const target = activeSubPanel || document.getElementById('orgDashboard') || document.getElementById('orgPanel');
+    if (target) target.insertBefore(el, target.firstChild);
+    if (type === 'success') setTimeout(() => el.remove(), 3000);
+}
+
+// ============================================================================
+// TEAM MEMBERS TAB
+// ============================================================================
+
+function showAddTeamMemberForm() {
+    const form = document.getElementById('addTeamMemberForm');
+    const btn  = document.getElementById('addTeamMemberBtn');
+    if (form) form.style.display = 'block';
+    if (btn)  btn.style.display  = 'none';
+    setTimeout(() => {
+        const first = document.getElementById('newTeamUsername');
+        if (first) first.focus();
+    }, 50);
+}
+
+function hideAddTeamMemberForm() {
+    const form = document.getElementById('addTeamMemberForm');
+    const btn  = document.getElementById('addTeamMemberBtn');
+    if (form) form.style.display = 'none';
+    if (btn)  btn.style.display  = 'inline-flex';
+    ['newTeamUsername', 'newTeamEmail', 'newTeamPassword'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.value = '';
+    });
+    const scope = document.getElementById('newTeamDataScope');
+    if (scope) scope.value = 'own';
+    const limit = document.getElementById('newTeamUsageLimit');
+    if (limit) limit.value = '1000';
+    const existing = document.getElementById('teamNotification');
+    if (existing) existing.remove();
+}
+
+async function addTeamMember() {
+    const username  = document.getElementById('newTeamUsername')?.value.trim();
+    const email     = document.getElementById('newTeamEmail')?.value.trim();
+    const password  = document.getElementById('newTeamPassword')?.value.trim();
+    const dataScope = document.getElementById('newTeamDataScope')?.value || 'own';
+    const usageLimit = parseInt(document.getElementById('newTeamUsageLimit')?.value || '1000', 10);
+    const saveBtn = document.getElementById('saveNewTeamMemberBtn');
+
+    if (!username) { _showTeamError('Please enter a Username / Team ID.'); return; }
+    if (username.length < 2) { _showTeamError('Team ID must be at least 2 characters.'); return; }
+
+    if (saveBtn) {
+        saveBtn.disabled = true;
+        saveBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Creating…';
+    }
+
+    try {
+        const body = { team_id: username, data_access_scope: dataScope, usage_limit_daily: usageLimit };
+        if (email)    body.email    = email;
+        if (password) body.password = password;
+
+        const res  = await fetch(`${window.API_BASE_URL || ''}/api/auth/team-ids/add`, {
+            method: 'POST',
+            headers: {
+                'Content-Type':  'application/json',
+                'Authorization': `Bearer ${localStorage.getItem('authToken') || ''}`
+            },
+            body: JSON.stringify(body)
+        });
+        const data = await res.json();
+        if (!res.ok || !data.success) throw new Error(data.error || `Server error (${res.status})`);
+
+        hideAddTeamMemberForm();
+        await loadTeamMembers();
+        _showTeamSuccess(`Team member "${username}" created successfully.`);
+    } catch (err) {
+        console.error('[TEAM] addTeamMember error:', err);
+        _showTeamError(`Failed to create team member: ${err.message}`);
+    } finally {
+        if (saveBtn) {
+            saveBtn.disabled = false;
+            saveBtn.innerHTML = '<i class="fas fa-save"></i> Create Member';
+        }
+    }
+}
+
+async function loadTeamMembers() {
+    const loadingEl = document.getElementById('teamMembersLoading');
+    const emptyEl   = document.getElementById('teamMembersEmpty');
+    const tableEl   = document.getElementById('teamMembersTable');
+
+    if (loadingEl) { loadingEl.style.display = 'flex'; }
+    if (emptyEl)   { emptyEl.style.display   = 'none'; }
+    if (tableEl)   { tableEl.style.display   = 'none'; }
+
+    try {
+        const res  = await fetch(`${window.API_BASE_URL || ''}/api/auth/team-ids`, {
+            headers: { 'Authorization': `Bearer ${localStorage.getItem('authToken') || ''}` }
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || `Server error (${res.status})`);
+
+        const members = data.team_ids || [];
+        if (loadingEl) loadingEl.style.display = 'none';
+
+        const badge = document.getElementById('teamMemberCount');
+        if (badge) badge.textContent = members.length;
+
+        if (members.length === 0) {
+            if (emptyEl) emptyEl.style.display = 'flex';
+            return;
+        }
+
+        if (tableEl) {
+            tableEl.style.display = 'block';
+            const scopeColors = { own: '#22c55e', team: '#3b82f6', all: '#f59e0b' };
+            tableEl.innerHTML = members.map(m => {
+                const sc = scopeColors[m.data_access_scope] || '#64748b';
+                const lastActive = m.last_active
+                    ? new Date(m.last_active).toLocaleDateString('en-AU', { day: '2-digit', month: 'short', year: 'numeric' })
+                    : 'Never';
+                const safeId = m.team_id.replace(/[^a-zA-Z0-9_-]/g, '_');
+                return `<div id="team-item-${safeId}" style="border-bottom:1px solid var(--border-default);">
+                    <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 0;">
+                    <div style="display:flex;align-items:center;gap:10px;">
+                        <div style="width:34px;height:34px;border-radius:50%;background:var(--accent-primary);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px;color:white;flex-shrink:0;">
+                            ${(m.team_id || 'T')[0].toUpperCase()}
+                        </div>
+                        <div>
+                            <div style="font-size:13px;font-weight:600;color:var(--text-primary);">${m.team_id}</div>
+                            <div style="font-size:11px;color:var(--text-muted);">${m.email || 'No email'} &mdash; Last active: ${lastActive}</div>
+                        </div>
+                    </div>
+                    <div style="display:flex;align-items:center;gap:8px;flex-shrink:0;">
+                        <span style="font-size:11px;font-weight:600;padding:3px 8px;border-radius:4px;background:${sc}22;color:${sc};">${m.data_access_scope || 'own'}</span>
+                        <span style="font-size:11px;color:var(--text-muted);"><i class="fas fa-comment-alt" style="font-size:10px;margin-right:3px;"></i>${m.usage_limit_daily || 0}/day</span>
+                        <span style="font-size:11px;padding:3px 8px;border-radius:4px;background:${m.is_active ? 'var(--accent-success)' : 'var(--text-muted)'}22;color:${m.is_active ? 'var(--accent-success)' : 'var(--text-muted)'};"
+                        >${m.is_active ? 'Active' : 'Inactive'}</span>
+                        <button onclick="editTeamMember('${safeId}')" title="Edit member"
+                            style="background:transparent;border:1px solid var(--border-default);color:var(--text-muted);cursor:pointer;padding:4px 8px;border-radius:4px;font-size:11px;">
+                            <i class="fas fa-pencil-alt"></i>
+                        </button>
+                        <button onclick="deleteTeamMember('${m.team_id}')" title="Remove member"
+                            style="background:transparent;border:1px solid var(--border-default);color:var(--text-muted);cursor:pointer;padding:4px 8px;border-radius:4px;font-size:11px;">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                    </div>
+                    <div id="team-edit-${safeId}" data-team-id="${m.team_id}"
+                         style="display:none;background:var(--bg-secondary);border-radius:6px;padding:14px 16px;margin-bottom:10px;">
+                        <div style="font-size:12px;font-weight:700;color:var(--text-secondary);margin-bottom:10px;text-transform:uppercase;letter-spacing:.4px;">
+                            <i class="fas fa-pencil-alt" style="margin-right:5px;"></i>Edit ${m.team_id}
+                        </div>
+                        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px;">
+                            <label style="font-size:12px;color:var(--text-secondary);display:flex;flex-direction:column;gap:4px;">
+                                Daily message limit
+                                <input type="number" id="edit-limit-${safeId}" value="${m.usage_limit_daily || 1000}" min="0"
+                                    style="padding:6px 10px;background:var(--bg-primary);border:1px solid var(--border-default);border-radius:5px;color:var(--text-primary);font-size:12px;">
+                            </label>
+                            <label style="font-size:12px;color:var(--text-secondary);display:flex;flex-direction:column;gap:4px;">
+                                New password <span style="color:var(--text-muted);font-weight:400;">(leave blank to keep)</span>
+                                <input type="password" id="edit-pass-${safeId}" placeholder="unchanged"
+                                    style="padding:6px 10px;background:var(--bg-primary);border:1px solid var(--border-default);border-radius:5px;color:var(--text-primary);font-size:12px;">
+                            </label>
+                        </div>
+                        <label style="font-size:12px;color:var(--text-secondary);display:inline-flex;align-items:center;gap:6px;margin-bottom:12px;cursor:pointer;">
+                            <input type="checkbox" id="edit-active-${safeId}" ${m.is_active ? 'checked' : ''}
+                                style="width:14px;height:14px;accent-color:var(--accent-primary);cursor:pointer;">
+                            Account active
+                        </label>
+                        <div style="display:flex;gap:8px;">
+                            <button onclick="saveTeamMemberEdit('${safeId}')"
+                                style="padding:6px 14px;background:var(--accent-primary);color:white;border:none;border-radius:5px;font-size:12px;cursor:pointer;display:flex;align-items:center;gap:5px;">
+                                <i class="fas fa-save"></i> Save changes
+                            </button>
+                            <button onclick="editTeamMember('${safeId}')"
+                                style="padding:6px 14px;background:transparent;border:1px solid var(--border-default);color:var(--text-secondary);border-radius:5px;font-size:12px;cursor:pointer;">
+                                Cancel
+                            </button>
+                        </div>
+                    </div>
+                </div>`;
+            }).join('');
+        }
+    } catch (err) {
+        console.error('[TEAM] loadTeamMembers error:', err);
+        if (loadingEl) loadingEl.style.display = 'none';
+        if (tableEl) {
+            tableEl.style.display = 'block';
+            tableEl.innerHTML = `<div style="padding:20px;text-align:center;color:var(--text-muted);">
+                <i class="fas fa-exclamation-triangle" style="color:var(--accent-warning);font-size:22px;margin-bottom:8px;display:block;"></i>
+                <div style="font-size:13px;margin-bottom:4px;">Failed to load team members</div>
+                <div style="font-size:11px;">${err.message}</div>
+                <button onclick="loadTeamMembers()" style="margin-top:12px;padding:6px 14px;border-radius:6px;border:1px solid var(--border-default);background:var(--bg-secondary);color:var(--text-primary);cursor:pointer;font-size:12px;">
+                    <i class="fas fa-sync"></i> Retry
+                </button>
+            </div>`;
+        }
+    }
+}
+
+async function deleteTeamMember(teamId) {
+    createInlineConfirm({
+        title:        'Remove Team Member?',
+        message:      `Remove "${teamId}"? They will no longer be able to log in. This cannot be undone.`,
+        confirmLabel: 'Remove',
+        cancelLabel:  'Cancel',
+        onConfirm: async () => {
+            try {
+                const res  = await fetch(`${window.API_BASE_URL || ''}/api/auth/team-ids/${encodeURIComponent(teamId)}`, {
+                    method: 'DELETE',
+                    headers: { 'Authorization': `Bearer ${localStorage.getItem('authToken') || ''}` }
+                });
+                const data = await res.json();
+                if (!res.ok || !data.success) throw new Error(data.error || `Server error (${res.status})`);
+                await loadTeamMembers();
+                _showTeamSuccess(`"${teamId}" removed.`);
+            } catch (err) {
+                console.error('[TEAM] deleteTeamMember error:', err);
+                _showTeamError(`Failed to remove team member: ${err.message}`);
+            }
+        }
+    });
+}
+
+function editTeamMember(safeId) {
+    const panel = document.getElementById(`team-edit-${safeId}`);
+    if (!panel) return;
+    const isOpen = panel.style.display !== 'none';
+    panel.style.display = isOpen ? 'none' : 'block';
+    if (!isOpen) {
+        const passInput = panel.querySelector('input[type="password"]');
+        if (passInput) passInput.value = '';
+        const numInput = panel.querySelector('input[type="number"]');
+        if (numInput) numInput.focus();
+    }
+}
+
+async function saveTeamMemberEdit(safeId) {
+    const panel  = document.getElementById(`team-edit-${safeId}`);
+    const teamId = panel?.dataset.teamId;
+    if (!teamId) return;
+
+    const limit    = parseInt(document.getElementById(`edit-limit-${safeId}`)?.value || '1000', 10);
+    const isActive = document.getElementById(`edit-active-${safeId}`)?.checked ?? true;
+    const password = document.getElementById(`edit-pass-${safeId}`)?.value.trim();
+    const saveBtn  = panel?.querySelector('button[onclick*="saveTeamMemberEdit"]');
+
+    const body = { is_active: isActive, usage_limit_daily: limit };
+    if (password) body.password = password;
+
+    if (saveBtn) { saveBtn.disabled = true; saveBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving…'; }
+
+    try {
+        const res  = await fetch(`${window.API_BASE_URL || ''}/api/auth/team-ids/${encodeURIComponent(teamId)}`, {
+            method: 'PUT',
+            headers: {
+                'Content-Type':  'application/json',
+                'Authorization': `Bearer ${localStorage.getItem('authToken') || ''}`
+            },
+            body: JSON.stringify(body)
+        });
+        const data = await res.json();
+        if (!res.ok || !data.success) throw new Error(data.error || `Server error (${res.status})`);
+        await loadTeamMembers();
+        _showTeamSuccess(`"${teamId}" updated successfully.`);
+    } catch (err) {
+        console.error('[TEAM] saveTeamMemberEdit error:', err);
+        _showTeamError(`Failed to update "${teamId}": ${err.message}`);
+        if (saveBtn) { saveBtn.disabled = false; saveBtn.innerHTML = '<i class="fas fa-save"></i> Save changes'; }
+    }
+}
+
+async function exportTeamIdsCsv() {
+    try {
+        const res = await fetch(`${window.API_BASE_URL || ''}/api/auth/team-ids/export`, {
+            headers: { 'Authorization': `Bearer ${localStorage.getItem('authToken') || ''}` }
+        });
+        if (!res.ok) {
+            const err = await res.json().catch(() => ({}));
+            throw new Error(err.error || `Server error (${res.status})`);
+        }
+        const blob = await res.blob();
+        const url  = URL.createObjectURL(blob);
+        const a    = document.createElement('a');
+        a.href     = url;
+        a.download = `team-members-${new Date().toISOString().slice(0, 10)}.csv`;
+        a.click();
+        URL.revokeObjectURL(url);
+    } catch (err) {
+        console.error('[TEAM] exportTeamIdsCsv error:', err);
+        _showTeamError(`Failed to export team members: ${err.message}`);
+    }
+}
+
+async function importTeamIdsCsv(fileInput) {
+    const file = fileInput?.files?.[0];
+    if (!file) return;
+
+    const formData = new FormData();
+    formData.append('file', file);
+
+    try {
+        const res  = await fetch(`${window.API_BASE_URL || ''}/api/auth/team-ids/import`, {
+            method:  'POST',
+            headers: { 'Authorization': `Bearer ${localStorage.getItem('authToken') || ''}` },
+            body:    formData
+        });
+        const data = await res.json();
+        if (!res.ok || !data.success) throw new Error(data.error || `Server error (${res.status})`);
+        await loadTeamMembers();
+        _showTeamSuccess(data.message || 'Team members imported successfully.');
+    } catch (err) {
+        console.error('[TEAM] importTeamIdsCsv error:', err);
+        _showTeamError(`Failed to import team members: ${err.message}`);
+    } finally {
+        if (fileInput) fileInput.value = '';
+    }
+}
+
+function _showTeamError(message)   { _showTeamNotification(message, 'error'); }
+function _showTeamSuccess(message) { _showTeamNotification(message, 'success'); }
+
+function _showTeamNotification(message, type) {
+    const existing = document.getElementById('teamNotification');
+    if (existing) existing.remove();
+
+    const palette = {
+        error:   { bg: 'rgba(239,68,68,0.12)',   border: '#ef4444', icon: 'fa-exclamation-circle', color: '#ef4444' },
+        success: { bg: 'rgba(34,197,94,0.12)',   border: '#22c55e', icon: 'fa-check-circle',       color: '#22c55e' }
+    };
+    const c = palette[type] || palette.error;
+
+    const el = document.createElement('div');
+    el.id = 'teamNotification';
+    el.setAttribute('role', 'alert');
+    el.style.cssText = `margin:0 20px 12px;padding:10px 14px;background:${c.bg};border:1px solid ${c.border};` +
+        `border-radius:6px;font-size:13px;color:${c.color};display:flex;align-items:center;gap:8px;flex-shrink:0;`;
+    el.innerHTML = `<i class="fas ${c.icon}"></i>` +
+        `<span style="flex:1;">${message}</span>` +
+        `<button onclick="this.closest('#teamNotification').remove()" aria-label="Dismiss"` +
+        ` style="background:none;border:none;cursor:pointer;color:${c.color};padding:0;font-size:14px;line-height:1;">` +
+        `<i class="fas fa-times"></i></button>`;
+
+    const form    = document.getElementById('addTeamMemberForm');
+    const teamTab = document.getElementById('settings-tab-team');
+    if (form && form.style.display !== 'none') {
+        form.parentNode.insertBefore(el, form.nextSibling);
+    } else if (teamTab) {
+        const header = teamTab.querySelector('.team-tab-header');
+        if (header) header.parentNode.insertBefore(el, header.nextSibling);
+    }
+
+    if (type === 'success') setTimeout(() => el.remove(), 3000);
+}
+
+// ============================================================================
 // ORGANISATION TAB
 // ============================================================================
 
@@ -2690,7 +3112,8 @@ function switchSettingsTab(tab, btn) {
     const panel = document.getElementById(`settings-tab-${tab}`);
     if (panel) panel.style.display = 'flex';
     if (btn)  btn.classList.add('active');
-    if (tab === 'org') loadOrgTab();
+    if (tab === 'org')  loadOrgTab();
+    if (tab === 'team') loadTeamMembers();
 }
 
 /** Sub-tab switcher inside the org dashboard */
@@ -2843,7 +3266,7 @@ async function saveOrgSettings() {
     const btn          = document.getElementById('saveOrgSettingsBtn');
 
     const name = nameEl?.value.trim();
-    if (!name) { alert('Organisation name is required.'); return; }
+    if (!name) { _showOrgNotification('Organisation name is required.', 'error'); return; }
 
     // Parse comma/space-separated domains, lowercase, strip empties
     const rawDomains = domainsEl?.value || '';
@@ -2882,7 +3305,7 @@ async function saveOrgSettings() {
         setTimeout(() => { if (btn) btn.innerHTML = '<i class="fas fa-save"></i> Save Settings'; }, 2000);
     } catch (err) {
         console.error('[ORG] saveOrgSettings error:', err);
-        alert(`Failed to save: ${err.message}`);
+        _showOrgNotification(`Failed to save: ${err.message}`, 'error');
         if (btn) { btn.disabled = false; btn.innerHTML = '<i class="fas fa-save"></i> Save Settings'; }
     }
 }
@@ -2918,7 +3341,7 @@ async function createOrganisation() {
     const vis    = document.getElementById('createOrgVisibility')?.value || 'private';
     const btn    = document.getElementById('createOrgBtn');
 
-    if (!name) { alert('Organisation name is required.'); return; }
+    if (!name) { _showOrgNotification('Organisation name is required.', 'error'); return; }
 
     if (btn) { btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Creating...'; }
 
@@ -2939,7 +3362,7 @@ async function createOrganisation() {
         document.getElementById('orgCreateForm').style.display = 'none';
     } catch (err) {
         console.error('[ORG] createOrganisation error:', err);
-        alert(`Failed to create organisation: ${err.message}`);
+        _showOrgNotification(`Failed to create organisation: ${err.message}`, 'error');
         if (btn) { btn.disabled = false; btn.innerHTML = '<i class="fas fa-plus"></i> Create Organisation'; }
     }
 }
@@ -3007,19 +3430,27 @@ async function loadOrgMembers(countOnly = false) {
     }
 }
 
-async function removeMemberFromOrg(userId, username) {
-    if (!confirm(`Remove ${username} from the organisation?`)) return;
-    try {
-        const res  = await fetch(`${API_BASE_URL}/api/org/members/${userId}`, {
-            method: 'DELETE',
-            headers: { 'Authorization': `Bearer ${localStorage.getItem('authToken') || ''}` }
-        });
-        const data = await res.json();
-        if (!data.success) throw new Error(data.error);
-        loadOrgMembers();
-    } catch (err) {
-        alert(`Failed to remove member: ${err.message}`);
-    }
+function removeMemberFromOrg(userId, username) {
+    createInlineConfirm({
+        title:        'Remove Member?',
+        message:      `Remove "${username}" from the organisation? They will lose access immediately.`,
+        confirmLabel: 'Remove',
+        cancelLabel:  'Cancel',
+        onConfirm: async () => {
+            try {
+                const res  = await fetch(`${API_BASE_URL}/api/org/members/${userId}`, {
+                    method: 'DELETE',
+                    headers: { 'Authorization': `Bearer ${localStorage.getItem('authToken') || ''}` }
+                });
+                const data = await res.json();
+                if (!data.success) throw new Error(data.error);
+                loadOrgMembers();
+                _showOrgNotification(`${username} removed from the organisation.`, 'success');
+            } catch (err) {
+                _showOrgNotification(`Failed to remove member: ${err.message}`, 'error');
+            }
+        }
+    });
 }
 
 /**
@@ -3123,7 +3554,7 @@ async function setMemberModuleAccess(userId, moduleName, enabled) {
         });
         const data = await res.json();
         if (!data.success) {
-            alert(data.error || 'Failed to update module access');
+            _showOrgNotification(data.error || 'Failed to update module access', 'error');
             // Re-open panel to restore correct checkbox state
             const panel = document.getElementById(`member-modules-panel-${userId}`);
             if (panel) { panel.style.display = 'none'; }
@@ -3137,29 +3568,35 @@ async function setMemberModuleAccess(userId, moduleName, enabled) {
             label.style.color = enabled ? 'var(--success,#22c55e)' : 'var(--text-muted)';
         }
     } catch (err) {
-        alert('Error updating module access: ' + err.message);
+        _showOrgNotification('Error updating module access: ' + err.message, 'error');
     }
 }
 
 /**
  * Reset ALL per-user module overrides for a member (restore org defaults).
  */
-async function resetMemberModuleAccess(userId) {
-    if (!confirm('Reset all module restrictions for this member? They will inherit the org defaults.')) return;
-    try {
-        const res  = await fetch(`${API_BASE_URL}/api/org/members/${userId}/modules`, {
-            method: 'DELETE',
-            headers: { 'Authorization': `Bearer ${localStorage.getItem('authToken') || ''}` }
-        });
-        const data = await res.json();
-        if (!data.success) throw new Error(data.error);
-        // Reload the panel to reflect reset state
-        const panel = document.getElementById(`member-modules-panel-${userId}`);
-        if (panel) { panel.style.display = 'none'; }
-        toggleMemberModulesPanel(userId);
-    } catch (err) {
-        alert('Failed to reset: ' + err.message);
-    }
+function resetMemberModuleAccess(userId) {
+    createInlineConfirm({
+        title:        'Reset Module Access?',
+        message:      'Reset all module restrictions for this member? They will inherit the organisation defaults.',
+        confirmLabel: 'Reset',
+        cancelLabel:  'Cancel',
+        onConfirm: async () => {
+            try {
+                const res  = await fetch(`${API_BASE_URL}/api/org/members/${userId}/modules`, {
+                    method: 'DELETE',
+                    headers: { 'Authorization': `Bearer ${localStorage.getItem('authToken') || ''}` }
+                });
+                const data = await res.json();
+                if (!data.success) throw new Error(data.error);
+                const panel = document.getElementById(`member-modules-panel-${userId}`);
+                if (panel) { panel.style.display = 'none'; }
+                toggleMemberModulesPanel(userId);
+            } catch (err) {
+                _showOrgNotification('Failed to reset: ' + err.message, 'error');
+            }
+        }
+    });
 }
 window.removeMemberFromOrg = removeMemberFromOrg;
 window.toggleMemberModulesPanel  = toggleMemberModulesPanel;
@@ -3179,42 +3616,54 @@ function hideInviteMemberUI() {
     if (document.getElementById('inviteRole'))    document.getElementById('inviteRole').value    = 'member';
 }
 async function inviteOrgMember() {
-    const email = document.getElementById('inviteEmail')?.value.trim();
-    const role  = document.getElementById('inviteRole')?.value || 'member';
-    const btn   = document.getElementById('sendInviteBtn');
+    const email    = document.getElementById('inviteEmail')?.value.trim();
+    const role     = document.getElementById('inviteRole')?.value || 'member';
+    const provider = document.getElementById('inviteProvider')?.value || '';
+    const btn      = document.getElementById('sendInviteBtn');
 
-    if (!email || !email.includes('@')) { alert('Please enter a valid email address.'); return; }
+    if (!email || !email.includes('@')) { _showOrgNotification('Please enter a valid email address.', 'error'); return; }
 
     if (btn) { btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Sending...'; }
 
     try {
+        const body = { email, role };
+        if (provider) body.provider = provider;
+
         const res  = await fetch(`${API_BASE_URL}/api/org/invite`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
                 'Authorization': `Bearer ${localStorage.getItem('authToken') || ''}`
             },
-            body: JSON.stringify({ email, role }),
+            body: JSON.stringify(body),
         });
         const data = await res.json();
         if (!data.success) throw new Error(data.error || 'Invite failed');
 
         hideInviteMemberUI();
 
-        // Show the accept link so it can be copied/shared (until email is wired)
-        if (data.accept_url) {
-            const copied = await navigator.clipboard.writeText(data.accept_url).then(() => true).catch(() => false);
-            alert(`Invitation created for ${email}!\n\n` +
-                  `Invite link${copied ? ' (copied to clipboard)' : ''}:\n${data.accept_url}\n\n` +
-                  `Expires: ${data.expires_at ? new Date(data.expires_at).toLocaleDateString() : 'in 7 days'}`);
+        if (data.email_sent) {
+            _showOrgNotification(`Invitation sent to ${email} — they will receive a secure join link by email.`, 'success');
         } else {
-            alert(`Invitation sent to ${email}!`);
+            // Email not sent — display the invite link inline
+            const escapedUrl = (data.accept_url || '').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+            const copied     = await navigator.clipboard.writeText(data.accept_url).then(() => true).catch(() => false);
+            const expires    = data.expires_at ? new Date(data.expires_at).toLocaleDateString() : 'in 7 days';
+            const prefixMsg  = data.email_error
+                ? `Invite created for ${email} — email delivery failed. Share this link manually:`
+                : `Invite created for ${email} — share this link with them:`;
+            _showOrgNotification(
+                `${prefixMsg}<br>` +
+                `<code style="display:block;margin-top:6px;font-size:11px;word-break:break-all;padding:4px 6px;background:rgba(0,0,0,0.2);border-radius:4px;">${escapedUrl}</code>` +
+                `<span style="display:block;margin-top:4px;font-size:11px;opacity:.7;">Expires: ${expires}${copied ? ' &mdash; copied to clipboard' : ''}</span>`,
+                'info'
+            );
         }
 
         loadOrgInvitations();
     } catch (err) {
         console.error('[ORG] inviteOrgMember error:', err);
-        alert(`Failed to send invitation: ${err.message}`);
+        _showOrgNotification(`Failed to send invitation: ${err.message}`, 'error');
     } finally {
         if (btn) { btn.disabled = false; btn.innerHTML = '<i class="fas fa-paper-plane"></i> Send Invite'; }
     }
@@ -3273,19 +3722,27 @@ async function loadOrgInvitations() {
     }
 }
 
-async function revokeOrgInvite(inviteId, email) {
-    if (!confirm(`Revoke invitation for ${email}?`)) return;
-    try {
-        const res  = await fetch(`${API_BASE_URL}/api/org/invite/${inviteId}`, {
-            method: 'DELETE',
-            headers: { 'Authorization': `Bearer ${localStorage.getItem('authToken') || ''}` }
-        });
-        const data = await res.json();
-        if (!data.success) throw new Error(data.error);
-        loadOrgInvitations();
-    } catch (err) {
-        alert(`Failed to revoke: ${err.message}`);
-    }
+function revokeOrgInvite(inviteId, email) {
+    createInlineConfirm({
+        title:        'Revoke Invitation?',
+        message:      `Revoke the invitation for ${email}? The link will stop working immediately.`,
+        confirmLabel: 'Revoke',
+        cancelLabel:  'Cancel',
+        onConfirm: async () => {
+            try {
+                const res  = await fetch(`${API_BASE_URL}/api/org/invite/${inviteId}`, {
+                    method: 'DELETE',
+                    headers: { 'Authorization': `Bearer ${localStorage.getItem('authToken') || ''}` }
+                });
+                const data = await res.json();
+                if (!data.success) throw new Error(data.error);
+                loadOrgInvitations();
+                _showOrgNotification(`Invitation for ${email} revoked.`, 'success');
+            } catch (err) {
+                _showOrgNotification(`Failed to revoke: ${err.message}`, 'error');
+            }
+        }
+    });
 }
 window.revokeOrgInvite = revokeOrgInvite;
 
@@ -3297,10 +3754,157 @@ window.saveOrgSettings    = saveOrgSettings;
 window.showCreateOrgForm  = showCreateOrgForm;
 window.hideCreateOrgForm  = hideCreateOrgForm;
 window.updateOrgSlugPreview = updateOrgSlugPreview;
+// ==================== ACCEPT INVITE FLOW ====================
+
+/**
+ * Checks sessionStorage for a pending invite token (stored when user arrived
+ * via an `?accept_invite=<token>` URL) and triggers the accept-invite modal.
+ */
+async function checkPendingInvite() {
+    const pendingToken = sessionStorage.getItem('pendingInviteToken');
+    if (!pendingToken) return;
+    sessionStorage.removeItem('pendingInviteToken');
+    await handleAcceptInvite(pendingToken);
+}
+
+/**
+ * Validates the invite token with the backend, then shows an accept dialog.
+ * Handles: email mismatch, already accepted, expired, and success cases.
+ */
+async function handleAcceptInvite(inviteToken) {
+    let inviteInfo;
+    try {
+        const resp = await fetch(
+            `${window.API_BASE_URL}/api/org/invite/accept?token=${encodeURIComponent(inviteToken)}`
+        );
+        inviteInfo = await resp.json();
+    } catch (e) {
+        console.error('[INVITE] Failed to fetch invite info:', e);
+        return;
+    }
+
+    if (!inviteInfo.success) {
+        _showInviteNotice('error', 'Invitation Invalid', inviteInfo.error || 'This invitation is no longer valid.');
+        return;
+    }
+
+    const { org_name, invited_role } = inviteInfo;
+
+    _showInviteAcceptDialog(org_name, invited_role, async (onDone) => {
+        try {
+            const authToken = localStorage.getItem('authToken') || sessionStorage.getItem('authToken');
+            const acceptResp = await fetch(`${window.API_BASE_URL}/api/org/invite/accept`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${authToken}`
+                },
+                body: JSON.stringify({ token: inviteToken })
+            });
+            const result = await acceptResp.json();
+
+            if (result.success) {
+                onDone('success', `You have joined <strong>${org_name}</strong> as ${invited_role}.`);
+                setTimeout(async () => {
+                    try { await loadUserProfile(); } catch (e) { /* non-fatal */ }
+                }, 1200);
+            } else {
+                onDone('error', result.error || 'Failed to accept invitation.');
+            }
+        } catch (e) {
+            onDone('error', 'Network error. Please try again.');
+        }
+    });
+}
+
+/** Renders the accept-invite confirmation dialog. */
+function _showInviteAcceptDialog(orgName, role, onAccept) {
+    const overlay = document.createElement('div');
+    overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.55);display:flex;align-items:center;justify-content:center;z-index:2147483647';
+
+    const dialog = document.createElement('div');
+    dialog.style.cssText = 'background:var(--bg-primary,#0b1220);color:var(--text-primary,#e6edf3);padding:24px;border-radius:12px;min-width:340px;max-width:480px;box-shadow:0 16px 48px rgba(0,0,0,0.7);border:1px solid var(--border-color,rgba(255,255,255,0.08))';
+    dialog.innerHTML = `
+        <div style="font-size:1.1rem;font-weight:700;margin-bottom:16px;">
+            <i class="fas fa-envelope-open-text" style="color:#58a6ff;margin-right:8px;"></i>
+            Organisation Invitation
+        </div>
+        <div style="margin-bottom:20px;line-height:1.5;color:var(--text-secondary,#8b949e)">
+            You have been invited to join
+            <strong style="color:var(--text-primary,#e6edf3)">${orgName}</strong>
+            as <span style="background:var(--bg-tertiary,#161b22);padding:2px 8px;border-radius:4px;font-family:monospace;font-size:0.9em">${role}</span>.
+        </div>
+        <div id="_invite-dialog-status" style="display:none;margin-bottom:12px;padding:10px 12px;border-radius:6px;font-size:0.88rem"></div>
+        <div style="display:flex;justify-content:flex-end;gap:10px">
+            <button id="_invite-cancel-btn" class="btn btn-secondary" style="min-width:80px">Decline</button>
+            <button id="_invite-accept-btn" class="btn btn-primary" style="min-width:80px">
+                <i class="fas fa-check"></i> Accept
+            </button>
+        </div>
+    `;
+
+    overlay.appendChild(dialog);
+    document.body.appendChild(overlay);
+
+    const statusEl  = dialog.querySelector('#_invite-dialog-status');
+    const acceptBtn = dialog.querySelector('#_invite-accept-btn');
+    const cancelBtn = dialog.querySelector('#_invite-cancel-btn');
+    const closeDialog = () => { try { overlay.remove(); } catch (e) {} };
+
+    cancelBtn.addEventListener('click', closeDialog);
+    acceptBtn.addEventListener('click', () => {
+        acceptBtn.disabled = true;
+        cancelBtn.disabled = true;
+        acceptBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Joining...';
+
+        onAccept((type, message) => {
+            statusEl.style.display = 'block';
+            if (type === 'success') {
+                statusEl.style.cssText += ';background:rgba(63,185,80,0.1);color:#3fb950;border:1px solid rgba(63,185,80,0.3)';
+                statusEl.innerHTML = `<i class="fas fa-check-circle"></i> ${message}`;
+                acceptBtn.innerHTML = '<i class="fas fa-check"></i> Done';
+                cancelBtn.style.display = 'none';
+                setTimeout(closeDialog, 2500);
+            } else {
+                statusEl.style.cssText += ';background:rgba(248,81,73,0.1);color:#f85149;border:1px solid rgba(248,81,73,0.3)';
+                statusEl.innerHTML = `<i class="fas fa-exclamation-circle"></i> ${message}`;
+                acceptBtn.disabled = false;
+                cancelBtn.disabled = false;
+                acceptBtn.innerHTML = '<i class="fas fa-check"></i> Accept';
+            }
+        });
+    });
+}
+
+/** Simple info/error notice dialog (no accept action). */
+function _showInviteNotice(type, title, message) {
+    const overlay = document.createElement('div');
+    overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.55);display:flex;align-items:center;justify-content:center;z-index:2147483647';
+
+    const icon  = type === 'success' ? 'fa-check-circle' : 'fa-exclamation-circle';
+    const color = type === 'success' ? '#3fb950' : '#f85149';
+    const dialog = document.createElement('div');
+    dialog.style.cssText = 'background:var(--bg-primary,#0b1220);color:var(--text-primary,#e6edf3);padding:24px;border-radius:12px;min-width:320px;max-width:440px;box-shadow:0 16px 48px rgba(0,0,0,0.7);border:1px solid var(--border-color,rgba(255,255,255,0.08));text-align:center';
+    dialog.innerHTML = `
+        <div style="font-size:2rem;margin-bottom:12px;color:${color}"><i class="fas ${icon}"></i></div>
+        <div style="font-weight:700;font-size:1.05rem;margin-bottom:8px">${title}</div>
+        <div style="color:var(--text-secondary,#8b949e);margin-bottom:20px;line-height:1.4">${message}</div>
+        <button class="btn btn-primary" id="_invite-notice-close">Close</button>
+    `;
+    overlay.appendChild(dialog);
+    document.body.appendChild(overlay);
+    dialog.querySelector('#_invite-notice-close').addEventListener('click', () => {
+        try { overlay.remove(); } catch (e) {}
+    });
+}
+
+// ==================== EXPORTS ====================
+
 window.createOrganisation = createOrganisation;
 window.showInviteMemberUI = showInviteMemberUI;
 window.hideInviteMemberUI = hideInviteMemberUI;
 window.inviteOrgMember    = inviteOrgMember;
+window.handleAcceptInvite = handleAcceptInvite;
 
 // ✅ Export functions for external use
 window.initializeAccountProfile = initializeApp;
