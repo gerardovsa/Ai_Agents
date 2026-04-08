@@ -3244,8 +3244,21 @@ function _renderOrgDashboard(org) {
     // Populate AI provider/model (GAP-M3)
     const aiProviderEl = document.getElementById('editOrgAiProvider');
     const aiModelEl    = document.getElementById('editOrgAiModel');
-    if (aiProviderEl) aiProviderEl.value = org.ai_provider || 'anthropic';
-    if (aiModelEl)    aiModelEl.value    = org.ai_model    || '';
+    if (aiProviderEl) {
+        aiProviderEl.value = org.ai_provider || 'anthropic';
+        // Add event listener to update models when provider changes
+        aiProviderEl.addEventListener('change', updateOrgAiModelDropdown);
+    }
+    if (aiModelEl) {
+        // Store current value in data attribute for restoration after dropdown rebuild
+        const currentModel = org.ai_model || '';
+        aiModelEl.setAttribute('data-current-value', currentModel);
+        aiModelEl.value = currentModel;
+    }
+    // Populate the model dropdown based on selected provider
+    if (typeof updateOrgAiModelDropdown === 'function') {
+        updateOrgAiModelDropdown();
+    }
 
     // Hide save button for non-owners
     const saveBtn = document.getElementById('saveOrgSettingsBtn');
@@ -3615,6 +3628,86 @@ function hideInviteMemberUI() {
     if (document.getElementById('inviteEmail'))   document.getElementById('inviteEmail').value   = '';
     if (document.getElementById('inviteRole'))    document.getElementById('inviteRole').value    = 'member';
 }
+
+/** Confirm invite with user's email address before sending */
+function confirmInviteWithEmailAddress(inviteeEmail, role) {
+    return new Promise((resolve) => {
+        const userEmail = window.UserAuth?.user?.email || 'your email account';
+        
+        const overlay = document.createElement('div');
+        overlay.className = 'inline-confirm-overlay';
+        overlay.style.position = 'fixed';
+        overlay.style.inset = '0';
+        overlay.style.background = 'rgba(0,0,0,0.5)';
+        overlay.style.display = 'flex';
+        overlay.style.alignItems = 'center';
+        overlay.style.justifyContent = 'center';
+        overlay.style.zIndex = '9999';
+        
+        const dialog = document.createElement('div');
+        dialog.style.background = 'var(--bg-primary)';
+        dialog.style.color = 'var(--text-primary)';
+        dialog.style.padding = '24px';
+        dialog.style.borderRadius = '8px';
+        dialog.style.maxWidth = '420px';
+        dialog.style.boxShadow = '0 20px 60px rgba(0,0,0,0.3)';
+        dialog.style.border = '1px solid var(--border-default)';
+        
+        dialog.innerHTML = `
+            <div style="margin-bottom:20px;">
+                <div style="font-size:18px;font-weight:700;margin-bottom:12px;color:var(--text-primary);">
+                    <i class="fas fa-envelope" style="margin-right:8px;color:var(--accent-primary);"></i>
+                    Confirm Invite
+                </div>
+                <div style="font-size:14px;color:var(--text-secondary);line-height:1.6;">
+                    <div style="margin-bottom:12px;">
+                        This invitation will be sent <strong>from:</strong><br>
+                        <code style="display:block;padding:8px 10px;background:var(--bg-secondary);border-left:3px solid var(--accent-primary);margin-top:6px;border-radius:4px;font-size:13px;word-break:break-all;">${userEmail}</code>
+                    </div>
+                    <div style="margin-bottom:12px;">
+                        <strong>To:</strong><br>
+                        <code style="display:block;padding:8px 10px;background:var(--bg-secondary);border-left:3px solid var(--accent-success,#4caf50);margin-top:6px;border-radius:4px;font-size:13px;word-break:break-all;">${inviteeEmail}</code>
+                    </div>
+                    <div>
+                        <strong>Role:</strong> ${role.charAt(0).toUpperCase() + role.slice(1)}
+                    </div>
+                </div>
+            </div>
+            <div style="display:flex;gap:10px;justify-content:flex-end;">
+                <button id="confirm-cancel" style="padding:10px 18px;background:transparent;border:1px solid var(--border-color);color:var(--text-secondary);border-radius:6px;cursor:pointer;font-weight:500;">
+                    Cancel
+                </button>
+                <button id="confirm-send" style="padding:10px 18px;background:var(--accent-primary);color:#fff;border:none;border-radius:6px;cursor:pointer;font-weight:600;">
+                    <i class="fas fa-paper-plane" style="margin-right:6px;"></i>Send Invite
+                </button>
+            </div>
+        `;
+        
+        overlay.appendChild(dialog);
+        document.body.appendChild(overlay);
+        
+        document.getElementById('confirm-cancel').onclick = () => {
+            overlay.remove();
+            resolve(false);
+        };
+        
+        document.getElementById('confirm-send').onclick = () => {
+            overlay.remove();
+            resolve(true);
+        };
+        
+        // Close on ESC
+        const handleEsc = (e) => {
+            if (e.key === 'Escape') {
+                overlay.remove();
+                document.removeEventListener('keydown', handleEsc);
+                resolve(false);
+            }
+        };
+        document.addEventListener('keydown', handleEsc);
+    });
+}
+
 async function inviteOrgMember() {
     const email    = document.getElementById('inviteEmail')?.value.trim();
     const role     = document.getElementById('inviteRole')?.value || 'member';
@@ -3622,6 +3715,10 @@ async function inviteOrgMember() {
     const btn      = document.getElementById('sendInviteBtn');
 
     if (!email || !email.includes('@')) { _showOrgNotification('Please enter a valid email address.', 'error'); return; }
+
+    // Show confirmation dialog with user's email
+    const confirmed = await confirmInviteWithEmailAddress(email, role);
+    if (!confirmed) { return; }
 
     if (btn) { btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Sending...'; }
 
@@ -3643,21 +3740,20 @@ async function inviteOrgMember() {
         hideInviteMemberUI();
 
         if (data.email_sent) {
-            _showOrgNotification(`Invitation sent to ${email} — they will receive a secure join link by email.`, 'success');
-        } else {
-            // Email not sent — display the invite link inline
+            _showOrgNotification(`✅ Invitation sent to ${email} — they will receive a join link via their email.`, 'success');
+        } else if (data.email_error) {
+            // Email failed — show error and provide manual link
             const escapedUrl = (data.accept_url || '').replace(/</g, '&lt;').replace(/>/g, '&gt;');
             const copied     = await navigator.clipboard.writeText(data.accept_url).then(() => true).catch(() => false);
             const expires    = data.expires_at ? new Date(data.expires_at).toLocaleDateString() : 'in 7 days';
-            const prefixMsg  = data.email_error
-                ? `Invite created for ${email} — email delivery failed. Share this link manually:`
-                : `Invite created for ${email} — share this link with them:`;
-            _showOrgNotification(
-                `${prefixMsg}<br>` +
+            
+            let msg = `<strong>⚠️ Email delivery failed</strong><br>`;
+            msg += `<span style="font-size:12px;color:#ff9800;margin-bottom:8px;display:block;">${data.email_error}</span>`;
+            msg += `<span style="font-size:12px;opacity:.8;">Share this link with them instead:</span><br>` +
                 `<code style="display:block;margin-top:6px;font-size:11px;word-break:break-all;padding:4px 6px;background:rgba(0,0,0,0.2);border-radius:4px;">${escapedUrl}</code>` +
-                `<span style="display:block;margin-top:4px;font-size:11px;opacity:.7;">Expires: ${expires}${copied ? ' &mdash; copied to clipboard' : ''}</span>`,
-                'info'
-            );
+                `<span style="display:block;margin-top:4px;font-size:11px;opacity:.7;">Expires: ${expires}${copied ? ' &mdash; copied' : ''}</span>`;
+            
+            _showOrgNotification(msg, 'warning');
         }
 
         loadOrgInvitations();

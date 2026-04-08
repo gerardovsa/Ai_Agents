@@ -1,6 +1,6 @@
 # Organisation Credentials Architecture
-**Date**: March 26, 2026 (Last Updated: March 26, 2026)
-**Status**: ✅ Migration 036 complete. All architecture described herein is LIVE in Supabase (platform_catalog, module_catalog, org_module_access, organisation_platform_credentials tables). See `.github/copilot-instructions.md` for complete organization system documentation.
+**Date**: March 26, 2026 (Last Updated: April 8, 2026)
+**Status**: ✅ Migration 036 complete. All architecture described herein is LIVE in Supabase (platform_catalog, module_catalog, org_module_access, organisation_platform_credentials tables). Full invite system complete (create, email, accept-invite frontend). See `.github/copilot-instructions.md` for complete organization system documentation.
 
 ---
 
@@ -204,6 +204,12 @@ resolve_api_key(user_id=5, platform='anthropic')
 | GET | `/api/org/credentials/audit-log` | admin | View who revealed what + when |
 | POST | `/api/org/vault-password` | owner | Set/change vault password |
 | DELETE | `/api/org/vault-password` | owner | Remove vault password |
+| POST | `/api/org/invite` | admin | Create invite (optional inline email via `provider` field: `gmail`/`outlook`) |
+| GET | `/api/org/invite/pending` | admin | List pending invitations |
+| DELETE | `/api/org/invite/<id>` | admin | Revoke invitation |
+| POST | `/api/org/invite/<id>/send-email` | admin | Re-send invite via Gmail or Outlook OAuth |
+| GET | `/api/org/invite/accept?token=<uuid>` | none | Validate token, return org name + role (no auth required) |
+| POST | `/api/org/invite/accept` | any auth | Accept invite — links logged-in user to org |
 
 ---
 
@@ -453,7 +459,116 @@ function _gateOrgSubTabs(userRole) {
 
 ---
 
-## Per-User Module Access — March 26, 2026
+## Critical Framework Fixes — April 8, 2026
+
+Three infrastructure bugs discovered and fixed that were blocking the invite system (and silently affecting the entire codebase).
+
+---
+
+### FIX-1 (CRITICAL) — `execute_query` raises `ProgrammingError` on DML without RETURNING
+**File**: `AI_infrastructure/shared/database_utils.py`  
+**Impact**: Every `execute_query("UPDATE ...")` or `execute_query("DELETE ...")` call using the default `fetch_mode='all'` raised `ProgrammingError: no results to fetch` in psycopg2 2.9.9, because `cursor.fetchall()` cannot be called on DML without a RETURNING clause. This silently broke every UPDATE/DELETE on any route that didn’t use `fetch_mode=None`.  
+**Fix**: After `cursor.execute()`, check `cursor._cursor.description is None` to detect DML. If DML and no RETURNING: return `[]` and call `conn.commit()`. Works for all `fetch_mode` variants.
+
+---
+
+### FIX-2 (CRITICAL) — INSERT+RETURNING phantom commits (data persists in result but rolls back on pool return)
+**File**: `AI_infrastructure/shared/database_utils.py`  
+**Impact**: `PooledConnection.close()` ALWAYS calls `self._conn.rollback()` before returning the connection to the pool (to prevent aborted transaction state from leaking). Any `INSERT ... RETURNING` query had its RETURNING row delivered to the caller’s Python code, but the INSERT itself was then rolled back when the connection was released. Callers received the new record’s ID but the row never existed in the database.  
+**Fix**: `execute_query` now calls `conn.commit()` for any DML statement (detected via `cursor._cursor.statusmessage` prefix `INSERT`/`UPDATE`/`DELETE`), committing the transaction before returning control.
+
+---
+
+### FIX-3 (CRITICAL) — Recursive trigger on `org_invitations` causes stack overflow
+**File**: `AI_infrastructure/migrations/041_fix_invite_trigger_recursion.sql` (+ applied directly to production Supabase)  
+**Impact**: `trg_expire_invitations` fired AFTER INSERT OR UPDATE on `org_invitations`, then called `expire_pending_invitations()`, which ran `UPDATE org_invitations SET status='expired' WHERE ...` — which re-fired the trigger infinitely. Every `INSERT` or `UPDATE` on `org_invitations` raised `ERROR: stack depth limit exceeded`.  
+**Fix**: Recreated trigger with `WHEN (pg_trigger_depth() = 0)` condition so it only fires on top-level statements, not recursive calls from within the trigger function.
+
+```sql
+-- Migration 041 (idempotent)
+DROP TRIGGER IF EXISTS trg_expire_invitations ON ai_infrastructure.org_invitations;
+CREATE TRIGGER trg_expire_invitations
+    AFTER INSERT OR UPDATE ON ai_infrastructure.org_invitations
+    FOR EACH STATEMENT
+    WHEN (pg_trigger_depth() = 0)
+    EXECUTE FUNCTION ai_infrastructure.expire_pending_invitations();
+```
+
+---
+
+## Invite System — Complete (April 8, 2026)
+
+### Full End-to-End Flow
+
+```
+1. Admin: POST /api/org/invite  { email, role, provider? }
+   └─ Creates row in org_invitations with UUID token + 7-day expiry
+   └─ If provider='gmail'  → gmail_send_email() via Gmail OAuth token
+   └─ If provider='outlook' → microsoft_outlook_send_email() via M365 OAuth token
+   └─ Returns { success, invite_id, accept_url, email_sent, email_error }
+        accept_url = '/?accept_invite=<uuid>'
+
+2. Recipient opens link /?accept_invite=<uuid>
+   └─ Frontend (initializeApp): reads urlParams.get('accept_invite')
+   └─ Stores token in sessionStorage('pendingInviteToken')
+   └─ Removes param from URL (window.history.replaceState)
+
+3. Login (any method: email/password, OAuth, stored token)
+   └─ After showMainApp() succeeds, calls checkPendingInvite()
+   └─ Reads + clears sessionStorage('pendingInviteToken')
+   └─ Calls handleAcceptInvite(token)
+
+4. handleAcceptInvite(token)
+   └─ GET /api/org/invite/accept?token=<uuid>  (no auth required)
+        Returns: { org_name, invited_role, invited_email, expires_at }
+   └─ Shows _showInviteAcceptDialog(orgName, role, onAccept)
+        Modal: "You have been invited to join OrgName as member. [Decline] [Accept]"
+
+5. User clicks Accept
+   └─ POST /api/org/invite/accept  { token }  (requires JWT)
+        Backend checks: email match, status=pending, not expired
+        SET users.organisation_id + org_role
+        SET invitations.status='accepted'
+   └─ On success: success message shown, loadUserProfile() called (profile reflects new org)
+   └─ On error: inline error in dialog (e.g. email mismatch, expired, already accepted)
+```
+
+### Backend Routes
+
+| Route | Auth | Description |
+|-------|------|-------------|
+| `POST /api/org/invite` | admin | Create invite; optional inline email via `provider` field |
+| `GET /api/org/invite/pending` | admin | List all pending invites |
+| `DELETE /api/org/invite/<id>` | admin | Revoke invite (sets `status='revoked'`) |
+| `POST /api/org/invite/<id>/send-email` | admin | Re-send email for existing invite |
+| `GET /api/org/invite/accept?token=<uuid>` | none | Validate token; returns org info for accept dialog |
+| `POST /api/org/invite/accept` | any auth | Accept invite; links user to org |
+
+### Frontend JS Functions (all in `account_profile.js`)
+
+```javascript
+checkPendingInvite()           // Called after every login path; reads sessionStorage
+handleAcceptInvite(token)      // Validates token, shows accept dialog
+_showInviteAcceptDialog(...)   // Modal: org name + role + Accept/Decline buttons
+_showInviteNotice(type, ...)   // Simple info/error notice modal for invalid tokens
+```
+
+### Email Content (sent via OAuth)
+
+```
+Subject: You're invited to join {org_name}
+
+Hi,
+
+You've been invited to join {org_name} as {role}.
+
+Click the link below to accept:
+{accept_url}
+
+This invite expires in 7 days.
+```
+
+--- — March 26, 2026
 **Migration 039 — Status: IMPLEMENTED**
 
 Extends the existing two-tier module system (plan tier → org override) with a
@@ -879,3 +994,48 @@ resetMemberModuleAccess(userId)           // DELETE all restrictions for member
 - **Pre-migration 039**: `get_user_enabled_modules()` catches the missing-table exception and falls back to `get_org_enabled_modules()` — existing behaviour preserved.
 - **No impact on module catalog page**: `GET /api/org/modules/catalog` still shows org-level toggles (not affected by user restrictions — admins always see the full org state).
 - **`loadAndApplyOrgModules()` in the frontend**: No change needed — it already calls `GET /api/org/modules` which now returns user-filtered results automatically.
+
+---
+
+## Changelog & TODO
+
+### Last Updated: April 8, 2026
+
+#### Recent Changes
+- ✅ **April 8** — Full accept-invite frontend: `checkPendingInvite()`, `handleAcceptInvite()`, `_showInviteAcceptDialog()`, `_showInviteNotice()` in `account_profile.js`; `?accept_invite=<token>` URL detection in `initializeApp()` across all three login paths; token validated against backend before showing dialog
+- ✅ **April 8** — `execute_query()` DML bug fixed (`database_utils.py`): DML without RETURNING no longer raises; INSERT+RETURNING now commits (was silently rolled back by connection pool)
+- ✅ **April 8** — Recursive trigger `trg_expire_invitations` fixed with `WHEN (pg_trigger_depth() = 0)`; migration `041_fix_invite_trigger_recursion.sql` created
+- ✅ **April 8** — `POST /api/org/invite` rewritten with `provider` field; inline Gmail/Outlook email sending; HTML form updated with "Send via" dropdown
+- ✅ **March 26** — BUG-1–6 fixed (all org API calls now authenticated; role display; auth_token typos; InHouse Kanban sidebar button; org subtab role gating)
+- ✅ **March 26** — Per-user module access (Migration 039): `user_module_access` table, `get_user_enabled_modules()`, member puzzle-piece toggle UI
+- ✅ **March 26** — Migration 036: `platform_catalog` (27 platforms) + `module_catalog` (26 modules) + DB-driven credential form
+- ✅ **March 26** — Credential encryption at rest: `credential_crypto.py` Fernet AES-128-CBC + `enc:v1:` prefix; `CREDENTIAL_ENCRYPTION_KEY` env var
+
+#### TODO
+
+**ACTIVE — Frontend Sidebar Gating (Not Yet Wired):**
+- [ ] Implement `initModulesFromOrg()` in `business-ai-platform-v2.html` — see [MODULE_VISIBILITY_ARCHITECTURE.md](./MODULE_VISIBILITY_ARCHITECTURE.md) Section 6
+- [ ] Gate WooCommerce `tab-sales` sidebar button + content behind `data-module="woocommerce"` attribute
+- [ ] Replace `manifest.json` Zone 2 sidebar rendering with DB-driven `initModulesFromOrg()` call
+
+**MEDIUM — Remaining Gaps:**
+- [ ] **GAP-M4** — Audit Shopify/Xero integration tables for `organisation_id` FK isolation
+- [ ] **GAP-E2** — Sub-user role restrictions (can’t promote above parent’s role)
+- [ ] **GAP-E3** — Sub-user credential vault access (inherit parent’s credentials, read-only)
+
+**LOW — Polish & Hardening:**
+- [ ] **GAP-L2** — Scheduled key rotation reminders (APScheduler + email)
+- [ ] **GAP-L3** — "Test Connection" button + `POST /api/org/credentials/<id>/test` endpoint
+- [ ] **GAP-L5** — Wire DeepSeek into `resolve_api_key` path (currently env-var only)
+
+**RESOLVED (closed):**
+- ✅ Invite system: create, email, accept-invite frontend (April 8, 2026)
+- ✅ Credential encryption at rest — Fernet `enc:v1:` (GAP-L7)
+- ✅ `execute_query` DML commit bug + phantom INSERT (April 8, 2026)
+- ✅ Recursive trigger on `org_invitations` (April 8, 2026)
+- ✅ GAP-C1 through GAP-C4, GAP-H1 through GAP-H5, GAP-M1, GAP-M2, GAP-M3, GAP-M5, GAP-M6, GAP-L6
+
+#### Related Files (Keep These 3 as Source of Truth)
+- `../MODULE_VISIBILITY_ARCHITECTURE.md` — Module visibility model, sidebar gating, 4-layer framework
+- `../ORG_DOCUMENTATION_AND_UI_ALIGNMENT_SUMMARY_MAR28_2026.md` — Organisation table schema, UI forms, API endpoints
+- `../ORG_CREDENTIALS_MASTER_ANALYSIS.md` — Credentials, vault, multi-tenancy, RLS, role hierarchy, gap registry

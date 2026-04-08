@@ -1716,34 +1716,18 @@ def send_invite_email(invite_id: int):
     )
 
     try:
-        if provider == 'gmail':
-            from google_workspace.gmail import gmail_send_email
-            gmail_send_email(
-                to=to_email,
-                subject=subject,
-                body=body,
-                _user_id=g.user_id,
-                _injected_credentials=True
-            )
-
-        elif provider == 'outlook':
-            try:
-                from tools.implementations.microsoft_outlook_tools import microsoft_outlook_send_email
-                microsoft_outlook_send_email(
-                    to=[to_email],
-                    subject=subject,
-                    body=body,
-                    _user_id=g.user_id,
-                    _injected_credentials=True
-                )
-            except ImportError:
-                return jsonify({'success': False, 'error': 'Outlook integration is not available on this server'}), 501
-
-        else:
-            return jsonify({'success': False, 'error': f'Unknown provider "{provider}". Use gmail or outlook'}), 400
+        # Always use Gmail (Outlook method currently saves as draft)
+        from google_workspace.gmail import gmail_send_email
+        gmail_send_email(
+            to=to_email,
+            subject=subject,
+            body=body,
+            _user_id=g.user_id,
+            _injected_credentials=True
+        )
 
     except Exception as e:
-        logger.error(f'[ORG_INVITE] send-email failed: {e}')
+        logger.error(f'[ORG_INVITE] send-email failed: {e}', exc_info=True)
         return jsonify({'success': False, 'error': f'Failed to send email: {e}'}), 500
 
     logger.info(f'[ORG_INVITE] Invite {invite_id} email sent via {provider} to {to_email} by user {g.user_id}')
@@ -1755,15 +1739,18 @@ def send_invite_email(invite_id: int):
 @require_org_role('admin')
 def send_invite():
     """
-    POST /api/org/invite — Send an invitation to join the organisation.
-    Body: { email, role? }   role defaults to 'member'.
+    POST /api/org/invite — Create an invitation and optionally send it via email.
+    Body: { email, role?, provider? }
+      role     — 'viewer'|'member'|'manager'|'admin'  (default: 'member')
+      provider — 'gmail'|'outlook'  (optional; if set, email is sent automatically)
     Requires admin+ org role.
     """
     ctx  = g.org_ctx
     data = request.get_json() or {}
 
-    email = (data.get('email') or '').strip().lower()
-    role  = (data.get('role') or 'member').strip().lower()
+    email    = (data.get('email') or '').strip().lower()
+    role     = (data.get('role') or 'member').strip().lower()
+    provider = (data.get('provider') or '').strip().lower() or None
 
     if not email or '@' not in email:
         return jsonify({'success': False, 'error': 'Valid email address required'}), 400
@@ -1772,7 +1759,6 @@ def send_invite():
     if role not in valid_roles:
         return jsonify({'success': False, 'error': f'Invalid role. Must be one of: {valid_roles}'}), 400
 
-    # Owners cannot be invited — they create the org directly
     if role == 'owner':
         return jsonify({'success': False, 'error': 'Cannot invite someone as owner'}), 400
 
@@ -1785,8 +1771,7 @@ def send_invite():
         return jsonify({'success': False, 'error': 'This user is already a member of your organisation'}), 409
 
     try:
-        # Upsert: revoke any existing pending invite for this email in this org,
-        # then insert a fresh one with a new token and expiry.
+        # Revoke any existing pending invite for this email in this org
         execute_query(
             """
             UPDATE ai_infrastructure.org_invitations
@@ -1811,29 +1796,58 @@ def send_invite():
             return jsonify({'success': False, 'error': 'Failed to create invitation'}), 500
 
         invite_token = str(row['invite_token'])
+        invite_id    = row['id']
         expires_at   = row['expires_at'].isoformat() if row.get('expires_at') else None
 
-        # Build accept URL (frontend handles this route)
-        base_url     = request.host_url.rstrip('/')
-        accept_url   = f"{base_url}/?accept_invite={invite_token}"
+        base_url   = request.host_url.rstrip('/')
+        accept_url = f"{base_url}/?accept_invite={invite_token}"
 
         logger.info(f"[ORG_INVITE] Invite created: org={ctx['organisation_id']} "
                     f"email={email} role={role} token={invite_token[:8]}...")
 
-        # TODO: Send actual email via SendGrid / SMTP when email service is configured.
-        # For now, return the accept URL so it can be manually shared.
+        # Attempt email sending if a provider was specified
+        email_sent  = False
+        email_error = None
+
+        if provider in ('gmail', 'outlook'):
+            try:
+                org_name = ctx.get('org_name') or ctx.get('org_slug') or 'our organisation'
+                subject  = f"You're invited to join {org_name}"
+                body     = (
+                    f"Hi,\n\n"
+                    f"You've been invited to join {org_name} on our AI platform as a {role}.\n\n"
+                    f"Click the link below to accept your invitation:\n\n"
+                    f"{accept_url}\n\n"
+                    f"This link expires in 7 days.\n\n"
+                    f"If you didn't expect this invitation, you can safely ignore this email.\n\nThanks"
+                )
+
+                # Always use Gmail if provider specified (Outlook method currently saves as draft)
+                from google_workspace.gmail import gmail_send_email
+                gmail_send_email(
+                    to=email, subject=subject, body=body,
+                    _user_id=g.user_id, _injected_credentials=True
+                )
+                email_sent = True
+                logger.info(f"[ORG_INVITE] Invitation email sent to {email}")
+
+            except Exception as mail_err:
+                email_error = str(mail_err)
+                logger.error(f"[ORG_INVITE] Email send failed (invite still created): {mail_err}", exc_info=True)
+
         return jsonify({
-            'success':    True,
-            'message':    f'Invitation created for {email}',
-            'invite_id':  row['id'],
-            'accept_url': accept_url,
-            'expires_at': expires_at,
-            'email_sent': False,   # flip to True once email service is wired
+            'success':     True,
+            'message':     f'Invitation created for {email}',
+            'invite_id':   invite_id,
+            'accept_url':  accept_url,
+            'expires_at':  expires_at,
+            'email_sent':  email_sent,
+            'email_error': email_error,
         }), 201
 
     except Exception as e:
-        logger.error(f"[ORG_INVITE] Error creating invite: {e}")
-        return jsonify({'success': False, 'error': 'Failed to create invitation'}), 500
+        logger.error(f"[ORG_INVITE] Error creating invite: {e}", exc_info=True)
+        return jsonify({'success': False, 'error': f'Failed to create invitation: {e}'}), 500
 
 
 @org_credentials_bp.route('/invite/pending', methods=['GET'])

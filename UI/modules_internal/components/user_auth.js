@@ -635,6 +635,16 @@ const UserAuth = {
             setTimeout(() => {
                 this.hideLoadingOverlay();
 
+                // ✅ PERF: ThreadManager.init() deferred until UI is visible (fire-and-forget thread load now has time)
+                // Call the deferred init function stored by initializeMainApp (user_auth.js line ~640)
+                if (typeof window._deferredThreadManagerInit === 'function') {
+                    setTimeout(() => {
+                        window._deferredThreadManagerInit().catch(err =>
+                            console.warn('⚠️ [AUTH] ThreadManager init error (non-fatal):', err.message)
+                        );
+                    }, 100);
+                }
+
                 // ✅ PERF FIX: Load thread message histories AFTER the UI is visible.
                 // initMultiAgent() already rendered thread info cards from cached data.
                 // The expensive per-thread message API calls (was ~15s each) run here in the

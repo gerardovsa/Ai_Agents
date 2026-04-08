@@ -1675,5 +1675,725 @@ function App() {
                     "You are building something that does not benefit from React components"
                 ]
             }
+        },
+
+        "apexcharts": {
+            "delimiter": "<APEXCHARTS>...</APEXCHARTS>",
+            "description": "Modern interactive charts using ApexCharts library. Supports bar, line, area, pie, donut, scatter, heatmap, candlestick, radar, radialBar, treemap.",
+            "content_format": "JSON object - standard ApexCharts options config (chart, series, xaxis, yaxis, etc.)",
+            "critical_rules": [
+                "RULE 1: Content MUST be a valid JSON object — the ApexCharts config object directly",
+                "RULE 2: Do NOT wrap in HTML or <script> tags — just the JSON config",
+                "RULE 3: chart.type must be a valid ApexCharts type: bar, line, area, pie, donut, scatter, heatmap, radialBar, radar, treemap, candlestick",
+                "RULE 4: series must be an array",
+                "RULE 5: xaxis.categories is required for most chart types",
+                "RULE 6: DO NOT wrap in <EXECUTE_HTML> — use <APEXCHARTS> directly"
+            ],
+            "examples": [
+                {
+                    "title": "Bar Chart - Monthly Revenue",
+                    "code": """<APEXCHARTS>
+{
+  "chart": { "type": "bar", "height": 350 },
+  "series": [{ "name": "Revenue", "data": [45000, 52000, 48000, 61000, 55000, 67000] }],
+  "xaxis": { "categories": ["Jan", "Feb", "Mar", "Apr", "May", "Jun"] },
+  "title": { "text": "Monthly Revenue 2024", "align": "center" },
+  "colors": ["#667eea"],
+  "plotOptions": { "bar": { "borderRadius": 6, "columnWidth": "50%" } }
+}
+</APEXCHARTS>"""
+                },
+                {
+                    "title": "Line Chart - Sales Trend",
+                    "code": """<APEXCHARTS>
+{
+  "chart": { "type": "line", "height": 350, "zoom": { "enabled": true } },
+  "series": [
+    { "name": "Sales", "data": [30, 40, 35, 50, 49, 60, 70, 91, 125] },
+    { "name": "Target", "data": [40, 40, 40, 50, 50, 60, 65, 80, 100] }
+  ],
+  "xaxis": { "categories": ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep"] },
+  "title": { "text": "Sales vs Target", "align": "center" },
+  "stroke": { "curve": "smooth", "width": 3 },
+  "markers": { "size": 5 }
+}
+</APEXCHARTS>"""
+                },
+                {
+                    "title": "Donut Chart - Category Breakdown",
+                    "code": """<APEXCHARTS>
+{
+  "chart": { "type": "donut", "height": 380 },
+  "series": [44, 55, 13, 43, 22],
+  "labels": ["Product A", "Product B", "Product C", "Product D", "Product E"],
+  "title": { "text": "Sales by Category", "align": "center" },
+  "legend": { "position": "bottom" },
+  "plotOptions": { "pie": { "donut": { "size": "65%" } } }
+}
+</APEXCHARTS>"""
+                },
+                {
+                    "title": "Area Chart - Website Traffic",
+                    "code": """<APEXCHARTS>
+{
+  "chart": { "type": "area", "height": 350, "toolbar": { "show": true } },
+  "series": [{ "name": "Page Views", "data": [3100, 4000, 2800, 5100, 4200, 6300, 7100] }],
+  "xaxis": { "categories": ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"] },
+  "title": { "text": "Weekly Traffic", "align": "center" },
+  "fill": { "type": "gradient", "gradient": { "shadeIntensity": 1, "opacityFrom": 0.7, "opacityTo": 0.1 } },
+  "stroke": { "curve": "smooth" },
+  "colors": ["#10b981"]
+}
+</APEXCHARTS>"""
+                }
+            ],
+            "best_practices": [
+                "Always set chart.height (350-500 is typical)",
+                "Use colors array to set brand colors: ['#667eea', '#f5576c', '#10b981']",
+                "Add title.text and title.align for labeling",
+                "Use stroke.curve: 'smooth' for line/area charts",
+                "Use plotOptions.bar.borderRadius for modern bar charts",
+                "Add legend.position: 'bottom' for pie/donut charts",
+                "Use responsive array for mobile breakpoints"
+            ],
+            "when_to_use": [
+                "Business dashboards with bar, line, area charts",
+                "Sales and revenue reporting",
+                "KPI metrics and analytics",
+                "Comparison charts",
+                "Time-series data",
+                "Distribution charts (pie, donut)"
+            ],
+            "when_not_to_use": [
+                "Complex scientific/statistical plots → use <PLOTLY>",
+                "3D charts → use <PLOTLY>",
+                "Flowcharts/diagrams → use <MERMAID>",
+                "Custom HTML widgets → use <EXECUTE_HTML>"
+            ],
+            "common_errors": [
+                "Wrapping JSON in HTML tags (DON'T do this)",
+                "Forgetting xaxis.categories for bar/line charts",
+                "series not being an array",
+                "Invalid chart.type value",
+                "Missing chart.height (chart renders too small)"
+            ]
+        },
+
+        "plotly": {
+            "delimiter": "<PLOTLY>...</PLOTLY>",
+            "description": "Scientific and data analysis charts using Plotly.js. Supports 40+ chart types including 3D, statistical, financial, maps, and scientific plots.",
+            "content_format": "JSON object with 'data' array (traces) and 'layout' object — standard Plotly.js format",
+            "critical_rules": [
+                "RULE 1: Content MUST be JSON with 'data' array and 'layout' object",
+                "RULE 2: Each element in 'data' is a trace object with 'type', 'x', 'y' (and 'z' for 3D)",
+                "RULE 3: Do NOT wrap in HTML or <script> tags",
+                "RULE 4: Supported trace types: scatter, bar, pie, box, heatmap, histogram, surface, scatter3d, contour, violin, waterfall, funnel, and more",
+                "RULE 5: Use layout.title for chart title, layout.xaxis.title for axis labels",
+                "RULE 6: DO NOT wrap in <EXECUTE_HTML>"
+            ],
+            "examples": [
+                {
+                    "title": "Scatter Plot - Correlation Analysis",
+                    "code": """<PLOTLY>
+{
+  "data": [{
+    "type": "scatter",
+    "mode": "markers",
+    "x": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
+    "y": [2, 4, 5, 4, 7, 8, 9, 11, 12, 14],
+    "marker": { "size": 10, "color": "#667eea" },
+    "name": "Data Points"
+  }],
+  "layout": {
+    "title": "Correlation: X vs Y",
+    "xaxis": { "title": "X Variable" },
+    "yaxis": { "title": "Y Variable" },
+    "height": 400
+  }
+}
+</PLOTLY>"""
+                },
+                {
+                    "title": "Bar Chart - Sales by Region",
+                    "code": """<PLOTLY>
+{
+  "data": [
+    {
+      "type": "bar",
+      "x": ["North", "South", "East", "West"],
+      "y": [120000, 95000, 138000, 107000],
+      "marker": { "color": ["#667eea", "#f5576c", "#10b981", "#fbbf24"] },
+      "name": "Revenue"
+    }
+  ],
+  "layout": {
+    "title": "Revenue by Region Q4 2024",
+    "xaxis": { "title": "Region" },
+    "yaxis": { "title": "Revenue ($)", "tickformat": "$,.0f" },
+    "height": 400,
+    "showlegend": false
+  }
+}
+</PLOTLY>"""
+                },
+                {
+                    "title": "3D Surface Plot",
+                    "code": """<PLOTLY>
+{
+  "data": [{
+    "type": "surface",
+    "z": [
+      [1, 2, 3, 4],
+      [2, 4, 5, 6],
+      [3, 5, 7, 8],
+      [4, 6, 8, 10]
+    ],
+    "colorscale": "Viridis"
+  }],
+  "layout": {
+    "title": "3D Surface Plot",
+    "height": 500,
+    "scene": {
+      "xaxis": { "title": "X" },
+      "yaxis": { "title": "Y" },
+      "zaxis": { "title": "Z" }
+    }
+  }
+}
+</PLOTLY>"""
+                },
+                {
+                    "title": "Box Plot - Statistical Distribution",
+                    "code": """<PLOTLY>
+{
+  "data": [
+    {
+      "type": "box",
+      "y": [52, 55, 69, 72, 45, 63, 78, 81, 57, 66, 71, 85, 48, 73, 64],
+      "name": "Group A",
+      "marker": { "color": "#667eea" }
+    },
+    {
+      "type": "box",
+      "y": [60, 65, 70, 72, 75, 80, 55, 68, 73, 79, 62, 77, 83, 58, 71],
+      "name": "Group B",
+      "marker": { "color": "#10b981" }
+    }
+  ],
+  "layout": {
+    "title": "Score Distribution by Group",
+    "yaxis": { "title": "Score" },
+    "height": 400
+  }
+}
+</PLOTLY>"""
+                }
+            ],
+            "best_practices": [
+                "Always include both 'data' array and 'layout' object",
+                "Use layout.height for consistent sizing (400-600 typical)",
+                "Use layout.xaxis.title and layout.yaxis.title for axis labels",
+                "Use layout.title for chart title",
+                "Set tickformat for number formatting: '$,.0f' for currency, '.1%' for percentages",
+                "Use colorscale for heatmaps and surfaces: 'Viridis', 'RdBu', 'Blues'",
+                "Add mode: 'markers+lines' for scatter with lines"
+            ],
+            "when_to_use": [
+                "Scientific and statistical data visualization",
+                "3D charts (surface, scatter3d, mesh3d)",
+                "Statistical plots (box, violin, histogram)",
+                "Heatmaps and contour plots",
+                "Financial charts (candlestick, OHLC, waterfall)",
+                "Complex multi-trace charts",
+                "Research and data analysis presentations"
+            ],
+            "when_not_to_use": [
+                "Simple business dashboards → use <APEXCHARTS> (easier API)",
+                "Flowcharts/diagrams → use <MERMAID>",
+                "Custom interactive widgets → use <EXECUTE_HTML>"
+            ],
+            "common_errors": [
+                "Missing 'data' array (required)",
+                "Missing 'layout' object (required)",
+                "Trace type not specified (always include 'type' in each trace)",
+                "x/y arrays different lengths",
+                "Using plotly Python syntax instead of JS (e.g., go.Bar vs {type: 'bar'})"
+            ]
+        },
+
+        "chartjs": {
+            "delimiter": "<CHARTJS>...</CHARTJS>",
+            "description": "Simple, clean charts using Chart.js. Best for straightforward bar, line, pie, doughnut, radar and polar area charts.",
+            "content_format": "JSON object — standard Chart.js config with 'type', 'data', and 'options'",
+            "critical_rules": [
+                "RULE 1: Content MUST be a valid JSON config object with 'type', 'data', and 'options'",
+                "RULE 2: data.labels is required (array of label strings)",
+                "RULE 3: data.datasets is required (array of dataset objects with 'label' and 'data')",
+                "RULE 4: Do NOT wrap in HTML or <script> tags",
+                "RULE 5: Valid chart types: bar, line, pie, doughnut, radar, polarArea, bubble, scatter",
+                "RULE 6: DO NOT wrap in <EXECUTE_HTML>"
+            ],
+            "examples": [
+                {
+                    "title": "Bar Chart - Product Sales",
+                    "code": """<CHARTJS>
+{
+  "type": "bar",
+  "data": {
+    "labels": ["Widgets", "Gadgets", "Doohickeys", "Thingamajigs"],
+    "datasets": [{
+      "label": "Units Sold Q4",
+      "data": [1200, 890, 650, 430],
+      "backgroundColor": ["#667eea", "#f5576c", "#10b981", "#fbbf24"],
+      "borderRadius": 6
+    }]
+  },
+  "options": {
+    "responsive": true,
+    "plugins": { "title": { "display": true, "text": "Q4 Product Sales" } },
+    "scales": { "y": { "beginAtZero": true } }
+  }
+}
+</CHARTJS>"""
+                },
+                {
+                    "title": "Line Chart - Multi-Series",
+                    "code": """<CHARTJS>
+{
+  "type": "line",
+  "data": {
+    "labels": ["Jan", "Feb", "Mar", "Apr", "May", "Jun"],
+    "datasets": [
+      {
+        "label": "Revenue",
+        "data": [45000, 52000, 48000, 61000, 55000, 67000],
+        "borderColor": "#667eea",
+        "backgroundColor": "rgba(102, 126, 234, 0.1)",
+        "fill": true,
+        "tension": 0.4
+      },
+      {
+        "label": "Expenses",
+        "data": [30000, 35000, 32000, 40000, 38000, 42000],
+        "borderColor": "#f5576c",
+        "backgroundColor": "rgba(245, 87, 108, 0.1)",
+        "fill": true,
+        "tension": 0.4
+      }
+    ]
+  },
+  "options": {
+    "responsive": true,
+    "plugins": { "title": { "display": true, "text": "Revenue vs Expenses 2024" } }
+  }
+}
+</CHARTJS>"""
+                },
+                {
+                    "title": "Doughnut Chart - Budget Allocation",
+                    "code": """<CHARTJS>
+{
+  "type": "doughnut",
+  "data": {
+    "labels": ["Marketing", "R&D", "Operations", "Sales", "Admin"],
+    "datasets": [{
+      "data": [25, 30, 20, 15, 10],
+      "backgroundColor": ["#667eea", "#f5576c", "#10b981", "#fbbf24", "#8b5cf6"]
+    }]
+  },
+  "options": {
+    "responsive": true,
+    "plugins": {
+      "title": { "display": true, "text": "Budget Allocation %" },
+      "legend": { "position": "bottom" }
+    }
+  }
+}
+</CHARTJS>"""
+                }
+            ],
+            "best_practices": [
+                "Always set 'responsive': true in options",
+                "Use borderRadius for modern rounded bars",
+                "Use tension: 0.4 for smooth curved lines",
+                "Use fill: true with rgba backgroundColor for area effect under lines",
+                "Add plugins.title.display: true and plugins.title.text for chart title",
+                "Use scales.y.beginAtZero: true for bar charts",
+                "Keep datasets labels short and clear"
+            ],
+            "when_to_use": [
+                "Simple bar, line, pie charts",
+                "Quick data overviews",
+                "Basic reporting",
+                "When you want a lightweight, fast chart"
+            ],
+            "when_not_to_use": [
+                "Complex interactive dashboards → use <APEXCHARTS>",
+                "Scientific/statistical analysis → use <PLOTLY>",
+                "3D charts → use <PLOTLY>",
+                "Custom styling needs → use <APEXCHARTS>"
+            ],
+            "common_errors": [
+                "Missing data.labels array",
+                "Missing data.datasets array",
+                "Datasets with no 'data' property",
+                "Invalid chart type string",
+                "Wrong Chart.js v3 option paths (e.g. scales.yAxes[0] is OLD v2 — use scales.y in v3)"
+            ]
+        },
+
+        "mermaid": {
+            "delimiter": "<MERMAID>...</MERMAID>",
+            "description": "Diagrams and flowcharts using Mermaid text syntax. Supports flowcharts, sequence diagrams, gantt charts, entity relationship diagrams, class diagrams, state diagrams, pie charts, journey diagrams.",
+            "content_format": "Raw Mermaid diagram syntax — plain text, NOT JSON",
+            "critical_rules": [
+                "RULE 1: Content is plain Mermaid text syntax — NOT JSON",
+                "RULE 2: First line must be the diagram type keyword: graph, flowchart, sequenceDiagram, gantt, erDiagram, classDiagram, stateDiagram-v2, pie, journey, xychart-beta",
+                "RULE 3: Use correct Mermaid v10+ syntax",
+                "RULE 4: For flowcharts use 'flowchart TD' or 'graph TD' (TD=top-down, LR=left-right)",
+                "RULE 5: Colons in section names cause parse errors in gantt/journey — avoid them",
+                "RULE 6: DO NOT wrap in <EXECUTE_HTML>"
+            ],
+            "examples": [
+                {
+                    "title": "Flowchart - Process Flow",
+                    "code": """<MERMAID>
+flowchart TD
+    A[Start] --> B{Decision?}
+    B -- Yes --> C[Do Action A]
+    B -- No --> D[Do Action B]
+    C --> E[End]
+    D --> E
+</MERMAID>"""
+                },
+                {
+                    "title": "Sequence Diagram - API Call",
+                    "code": """<MERMAID>
+sequenceDiagram
+    participant User
+    participant Frontend
+    participant API
+    participant DB
+    User->>Frontend: Submit form
+    Frontend->>API: POST /submit
+    API->>DB: INSERT record
+    DB-->>API: Success
+    API-->>Frontend: 200 OK
+    Frontend-->>User: Show confirmation
+</MERMAID>"""
+                },
+                {
+                    "title": "Gantt Chart - Project Timeline",
+                    "code": """<MERMAID>
+gantt
+    title Project Timeline Q1 2025
+    dateFormat  YYYY-MM-DD
+    section Design
+    Wireframes        :a1, 2025-01-01, 14d
+    Mockups           :after a1, 10d
+    section Development
+    Backend API       :2025-01-15, 21d
+    Frontend Build    :2025-01-20, 25d
+    section Testing
+    QA Testing        :2025-02-10, 14d
+    Bug Fixes         :2025-02-20, 7d
+</MERMAID>"""
+                },
+                {
+                    "title": "Entity Relationship Diagram",
+                    "code": """<MERMAID>
+erDiagram
+    CUSTOMER {
+        int id PK
+        string name
+        string email
+    }
+    ORDER {
+        int id PK
+        int customer_id FK
+        date created_at
+        float total
+    }
+    PRODUCT {
+        int id PK
+        string name
+        float price
+    }
+    ORDER_ITEM {
+        int order_id FK
+        int product_id FK
+        int quantity
+    }
+    CUSTOMER ||--o{ ORDER : places
+    ORDER ||--|{ ORDER_ITEM : contains
+    PRODUCT ||--o{ ORDER_ITEM : included_in
+</MERMAID>"""
+                },
+                {
+                    "title": "Class Diagram - OOP Structure",
+                    "code": """<MERMAID>
+classDiagram
+    class Animal {
+        +String name
+        +int age
+        +makeSound() void
+    }
+    class Dog {
+        +String breed
+        +fetch() void
+    }
+    class Cat {
+        +bool indoor
+        +purr() void
+    }
+    Animal <|-- Dog
+    Animal <|-- Cat
+</MERMAID>"""
+                },
+                {
+                    "title": "Pie Chart",
+                    "code": """<MERMAID>
+pie title Browser Market Share
+    "Chrome" : 65.2
+    "Safari" : 18.7
+    "Firefox" : 3.9
+    "Edge" : 4.1
+    "Other" : 8.1
+</MERMAID>"""
+                }
+            ],
+            "best_practices": [
+                "Use flowchart TD for vertical flow, flowchart LR for horizontal flow",
+                "Quote node labels that contain special characters: A[\"Label with spaces\"]",
+                "Use --> for solid arrows, ---> for dotted, === for thick",
+                "Add labels on arrows: A -- label --> B",
+                "For gantt: use dateFormat YYYY-MM-DD and specify dates precisely",
+                "For sequence: use ->> for solid, -->> for dotted response arrows",
+                "Keep diagrams focused — too many nodes reduces readability"
+            ],
+            "when_to_use": [
+                "Flowcharts and process diagrams",
+                "System architecture diagrams",
+                "Sequence/interaction diagrams",
+                "Database ER diagrams",
+                "Class inheritance diagrams",
+                "Project timeline (gantt charts)",
+                "State machine diagrams",
+                "Simple pie charts for proportional data"
+            ],
+            "when_not_to_use": [
+                "Data charts with numbers → use <APEXCHARTS>, <PLOTLY>, or <CHARTJS>",
+                "Technical engineering drawings → use <CAD> or <SCHEMATIC>",
+                "Chemical structures → use <MOLECULE>",
+                "Animations → use <GSAP> or <LOTTIE>"
+            ],
+            "common_errors": [
+                "Using JSON format instead of Mermaid text syntax",
+                "Missing diagram type keyword on first line",
+                "Colons in section names for gantt/journey (causes parse error)",
+                "Using old Mermaid v8 syntax that changed in v10",
+                "Unquoted node labels with special characters"
+            ]
+        },
+
+        "threejs": {
+            "delimiter": "<THREEJS>...</THREEJS>",
+            "description": "3D interactive graphics and scenes using Three.js. Supports 3D models, animations, interactive 3D environments.",
+            "content_format": "JSON config describing the 3D scene: geometry, materials, lights, camera, animations",
+            "critical_rules": [
+                "RULE 1: Content MUST be a JSON config object",
+                "RULE 2: Required top-level fields: scene (or geometry), camera, renderer",
+                "RULE 3: Keep scenes focused and performant (avoid excessive polygon counts)",
+                "RULE 4: DO NOT wrap in <EXECUTE_HTML> unless you need custom HTML around the 3D canvas"
+            ],
+            "examples": [
+                {
+                    "title": "Rotating 3D Box",
+                    "code": """<THREEJS>
+{
+  "scene": {
+    "background": "#1a1a2e"
+  },
+  "camera": {
+    "type": "perspective",
+    "fov": 75,
+    "position": { "x": 0, "y": 0, "z": 5 }
+  },
+  "objects": [
+    {
+      "type": "mesh",
+      "geometry": { "type": "BoxGeometry", "args": [2, 2, 2] },
+      "material": { "type": "MeshPhongMaterial", "color": "#667eea", "shininess": 100 },
+      "position": { "x": 0, "y": 0, "z": 0 },
+      "animation": { "rotation": { "x": 0.01, "y": 0.01 } }
+    }
+  ],
+  "lights": [
+    { "type": "DirectionalLight", "color": "#ffffff", "intensity": 1, "position": { "x": 5, "y": 5, "z": 5 } },
+    { "type": "AmbientLight", "color": "#404040", "intensity": 0.5 }
+  ]
+}
+</THREEJS>"""
+                }
+            ],
+            "best_practices": [
+                "Always include lights (DirectionalLight + AmbientLight is standard)",
+                "Set camera position to see the full scene",
+                "Use MeshPhongMaterial or MeshStandardMaterial for realistic lighting",
+                "Add animations (rotation/position tweens) to make scenes engaging",
+                "Keep polygon counts reasonable for browser performance"
+            ],
+            "when_to_use": [
+                "3D product visualization",
+                "Interactive 3D data visualization",
+                "3D scene setups",
+                "3D games/simulations"
+            ],
+            "when_not_to_use": [
+                "2D charts → use <APEXCHARTS> or <PLOTLY>",
+                "Simple animations → use <GSAP> or <LOTTIE>",
+                "Technical engineering drawings → use <CAD>"
+            ],
+            "common_errors": [
+                "Missing lights — scene renders as solid black",
+                "Camera too close or far from objects",
+                "Missing animation loop — scene is static",
+                "Invalid geometry type names (must match Three.js class names)"
+            ]
+        },
+
+        "gsap": {
+            "delimiter": "<GSAP>...</GSAP>",
+            "description": "Professional UI animations and interactive motion graphics using GSAP (GreenSock Animation Platform).",
+            "content_format": "JSON config describing elements to animate, timelines, and animation properties",
+            "critical_rules": [
+                "RULE 1: Content MUST be a JSON config with 'elements' and 'animations' or 'timeline'",
+                "RULE 2: Specify target elements by id or class selector",
+                "RULE 3: Animation properties use standard CSS property names",
+                "RULE 4: DO NOT wrap in <EXECUTE_HTML>"
+            ],
+            "examples": [
+                {
+                    "title": "Animated Text Sequence",
+                    "code": """<GSAP>
+{
+  "elements": [
+    { "id": "headline", "type": "text", "content": "Welcome to the Future", "style": "font-size:48px;color:#667eea;font-weight:bold;" },
+    { "id": "subtitle", "type": "text", "content": "Innovation starts here", "style": "font-size:24px;color:#555;" },
+    { "id": "cta", "type": "button", "content": "Get Started", "style": "padding:16px 40px;background:#667eea;color:white;border:none;border-radius:30px;font-size:18px;cursor:pointer;" }
+  ],
+  "timeline": [
+    { "target": "#headline", "from": { "opacity": 0, "y": -50 }, "to": { "opacity": 1, "y": 0 }, "duration": 1, "ease": "power2.out" },
+    { "target": "#subtitle", "from": { "opacity": 0, "y": 30 }, "to": { "opacity": 1, "y": 0 }, "duration": 0.8, "ease": "power2.out" },
+    { "target": "#cta", "from": { "opacity": 0, "scale": 0.8 }, "to": { "opacity": 1, "scale": 1 }, "duration": 0.6, "ease": "back.out(1.7)" }
+  ],
+  "layout": { "background": "#f8f9ff", "display": "flex", "flexDirection": "column", "alignItems": "center", "justifyContent": "center", "height": "100%", "gap": "30px", "padding": "40px" }
+}
+</GSAP>"""
+                }
+            ],
+            "best_practices": [
+                "Use timelines for sequenced animations (elements animate one after another)",
+                "Use ease values: 'power2.out', 'elastic.out', 'back.out(1.7)' for professional feel",
+                "Animate from invisible (opacity:0) to visible for smooth entry",
+                "Keep animation durations 0.3-1.5s for UI feel",
+                "Chain related animations in a single timeline"
+            ],
+            "when_to_use": [
+                "Landing page hero animations",
+                "UI transition demos",
+                "Interactive presentation slides",
+                "Animated dashboards and data reveals",
+                "Marketing animation concepts"
+            ],
+            "when_not_to_use": [
+                "Loading spinners → use <LOTTIE>",
+                "3D animations → use <THREEJS>",
+                "Data charts → use <APEXCHARTS>"
+            ],
+            "common_errors": [
+                "Missing target selectors that don't match element IDs",
+                "Animation duration too long (>2s feels slow for UI)",
+                "Forgetting to define all animated elements in the elements array"
+            ]
+        },
+
+        "lottie": {
+            "delimiter": "<LOTTIE>...</LOTTIE>",
+            "description": "Pre-made vector animations in Lottie JSON format. Best for loading spinners, success/error indicators, animated icons, and decorative animations.",
+            "content_format": "Lottie animation JSON (exported from Adobe After Effects via Bodymovin plugin, or from LottieFiles.com)",
+            "critical_rules": [
+                "RULE 1: Content MUST be a valid Lottie animation JSON object (has 'v', 'fr', 'ip', 'op', 'w', 'h', 'layers' fields)",
+                "RULE 2: The JSON must be the FULL Lottie animation data",
+                "RULE 3: Do NOT reference external URLs — embed the full JSON",
+                "RULE 4: DO NOT wrap in <EXECUTE_HTML>"
+            ],
+            "examples": [
+                {
+                    "title": "Simple Loading Spinner (minimal Lottie)",
+                    "code": """<LOTTIE>
+{
+  "v": "5.7.4",
+  "fr": 30,
+  "ip": 0,
+  "op": 60,
+  "w": 200,
+  "h": 200,
+  "nm": "Loading Spinner",
+  "layers": [{
+    "ty": 4,
+    "nm": "Spinner",
+    "sr": 1,
+    "ks": {
+      "o": { "a": 0, "k": 100 },
+      "r": { "a": 1, "k": [
+        { "t": 0, "s": [0], "e": [360] },
+        { "t": 60, "s": [360] }
+      ]},
+      "p": { "a": 0, "k": [100, 100, 0] },
+      "s": { "a": 0, "k": [100, 100, 100] }
+    },
+    "shapes": [{
+      "ty": "gr",
+      "it": [
+        { "ty": "el", "s": { "a": 0, "k": [80, 80] }, "p": { "a": 0, "k": [0, 0] } },
+        { "ty": "st", "c": { "a": 0, "k": [0.4, 0.49, 0.92, 1] }, "o": { "a": 0, "k": 100 }, "w": { "a": 0, "k": 8 }, "lc": 2, "lj": 1, "d": [{ "n": "d", "v": { "a": 0, "k": 200 } }, { "n": "o", "v": { "a": 0, "k": 0 } }] },
+        { "ty": "fl", "c": { "a": 0, "k": [0, 0, 0, 0] }, "o": { "a": 0, "k": 0 } },
+        { "ty": "tr", "p": { "a": 0, "k": [0, 0] }, "s": { "a": 0, "k": [100, 100] }, "o": { "a": 0, "k": 100 } }
+      ]
+    }],
+    "ip": 0,
+    "op": 60,
+    "st": 0
+  }]
+}
+</LOTTIE>"""
+                }
+            ],
+            "best_practices": [
+                "Use LottieFiles.com to find free pre-made animations — download as JSON",
+                "For loading indicators: use a looping animation (ip=0, set loop=true in config if supported)",
+                "Keep file size under 50KB for browser performance",
+                "Set w/h to power of 2 values for optimization",
+                "Use for simple icon animations — not for complex scenes"
+            ],
+            "when_to_use": [
+                "Loading spinners and progress indicators",
+                "Success/error confirmation animations",
+                "Animated icons and micro-interactions",
+                "Empty state illustrations",
+                "Onboarding animations"
+            ],
+            "when_not_to_use": [
+                "Complex interactive 3D → use <THREEJS>",
+                "UI transition animations → use <GSAP>",
+                "Data visualizations → use <APEXCHARTS> or <PLOTLY>",
+                "Diagrams → use <MERMAID>"
+            ],
+            "common_errors": [
+                "Missing required Lottie fields (v, fr, ip, op, w, h, layers)",
+                "Referencing external assets that can't load in sandboxed iframe",
+                "Invalid JSON structure (Lottie has very strict schema)"
+            ]
         }
     }

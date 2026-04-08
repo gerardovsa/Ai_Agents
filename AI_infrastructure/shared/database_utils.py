@@ -1106,18 +1106,48 @@ def execute_query(
         
         # Execute query
         cursor.execute(query, params)
-        
+
+        # Detect DML vs SELECT using the underlying psycopg2 cursor:
+        # - DML without RETURNING → _underlying.description is None
+        # - DML with RETURNING / SELECT → _underlying.description is not None
+        # - DML identified by statusmessage prefix (INSERT/UPDATE/DELETE)
+        _underlying = getattr(cursor, '_cursor', None)
+        _has_results = _underlying is not None and _underlying.description is not None
+        _status_msg  = (_underlying.statusmessage if _underlying else '') or ''
+        _is_dml      = _status_msg.split()[0].upper() in ('INSERT', 'UPDATE', 'DELETE') \
+                       if _status_msg else False
+
         # Fetch results based on mode
         if fetch_mode == 'all':
+            if not _has_results:
+                # DML without RETURNING (UPDATE/DELETE/INSERT no RETURNING)
+                # fetchall() would raise ProgrammingError; commit and return empty
+                if _is_dml:
+                    conn.commit()
+                return []
             rows = cursor.fetchall()
+            if _is_dml:
+                conn.commit()  # Persist DML+RETURNING (otherwise rolled back on pool return)
             return [dict(row) for row in rows] if rows else []
         
         elif fetch_mode == 'one':
+            if not _has_results:
+                if _is_dml:
+                    conn.commit()
+                return None
             row = cursor.fetchone()
+            if _is_dml:
+                conn.commit()  # Persist DML+RETURNING
             return dict(row) if row else None
         
         elif fetch_mode == 'value':
+            if not _has_results:
+                if _is_dml:
+                    conn.commit()
+                return None
             row = cursor.fetchone()
+            if _is_dml:
+                conn.commit()  # Persist DML+RETURNING
             if row:
                 # Get first column value
                 return row[0] if isinstance(row, (tuple, list)) else list(row.values())[0]

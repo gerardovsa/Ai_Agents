@@ -1,6 +1,6 @@
 # Module Visibility Architecture
-**Document Version: 1.0 — March 26, 2026**
-**Status: Current architecture documented + design spec for proper implementation**
+**Document Version: 1.1 — April 8, 2026**
+**Status: Current architecture documented + design spec for proper implementation. Invite system complete. Core DB framework fixes applied.**
 
 ---
 
@@ -603,28 +603,44 @@ For complete information on the Organisation system that governs module visibili
 
 ## Changelog & TODO
 
-### Last Updated: March 28, 2026
+### Last Updated: April 8, 2026
 
 #### Recent Changes
-- ✅ **March 28** — Added Section 1b: "The 4-Layer Visibility Model" with complete framework explanation
-- ✅ **March 28** — Added cross-references linking to ORG_CREDENTIALS_MASTER_ANALYSIS.md and ORG_DOCUMENTATION
-- ✅ **March 28** — Consolidated to 3 core documents; removed duplicate analysis files
-- ✅ **March 26** — Initial MODULE_VISIBILITY_ARCHITECTURE.md creation with implementation design
+- ✅ **April 8** — Accept-invite frontend fully implemented: `checkPendingInvite()`, `handleAcceptInvite()`, `_showInviteAcceptDialog()`, `_showInviteNotice()` added to `account_profile.js`; `?accept_invite=<token>` URL param detection + `sessionStorage` stash wired into all three `initializeApp()` login paths (email/password, OAuth callback, stored token)
+- ✅ **April 8** — Core `execute_query()` framework fix in `database_utils.py`: DML without RETURNING no longer raises `ProgrammingError`; INSERT+RETURNING now correctly auto-commits (eliminates phantom INSERTs silently rolled back by `PooledConnection.close()`)
+- ✅ **April 8** — Recursive DB trigger `trg_expire_invitations` fixed: added `WHEN (pg_trigger_depth() = 0)` guard; prevents "stack depth limit exceeded" on any `org_invitations` INSERT/UPDATE; applied to production Supabase; migration `041_fix_invite_trigger_recursion.sql` created
+- ✅ **April 8** — `POST /api/org/invite` rewritten with `provider` field (`gmail`/`outlook`/none): sends invite email inline via user's stored OAuth token; returns `email_sent`/`email_error`; HTML invite form updated with "Send via" `<select id="inviteProvider">` dropdown; `inviteOrgMember()` JS updated for provider/email UX
+- ✅ **March 26** — BUG-5: Added missing InHouse Kanban sidebar button with `data-module="inhouse_kanban"` attribute so org module toggle can actually hide it
+- ✅ **March 26** — BUG-6: Added `_gateOrgSubTabs(role)` function — hides Vault/Modules/Audit org panel buttons based on `org_role` (Vault: manager+, Modules: member+, Audit: admin+)
+- ✅ **March 26** — BUG-1–4: Missing auth headers on all `/api/org/*` calls, user role always showing "—" (`your_role` at wrong response nesting), `auth_token` key typos in `account_profile.js` and `business-ai-platform-v2.html` — all fixed
+- ✅ **March 26** — Per-user module access (Migration 039): `user_module_access` table, `get_user_enabled_modules()` resolver (applies user restrictions on top of org-level set), member puzzle-piece toggle UI in Members panel; `GET /api/org/modules` now returns user-personalised filtered set
+- ✅ **March 28** — Added Section 1b: "The 4-Layer Visibility Model" with full evaluation decision tree
+- ✅ **March 28** — Consolidated to 3 core documents; removed duplicate analysis files; cross-references added
 
-#### TODO (Ready to Implement)
-- [ ] **High Priority** — Implement `initModulesFromOrg()` function
-  - Calls `GET /api/org/modules` on login
-  - Reads org's enabled modules from `org_module_access` table
-  - Shows/hides sidebar items based on 4-layer visibility model
-  - Location: `UI/business-ai-platform-v2.html`
-  
-- [ ] **High Priority** — Gate WooCommerce `tab-sales` with `data-module="woocommerce"` attribute
-  
-- [ ] **Medium Priority** — Replace `manifest.json` Zone 2 rendering with DB-driven module loading
-  
-- [ ] **Medium Priority** — Add role-based gating with `data-org-min-role` attributes
-  
-- [ ] **Low Priority** — Resolve orphaned `tab-vsa-veterinary-alerts` (delete or add to module catalog)
+#### TODO
+
+- [ ] **HIGH** — Implement `initModulesFromOrg()` function in `business-ai-platform-v2.html`
+  - Full implementation spec in Section 6 of this document (function body provided, CSS class defined)
+  - Calls `GET /api/org/modules` on login — response is already user-personalised (per-user restrictions applied backend-side)
+  - Zone 1: shows/hides WooCommerce + other optional hardcoded sidebar items
+  - Zone 2: rebuilds `#sidebarModulesSection` from live DB catalog data (replaces `manifest.json`)
+
+- [ ] **HIGH** — Gate WooCommerce `tab-sales` sidebar button + tab content
+  - Add `data-module="woocommerce"` to the sidebar `<li>` button
+  - Add `module-hidden` CSS class logic for `#tab-sales` content div
+  - Should be invisible unless org has `woocommerce` enabled in `org_module_access`
+
+- [ ] **MEDIUM** — Replace `manifest.json` Zone 2 rendering with DB-driven module loading
+  - InHouse Kanban sidebar button was added (BUG-5 ✅) but still rendered via static `manifest.json`
+  - Target: `initModulesFromOrg()` rebuilds `#sidebarModulesSection` from live DB data
+
+- [ ] **MEDIUM** — Add role-based `data-org-min-role` gating to sidebar nav items
+  - Org panel subtab gating done (BUG-6 ✅)
+  - Sidebar navigation items (Settings, Credentials, etc.) still have no per-role visibility gate
+
+- [ ] **LOW** — Resolve orphaned `tab-vsa-veterinary-alerts`
+  - Either: add `module_catalog` entry + sidebar button + `data-module` attribute
+  - Or: delete the HTML tab entirely (it is currently inaccessible to all users)
 
 #### Related Files (Keep These 3 as Source of Truth)
 - `../ORG_CREDENTIALS_MASTER_ANALYSIS.md` — Credentials, vault, role hierarchy, sub-user system

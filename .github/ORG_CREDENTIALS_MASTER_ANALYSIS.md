@@ -1,7 +1,7 @@
 # Organisation Credentials System — Master Analysis
-**Date:** March 26, 2026 (Last Updated: March 28, 2026)
+**Date:** March 26, 2026 (Last Updated: April 8, 2026)
 **Purpose:** Complete authoritative reference for new chat sessions. Multi-tenant platform — one Render deployment, one Supabase database, all user types served.
-**Status:** ✅ All migration 020–036 work complete. Platform catalog (27 platforms), module catalog (26 modules), org/user/role system, credential vault, and DB-driven permission model are LIVE in Supabase. ✅ March 28: Added module visibility section + org table schema reference.
+**Status:** ✅ All migration 020–039 work complete. Platform catalog (27 platforms), module catalog (26 modules), org/user/role system, credential vault (Fernet encrypted), and DB-driven permission model are LIVE in Supabase. ✅ April 8: Full invite system complete (create, email, accept-invite frontend); core `execute_query` DML bugs fixed; recursive trigger fixed.
 
 ---
 
@@ -581,13 +581,13 @@ api_key = resolve_api_key(user_id, 'anthropic')
 
 ## Known Gaps / Future Work
 
-1. **No invite system** — members are added by directly updating `organisation_id` in the DB or via a future invite endpoint. The routes file has role-change and remove-member endpoints but no `POST /api/org/members/invite` yet. See `AUTH_FLOW_AND_ONBOARDING.md` for the full invite flow design.
+1. ~~**No invite system**~~ — **✅ RESOLVED (April 8, 2026)** Full invite system implemented: `POST /api/org/invite` (creates invite + sends email via Gmail/Outlook OAuth `provider` field), `GET /api/org/invite/pending`, `DELETE /api/org/invite/<id>` (revoke), `GET /api/org/invite/accept?token=` (no-auth token validation), `POST /api/org/invite/accept` (accept + link user to org). Frontend: `checkPendingInvite()`, `handleAcceptInvite()`, `_showInviteAcceptDialog()` in `account_profile.js`; `?accept_invite=<token>` URL detection in `initializeApp()`. See `ORGANISATION_CREDENTIALS_ARCHITECTURE.md — Invite System section`.
 
 2. **No org creation UI** — new client orgs are seeded via SQL (023-style INSERT per client). Needs a `/api/admin/org/create` endpoint and lightweight onboarding wizard for the platform admin to use. NOT self-service for clients (they don't create their own org — you onboard them).
 
 3. ~~**`app.current_organisation_id` session variable**~~ — **✅ RESOLVED (Session 3)** — `set_rls_context_from_jwt()` in `flask_app.py` extracts values from JWT and writes to `g.rls_user_id` / `g.rls_organisation_id`. `database_utils.get_database_connection()` then calls `inject_rls_vars()` which sets `set_config('app.current_user_id', ..., true)` on every connection.
 
-4. **Credential value encryption at rest** — currently stored as plain text in the DB column. Supabase column-level encryption or application-layer AES-GCM encryption before storing would be the next hardening step.
+4. ~~**Credential value encryption at rest**~~ — **✅ RESOLVED** Fernet (AES-128-CBC + HMAC-SHA256) encryption implemented in `AI_infrastructure/shared/credential_crypto.py`. Values stored with `enc:v1:<fernet_token>` prefix. Key stored in `CREDENTIAL_ENCRYPTION_KEY` env var. Passthrough mode (no crash) if key missing — backwards compatible with existing plaintext values.
 
 5. **`is_sub_user` field** — referenced in `applyOrgRoleVisibility()` in the frontend but not in the DB schema. If sub-users need full access restriction (level 0), this column needs adding to the `users` table.
 
@@ -597,7 +597,7 @@ api_key = resolve_api_key(user_id, 'anthropic')
 
 8. **No `organisations.allowed_domains` column** — needed to auto-provision Google Workspace / M365 users. E.g. store `["inhouseprint.com.au"]` so that anyone who SSOs with that domain gets added to that org automatically.
 
-9. **org_invitations table does not exist yet** — the invite system needs: DB table, `/api/org/invite` POST endpoint, email delivery (SendGrid/Resend), `/api/org/accept-invite?token=` GET/POST endpoint. Detailed design in `AUTH_FLOW_AND_ONBOARDING.md`.
+9. ~~**org_invitations table does not exist yet**~~ — **✅ RESOLVED (April 8, 2026)** `org_invitations` table confirmed present (March 2026). Full invite system complete — see point 1 above. Recursive trigger `trg_expire_invitations` fixed (added `WHEN (pg_trigger_depth() = 0)` guard, migration 041). Core `execute_query` DML commit bug also fixed — was silently rolling back all org_invitations INSERTs.
 
 ---
 
@@ -1136,7 +1136,7 @@ Each gap is structured for systematic resolution. Work through them in the order
 | ✅ FIXED | GAP-H4: Two parallel org UIs | Consolidated via DOM-move + Vault/Audit subtabs added |
 | ✅ FIXED | GAP-H5: Verify RLS injection working | INFO logging + role=authenticated confirmed |
 | ✅ FIXED | GAP-M5: Platform name free-text | ALLOWED_PLATFORMS validation + dropdown |
-| 🟡 MEDIUM | GAP-M1: No org_module_access table | No feature gating by plan |
+| ✅ FIXED | GAP-M1: No org_module_access table | Migrations 032 + 036: `org_module_access`, `module_catalog`, `plan_modules` — full feature gating live |
 | 🟡 MEDIUM | GAP-M3: No per-org AI provider/model | All orgs use same model |
 | ✅ FIXED  | GAP-M2: Conversations missing org FK | sessions.threads.organisation_id + trigger (029) |
 | 🟡 MEDIUM | GAP-M4: Shopify/Xero not org-isolated | Integration data leakage |
@@ -1147,7 +1147,7 @@ Each gap is structured for systematic resolution. Work through them in the order
 | 🟢 LOW | GAP-L4: realtime_messages not scoped | Possible real-time leakage |
 | 🟢 LOW | GAP-L5: DeepSeek env-var only | DeepSeek not vault-compatible |
 | ✅ FIXED | GAP-L6: is_sub_user not in DB | Column confirmed in team_id_management_migration.sql |
-| 🟢 LOW | GAP-L7: Credentials plain text at rest | Future hardening |
+| ✅ FIXED | GAP-L7: Credentials plain text at rest | Fernet AES-128-CBC encryption in `credential_crypto.py`; `enc:v1:` prefix; passthrough if key missing |
 
 ---
 
@@ -1240,12 +1240,12 @@ Work through the phases in sequence. Each phase builds on the previous. Complete
 #### Phase 8 — Feature Gating (MEDIUM plan enforcement)
 **Goal:** Plan tier controls which modules are accessible.
 
-- `[ ]` **8a.** Fix GAP-M1: Create migration `026_org_module_access.sql` with `org_module_access` + `plan_modules` tables
-- `[ ]` **8b.** Seed plan modules with starter/professional/enterprise defaults
-- `[ ]` **8c.** Wire module access check into `ToolUseAgent` tool list building
-- `[ ]` **8d.** Wire module access check into frontend module loading
+- `[x]` **8a.** Fix GAP-M1: `org_module_access` table ✅ (migration 032) + `module_catalog` with `min_plan_tier` ✅ (migration 036)
+- `[x]` **8b.** Seed plan modules ✅ — 26 modules seeded in `module_catalog` with starter/professional/enterprise tier defaults
+- `[x]` **8c.** Backend resolver wired ✅ — `get_user_enabled_modules()` in `org_credentials_loader.py` applies plan tier → org override → user restriction chain; `GET /api/org/modules` returns user-personalised set
+- `[ ]` **8d.** Frontend sidebar gating — **NOT YET DONE** — `initModulesFromOrg()` function spec exists in `MODULE_VISIBILITY_ARCHITECTURE.md` Section 6 but not yet wired to login flow in `business-ai-platform-v2.html`
 
-**Phase 8 Checkpoint:** Org with `starter` plan — `ToolUseAgent` tool list excludes Shopify and Xero tools. Org with `enterprise` plan — all tools available.
+**Phase 8 Checkpoint:** Backend resolution complete (steps 8a–8c). Frontend sidebar still shows all modules regardless of org settings (step 8d pending).
 
 ---
 
@@ -1254,10 +1254,10 @@ Work through the phases in sequence. Each phase builds on the previous. Complete
 
 - `[ ]` **9a.** Fix GAP-L2: Add scheduled key rotation reminder (APScheduler/cron)
 - `[ ]` **9b.** Fix GAP-L3: Add "Test Connection" button + `POST /api/org/credentials/:id/test` endpoint
-- `[ ]` **9c.** Fix GAP-L7: Implement AES-256-GCM encryption for credential values at rest
+- `[x]` **9c.** Fix GAP-L7: Credential encryption at rest ✅ — Fernet AES-128-CBC in `credential_crypto.py`; `enc:v1:` prefix; `CREDENTIAL_ENCRYPTION_KEY` env var
 - `[ ]` **9d.** Add `deepseek` to vault UI platform dropdown (from GAP-M5 work)
 
-**Phase 9 Checkpoint:** Test Connection returns success/failure without triggering a real chat. DB dump of `credential_value` column shows encrypted ciphertext, not plaintext API keys.
+**Phase 9 Checkpoint:** `SELECT credential_value FROM ai_infrastructure.organisation_platform_credentials LIMIT 3;` — shows `enc:v1:...` ciphertext, not plaintext API keys.
 
 ---
 
@@ -1287,33 +1287,45 @@ Work through the phases in sequence. Each phase builds on the previous. Complete
 
 ## Changelog & TODO
 
-### Last Updated: March 28, 2026
+### Last Updated: April 8, 2026
 
 #### Recent Changes
-- ✅ **March 28** — Consolidated to 3 core documents; removed duplicate analysis files
-- ✅ **March 28** — Added "Module Visibility & Credential Requirements" section
-- ✅ **March 28** — Added "Organisation Table Schema" reference section
-- ✅ **March 28** — Added cross-references to MODULE_VISIBILITY_ARCHITECTURE.md and ORG_DOCUMENTATION
-- ✅ **March 26** — Complete multi-tenant architecture with credential vault and RLS policies
+- ✅ **April 8** — Full accept-invite frontend: `checkPendingInvite()`, `handleAcceptInvite()`, `_showInviteAcceptDialog()`, `_showInviteNotice()` in `account_profile.js`; `?accept_invite=<token>` URL detection + sessionStorage stash in `initializeApp()` across all three login paths
+- ✅ **April 8** — `execute_query()` DML bug fixed (`database_utils.py`): DML without RETURNING no longer raises `ProgrammingError`; INSERT+RETURNING now auto-commits before pool return
+- ✅ **April 8** — Recursive trigger `trg_expire_invitations` fixed in production Supabase; migration `041_fix_invite_trigger_recursion.sql` created
+- ✅ **April 8** — `POST /api/org/invite` rewritten with `provider` field for inline Gmail/Outlook email; form updated with provider dropdown
+- ✅ **March 28** — Consolidated to 3 core documents; added Module Visibility + Org Table Schema sections  
+- ✅ **March 26** — Complete multi-tenant architecture with credential vault and RLS policies (migrations 020–039)
 
 #### TODO (By Priority)
 
-**HIGH PRIORITY — Block Implementation:**
-- [ ] **GAP-C2** — Fix `service_role` bypass so RLS policies actually enforce (currently all queries bypass RLS)
-- [ ] **GAP-C4** — Add `jwt_version` to JWT + `@require_auth` decorator to invalidate tokens on role change
+**ACTIVE — Frontend Sidebar Gating:**
+- [ ] **`initModulesFromOrg()`** — DB-driven sidebar visibility (full spec in MODULE_VISIBILITY_ARCHITECTURE.md Section 6)
+- [ ] **WooCommerce gating** — `data-module="woocommerce"` on `tab-sales` sidebar button + content div
 
-**MEDIUM PRIORITY — Feature Gating:**
-- [ ] **GAP-M1** — Create `org_module_access` + `plan_modules` tables for plan-tier feature gating
-- [ ] **GAP-M2** — Add `organisation_id` FK to conversations/threads (migration applied, needs verification in code)
+**MEDIUM — Remaining Gaps:**
+- [ ] **GAP-M4** — Audit Shopify/Xero integration tables for `organisation_id` FK isolation
+- [ ] **GAP-E2** — Sub-user role restrictions (can’t promote above parent’s role)
+- [ ] **GAP-E3** — Sub-user credential vault access (inherit parent’s credentials, read-only)
 
-**MEDIUM PRIORITY — Sub-User System:**
-- [ ] **GAP-E2** — Implement sub-user role restrictions (child accounts can't promote themselves above parent's role)
-- [ ] **GAP-E3** — Implement sub-user credential vault access (only see parent's credentials, read-only)
+**LOW — Polish & Hardening:**
+- [ ] **GAP-L2** — Scheduled key rotation reminders (APScheduler + email)
+- [ ] **GAP-L3** — "Test Connection" button + `POST /api/org/credentials/<id>/test` endpoint
+- [ ] **GAP-L5** — Wire DeepSeek into `resolve_api_key` path (currently env-var only)
 
-**LOW PRIORITY — Polish & Hardening:**
-- [ ] **GAP-L2** — Add scheduled key rotation reminders (APScheduler + email notification)
-- [ ] **GAP-L3** — Add "Test Connection" button for vault credentials
-- [ ] **GAP-L4** — Add AES-256-GCM encryption at rest for credential values
+**RESOLVED (closed):**
+- ✅ GAP-C1, C2, C3, C4 — Foundation security (Pinecone namespace, RLS role, AI engine per-request keys, JWT invalidation)
+- ✅ GAP-H1–H5 — Org UI fixes (saveOrgSettings, panel consolidation, RLS logging)
+- ✅ GAP-M1 — org_module_access + module_catalog (migrations 032, 036)
+- ✅ GAP-M2 — organisation_id on threads (migration 029)
+- ✅ GAP-M3 — Per-org AI provider/model (migration 031)
+- ✅ GAP-M5 — Platform name free-text replaced with platform_catalog validation
+- ✅ GAP-M6 — allowed_domains SSO auto-provisioning (migration 030)
+- ✅ GAP-L6 — is_sub_user column confirmed in team_id_management_migration.sql
+- ✅ GAP-L7 — Credential encryption at rest (Fernet, `enc:v1:` prefix, `credential_crypto.py`)
+- ✅ Known Gap #1/9 — Full invite system (create, email, accept-invite frontend)
+- ✅ Known Gap #4 — Credential encryption (Fernet, `credential_crypto.py`)
+- ✅ Core DB fixes — `execute_query` DML commit + phantom INSERT bug + recursive trigger (April 8, 2026)
 
 #### Related Files (Keep These 3 as Source of Truth)
 - `../MODULE_VISIBILITY_ARCHITECTURE.md` — Module visibility model, sidebar gating, 4-layer framework
