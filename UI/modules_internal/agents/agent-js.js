@@ -2677,6 +2677,11 @@ const MultiAgent = {
 async function initMultiAgent() {
     console.log('🚀 [Multi-Agent] Initializing NATO AI Columns...');
 
+    // ✅ FIX (Apr 9, 2026): Declare maxAgentId at function scope so it's accessible after .then()
+    // Default to 3 (minimum NATO agents), will be updated in .then() after threads load
+    let maxAgentId = 3;
+    let agentIdsWithThreads = [];
+
     // Clear any stale localStorage data (backend is source of truth)
     MultiAgent.loadState();
 
@@ -2693,6 +2698,70 @@ async function initMultiAgent() {
         ThreadManager.loadThreadsFromBackend()  // NO AWAIT - fire and forget, UI renders immediately
             .then(() => {
                 console.log(`✅ [initMultiAgent] Threads loaded: ${ThreadManager.threads?.length || 0} threads in memory`);
+                
+                // STEP 1: Calculate agent count from threads' location field (source of truth)
+                // ✅ FIX DEC 28: Use thread.location from database instead of separate assignments API
+                // Note: Update the function-scoped variables (not const - would shadow outer scope)
+                agentIdsWithThreads = [];
+
+                if (typeof ThreadManager !== 'undefined' && Array.isArray(ThreadManager.threads)) {
+                    ThreadManager.threads.forEach(thread => {
+                        if (thread.location && thread.location.startsWith('agent-')) {
+                            const agentId = parseInt(thread.location.replace('agent-', ''));
+                            if (!isNaN(agentId) && !agentIdsWithThreads.includes(agentId)) {
+                                agentIdsWithThreads.push(agentId);
+                            }
+                        }
+                    });
+                    agentIdsWithThreads.sort((a, b) => a - b);
+                }
+
+                // Calculate max agent ID (minimum 3, or highest assigned + 1)
+                const maxAssignedAgent = agentIdsWithThreads.length > 0 ? Math.max(...agentIdsWithThreads) : 0;
+                maxAgentId = Math.max(maxAssignedAgent + 1, 3);  // Update the function-scoped maxAgentId
+
+                // Update nextAgentId based on actual usage (not localStorage)
+                MultiAgent.nextAgentId = maxAgentId + 1;
+
+                console.log(`📊 [Multi-Agent] Creating ${maxAgentId} agents (threads assigned to: [${agentIdsWithThreads.join(', ')}])`);
+
+                // STEP 3: Create ALL agents from 1 to maxAgentId
+                for (let i = 1; i <= maxAgentId; i++) {
+                    createAgentColumn(i);
+
+                    // [NEW] GUARANTEE default width (400px) - remove any 'wide' class
+                    const column = document.getElementById(`agent-${i}`);
+                    if (column) {
+                        column.classList.remove('wide');
+                        // Make columns EXPANDED by default (not collapsed)
+                        column.classList.remove('collapsed');
+                        console.log(`[SIZE][Multi-Agent] ${MultiAgent.getAgentName(i)} initialized at default width(400px)`);
+                    }
+                }
+
+                // ✅ FIX DEC 28: Build assignments map BEFORE using it
+                // Create assignments map from thread locations for buildQuickNav and hasThread checks
+                const assignments = {};
+                if (typeof ThreadManager !== 'undefined' && Array.isArray(ThreadManager.threads)) {
+                    ThreadManager.threads.forEach(thread => {
+                        if (thread.location) {
+                            assignments[thread.location] = thread.id;
+                        }
+                    });
+                }
+
+                // Now check which agents have threads (after assignments map is created)
+                for (let i = 1; i <= maxAgentId; i++) {
+                    const hasThread = assignments[`agent-${i}`];
+                    // ALL agents are EXPANDED by default now (no auto-collapse)
+                    console.log(`[OK][Multi-Agent] ${MultiAgent.getAgentName(i)} is EXPANDED (has thread: ${!!hasThread})`);
+                }
+
+                MultiAgent.buildQuickNav(maxAgentId, assignments);
+                console.log(`✅ [Command Center] Quick nav built with ${maxAgentId} agent badges`);
+
+                // Update stats
+                MultiAgent.updateDashboardStats();
                 // ✅ FIX (Apr 8, 2026): Restore thread assignments into columns immediately after threads load.
                 // This ensures columns are populated regardless of whether ThreadManager.init() fires.
                 if (typeof ThreadManager.restoreThreadAssignments === 'function') {
@@ -2717,74 +2786,18 @@ async function initMultiAgent() {
     } else {
         console.error('❌ [initMultiAgent] ThreadManager.loadThreadsFromBackend not available!');
     }
+}
 
-    // STEP 1: Calculate agent count from threads' location field (source of truth)
-    // ✅ FIX DEC 28: Use thread.location from database instead of separate assignments API
-    // Note: If threads aren't loaded yet, this will default to creating 3 agents
-    const agentIdsWithThreads = [];
-
-    if (typeof ThreadManager !== 'undefined' && Array.isArray(ThreadManager.threads)) {
-        ThreadManager.threads.forEach(thread => {
-            if (thread.location && thread.location.startsWith('agent-')) {
-                const agentId = parseInt(thread.location.replace('agent-', ''));
-                if (!isNaN(agentId) && !agentIdsWithThreads.includes(agentId)) {
-                    agentIdsWithThreads.push(agentId);
-                }
-            }
-        });
-        agentIdsWithThreads.sort((a, b) => a - b);
-    }
-
-    // Calculate max agent ID (minimum 3, or highest assigned + 1)
-    const maxAssignedAgent = agentIdsWithThreads.length > 0 ? Math.max(...agentIdsWithThreads) : 0;
-    const maxAgentId = Math.max(maxAssignedAgent + 1, 3);  // Always create at least 3 agents
-
-    // Update nextAgentId based on actual usage (not localStorage)
-    MultiAgent.nextAgentId = maxAgentId + 1;
-
-    console.log(`📊 [Multi-Agent] Creating ${maxAgentId} agents (threads assigned to: [${agentIdsWithThreads.join(', ')}])`);
-
-    // STEP 3: Create ALL agents from 1 to maxAgentId
-    for (let i = 1; i <= maxAgentId; i++) {
-        createAgentColumn(i);
-
-        // [NEW] GUARANTEE default width (400px) - remove any 'wide' class
-        const column = document.getElementById(`agent-${i}`);
-        if (column) {
-            column.classList.remove('wide');
-            // Make columns EXPANDED by default (not collapsed)
-            column.classList.remove('collapsed');
-            console.log(`[SIZE][Multi-Agent] ${MultiAgent.getAgentName(i)} initialized at default width(400px)`);
-        }
-    }
-
-    // ✅ FIX DEC 28: Build assignments map BEFORE using it (was causing temporal dead zone error)
-    // Create assignments map from thread locations for buildQuickNav and hasThread checks
-    const assignments = {};
-    if (typeof ThreadManager !== 'undefined' && Array.isArray(ThreadManager.threads)) {
-        ThreadManager.threads.forEach(thread => {
-            if (thread.location) {
-                assignments[thread.location] = thread.id;
-            }
-        });
-    }
-
-    // Now check which agents have threads (after assignments map is created)
-    for (let i = 1; i <= maxAgentId; i++) {
-        const hasThread = assignments[`agent-${i}`];
-        // ALL agents are EXPANDED by default now (no auto-collapse)
-        console.log(`[OK][Multi-Agent] ${MultiAgent.getAgentName(i)} is EXPANDED (has thread: ${!!hasThread})`);
-    }
-
-    MultiAgent.buildQuickNav(maxAgentId, assignments);
-    console.log(`✅ [Command Center] Quick nav built with ${maxAgentId} agent badges`);
-
-    // Update stats
-    MultiAgent.updateDashboardStats();
-
-    // STEP 4.5: GUARANTEE DOM container existence before loading threads
-    // Wait for all agent column DOM elements to be fully created and inserted
-    console.log(`⏳ [initMultiAgent] Verifying DOM containers for ${maxAgentId} agents...`);
+/**
+ * Load all deferred thread messages AFTER the UI has rendered.
+ *
+ * Strategy: initMultiAgent() renders thread INFO cards instantly using cached thread list data.
+ * The expensive per-thread message history API calls are deferred here, so the loading overlay
+ * hides in ~5s instead of ~60s. Called from user_auth.js after hideLoadingOverlay().
+ *
+ * Sequential loading is intentional — prevents connection pool exhaustion on Render.
+ */
+window.loadDeferredThreadMessages = async function () {
 
     // 🔍 DEBUG: Check parent container state
     const multiAgentContainer = document.getElementById('multi-agent-container');
