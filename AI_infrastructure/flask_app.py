@@ -2064,10 +2064,23 @@ def ws_synergy_agent_message_sent(data):
             return
         
         # Get user_id from data (WebSocket data includes user_id)
+        # If not present, try to extract from authenticated session/JWT
         user_id = data.get('user_id')
         
         if not user_id:
-            log_warning(logger, "[WS] Cannot broadcast agent message - no user_id in data")
+            # Fallback: Extract user_id from Flask-SocketIO session context
+            try:
+                if hasattr(request, 'sid'):  # sid = SocketIO session ID
+                    # Try to get auth context from socketio sessions
+                    user_id = session_manager.session_to_user_id.get(request.sid) if hasattr(session_manager, 'session_to_user_id') else None
+                if not user_id:
+                    from flask import session as flask_session
+                    user_id = flask_session.get('user_id')
+            except Exception:
+                pass
+        
+        if not user_id:
+            log_warning(logger, "[WS] Cannot broadcast agent message - no user_id in data or session")
             return
         
         # Route based on privacy mode
