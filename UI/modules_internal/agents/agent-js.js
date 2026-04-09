@@ -2693,39 +2693,6 @@ async function initMultiAgent() {
         ThreadManager.loadThreadsFromBackend()  // NO AWAIT - fire and forget, UI renders immediately
             .then(() => {
                 console.log(`✅ [initMultiAgent] Threads loaded: ${ThreadManager.threads?.length || 0} threads in memory`);
-
-                // ✅ FIX (Apr 8, 2026): Create any agent columns that were missing at init time.
-                // initMultiAgent() ran synchronously before threads loaded, defaulting to 3 columns.
-                // Now threads are in memory — create columns for any assigned agent IDs above the
-                // initial maxAgentId so every assigned agent has a DOM column to render into.
-                const loadedAgentIds = [];
-                (ThreadManager.threads || []).forEach(thread => {
-                    if (thread.location && thread.location.startsWith('agent-')) {
-                        const aid = parseInt(thread.location.replace('agent-', ''));
-                        if (!isNaN(aid) && !loadedAgentIds.includes(aid)) loadedAgentIds.push(aid);
-                    }
-                });
-                loadedAgentIds.sort((a, b) => a - b);
-
-                const actualMaxAssigned = loadedAgentIds.length > 0 ? Math.max(...loadedAgentIds) : 0;
-                const actualMaxAgentId = Math.max(actualMaxAssigned + 1, maxAgentId); // maxAgentId captured from outer scope
-
-                if (actualMaxAgentId > maxAgentId) {
-                    console.log(`📊 [initMultiAgent] Threads loaded with agents up to ${actualMaxAssigned} — creating ${actualMaxAgentId - maxAgentId} missing columns`);
-                    for (let i = maxAgentId + 1; i <= actualMaxAgentId; i++) {
-                        createAgentColumn(i);
-                        const col = document.getElementById(`agent-${i}`);
-                        if (col) col.classList.remove('wide', 'collapsed');
-                    }
-                    MultiAgent.nextAgentId = actualMaxAgentId + 1;
-
-                    // Rebuild quick nav with full agent range + actual assignments
-                    const assignmentsMap = {};
-                    (ThreadManager.threads || []).forEach(t => { if (t.location) assignmentsMap[t.location] = t.id; });
-                    MultiAgent.buildQuickNav(actualMaxAgentId, assignmentsMap);
-                    console.log(`✅ [initMultiAgent] Quick nav rebuilt for ${actualMaxAgentId} agents`);
-                }
-
                 // ✅ FIX (Apr 8, 2026): Restore thread assignments into columns immediately after threads load.
                 // This ensures columns are populated regardless of whether ThreadManager.init() fires.
                 if (typeof ThreadManager.restoreThreadAssignments === 'function') {
@@ -4566,6 +4533,7 @@ async function sendAgentMessage(agentId) {
             agent_id: agentId,
             message: displayMessage,
             role: 'user',
+            user_id: window.currentUserId || null,
             session_token: window.SynergyRealtime.sessionToken,
             privacy_mode: window.SynergyRealtime.getPrivacyMode ? window.SynergyRealtime.getPrivacyMode() : 'central',
             team_id: window.SynergyRealtime._getTeamId ? window.SynergyRealtime._getTeamId() : null
@@ -5784,6 +5752,7 @@ async function sendAgentMessage(agentId) {
                     message: fullResponse,
                     role: 'assistant',
                     content_blocks: fullContent,
+                    user_id: window.currentUserId || null,
                     session_token: window.SynergyRealtime.sessionToken,
                     privacy_mode: window.SynergyRealtime.getPrivacyMode ? window.SynergyRealtime.getPrivacyMode() : 'central',
                     team_id: window.SynergyRealtime._getTeamId ? window.SynergyRealtime._getTeamId() : null

@@ -6,6 +6,7 @@ This client wraps all AI providers with a unified interface
 so routes can switch providers without code changes.
 """
 
+import httpx
 from anthropic import Anthropic
 import openai
 import requests
@@ -172,13 +173,15 @@ class UnifiedAIClient:
             else:
                 print(f"[UnifiedAIClient] 🔐 Using Anthropic key from CONFIG FILE (key: {key_display})")
             
-            # Increase timeout to 120 seconds (from default 60s) to handle SSL handshake delays
+            # Use granular httpx.Timeout: short connect, long read for extended-thinking responses
+            # Anthropic recommends ≥600 s read timeout for long requests with thinking enabled
+            _anthropic_timeout = httpx.Timeout(connect=30.0, read=600.0, write=60.0, pool=10.0)
             self.anthropic_client = Anthropic(
                 api_key=api_key,
-                timeout=120.0,  # Increased from default 60s
+                timeout=_anthropic_timeout,
                 max_retries=3   # Retry up to 3 times on network errors
             )
-            print("[UnifiedAIClient] Anthropic client initialized with 120s timeout, 3 max retries")
+            print("[UnifiedAIClient] Anthropic client initialized with 600s read timeout, 3 max retries")
         else:
             self.anthropic_client = None
             print("⚠️  Warning: No Anthropic API key found. Check Supabase credentials or set ANTHROPIC_API_KEY.")
@@ -376,7 +379,7 @@ Always explain what you're doing when using these tools so the user understands 
                     from anthropic import Anthropic as _Anthropic
                     anthropic_client = _Anthropic(
                         api_key=per_request_key,
-                        timeout=120.0,
+                        timeout=httpx.Timeout(connect=30.0, read=600.0, write=60.0, pool=10.0),
                         max_retries=3,
                     )
         except Exception as _key_err:
@@ -1116,7 +1119,7 @@ Always explain what you're doing when using these tools so the user understands 
                         from anthropic import Anthropic as _Anthropic
                         anthropic_client_nonstream = _Anthropic(
                             api_key=per_request_key,
-                            timeout=120.0,
+                            timeout=httpx.Timeout(connect=30.0, read=600.0, write=60.0, pool=10.0),
                             max_retries=3,
                         )
             except Exception:

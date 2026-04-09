@@ -31629,13 +31629,169 @@
 
             openAddCredentialModal() {
                 this.openModal(`
-                    <h3 style="margin:0 0 16px;font-size:16px;">Add Credential</h3>
-                    ${this._credentialFormFields()}
-                    <div id="org-cred-error" style="margin-bottom:8px;"></div>
-                    <div style="display:flex;justify-content:flex-end;gap:8px;">
+                    <div id="org-add-cred-platform-view">
+                        <div style="display:flex;align-items:center;justify-content:space-between;margin:0 0 12px;">
+                            <h3 style="margin:0;font-size:16px;"><i class="fas fa-plus"></i> Add Credential</h3>
+                            <button onclick="OrgManager.closeModal()" style="background:none;border:none;color:var(--text-muted);font-size:20px;cursor:pointer;line-height:1;padding:0 4px;">&times;</button>
+                        </div>
+                        <p style="font-size:13px;color:var(--text-muted);margin:0 0 16px 0;">Select a platform to store credentials for your organisation.</p>
+                        <div id="org-platform-catalog-grid" style="max-height:55vh;overflow-y:auto;padding-right:4px;">
+                            <div style="text-align:center;padding:30px;color:var(--text-muted);"><i class="fas fa-circle-notch fa-spin"></i> Loading platforms&hellip;</div>
+                        </div>
+                    </div>
+                    <div id="org-add-cred-form-view" style="display:none;"></div>
+                `);
+                this._loadOrgPlatformCatalogGrid();
+            },
+
+            async _loadOrgPlatformCatalogGrid() {
+                const grid = document.getElementById('org-platform-catalog-grid');
+                if (!grid) return;
+                try {
+                    if (!_orgPlatformCatalog) {
+                        const resp = await fetch('/api/org/platforms', { headers: { 'Authorization': `Bearer ${localStorage.getItem('authToken') || ''}` } });
+                        if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+                        _orgPlatformCatalog = await resp.json();
+                    }
+                    const byCategory = _orgPlatformCatalog.by_category || {};
+                    const sections = [];
+                    for (const cat of CATEGORY_ORDER) {
+                        const platforms = byCategory[cat];
+                        if (platforms && platforms.length) sections.push({ cat, platforms });
+                    }
+                    for (const [cat, platforms] of Object.entries(byCategory)) {
+                        if (!CATEGORY_ORDER.includes(cat) && platforms && platforms.length) sections.push({ cat, platforms });
+                    }
+                    if (!sections.length) { grid.innerHTML = '<div style="text-align:center;padding:20px;color:var(--text-muted);">No platforms available.</div>'; return; }
+                    grid.innerHTML = sections.map(({ cat, platforms }) => {
+                        const meta = CATEGORY_META[cat] || CATEGORY_META['other'];
+                        const btns = platforms.map(p => {
+                            const n = (p.display_name || p.platform_name).replace(/'/g, "\\'");
+                            const ic = (p.icon_class || 'fas fa-plug').replace(/'/g, "\\'");
+                            const co = (p.icon_color || '#6B7280').replace(/'/g, "\\'");
+                            return `<button onclick="OrgManager.showOrgCredentialForm('${p.platform_name}','${n}','${ic}','${co}')" class="platform-connect-btn" title="${p.description || ''}">
+                                <i class="${p.icon_class || 'fas fa-plug'}" style="color:${p.icon_color || '#6B7280'};"></i> ${p.display_name || p.platform_name}
+                            </button>`;
+                        }).join('');
+                        return `<div style="margin-bottom:20px;">
+                            <div style="font-size:13px;font-weight:700;color:var(--text-primary);margin-bottom:10px;display:flex;align-items:center;gap:8px;text-transform:uppercase;letter-spacing:.04em;">
+                                <i class="${meta.icon}" style="color:${meta.color};"></i> ${meta.label}
+                                <span style="font-size:11px;font-weight:400;text-transform:none;letter-spacing:0;background:var(--bg-secondary);color:var(--text-secondary);padding:2px 8px;border-radius:4px;">${meta.badgeText}</span>
+                            </div>
+                            <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(155px,1fr));gap:8px;">${btns}</div>
+                        </div>`;
+                    }).join('');
+                } catch (e) {
+                    if (grid) grid.innerHTML = `<div style="text-align:center;padding:20px;color:var(--danger);"><i class="fas fa-exclamation-triangle"></i> Could not load platforms. <button onclick="OrgManager._loadOrgPlatformCatalogGrid()" style="background:none;border:none;color:var(--accent-primary);cursor:pointer;text-decoration:underline;">Retry</button></div>`;
+                }
+            },
+
+            showOrgCredentialForm(platform, displayName, icon, color) {
+                const platformView = document.getElementById('org-add-cred-platform-view');
+                const formView = document.getElementById('org-add-cred-form-view');
+                if (!platformView || !formView) return;
+
+                const catalogEntry = _orgPlatformCatalog?.platforms?.find(p => p.platform_name === platform);
+                const requiredFields = catalogEntry?.required_fields || [];
+                const envs = ['production', 'staging', 'test'];
+
+                let fieldsHtml = '';
+                if (requiredFields.length > 0) {
+                    requiredFields.forEach((field, i) => {
+                        const fid = i === 0 ? 'org-new-cred-main-value' : `org-new-dyn-${field.name}`;
+                        const inputEl = field.type === 'textarea'
+                            ? `<textarea id="${fid}" placeholder="${field.placeholder || ''}" ${field.required ? 'required' : ''} style="width:100%;padding:8px 10px;background:var(--bg-tertiary);border:1px solid var(--border-color);border-radius:6px;color:var(--text-primary);font-size:14px;box-sizing:border-box;min-height:70px;resize:vertical;"></textarea>`
+                            : `<input type="${field.type || 'password'}" id="${fid}" placeholder="${field.placeholder || ''}" ${field.required ? 'required' : ''} style="width:100%;padding:8px 10px;background:var(--bg-tertiary);border:1px solid var(--border-color);border-radius:6px;color:var(--text-primary);font-size:14px;box-sizing:border-box;">`;
+                        fieldsHtml += `<div style="margin-bottom:12px;">
+                            <label style="font-size:12px;color:var(--text-muted);display:block;margin-bottom:4px;">${field.label}${field.required ? ' <span style="color:var(--danger);">*</span>' : ''}</label>
+                            ${inputEl}
+                            ${field.help_text ? `<div style="font-size:11px;color:var(--text-muted);margin-top:3px;">${field.help_text}</div>` : ''}
+                        </div>`;
+                    });
+                } else {
+                    fieldsHtml = `<div style="margin-bottom:12px;">
+                        <label style="font-size:12px;color:var(--text-muted);display:block;margin-bottom:4px;">Credential Value <span style="color:var(--danger);">*</span></label>
+                        <input type="password" id="org-new-cred-main-value" placeholder="Paste credential value" required style="width:100%;padding:8px 10px;background:var(--bg-tertiary);border:1px solid var(--border-color);border-radius:6px;color:var(--text-primary);font-size:14px;box-sizing:border-box;">
+                    </div>`;
+                }
+
+                formView.innerHTML = `
+                    <button onclick="OrgManager._backToOrgPlatformView()" style="margin-bottom:14px;padding:7px 14px;background:var(--bg-tertiary);border:1px solid var(--border-color);border-radius:6px;font-size:13px;cursor:pointer;color:var(--text-primary);">
+                        <i class="fas fa-arrow-left"></i> Back to Platforms
+                    </button>
+                    <div style="display:flex;align-items:center;gap:12px;margin-bottom:18px;padding:12px;background:var(--bg-secondary);border-radius:8px;">
+                        <div style="width:44px;height:44px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:20px;color:#fff;background:${color};flex-shrink:0;">
+                            <i class="${icon}"></i>
+                        </div>
+                        <div>
+                            <div style="font-weight:600;font-size:15px;">${displayName}</div>
+                            <div style="font-size:12px;color:var(--text-secondary);">Organisation Vault Credential</div>
+                        </div>
+                    </div>
+                    <div style="margin-bottom:12px;">
+                        <label style="font-size:12px;color:var(--text-muted);display:block;margin-bottom:4px;">Display Name</label>
+                        <input id="org-new-cred-display-name" type="text" value="${displayName}" placeholder="e.g. ${displayName} Production" style="width:100%;padding:8px 10px;background:var(--bg-tertiary);border:1px solid var(--border-color);border-radius:6px;color:var(--text-primary);font-size:14px;box-sizing:border-box;">
+                    </div>
+                    <div style="margin-bottom:16px;">
+                        <label style="font-size:12px;color:var(--text-muted);display:block;margin-bottom:4px;">Environment</label>
+                        <select id="org-new-cred-env" style="width:100%;padding:8px 10px;background:var(--bg-tertiary);border:1px solid var(--border-color);border-radius:6px;color:var(--text-primary);font-size:14px;">
+                            ${envs.map(e => `<option value="${e}">${e.charAt(0).toUpperCase()+e.slice(1)}</option>`).join('')}
+                        </select>
+                    </div>
+                    ${fieldsHtml}
+                    <div id="org-new-cred-error" style="margin-bottom:8px;"></div>
+                    <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:16px;">
                         <button onclick="OrgManager.closeModal()" style="padding:8px 16px;background:transparent;border:1px solid var(--border-color);color:var(--text-secondary);border-radius:6px;cursor:pointer;">Cancel</button>
-                        <button onclick="OrgManager.saveCredential(null)" style="padding:8px 16px;background:var(--accent-primary);color:#fff;border:none;border-radius:6px;cursor:pointer;font-weight:600;">Add</button>
-                    </div>`);
+                        <button onclick="OrgManager._saveOrgCredentialFromForm('${platform}')" style="padding:8px 16px;background:var(--accent-primary);color:#fff;border:none;border-radius:6px;cursor:pointer;font-weight:600;"><i class="fas fa-lock"></i> Save Credential</button>
+                    </div>
+                `;
+                platformView.style.display = 'none';
+                formView.style.display = 'block';
+            },
+
+            _backToOrgPlatformView() {
+                const platformView = document.getElementById('org-add-cred-platform-view');
+                const formView = document.getElementById('org-add-cred-form-view');
+                if (platformView) platformView.style.display = 'block';
+                if (formView) formView.style.display = 'none';
+            },
+
+            async _saveOrgCredentialFromForm(platform) {
+                const displayName = (document.getElementById('org-new-cred-display-name') || {}).value?.trim() || platform;
+                const env = (document.getElementById('org-new-cred-env') || {}).value || 'production';
+                const mainVal = (document.getElementById('org-new-cred-main-value') || {}).value?.trim() || '';
+                const errEl = document.getElementById('org-new-cred-error');
+                const showErr = (msg) => { if (errEl) errEl.innerHTML = `<div style="color:var(--danger);font-size:13px;padding:6px 8px;background:rgba(244,67,54,0.08);border-radius:4px;">${msg}</div>`; };
+
+                if (!mainVal) { showErr('Please enter the credential value.'); return; }
+
+                // Collect multi-field credentials from catalog required_fields
+                const catalogEntry = _orgPlatformCatalog?.platforms?.find(p => p.platform_name === platform);
+                const reqFields = catalogEntry?.required_fields || [];
+                const credentials = {};
+                if (reqFields.length > 0) {
+                    credentials[reqFields[0].name || 'api_key'] = mainVal;
+                    reqFields.slice(1).forEach(field => {
+                        const el = document.getElementById(`org-new-dyn-${field.name}`);
+                        if (el && el.value) credentials[field.name] = el.value;
+                    });
+                }
+
+                const body = {
+                    display_name: displayName,
+                    platform,
+                    environment: env,
+                    credential_value: mainVal,
+                    ...(Object.keys(credentials).length > 1 ? { credentials } : {}),
+                };
+
+                try {
+                    const r = await fetch('/api/org/credentials', { method: 'POST', headers: this.authHeaders(), body: JSON.stringify(body) });
+                    const data = await r.json();
+                    if (!r.ok) { showErr(data.error || 'Failed to save credential.'); return; }
+                    this.closeModal();
+                    this.loadCredentials();
+                } catch (e) { showErr(e.message); }
             },
 
             openEditCredentialModal(id, displayName, platform, environment, rotationDueAt) {
