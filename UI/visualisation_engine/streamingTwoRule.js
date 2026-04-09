@@ -445,15 +445,12 @@ class TwoRuleStreamProcessor {
 
             this.packageVisualContent(completeVisualContent, this.currentDelimiter.type);
 
-            // Switch back to NORMAL state
-            this.state = 'NORMAL';
-            this.currentDelimiter = null;
-            this.bufferPosition = visualEndPosition;
-            this.removeBufferingIndicator();
+            // 🔥 CRITICAL FIX (April 9, 2026): Immediately release visual packages
+            // Don't wait - render the visualization now while still in state machine
+            this.releaseReadyPackages().catch(err => {
+                console.error('❌ TWO-RULE: Error releasing visual packages immediately after buffering complete:', err);
+            });
 
-        } else {
-            // End delimiter not found yet - continue buffering
-            this.bufferPosition = this.rawBuffer.length;
             this.updateBufferingIndicator(contentFromStart.length);
         }
     }
@@ -1161,11 +1158,24 @@ class TwoRuleStreamProcessor {
                 } else {
                     await engine.renderVisualization(item, container, chartId);
                 }
-            } else {
+            } else if (type === 'react' || type === 'html' || type === 'latex' || type === 'svg' || type === 'cad' || type === 'schematic' || type === 'blueprint' || type === 'molecule' || type === 'apexcharts' || type === 'chartjs' || type === 'threejs' || type === 'gsap' || type === 'lottie') {
+                // 🔥 FIX (April 9, 2026): Use targetContainer for all viz types, not just Plotly/Mermaid
+                // This ensures viz-content-area is used consistently for all renders
                 if (engine.renderVisualizationDirectly) {
-                    await engine.renderVisualizationDirectly(item, container, chartId);
+                    await engine.renderVisualizationDirectly(item, targetContainer, chartId);
+                } else if (engine.renderVisualization) {
+                    await engine.renderVisualization(item, targetContainer, chartId);
                 } else {
-                    await engine.renderVisualization(item, container, chartId);
+                    throw new Error(`No render method available for ${type}`);
+                }
+            } else {
+                // Fallback for any other types
+                if (engine.renderVisualizationDirectly) {
+                    await engine.renderVisualizationDirectly(item, targetContainer, chartId);
+                } else if (engine.renderVisualization) {
+                    await engine.renderVisualization(item, targetContainer, chartId);
+                } else {
+                    throw new Error(`No render method available for ${type}`);
                 }
             }
 
