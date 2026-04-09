@@ -2152,14 +2152,23 @@ Use tools in multiple rounds with interleaved thinking."""
     # model (or to a non-Anthropic model), any prior thinking/redacted_thinking
     # blocks in history will cause a 400 error.  Strip them preemptively here.
     #
-    # Anthropic models that preserve thinking blocks across turns:
+    # Anthropic models that preserve thinking blocks across turns (base names only –
+    # date-suffixed IDs like claude-sonnet-4-6-20260213 are matched via startswith):
     THINKING_PRESERVING_MODELS = {
         'claude-sonnet-4-6', 'claude-opus-4-6',
-        'claude-opus-4-5-20251101', 'claude-opus-4-1-20250805',
-        'claude-opus-4-20250514', 'claude-sonnet-4-20250514',
+        'claude-opus-4-5', 'claude-opus-4-1',
+        'claude-opus-4', 'claude-sonnet-4',
     }
+
+    def _model_preserves_thinking(model_id: str) -> bool:
+        """True if the model keeps thinking blocks across turns (requires passing them back)."""
+        import re
+        # Strip trailing -YYYYMMDD date suffix to get the base model name
+        base = re.sub(r'-\d{8}$', '', model_id)
+        return base in THINKING_PRESERVING_MODELS
+
     # Non-Anthropic providers never support thinking blocks at all
-    current_model_preserves = ai_model in THINKING_PRESERVING_MODELS and ai_provider == 'anthropic'
+    current_model_preserves = _model_preserves_thinking(ai_model) and ai_provider == 'anthropic'
 
     def _history_has_thinking_blocks(history):
         for msg in history:

@@ -749,6 +749,11 @@ def get_user_preferences(user_id):
                 use_manual_location,
                 use_manual_timezone,
                 last_location_check,
+                ai_model,
+                ai_temperature,
+                ai_max_tokens,
+                ai_thinking_enabled,
+                ai_thinking_budget,
                 updated_at
             FROM ai_infrastructure.user_preferences
             WHERE user_id = %s
@@ -787,6 +792,11 @@ def get_user_preferences(user_id):
             'use_manual_location': row['use_manual_location'],
             'use_manual_timezone': row['use_manual_timezone'],
             'last_location_check': row['last_location_check'],
+            'ai_model': row['ai_model'],
+            'ai_temperature': row['ai_temperature'],
+            'ai_max_tokens': row['ai_max_tokens'],
+            'ai_thinking_enabled': row['ai_thinking_enabled'],
+            'ai_thinking_budget': row['ai_thinking_budget'],
             'updated_at': row['updated_at']
         }
     except Exception as e:

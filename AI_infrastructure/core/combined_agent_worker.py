@@ -442,12 +442,18 @@ def validate_and_reorder_assistant_content(content: List[Dict]) -> tuple[List[Di
     # — reordering this to [thinking_1, redacted_thinking_2, tool_use_1, tool_use_2]
     # would cause: "thinking/redacted_thinking blocks cannot be modified"
     thinking_types = ('thinking', 'redacted_thinking')
+    # CRITICAL FIX (Apr 9, 2026): include server_tool_use in the tool-use check.
+    # Previously only checked 'tool_use' but Anthropic web-search produces
+    # 'server_tool_use' blocks.  Missing these caused interleaved detection to
+    # fail, so thinking blocks were reordered to the front — invalidating their
+    # signatures and causing 400 "thinking blocks cannot be modified" errors.
+    tool_types = ('tool_use', 'server_tool_use')
     has_interleaved = False
     seen_tool_use = False
     for b in validated_blocks:
         if isinstance(b, dict):
             t = b.get('type')
-            if t == 'tool_use':
+            if t in tool_types:
                 seen_tool_use = True
             elif t in thinking_types and seen_tool_use:
                 has_interleaved = True
@@ -1944,12 +1950,36 @@ def run_simple_agent_worker(
         # Work on a deep copy to avoid partial modifications on error
         import copy
         messages_cleaned = copy.deepcopy(messages)
+
+        def _has_interleaved_thinking(content):
+            """Return True if any thinking block follows a server_tool_use block.
+            When true the full content must be preserved unchanged so that
+            thinking-block signatures (which encode positional context) stay valid."""
+            seen_server_tool = False
+            for b in content:
+                if isinstance(b, dict):
+                    t = b.get('type')
+                    if t == 'server_tool_use':
+                        seen_server_tool = True
+                    elif t in ('thinking', 'redacted_thinking') and seen_server_tool:
+                        return True
+            return False
         
         try:
             for idx, msg in enumerate(messages_cleaned):
                 if msg.get('role') == 'assistant':
                     content = msg.get('content', [])
                     if isinstance(content, list):
+                        # CRITICAL (Apr 9, 2026): if this message has interleaved
+                        # thinking (thinking blocks after server_tool_use blocks),
+                        # the thinking-block signatures encode the positions of all
+                        # surrounding blocks.  Stripping server-tool blocks shifts
+                        # positions and invalidates the signatures → 400 error.
+                        # Preserve these messages in their entirety.
+                        if _has_interleaved_thinking(content):
+                            print(f"{log_prefix}   Message [{idx}]: Interleaved thinking detected — preserving complete content (no server-tool stripping)")
+                            continue
+
                         original_count = len(content)
                         # Filter out ONLY server-side tool blocks
                         # PRESERVE: thinking, redacted_thinking, text, tool_use, tool_result
@@ -2933,18 +2963,25 @@ def execute_streaming_request(
         # claude-sonnet-4-6 and claude-opus-4-6 use `type: "adaptive"` (budget_tokens deprecated).
         # All earlier Claude models use `type: "enabled"` with budget_tokens.
         # Non-Anthropic models (GPT, DeepSeek) don't support thinking at all.
+        #
+        # Model IDs may carry a date suffix (e.g. claude-sonnet-4-6-20260213).
+        # Strip it to get the base name for set lookups.
+        import re as _re
+        def _base_model(m): return _re.sub(r'-\d{8}$', '', m)
+
+        _base = _base_model(ai_model)
         ADAPTIVE_THINKING_MODELS = {'claude-sonnet-4-6', 'claude-opus-4-6'}
         SUPPORTS_THINKING_MODELS = {
             'claude-sonnet-4-6', 'claude-opus-4-6',
-            'claude-opus-4-5-20251101', 'claude-sonnet-4-5-20250929',
-            'claude-opus-4-1-20250805', 'claude-opus-4-20250514',
-            'claude-sonnet-4-20250514', 'claude-haiku-4-5-20251001',
-            'claude-3-7-sonnet-20250219',
+            'claude-opus-4-5', 'claude-sonnet-4-5',
+            'claude-haiku-4-5', 'claude-opus-4-1',
+            'claude-opus-4', 'claude-sonnet-4',
+            'claude-3-7-sonnet',
         }
         model_supports_thinking = (ai_provider == 'anthropic' and
-                                   ai_model in SUPPORTS_THINKING_MODELS)
+                                   _base in SUPPORTS_THINKING_MODELS)
         if ai_thinking_enabled and model_supports_thinking:
-            if ai_model in ADAPTIVE_THINKING_MODELS:
+            if _base in ADAPTIVE_THINKING_MODELS:
                 thinking_param = {'type': 'adaptive'}
                 print(f"{log_prefix} 🧠 Using adaptive thinking (model: {ai_model})")
             else:
@@ -2979,18 +3016,38 @@ def execute_streaming_request(
                         first_type = first_block.get('type') if isinstance(first_block, dict) else 'unknown'
                         
                         if first_type not in ('thinking', 'redacted_thinking'):
-                            print(f"{log_prefix} ❌ CRITICAL: Message {idx} has thinking blocks but first block is '{first_type}'")
-                            print(f"{log_prefix} 🔧 AUTO-FIX: Reordering blocks to put thinking first...")
-                            
-                            # Separate blocks by type
-                            thinking_blocks = [b for b in content if isinstance(b, dict) and b.get('type') in ('thinking', 'redacted_thinking')]
-                            other_blocks = [b for b in content if not (isinstance(b, dict) and b.get('type') in ('thinking', 'redacted_thinking'))]
-                            
-                            # Reorder: thinking first
-                            messages[idx]['content'] = thinking_blocks + other_blocks
-                            
-                            after_first = messages[idx]['content'][0].get('type') if messages[idx]['content'] else 'empty'
-                            print(f"{log_prefix} ✅ Fixed: First block is now '{after_first}'")
+                            # CRITICAL (Apr 9, 2026): Before reordering, check for interleaved
+                            # thinking (thinking blocks that appear after server_tool_use blocks).
+                            # Reordering an interleaved message invalidates thinking-block
+                            # signatures → 400 "thinking blocks cannot be modified" error.
+                            # For interleaved messages, emit a warning but do NOT reorder.
+                            _is_interleaved = False
+                            _seen_stool = False
+                            for _b in content:
+                                if isinstance(_b, dict):
+                                    _t = _b.get('type')
+                                    if _t in ('tool_use', 'server_tool_use'):
+                                        _seen_stool = True
+                                    elif _t in ('thinking', 'redacted_thinking') and _seen_stool:
+                                        _is_interleaved = True
+                                        break
+
+                            if _is_interleaved:
+                                print(f"{log_prefix} ⚠️  Message {idx} has interleaved thinking (thinking after server_tool_use) — "
+                                      f"skipping reorder to preserve thinking-block signature positions")
+                            else:
+                                print(f"{log_prefix} ❌ CRITICAL: Message {idx} has thinking blocks but first block is '{first_type}'")
+                                print(f"{log_prefix} 🔧 AUTO-FIX: Reordering blocks to put thinking first...")
+                                
+                                # Separate blocks by type
+                                thinking_blocks = [b for b in content if isinstance(b, dict) and b.get('type') in ('thinking', 'redacted_thinking')]
+                                other_blocks = [b for b in content if not (isinstance(b, dict) and b.get('type') in ('thinking', 'redacted_thinking'))]
+                                
+                                # Reorder: thinking first
+                                messages[idx]['content'] = thinking_blocks + other_blocks
+                                
+                                after_first = messages[idx]['content'][0].get('type') if messages[idx]['content'] else 'empty'
+                                print(f"{log_prefix} ✅ Fixed: First block is now '{after_first}'")
         
             # CRITICAL FIX (Dec 10, 2025): Strip server tool blocks while preserving thinking blocks
             # Server-side tool blocks cause 400 errors when replayed
@@ -3003,10 +3060,30 @@ def execute_streaming_request(
             # Citations reference server-side search results that won't be replayed
             # Sending citations without search results causes: "Could not find search result for citation index"
             print(f"{log_prefix} 🧹 Cleaning conversation: Removing server-side tool blocks + citations (preserving thinking)...")
+
+            def _has_interleaved_thinking_stream(content):
+                """Return True if any thinking block follows a server_tool_use block."""
+                seen_server_tool = False
+                for b in content:
+                    if isinstance(b, dict):
+                        t = b.get('type')
+                        if t == 'server_tool_use':
+                            seen_server_tool = True
+                        elif t in ('thinking', 'redacted_thinking') and seen_server_tool:
+                            return True
+                return False
+
             for idx, msg in enumerate(messages):
                 if msg.get('role') == 'assistant':
                     content = msg.get('content', [])
                     if isinstance(content, list):
+                        # CRITICAL (Apr 9, 2026): preserve messages with interleaved
+                        # thinking as-is — stripping server blocks shifts positions and
+                        # invalidates thinking-block signatures → 400 error.
+                        if _has_interleaved_thinking_stream(content):
+                            print(f"{log_prefix}   Message [{idx}]: Interleaved thinking detected — preserving complete content (no server-tool stripping)")
+                            continue
+
                         original_count = len(content)
                         # Filter out ONLY server-side tool blocks
                         # PRESERVE: thinking, redacted_thinking, text, tool_use, tool_result

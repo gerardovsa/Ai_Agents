@@ -23101,9 +23101,9 @@
                         </div>
                     </div>
                     <!-- Vault panel (Credentials Vault + Vault Password) -->
-                    <div id="org-subtab-vault" class="org-sub-panel" style="flex:1;overflow-y:auto;padding:16px 20px;">
+                    <div id="org-subtab-vault" class="org-sub-panel" style="display:flex;flex-direction:column;flex:1;overflow-y:auto;padding:16px 20px;">
                         <!-- ===== CREDENTIALS VAULT SECTION ===== -->
-                        <div style="margin-bottom:32px;">
+                        <div style="margin-bottom:32px;width:100%;">
                             <!-- Vault header -->
                             <div style="margin-bottom:16px;">
                                 <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;">
@@ -23130,7 +23130,7 @@
                         </div>
 
                         <!-- ===== VAULT PASSWORD SECTION ===== -->
-                        <div style="padding-top:20px;border-top:1px solid var(--border-default);margin-top:20px;">
+                        <div style="padding-top:20px;border-top:1px solid var(--border-default);margin-top:20px;width:100%;">
                             <div style="margin-bottom:16px;">
                                 <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;">
                                     <i class="fas fa-lock" style="color:var(--accent-primary);font-size:16px;"></i>
@@ -32040,43 +32040,47 @@
                         const safeEmail  = this.esc(inv.invited_email);
 
                         return `
-                        <div style="background:var(--bg-tertiary);border-radius:8px;padding:12px 14px;margin-bottom:8px;">
-                            <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
-                                <div style="flex:1;min-width:160px;">
-                                    <div style="font-weight:600;font-size:13px;">${safeEmail}</div>
-                                    <div style="font-size:11px;color:var(--text-muted);">Role: <strong>${inv.invited_role}</strong> &nbsp;&middot;&nbsp; Expires: ${expiry}</div>
-                                    <div style="font-size:11px;color:var(--text-muted);">By ${this.esc(inv.invited_by_username || inv.invited_by_email || '&ndash;')}</div>
-                                </div>
-                                <span style="background:${statusColor};color:#fff;border-radius:4px;padding:2px 8px;font-size:11px;font-weight:600;">${inv.status.toUpperCase()}</span>
-                                ${isPending ? `
-                                <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:4px;align-items:center;">
-                                    <button onclick="OrgManager.copyInviteToClipboard('${safeUrl}', '${safeEmail}', '${inv.invited_role}', this)"
-                                        style="padding:5px 10px;background:transparent;border:1px solid var(--border-color);color:var(--text-secondary);border-radius:5px;cursor:pointer;font-size:12px;white-space:nowrap;">
-                                        <i class="fas fa-copy"></i> Copy Invite</button>
-                                    ${gmailAcc ? `
-                                    ${inv.email_sent ? `
-                                        <div style="display:flex;align-items:center;gap:6px;">
-                                            <span style="padding:2px 8px;background:#4caf50;color:#fff;border-radius:4px;font-size:11px;font-weight:600;">
-                                                <i class="fas fa-check"></i> Sent Via Gmail
-                                            </span>
-                                            <button onclick="OrgManager.sendInviteEmail(${inv.id}, 'gmail', this)"
-                                                style="padding:5px 10px;background:#d93025;color:#fff;border:none;border-radius:5px;cursor:pointer;font-size:12px;white-space:nowrap;" title="Resend via ${this.esc(gmailAcc.email)}">
-                                                <i class="fas fa-redo"></i> Resend as Gmail</button>
-                                        </div>
-                                    ` : `
-                                        <button onclick="OrgManager.sendInviteEmail(${inv.id}, 'gmail', this)"
-                                            style="padding:5px 10px;background:#d93025;color:#fff;border:none;border-radius:5px;cursor:pointer;font-size:12px;white-space:nowrap;" title="Send via ${this.esc(gmailAcc.email)}">
-                                            <i class="fas fa-paper-plane"></i> Send as Gmail</button>
-                                    `}` : ''}
-                                    ${outlookAcc && !inv.email_sent ? `
-                                    <button onclick="OrgManager.sendInviteEmail(${inv.id}, 'outlook', this)"
-                                        style="padding:5px 10px;background:#0078d4;color:#fff;border:none;border-radius:5px;cursor:pointer;font-size:12px;white-space:nowrap;" title="Send via ${this.esc(outlookAcc.email)}">
-                                        <i class="fas fa-paper-plane"></i> Send via Outlook</button>` : ''}
-                                    <button onclick="OrgManager.revokeInvite(${inv.id})"
-                                        style="padding:5px 10px;background:transparent;border:1px solid var(--accent-danger,#f44336);color:var(--accent-danger,#f44336);border-radius:5px;cursor:pointer;font-size:12px;">
-                                        Revoke</button>
-                                </div>` : ''}
+                        <div style="background:var(--bg-tertiary);border-radius:8px;padding:16px;margin-bottom:12px;">
+                            <!-- Email Address (main) -->
+                            <div style="font-weight:600;font-size:13px;margin-bottom:8px;">${safeEmail}</div>
+                            
+                            <!-- Metadata row: Role | Expires | By -->
+                            <div style="font-size:12px;color:var(--text-muted);margin-bottom:10px;">
+                                <span>Role: <strong>${inv.invited_role}</strong></span> &nbsp;&middot;&nbsp;
+                                <span>Expires: ${expiry}</span> &nbsp;&middot;&nbsp;
+                                <span>By: ${this.esc(inv.invited_by_username || inv.invited_by_email || '–')}</span>
                             </div>
+
+                            <!-- Status row: Status badge + Sent status if applicable -->
+                            <div style="display:flex;gap:8px;align-items:center;margin-bottom:12px;">
+                                <span style="background:${statusColor};color:#fff;border-radius:4px;padding:4px 10px;font-size:11px;font-weight:600;">${inv.status.toUpperCase()}</span>
+                                ${inv.email_sent && gmailAcc ? `
+                                    <span style="background:#4caf50;color:#fff;border-radius:4px;padding:4px 10px;font-size:11px;font-weight:600;">
+                                        <i class="fas fa-check"></i> Sent via ${inv.email_sent_provider === 'gmail' ? 'Gmail' : 'Outlook'}
+                                    </span>
+                                ` : ''}
+                            </div>
+
+                            <!-- Button row: Copy Invite | Send/Resend | (Outlook if not sent) | Revoke -->
+                            ${isPending ? `
+                            <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
+                                <button onclick="OrgManager.copyInviteToClipboard('${safeUrl}', '${safeEmail}', '${inv.invited_role}', this)"
+                                    style="padding:8px 14px;background:#2196f3;color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:12px;font-weight:600;white-space:nowrap;">
+                                    <i class="fas fa-copy"></i> Copy Invite</button>
+                                ${gmailAcc ? `
+                                    <button onclick="OrgManager.sendInviteEmail(${inv.id}, 'gmail', this)"
+                                        style="padding:8px 14px;background:#d93025;color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:12px;font-weight:600;white-space:nowrap;" title="Send via ${this.esc(gmailAcc.email)}">
+                                        <i class="fas fa-paper-plane"></i> ${inv.email_sent ? 'Resend via Gmail' : 'Send via Gmail'}</button>
+                                ` : outlookAcc ? `
+                                    <button onclick="OrgManager.sendInviteEmail(${inv.id}, 'outlook', this)"
+                                        style="padding:8px 14px;background:#0078d4;color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:12px;font-weight:600;white-space:nowrap;" title="Send via ${this.esc(outlookAcc.email)}">
+                                        <i class="fas fa-paper-plane"></i> ${inv.email_sent ? 'Resend via Outlook' : 'Send via Outlook'}</button>
+                                ` : ''}
+                                <button onclick="OrgManager.revokeInvite(${inv.id})"
+                                    style="padding:8px 14px;background:transparent;border:1px solid var(--accent-danger,#f44336);color:var(--accent-danger,#f44336);border-radius:6px;cursor:pointer;font-size:12px;font-weight:600;">
+                                    Revoke</button>
+                            </div>
+                            ` : ''}
                         </div>`;
                     }).join('');
 
