@@ -21791,7 +21791,7 @@
                     <div class="settings-section-content">
                         <div class="settings-field">
                             <label>AI Model</label>
-                            <select id="modelSelect" onchange="saveSettings()">
+                            <select id="modelSelect" onchange="onModelChange()">
                                 <!-- ── Anthropic ─────────────────────────────────── -->
                                 <optgroup label="Anthropic">
                                     <option value="claude-sonnet-4-6-20260213" selected>Claude Sonnet 4.6 ★ Recommended</option>
@@ -21821,6 +21821,8 @@
                                 AI model to use for agent processing &mdash;
                                 <span id="modelSelectHint" style="font-style:italic;"></span></small>
                         </div>
+
+                        <div id="modelBehaviourNote" style="display:none; margin-bottom: var(--space-2); padding: var(--space-2); font-size: 13px; border-left: 3px solid var(--accent-primary); border-radius: 4px; background: var(--bg-tertiary);"></div>
 
                         <div class="settings-field">
                             <label>Temperature <span class="settings-value" id="tempValue">1.0</span></label>
@@ -21852,6 +21854,10 @@
                         <small style="color: var(--text-muted); margin-top: 8px; display: block;">Improved
                             cognitive
                             performance - uses more tokens but provides deeper reasoning</small>
+                        <div class="settings-info"
+                            style="margin-top: var(--space-3); padding: var(--space-2); background: var(--bg-tertiary); border-left: 3px solid var(--accent-primary); border-radius: 4px; font-size: 13px;">
+                            <i class="fas fa-info-circle"></i> <strong>API Defaults:</strong> Temperature is automatically set to 1.0 when Extended Thinking is enabled. For Claude Opus 4.7, temperature is always 1.0 regardless of this setting.
+                        </div>
                     </div>
                 </div>
 
@@ -32502,6 +32508,59 @@ Thanks`;
         }
 
         /**
+         * Updates the #modelBehaviourNote info banner when the AI model selector changes.
+         * Shows per-model Extended Thinking and temperature constraints to the user.
+         */
+        function onModelChange() {
+            const model = (document.getElementById('modelSelect')?.value || '').trim();
+            const note  = document.getElementById('modelBehaviourNote');
+
+            // Strip trailing date suffix (e.g. -20250929) to get the base model name
+            const base = model.replace(/-\d{8}$/, '');
+
+            // Models where adaptive thinking is the ONLY mode (type:"enabled" → 400 error)
+            const ADAPTIVE_ONLY = ['claude-opus-4-7'];
+
+            // All Anthropic models that support any form of Extended Thinking
+            const THINKING_MODELS = [
+                'claude-sonnet-4-6', 'claude-opus-4-6',
+                'claude-opus-4-5',   'claude-sonnet-4-5',
+                'claude-haiku-4-5',  'claude-opus-4-1',
+                'claude-opus-4',     'claude-sonnet-4',
+                'claude-3-7-sonnet', 'claude-opus-4-7'
+            ];
+
+            // Non-Anthropic providers never support Extended Thinking
+            const isNonAnthropic = /^(gpt-|o1|o3|deepseek-)/.test(model);
+
+            if (note) {
+                if (ADAPTIVE_ONLY.includes(base)) {
+                    note.style.display         = 'block';
+                    note.style.borderLeftColor = 'var(--accent-warning, #f59e0b)';
+                    note.style.background      = 'rgba(245,158,11,0.08)';
+                    note.innerHTML = '<i class="fas fa-exclamation-triangle" style="color:var(--accent-warning,#f59e0b);margin-right:6px;"></i>'
+                        + '<strong>Opus 4.7:</strong> Uses adaptive thinking only. Temperature and Top P are always fixed at 1.0 and cannot be customised for this model.';
+                } else if (isNonAnthropic) {
+                    note.style.display         = 'block';
+                    note.style.borderLeftColor = 'var(--border-default, #4a5568)';
+                    note.style.background      = 'var(--bg-tertiary)';
+                    note.innerHTML = '<i class="fas fa-info-circle" style="color:var(--text-muted);margin-right:6px;"></i>'
+                        + 'Extended Thinking is not available for this model — the setting will be ignored.';
+                } else if (THINKING_MODELS.includes(base)) {
+                    note.style.display         = 'block';
+                    note.style.borderLeftColor = 'var(--accent-primary)';
+                    note.style.background      = 'var(--bg-tertiary)';
+                    note.innerHTML = '<i class="fas fa-brain" style="color:var(--accent-primary);margin-right:6px;"></i>'
+                        + 'Supports Extended Thinking. When enabled, temperature is automatically locked to 1.0.';
+                } else {
+                    note.style.display = 'none';
+                }
+            }
+
+            saveSettings();
+        }
+
+        /**
          * Called when the Extended Thinking checkbox changes.
          * Anthropic's API requires temperature = 1.0 whenever thinking is enabled.
          * This function enforces that constraint in the UI and then saves settings.
@@ -32841,6 +32900,8 @@ Thanks`;
                     if (prefs.ai_model) {
                         const modelSelect = section.querySelector('#modelSelect, #ai_model, select[name="ai_model"]');
                         if (modelSelect) modelSelect.value = prefs.ai_model;
+                        // Refresh model-behaviour info note to match restored selection
+                        if (typeof onModelChange === 'function') onModelChange();
                     }
                     if (prefs.ai_temperature !== undefined) {
                         const tempInput = section.querySelector('#temperature, #ai_temperature, input[name="ai_temperature"]');
