@@ -356,7 +356,7 @@ const AgentColumn = (function () {
                            id="agent-file-input-${agentId}" 
                            class="agent-file-input" 
                            multiple 
-                           accept="application/pdf,image/*" 
+                           accept="application/pdf,image/*,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.csv,.md,.json,.xml,.js,.ts,.py,.sh,.rb,.java,.cpp,.c,.cs,.go,.rs,.html,.htm,.css,.rtf" 
                            style="display: none;">
                 </div>
             </div>

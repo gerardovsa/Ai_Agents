@@ -35,17 +35,44 @@ const AgentInput = (function () {
     const attachedFiles = {};
 
     // Configuration
+    const NATIVE_TYPES = new Set([
+        'application/pdf',
+        'image/png', 'image/jpeg', 'image/jpg', 'image/gif', 'image/webp'
+    ]);
+
+    const EXTRACTABLE_TYPES = new Set([
+        'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+        'application/msword', 'application/vnd.ms-excel', 'application/vnd.ms-powerpoint',
+        'text/plain', 'text/csv', 'text/markdown', 'text/html', 'text/css',
+        'application/json', 'application/xml', 'text/xml',
+        'application/javascript', 'text/javascript', 'text/x-python',
+        'application/x-python', 'application/x-sh', 'text/x-sh',
+        'application/rtf', 'text/rtf'
+    ]);
+
+    const EXTRACTABLE_EXTENSIONS = new Set([
+        'docx','doc','xlsx','xls','pptx','ppt',
+        'txt','csv','md','html','htm','css',
+        'json','xml','js','ts','py','sh','rb',
+        'java','cpp','c','cs','go','rs','rtf'
+    ]);
+
+    function getFileIcon(filename) {
+        const ext = (filename.split('.').pop() || '').toLowerCase();
+        if (['doc','docx','rtf'].includes(ext)) return 'fa-file-word';
+        if (['xls','xlsx','csv'].includes(ext)) return 'fa-file-excel';
+        if (['ppt','pptx'].includes(ext)) return 'fa-file-powerpoint';
+        if (['js','ts','py','sh','rb','java','cpp','c','cs','go','rs','json','xml','html','htm','css'].includes(ext)) return 'fa-file-code';
+        if (['txt','md'].includes(ext)) return 'fa-file-alt';
+        return 'fa-file-alt';
+    }
+
     const CONFIG = {
-        maxPdfSize: 32 * 1024 * 1024,    // 32MB
-        maxImageSize: 5 * 1024 * 1024,   // 5MB
-        validTypes: [
-            'application/pdf',
-            'image/png',
-            'image/jpeg',
-            'image/jpg',
-            'image/gif',
-            'image/webp'
-        ],
+        maxPdfSize: 32 * 1024 * 1024,        // 32MB
+        maxImageSize: 5 * 1024 * 1024,       // 5MB
+        maxExtractableSize: 20 * 1024 * 1024, // 20MB
         minHeight: 80,
         maxHeight: 200
     };
@@ -135,16 +162,26 @@ const AgentInput = (function () {
     function handleFileSelection(agentId, files) {
         for (const file of files) {
             // Validate file type
-            if (!CONFIG.validTypes.includes(file.type)) {
+            const ext = (file.name.split('.').pop() || '').toLowerCase();
+            const isNative = NATIVE_TYPES.has(file.type);
+            const isExtractable = EXTRACTABLE_TYPES.has(file.type) || EXTRACTABLE_EXTENSIONS.has(ext);
+            if (!isNative && !isExtractable) {
                 showNotification(
-                    `Invalid file type: ${file.name}. Only PDF and images are supported.`,
+                    `Unsupported file type: ${file.name}. Supported: PDF, images, Word, Excel, PowerPoint, text and code files.`,
                     'error'
                 );
                 continue;
             }
 
             // Validate file size
-            const maxSize = file.type === 'application/pdf' ? CONFIG.maxPdfSize : CONFIG.maxImageSize;
+            let maxSize;
+            if (file.type === 'application/pdf') {
+                maxSize = CONFIG.maxPdfSize;
+            } else if (NATIVE_TYPES.has(file.type) && file.type.startsWith('image/')) {
+                maxSize = CONFIG.maxImageSize;
+            } else {
+                maxSize = CONFIG.maxExtractableSize;
+            }
             if (file.size > maxSize) {
                 const maxSizeMB = (maxSize / 1024 / 1024).toFixed(0);
                 showNotification(
@@ -183,12 +220,14 @@ const AgentInput = (function () {
             const chip = document.createElement('div');
             chip.className = 'agent-file-chip';
 
-            const icon = file.type === 'application/pdf' ? 'fa-file-pdf' : 'fa-image';
-            const size = (file.size / 1024).toFixed(1);
+            const icon = file.type === 'application/pdf' ? 'fa-file-pdf' :
+                         (file.type.startsWith('image/') ? 'fa-image' : getFileIcon(file.name));
+            const sizeKB = file.size / 1024;
+            const sizeStr = sizeKB >= 1024 ? `${(sizeKB / 1024).toFixed(1)}MB` : `${sizeKB.toFixed(1)}KB`;
 
             chip.innerHTML = `
                 <i class="fas ${icon}"></i>
-                <span>${file.name} (${size}KB)</span>
+                <span>${file.name} (${sizeStr})</span>
                 <button class="agent-file-chip-remove" data-index="${index}" aria-label="Remove file">×</button>
             `;
 

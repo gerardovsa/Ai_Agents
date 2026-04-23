@@ -3607,14 +3607,31 @@ function handleAgentFileSelection(agentId, files) {
 
     for (let file of files) {
         // Check file type
-        const validTypes = ['application/pdf', 'image/png', 'image/jpeg', 'image/jpg', 'image/gif', 'image/webp'];
-        if (!validTypes.includes(file.type)) {
-            showNotification(`Invalid file type: ${file.name}. Only PDF and images are supported.`, 'error');
+        const _nativeTypes = new Set(['application/pdf','image/png','image/jpeg','image/jpg','image/gif','image/webp']);
+        const _extractableTypes = new Set([
+            'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+            'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+            'application/msword','application/vnd.ms-excel','application/vnd.ms-powerpoint',
+            'text/plain','text/csv','text/markdown','text/html','text/css',
+            'application/json','application/xml','text/xml',
+            'application/javascript','text/javascript','text/x-python',
+            'application/x-python','application/x-sh','text/x-sh','application/rtf','text/rtf'
+        ]);
+        const _extractableExts = new Set(['docx','doc','xlsx','xls','pptx','ppt','txt','csv','md','html','htm','css','json','xml','js','ts','py','sh','rb','java','cpp','c','cs','go','rs','rtf']);
+        const _fileExt = (file.name.split('.').pop() || '').toLowerCase();
+        const _isNative = _nativeTypes.has(file.type);
+        const _isExtractable = _extractableTypes.has(file.type) || _extractableExts.has(_fileExt);
+        if (!_isNative && !_isExtractable) {
+            showNotification(`Unsupported file type: ${file.name}. Supported: PDF, images, Word, Excel, PowerPoint, text and code files.`, 'error');
             continue;
         }
 
-        // Check file size (32MB max for PDFs, 5MB for images)
-        const maxSize = file.type === 'application/pdf' ? 32 * 1024 * 1024 : 5 * 1024 * 1024;
+        // Check file size: 32MB for PDF, 5MB for images, 20MB for extractable
+        let maxSize;
+        if (file.type === 'application/pdf') { maxSize = 32 * 1024 * 1024; }
+        else if (_isNative && file.type.startsWith('image/')) { maxSize = 5 * 1024 * 1024; }
+        else { maxSize = 20 * 1024 * 1024; }
         if (file.size > maxSize) {
             showNotification(`File too large: ${file.name}. Max size: ${maxSize / 1024 / 1024} MB`, 'error');
             continue;
