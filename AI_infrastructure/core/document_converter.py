@@ -218,37 +218,126 @@ class DocumentConverter:
     # ==================== DOCX CONVERSION METHODS ====================
     
     def _convert_docx_to_pdf(self, file_data: bytes, filename: str) -> bytes:
-        """Convert DOCX to PDF using docx2pdf or pypandoc"""
+        """Convert DOCX to PDF using python-docx + reportlab (pure Python, no system deps).
+
+        Preserves: paragraph ordering relative to tables, heading levels H1-H3,
+        bold / italic / underline runs, bullet list indentation, and table grid
+        layouts with alternating row shading.
+        """
         try:
-            # Try docx2pdf first (Windows-only, requires MS Word)
-            try:
-                from docx2pdf import convert
-                
-                # Write to temp file
-                with tempfile.NamedTemporaryFile(suffix='.docx', delete=False) as temp_docx:
-                    temp_docx.write(file_data)
-                    temp_docx_path = temp_docx.name
-                
-                temp_pdf_path = temp_docx_path.replace('.docx', '.pdf')
-                
-                # Convert
-                convert(temp_docx_path, temp_pdf_path)
-                
-                # Read result
-                with open(temp_pdf_path, 'rb') as f:
-                    pdf_data = f.read()
-                
-                # Cleanup
-                os.unlink(temp_docx_path)
-                os.unlink(temp_pdf_path)
-                
-                return pdf_data
-                
-            except ImportError:
-                # Fallback: Convert to images then to PDF
-                print("[INFO] docx2pdf not available, using image-based conversion")
-                return self._convert_via_images_to_pdf(file_data, filename, 'docx')
-        
+            from docx import Document
+            from docx.oxml.ns import qn
+            from reportlab.lib.pagesizes import A4
+            from reportlab.platypus import (
+                SimpleDocTemplate, Paragraph, Spacer,
+                Table, TableStyle,
+            )
+            from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+            from reportlab.lib import colors
+            from reportlab.lib.units import inch
+
+            doc_obj = Document(io.BytesIO(file_data))
+            pdf_buffer = io.BytesIO()
+            pdf_doc = SimpleDocTemplate(
+                pdf_buffer, pagesize=A4,
+                rightMargin=inch * 0.75, leftMargin=inch * 0.75,
+                topMargin=inch * 0.75, bottomMargin=inch * 0.75,
+            )
+            styles = getSampleStyleSheet()
+            bullet_style = ParagraphStyle(
+                'BulletItem', parent=styles['Normal'],
+                leftIndent=20, firstLineIndent=-12, spaceAfter=2,
+            )
+
+            def _esc(text: str) -> str:
+                return (text or '').replace('&', '&amp;').replace('<', '&lt;').replace('>', '&gt;')
+
+            def _para_markup(para) -> str:
+                """Convert paragraph runs to reportlab XML markup string."""
+                parts = []
+                for run in para.runs:
+                    t = _esc(run.text)
+                    if not t:
+                        continue
+                    if run.bold and run.italic:
+                        t = f'<b><i>{t}</i></b>'
+                    elif run.bold:
+                        t = f'<b>{t}</b>'
+                    elif run.italic:
+                        t = f'<i>{t}</i>'
+                    elif run.underline:
+                        t = f'<u>{t}</u>'
+                    parts.append(t)
+                return ''.join(parts) or _esc(para.text)
+
+            # Index top-level paragraphs and tables by their lxml element so we
+            # can walk body children in document order and preserve interleaving.
+            para_map = {p._element: p for p in doc_obj.paragraphs}
+            tbl_map  = {t._element: t for t in doc_obj.tables}
+
+            elements = []
+
+            for child in doc_obj.element.body:
+                para = para_map.get(child)
+                tbl  = tbl_map.get(child)
+
+                if para is not None:
+                    markup = _para_markup(para)
+                    sname  = (para.style.name or '') if para.style else ''
+
+                    if not markup.strip():
+                        elements.append(Spacer(1, 4))
+                    elif 'Heading 1' in sname:
+                        elements.append(Paragraph(markup, styles['Heading1']))
+                        elements.append(Spacer(1, 6))
+                    elif 'Heading 2' in sname:
+                        elements.append(Paragraph(markup, styles['Heading2']))
+                        elements.append(Spacer(1, 4))
+                    elif 'Heading 3' in sname:
+                        elements.append(Paragraph(markup, styles['Heading3']))
+                        elements.append(Spacer(1, 4))
+                    elif 'List' in sname:
+                        elements.append(Paragraph(f'\u2022 {markup}', bullet_style))
+                    else:
+                        elements.append(Paragraph(markup, styles['Normal']))
+                        elements.append(Spacer(1, 4))
+
+                elif tbl is not None:
+                    table_data = [
+                        [_esc(cell.text or '') for cell in row.cells]
+                        for row in tbl.rows
+                    ]
+                    if table_data:
+                        col_count = max(len(r) for r in table_data)
+                        avail_w   = A4[0] - inch * 1.5
+                        col_w     = avail_w / col_count if col_count else avail_w
+
+                        rt = Table(table_data, colWidths=[col_w] * col_count)
+                        rt.setStyle(TableStyle([
+                            ('GRID',         (0, 0), (-1, -1), 0.5, colors.grey),
+                            ('BACKGROUND',   (0, 0), (-1,  0), colors.HexColor('#e8e8e8')),
+                            ('FONTNAME',     (0, 0), (-1,  0), 'Helvetica-Bold'),
+                            ('FONTSIZE',     (0, 0), (-1, -1), 8),
+                            ('TOPPADDING',   (0, 0), (-1, -1), 4),
+                            ('BOTTOMPADDING',(0, 0), (-1, -1), 4),
+                            ('LEFTPADDING',  (0, 0), (-1, -1), 5),
+                            ('RIGHTPADDING', (0, 0), (-1, -1), 5),
+                            ('ROWBACKGROUNDS', (0, 1), (-1, -1),
+                             [colors.white, colors.HexColor('#f8f8f8')]),
+                            ('VALIGN',       (0, 0), (-1, -1), 'TOP'),
+                        ]))
+                        elements.append(rt)
+                        elements.append(Spacer(1, 10))
+
+            if not elements:
+                elements.append(Paragraph(
+                    f'[Empty document: {_esc(filename)}]', styles['Normal']
+                ))
+
+            pdf_doc.build(elements)
+            pdf_buffer.seek(0)
+            return pdf_buffer.read()
+
         except Exception as e:
             raise DocumentConverterError(f'DOCX to PDF conversion failed: {str(e)}')
     
@@ -258,40 +347,48 @@ class DocumentConverter:
                                filename: str,
                                format: str = 'png',
                                dpi: int = 150) -> List[Dict[str, Any]]:
-        """Convert DOCX to images (one per page)"""
+        """Convert DOCX to images (one per page).
+
+        Pipeline: DOCX → PDF (via _convert_docx_to_pdf) → page images via
+        pdf2image/poppler.  Falls back to a readable single-image text render
+        when poppler is not available.
+        """
         try:
+            # Step 1: convert to PDF using our python-docx+reportlab converter
+            pdf_data = self._convert_docx_to_pdf(file_data, filename)
+
+            # Step 2: attempt high-quality page images via pdf2image (needs poppler)
+            try:
+                from pdf2image import convert_from_bytes
+                pil_images = convert_from_bytes(pdf_data, dpi=dpi, fmt=format)
+                images = []
+                for i, pil_img in enumerate(pil_images, 1):
+                    img_bytes = io.BytesIO()
+                    pil_img.save(img_bytes, format=format.upper())
+                    data = img_bytes.getvalue()
+                    images.append({
+                        'data': data,
+                        'name': f"{filename.rsplit('.', 1)[0]}_page{i}.{format}",
+                        'size': len(data),
+                        'content_type': f'image/{format}',
+                    })
+                return images or [self._create_placeholder_image(filename, format)]
+            except Exception:
+                # pdf2image / poppler not available – fall through to text render
+                pass
+
+            # Step 3: plain-text fallback – one image with all body text
             from docx import Document
-            from PIL import Image, ImageDraw, ImageFont
-            
-            doc = Document(io.BytesIO(file_data))
-            
-            images = []
-            
-            # Convert each page to image
-            # Note: This is a simplified implementation
-            # For production, consider using pdf2image after PDF conversion
-            for page_num, paragraph in enumerate(doc.paragraphs, 1):
-                # Create blank image
-                img = Image.new('RGB', (2480, 3508), 'white')  # A4 at 300 DPI
-                draw = ImageDraw.Draw(img)
-                
-                # Draw text (simplified)
-                draw.text((100, 100 * page_num), paragraph.text, fill='black')
-                
-                # Convert to bytes
-                img_bytes = io.BytesIO()
-                img.save(img_bytes, format=format.upper())
-                img_bytes.seek(0)
-                
-                images.append({
-                    'data': img_bytes.read(),
-                    'name': f"{filename.rsplit('.', 1)[0]}_page{page_num}.{format}",
-                    'size': img_bytes.tell(),
-                    'content_type': f'image/{format}'
-                })
-            
-            return images if images else [self._create_placeholder_image(filename, format)]
-            
+            from PIL import Image, ImageDraw
+
+            doc_obj = Document(io.BytesIO(file_data))
+            lines: List[str] = []
+            for para in doc_obj.paragraphs:
+                if para.text.strip():
+                    lines.append(para.text)
+
+            return [self._render_text_as_image(lines, filename, format)]
+
         except Exception as e:
             raise DocumentConverterError(f'DOCX to images conversion failed: {str(e)}')
     
@@ -360,52 +457,48 @@ class DocumentConverter:
                                filename: str,
                                format: str = 'png',
                                dpi: int = 150) -> List[Dict[str, Any]]:
-        """Convert XLSX to images (one per sheet)"""
+        """Convert XLSX to images (one per sheet).
+
+        Pipeline: XLSX → PDF (via _convert_xlsx_to_pdf) → page images via
+        pdf2image/poppler.  Fallback: text-based image render per sheet.
+        """
         try:
+            pdf_data = self._convert_xlsx_to_pdf(file_data, filename)
+
+            try:
+                from pdf2image import convert_from_bytes
+                pil_images = convert_from_bytes(pdf_data, dpi=dpi, fmt=format)
+                images = []
+                for i, pil_img in enumerate(pil_images, 1):
+                    img_bytes = io.BytesIO()
+                    pil_img.save(img_bytes, format=format.upper())
+                    data = img_bytes.getvalue()
+                    images.append({
+                        'data': data,
+                        'name': f"{filename.rsplit('.', 1)[0]}_page{i}.{format}",
+                        'size': len(data),
+                        'content_type': f'image/{format}',
+                    })
+                return images or [self._create_placeholder_image(filename, format)]
+            except Exception:
+                pass
+
+            # Fallback: per-sheet text image
             from openpyxl import load_workbook
-            from PIL import Image, ImageDraw, ImageFont
-            
+
             wb = load_workbook(io.BytesIO(file_data), data_only=True)
-            
             images = []
-            
             for sheet_name in wb.sheetnames:
                 sheet = wb[sheet_name]
-                
-                # Create image for sheet
-                img = Image.new('RGB', (2480, 3508), 'white')  # A4 at 300 DPI
-                draw = ImageDraw.Draw(img)
-                
-                # Draw sheet title
-                draw.text((100, 50), sheet_name, fill='black')
-                
-                # Draw table data (simplified)
-                y_offset = 150
-                for row_num, row in enumerate(sheet.iter_rows(values_only=True)):
-                    x_offset = 100
-                    for cell in row:
-                        cell_text = str(cell) if cell is not None else ''
-                        draw.text((x_offset, y_offset), cell_text[:30], fill='black')
-                        x_offset += 200
-                    y_offset += 40
-                    
-                    if y_offset > 3400:  # Near bottom
-                        break
-                
-                # Convert to bytes
-                img_bytes = io.BytesIO()
-                img.save(img_bytes, format=format.upper())
-                img_bytes.seek(0)
-                
-                images.append({
-                    'data': img_bytes.read(),
-                    'name': f"{filename.rsplit('.', 1)[0]}_{sheet_name}.{format}",
-                    'size': img_bytes.tell(),
-                    'content_type': f'image/{format}'
-                })
-            
-            return images if images else [self._create_placeholder_image(filename, format)]
-            
+                lines = [sheet_name]
+                for row in sheet.iter_rows(values_only=True):
+                    row_text = '  |  '.join(str(c) if c is not None else '' for c in row)
+                    if row_text.strip('  |  '):
+                        lines.append(row_text)
+                base = f"{filename.rsplit('.', 1)[0]}_{sheet_name}"
+                images.append(self._render_text_as_image(lines, base, format))
+            return images or [self._create_placeholder_image(filename, format)]
+
         except Exception as e:
             raise DocumentConverterError(f'XLSX to images conversion failed: {str(e)}')
     
@@ -459,50 +552,88 @@ class DocumentConverter:
                                filename: str,
                                format: str = 'png',
                                dpi: int = 150) -> List[Dict[str, Any]]:
-        """Convert PPTX to images (one per slide)"""
+        """Convert PPTX to images (one per slide).
+
+        Pipeline: PPTX → PDF (via _convert_pptx_to_pdf) → page images via
+        pdf2image/poppler.  Fallback: per-slide text image.
+        """
         try:
+            pdf_data = self._convert_pptx_to_pdf(file_data, filename)
+
+            try:
+                from pdf2image import convert_from_bytes
+                pil_images = convert_from_bytes(pdf_data, dpi=dpi, fmt=format)
+                images = []
+                for i, pil_img in enumerate(pil_images, 1):
+                    img_bytes = io.BytesIO()
+                    pil_img.save(img_bytes, format=format.upper())
+                    data = img_bytes.getvalue()
+                    images.append({
+                        'data': data,
+                        'name': f"{filename.rsplit('.', 1)[0]}_slide{i}.{format}",
+                        'size': len(data),
+                        'content_type': f'image/{format}',
+                    })
+                return images or [self._create_placeholder_image(filename, format)]
+            except Exception:
+                pass
+
+            # Fallback: per-slide text image
             from pptx import Presentation
-            from PIL import Image, ImageDraw, ImageFont
-            
+
             prs = Presentation(io.BytesIO(file_data))
-            
             images = []
-            
             for slide_num, slide in enumerate(prs.slides, 1):
-                # Create image for slide
-                img = Image.new('RGB', (1920, 1080), 'white')  # 16:9 HD
-                draw = ImageDraw.Draw(img)
-                
-                # Draw slide content
-                y_offset = 50
+                lines = [f'Slide {slide_num}']
                 for shape in slide.shapes:
                     if hasattr(shape, 'text') and shape.text.strip():
-                        # Draw text (simplified)
-                        lines = shape.text.split('\n')
-                        for line in lines:
-                            draw.text((50, y_offset), line[:100], fill='black')
-                            y_offset += 40
-                
-                # Convert to bytes
-                img_bytes = io.BytesIO()
-                img.save(img_bytes, format=format.upper())
-                img_bytes.seek(0)
-                
-                images.append({
-                    'data': img_bytes.read(),
-                    'name': f"{filename.rsplit('.', 1)[0]}_slide{slide_num}.{format}",
-                    'size': img_bytes.tell(),
-                    'content_type': f'image/{format}'
-                })
-            
-            return images if images else [self._create_placeholder_image(filename, format)]
-            
+                        lines.append(shape.text)
+                base = f"{filename.rsplit('.', 1)[0]}_slide{slide_num}"
+                images.append(self._render_text_as_image(lines, base, format))
+            return images or [self._create_placeholder_image(filename, format)]
+
         except Exception as e:
             raise DocumentConverterError(f'PPTX to images conversion failed: {str(e)}')
     
     
     # ==================== HELPER METHODS ====================
-    
+
+    def _render_text_as_image(self,
+                              lines: List[str],
+                              base_name: str,
+                              format: str = 'png') -> Dict[str, Any]:
+        """Render a list of text lines as a clean A4-sized image (fallback renderer)."""
+        from PIL import Image, ImageDraw
+
+        WIDTH, HEIGHT = 1240, 1754   # A4 at 150 DPI
+        MARGIN_X, MARGIN_Y = 60, 60
+        LINE_H = 22
+        MAX_CHARS = 110
+
+        img = Image.new('RGB', (WIDTH, HEIGHT), 'white')
+        draw = ImageDraw.Draw(img)
+
+        y = MARGIN_Y
+        for raw_line in lines:
+            # Wrap long lines
+            for i in range(0, max(1, len(raw_line)), MAX_CHARS):
+                segment = raw_line[i:i + MAX_CHARS]
+                draw.text((MARGIN_X, y), segment, fill='#111111')
+                y += LINE_H
+            if y > HEIGHT - MARGIN_Y:
+                draw.text((MARGIN_X, y), '…', fill='#888888')
+                break
+
+        img_bytes = io.BytesIO()
+        img.save(img_bytes, format=format.upper())
+        data = img_bytes.getvalue()
+        return {
+            'data': data,
+            'name': f"{base_name}.{format}",
+            'size': len(data),
+            'content_type': f'image/{format}',
+        }
+
     def _create_placeholder_image(self, filename: str, format: str = 'png') -> Dict[str, Any]:
         """Create placeholder image if conversion fails"""
         from PIL import Image, ImageDraw

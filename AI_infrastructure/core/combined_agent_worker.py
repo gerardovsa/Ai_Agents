@@ -2885,58 +2885,42 @@ def execute_streaming_request(
         # Initialize Anthropic client
         import os
         from anthropic import Anthropic
-        
-        # PRIORITY 1: Try platform-wide credentials from Supabase (user_id=1) (Jan 27, 2026)
-        # User ID 1 = Platform-wide credentials shared by all users
+
+        # Resolve API key using the 3-tier org-aware loader:
+        #   Tier 1: user_platform_credentials for the requesting user
+        #   Tier 2: organisation_platform_credentials for the user's org  ← org vault
+        #   Tier 3: ANTHROPIC_API_KEY environment variable (legacy fallback)
         api_key = None
         api_key_source = None
+        lookup_user_id = user_id if user_id else 1
         try:
-            from AI_infrastructure.shared.platform_credentials_loader import get_user_credentials
-            
-            # BYPASS CACHE: Force fresh read from database to avoid stale keys
-            print(f"{log_prefix} 🔍 Loading Anthropic credentials from Supabase (user_id=1, bypassing cache)...")
-            creds = get_user_credentials(1, 'anthropic')
-            
-            if creds:
-                print(f"{log_prefix} 📋 Raw credentials data: credential_value={bool(creds.get('credential_value'))}, credentials.api_key={bool(creds.get('credentials', {}).get('api_key'))}")
-                
-                # PRIORITY 1: Check credentials JSONB (preferred location for new keys)
-                credentials_json = creds.get('credentials', {})
-                if credentials_json and credentials_json.get('api_key'):
-                    api_key = credentials_json.get('api_key')
-                    api_key_source = 'credentials.api_key (JSONB)'
-                    print(f"{log_prefix} 🔐 Found API key in credentials.api_key field (last 8 chars: ...{api_key[-8:]})")
-                
-                # PRIORITY 2: Fallback to credential_value (legacy location)
-                if not api_key and creds.get('credential_value'):
-                    api_key = creds.get('credential_value')
-                    api_key_source = 'credential_value (legacy)'
-                    print(f"{log_prefix} 🔐 Found API key in credential_value field (last 8 chars: ...{api_key[-8:]})")
-                
-                if api_key:
-                    print(f"{log_prefix} ✅ Using Anthropic API key from Supabase (user_id=1, source: {api_key_source})")
-                else:
-                    print(f"{log_prefix} ❌ Credentials row found but no API key in any field")
+            from AI_infrastructure.shared.org_credentials_loader import resolve_api_key as _resolve_anthropic_key
+            print(f"{log_prefix} 🔍 Loading Anthropic credentials via org-aware resolver (user_id={lookup_user_id})...")
+            api_key = _resolve_anthropic_key(lookup_user_id, 'anthropic')
+            if api_key:
+                api_key_source = f'org_credentials_loader (user_id={lookup_user_id})'
+                print(f"{log_prefix} ✅ Resolved Anthropic API key (last 8 chars: ...{api_key[-8:]})")
             else:
-                print(f"{log_prefix} ❌ No credentials found in Supabase for user_id=1, platform='anthropic'")
+                print(f"{log_prefix} ❌ No Anthropic credential found via org-aware resolver for user_id={lookup_user_id}")
         except Exception as e:
             import traceback
-            print(f"{log_prefix} ⚠️ Failed to load Anthropic credentials from Supabase: {e}")
+            print(f"{log_prefix} ⚠️ org_credentials_loader failed: {e}")
             print(f"{log_prefix} 📊 Traceback: {traceback.format_exc()}")
-        
-        # PRIORITY 3: Fallback to environment variable
+
+        # Final fallback: environment variable (if loader found nothing)
         if not api_key:
             api_key = os.getenv('ANTHROPIC_API_KEY')
             if api_key:
-                api_key_source = 'environment variable'
+                api_key_source = 'environment variable (ANTHROPIC_API_KEY)'
                 print(f"{log_prefix} 🔐 Using Anthropic API key from environment variable (last 8 chars: ...{api_key[-8:]})")
-        
+
         if not api_key:
             error_msg = (
-                f"ANTHROPIC_API_KEY not found in any location. Checked: "
-                f"1) Supabase user_id=1 credentials.api_key, "
-                f"2) Supabase user_id=1 credential_value, "
-                f"3) Environment variable ANTHROPIC_API_KEY"
+                f"Anthropic API key not found. Checked: "
+                f"1) user_platform_credentials for user_id={lookup_user_id}, "
+                f"2) organisation_platform_credentials for user's org, "
+                f"3) ANTHROPIC_API_KEY environment variable. "
+                f"Please add your Anthropic API key in Organisation Settings → Connections."
             )
             print(f"{log_prefix} ❌ {error_msg}")
             yield {'type': 'error', 'error': error_msg}
@@ -2970,13 +2954,17 @@ def execute_streaming_request(
         def _base_model(m): return _re.sub(r'-\d{8}$', '', m)
 
         _base = _base_model(ai_model)
-        ADAPTIVE_THINKING_MODELS = {'claude-sonnet-4-6', 'claude-opus-4-6'}
+        ADAPTIVE_THINKING_MODELS = {
+            'claude-sonnet-4-6', 'claude-opus-4-6',
+            'claude-opus-4-7',  # Opus 4.7 ONLY supports adaptive thinking (type: "enabled" → 400)
+        }
         SUPPORTS_THINKING_MODELS = {
             'claude-sonnet-4-6', 'claude-opus-4-6',
             'claude-opus-4-5', 'claude-sonnet-4-5',
             'claude-haiku-4-5', 'claude-opus-4-1',
             'claude-opus-4', 'claude-sonnet-4',
             'claude-3-7-sonnet',
+            'claude-opus-4-7',  # Opus 4.7 supports adaptive thinking
         }
         model_supports_thinking = (ai_provider == 'anthropic' and
                                    _base in SUPPORTS_THINKING_MODELS)
@@ -2997,6 +2985,14 @@ def execute_streaming_request(
         final_temperature = 1.0 if thinking_param else ai_temperature
         if thinking_param and ai_temperature != 1.0:
             print(f"{log_prefix} ⚙️  Temperature overridden: {ai_temperature} → 1.0 (required when thinking enabled)")
+
+        # Opus 4.7+ does not allow non-default sampling parameters (temperature, top_p, top_k).
+        # Setting temperature to any value other than 1.0 (the API default) returns a 400 error.
+        # Silently clamp to 1.0 so users with custom temperature settings aren't broken.
+        MODELS_NO_CUSTOM_SAMPLING = {'claude-opus-4-7'}
+        if ai_provider == 'anthropic' and _base in MODELS_NO_CUSTOM_SAMPLING and final_temperature != 1.0:
+            print(f"{log_prefix} ⚙️  Temperature clamped to 1.0 (model '{ai_model}' does not accept non-default sampling params)")
+            final_temperature = 1.0
         
         # CRITICAL: Final validation before API call (Nov 22, 2025)
         # Double-check that all assistant messages with thinking blocks have thinking as first block

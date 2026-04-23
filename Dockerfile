@@ -36,6 +36,7 @@ RUN apt-get update && \
     apt-transport-https \
     nodejs \
     npm \
+    poppler-utils \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 

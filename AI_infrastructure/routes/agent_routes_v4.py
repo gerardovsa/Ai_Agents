@@ -939,49 +939,18 @@ def start_agent(agent_id):
         print(f"[START] ✅ State updated (conversation: {len(conversation)} messages, privacy: {'Local Ops' if recipient_team_id else 'Central HQ'})")
         
         # ============================================
-        # STEP 6: START AI WORKER THREAD
+        # STEP 6: MARK AGENT AS PROCESSING
         # ============================================
-        print(f"\n[START] 🤖 STEP 6: Starting AI worker thread...")
-        
-        lock = agent_state_manager.get_lock(agent_id, thread_slug)
-        queue = agent_state_manager.get_queue(agent_id, thread_slug)
+        # NOTE (April 2026): run_simple_agent_worker is NO LONGER started here.
+        # The /stream/<agent_id> endpoint calls execute_streaming_request directly,
+        # which handles all AI processing and saves the response to the database.
+        # Starting the worker here caused duplicate assistant messages:
+        #   - run_simple_agent_worker (this thread) → calls Anthropic → saves response A
+        #   - execute_streaming_request (/stream)   → calls Anthropic → saves response B
+        # Removing the thread start eliminates the duplicate.
+        print(f"\n[START] 🤖 STEP 6: Marking agent as ready for streaming...")
         agent_state_manager.update_status(agent_id, thread_slug, 'processing')
-        
-        lock.acquire()
-        
-        # Use lazy-loading getter (new pattern) or fallback initialization
-        getter = current_app.config.get('GET_AI_CLIENT')
-        if getter:
-            ai_client = getter()
-        else:
-            ai_client = current_app.config.get('AI_CLIENT')
-            if ai_client is None:
-                from core.unified_ai_client import initialize_ai_client
-                import sys
-                from pathlib import Path
-                sys.path.insert(0, str(Path(__file__).parent.parent))
-                from config import Config
-                ai_client = initialize_ai_client(str(Config.DB_CONFIG_PATH))
-                current_app.config['AI_CLIENT'] = ai_client
-        
-        if file_data:
-            threading.Thread(
-                target=run_agent_worker,
-                args=(agent_id, message, file_data, lock, thread_slug, queue, 
-                      state['conversation'], state['context'], user_id, thread_slug,
-                      sender_team_id, recipient_team_id),  # ✅ NEW: Team ID routing
-                daemon=True
-            ).start()
-        else:
-            threading.Thread(
-                target=run_simple_agent_worker,
-                args=(agent_id, message, lock, thread_slug, queue, 
-                      state['conversation'], ai_client, user_id, thread_slug,
-                      sender_team_id, recipient_team_id),  # ✅ NEW: Team ID routing
-                daemon=True
-            ).start()
-        
-        print(f"[START] ✅ AI worker thread started")
+        print(f"[START] ✅ Agent ready — AI processing will begin when client connects to /stream/{agent_id}")
         print(f"{'='*80}\n")
         
         # ============================================
@@ -1161,6 +1130,7 @@ def stream_agent(agent_id):
     
     # Extract last user message
     last_message = ''
+    last_message_content = None  # Full content list preserved for multimodal messages (image/document blocks)
     conversation_without_current = conversation.copy()
     
     for idx in range(len(conversation) - 1, -1, -1):
@@ -1170,6 +1140,14 @@ def stream_agent(agent_id):
             if isinstance(content, str):
                 last_message = content
             elif isinstance(content, list):
+                # ✅ FIX: Preserve full content when message contains image/document blocks
+                has_file_blocks = any(
+                    isinstance(b, dict) and b.get('type') in ('image', 'document')
+                    for b in content
+                )
+                if has_file_blocks:
+                    last_message_content = content  # Preserve full multimodal content list
+                # Always extract text portion for logging / semantic tool search
                 for block in content:
                     if isinstance(block, dict) and block.get('type') == 'text':
                         last_message = block.get('text', '')
@@ -1177,10 +1155,12 @@ def stream_agent(agent_id):
             
             conversation_without_current = conversation[:idx]
             print(f"[STREAM] Extracted current message, history reduced to {len(conversation_without_current)} messages")
+            if last_message_content:
+                print(f"[STREAM] \U0001f5bc\ufe0f Multimodal message: {len(last_message_content)} content blocks (preserving for AI)")
             break
     
     # ✅ FIX: Race condition - new user message not in DB yet
-    if not last_message:
+    if not last_message and last_message_content is None:
         print(f"[STREAM] ⚠️ WARNING: No user message found (last message role: {conversation[-1].get('role') if conversation else 'none'})")
         print(f"[STREAM] This might be a race condition - waiting 1 second for database write...")
         import time
@@ -1199,6 +1179,14 @@ def stream_agent(agent_id):
                 if isinstance(content, str):
                     last_message = content
                 elif isinstance(content, list):
+                    # ✅ FIX: Preserve full content when message contains image/document blocks
+                    has_file_blocks = any(
+                        isinstance(b, dict) and b.get('type') in ('image', 'document')
+                        for b in content
+                    )
+                    if has_file_blocks:
+                        last_message_content = content  # Preserve full multimodal content list
+                    # Always extract text portion for logging / semantic tool search
                     for block in content:
                         if isinstance(block, dict) and block.get('type') == 'text':
                             last_message = block.get('text', '')
@@ -1206,10 +1194,12 @@ def stream_agent(agent_id):
                 
                 conversation_without_current = conversation[:idx]
                 print(f"[STREAM] ✅ Retry successful: Found user message, history reduced to {len(conversation_without_current)} messages")
+                if last_message_content:
+                    print(f"[STREAM] \U0001f5bc\ufe0f Multimodal message: {len(last_message_content)} content blocks (preserving for AI)")
                 break
         
         # Still no user message after retry?
-        if not last_message:
+        if not last_message and last_message_content is None:
             error_msg = f"No user message found in conversation even after retry (last role: {conversation[-1].get('role') if conversation else 'none'})"
             print(f"[STREAM] ❌ ERROR: {error_msg}")
             return error_response(error_msg, 400)
@@ -2158,6 +2148,8 @@ Use tools in multiple rounds with interleaved thinking."""
         'claude-sonnet-4-6', 'claude-opus-4-6',
         'claude-opus-4-5', 'claude-opus-4-1',
         'claude-opus-4', 'claude-sonnet-4',
+        'claude-sonnet-4-5',  # Sonnet 4.5 preserves thinking blocks by default
+        'claude-opus-4-7',   # Opus 4.7 preserves thinking blocks (adaptive thinking only)
     }
 
     def _model_preserves_thinking(model_id: str) -> bool:
@@ -2270,10 +2262,22 @@ Use tools in multiple rounds with interleaved thinking."""
             yield stream_sse_event('start', {'session_id': thread_slug, 'agent_id': agent_id})
             flush_stream()
             
+            # ✅ FIX: If multimodal (has file blocks), pass full content via conversation history
+            # and use empty user_prompt (execute_streaming_request skips adding user msg when falsy)
+            if last_message_content is not None:
+                exec_user_prompt = ''
+                exec_conversation = list(conversation_without_current) + [
+                    {'role': 'user', 'content': last_message_content}
+                ]
+                print(f"[STREAM] \U0001f5bc\ufe0f Passing multimodal content to AI ({len(last_message_content)} blocks)")
+            else:
+                exec_user_prompt = last_message
+                exec_conversation = conversation_without_current
+
             for event in execute_streaming_request(
                 session_id=thread_slug,
-                user_prompt=last_message,
-                conversation_history=conversation_without_current,
+                user_prompt=exec_user_prompt,
+                conversation_history=exec_conversation,
                 system_prompt=system_prompt,
                 tools=tools,
                 user_id=user_id,

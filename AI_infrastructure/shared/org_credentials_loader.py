@@ -71,6 +71,33 @@ PLATFORM_ENV_VARS: Dict[str, str] = {
 
 
 # ============================================================================
+# INTERNAL: SUB-USER PARENT LOOKUP
+# ============================================================================
+
+def _get_parent_user_id(user_id: int) -> Optional[int]:
+    """
+    If user_id belongs to a sub-user (is_sub_user=TRUE), return parent_user_id.
+    Returns None for normal (top-level) users.
+    Used so team IDs inherit credentials from the account that created them.
+    """
+    try:
+        row = execute_query(
+            """
+            SELECT parent_user_id
+            FROM ai_infrastructure.users
+            WHERE id = %s AND is_sub_user = TRUE
+            """,
+            (user_id,),
+            fetch_mode='one'
+        )
+        if row:
+            return row.get('parent_user_id')
+    except Exception as e:
+        logger.debug(f"[ORG_CREDS_LOADER] parent_user_id lookup failed for user_id={user_id}: {e}")
+    return None
+
+
+# ============================================================================
 # MAIN RESOLVER
 # ============================================================================
 
@@ -124,7 +151,24 @@ def resolve_credentials(
             return user_cred
 
     # ------------------------------------------------------------------
+    # TIER 1.5: Sub-user → parent user credential inheritance
+    # Team IDs (is_sub_user=TRUE) share their creator's platform credentials.
+    # ------------------------------------------------------------------
+    parent_id = _get_parent_user_id(user_id)
+    if parent_id:
+        parent_user_cred = _get_user_credential(parent_id, platform, bypass_cache)
+        if parent_user_cred:
+            parent_user_cred['_source'] = 'parent_user'
+            logger.debug(
+                f"[ORG_CREDS_LOADER] Resolved {platform} from parent user credential "
+                f"(sub_user_id={user_id}, parent_user_id={parent_id})"
+            )
+            return parent_user_cred
+
+    # ------------------------------------------------------------------
     # TIER 2: Organisation-level credential
+    # _get_org_credential already handles sub-user → parent org fallback
+    # internally, so this covers both normal users and sub-users.
     # ------------------------------------------------------------------
     org_cred = _get_org_credential(user_id, platform, bypass_cache)
     if org_cred:
@@ -268,6 +312,22 @@ def _get_org_credential(
             (user_id,),
             fetch_mode='value'
         )
+        if not org_id:
+            # Sub-users created before the organisation_id fix may have NULL org.
+            # Fall back to the parent user's organisation so their team members
+            # can still resolve org-level platform credentials.
+            parent_id = _get_parent_user_id(user_id)
+            if parent_id:
+                org_id = execute_query(
+                    "SELECT organisation_id FROM ai_infrastructure.users WHERE id = %s",
+                    (parent_id,),
+                    fetch_mode='value'
+                )
+                if org_id:
+                    logger.debug(
+                        f"[ORG_CREDS_LOADER] Sub-user {user_id} has no org, using parent "
+                        f"{parent_id}'s org_id={org_id}"
+                    )
         if not org_id:
             return None
 

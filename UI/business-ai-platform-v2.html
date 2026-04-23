@@ -20952,7 +20952,7 @@
                                 <button class="ai-chat-attach-btn" id="ai-chat-attach-btn" title="Attach files">
                                     <i class="fas fa-paperclip"></i>
                                     <input type="file" id="ai-chat-file-input" multiple
-                                        accept=".pdf,.png,.jpg,.jpeg,.gif,.webp" />
+                                        accept=".pdf,.png,.jpg,.jpeg,.gif,.webp,.docx,.doc,.odt,.rtf,.xlsx,.xls,.pptx,.ppt,.csv,.txt,.md,.json,.xml,.yaml,.yml,.html,.htm,.py,.js,.ts,.jsx,.tsx,.css" />
                                 </button>
                                 <!-- Send/Stop buttons - inside wrapper so they collapse with input -->
                                 <button class="ai-chat-send-btn" id="ai-chat-send-btn" title="Send message">
@@ -21829,6 +21829,9 @@
                                 style="width: 100%; cursor: pointer;">
                             <small style="color: var(--text-muted); margin-top: 4px; display: block;">0.0 =
                                 Deterministic, 1.0 = Creative (Higher = More Random)</small>
+                            <small id="tempLockedNote" style="color: var(--accent-primary); margin-top: 2px; display: none;">
+                                <i class="fas fa-lock"></i> Locked to 1.0 — required by Extended Thinking
+                            </small>
                         </div>
 
                         <div class="settings-field">
@@ -21843,7 +21846,7 @@
                         </div>
 
                         <div class="settings-checkbox">
-                            <input type="checkbox" id="enableThinking" checked onchange="saveSettings()">
+                            <input type="checkbox" id="enableThinking" checked onchange="onThinkingToggle()">
                             <label for="enableThinking">Enable Extended Thinking</label>
                         </div>
                         <small style="color: var(--text-muted); margin-top: 8px; display: block;">Improved
@@ -32499,6 +32502,34 @@ Thanks`;
         }
 
         /**
+         * Called when the Extended Thinking checkbox changes.
+         * Anthropic's API requires temperature = 1.0 whenever thinking is enabled.
+         * This function enforces that constraint in the UI and then saves settings.
+         */
+        function onThinkingToggle() {
+            const thinkingOn = document.getElementById('enableThinking')?.checked;
+            const tempSlider = document.getElementById('temperature');
+            const tempValue  = document.getElementById('tempValue');
+            const lockedNote = document.getElementById('tempLockedNote');
+
+            if (thinkingOn && tempSlider) {
+                // Lock temperature to 1.0 – required by Anthropic API when thinking is on
+                tempSlider.value    = '1.0';
+                tempSlider.disabled = true;
+                if (tempValue) tempValue.textContent = '1.0';
+                if (lockedNote) lockedNote.style.display = 'block';
+                console.log('[AI Settings] Extended Thinking enabled — temperature locked to 1.0 (API requirement)');
+            } else if (tempSlider) {
+                // Restore slider when thinking is turned off
+                tempSlider.disabled = false;
+                if (lockedNote) lockedNote.style.display = 'none';
+                console.log('[AI Settings] Extended Thinking disabled — temperature slider unlocked');
+            }
+
+            saveSettings();
+        }
+
+        /**
          * Save all account settings (auto-save on field change)
          */
         function saveSettings() {
@@ -32806,37 +32837,59 @@ Thanks`;
 
                 if (titleText.includes('model options')) {
                     // AI Model, Temperature, Top P
+                    // NOTE: actual element IDs are modelSelect / temperature / topP (no ai_ prefix)
                     if (prefs.ai_model) {
-                        const modelSelect = section.querySelector('#ai_model, select[name="ai_model"]');
+                        const modelSelect = section.querySelector('#modelSelect, #ai_model, select[name="ai_model"]');
                         if (modelSelect) modelSelect.value = prefs.ai_model;
                     }
                     if (prefs.ai_temperature !== undefined) {
-                        const tempInput = section.querySelector('#ai_temperature, input[name="ai_temperature"]');
-                        if (tempInput) tempInput.value = prefs.ai_temperature;
+                        const tempInput = section.querySelector('#temperature, #ai_temperature, input[name="ai_temperature"]');
+                        if (tempInput) {
+                            tempInput.value = prefs.ai_temperature;
+                            const display = document.getElementById('tempValue');
+                            if (display) display.textContent = prefs.ai_temperature;
+                        }
                     }
                     if (prefs.ai_top_p !== undefined) {
-                        const topPInput = section.querySelector('#ai_top_p, input[name="ai_top_p"]');
-                        if (topPInput) topPInput.value = prefs.ai_top_p;
+                        const topPInput = section.querySelector('#topP, #ai_top_p, input[name="ai_top_p"]');
+                        if (topPInput) {
+                            topPInput.value = prefs.ai_top_p;
+                            const display = document.getElementById('toppValue');
+                            if (display) display.textContent = prefs.ai_top_p;
+                        }
                     }
                 }
 
                 if (titleText.includes('token parameters')) {
                     // Max tokens, thinking budget
+                    // NOTE: actual element IDs are maxTokens / thinkingBudgetSlider / enableThinking / enableStreaming
                     if (prefs.ai_max_tokens) {
-                        const maxTokensInput = section.querySelector('#ai_max_tokens, input[name="ai_max_tokens"]');
-                        if (maxTokensInput) maxTokensInput.value = prefs.ai_max_tokens;
+                        const maxTokensInput = section.querySelector('#maxTokens, #ai_max_tokens, input[name="ai_max_tokens"]');
+                        if (maxTokensInput) {
+                            maxTokensInput.value = prefs.ai_max_tokens;
+                            const display = document.getElementById('tokensValue');
+                            if (display) display.textContent = prefs.ai_max_tokens;
+                        }
                     }
                     if (prefs.ai_thinking_budget !== undefined) {
-                        const thinkingInput = section.querySelector('#ai_thinking_budget, input[name="ai_thinking_budget"]');
-                        if (thinkingInput) thinkingInput.value = prefs.ai_thinking_budget;
+                        const thinkingBudgetInput = section.querySelector('#thinkingBudgetSlider, #ai_thinking_budget, input[name="ai_thinking_budget"]');
+                        if (thinkingBudgetInput) {
+                            thinkingBudgetInput.value = prefs.ai_thinking_budget;
+                            const display = document.getElementById('thinkingValue');
+                            if (display) display.textContent = prefs.ai_thinking_budget;
+                        }
                     }
-                    // Checkboxes
+                    // Checkboxes — actual IDs: enableThinking / enableStreaming
                     if (prefs.ai_thinking_enabled !== undefined) {
-                        const thinkingCheckbox = section.querySelector('#ai_thinking_enabled, input[name="ai_thinking_enabled"]');
-                        if (thinkingCheckbox) thinkingCheckbox.checked = Boolean(prefs.ai_thinking_enabled);
+                        const thinkingCheckbox = section.querySelector('#enableThinking, #ai_thinking_enabled, input[name="ai_thinking_enabled"]');
+                        if (thinkingCheckbox) {
+                            thinkingCheckbox.checked = Boolean(prefs.ai_thinking_enabled);
+                            // Enforce temperature lock state to match restored thinking preference
+                            if (typeof onThinkingToggle === 'function') onThinkingToggle();
+                        }
                     }
                     if (prefs.ai_streaming_enabled !== undefined) {
-                        const streamingCheckbox = section.querySelector('#ai_streaming_enabled, input[name="ai_streaming_enabled"]');
+                        const streamingCheckbox = section.querySelector('#enableStreaming, #ai_streaming_enabled, input[name="ai_streaming_enabled"]');
                         if (streamingCheckbox) streamingCheckbox.checked = Boolean(prefs.ai_streaming_enabled);
                     }
                 }

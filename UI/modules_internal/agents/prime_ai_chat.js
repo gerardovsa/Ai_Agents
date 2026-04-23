@@ -230,17 +230,75 @@ function initChatPanel() {
         }, 0);
     });
 
+    // MIME types natively understood by Claude (sent as base64 image/document blocks)
+    const NATIVE_TYPES = new Set([
+        'application/pdf',
+        'image/png', 'image/jpeg', 'image/jpg', 'image/gif', 'image/webp'
+    ]);
+    // MIME types handled via server-side text extraction (DOCX, XLSX, etc.)
+    const EXTRACTABLE_TYPES = new Set([
+        'application/vnd.openxmlformats-officedocument.wordprocessingml.document', // .docx
+        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',       // .xlsx
+        'application/vnd.openxmlformats-officedocument.presentationml.presentation', // .pptx
+        'application/msword',                  // .doc
+        'application/vnd.ms-excel',            // .xls
+        'application/vnd.ms-powerpoint',       // .ppt
+        'application/vnd.oasis.opendocument.text', // .odt
+        'application/rtf', 'text/rtf',
+        'text/csv', 'application/csv',
+        'text/plain',
+        'text/markdown',
+        'application/json',
+        'application/xml', 'text/xml',
+        'application/yaml', 'text/yaml',
+        'text/html',
+        'text/javascript', 'application/javascript',
+        'text/typescript',
+        'text/x-python', 'application/x-python-code',
+    ]);
+    // Extension fallback: browsers often report generic MIME for these
+    const EXTRACTABLE_EXTENSIONS = new Set([
+        '.docx', '.doc', '.odt', '.rtf',
+        '.xlsx', '.xls', '.csv',
+        '.pptx', '.ppt',
+        '.txt', '.md', '.json', '.xml', '.yaml', '.yml',
+        '.html', '.htm',
+        '.py', '.js', '.ts', '.jsx', '.tsx', '.css', '.sh',
+    ]);
+
+    function getFileIcon(filename) {
+        const ext = '.' + (filename.split('.').pop() || '').toLowerCase();
+        if (['.docx', '.doc', '.odt', '.rtf'].includes(ext)) return 'fa-file-word';
+        if (['.xlsx', '.xls', '.csv'].includes(ext)) return 'fa-file-excel';
+        if (['.pptx', '.ppt'].includes(ext)) return 'fa-file-powerpoint';
+        if (['.json', '.xml', '.yaml', '.yml'].includes(ext)) return 'fa-file-code';
+        if (['.py', '.js', '.ts', '.jsx', '.tsx', '.css', '.sh'].includes(ext)) return 'fa-file-code';
+        if (['.html', '.htm', '.md', '.txt'].includes(ext)) return 'fa-file-alt';
+        return 'fa-file';
+    }
+
     function handleFileSelection(files) {
         for (let file of files) {
-            const validTypes = ['application/pdf', 'image/png', 'image/jpeg', 'image/jpg', 'image/gif', 'image/webp'];
-            if (!validTypes.includes(file.type)) {
-                showNotification(`Invalid file type: ${file.name}. Only PDF and images are supported.`, 'error');
+            const ext = '.' + (file.name.split('.').pop() || '').toLowerCase();
+            const isNative     = NATIVE_TYPES.has(file.type);
+            const isExtractable = EXTRACTABLE_TYPES.has(file.type) || EXTRACTABLE_EXTENSIONS.has(ext);
+
+            if (!isNative && !isExtractable) {
+                showNotification(
+                    `Unsupported file: ${file.name}. Supported: PDF, images, Word, Excel, PowerPoint, CSV, TXT, JSON, XML, Markdown, code files.`,
+                    'error'
+                );
                 continue;
             }
 
-            const maxSize = file.type === 'application/pdf' ? 32 * 1024 * 1024 : 5 * 1024 * 1024;
+            // Per-type size limits
+            const maxSize = file.type === 'application/pdf'
+                ? 32 * 1024 * 1024   // PDF: 32 MB
+                : isNative
+                    ? 5 * 1024 * 1024    // Images: 5 MB
+                    : 20 * 1024 * 1024;  // Text-extractable: 20 MB
             if (file.size > maxSize) {
-                showNotification(`File too large: ${file.name}. Max size: ${maxSize / 1024 / 1024}MB`, 'error');
+                showNotification(`File too large: ${file.name}. Max: ${maxSize / 1024 / 1024}MB`, 'error');
                 continue;
             }
 
@@ -258,13 +316,17 @@ function initChatPanel() {
             const chip = document.createElement('div');
             chip.className = 'ai-chat-file-chip';
 
-            const icon = file.type === 'application/pdf' ? 'fa-file-pdf' : 'fa-image';
-            const size = (file.size / 1024).toFixed(1);
+            const isPdf   = file.type === 'application/pdf';
+            const isImage = file.type.startsWith('image/');
+            const icon    = isPdf ? 'fa-file-pdf' : isImage ? 'fa-image' : getFileIcon(file.name);
+            const size    = file.size >= 1024 * 1024
+                ? (file.size / 1024 / 1024).toFixed(1) + 'MB'
+                : (file.size / 1024).toFixed(1) + 'KB';
 
             chip.innerHTML = `
                 <i class="fas ${icon}"></i>
-                <span>${file.name} (${size}KB)</span>
-                <button class="ai-chat-file-chip-remove" data-index="${index}">×</button>
+                <span>${file.name} (${size})</span>
+                <button class="ai-chat-file-chip-remove" data-index="${index}">x</button>
             `;
 
             chip.querySelector('.ai-chat-file-chip-remove').addEventListener('click', () => {
@@ -2254,105 +2316,116 @@ function addToolUsageMessage(toolsUsed) {
 }
 
 async function sendChatMessageWithFiles(message, sessionId, startTime) {
-    console.log('[ATTACH] [FILE UPLOAD] Preparing to send message with files...');
+    // FIX (April 2026): Send files DIRECTLY to agent /start as multipart form data.
+    // The previous two-step approach (upload to /api/chat/upload then POST JSON to /start)
+    // was broken: files were stored in session context only and never reached the AI model.
+    // Now files are embedded as base64 content blocks in the user message via process_file_uploads().
+    console.log('[ATTACH] Sending message with files directly to agent start...');
     console.log(`[FILES] Files attached: ${window.chatAttachedFiles.length}`);
 
     try {
+        const agentId = '1';
+
+        // Build multipart form data — backend process_file_uploads() converts to base64 content blocks
         const formData = new FormData();
+        formData.append('thread_slug', sessionId);
+        formData.append('thread_id', sessionId);
         formData.append('session_id', sessionId);
-        formData.append('message', message || 'Analyze these files');
+        formData.append('message', message || 'Please analyze the attached files');
+        formData.append('message_type', 'direct');
 
-        window.chatAttachedFiles.forEach(file => {
-            formData.append('files', file);
-            console.log(`[ATTACH] Added file: ${file.name} (${file.type}, ${file.size} bytes)`);
-        });
-
-        console.log('📤 Sending files to /api/chat/upload...');
-        const uploadResponse = await fetch(`${window.API_BASE_URL}/api/chat/upload`, {
-            method: 'POST',
-            body: formData
-        });
-
-        if (!uploadResponse.ok) {
-            throw new Error(`HTTP error! status: ${uploadResponse.status}`);
+        // Include session token for realtime sync
+        const socketId = window.SynergyRealtime?.socket?.id;
+        if (socketId) {
+            formData.append('session_token', socketId);
         }
 
-        const uploadData = await uploadResponse.json();
-        console.log('[OK] Files uploaded and processed:', uploadData);
+        // Attach all files to form data
+        window.chatAttachedFiles.forEach(file => {
+            formData.append('files', file);
+            console.log(`[ATTACH] Adding: ${file.name} (${file.type}, ${(file.size / 1024).toFixed(1)}KB)`);
+        });
 
-        // Files are now in session context, send the chat message
-        console.log('📨 Sending chat message with file context...');
-
-        // Clear files after successful upload
-        console.log('[CLEAN] Clearing attached files from UI after successful upload...');
+        // Clear files from UI now that they are queued for upload
         if (window.clearChatAttachedFiles) {
             window.clearChatAttachedFiles();
         }
 
-        // Now send the actual chat message - files are already in session context
-        const agentId = '1';
-        const requestBody = {
-            message: message || 'Please analyze the uploaded files',
-            session_id: sessionId,
-            thread_id: sessionId,
-            thread_slug: sessionId,
-            user_context: await gatherUserContext(),
-            context: {
-                tab: AppState.currentTab,
-                platform: 'business_ai_platform',
-                tools_enabled: true,
-                has_file_attachments: true  // Signal that files were uploaded
-            },
-            preferences: {
-                use_tools: true,
-                verbose_tool_output: true,
-                streaming: true
-            }
-        };
+        // Step 1: Start agent with files embedded as multipart form data
+        console.log('[ATTACH] Sending multipart request to agent start...');
+        const startHeaders = {};
+        const authToken = localStorage.getItem('authToken');
+        if (authToken) {
+            startHeaders['Authorization'] = `Bearer ${authToken}`;
+        }
 
-        console.log('🚀 Starting agent with file context...');
         const startResponse = await fetch(`${window.API_BASE_URL}/api/agent/agent/${agentId}/start`, {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify(requestBody)
+            headers: startHeaders,  // No Content-Type — browser sets multipart boundary
+            body: formData
         });
 
         if (!startResponse.ok) {
-            throw new Error(`Agent start error! status: ${startResponse.status}`);
+            const errorText = await startResponse.text();
+            throw new Error(`Agent start error (${startResponse.status}): ${errorText}`);
         }
 
         const startData = await startResponse.json();
-        console.log('[OK] Agent started with file context');
+        console.log('[ATTACH] Agent started with file attachments');
 
-        console.log('🌊 Connecting to SSE stream...');
-        const streamUrl = `${window.API_BASE_URL}/api/agent/stream/${agentId}?thread_slug=${sessionId}`;
-        
-        // ✅ TEAM COLLABORATION FIX: Send socket ID to prevent message echo
-        const headers = {};
-        if (window.SynergyRealtime?.socket?.id) {
-            headers['X-Socket-ID'] = window.SynergyRealtime.socket.id;
-            console.log('[Stream] Adding X-Socket-ID header:', window.SynergyRealtime.socket.id);
+        // ✅ DATABASE AS SOURCE OF TRUTH: Sync conversation from backend
+        const responseData = startData.data || startData;
+        const conversation = responseData.conversation;
+        if (conversation && Array.isArray(conversation)) {
+            console.log(`[ATTACH] Syncing ${conversation.length} messages from backend`);
+            if (window.MessageStore) {
+                window.MessageStore.clearThread(sessionId);
+                for (const msg of conversation) {
+                    await window.MessageStore.addMessage(sessionId, msg, {
+                        checkDuplicates: false,
+                        silent: true
+                    });
+                }
+            }
+            AppState.chatMessages = conversation;
         }
-        
-        const response = await fetch(streamUrl, { headers: headers });
+
+        // Step 2: Connect to SSE stream (same infrastructure as regular messages)
+        console.log('[ATTACH] Connecting to SSE stream...');
+        const writeLsn = responseData.write_lsn ? `&write_lsn=${encodeURIComponent(responseData.write_lsn)}` : '';
+        const msgIdParam = responseData.message_id ? `&message_id=${encodeURIComponent(responseData.message_id)}` : '';
+        const streamUrl = `${window.API_BASE_URL}/api/agent/stream/${agentId}?thread_slug=${sessionId}${writeLsn}${msgIdParam}`;
+
+        // Create AbortController so stop button works
+        currentStreamController = new AbortController();
+        isStreaming = true;
+
+        const stopBtn = document.getElementById('ai-chat-stop-btn');
+        const sendBtn = document.getElementById('ai-chat-send-btn');
+        if (stopBtn) stopBtn.style.display = 'inline-flex';
+        if (sendBtn) sendBtn.style.display = 'none';
+
+        const streamHeaders = {};
+        if (socketId) {
+            streamHeaders['X-Socket-ID'] = socketId;
+        }
+
+        const response = await fetch(streamUrl, {
+            signal: currentStreamController.signal,
+            headers: streamHeaders
+        });
 
         if (!response.ok) {
             throw new Error(`Stream error! status: ${response.status}`);
         }
 
         const contentType = response.headers.get('content-type');
-
         if (contentType && contentType.includes('text/event-stream')) {
-            console.log('🌊 Receiving streamed response with file context...');
-
+            console.log('[ATTACH] Streaming response...');
             removeThinkingIndicator();
 
             const chatMessages = document.getElementById('ai-chat-messages');
-
             let fullResponse = '';
-            let firstContentReceived = false;
             let textBubble = null;
             const reader = response.body.getReader();
             const decoder = new TextDecoder();
@@ -2363,59 +2436,71 @@ async function sendChatMessageWithFiles(message, sessionId, startTime) {
                 if (done) break;
 
                 buffer += decoder.decode(value, { stream: true });
-                const messages = buffer.split('\n\n');
-                buffer = messages.pop() || '';
+                const chunks = buffer.split('\n\n');
+                buffer = chunks.pop() || '';
 
-                for (const message of messages) {
-                    const lines = message.split('\n');
+                for (const chunk of chunks) {
+                    const lines = chunk.split('\n');
+                    let eventType = null;
                     for (const line of lines) {
-                        if (line.startsWith('data: ')) {
+                        if (line.startsWith('event: ')) {
+                            eventType = line.substring(7).trim();
+                        } else if (line.startsWith('data: ')) {
                             try {
                                 const jsonStr = line.substring(6).trim();
-                                if (jsonStr) {
-                                    const data = JSON.parse(jsonStr);
+                                if (!jsonStr || jsonStr === '{}') continue;
+                                const data = JSON.parse(jsonStr);
 
-                                    if (data.type === 'content_delta') {
-                                        fullResponse += data.text;
+                                if (eventType === 'close' || data.type === 'complete' || data.type === 'error') {
+                                    // Stream finished
+                                    if (data.type === 'error') {
+                                        console.error('[ATTACH] Stream error:', data.error);
+                                    }
+                                    break;
+                                }
 
-                                        if (!textBubble) {
-                                            textBubble = document.createElement('div');
-                                            textBubble.className = 'ai-message assistant text-bubble';
+                                // Handle content delta — matches backend queue event type
+                                if (data.type === 'content_delta' && data.text) {
+                                    fullResponse += data.text;
+
+                                    if (!textBubble) {
+                                        textBubble = document.createElement('div');
+                                        textBubble.className = 'ai-message assistant text-bubble';
+                                        chatMessages.appendChild(textBubble);
+                                        if (typeof window.UnifiedMessageRenderer !== 'undefined') {
+                                            // Prime renderer will attach itself on next frame
+                                        }
+                                    }
+
+                                    // Use Prime's two-rule processor if available, else plain text
+                                    const _tbProc = textBubble._twoRuleProcessor || textBubble.processor || null;
+                                    if (_tbProc && typeof _tbProc.processChunk === 'function') {
+                                        try {
+                                            _tbProc.processChunk(data.text);
+                                        } catch (e) {
+                                            const cd = textBubble.querySelector('.ai-message-content') || textBubble;
+                                            cd.innerHTML += data.text.replace(/</g, '&lt;').replace(/>/g, '&gt;');
+                                        }
+                                    } else {
+                                        // Fallback: create structure if missing
+                                        let contentDiv = textBubble.querySelector('.ai-message-content');
+                                        if (!contentDiv) {
                                             textBubble.innerHTML = `
                                                 <div class="ai-message-header">
-                                                    <div class="ai-message-avatar">
-                                                        <i class="fa-solid fa-atom"></i>
-                                                    </div>
+                                                    <div class="ai-message-avatar"><i class="fa-solid fa-atom"></i></div>
                                                 </div>
-                                                <div class="ai-message-content"></div>
-                                            `;
-                                            chatMessages.appendChild(textBubble);
+                                                <div class="ai-message-content"></div>`;
+                                            contentDiv = textBubble.querySelector('.ai-message-content');
                                         }
+                                        contentDiv.innerHTML += data.text.replace(/</g, '&lt;').replace(/>/g, '&gt;');
+                                    }
 
-                                        const contentDiv = textBubble.querySelector('.ai-message-content');
-                                        const _tbProc = textBubble._twoRuleProcessor || textBubble.processor || null;
-                                        if (_tbProc && typeof _tbProc.processChunk === 'function') {
-                                            try {
-                                                const result = _tbProc.processChunk(data.text);
-                                                if (result && typeof result.catch === 'function') {
-                                                    result.catch(err => {
-                                                        console.warn('[WARN] processor.processChunk error:', err);
-                                                        contentDiv.innerHTML += data.text.replace(/</g, '&lt;').replace(/>/g, '&gt;');
-                                                    });
-                                                }
-                                            } catch (e) {
-                                                console.warn('[WARN] processChunk exception:', e);
-                                                contentDiv.innerHTML += data.text.replace(/</g, '&lt;').replace(/>/g, '&gt;');
-                                            }
-                                        } else {
-                                            contentDiv.innerHTML += data.text.replace(/</g, '&lt;').replace(/>/g, '&gt;');
-                                        }
-
+                                    if (autoScrollEnabled) {
                                         chatMessages.scrollTop = chatMessages.scrollHeight;
                                     }
                                 }
                             } catch (e) {
-                                console.error('Failed to parse SSE data:', e);
+                                // Non-fatal: some SSE lines are not JSON
                             }
                         }
                     }
@@ -2423,46 +2508,36 @@ async function sendChatMessageWithFiles(message, sessionId, startTime) {
             }
 
             const responseTime = Date.now() - startTime;
-            console.log(`[ATTACH] File upload + response completed in ${responseTime}ms`);
+            console.log(`[ATTACH] File response completed in ${responseTime}ms`);
 
-            if (fullResponse && fullResponse.trim().length > 0) {
-                const currentThreadId = AppState.currentThreadId || 'prime-ai-default';
-                await window.MessageStore.addMessage(currentThreadId, {
+            if (fullResponse && fullResponse.trim().length > 0 && window.MessageStore) {
+                await window.MessageStore.addMessage(sessionId, {
                     role: 'assistant',
                     content: fullResponse,
                     response_time: responseTime
                 });
             }
-
-            // 🔧 FIX #2: Reload conversation from backend (database is source of truth)
-            // Backend has the file upload message saved, don't use stale AppState
-            if (typeof ThreadManager !== 'undefined') {
-                try {
-                    const apiBaseUrl = window.API_BASE_URL || 'http://localhost:5001';
-                    const threadResponse = await fetch(`${apiBaseUrl}/api/threads/${currentThreadId}`);
-                    if (threadResponse.ok) {
-                        const threadData = await threadResponse.json();
-                        if (threadData.messages) {
-                            ThreadManager.updateCurrentThread(threadData.messages);
-                        }
-                    }
-                } catch (error) {
-                    console.error('❌ [PrimeAI] Failed to reload thread after file upload:', error);
-                    // Fallback to AppState if backend unavailable
-                    ThreadManager.updateCurrentThread(AppState.chatMessages);
-                }
-            }
         }
 
     } catch (error) {
-        console.error('[ERROR] File upload error:', error);
+        if (error.name === 'AbortError') {
+            console.log('[ATTACH] Stream aborted by user');
+            return;
+        }
+        console.error('[ATTACH] File send error:', error);
         removeThinkingIndicator();
-        addChatMessage('assistant', `Error uploading files: ${error.message}`);
-        showNotification('Failed to upload files', 'error');
-
-        console.log('[CLEAN] Clearing attached files after error...');
-        if (window.clearChatAttachedFiles) {
-            window.clearChatAttachedFiles();
+        showNotification(`Failed to send files: ${error.message}`, 'error');
+        addChatMessage('assistant', `Error: ${error.message}`);
+    } finally {
+        // Always restore UI state
+        currentStreamController = null;
+        isStreaming = false;
+        const stopBtn = document.getElementById('ai-chat-stop-btn');
+        const sendBtn = document.getElementById('ai-chat-send-btn');
+        if (stopBtn) stopBtn.style.display = 'none';
+        if (sendBtn) sendBtn.style.display = 'inline-flex';
+        if (typeof window.hidePrimeProcessingIndicator === 'function') {
+            window.hidePrimeProcessingIndicator();
         }
     }
 }

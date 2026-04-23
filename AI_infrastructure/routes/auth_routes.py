@@ -491,6 +491,17 @@ def add_team_id():
                 if cursor.fetchone():
                     return jsonify({'error': f"Team ID '{team_id}' already exists"}), 400
                 
+                # Inherit organisation_id (and org_role) from the parent user so that
+                # the sub-user can resolve org-level platform credentials (Anthropic key, etc.)
+                sql_parent, params_parent = convert_sql_placeholders(
+                    'SELECT organisation_id, org_role FROM ai_infrastructure.users WHERE id = %s',
+                    (user_id,)
+                )
+                cursor.execute(sql_parent, params_parent)
+                parent_row = cursor.fetchone()
+                parent_org_id = parent_row.get('organisation_id') if parent_row else None
+                parent_org_role = parent_row.get('org_role') if parent_row else 'member'
+                
                 # Hash password
                 import bcrypt
                 if password:
@@ -500,22 +511,24 @@ def add_team_id():
                     random_password = secrets.token_urlsafe(16)
                     password_hash = bcrypt.hashpw(random_password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
                 
-                # Insert Team ID as sub-user
+                # Insert Team ID as sub-user — includes organisation_id so org credentials resolve
                 import json
                 sql, params = convert_sql_placeholders('''
                     INSERT INTO ai_infrastructure.users (
                         username, email, password_hash, role,
                         parent_user_id, is_sub_user, display_name,
                         permissions, allowed_tools, allowed_agents,
-                        data_access_scope, usage_limit_daily, is_active
-                    ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                        data_access_scope, usage_limit_daily, is_active,
+                        organisation_id, org_role
+                    ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
                 ''', [
                     team_id, email, password_hash, 'user',
                     user_id, True, team_id,
                     json.dumps(permissions) if permissions else None,
                     json.dumps(allowed_tools) if allowed_tools is not None else None,
                     json.dumps(allowed_agents) if allowed_agents is not None else None,
-                    data_access_scope, usage_limit_daily, True
+                    data_access_scope, usage_limit_daily, True,
+                    parent_org_id, parent_org_role
                 ])
                 
                 cursor.execute(sql, params)
