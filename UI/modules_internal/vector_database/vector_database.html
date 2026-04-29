@@ -30,7 +30,7 @@
         </div>
         <div class="vector-db-stat">
             <span class="vector-db-stat-value" id="stat-namespaces">0</span>
-            <span class="vector-db-stat-label">Namespaces</span>
+            <span class="vector-db-stat-label" id="stat-namespaces-label">Namespaces</span>
         </div>
     </div>
 
@@ -66,13 +66,13 @@
                     Vector Database Not Configured
                 </div>
                 <div style="font-size: 12px; color: #92400E; line-height: 1.5;">
-                    Configure credentials in Settings tab below.
+                    pgvector (free, built-in Supabase) is always available. Add Pinecone credentials in Organisation Settings &rarr; Connections for cloud-scale storage.
                 </div>
             </div>
         </div>
-        <button onclick="window.vectorDbSidebar.switchTab('settings')"
+        <button onclick="if (typeof window.openOrgSettingsPanel === 'function') window.openOrgSettingsPanel('connections'); else { const t = document.querySelector('[data-tab=\'account\']'); if(t) t.click(); }"
             style="width: 100%; margin-top: 10px; padding: 8px 12px; background: #F59E0B; color: white; border: none; border-radius: 6px; font-weight: 600; font-size: 13px; cursor: pointer; transition: all 0.2s;">
-            <i class="fas fa-cog"></i> Open Settings
+            <i class="fas fa-building"></i> Open Organisation Settings
         </button>
     </div>
 
@@ -315,14 +315,14 @@
                 <label class="form-label" for="chunk-overlap">
                     Chunk Overlap (characters)
                 </label>
-                <input type="number" id="chunk-overlap" class="form-input" value="20" min="0" max="200" />
+                <input type="number" id="chunk-overlap" class="form-input" value="100" min="0" max="200" />
             </div>
 
             <div class="form-group">
                 <label class="form-label" for="upload-namespace">
                     Target Namespace
                 </label>
-                <input type="text" id="upload-namespace" class="form-input" placeholder="Leave empty for default" />
+                <input type="text" id="upload-namespace" class="form-input" placeholder="Optional — leave empty for org-scoped default" />
             </div>
 
             <div class="form-group">
@@ -352,7 +352,8 @@
                 </label>
                 <select id="upload-visibility" class="form-input">
                     <option value="private">🔒 Private (Only Me)</option>
-                    <option value="team">👥 Team</option>
+                    <option value="org" selected>🏢 Organisation (My Team)</option>
+                    <option value="team">👥 Specific Team</option>
                     <option value="global">🌍 Global (Everyone)</option>
                 </select>
             </div>
@@ -479,18 +480,9 @@
                 </label>
                 <div class="provider-selector-wrapper">
                     <select id="provider-selector" class="vector-db-select">
-                        <option value="pinecone">
-                            <i class="fas fa-cloud"></i> Pinecone
-                        </option>
-                        <option value="voyager">
-                            <i class="fas fa-rocket"></i> Voyager
-                        </option>
-                        <option value="pgvector">
-                            <i class="fas fa-elephant"></i> pgvector
-                        </option>
-                        <option value="qdrant">
-                            <i class="fas fa-bolt"></i> Qdrant
-                        </option>
+                        <option value="pinecone">Pinecone (Cloud)</option>
+                        <option value="pgvector" selected>pgvector — FREE (Supabase built-in)</option>
+                        <option value="qdrant">Qdrant (Self-hosted)</option>
                     </select>
                     <div class="provider-pricing-info">
                         <i class="fas fa-info-circle provider-info-icon" data-provider="pinecone"></i>
@@ -499,15 +491,10 @@
                             Cloud-managed: $70/mo<br>
                             <span class="tooltip-details">150ms latency, enterprise-grade</span>
                         </div>
-                        <div class="provider-pricing-tooltip" data-provider="voyager">
-                            <strong>Voyager Pricing:</strong><br>
-                            Cloud: Pay-per-use<br>
-                            <span class="tooltip-details">Flexible pricing model</span>
-                        </div>
                         <div class="provider-pricing-tooltip" data-provider="pgvector">
-                            <strong>pgvector Pricing:</strong><br>
-                            Supabase: FREE<br>
-                            <span class="tooltip-details">PostgreSQL extension</span>
+                            <strong>pgvector &mdash; FREE</strong><br>
+                            Built into your Supabase DB<br>
+                            <span class="tooltip-details">Zero setup &middot; Org-isolated by RLS &middot; Always available</span>
                         </div>
                         <div class="provider-pricing-tooltip" data-provider="qdrant">
                             <strong>Qdrant Pricing:</strong><br>
@@ -517,8 +504,7 @@
                     </div>
                 </div>
                 <div id="provider-info" class="vector-db-provider-info">
-                    <i class="fas fa-cloud"></i> <strong>Pinecone:</strong> Cloud-managed, 150ms latency,
-                    enterprise-grade
+                    <i class="fas fa-elephant"></i> <strong>pgvector (Supabase):</strong> FREE, built-in, org-isolated, always available
                 </div>
             </div>
 

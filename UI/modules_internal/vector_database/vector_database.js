@@ -27,7 +27,7 @@ window.VectorDatabaseModule = {
         currentTab: 'credentials',
         uploadedFiles: [],
         isConnected: false,
-        selectedProvider: 'pinecone', // pinecone, voyager, pgvector, qdrant
+        selectedProvider: 'pgvector', // pgvector (free default), pinecone, qdrant
         qdrantDeploymentType: 'customer-server', // customer-server, valor-cloud, qdrant-cloud
         qdrantConnection: { host: 'localhost', port: 6333, api_key: '' },
         multiModalEnabled: false, // Image+Text+Audio+Video embeddings
@@ -274,88 +274,45 @@ window.VectorDatabaseModule = {
     // ==================== CREDENTIAL MANAGEMENT ====================
 
     async saveCredentials() {
-        const apiKey = this.container.querySelector('#api-key')?.value.trim();
-        const indexName = this.container.querySelector('#index-name')?.value.trim();
-        const environment = this.container.querySelector('#environment')?.value.trim();
-        const namespace = this.container.querySelector('#namespace')?.value.trim();
-
-        if (!apiKey || !indexName || !environment) {
-            this.showMessage('Please fill all required fields', 'error');
-            return;
-        }
-
-        try {
-            this.showMessage('Saving credentials...', 'loading');
-
-            const response = await this.api.post(`${this.state.API_BASE_URL}/api/vector-db/credentials/save`, {
-                api_key: apiKey,
-                index_name: indexName,
-                environment: environment,
-                namespace: namespace || ''
-            });
-
-            if (response.success) {
-                this.showMessage('Credentials saved successfully', 'success');
-                this.state.isConnected = true;
-                this.updateConnectionStatus(true);
-                await this.loadStats();
-            } else {
-                this.showMessage(`Error: ${response.error}`, 'error');
-            }
-        } catch (error) {
-            this.log.error('[VECTOR DB] Save credentials error:', error);
-            this.showMessage('Failed to save credentials', 'error');
+        // GAP-V5: Credentials are managed in Organisation Settings → Connections (org vault).
+        // This method is retained for compatibility but redirects to the correct location.
+        this.showMessage(
+            'Credentials are managed in Organisation Settings \u2192 Connections. Add your Pinecone API key there.',
+            'info'
+        );
+        if (typeof window.openOrgSettingsPanel === 'function') {
+            window.openOrgSettingsPanel('connections');
         }
     },
 
     async loadCredentials() {
+        // GAP-V5: Legacy credential endpoints retired. Use checkConnectionStatus() which
+        // resolves credentials directly from the org vault via the authenticated backend.
         try {
-            const provider = this.state.selectedProvider;
-            const response = await this.api.get(
-                `${this.state.API_BASE_URL}/api/vector-db/credentials/load?provider=${provider}`
-            );
-
-            if (response.success && response.credentials) {
-                const creds = response.credentials[provider];
-
-                if (creds) {
-                    const indexInput = this.container.querySelector('#index-name');
-                    const envInput = this.container.querySelector('#environment');
-                    const nsInput = this.container.querySelector('#namespace');
-
-                    if (indexInput) indexInput.value = creds.index_name || '';
-                    if (envInput) envInput.value = creds.environment || '';
-                    if (nsInput) nsInput.value = creds.namespace || '';
-
-                    this.state.isConnected = true;
-                    this.updateConnectionStatus(true);
-                    this.showConnectedBanner(creds);
-                    this.log.info(`[VECTOR DB] ${provider} credentials loaded`);
-                } else {
-                    this.state.isConnected = false;
-                    this.updateConnectionStatus(false);
-                    this.showNotConfiguredBanner();
-                }
-            } else {
-                this.state.isConnected = false;
-                this.updateConnectionStatus(false);
-                this.showNotConfiguredBanner();
-            }
-
-            // Load embedding configuration
-            await this.loadEmbeddingConfig();
+            await this.checkConnectionStatus();
         } catch (error) {
-            this.log.error('[VECTOR DB] Load credentials error:', error);
+            this.log.error('[VECTOR DB] Connection check error:', error);
             this.state.isConnected = false;
             this.updateConnectionStatus(false);
             this.showNotConfiguredBanner();
         }
+
+        // Load embedding configuration (uses authenticated org-vault endpoint)
+        await this.loadEmbeddingConfig();
     },
 
     async checkConnectionStatus() {
         try {
             const provider = this.state.selectedProvider;
             this.log.info(`[VECTOR DB] Testing ${provider} connection...`);
+
+            // pgvector is always available — built into Supabase, no external API key required
+            if (provider === 'pgvector') {
+                this.state.isConnected = true;
+                this.showConnectedBanner({ provider: 'pgvector' });
+                this.log.info('[VECTOR DB] pgvector: always connected (Supabase built-in)');
+                return;
+            }
 
             const response = await this.api.get(
                 `${this.state.API_BASE_URL}/api/vector-db/credentials/status?provider=${provider}`
@@ -374,7 +331,9 @@ window.VectorDatabaseModule = {
                 this.showConnectedBanner({
                     index_name: response.index_name,
                     environment: response.environment,
-                    provider: provider
+                    provider: response.detected_provider || provider,
+                    emb_provider: response.emb_provider,
+                    emb_model: response.emb_model
                 });
 
                 this.log.info(`[VECTOR DB] ${provider} connected successfully`);
@@ -397,19 +356,27 @@ window.VectorDatabaseModule = {
         if (connectedBanner) connectedBanner.style.display = 'block';
         if (notConfiguredBanner) notConfiguredBanner.style.display = 'none';
 
-        // Populate banner fields
-        const indexName = this.container.querySelector('#banner-index-name');
-        const environment = this.container.querySelector('#banner-environment');
+        const provider = credentials.provider || this.state.selectedProvider;
+        const isPgvector = provider === 'pgvector';
+
+        const providerDisplayMap = {
+            'pinecone': 'Pinecone',
+            'pgvector': 'pgvector (Supabase)',
+            'qdrant': 'Qdrant'
+        };
+        const providerDisplay = providerDisplayMap[provider] || provider;
+
+        const providerName = this.container.querySelector('#banner-provider-name');
         const embeddingProvider = this.container.querySelector('#banner-embedding-provider');
         const embeddingModel = this.container.querySelector('#banner-embedding-model');
 
-        const provider = credentials.provider || this.state.selectedProvider;
-        const providerDisplay = provider.charAt(0).toUpperCase() + provider.slice(1);
-
-        if (indexName) indexName.textContent = credentials.index_name || '-';
-        if (environment) environment.textContent = credentials.environment || '-';
-        if (embeddingProvider) embeddingProvider.textContent = providerDisplay;
-        if (embeddingModel) embeddingModel.textContent = credentials.model || credentials.embedding_model || 'ada-002';
+        if (providerName) providerName.textContent = providerDisplay;
+        if (embeddingProvider) embeddingProvider.textContent =
+            credentials.emb_provider || credentials.embedding_provider ||
+            (isPgvector ? 'Voyage AI' : 'OpenAI');
+        if (embeddingModel) embeddingModel.textContent =
+            credentials.model || credentials.embedding_model || credentials.emb_model ||
+            (isPgvector ? 'voyage-4-lite' : 'text-embedding-ada-002');
     },
 
     showNotConfiguredBanner() {
@@ -509,61 +476,15 @@ window.VectorDatabaseModule = {
     },
 
     async saveEmbeddingConfig() {
-        const provider = this.container.querySelector('#embedding-provider')?.value;
-
-        if (!provider) {
-            this.showEmbeddingMessage('Please select an embedding provider', 'error');
-            return;
-        }
-
-        let apiKey, model, platform;
-
-        if (provider === 'voyager') {
-            apiKey = this.container.querySelector('#voyager-api-key')?.value.trim();
-            model = this.container.querySelector('#voyager-model')?.value;
-            platform = 'voyager';
-
-            if (!apiKey) {
-                this.showEmbeddingMessage('Please enter Voyager API key', 'error');
-                return;
-            }
-        } else if (provider === 'openai') {
-            apiKey = this.container.querySelector('#openai-api-key')?.value.trim();
-            model = this.container.querySelector('#openai-model')?.value;
-            platform = 'openai_embeddings';
-
-            if (!apiKey) {
-                this.showEmbeddingMessage('Please enter OpenAI API key', 'error');
-                return;
-            }
-        }
-
-        try {
-            this.showEmbeddingMessage('Saving embedding configuration...', 'loading');
-
-            const response = await this.api.post(`${this.state.API_BASE_URL}/api/vector-db/embedding-config/save`, {
-                provider: provider,
-                platform: platform,
-                api_key: apiKey,
-                model: model,
-                metadata: {
-                    provider: provider,
-                    model: model,
-                    dimensions: provider === 'voyager' ? 1536 : this.getOpenAIDimensions(model)
-                }
-            });
-
-            if (response.success) {
-                this.showEmbeddingMessage(
-                    `${provider === 'voyager' ? 'Voyager' : 'OpenAI'} configuration saved successfully`,
-                    'success'
-                );
-            } else {
-                this.showEmbeddingMessage(`Error: ${response.error}`, 'error');
-            }
-        } catch (error) {
-            this.log.error('[VECTOR DB] Save embedding config error:', error);
-            this.showEmbeddingMessage('Failed to save configuration', 'error');
+        // GAP-V5: Embedding credentials are now managed via Organisation Settings > Connections.
+        // This form is retired — redirect the user to the org vault instead.
+        this.showEmbeddingMessage(
+            'Embedding credentials are now managed in Organisation Settings > Connections. ' +
+            'Add a Voyage AI or OpenAI credential there.',
+            'info'
+        );
+        if (typeof openOrgSettingsPanel === 'function') {
+            setTimeout(() => openOrgSettingsPanel('connections'), 1200);
         }
     },
 
@@ -701,13 +622,13 @@ window.VectorDatabaseModule = {
         }
 
         if (!this.state.isConnected) {
-            this.showMessage('Please connect to Pinecone first', 'error');
+            this.showMessage('Please configure a vector database provider first', 'error');
             this.switchTab('credentials');
             return;
         }
 
         const chunkSize = parseInt(this.container.querySelector('#chunk-size')?.value) || 800;
-        const chunkOverlap = parseInt(this.container.querySelector('#chunk-overlap')?.value) || 20;
+        const chunkOverlap = parseInt(this.container.querySelector('#chunk-overlap')?.value) || 100;
         const namespace = this.container.querySelector('#upload-namespace')?.value.trim();
         const category = this.container.querySelector('#upload-category')?.value || 'general';
         const tagsInput = this.container.querySelector('#upload-tags')?.value || '';
@@ -813,10 +734,14 @@ window.VectorDatabaseModule = {
         const docsEl = this.container.querySelector('#stat-documents');
         const vectorsEl = this.container.querySelector('#stat-vectors');
         const namespacesEl = this.container.querySelector('#stat-namespaces');
+        const namespacesLabelEl = this.container.querySelector('#stat-namespaces-label');
 
         if (docsEl) docsEl.textContent = this.state.stats.documents || 0;
         if (vectorsEl) vectorsEl.textContent = this.formatNumber(this.state.stats.vectors || 0);
         if (namespacesEl) namespacesEl.textContent = this.state.stats.namespaces || 0;
+        if (namespacesLabelEl) {
+            namespacesLabelEl.textContent = this.state.selectedProvider === 'pgvector' ? 'Org Scope' : 'Namespaces';
+        }
     },
 
     async loadNamespaces() {
@@ -1221,10 +1146,9 @@ window.VectorDatabaseModule = {
         // Update provider info with Font Awesome icons
         const infoEl = this.container.querySelector('#provider-info');
         const providerInfoMap = {
-            'pinecone': '<i class="fas fa-cloud"></i> <strong>Pinecone</strong> - Cloud hosted, $70/mo, 150ms latency',
-            'qdrant': '<i class="fas fa-bolt"></i> <strong>Qdrant</strong> - FREE self-hosted, 1-5ms latency, unlimited storage',
-            'voyager': '<i class="fas fa-rocket"></i> <strong>Voyager</strong> - Pay-per-use, 120ms latency',
-            'pgvector': '<i class="fas fa-elephant"></i> <strong>pgvector</strong> - FREE Supabase, 20ms latency'
+            'pinecone': '<i class="fas fa-cloud"></i> <strong>Pinecone</strong> — Cloud-managed, $70/mo, ~150ms latency, enterprise-grade',
+            'qdrant': '<i class="fas fa-bolt"></i> <strong>Qdrant</strong> — FREE self-hosted, 1–5ms latency, unlimited storage',
+            'pgvector': '<i class="fas fa-elephant"></i> <strong>pgvector (Supabase)</strong> — FREE, built-in, org-isolated, always available'
         };
         if (infoEl) infoEl.innerHTML = providerInfoMap[provider] || '';
 

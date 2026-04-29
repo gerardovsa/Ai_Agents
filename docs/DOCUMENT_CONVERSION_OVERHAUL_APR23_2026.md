@@ -1,19 +1,26 @@
 # Document Conversion Overhaul — Technical Reference
 **Date:** April 23, 2026  
 **Author:** GitHub Copilot (Claude Sonnet 4.6)  
-**Status:** Implemented & verified (`python -c "... print('OK')"` — module imports clean, DOCX→PDF test produced valid `%PDF` header, 1871 bytes)
+**Status:** Implemented, verified & deployed  
+**Commits:** `afd0d7c1` (document converter + file encoding + Dockerfile) · `2035ebd4` (agent UI attachment gate)
 
 ---
 
 ## Overview
 
-Three files were changed to fix broken Office document → PDF/image conversion and to add
-poppler-based high-quality page rendering to the production Docker image.
+Seven files were changed across two commits:  
+1. Fix broken Office document → PDF/image conversion and add poppler-based high-quality rendering  
+2. Expand file-type support in all four agent-column UI attachment systems
 
-| File | Change type |
-|------|-------------|
-| `AI_infrastructure/core/document_converter.py` | Bug fix + feature upgrade |
-| `Dockerfile` | Dependency addition |
+| File | Commit | Change type |
+|------|--------|-------------|
+| `AI_infrastructure/core/document_converter.py` | `afd0d7c1` | Bug fix + feature upgrade |
+| `AI_infrastructure/utils/file_encoding.py` | `afd0d7c1` | Expanded MIME type support |
+| `Dockerfile` | `afd0d7c1` | Dependency addition (`poppler-utils`) |
+| `UI/modules_internal/agents/agent-input.js` | `2035ebd4` | Expanded file-type gate |
+| `UI/modules_internal/agents/agent-input-manager.js` | `2035ebd4` | Expanded file-type gate |
+| `UI/modules_internal/agents/agent-column.js` | `2035ebd4` | Updated `<input accept>` |
+| `UI/modules_internal/agents/agent-js.js` | `2035ebd4` | Expanded file-type gate |
 
 ---
 
@@ -370,7 +377,116 @@ file_encoding.py  ────────────────────�
 
 ---
 
-## 5. Verification
+---
+
+## 5. Agent Column UI — File Attachment Gate (commit `2035ebd4`)
+
+### Background
+
+The backend (`file_encoding.py`, `document_converter.py`) was updated to accept and process
+Office documents and code files. However, the four JavaScript attachment modules in the
+agent-column UI still hard-blocked these types at the client side, rejecting them before
+they ever reached the server.
+
+**Root cause:** Each module contained an independent `validTypes` array hard-coded to only
+6 MIME types (PDF + 5 image formats). Any file outside that list received the error
+*"Only PDF and images are supported"* and was silently dropped.
+
+### Four attachment systems found and fixed
+
+| File | Role | Problem | Fix |
+|------|------|---------|-----|
+| `agent-input.js` | `AgentInput` IIFE — primary input module | `CONFIG.validTypes` 6-type array; `fa-image` always used for non-PDF chip icon; size always shown as KB | Replaced with `NATIVE_TYPES`/`EXTRACTABLE_TYPES`/`EXTRACTABLE_EXTENSIONS` Sets + `getFileIcon()` + MB/KB display |
+| `agent-input-manager.js` | `AgentInputManager` — state-bridge module | `FILE_CONFIG.validTypes` 6-type array; same chip icon issue | Same pattern as `agent-input.js` |
+| `agent-column.js` | HTML template factory | `<input accept="application/pdf,image/*">` hid Office files in OS file picker | Expanded to 30+ extensions |
+| `agent-js.js` | Legacy standalone validator | Inline `validTypes` array duplicating the same 6 types | Replaced with inline NATIVE/EXTRACTABLE check |
+
+### Pattern applied to all three JS validators
+
+```javascript
+// BEFORE — in each file separately:
+const validTypes = ['application/pdf', 'image/png', 'image/jpeg', /* ... */ ];
+if (!validTypes.includes(file.type)) {
+    showNotification(`Invalid file type: ${file.name}. Only PDF and images are supported.`, 'error');
+    continue;
+}
+const maxSize = file.type === 'application/pdf' ? 32 * 1024 * 1024 : 5 * 1024 * 1024;
+
+// AFTER — consistent across all files:
+const NATIVE_TYPES = new Set(['application/pdf', 'image/png', 'image/jpeg', 'image/jpg', 'image/gif', 'image/webp']);
+const EXTRACTABLE_TYPES = new Set([
+    'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+    'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+    'application/msword', 'application/vnd.ms-excel', 'application/vnd.ms-powerpoint',
+    'text/plain', 'text/csv', 'text/markdown', 'text/html', 'text/css',
+    'application/json', 'application/xml', 'text/xml',
+    'application/javascript', 'text/javascript', 'text/x-python',
+    'application/x-python', 'application/x-sh', 'text/x-sh',
+    'application/rtf', 'text/rtf'
+]);
+const EXTRACTABLE_EXTENSIONS = new Set([
+    'docx','doc','xlsx','xls','pptx','ppt','txt','csv','md',
+    'html','htm','css','json','xml','js','ts','py','sh',
+    'rb','java','cpp','c','cs','go','rs','rtf'
+]);
+
+const ext = (file.name.split('.').pop() || '').toLowerCase();
+const isNative = NATIVE_TYPES.has(file.type);
+const isExtractable = EXTRACTABLE_TYPES.has(file.type) || EXTRACTABLE_EXTENSIONS.has(ext);
+if (!isNative && !isExtractable) {
+    showNotification(
+        `Unsupported file type: ${file.name}. Supported: PDF, images, Word, Excel, PowerPoint, text and code files.`,
+        'error'
+    );
+    continue;
+}
+
+// Per-type size limits:
+let maxSize;
+if (file.type === 'application/pdf')               { maxSize = 32 * 1024 * 1024; }  // 32 MB
+else if (isNative && file.type.startsWith('image/')){ maxSize =  5 * 1024 * 1024; }  //  5 MB
+else                                               { maxSize = 20 * 1024 * 1024; }  // 20 MB extractable
+```
+
+### `getFileIcon(filename)` helper (added to `agent-input.js` and `agent-input-manager.js`)
+
+```javascript
+function getFileIcon(filename) {
+    const ext = (filename.split('.').pop() || '').toLowerCase();
+    if (['doc','docx','rtf'].includes(ext))    return 'fa-file-word';
+    if (['xls','xlsx','csv'].includes(ext))    return 'fa-file-excel';
+    if (['ppt','pptx'].includes(ext))          return 'fa-file-powerpoint';
+    if (['js','ts','py','sh','rb','java','cpp','c','cs','go','rs',
+         'json','xml','html','htm','css'].includes(ext)) return 'fa-file-code';
+    return 'fa-file-alt';
+}
+```
+
+Chip icon logic updated from `file.type === 'application/pdf' ? 'fa-file-pdf' : 'fa-image'`
+to: PDF → `fa-file-pdf`, images → `fa-image`, everything else → `getFileIcon(file.name)`.
+
+Size display updated from always-KB to: `≥ 1 MB → "X.XMB"`, `< 1 MB → "X.XKB"`.
+
+### `agent-column.js` `<input accept>` change
+
+```html
+<!-- BEFORE -->
+<input type="file" accept="application/pdf,image/*" ... >
+
+<!-- AFTER -->
+<input type="file" accept="application/pdf,image/*,
+  .doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.csv,.md,
+  .json,.xml,.js,.ts,.py,.sh,.rb,.java,.cpp,.c,.cs,.go,.rs,.html,.htm,.css,.rtf" ... >
+```
+
+This allows the browser's OS file-picker to show Office and code files. The MIME-type
+fallback in the JS validator also catches files selected by drag-and-drop regardless of
+the `accept` attribute.
+
+---
+
+## 6. Verification
 
 ```powershell
 # Import check
@@ -396,11 +512,17 @@ pdf = dc._convert_docx_to_pdf(buf.read(), 'test.docx')
 print(f'PDF size: {len(pdf)} bytes, header: {pdf[:4]}')
 "
 # Output: PDF size: 1871 bytes, header: b'%PDF'
+"
+
+# Verify no stale "Only PDF and images" gate remains in live agent JS files
+Select-String -Path "UI/modules_internal/agents/*.js" `
+    -Pattern "Only PDF and images are supported" | Where-Object { $_.Path -notmatch "copy|backup" }
+# Output: (no results — all gates removed from live files)
 ```
 
 ---
 
-## 6. Limitations / known gaps
+## 7. Limitations / known gaps
 
 | Item | Status |
 |------|--------|

@@ -26,7 +26,7 @@ Frontend upload → API → Vector DB tool → Pinecone + metadata → AI autono
 LAST MODIFIED: 2025-01-12
 """
 
-from flask import Blueprint, request, jsonify
+from flask import Blueprint, request, jsonify, g
 from datetime import datetime
 from werkzeug.utils import secure_filename
 import os
@@ -37,6 +37,7 @@ from typing import Dict, Any
 
 # Import authentication decorator
 from auth.user_auth import require_auth
+from AI_infrastructure.shared.org_credentials_loader import resolve_credentials
 
 # Import vector database tools
 try:
@@ -68,6 +69,42 @@ except Exception as e:
     # Handle pinecone-client conflict gracefully
     print(f"⚠️  Pinecone import error: {e}")
     PINECONE_AVAILABLE = False
+
+# Import pgvector tools
+try:
+    from tools.implementations.pgvector.pgvector_tools import (
+        pgvector_upload_document as _pgvec_upload,
+        pgvector_list_documents  as _pgvec_list,
+        pgvector_query_vectors   as _pgvec_query,
+        pgvector_delete_vectors  as _pgvec_delete,
+        pgvector_describe_stats  as _pgvec_stats,
+    )
+    PGVECTOR_TOOLS_AVAILABLE = True
+except ImportError:
+    PGVECTOR_TOOLS_AVAILABLE = False
+    print("⚠️  pgvector tools not available")
+
+
+def _get_vector_provider(user_id: int) -> str:
+    """
+    Return the active vector provider for *user_id*'s org.
+
+    Resolution order:
+      1. If the org has a 'pinecone' credential in the vault → 'pinecone'
+      2. If the org has NO pinecone credential but pgvector is available → 'pgvector'
+      3. Default → 'pinecone' (backward-compat; caller must handle missing creds)
+    """
+    pin_cred = resolve_credentials(user_id, 'pinecone')
+    if pin_cred and (
+        pin_cred.get('api_key')
+        or pin_cred.get('credential_value')
+        or (pin_cred.get('credentials') or {}).get('api_key')
+    ):
+        return 'pinecone'
+    if PGVECTOR_TOOLS_AVAILABLE:
+        return 'pgvector'
+    return 'pinecone'
+
 
 # Create blueprint
 vector_db_bp = Blueprint('vector_db', __name__)
@@ -208,6 +245,7 @@ def extract_text_from_file(file_path: str, file_type: str) -> str:
 # ==================== API ENDPOINTS ====================
 
 @vector_db_bp.route('/api/vector-db/upload-document', methods=['POST'])
+@require_auth
 def upload_document():
     """
     Upload document and store in vector database with metadata
@@ -229,13 +267,11 @@ def upload_document():
     ✅ NO DATABASE OPERATIONS - Safe (uses Pinecone directly)
     """
     try:
-        # Check if vector tools available
-        if not VECTOR_TOOLS_AVAILABLE or not PINECONE_AVAILABLE or not OPENAI_AVAILABLE:
-            return jsonify({
-                'success': False,
-                'error': 'Vector database tools not configured. Set PINECONE_API_KEY and OPENAI_API_KEY.'
-            }), 500
-        
+        user_id = g.rls_user_id
+
+        # Determine which vector provider this org uses
+        provider = _get_vector_provider(user_id)
+
         # Get file
         if 'file' not in request.files:
             return jsonify({'success': False, 'error': 'No file provided'}), 400
@@ -244,17 +280,13 @@ def upload_document():
         if file.filename == '':
             return jsonify({'success': False, 'error': 'Empty filename'}), 400
         
-        # Use shared business-level user_id (platform owner credentials)
-        user_id = 1  # For API key access
-        
-        # Get actual user who uploaded (for ownership tracking)
-        owner_user_id = request.form.get('owner_user_id', 1, type=int)
-        visibility = request.form.get('visibility', 'global')  # private, team, global
+        owner_user_id = g.rls_user_id
+        visibility = request.form.get('visibility', 'org')  # private, org, global
         team_id = request.form.get('team_id', type=int)  # For team visibility
         
         chunk_size = request.form.get('chunk_size', 800, type=int)
-        chunk_overlap = request.form.get('chunk_overlap', 20, type=int)
-        namespace = request.form.get('namespace', 'default')
+        chunk_overlap = request.form.get('chunk_overlap', 100, type=int)
+        namespace = request.form.get('namespace', '')
         include_cloud_metadata = request.form.get('include_cloud_metadata', 'true') == 'true'
         enable_ai_retrieval = request.form.get('enable_ai_retrieval', 'true') == 'true'
         file_type = request.form.get('file_type', file.content_type or 'application/octet-stream')
@@ -279,22 +311,98 @@ def upload_document():
         
         # Generate document ID
         document_id = f"doc_{uuid.uuid4().hex[:8]}"
-        
-        # Generate embeddings and store in Pinecone
-        openai_client = OpenAI(api_key=os.getenv('OPENAI_API_KEY'))
-        pinecone_client = Pinecone(api_key=os.getenv('PINECONE_API_KEY'))
-        index_name = os.getenv('PINECONE_INDEX_NAME', 'ai-agents-vectors')
-        index = pinecone_client.Index(index_name)
-        
+
+        # ── pgvector provider path ────────────────────────────────────────
+        if provider == 'pgvector' and PGVECTOR_TOOLS_AVAILABLE:
+            file_size = os.path.getsize(file_path)
+            pg_result = _pgvec_upload(
+                text_content=text_content,
+                filename=filename,
+                file_type=file_type,
+                file_size_bytes=file_size,
+                chunk_size=chunk_size,
+                chunk_overlap=chunk_overlap,
+                visibility=visibility,
+                document_id=document_id,
+                _user_id=user_id,
+            )
+            if not pg_result.get('success'):
+                return jsonify({'success': False, 'error': pg_result.get('error', 'pgvector upload failed')}), 500
+            return jsonify({
+                'success':          True,
+                'document_id':      document_id,
+                'filename':         filename,
+                'vectors_uploaded': pg_result.get('vectors_uploaded', 0),
+                'chunks_created':   pg_result.get('chunks_created', len(chunks)),
+                'provider':         'pgvector',
+                'ai_retrievable':   enable_ai_retrieval,
+                'message':          'Document uploaded to pgvector store successfully',
+            })
+        # ── End pgvector path ─────────────────────────────────────────────
+
+        # Resolve credentials via org vault (GAP-V2)
+        pin_cred = resolve_credentials(user_id, 'pinecone')
+        if not pin_cred:
+            return jsonify({
+                'success': False,
+                'error': 'Pinecone credentials not configured. Add Pinecone in Organisation Settings > Connections.'
+            }), 503
+
+        emb_cred = (
+            resolve_credentials(user_id, 'openai_embeddings')
+            or resolve_credentials(user_id, 'openai')
+        )
+        if not emb_cred:
+            return jsonify({
+                'success': False,
+                'error': 'Embedding credentials not configured. Add OpenAI or Voyager credentials in Organisation Settings > Connections.'
+            }), 503
+
+        pin_api_key = pin_cred.get('api_key') or pin_cred.get('credential_value') or (pin_cred.get('credentials') or {}).get('api_key')
+        pin_index_name = (pin_cred.get('credentials') or {}).get('index_name') or pin_cred.get('index_name') or os.getenv('PINECONE_INDEX_NAME', 'ai-agents-vectors')
+        _emb_creds_detail = emb_cred.get('credentials') or {}
+        emb_api_key = emb_cred.get('api_key') or emb_cred.get('credential_value') or _emb_creds_detail.get('api_key')
+        emb_provider = _emb_creds_detail.get('provider', 'openai')
+        emb_model = _emb_creds_detail.get('model', 'text-embedding-3-small')
+
+        # Derive org-scoped namespace for tenant isolation (GAP-V4)
+        if not namespace:
+            try:
+                from AI_infrastructure.shared.database_utils import execute_query
+                org_row = execute_query(
+                    "SELECT organisation_id FROM ai_infrastructure.users WHERE id = %s",
+                    (user_id,), fetch_mode='one'
+                )
+                org_id = org_row['organisation_id'] if org_row and org_row.get('organisation_id') else None
+                namespace = f"org_{org_id}" if org_id else f"user_{user_id}"
+            except Exception:
+                namespace = f"user_{user_id}"
+
+        # Build provider-aware embedding helper so we don't repeat logic in the loop
+        def _generate_embedding(text: str) -> list:
+            if emb_provider == 'voyager':
+                import requests as _requests
+                resp = _requests.post(
+                    'https://api.voyageai.com/v1/embeddings',
+                    headers={'Authorization': f'Bearer {emb_api_key}', 'Content-Type': 'application/json'},
+                    json={'input': [text], 'model': emb_model},
+                    timeout=30
+                )
+                resp.raise_for_status()
+                return resp.json()['data'][0]['embedding']
+            else:
+                _oc = OpenAI(api_key=emb_api_key)
+                _resp = _oc.embeddings.create(model=emb_model, input=text)
+                return _resp.data[0].embedding
+
+        pinecone_client = Pinecone(api_key=pin_api_key)
+        index = pinecone_client.Index(pin_index_name)
+
         # Prepare vectors with metadata
         vectors = []
         for i, chunk in enumerate(chunks):
-            # Generate embedding
-            response = openai_client.embeddings.create(
-                model="text-embedding-ada-002",
-                input=chunk
-            )
-            embedding = response.data[0].embedding
+            # Generate embedding using configured provider + model
+            embedding = _generate_embedding(chunk)
             
             # Build metadata
             metadata = {
@@ -306,7 +414,7 @@ def upload_document():
                 'text': chunk,
                 'created_at': upload_timestamp,
                 'file_size_bytes': os.path.getsize(file_path),
-                'user_id': user_id,  # Business-level ID (always 1)
+                'user_id': user_id,  # Authenticated user ID
                 
                 # ⚡ ACCESS CONTROL METADATA
                 'owner_user_id': owner_user_id,  # Who uploaded it
@@ -363,6 +471,7 @@ def upload_document():
 
 
 @vector_db_bp.route('/api/vector-db/documents', methods=['GET'])
+@require_auth
 def list_documents():
     """
     List all documents in vector database with metadata
@@ -377,29 +486,97 @@ def list_documents():
     ✅ NO DATABASE OPERATIONS - Safe
     """
     try:
-        # Prefer 'user_id' (JWT payload) but fall back to 'id' for compatibility
-        user_id = (request.user.get('user_id') if hasattr(request, 'user') else None) or \
-                  (request.user.get('id') if hasattr(request, 'user') else None)
-        if not user_id:
-            return jsonify({'success': False, 'error': 'User ID missing from token'}), 401
+        user_id = g.rls_user_id
         include_metadata = request.args.get('include_metadata', 'true') == 'true'
         include_cloud_links = request.args.get('include_cloud_links', 'true') == 'true'
-        
-        # Get documents from Pinecone
-        # This would query metadata to get unique document_ids
-        # Simplified version - returns placeholder
-        
-        documents = [
-            {
-                'document_id': 'doc_abc123',
-                'filename': 'product_policy.pdf',
-                'chunks': 5,
-                'created_at': '2025-11-28T10:30:00Z',
-                'file_size': 145600,
-                'ai_retrievable': True
-            }
-        ]
-        
+
+        documents = []
+
+        # ── pgvector provider path ────────────────────────────────────────
+        provider = _get_vector_provider(user_id)
+        if provider == 'pgvector' and PGVECTOR_TOOLS_AVAILABLE:
+            pg_result = _pgvec_list(_user_id=user_id)
+            if pg_result.get('success'):
+                documents = pg_result.get('documents', [])
+        elif PINECONE_AVAILABLE:
+            pin_cred = resolve_credentials(user_id, 'pinecone')
+            if pin_cred:
+                pin_api_key = (
+                    pin_cred.get('api_key')
+                    or pin_cred.get('credential_value')
+                    or (pin_cred.get('credentials') or {}).get('api_key')
+                )
+                pin_index_name = (
+                    (pin_cred.get('credentials') or {}).get('index_name')
+                    or os.getenv('PINECONE_INDEX_NAME', 'ai-agents-vectors')
+                )
+
+                # Derive org namespace (same logic as upload_document)
+                try:
+                    from AI_infrastructure.shared.database_utils import execute_query as _eq
+                    org_row = _eq(
+                        "SELECT organisation_id FROM ai_infrastructure.users WHERE id = %s",
+                        (user_id,), fetch_mode='one'
+                    )
+                    org_id = org_row['organisation_id'] if org_row and org_row.get('organisation_id') else None
+                    namespace = f"org_{org_id}" if org_id else f"user_{user_id}"
+                except Exception:
+                    namespace = f"user_{user_id}"
+
+                try:
+                    pc = Pinecone(api_key=pin_api_key)
+                    index = pc.Index(pin_index_name)
+
+                    # Use list() to page through all vector IDs in this org's namespace,
+                    # then collect unique document_ids from the IDs (pattern: doc_XXXX_chunk_N)
+                    # and fetch a sample vector per doc to get filename from metadata.
+                    seen_docs: dict = {}  # document_id -> metadata dict
+
+                    try:
+                        for id_batch in index.list(namespace=namespace, limit=1000):
+                            # id_batch may be a list of strings or Pinecone ID objects
+                            ids = [v if isinstance(v, str) else v.id for v in id_batch]  # type: ignore
+
+                            # Fetch metadata for these IDs (up to 100 at a time)
+                            fetch_ids = [i for i in ids if i.rsplit('_chunk_', 1)[0] not in seen_docs][:100]
+                            if not fetch_ids:
+                                continue
+                            fetch_result = index.fetch(ids=fetch_ids, namespace=namespace)
+                            vectors_map = fetch_result.get('vectors') or getattr(fetch_result, 'vectors', {})
+                            for vid, vec in vectors_map.items():
+                                meta = (vec.get('metadata') if isinstance(vec, dict) else getattr(vec, 'metadata', {})) or {}
+                                doc_id = meta.get('document_id', vid.rsplit('_chunk_', 1)[0])
+                                if doc_id not in seen_docs:
+                                    seen_docs[doc_id] = {
+                                        'document_id': doc_id,
+                                        'filename': meta.get('filename', 'unknown'),
+                                        'chunks': meta.get('total_chunks', 1),
+                                        'created_at': meta.get('created_at', ''),
+                                        'file_size': meta.get('file_size_bytes', 0),
+                                        'ai_retrievable': True,
+                                    }
+                    except Exception as list_err:
+                        print(f"⚠️  Pinecone list() not supported, falling back to describe_index_stats: {list_err}")
+                        # Fallback: just report vector count for org namespace
+                        stats = index.describe_index_stats()
+                        ns_stats = (stats.get('namespaces') or getattr(stats, 'namespaces', {})) or {}
+                        ns_info = ns_stats.get(namespace) or {}
+                        total_vectors = (ns_info.get('vector_count') if isinstance(ns_info, dict) else getattr(ns_info, 'vector_count', 0)) or 0
+                        if total_vectors > 0:
+                            seen_docs['_unknown_'] = {
+                                'document_id': '_unknown_',
+                                'filename': f'{total_vectors} vectors (metadata unavailable)',
+                                'chunks': total_vectors,
+                                'created_at': '',
+                                'file_size': 0,
+                                'ai_retrievable': True,
+                            }
+
+                    documents = list(seen_docs.values())
+
+                except Exception as pc_err:
+                    print(f"⚠️  Pinecone list_documents error: {pc_err}")
+
         if include_metadata and include_cloud_links:
             for doc in documents:
                 doc['cloud_storage'] = {
@@ -420,6 +597,7 @@ def list_documents():
 
 
 @vector_db_bp.route('/api/vector-db/stats', methods=['GET'])
+@require_auth
 def get_stats():
     """
     Get vector database statistics (filtered by visibility)
@@ -434,23 +612,29 @@ def get_stats():
     ✅ NO DATABASE OPERATIONS - Safe (uses vector_db_list_namespaces tool)
     """
     try:
-        # Get current user context for filtering (use query params since @require_auth removed)
-        current_user_id = request.args.get('user_id', 1, type=int)
-        current_username = request.args.get('username', '')
-        
-        # Use shared business-level user_id=1 for credentials
-        credentials_user_id = 1
-        
-        # Get credentials from Platform Connections
-        credentials = _get_vector_db_credentials(credentials_user_id)
-        
-        # Get stats from Pinecone
+        user_id = g.rls_user_id
+
+        provider = _get_vector_provider(user_id)
+
+        # ── pgvector stats ───────────────────────────────────────────────
+        if provider == 'pgvector' and PGVECTOR_TOOLS_AVAILABLE:
+            pg_result = _pgvec_stats(_user_id=user_id)
+            if pg_result.get('success'):
+                s = pg_result.get('stats', {})
+                return jsonify({
+                    'success': True,
+                    'stats': {
+                        'documents': s.get('documents', 0),
+                        'vectors':   s.get('vectors', 0),
+                        'namespaces': 1,
+                        'provider':  'pgvector',
+                    }
+                })
+
+        # ── Pinecone stats ───────────────────────────────────────────────
+        # Get stats from Pinecone using org-resolved credentials (GAP-V1/V2)
         if PINECONE_AVAILABLE and VECTOR_TOOLS_AVAILABLE:
-            # Pass credentials to tool (use credentials_user_id for business credentials)
-            result = vector_db_list_namespaces(
-                _user_id=credentials_user_id,
-                **credentials  # Inject pinecone_api_key, pinecone_index_name, etc.
-            )
+            result = vector_db_list_namespaces(_user_id=user_id)
             
             if result.get('success'):
                 namespaces = result.get('namespaces', [])
@@ -481,6 +665,7 @@ def get_stats():
 
 
 @vector_db_bp.route('/api/vector-db/credentials/load', methods=['GET'])
+@require_auth
 def load_credentials():
     """
     Load vector database credentials for business (user_id=1)
@@ -495,12 +680,19 @@ def load_credentials():
     
     FIXED: Dec 9, 2025 - Updated to use actual schema (metadata + credentials columns)
     """
+    # GAP-V5: Credentials now managed via Organisation Settings > Connections (org vault).
+    # The Settings tab credential form in vector_database.html has been retired.
+    return jsonify({
+        'success': False,
+        'error': 'This endpoint is no longer active. Manage vector database credentials in Organisation Settings > Connections.',
+        'redirect': '/settings/organisation/connections'
+    }), 410
+
     cursor = None
     conn = None
     
     try:
-        # Use shared business-level user_id (platform owner credentials)
-        user_id = 1
+        user_id = g.rls_user_id
         provider = request.args.get('provider')  # Optional filter
         
         from shared.database_utils import get_database_connection
@@ -594,6 +786,7 @@ def load_credentials():
 
 
 @vector_db_bp.route('/api/vector-db/credentials/status', methods=['GET'])
+@require_auth
 def check_connection_status():
     """
     Test connection to vector database provider
@@ -610,48 +803,29 @@ def check_connection_status():
     """
     cursor = None
     conn = None
-    
+
     try:
-        # Use shared business-level user_id (platform owner credentials)
-        user_id = 1
+        user_id = g.rls_user_id
         provider = request.args.get('provider')
-        
+
         if not provider:
             return jsonify({'success': False, 'error': 'provider parameter required'}), 400
-        
-        # Load credentials from database
-        from shared.database_utils import get_database_connection
-        conn = get_database_connection('ai_infrastructure')
-        cursor = conn.cursor()
-        
-        cursor.execute('''
-            SELECT metadata, credentials
-            FROM ai_infrastructure.user_platform_credentials
-            WHERE user_id = %s AND platform = %s AND is_active = true
-            LIMIT 1
-        ''', (user_id, provider))
-        
-        row = cursor.fetchone()
-        
-        if not row:
+
+        # Resolve credentials via org vault (GAP-V1/V2)
+        cred = resolve_credentials(user_id, provider)
+
+        if not cred:
             return jsonify({
                 'success': False,
                 'connected': False,
-                'error': f'No credentials configured for {provider}'
+                'error': f'No credentials configured for {provider}. Add them in Organisation Settings > Connections.'
             }), 404
-        
-        metadata_json = row['metadata'] if isinstance(row, dict) else row[0]
-        credentials_json = row['credentials'] if isinstance(row, dict) else row[1]
-        
-        import json
-        metadata = json.loads(metadata_json) if isinstance(metadata_json, str) else (metadata_json or {})
-        credentials = json.loads(credentials_json) if isinstance(credentials_json, str) else (credentials_json or {})
-        
-        if cursor:
-            cursor.close()
-        if conn:
-            conn.close()
-        
+
+        credentials = cred.get('credentials') or {}
+        if not credentials.get('api_key'):
+            credentials['api_key'] = cred.get('api_key') or cred.get('credential_value')
+        metadata = {}
+
         # Test connection based on provider
         if provider == 'pinecone':
             if not PINECONE_AVAILABLE:
@@ -742,6 +916,7 @@ def check_connection_status():
 
 
 @vector_db_bp.route('/api/vector-db/credentials/save', methods=['POST'])
+@require_auth
 def save_credentials():
     """
     Save vector database credentials at business level (user_id=1)
@@ -772,14 +947,21 @@ def save_credentials():
     
     UPDATED: Dec 9, 2025 - Fixed to match actual schema
     """
+    # GAP-V5: Credentials now managed via Organisation Settings > Connections (org vault).
+    # The Settings tab credential form in vector_database.html has been retired.
+    return jsonify({
+        'success': False,
+        'error': 'This endpoint is no longer active. Manage vector database credentials in Organisation Settings > Connections.',
+        'redirect': '/settings/organisation/connections'
+    }), 410
+
     cursor = None
     conn = None
-    
+
     try:
         data = request.get_json()
-        # Use shared business-level user_id (platform owner credentials)
-        user_id = 1
-        
+        user_id = g.rls_user_id
+
         provider = data.get('provider', '').strip()
         credentials = data.get('credentials', {})
         metadata = data.get('metadata', {})
@@ -860,6 +1042,7 @@ def save_credentials():
 
 
 @vector_db_bp.route('/api/vector-db/embedding-config/get', methods=['GET'])
+@require_auth
 def get_embedding_config():
     """
     Get embedding model configuration for business (user_id=1)
@@ -872,91 +1055,40 @@ def get_embedding_config():
     FIXED: Fixed nested get_settings() helper function cursor leak
     """
     try:
-        # Use shared business-level user_id (platform owner credentials)
-        user_id = 1
-        
-        from auth.user_auth import UserAuthManager
-        auth_manager = UserAuthManager()
-        
-        # ✅ FIX: Helper function with proper cursor management
-        def get_settings(platform):
-            """Get settings from database with proper cleanup"""
-            cursor = None  # ✅ Initialize
-            conn = None
-            try:
-                from shared.database_utils import get_database_connection
-                conn = get_database_connection('ai_infrastructure')
-                cursor = conn.cursor()
-                
-                cursor.execute('''
-                    SELECT settings
-                    FROM ai_infrastructure.user_platform_credentials
-                    WHERE user_id = %s AND platform = %s
-                    LIMIT 1
-                ''', (user_id, platform))
-                
-                row = cursor.fetchone()
-                
-                # ✅ FIX: Close cursor BEFORE conn
-                cursor.close()
-                cursor = None
-                conn.close()
-                conn = None
-                
-                # Process result AFTER connection closed
-                if row:
-                    settings_json = row['settings'] if isinstance(row, dict) else row[0]
-                    if settings_json:
-                        import json
-                        return json.loads(settings_json) if isinstance(settings_json, str) else settings_json
-                
-                return {}
-            
-            except Exception as e:
-                print(f"⚠️ Could not fetch settings for {platform}: {e}")
-                return {}
-            
-            finally:
-                # ✅ CRITICAL: Guaranteed cleanup
-                if cursor:
-                    try:
-                        cursor.close()
-                    except:
-                        pass
-                if conn:
-                    try:
-                        conn.close()
-                    except:
-                        pass
-        
-        # Try to get Voyager credentials first
-        voyager_creds = auth_manager.get_platform_credentials(user_id, 'voyager')
-        if voyager_creds and 'VOYAGER_API_KEY' in voyager_creds:
-            settings = get_settings('voyager')
+        user_id = g.rls_user_id
+
+        # Resolve embedding credentials via org vault (GAP-V1/V2)
+        voyager_cred = resolve_credentials(user_id, 'voyager')
+        if voyager_cred:
+            api_key = voyager_cred.get('api_key') or voyager_cred.get('credential_value') or ''
+            creds_detail = voyager_cred.get('credentials') or {}
             return jsonify({
                 'success': True,
                 'config': {
                     'provider': 'voyager',
-                    'model': settings.get('model', 'voyager'),
-                    'dimensions': settings.get('dimensions', 1536),
-                    'api_key_masked': '****' + voyager_creds['VOYAGER_API_KEY'][-8:] if len(voyager_creds['VOYAGER_API_KEY']) > 8 else '****'
+                    'model': creds_detail.get('model', 'voyage-large-2'),
+                    'dimensions': creds_detail.get('dimensions', 1536),
+                    'api_key_masked': f"{'*' * max(0, len(api_key) - 4)}{api_key[-4:]}" if len(api_key) > 4 else '****'
                 }
             })
-        
-        # Try OpenAI embeddings
-        openai_creds = auth_manager.get_platform_credentials(user_id, 'openai_embeddings')
-        if openai_creds and 'OPENAI_API_KEY' in openai_creds:
-            settings = get_settings('openai_embeddings')
+
+        openai_emb_cred = (
+            resolve_credentials(user_id, 'openai_embeddings')
+            or resolve_credentials(user_id, 'openai')
+        )
+        if openai_emb_cred:
+            api_key = openai_emb_cred.get('api_key') or openai_emb_cred.get('credential_value') or ''
+            creds_detail = openai_emb_cred.get('credentials') or {}
             return jsonify({
                 'success': True,
                 'config': {
                     'provider': 'openai',
-                    'model': settings.get('model', 'text-embedding-ada-002'),
-                    'dimensions': settings.get('dimensions', 1536),
-                    'api_key_masked': '****' + openai_creds['OPENAI_API_KEY'][-8:] if len(openai_creds['OPENAI_API_KEY']) > 8 else '****'
+                    'model': creds_detail.get('model', 'text-embedding-ada-002'),
+                    'dimensions': creds_detail.get('dimensions', 1536),
+                    'api_key_masked': f"{'*' * max(0, len(api_key) - 4)}{api_key[-4:]}" if len(api_key) > 4 else '****'
                 }
             })
-        
+
         # No embedding config found
         return jsonify({
             'success': True,
@@ -971,6 +1103,7 @@ def get_embedding_config():
 
 
 @vector_db_bp.route('/api/vector-db/embedding-config/save', methods=['POST'])
+@require_auth
 def save_embedding_config():
     """
     Save embedding model configuration at business level (user_id=1)
@@ -990,11 +1123,19 @@ def save_embedding_config():
     
     ✅ NO DATABASE OPERATIONS - Safe (uses auth_manager)
     """
+    # GAP-V5: Embedding config now managed via Organisation Settings > Connections (org vault).
+    # The Settings tab embedding form has been retired — configure Voyager or OpenAI credentials
+    # directly in Organisation Settings instead.
+    return jsonify({
+        'success': False,
+        'error': 'This endpoint is no longer active. Configure embedding credentials (Voyager AI or OpenAI) in Organisation Settings > Connections.',
+        'redirect': '/settings/organisation/connections'
+    }), 410
+
     try:
         data = request.get_json()
         
-        # Use shared business-level user_id (platform owner credentials)
-        user_id = 1
+        user_id = g.rls_user_id
         provider = data.get('provider', '').strip()
         platform = data.get('platform', '').strip()
         api_key = data.get('api_key', '').strip()

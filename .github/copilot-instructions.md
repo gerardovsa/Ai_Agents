@@ -734,8 +734,14 @@ A tab content div `id="tab-vsa-veterinary-alerts"` exists in the HTML with no co
 | 4 | Replace `manifest.json` Zone 2 rendering with DB-driven | `business-ai-platform-v2.html` | Medium |
 | 5 | Add `data-org-min-role` checks for role-based gating | `business-ai-platform-v2.html` | Low |
 | 6 | Resolve orphaned `tab-vsa-veterinary-alerts` | `business-ai-platform-v2.html` | Low |
+| 7 | **Vector DB — Fix unauthenticated API endpoints (GAP-V1)** | `AI_infrastructure/routes/vector_db_routes.py` | **HIGH PRIORITY** — add `@require_auth`, replace `user_id=1` with `g.rls_user_id` |
+| 8 | **Vector DB — Switch credential resolver (GAP-V2/V3)** | `vector_db_routes.py`, `pinecone_tools.py` | High — replace `os.getenv()` + `UserAuthManager` with `org_credentials_loader.resolve_credentials()` |
+| 9 | **Vector DB — Propagate namespace isolation (GAP-V4)** | `pinecone_tools.py` | Medium — pass `org_{org_id}` namespace to all `index.query()` / `index.upsert()` calls |
+| 10 | **Vector DB — Retire Settings-tab credential form (GAP-V5)** | `vector_database.html` | Low — replace form with org vault redirect message |
+| 11 | **Vector DB — Gate sidebar item (GAP-V7/V8)** | `business-ai-platform-v2.html` | Low — add `data-module="vector_database"` + id to sidebar button |
 
 > **Architecture doc:** All implementation details (full function code, CSS, module inventory table) are in `.github/MODULE_VISIBILITY_ARCHITECTURE.md`.
+> **Vector DB gap analysis & fix code:** `.github/VECTOR_DB_ORG_ALIGNMENT_ANALYSIS_APR29_2026.md`
 
 ---
 

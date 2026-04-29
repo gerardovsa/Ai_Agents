@@ -599,6 +599,8 @@ api_key = resolve_api_key(user_id, 'anthropic')
 
 9. ~~**org_invitations table does not exist yet**~~ — **✅ RESOLVED (April 8, 2026)** `org_invitations` table confirmed present (March 2026). Full invite system complete — see point 1 above. Recursive trigger `trg_expire_invitations` fixed (added `WHEN (pg_trigger_depth() = 0)` guard, migration 041). Core `execute_query` DML commit bug also fixed — was silently rolling back all org_invitations INSERTs.
 
+10. **Vector Database module not integrated with org/credential system** — `vector_db_routes.py` has `@require_auth` imported but never applied (all 8 endpoints are unauthenticated). All routes hardcode `user_id = 1`. `pinecone_tools.py` uses `UserAuthManager` (personal table) instead of `org_credentials_loader.resolve_credentials()`. The Settings tab in the Vector Database UI lets users save Pinecone API keys to the wrong table (bypassing the org vault). Namespace isolation (GAP-C1 partial fix) is not propagated to query/upsert callers. Full analysis and fix plan: **`.github/VECTOR_DB_ORG_ALIGNMENT_ANALYSIS_APR29_2026.md`** (8 gaps: GAP-V1 through GAP-V8). `MODULE_VISIBILITY_ARCHITECTURE.md` Section 7 updated April 29, 2026 to reflect Professional/Optional gating requirement.
+
 ---
 
 ## Session 5 — Gap Implementation (March 25, 2026)

@@ -18731,7 +18731,7 @@
                 <i class="fa-solid fa-hexagon-nodes-bolt fa-lg"></i>
             </button>
 
-            <button class="sidebar-icon-btn" data-action="vectordb" title="Vector Database - Document Management">
+            <button id="vector-database-toggle" class="sidebar-icon-btn" data-action="vectordb" data-module="vector_database" title="Vector Database - Document Management">
                 <i class="fas fa-database"></i>
             </button>
 
@@ -21380,6 +21380,11 @@
                                 style="padding: 8px 12px; font-size: 13px; background: var(--accent-primary); color: white; border: none; border-radius: 3px; cursor: pointer; white-space: nowrap;"
                                 title="Save display name"><i class="fas fa-save"></i></button>
                         </div>
+                    </div>
+
+                    <!-- Account Identity Panel: org, role, team context -->
+                    <div id="account-identity-panel" style="display:none; margin-top:10px; padding:10px 12px; background:var(--bg-secondary); border-radius:6px; border-left:3px solid var(--accent-primary); font-size:12px; line-height:1.6; color:var(--text-secondary);">
+                        <div id="account-identity-content"></div>
                     </div>
 
                     <!-- Expandable OAuth Connections -->
@@ -30492,6 +30497,88 @@
             },
 
             /**
+             * Populate the #account-identity-panel with contextual info:
+             * org name + org role (colour-coded), or team sub-account notice,
+             * or platform developer notice.
+             */
+            _updateIdentityPanel(profile) {
+                const panel   = document.getElementById('account-identity-panel');
+                const content = document.getElementById('account-identity-content');
+                if (!panel || !content) return;
+
+                const systemRole = profile.role || '';
+                const orgRole    = profile.org_role || '';
+
+                const roleColors = {
+                    viewer:  '#6b7280',
+                    member:  '#10b981',
+                    manager: '#3b82f6',
+                    admin:   '#f59e0b',
+                    owner:   '#8b5cf6'
+                };
+
+                const lines = [];
+                let borderColor = 'var(--accent-primary)';
+
+                if (systemRole === 'team') {
+                    borderColor = '#f59e0b';
+                    lines.push(`
+                        <div style="display:flex;align-items:center;gap:6px;">
+                            <i class="fas fa-users" style="color:#f59e0b;font-size:13px;flex-shrink:0;"></i>
+                            <strong style="color:var(--text-primary);font-size:12px;">Team Sub-Account</strong>
+                        </div>
+                        <div style="margin-top:3px;font-size:11px;color:var(--text-muted);">
+                            Operating under a parent account. Data access and features are scoped to this Team ID.
+                        </div>`);
+                } else if (systemRole === 'platform_developer') {
+                    borderColor = '#3b82f6';
+                    lines.push(`
+                        <div style="display:flex;align-items:center;gap:6px;">
+                            <i class="fas fa-code" style="color:#3b82f6;font-size:13px;flex-shrink:0;"></i>
+                            <strong style="color:var(--text-primary);font-size:12px;">Platform Developer</strong>
+                        </div>
+                        <div style="margin-top:3px;font-size:11px;color:var(--text-muted);">
+                            Full platform access. Sidebar gating active.
+                        </div>`);
+                }
+
+                if (orgRole) {
+                    const roleColor = roleColors[orgRole] || 'var(--accent-primary)';
+                    if (!lines.length) borderColor = roleColor;
+                    const sep = lines.length
+                        ? `margin-top:8px;padding-top:8px;border-top:1px solid var(--border-default);`
+                        : '';
+                    lines.push(`
+                        <div style="display:flex;align-items:center;gap:8px;${sep}">
+                            <i class="fas fa-building" style="color:${roleColor};font-size:12px;flex-shrink:0;"></i>
+                            <span style="padding:2px 8px;border-radius:4px;font-size:11px;font-weight:700;background:${roleColor}22;color:${roleColor};text-transform:capitalize;">${orgRole}</span>
+                            <span id="identity-org-name" style="font-size:12px;color:var(--text-primary);font-weight:500;">Organisation</span>
+                        </div>`);
+
+                    // Async-populate the org name from /api/org/info
+                    const token = localStorage.getItem('authToken') || sessionStorage.getItem('authToken');
+                    if (token) {
+                        fetch(`${window.API_BASE_URL || ''}/api/org/info`, {
+                            headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' }
+                        }).then(r => r.json()).then(data => {
+                            const nameEl = document.getElementById('identity-org-name');
+                            if (nameEl && data.org) {
+                                nameEl.textContent = data.org.display_name || data.org.name || 'Organisation';
+                            }
+                        }).catch(() => {});
+                    }
+                }
+
+                if (lines.length > 0) {
+                    panel.style.borderLeftColor = borderColor;
+                    content.innerHTML = lines.join('');
+                    panel.style.display = 'block';
+                } else {
+                    panel.style.display = 'none';
+                }
+            },
+
+            /**
              * Save display name (called from inline input)
              */
             async saveDisplayName(value) {
@@ -30599,6 +30686,9 @@
                                 console.warn('[MODULE GATE] Could not load org modules:', err);
                             });
                         }
+
+                        // Populate identity info panel (org, role, team context)
+                        this._updateIdentityPanel(profile);
 
                         // ? Auto-load OAuth connections after user info loads
                         console.log('[ACCOUNT SIDEBAR] Auto-loading OAuth connections after profile load');

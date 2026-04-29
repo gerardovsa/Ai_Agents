@@ -142,7 +142,7 @@ The sidebar has **three zones**:
 | 7 | Automation Workflows | `fas fa-project-diagram` | `data-tab="automation"` | Always visible |
 | 8 | Command Centre | `fas fa-users` | `data-tab="multi-agent"` | Always visible |
 | 9 | Synergy Suite | `fa-solid fa-hexagon-nodes-bolt` | `data-tab="synergy"` | Always visible; Socket.IO |
-| 10 | Vector Database | `fas fa-database` | `data-action="vectordb"` | Always visible |
+| 10 | Vector Database | `fas fa-database` | `data-action="vectordb"` | ⚠️ **Hardcoded always-visible — should be Professional plan gated** |
 
 ### Zone 2 — Dynamic Module Icons (`#sidebarModulesSection`)
 
@@ -179,7 +179,7 @@ These are the actual rendered dashboard panels inside `UI/business-ai-platform-v
 | `tab-inhouse-kanban` | Production Workflow (Kanban) | `fas fa-industry` (dynamic) | Via manifest.json | No org-gate |
 | `tab-vsa-veterinary-alerts` | VSA Veterinary Alerts | None in sidebar | ❌ Inaccessible | Tab exists in HTML, **no sidebar button**, no route to open it |
 | `tab-universal-search` | Universal Search | `fas fa-search` | ✅ Yes | Core feature |
-| `tab-vector-database` | Vector Database | `fas fa-database` | ✅ Yes | Core feature |
+| `tab-vector-database` | Vector Database | `fas fa-database` | ⚠️ **Hardcoded** | Should require `vector_database` module (Professional tier) + Pinecone credential |
 | `tab-sales` | **WooCommerce Management** | `fas fa-shopping-cart` | ⚠️ **HARDCODED** | No visibility gate at all |
 | `tab-analytics` | Analytics & Reports | `fas fa-chart-line` | ✅ Yes | Core feature |
 | `tab-automation` | Automation Workflows | `fas fa-project-diagram` | ✅ Yes | Core feature |
@@ -324,7 +324,6 @@ These appear in the sidebar for ALL users regardless of org, role, or plan tier:
 | Analytics & Reports | `fas fa-chart-line` | `tab-analytics` | Core operational visibility |
 | Transcription | `fas fa-microphone` | (action panel) | Core AI utility |
 | Synergy Suite | `fa-hexagon-nodes-bolt` | `tab-synergy` | Core real-time collaboration |
-| Vector Database | `fas fa-database` | `tab-vector-database` | Core AI memory/search |
 | Automation Workflows | `fas fa-project-diagram` | `tab-automation` | Core operational tool |
 
 ### 5b. Optional Modules (Org/Plan/Role Gated)
@@ -333,6 +332,7 @@ These should only appear in the sidebar when enabled for the org, not hardcoded:
 
 | Module | Icon | Tab ID | Plan Tier | DB module_name | Currently |
 |--------|------|--------|-----------|---------------|-----------|
+| **Vector Database** | `fas fa-database` | `tab-vector-database` | Professional | `vector_database` | ⚠️ **HARDCODED — always visible; requires Pinecone credential** |
 | **WooCommerce Management** | `fas fa-shopping-cart` | `tab-sales` | Enterprise | `woocommerce` | ⚠️ **HARDCODED — always visible** |
 | Production Workflow (Kanban) | `fas fa-industry` | `tab-inhouse-kanban` | Enterprise | `inhouse_kanban` | Via manifest.json |
 | InHouse Print Tools | `fas fa-print` | (action) | Enterprise | `inhouse_print` | Via manifest.json |
@@ -491,7 +491,7 @@ Complete reference combining sidebar visibility, HTML presence, code status, and
 | **Transcription** | Zone 1 Core | action panel | ❌ Built-in | `transcription` | Professional | Always On | None |
 | **Automation Workflows** | Zone 1 Core | `tab-automation` | ❌ Built-in | `automation` | Starter | Always On | None |
 | **Synergy Suite** | Zone 1 Core | `tab-synergy` | ❌ Built-in | `synergy` | Starter | Always On | None |
-| **Vector Database** | Zone 1 Core | `tab-vector-database` | ❌ Built-in | `vector_database` | Professional | Always On | None |
+| **Vector Database** | Zone 1 Core ⚠️ | `tab-vector-database` | ❌ Built-in | `vector_database` | Professional | **MUST BE OPTIONAL** | Gate behind `org_module_access`; requires `pinecone` credential. See `VECTOR_DB_ORG_ALIGNMENT_ANALYSIS_APR29_2026.md` |
 | **WooCommerce** | Zone 1 Core ⚠️ | `tab-sales` | ❌ Built-in | `woocommerce` | Enterprise | **MUST BE OPTIONAL** | Gate behind `org_module_access` |
 | **Production Workflow** | Zone 2 Dynamic | `tab-inhouse-kanban` | `inhouse-kanban/` | `inhouse_kanban` | Enterprise | Optional | Replace manifest.json with DB |
 | **InHouse Print** | Zone 2 Dynamic | (action) | `inhouse-print/` | `inhouse_print` | Enterprise | Optional | Replace manifest.json with DB |

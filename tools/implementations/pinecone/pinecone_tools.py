@@ -34,13 +34,12 @@ from typing import Dict, Any, List, Optional
 import json
 import hashlib
 import uuid
+import os
 
 # Add paths
 tools_dir = Path(__file__).parent.parent.parent
 if str(tools_dir) not in sys.path:
     sys.path.insert(0, str(tools_dir))
-
-from AI_infrastructure.auth.user_auth import UserAuthManager
 
 
 class PineconeToolsError(Exception):
@@ -52,18 +51,24 @@ def _get_pinecone_client(user_id: int, **kwargs):
     """Get authenticated Pinecone client (NEW JSONB FORMAT)"""
     try:
         from pinecone import Pinecone
-        
-        # Get credentials from JSONB column
-        auth_manager = UserAuthManager()
-        creds = auth_manager.get_platform_credentials(user_id, 'pinecone')
-        
-        if not creds or 'api_key' not in creds:
-            raise PineconeToolsError("Pinecone credentials not found. Please configure in Vector DB sidebar.")
+        from AI_infrastructure.shared.org_credentials_loader import resolve_credentials
+
+        # Resolve credentials via org vault (GAP-V3)
+        raw_cred = resolve_credentials(user_id, 'pinecone')
+        if not raw_cred:
+            raise PineconeToolsError("Pinecone credentials not configured. Add Pinecone in Organisation Settings > Connections.")
+
+        creds = raw_cred.get('credentials') or {}
+        if not creds.get('api_key'):
+            creds['api_key'] = raw_cred.get('api_key') or raw_cred.get('credential_value')
+
+        if not creds.get('api_key'):
+            raise PineconeToolsError("Pinecone credentials not configured. Add Pinecone in Organisation Settings > Connections.")
         
         # JSONB credentials format:
         # {'api_key': 'pcsk_...', 'index_name': 'inhouseprint', 'environment': 'us-east-1', 'namespace': ''}
         api_key = creds['api_key']
-        index_name = creds.get('index_name')
+        index_name = creds.get('index_name') or os.getenv('PINECONE_INDEX_NAME')
         environment = creds.get('environment', 'us-east-1')
 
         # GAP-C1 FIX: Always derive namespace from organisation_id for tenant isolation.
@@ -85,7 +90,7 @@ def _get_pinecone_client(user_id: int, **kwargs):
             namespace = f"org_{org_id}" if org_id else f"user_{user_id}"
 
         if not index_name:
-            raise PineconeToolsError("Index name not configured")
+            raise PineconeToolsError("Pinecone index name not configured. Add it to your Pinecone credentials or set PINECONE_INDEX_NAME env var.")
         
         # Initialize Pinecone client
         pc = Pinecone(api_key=api_key)
@@ -115,13 +120,23 @@ def _get_openai_embeddings(text: str, user_id: int) -> List[float]:
     - Voyager AI: voyage-2 (1024), voyage-large-2 (1536), voyage-code-2 (1536)
     """
     try:
-        # Get embedding credentials from JSONB column
-        auth_manager = UserAuthManager()
-        creds = auth_manager.get_platform_credentials(user_id, 'openai_embeddings')
-        
-        if not creds or 'api_key' not in creds:
-            raise PineconeToolsError("Embedding credentials not found. Please configure in Platform Connections.")
-        
+        # Resolve embedding credentials via org vault (GAP-V3)
+        from AI_infrastructure.shared.org_credentials_loader import resolve_credentials
+        raw_cred = (
+            resolve_credentials(user_id, 'openai_embeddings')
+            or resolve_credentials(user_id, 'openai')
+        )
+
+        if not raw_cred:
+            raise PineconeToolsError("Embedding credentials not found. Add OpenAI or Voyager credentials in Organisation Settings > Connections.")
+
+        creds = raw_cred.get('credentials') or {}
+        if not creds.get('api_key'):
+            creds['api_key'] = raw_cred.get('api_key') or raw_cred.get('credential_value')
+
+        if not creds.get('api_key'):
+            raise PineconeToolsError("Embedding API key not found in credentials.")
+
         # JSONB credentials format:
         # {'api_key': 'sk-proj-...', 'provider': 'openai', 'model': 'text-embedding-ada-002', 'dimensions': 1536}
         # OR
@@ -238,13 +253,29 @@ def pinecone_query_vectors(
         
         # Get Pinecone index
         index, metadata = _get_pinecone_client(user_id, **kwargs)
-        
+
+        # GAP-V4: use org-derived namespace as default if caller passed empty string
+        effective_namespace = namespace or metadata.get('namespace', '')
+
+        # GAP-V6: auto-inject org-scoped ownership filter so the AI only sees
+        # this org's documents even when the caller doesn't provide a filter.
+        # Merge with any explicit caller-supplied filter using $and.
+        org_namespace = metadata.get('namespace', '')
+        if org_namespace and org_namespace.startswith('org_'):
+            org_filter = {'namespace': {'$eq': org_namespace}}
+            if filter:
+                effective_filter = {'$and': [org_filter, filter]}
+            else:
+                effective_filter = org_filter
+        else:
+            effective_filter = filter
+
         # Execute query
         results = index.query(
             vector=query_vector,
             top_k=min(top_k, 100),
-            namespace=namespace,
-            filter=filter,
+            namespace=effective_namespace,
+            filter=effective_filter,
             include_metadata=include_metadata,
             include_values=include_values
         )
@@ -299,7 +330,10 @@ def pinecone_upsert_vectors(
             raise PineconeToolsError("vectors list cannot be empty")
         
         index, metadata = _get_pinecone_client(user_id, **kwargs)
-        
+
+        # GAP-V4: use org-derived namespace as default if caller passed empty string
+        effective_namespace = namespace or metadata.get('namespace', '')
+
         # Format vectors for Pinecone
         formatted_vectors = []
         for v in vectors:
@@ -318,14 +352,14 @@ def pinecone_upsert_vectors(
         
         for i in range(0, len(formatted_vectors), batch_size):
             batch = formatted_vectors[i:i+batch_size]
-            index.upsert(vectors=batch, namespace=namespace)
+            index.upsert(vectors=batch, namespace=effective_namespace)
             total_upserted += len(batch)
             print(f'[PINECONE] Upserted batch {i//batch_size + 1}: {len(batch)} vectors')
-        
+
         return {
             'success': True,
             'upserted_count': total_upserted,
-            'namespace': namespace
+            'namespace': effective_namespace
         }
         
     except Exception as e:
@@ -365,17 +399,20 @@ def pinecone_delete_vectors(
             raise PineconeToolsError("Provide ids, delete_all=True, or filter")
         
         index, metadata = _get_pinecone_client(user_id, **kwargs)
-        
+
+        # GAP-V4: use org-derived namespace as default if caller passed empty string
+        effective_namespace = namespace or metadata.get('namespace', '')
+
         if delete_all:
-            if not namespace:
+            if not effective_namespace:
                 raise PineconeToolsError("namespace required when delete_all=True")
-            index.delete(delete_all=True, namespace=namespace)
-            print(f'[PINECONE] Deleted all vectors in namespace: {namespace}')
+            index.delete(delete_all=True, namespace=effective_namespace)
+            print(f'[PINECONE] Deleted all vectors in namespace: {effective_namespace}')
         elif filter:
-            index.delete(filter=filter, namespace=namespace)
+            index.delete(filter=filter, namespace=effective_namespace)
             print(f'[PINECONE] Deleted vectors matching filter')
         else:
-            index.delete(ids=ids, namespace=namespace)
+            index.delete(ids=ids, namespace=effective_namespace)
             print(f'[PINECONE] Deleted {len(ids)} vectors')
         
         return {
@@ -416,8 +453,11 @@ def pinecone_fetch_vectors(
             raise PineconeToolsError("ids list cannot be empty")
         
         index, metadata = _get_pinecone_client(user_id, **kwargs)
-        
-        results = index.fetch(ids=ids, namespace=namespace)
+
+        # GAP-V4: use org-derived namespace as default if caller passed empty string
+        effective_namespace = namespace or metadata.get('namespace', '')
+
+        results = index.fetch(ids=ids, namespace=effective_namespace)
         
         vectors = []
         for vec_id, vec_data in results.get('vectors', {}).items():
@@ -471,14 +511,17 @@ def pinecone_update_vector(
             raise PineconeToolsError("Provide values or metadata to update")
         
         index, metadata_config = _get_pinecone_client(user_id, **kwargs)
-        
+
+        # GAP-V4: use org-derived namespace as default if caller passed empty string
+        effective_namespace = namespace or metadata_config.get('namespace', '')
+
         update_dict = {'id': id}
         if values:
             update_dict['values'] = values
         if metadata:
             update_dict['set_metadata'] = metadata
-        
-        index.update(**update_dict, namespace=namespace)
+
+        index.update(**update_dict, namespace=effective_namespace)
         
         print(f'[PINECONE] Updated vector: {id}')
         
@@ -671,9 +714,8 @@ def vector_db_upload_document(
         doc_id = hashlib.md5(filename.encode()).hexdigest()[:8]
         upload_date = datetime.utcnow().isoformat()
         
-        # Auto-generate namespace if not provided
-        if not namespace:
-            namespace = f"user_{user_id}_{category}"
+        # Auto-generate namespace if not provided — use empty to let upsert derive org namespace (GAP-V4)
+        # The category is stored in vector metadata; namespace provides tenant isolation only.
         
         # Batch embedding generation (500 at a time)
         batch_size = 500
