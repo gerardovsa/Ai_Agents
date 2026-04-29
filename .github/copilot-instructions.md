@@ -1,5 +1,5 @@
 # GitHub Copilot Instructions - AI Agents Project
-**Last Updated: March 26, 2026**
+**Last Updated: April 30, 2026**
 
 > **⚠️ When generating SVG diagrams:** Always reference `.github/SVG_CAD_GENERATION_RULES.md` for proper title block spacing and Y-coordinate calculations to prevent text overlap.
 
@@ -633,6 +633,10 @@ SELECT COUNT(*) FROM ai_infrastructure.module_catalog;    -- expect 26
 
 | Date | Migration | Description |
 |------|-----------|-------------|
+| April 2026 | 044 | `org_vector_documents` pgvector table (RLS + HNSW cosine index). `pgvector_search()` SQL function. Fully multi-tenant vector DB built into Supabase. |
+| April 2026 | 045 | Platform catalog updates: Voyager voyage-4 model family, Pinecone `index_name` required field, pgvector catalog entry (zero-cost, always available). |
+| April 2026 | — | Vector DB security gaps (GAP-V1 through GAP-V8) all resolved: `@require_auth` on all routes, `g.rls_user_id` throughout, `resolve_credentials()` for Pinecone + embeddings, org-scoped namespaces, Settings-tab credential form retired (returns 410), `vector_database` sidebar button gated with `data-module` + `id`. New provider selector: pgvector default, Voyager removed (embedding-only). `_get_vector_provider()` auto-routes per org. `pgvector_tools.py` created with 6 functions. |
+| April 2026 | — | Account sidebar `#account-identity-panel` added: colour-coded org role badge, live org name (fetched from `/api/org/info`), team sub-account notice (amber border), platform developer notice (blue border). `AccountSidebar._updateIdentityPanel()` method wired into `loadUserInfo()`. |
 | March 2026 | 036 | `platform_catalog` + `module_catalog` tables. 27 platforms, 26 modules seeded. Dynamic frontend grid. Modules management subtab. Per-org module enable/disable via `org_module_access`. |
 | Jan 2026 | 032 | `org_module_access` table (pre-catalog, plan-tier driven logic). |
 | Late 2025 | 028–031 | Org credentials vault, audit log, reveal/test endpoints. |
@@ -644,6 +648,8 @@ SELECT COUNT(*) FROM ai_infrastructure.module_catalog;    -- expect 26
 ## Pending Work — What Still Needs Building
 
 > **For any AI agent picking up this codebase:** The items below are DESIGNED and DOCUMENTED but NOT yet coded into the application. The database schema and API endpoints are live. The frontend implementation is the missing piece.
+
+> **Last updated: April 30, 2026.** Items 7–11 (Vector DB gaps) are now ✅ COMPLETE. See `VECTOR_DB_ORG_ALIGNMENT_ANALYSIS_APR29_2026.md` for full record.
 
 ### 1. `initModulesFromOrg()` — DB-Driven Sidebar Visibility
 
@@ -726,22 +732,24 @@ A tab content div `id="tab-vsa-veterinary-alerts"` exists in the HTML with no co
 
 ### Summary: What a New AI Should Implement Next
 
-| # | Task | File(s) | Complexity |
-|---|------|---------|------------|
-| 1 | Build `initModulesFromOrg()` | `business-ai-platform-v2.html` | Medium — see Section 6 in `MODULE_VISIBILITY_ARCHITECTURE.md` |
-| 2 | Add `data-module` attributes to Zone 1 sidebar items | `business-ai-platform-v2.html` | Low |
-| 3 | Gate WooCommerce `tab-sales` with `data-module="woocommerce"` | `business-ai-platform-v2.html` | Low |
-| 4 | Replace `manifest.json` Zone 2 rendering with DB-driven | `business-ai-platform-v2.html` | Medium |
-| 5 | Add `data-org-min-role` checks for role-based gating | `business-ai-platform-v2.html` | Low |
-| 6 | Resolve orphaned `tab-vsa-veterinary-alerts` | `business-ai-platform-v2.html` | Low |
-| 7 | **Vector DB — Fix unauthenticated API endpoints (GAP-V1)** | `AI_infrastructure/routes/vector_db_routes.py` | **HIGH PRIORITY** — add `@require_auth`, replace `user_id=1` with `g.rls_user_id` |
-| 8 | **Vector DB — Switch credential resolver (GAP-V2/V3)** | `vector_db_routes.py`, `pinecone_tools.py` | High — replace `os.getenv()` + `UserAuthManager` with `org_credentials_loader.resolve_credentials()` |
-| 9 | **Vector DB — Propagate namespace isolation (GAP-V4)** | `pinecone_tools.py` | Medium — pass `org_{org_id}` namespace to all `index.query()` / `index.upsert()` calls |
-| 10 | **Vector DB — Retire Settings-tab credential form (GAP-V5)** | `vector_database.html` | Low — replace form with org vault redirect message |
-| 11 | **Vector DB — Gate sidebar item (GAP-V7/V8)** | `business-ai-platform-v2.html` | Low — add `data-module="vector_database"` + id to sidebar button |
+| # | Task | File(s) | Status | Complexity |
+|---|------|---------|--------|------------|
+| 1 | Build `initModulesFromOrg()` | `business-ai-platform-v2.html` | ⏳ Pending | Medium — see Section 6 in `MODULE_VISIBILITY_ARCHITECTURE.md` |
+| 2 | Add `data-module` attributes to Zone 1 sidebar items | `business-ai-platform-v2.html` | ⏳ Pending | Low |
+| 3 | Gate WooCommerce `tab-sales` with `data-module="woocommerce"` | `business-ai-platform-v2.html` | ⏳ Pending | Low |
+| 4 | Replace `manifest.json` Zone 2 rendering with DB-driven | `business-ai-platform-v2.html` | ⏳ Pending | Medium |
+| 5 | Add `data-org-min-role` checks for role-based gating | `business-ai-platform-v2.html` | ⏳ Pending | Low |
+| 6 | Resolve orphaned `tab-vsa-veterinary-alerts` | `business-ai-platform-v2.html` | ⏳ Pending | Low |
+| 7 | Vector DB — Fix unauthenticated API endpoints (GAP-V1) | `vector_db_routes.py` | ✅ Done Apr 29 | `@require_auth` added, `g.rls_user_id` throughout |
+| 8 | Vector DB — Switch credential resolver (GAP-V2/V3) | `vector_db_routes.py`, `pinecone_tools.py` | ✅ Done Apr 29 | `resolve_credentials()` replaces `os.getenv()` |
+| 9 | Vector DB — Propagate namespace isolation (GAP-V4) | `pinecone_tools.py` | ✅ Done Apr 29 | `org_{org_id}` namespace enforced |
+| 10 | Vector DB — Retire Settings-tab credential form (GAP-V5) | `vector_database.html` | ✅ Done Apr 29 | Save endpoint returns 410; form replaced with vault redirect |
+| 11 | Vector DB — Gate sidebar item (GAP-V7/V8) | `business-ai-platform-v2.html` | ✅ Done Apr 29 | `data-module="vector_database"` + `id` added |
+| 12 | pgvector provider (GAP-V9) — Supabase built-in vector DB | `pgvector_tools.py`, migration 044, `_get_vector_provider()` | ✅ Done Apr 29 | Full dual-provider support |
+| 13 | Account sidebar identity panel | `business-ai-platform-v2.html` | ✅ Done Apr 30 | `#account-identity-panel` + `_updateIdentityPanel()` |
 
 > **Architecture doc:** All implementation details (full function code, CSS, module inventory table) are in `.github/MODULE_VISIBILITY_ARCHITECTURE.md`.
-> **Vector DB gap analysis & fix code:** `.github/VECTOR_DB_ORG_ALIGNMENT_ANALYSIS_APR29_2026.md`
+> **Vector DB gap analysis & fix record:** `.github/VECTOR_DB_ORG_ALIGNMENT_ANALYSIS_APR29_2026.md`
 
 ---
 

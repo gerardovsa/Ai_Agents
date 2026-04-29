@@ -1,6 +1,6 @@
 # Organisation Credentials Architecture
-**Date**: March 26, 2026 (Last Updated: April 8, 2026)
-**Status**: ✅ Migration 036 complete. All architecture described herein is LIVE in Supabase (platform_catalog, module_catalog, org_module_access, organisation_platform_credentials tables). Full invite system complete (create, email, accept-invite frontend). See `.github/copilot-instructions.md` for complete organization system documentation.
+**Date**: March 26, 2026 (Last Updated: April 30, 2026)
+**Status**: ✅ Migration 036 complete. All architecture described herein is LIVE in Supabase (platform_catalog, module_catalog, org_module_access, organisation_platform_credentials tables). Full invite system complete (create, email, accept-invite frontend). Vector DB gaps resolved Apr 29 (migrations 044+045, pgvector tools, `_get_vector_provider()`). Account identity panel added Apr 30 (`#account-identity-panel`, `_updateIdentityPanel()`). See `.github/copilot-instructions.md` for complete organization system documentation.
 
 ---
 

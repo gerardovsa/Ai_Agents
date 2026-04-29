@@ -1,6 +1,6 @@
 # Module Visibility Architecture
-**Document Version: 1.1 — April 8, 2026**
-**Status: Current architecture documented + design spec for proper implementation. Invite system complete. Core DB framework fixes applied.**
+**Document Version: 1.2 — April 30, 2026**
+**Status: Current architecture documented + design spec for proper implementation. Invite system complete. Core DB framework fixes applied. Vector DB sidebar gating complete Apr 29. Account identity panel complete Apr 30.**
 
 ---
 
@@ -582,8 +582,11 @@ Follow the Module Plugin System pattern documented in `copilot-instructions.md`.
 
 | Date | Change | Author |
 |------|--------|--------|
-| March 26, 2026 | Document created — full audit of current architecture, gap analysis, design spec for DB-driven visibility | AI Agents dev session |
+| April 30, 2026 | Added `#account-identity-panel` to account sidebar: colour-coded org role badge + live org name + team sub-account amber notice + platform developer blue notice. `_updateIdentityPanel()` method in `AccountSidebar`. `sidebarTeamBadge` replaced by this panel. | AI Agents dev session |
+| April 29, 2026 | Vector DB sidebar button gated: `data-module="vector_database"` + `id` added to `business-ai-platform-v2.html`. pgvector as default provider. Migrations 044 (pgvector table) + 045 (catalog updates) confirmed running. | AI Agents dev session |
+| April 8, 2026 | Accept-invite frontend fully implemented; `execute_query()` DML bugs fixed; recursive trigger fixed (migration 041); `POST /api/org/invite` rewritten with provider field | AI Agents dev session |
 | March 28, 2026 | Added Section 1b: The 4-Layer Visibility Model + cross-references to org system docs | AI Agents dev session |
+| March 26, 2026 | Document created — full audit of current architecture, gap analysis, design spec for DB-driven visibility | AI Agents dev session |
 
 ---
 
@@ -603,9 +606,13 @@ For complete information on the Organisation system that governs module visibili
 
 ## Changelog & TODO
 
-### Last Updated: April 8, 2026
+### Last Updated: April 30, 2026
 
 #### Recent Changes
+- ✅ **April 30** — `#account-identity-panel` added to account sidebar header: surfaces `org_role` as a colour-coded pill (viewer=grey, member=green, manager=blue, admin=amber, owner=purple) + live org display name fetched async from `/api/org/info`. Team sub-accounts get amber border + scope notice. Platform developers get blue border. `_updateIdentityPanel(profile)` method added to `AccountSidebar`; called from `loadUserInfo()` after profile fetch. `sidebarTeamBadge` (always-hidden) retired in favour of this panel.
+- ✅ **April 29** — Vector DB sidebar button gated with `data-module="vector_database"` and `id="sidebar-vector-db"` in `business-ai-platform-v2.html` (GAP-V7/V8).
+- ✅ **April 29** — pgvector dual-provider: `_get_vector_provider()` auto-routes to pgvector when no Pinecone credential in org vault. Migration 044 (pgvector table + RLS + HNSW cosine index), Migration 045 (catalog update). `pgvector_tools.py` with 6 tool functions.
+- ✅ **April 29** — All Vector DB security gaps resolved (GAP-V1 through GAP-V8): `@require_auth` on all routes, `g.rls_user_id` throughout, `resolve_credentials()` for Pinecone + embeddings, org-scoped namespaces, Settings-tab form returns 410.
 - ✅ **April 8** — Accept-invite frontend fully implemented: `checkPendingInvite()`, `handleAcceptInvite()`, `_showInviteAcceptDialog()`, `_showInviteNotice()` added to `account_profile.js`; `?accept_invite=<token>` URL param detection + `sessionStorage` stash wired into all three `initializeApp()` login paths (email/password, OAuth callback, stored token)
 - ✅ **April 8** — Core `execute_query()` framework fix in `database_utils.py`: DML without RETURNING no longer raises `ProgrammingError`; INSERT+RETURNING now correctly auto-commits (eliminates phantom INSERTs silently rolled back by `PooledConnection.close()`)
 - ✅ **April 8** — Recursive DB trigger `trg_expire_invitations` fixed: added `WHEN (pg_trigger_depth() = 0)` guard; prevents "stack depth limit exceeded" on any `org_invitations` INSERT/UPDATE; applied to production Supabase; migration `041_fix_invite_trigger_recursion.sql` created

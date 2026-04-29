@@ -1,7 +1,7 @@
 # Organisation Credentials System — Master Analysis
-**Date:** March 26, 2026 (Last Updated: April 8, 2026)
+**Date:** March 26, 2026 (Last Updated: April 30, 2026)
 **Purpose:** Complete authoritative reference for new chat sessions. Multi-tenant platform — one Render deployment, one Supabase database, all user types served.
-**Status:** ✅ All migration 020–039 work complete. Platform catalog (27 platforms), module catalog (26 modules), org/user/role system, credential vault (Fernet encrypted), and DB-driven permission model are LIVE in Supabase. ✅ April 8: Full invite system complete (create, email, accept-invite frontend); core `execute_query` DML bugs fixed; recursive trigger fixed.
+**Status:** ✅ All migration 020–039 work complete. Platform catalog (27 platforms), module catalog (26 modules), org/user/role system, credential vault (Fernet encrypted), and DB-driven permission model are LIVE in Supabase. ✅ April 8: Full invite system complete (create, email, accept-invite frontend); core `execute_query` DML bugs fixed; recursive trigger fixed. ✅ April 29: Vector DB security gaps all resolved (GAP-V1 through GAP-V8); pgvector dual-provider (migrations 044+045); `pgvector_tools.py` with 6 functions; `_get_vector_provider()` auto-routing. ✅ April 30: Account sidebar identity panel (`#account-identity-panel`) surfacing org role + org name; `_updateIdentityPanel()` in `AccountSidebar`.
 
 ---
 

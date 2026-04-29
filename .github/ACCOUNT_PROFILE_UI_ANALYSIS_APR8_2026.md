@@ -1,4 +1,7 @@
 # Account Profile UI Analysis — 8th April 2026
+**Last Updated: April 30, 2026**
+
+> **April 30, 2026 update:** `#account-identity-panel` added to the account sidebar header (between Display Name input and OAuth connections expander). The panel renders: colour-coded org role badge (viewer=grey, member=green, manager=blue, admin=amber, owner=purple), live org display name (fetched async from `GET /api/org/info`), a team sub-account context notice (amber border, `role === 'team'`), and a platform developer notice (blue border). Implemented via `AccountSidebar._updateIdentityPanel(profile)` called from `loadUserInfo()`. The always-hidden `sidebarTeamBadge` element is superseded by this panel.
 
 **File:** `UI/business-ai-platform-v2.html` (lines 22572–23175)  
 **CSS:** `UI/modules_internal/thread-manager/thread.css`  
