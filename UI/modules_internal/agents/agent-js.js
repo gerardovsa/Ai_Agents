@@ -3785,6 +3785,15 @@ function addAgentColumn() {
         }
     }, 50);
 
+    // ✅ CRITICAL FIX: Re-setup drag/drop zones for the new column
+    // Without this, newly created columns won't accept dropped threads
+    if (typeof ThreadManager !== 'undefined' && typeof ThreadManager.setupAgentDropZones === 'function') {
+        setTimeout(() => {
+            ThreadManager.setupAgentDropZones();
+            console.log(`✅ [addAgentColumn] Re-initialized drop zones for agent-${agentId}`);
+        }, 100);
+    }
+
     // Add badge to quick-nav bar
     MultiAgent.addQuickNavBadge(agentId);
 

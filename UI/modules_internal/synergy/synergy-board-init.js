@@ -2097,7 +2097,9 @@ window.synergyBoard = {
     handleThreadDragOver(event) {
         // Check if dragging a thread (not a synergy card)
         const types = Array.from(event.dataTransfer.types);
-        const isThread = types.includes('text/plain'); // Thread cards set 'text/plain' with thread ID
+        // Thread Manager uses 'application/x-thread-id' (primary)
+        // Synergy Drag Drop uses 'text/plain' (fallback)
+        const isThread = types.includes('application/x-thread-id') || types.includes('text/plain');
 
         if (isThread) {
             event.preventDefault();

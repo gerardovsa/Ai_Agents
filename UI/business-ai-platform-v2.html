@@ -6681,15 +6681,6 @@
             transform: translateX(2px);
         }
 
-        /* Thread viewer presence bar (Prime header) */
-        .thread-viewers-bar {
-            padding: 2px 12px 4px;
-            display: flex;
-            align-items: center;
-            gap: 6px;
-            flex-wrap: wrap;
-        }
-
         /* Message View Mode Control - Prime Chat */
         #ai-chat-panel .view-mode-btn {
             width: 32px;
@@ -8703,7 +8694,7 @@
 
         /* Full panel drop overlay for Prime - with fade in animation */
         .ai-chat-panel.drag-over::before {
-            content: 'Drop thread here to load in Prime';
+            content: '?? Drop thread here to load in Prime';
             position: absolute;
             top: 50%;
             left: 50%;
@@ -12216,7 +12207,7 @@
         }
 
         .agent-column.drag-over::after {
-            content: 'Drop thread here to load in this agent';
+            content: '?? Drop thread here to load in this agent';
             position: absolute;
             top: 50%;
             left: 50%;
@@ -13805,35 +13796,6 @@
 
         .add-agent-bar:active {
             transform: translateX(3px) scale(0.98);
-        }
-
-        /* Disabled state: 26/26 columns reached */
-        .add-agent-bar.disabled {
-            cursor: not-allowed;
-            opacity: 0.45;
-            background: #2a2a2a;
-        }
-
-        .add-agent-bar.disabled:hover {
-            background: rgba(239, 68, 68, 0.25);
-            transform: none;
-            box-shadow:
-                6px 0 20px rgba(239, 68, 68, 0.45),
-                inset 0 0 20px rgba(239, 68, 68, 0.1);
-        }
-
-        .add-agent-bar.disabled:hover .add-agent-bar-content {
-            color: #ef4444;
-            letter-spacing: 2px;
-            transform: rotate(180deg);
-        }
-
-        .add-agent-bar.disabled:hover .add-agent-bar-content i {
-            animation: none;
-        }
-
-        .add-agent-bar.disabled::after {
-            display: none;
         }
 
         /* Show add-agent-bar only when multi-agent tab is active */
@@ -20793,7 +20755,7 @@
                     </div>
 
                     <!-- Thread presence: viewer badges (populated by ThreadPresence.js) -->
-                    <div id="prime-thread-viewers" class="thread-viewers-bar" style="display:none;"></div>
+                    <div id="prime-thread-viewers" style="display:none;padding:2px 12px 4px;display:flex;align-items:center;gap:6px;flex-wrap:wrap;"></div>
 
                 </div>
 

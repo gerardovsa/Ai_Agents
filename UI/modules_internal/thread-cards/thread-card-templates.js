@@ -405,7 +405,7 @@ window.ThreadCardTemplates = {
         return `
             <button class="agent-unload-btn" 
                     onclick="event.stopPropagation(); ThreadManager.unloadThread('${thread.id}')" 
-                    title="Unload thread from agent (move to Prime)"
+                    title="Unload to Threads Catalogue"
                     style="flex-shrink: 0; margin-left: auto;">
                 <i class="fas fa-sign-out-alt"></i>
             </button>
@@ -518,7 +518,7 @@ window.ThreadCardTemplates = {
         const unloadButton = !compact && location !== 'synergy' && location !== 'unassigned' && location.startsWith('agent-') ? `
             <button class="agent-unload-btn"
                 onclick="event.stopPropagation(); ThreadManager.unloadThread('${thread.id}')"
-                title="Unload thread from agent (move to Prime)">
+                title="Unload to Threads Catalogue">
                 <i class="fas fa-sign-out-alt"></i>
             </button>
         ` : '';

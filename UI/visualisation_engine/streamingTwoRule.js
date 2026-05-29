@@ -213,14 +213,10 @@ class TwoRuleStreamProcessor {
         // Release all pending packages
         await this.releaseReadyPackages();
 
-        // 🔥 FIX (May 29, 2026): Ensure buffering indicator is cleared before processing deferred renders
-        // If there are deferred renders, the buffering indicator should already be gone (cleared in renderVisualPackage)
-        // But as a safety net, remove it if it still exists
-        this.removeBufferingIndicator();
-
         // CRITICAL FIX (Jan 23, 2026): Process deferred renders after DOM attachment
         if (this.deferredRenders && this.deferredRenders.length > 0) {
             console.log(`🔄 TWO-RULE: Processing ${this.deferredRenders.length} deferred visualizations...`);
+            console.log(`🔄 TWO-RULE: Buffering indicator status before processing: ${this.loadingIndicator ? 'present' : 'not present'}`);
             
             // Wait for container to be in DOM (parent message should be attached by now)
             await new Promise(resolve => requestAnimationFrame(resolve));
@@ -231,14 +227,15 @@ class TwoRuleStreamProcessor {
                     console.log(`🎨 TWO-RULE: Rendering deferred ${deferred.type}...`);
                     console.log(`   Container in DOM: ${document.contains(deferred.container)}`);
                     
-                    // Clear loading placeholder
-                    deferred.container.innerHTML = '';
+                    // Clear loading placeholder from viz-content-area (inner div)
+                    const vizContentArea = deferred.container.querySelector('.viz-content-area') || deferred.container;
+                    vizContentArea.innerHTML = '';
                     
-                    // Render with full retry logic
+                    // Render with full retry logic - target the inner content area
                     await this.renderVisualization(
                         deferred.type,
                         deferred.content,
-                        deferred.container
+                        vizContentArea
                     );
                     
                     console.log(`✅ TWO-RULE: Deferred ${deferred.type} rendered successfully`);
@@ -246,8 +243,9 @@ class TwoRuleStreamProcessor {
                     console.error(`❌ TWO-RULE: Deferred ${deferred.type} render failed:`, error);
                     console.error(`   Error details:`, error.stack);
                     
-                    // Show error in container with more details
-                    deferred.container.innerHTML = `
+                    // Show error in the viz-content-area
+                    const vizContentArea = deferred.container.querySelector('.viz-content-area') || deferred.container;
+                    vizContentArea.innerHTML = `
                         <div class="viz-error" style="text-align: center; padding: 20px; color: var(--accent-red); background: rgba(239, 68, 68, 0.1); border-radius: 8px;">
                             <h3 style="margin: 0 0 8px 0; font-size: 16px;">⚠️ ${deferred.type.toUpperCase()} Render Failed</h3>
                             <p style="margin: 0; font-size: 13px; color: var(--text-secondary);">${error.message}</p>
@@ -260,8 +258,16 @@ class TwoRuleStreamProcessor {
                 }
             }
             
+            // Clear buffering indicator AFTER rendering all deferred visualizations
+            console.log(`🔥 TWO-RULE: Clearing buffering indicator after processing deferred renders`);
+            this.removeBufferingIndicator();
+            
             // Clear deferred queue
             this.deferredRenders = [];
+        } else {
+            // No deferred renders - clear buffering indicator if it exists
+            // This handles real-time streaming where visualization completes synchronously
+            this.removeBufferingIndicator();
         }
 
         console.log(`✅ TWO-RULE: Finalized (${this.stats.chunksProcessed} chunks, ${this.stats.markdownPackages} markdown, ${this.stats.visualPackages} visuals)`);
@@ -973,11 +979,6 @@ class TwoRuleStreamProcessor {
         if (!attached) {
             console.warn('⚠️ TWO-RULE: Container not in DOM after retries - will retry after message attachment');
             
-            // 🔥 FIX (May 29, 2026): CLEAR the buffering indicator when deferring visualization
-            // The original loadingIndicator with character count must be removed
-            // Otherwise it stays visible instead of showing the deferred visualization
-            this.removeBufferingIndicator();
-            
             // CRITICAL FIX (Jan 23, 2026): Defer rendering until message fully attached
             // Store deferred render task to execute after DOM attachment
             if (!this.deferredRenders) {
@@ -993,11 +994,13 @@ class TwoRuleStreamProcessor {
             
             console.log(`📌 TWO-RULE: Deferred ${pkg.subType} render (will execute after finalize)`);
             
-            // Show loading placeholder with themed spinner
-            vizContainer.innerHTML = `
-                <div class="viz-loading" style="text-align: center; padding: 40px; color: var(--text-secondary);">
-                    <i class="fas fa-spinner fa-spin" style="font-size: 32px; color: var(--accent-primary); margin-bottom: 12px; display: block;"></i>
-                    <p style="font-size: 14px; margin: 0;">Loading visualization...</p>
+            // Show a visual placeholder in the vizContainer while waiting for rendering
+            // Get the viz-content-area where visualization will actually render
+            const vizContentArea = vizContainer.querySelector('.viz-content-area') || vizContainer;
+            vizContentArea.innerHTML = `
+                <div style="text-align: center; padding: 40px; color: var(--text-secondary);">
+                    <div style="width: 32px; height: 32px; border: 3px solid var(--border-secondary); border-top: 3px solid var(--accent-primary); border-radius: 50%; animation: spin 1s linear infinite; margin: 0 auto 12px;"></div>
+                    <p style="font-size: 14px; margin: 0;">Loading ${pkg.subType.toUpperCase()} visualization...</p>
                 </div>
             `;
             
