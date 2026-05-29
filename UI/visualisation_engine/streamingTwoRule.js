@@ -213,6 +213,11 @@ class TwoRuleStreamProcessor {
         // Release all pending packages
         await this.releaseReadyPackages();
 
+        // 🔥 FIX (May 29, 2026): Ensure buffering indicator is cleared before processing deferred renders
+        // If there are deferred renders, the buffering indicator should already be gone (cleared in renderVisualPackage)
+        // But as a safety net, remove it if it still exists
+        this.removeBufferingIndicator();
+
         // CRITICAL FIX (Jan 23, 2026): Process deferred renders after DOM attachment
         if (this.deferredRenders && this.deferredRenders.length > 0) {
             console.log(`🔄 TWO-RULE: Processing ${this.deferredRenders.length} deferred visualizations...`);
@@ -967,6 +972,11 @@ class TwoRuleStreamProcessor {
 
         if (!attached) {
             console.warn('⚠️ TWO-RULE: Container not in DOM after retries - will retry after message attachment');
+            
+            // 🔥 FIX (May 29, 2026): CLEAR the buffering indicator when deferring visualization
+            // The original loadingIndicator with character count must be removed
+            // Otherwise it stays visible instead of showing the deferred visualization
+            this.removeBufferingIndicator();
             
             // CRITICAL FIX (Jan 23, 2026): Defer rendering until message fully attached
             // Store deferred render task to execute after DOM attachment

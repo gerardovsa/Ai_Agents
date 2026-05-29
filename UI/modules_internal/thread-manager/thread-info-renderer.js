@@ -75,9 +75,9 @@
                         </button>
                         <button class="btn btn-sm btn-danger" 
                                 onclick="event.stopPropagation(); AgentColumn.unloadThread(${agentId})"
-                                title="Unload thread from this agent">
+                                title="Unload to Threads Catalogue">
                             <i class="fas fa-eject"></i>
-                            Unload
+                            Unload to Threads Catalogue
                         </button>
                     </div>
                 `;
@@ -87,9 +87,9 @@
                     <div class="thread-info-actions">
                         <button class="btn btn-sm btn-danger" 
                                 onclick="event.stopPropagation(); PrimeAI.unloadThread()"
-                                title="Unload thread from Prime">
+                                title="Unload to Threads Catalogue">
                             <i class="fas fa-eject"></i>
-                            Unload
+                            Unload to Threads Catalogue
                         </button>
                     </div>
                 `;
@@ -109,8 +109,8 @@
                         ${includeButtons ? `
                             <button class="btn-close-thread" 
                                     onclick="event.stopPropagation(); ${isAgent ? `AgentColumn.unloadThread(${agentId})` : `PrimeAI.unloadThread()`}"
-                                    title="Unload thread" 
-                                    aria-label="Unload thread">
+                                    title="Unload to Threads Catalogue" 
+                                    aria-label="Unload to Threads Catalogue">
                                 <i class="fas fa-times"></i>
                             </button>
                         ` : ''}

@@ -241,7 +241,7 @@ const AgentColumn = (function () {
                     </div>
                     <div class="agent-menu-divider"></div>
                     <div class="agent-menu-item" onclick="event.stopPropagation(); AgentColumn.showHistory(${agentId})">
-                        <i class="fas fa-history"></i> Thread History
+                        <i class="fas fa-history"></i> Threads Catalogue
                     </div>
                     <div class="agent-menu-divider"></div>
                     <div class="agent-menu-item close-agent" onclick="event.stopPropagation(); AgentColumn.remove(${agentId})">
@@ -499,7 +499,7 @@ const AgentColumn = (function () {
                                 onclick="event.stopPropagation(); AgentColumn.showHistory(${agentId})" 
                                 style="display: flex; align-items: center; gap: 8px; font-size: 14px; line-height: 1;">
                             <i class="fas fa-history" style="font-size: 14px; margin: 0;"></i>
-                            Thread History
+                            Threads Catalogue
                         </button>
                     </div>
                 </div>
@@ -1515,7 +1515,7 @@ const AgentColumn = (function () {
     }
 
     /**
-     * Show thread history (delegates to ThreadManager)
+     * Show threads catalogue (delegates to ThreadManager)
      * @param {number} agentId - Agent ID
      */
     function showHistory(agentId) {

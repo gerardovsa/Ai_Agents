@@ -1870,7 +1870,7 @@ const MultiAgent = {
                                 </button>
                                 <button class="btn btn-secondary" onclick="event.stopPropagation(); ThreadManager.toggleThreadMenu()" style="display: flex; align-items: center; gap: 8px; font-size: 14px;">
                                     <i class="fas fa-history" style="font-size: 12px;"></i>
-                                    Thread History
+                                    Threads Catalogue
                                 </button>
                             </div>
                         </div>
@@ -2501,7 +2501,7 @@ const MultiAgent = {
                                     </button>
                                     <button class="btn btn-secondary" onclick="event.stopPropagation(); ThreadManager.toggleThreadMenu()" style="display: flex; align-items: center; gap: 8px; font-size: 14px;">
                                         <i class="fas fa-history" style="font-size: 12px;"></i>
-                                        Thread History
+                                        Threads Catalogue
                                     </button>
                                 </div>
                             </div>
@@ -2518,7 +2518,7 @@ const MultiAgent = {
         this.updateQuickNavBadge(agentId);
 
         // NOTE: Don't call renderThreadList() here - ThreadManager.unloadThread() handles inline badge update
-        // Calling it here would close the Thread History panel before the inline update can happen
+        // Calling it here would close the Threads Catalogue panel before the inline update can happen
         // ThreadManager.unloadThread() already calls loadThreadsFromBackend() to refresh data
 
         // Load thread in Prime if AI Agents tab is active
@@ -3131,14 +3131,14 @@ window.loadDeferredThreadMessages = async function () {
         }, 100);
     }
 
-    // Setup thread history as "dead zone" - drops here are ignored (no action)
+    // Setup threads catalogue as "dead zone" - drops here are ignored (no action)
     setTimeout(() => {
         const threadMenu = document.getElementById('thread-menu');
         if (threadMenu) {
             threadMenu.addEventListener('drop', (e) => {
                 e.stopPropagation();
                 e.preventDefault();
-                console.log('🛑 [Drop] Dropped in thread history - no action (dead zone)');
+                console.log('🛑 [Drop] Dropped in threads catalogue - no action (dead zone)');
                 // Clear all drag-over states
                 document.querySelectorAll('.drag-over').forEach(el => el.classList.remove('drag-over'));
             });
@@ -3146,7 +3146,7 @@ window.loadDeferredThreadMessages = async function () {
                 e.preventDefault();
                 e.dataTransfer.dropEffect = 'none'; // Show "not allowed" cursor
             });
-            console.log('✅ [Drop Zone] Thread history configured as dead zone (drops ignored)');
+            console.log('✅ [Drop Zone] Threads catalogue configured as dead zone (drops ignored)');
         }
     }, 150);
 
@@ -4324,7 +4324,7 @@ window.buildConversationHistoryForAPI = buildConversationHistoryForAPI;
 
 function closeAgentColumn(agentId) {
     // Simple confirmation dialog
-    if (!confirm(`Close ${getAgentName(agentId)}?\n\nThis will close the agent column and clear its conversation.`)) {
+    if (!confirm(`Close ${getAgentName(agentId)}?\n\nThis will close the agent column and unload the thread. The thread will remain visible in the Threads Catalogue.`)) {
         return;
     }
 
