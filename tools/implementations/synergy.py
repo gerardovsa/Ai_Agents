@@ -4001,6 +4001,674 @@ def synergy_update_subtask_field(
 # DEPRECATED TOOL ALIASES (for backwards compatibility)
 # ============================================================
 
+# ============================================================
+# VISIBILITY & MEMBER MANAGEMENT
+# ============================================================
+
+def synergy_update_visibility(
+    session_id: str,
+    visibility: str,
+    **kwargs
+) -> Dict[str, Any]:
+    """
+    Set who can see a Synergy session: private, shared, or team.
+
+    - 'private'  → only you (the owner)
+    - 'shared'   → you + anyone explicitly invited (use synergy_invite_member)
+    - 'team'     → everyone in your organisation
+
+    Only the session owner can change visibility.
+
+    Args:
+        session_id: Session ID to update
+        visibility: 'private' | 'shared' | 'team'
+
+    Returns:
+        Dict with success, session_id, visibility
+    """
+    if visibility not in ('private', 'shared', 'team'):
+        raise SynergyError(f"Invalid visibility '{visibility}'. Must be private, shared, or team.")
+    try:
+        response = requests.patch(
+            f"{SYNERGY_API_BASE}/{session_id}/visibility",
+            json={"visibility": visibility},
+            headers={"Content-Type": "application/json"},
+            timeout=10,
+        )
+        response.raise_for_status()
+        return response.json()
+    except requests.exceptions.RequestException as e:
+        raise SynergyError(f"Failed to update visibility for {session_id}: {e}")
+
+
+def synergy_invite_member(
+    session_id: str,
+    email: str,
+    **kwargs
+) -> Dict[str, Any]:
+    """
+    Invite a user to a 'shared' Synergy session by their email address.
+
+    The session must already be set to visibility='shared' (or the AI can call
+    synergy_update_visibility first).  The user must have an account on the platform.
+    Only the session owner can invite members.
+
+    Args:
+        session_id: Session ID
+        email: Email address of the person to invite
+
+    Returns:
+        Dict with success, user_id, username, email of the invited user
+    """
+    try:
+        response = requests.post(
+            f"{SYNERGY_API_BASE}/{session_id}/members",
+            json={"email": email},
+            headers={"Content-Type": "application/json"},
+            timeout=10,
+        )
+        response.raise_for_status()
+        data = response.json()
+        return {
+            "success": data.get("success", True),
+            "session_id": session_id,
+            "user_id": data.get("user_id"),
+            "username": data.get("username"),
+            "email": data.get("email"),
+            "message": f"✅ Invited {email} to session {session_id}",
+        }
+    except requests.exceptions.RequestException as e:
+        raise SynergyError(f"Failed to invite {email} to session {session_id}: {e}")
+
+
+def synergy_list_members(
+    session_id: str,
+    **kwargs
+) -> Dict[str, Any]:
+    """
+    List all users who have explicit access to a shared Synergy session.
+
+    Returns the owner plus all invited members with their usernames and emails.
+    Useful before adding or removing members to see the current access list.
+
+    Args:
+        session_id: Session ID
+
+    Returns:
+        Dict with success and members list (user_id, username, email, role)
+    """
+    try:
+        response = requests.get(
+            f"{SYNERGY_API_BASE}/{session_id}/members",
+            timeout=10,
+        )
+        response.raise_for_status()
+        data = response.json()
+        return {
+            "success": data.get("success", True),
+            "session_id": session_id,
+            "members": data.get("members", []),
+            "member_count": len(data.get("members", [])),
+        }
+    except requests.exceptions.RequestException as e:
+        raise SynergyError(f"Failed to list members for session {session_id}: {e}")
+
+
+def synergy_remove_member(
+    session_id: str,
+    member_user_id: int,
+    **kwargs
+) -> Dict[str, Any]:
+    """
+    Remove a user from a shared Synergy session's access list.
+
+    Only the session owner can remove members. Use synergy_list_members first
+    to find the numeric user_id of the person to remove.
+
+    Args:
+        session_id: Session ID
+        member_user_id: Numeric user ID to remove (from synergy_list_members)
+
+    Returns:
+        Dict with success and removed_user_id
+    """
+    try:
+        response = requests.delete(
+            f"{SYNERGY_API_BASE}/{session_id}/members/{member_user_id}",
+            headers={"Content-Type": "application/json"},
+            timeout=10,
+        )
+        response.raise_for_status()
+        data = response.json()
+        return {
+            "success": data.get("success", True),
+            "session_id": session_id,
+            "removed_user_id": member_user_id,
+            "message": f"✅ Removed user {member_user_id} from session {session_id}",
+        }
+    except requests.exceptions.RequestException as e:
+        raise SynergyError(f"Failed to remove member {member_user_id} from session {session_id}: {e}")
+
+
+# ============================================================
+# INTERNAL DOCUMENT LISTING
+# ============================================================
+
+def synergy_list_internal_docs(
+    session_id: str,
+    **kwargs
+) -> Dict[str, Any]:
+    """
+    List all internal documents attached to a Synergy session.
+
+    Use this before synergy_get_internal_doc when you don't know the doc_id.
+    Returns doc_id, title, doc_type, version, created_at, updated_at for each doc.
+
+    Args:
+        session_id: Session ID whose documents to list
+
+    Returns:
+        Dict with success, session_id, docs list, doc_count
+    """
+    try:
+        response = requests.get(
+            f"{SYNERGY_API_BASE}/internal-docs/list",
+            params={"session_id": session_id},
+            timeout=10,
+        )
+        response.raise_for_status()
+        data = response.json()
+        docs = data.get("docs", data.get("documents", []))
+        return {
+            "success": True,
+            "session_id": session_id,
+            "docs": docs,
+            "doc_count": len(docs),
+            "message": f"Found {len(docs)} internal document(s) for session {session_id}",
+        }
+    except requests.exceptions.RequestException as e:
+        raise SynergyError(f"Failed to list internal docs for session {session_id}: {e}")
+
+
+# ============================================================
+# MILESTONE COMMENTS
+# ============================================================
+
+def synergy_add_comment(
+    session_id: str,
+    milestone_id: str,
+    comment: str,
+    **kwargs
+) -> Dict[str, Any]:
+    """
+    Add a comment to a milestone within a Synergy session.
+
+    Comments are threaded discussion notes on a milestone — useful for
+    status updates, blockers, decisions, or progress notes that aren't
+    checklist items or next steps.
+
+    Args:
+        session_id: Parent session ID
+        milestone_id: Milestone ID to comment on (format: ms_<timestamp>)
+        comment: Comment text (plain text or markdown)
+
+    Returns:
+        Dict with success, comment_id, milestone_id
+    """
+    try:
+        response = requests.post(
+            f"{SYNERGY_API_BASE}/milestone/{milestone_id}/comment",
+            json={"session_id": session_id, "comment": comment},
+            headers={"Content-Type": "application/json"},
+            timeout=10,
+        )
+        response.raise_for_status()
+        data = response.json()
+        return {
+            "success": data.get("success", True),
+            "milestone_id": milestone_id,
+            "session_id": session_id,
+            "comment_id": data.get("comment_id"),
+            "message": f"✅ Comment added to milestone {milestone_id}",
+        }
+    except requests.exceptions.RequestException as e:
+        raise SynergyError(f"Failed to add comment to milestone {milestone_id}: {e}")
+
+
+# ============================================================
+# PLATFORM FILE BRIDGE — ATTACH FROM ONEDRIVE / SHAREPOINT / DRIVE
+# ============================================================
+
+def synergy_attach_platform_file(
+    session_id: str,
+    platform: str,
+    file_id: str,
+    display_name: str,
+    link_type: str = "view",
+    target: str = "session",
+    milestone_id: Optional[str] = None,
+    **kwargs
+) -> Dict[str, Any]:
+    """
+    Attach a file from OneDrive, SharePoint, or Google Drive to a Synergy session
+    or milestone in ONE call — no manual share-link generation needed.
+
+    This bridge tool:
+      1. Generates a shareable link from the platform (view or edit)
+      2. Appends it to the session's document list (or milestone doc list)
+
+    Supported platforms:
+      - 'onedrive'    → uses microsoft_onedrive_create_share_link
+      - 'sharepoint'  → uses microsoft_sharepoint_create_share_link
+      - 'google_drive'→ uses google_drive_share_file (makes viewable link)
+
+    Args:
+        session_id: Target session ID
+        platform: 'onedrive' | 'sharepoint' | 'google_drive'
+        file_id: File/item ID from the platform (e.g. OneDrive item ID, Drive file ID)
+        display_name: Human-readable name shown in Synergy (e.g. 'Q4 Proposal.docx')
+        link_type: 'view' (default) or 'edit'
+        target: 'session' (default) or 'milestone' — where to attach
+        milestone_id: Required when target='milestone'
+
+    Returns:
+        Dict with success, share_url, session_id, document_title
+    """
+    supported = ('onedrive', 'sharepoint', 'google_drive')
+    if platform not in supported:
+        raise SynergyError(f"Unsupported platform '{platform}'. Choose from: {supported}")
+    if target == 'milestone' and not milestone_id:
+        raise SynergyError("milestone_id is required when target='milestone'")
+
+    # Step 1: Generate share link from platform tool
+    share_url = None
+    try:
+        if platform == 'onedrive':
+            from tools.implementations.microsoft_onedrive import microsoft_onedrive_tools
+            result = microsoft_onedrive_tools.create_share_link(
+                item_id=file_id, link_type=link_type, scope='anonymous'
+            )
+            share_url = (result or {}).get('share_url') or (result or {}).get('url') or (result or {}).get('link')
+        elif platform == 'sharepoint':
+            from tools.implementations.microsoft_sharepoint import microsoft_sharepoint_tools
+            result = microsoft_sharepoint_tools.create_share_link(
+                item_id=file_id, link_type=link_type, scope='anonymous'
+            )
+            share_url = (result or {}).get('share_url') or (result or {}).get('url') or (result or {}).get('link')
+        elif platform == 'google_drive':
+            from tools.implementations.google_drive import google_drive_tools
+            role = 'reader' if link_type == 'view' else 'writer'
+            result = google_drive_tools.share_file(
+                file_id=file_id, type='anyone', role=role
+            )
+            share_url = (result or {}).get('web_view_link') or (result or {}).get('url')
+    except Exception as share_err:
+        raise SynergyError(
+            f"Failed to generate share link from {platform} for file {file_id}: {share_err}"
+        )
+
+    if not share_url:
+        raise SynergyError(
+            f"Platform {platform} returned no share URL for file {file_id}. "
+            "Check the file ID and that credentials are configured for this platform."
+        )
+
+    # Step 2: Attach to Synergy
+    doc_type_map = {
+        'onedrive': 'onedrive',
+        'sharepoint': 'sharepoint',
+        'google_drive': 'google_drive',
+    }
+    doc_type = doc_type_map[platform]
+
+    if target == 'milestone':
+        result = synergy_add_milestone_link(
+            session_id=session_id,
+            milestone_id=milestone_id,
+            title=display_name,
+            url=share_url,
+        )
+    else:
+        result = synergy_add_document(
+            session_id=session_id,
+            title=display_name,
+            url=share_url,
+            type=doc_type,
+        )
+
+    return {
+        "success": True,
+        "session_id": session_id,
+        "platform": platform,
+        "file_id": file_id,
+        "share_url": share_url,
+        "display_name": display_name,
+        "target": target,
+        "milestone_id": milestone_id,
+        "message": f"✅ Attached '{display_name}' from {platform} to {'milestone ' + milestone_id if milestone_id else 'session ' + session_id}",
+    }
+
+
+def synergy_attach_platform_file_to_doc(
+    doc_id: str,
+    platform: str,
+    file_id: str,
+    display_name: str,
+    link_type: str = "view",
+    **kwargs
+) -> Dict[str, Any]:
+    """
+    Attach a platform file link (OneDrive / SharePoint / Google Drive) into the
+    content of a Synergy internal document.
+
+    Generates a shareable link from the platform and appends a markdown hyperlink
+    to the end of the internal document's content.
+
+    Args:
+        doc_id: Internal document ID (format: int_doc_<timestamp>)
+        platform: 'onedrive' | 'sharepoint' | 'google_drive'
+        file_id: File/item ID on the platform
+        display_name: Label for the hyperlink in the document
+        link_type: 'view' (default) or 'edit'
+
+    Returns:
+        Dict with success, doc_id, share_url, display_name
+    """
+    supported = ('onedrive', 'sharepoint', 'google_drive')
+    if platform not in supported:
+        raise SynergyError(f"Unsupported platform '{platform}'. Choose from: {supported}")
+
+    # Step 1: Get share link (same logic as synergy_attach_platform_file)
+    share_url = None
+    try:
+        if platform == 'onedrive':
+            from tools.implementations.microsoft_onedrive import microsoft_onedrive_tools
+            result = microsoft_onedrive_tools.create_share_link(
+                item_id=file_id, link_type=link_type, scope='anonymous'
+            )
+            share_url = (result or {}).get('share_url') or (result or {}).get('url') or (result or {}).get('link')
+        elif platform == 'sharepoint':
+            from tools.implementations.microsoft_sharepoint import microsoft_sharepoint_tools
+            result = microsoft_sharepoint_tools.create_share_link(
+                item_id=file_id, link_type=link_type, scope='anonymous'
+            )
+            share_url = (result or {}).get('share_url') or (result or {}).get('url') or (result or {}).get('link')
+        elif platform == 'google_drive':
+            from tools.implementations.google_drive import google_drive_tools
+            role = 'reader' if link_type == 'view' else 'writer'
+            result = google_drive_tools.share_file(
+                file_id=file_id, type='anyone', role=role
+            )
+            share_url = (result or {}).get('web_view_link') or (result or {}).get('url')
+    except Exception as share_err:
+        raise SynergyError(
+            f"Failed to generate share link from {platform} for file {file_id}: {share_err}"
+        )
+
+    if not share_url:
+        raise SynergyError(f"Platform {platform} returned no share URL for file {file_id}.")
+
+    # Step 2: Append markdown link to doc content
+    existing = synergy_get_internal_doc(doc_id=doc_id)
+    current_content = existing.get('content', '')
+    appended = f"{current_content}\n\n[{display_name}]({share_url})"
+
+    update_result = synergy_update_internal_doc(doc_id=doc_id, content=appended)
+    return {
+        "success": True,
+        "doc_id": doc_id,
+        "platform": platform,
+        "file_id": file_id,
+        "share_url": share_url,
+        "display_name": display_name,
+        "message": f"✅ Appended link to '{display_name}' from {platform} in internal doc {doc_id}",
+    }
+
+
+# ============================================================
+# MICROSOFT SYNC (parity with synergy_sync_to_google)
+# ============================================================
+
+def synergy_sync_to_microsoft(
+    session_id: str,
+    sync_planner: bool = False,
+    sync_calendar: bool = False,
+    sync_todo: bool = False,
+    **kwargs
+) -> Dict[str, Any]:
+    """
+    Sync a Synergy session to Microsoft 365 services.
+
+    Mirror of synergy_sync_to_google but for Microsoft:
+      - Microsoft Planner: creates tasks for each milestone/task
+      - Outlook Calendar: creates a calendar event for the session due date
+      - Microsoft To Do: creates to-do items for next steps
+
+    The sync triggers a PATCH to the session with sync metadata; the backend
+    or a registered webhook handles the actual M365 API calls using the org's
+    Microsoft credentials.
+
+    Args:
+        session_id: Session ID to sync
+        sync_planner: Sync milestones/tasks → Microsoft Planner
+        sync_calendar: Sync due date → Outlook Calendar event
+        sync_todo: Sync next_steps → Microsoft To Do tasks
+
+    Returns:
+        Dict with success, session_id, synced services list
+    """
+    if not any([sync_planner, sync_calendar, sync_todo]):
+        raise SynergyError("At least one of sync_planner, sync_calendar, or sync_todo must be True.")
+    try:
+        payload = {
+            "updates": {},
+            "sync": {
+                "microsoft_planner": sync_planner,
+                "microsoft_calendar": sync_calendar,
+                "microsoft_todo": sync_todo,
+            }
+        }
+        response = requests.patch(
+            f"{SYNERGY_API_BASE}/{session_id}",
+            json=payload,
+            headers={"Content-Type": "application/json"},
+            timeout=15,
+        )
+        response.raise_for_status()
+        session = response.json()
+        synced = []
+        if sync_planner:
+            synced.append("Microsoft Planner")
+        if sync_calendar:
+            synced.append("Outlook Calendar")
+        if sync_todo:
+            synced.append("Microsoft To Do")
+        return {
+            "success": True,
+            "session_id": session_id,
+            "synced_to": synced,
+            "session": session,
+            "message": f"✅ Synced to {', '.join(synced)}",
+        }
+    except requests.exceptions.RequestException as e:
+        raise SynergyError(f"Failed to sync session {session_id} to Microsoft: {e}")
+
+
+# ============================================================
+# PLATFORM IMPORT — INGEST EXTERNAL DOCS INTO SYNERGY
+# ============================================================
+
+def synergy_import_from_sharepoint(
+    session_id: str,
+    site_id: str,
+    list_id_or_file_id: str,
+    import_as: str = "doc",
+    doc_title: Optional[str] = None,
+    **kwargs
+) -> Dict[str, Any]:
+    """
+    Import content from a SharePoint List or document library into a Synergy
+    internal document.
+
+    For document files: reads the file metadata and creates an internal doc
+    with a summary + share link.
+    For SharePoint Lists: reads list items and formats them as a markdown table
+    in a new internal document.
+
+    Args:
+        session_id: Target Synergy session ID
+        site_id: SharePoint site ID or URL
+        list_id_or_file_id: List ID (for List import) or item/file ID (for file)
+        import_as: 'doc' (richtext internal doc, default) | 'link' (just attach link)
+        doc_title: Title for the created internal doc (auto-generated if omitted)
+
+    Returns:
+        Dict with success, doc_id or link, session_id
+    """
+    try:
+        # Try to get file info first
+        from tools.implementations.microsoft_sharepoint import microsoft_sharepoint_tools
+        # Try listing items (treats as List)
+        try:
+            items_result = microsoft_sharepoint_tools.get_list_items(
+                site_id=site_id, list_id=list_id_or_file_id
+            )
+            items = items_result.get('items', []) if isinstance(items_result, dict) else []
+            if items:
+                # Format as markdown table
+                headers = list(items[0].keys()) if items else []
+                rows = [headers]
+                for item in items[:50]:  # cap at 50 rows
+                    rows.append([str(item.get(h, '')) for h in headers])
+                header_row = ' | '.join(headers)
+                sep_row = ' | '.join(['---'] * len(headers))
+                data_rows = '\n'.join(' | '.join(r) for r in rows[1:])
+                md_content = f"# SharePoint List Import\n\n| {header_row} |\n| {sep_row} |\n{data_rows}\n"
+                title = doc_title or f"SharePoint List — {list_id_or_file_id}"
+                if import_as == 'doc':
+                    doc_result = synergy_create_internal_doc(
+                        session_id=session_id, title=title, content=md_content
+                    )
+                    return {
+                        "success": True,
+                        "session_id": session_id,
+                        "doc_id": doc_result.get("doc_id"),
+                        "title": title,
+                        "rows_imported": len(items),
+                        "message": f"✅ Imported {len(items)} SharePoint list items as internal doc",
+                    }
+        except Exception:
+            pass
+
+        # Fall back to treating as a file — generate share link + attach
+        title = doc_title or f"SharePoint Document — {list_id_or_file_id}"
+        attach_result = synergy_attach_platform_file(
+            session_id=session_id,
+            platform='sharepoint',
+            file_id=list_id_or_file_id,
+            display_name=title,
+        )
+        return {
+            "success": True,
+            "session_id": session_id,
+            "share_url": attach_result.get("share_url"),
+            "title": title,
+            "message": f"✅ Attached SharePoint item as link in session {session_id}",
+        }
+
+    except SynergyError:
+        raise
+    except Exception as e:
+        raise SynergyError(f"Failed to import from SharePoint: {e}")
+
+
+def synergy_import_from_drive(
+    session_id: str,
+    file_id: str,
+    import_as: str = "doc",
+    doc_title: Optional[str] = None,
+    **kwargs
+) -> Dict[str, Any]:
+    """
+    Import content from a Google Drive file into a Synergy internal document.
+
+    For Google Docs/Sheets: exports content as plain text and creates a new
+    internal Synergy doc with that content.
+    For other file types: creates a viewable share link and attaches it to the session.
+
+    Args:
+        session_id: Target Synergy session ID
+        file_id: Google Drive file ID
+        import_as: 'doc' (create internal doc, default) | 'link' (attach share link)
+        doc_title: Title for the new internal doc (uses Drive filename if omitted)
+
+    Returns:
+        Dict with success, doc_id or share_url, session_id
+    """
+    try:
+        from tools.implementations.google_drive import google_drive_tools
+
+        # Get file metadata
+        file_info = google_drive_tools.get_file(file_id=file_id) or {}
+        mime = file_info.get('mimeType', '')
+        name = doc_title or file_info.get('name', f'Drive file {file_id}')
+
+        google_doc_mimes = (
+            'application/vnd.google-apps.document',
+            'application/vnd.google-apps.spreadsheet',
+            'application/vnd.google-apps.presentation',
+        )
+
+        if import_as == 'doc' and mime in google_doc_mimes:
+            # Export as plain text
+            try:
+                export_mime = 'text/plain'
+                export_result = google_drive_tools.export_file(
+                    file_id=file_id, mime_type=export_mime
+                )
+                content = export_result if isinstance(export_result, str) else (
+                    export_result.get('content', '') if isinstance(export_result, dict) else ''
+                )
+                if content:
+                    doc_result = synergy_create_internal_doc(
+                        session_id=session_id, title=name, content=content[:50000]
+                    )
+                    return {
+                        "success": True,
+                        "session_id": session_id,
+                        "doc_id": doc_result.get("doc_id"),
+                        "title": name,
+                        "chars_imported": len(content),
+                        "message": f"✅ Imported Google Drive document '{name}' as internal doc",
+                    }
+            except Exception:
+                pass  # fall through to link attach
+
+        # Attach as share link
+        attach_result = synergy_attach_platform_file(
+            session_id=session_id,
+            platform='google_drive',
+            file_id=file_id,
+            display_name=name,
+        )
+        return {
+            "success": True,
+            "session_id": session_id,
+            "share_url": attach_result.get("share_url"),
+            "title": name,
+            "message": f"✅ Attached Google Drive file '{name}' as link in session {session_id}",
+        }
+
+    except SynergyError:
+        raise
+    except Exception as e:
+        raise SynergyError(f"Failed to import from Google Drive: {e}")
+
+
+# ============================================================
+# DEPRECATED TOOL ALIASES (for backwards compatibility)
+# ============================================================
+
 def synergy_create_session_complete(**kwargs):
     """DEPRECATED: Use synergy_create_session instead"""
     return synergy_create_session(**kwargs)

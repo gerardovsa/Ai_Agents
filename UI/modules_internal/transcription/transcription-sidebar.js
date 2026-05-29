@@ -55,6 +55,23 @@ class SharedTranscriptionState {
             return;
         }
 
+        // Route to selected live engine
+        try {
+            const sttStored = localStorage.getItem('transcription-stt-settings');
+            const sttParsed = sttStored ? JSON.parse(sttStored) : {};
+            const liveEngine = sttParsed.liveEngine || 'browser';
+            if (liveEngine !== 'browser') {
+                this.recordingSource = source;
+                this.customTranscriptCallback = transcriptCallback;
+                if (liveEngine === 'assemblyai')      return await this.startAssemblyAIRecording(source, transcriptCallback);
+                if (liveEngine === 'deepgram')        return await this.startDeepgramRecording(source, transcriptCallback);
+                if (liveEngine === 'openai-realtime') return await this.startOpenAIRealtimeRecording(source, transcriptCallback);
+                if (liveEngine === 'speechmatics')   return await this.startSpeechmaticsRecording(source, transcriptCallback);
+            }
+        } catch (e) {
+            console.warn('[SHARED STATE] Engine preference check failed, using browser STT:', e);
+        }
+
         this.recordingSource = source;
         this.customTranscriptCallback = transcriptCallback; // Store custom callback for agent-specific routing
         console.log(`[SHARED STATE] Starting recording from ${source}${transcriptCallback ? ' with custom callback' : ''}...`);
@@ -238,6 +255,59 @@ class SharedTranscriptionState {
 
         console.log('[SHARED STATE] Stopping recording...');
 
+        // Clean up AssemblyAI WebSocket if active
+        if (this.assemblyWS) {
+            try { this.assemblyWS.send(JSON.stringify({ type: 'Terminate' })); } catch (e) {}
+            try { this.assemblyWS.close(); } catch (e) {}
+            this.assemblyWS = null;
+        }
+        if (this.assemblyAudioProcessor) {
+            const { processor, source_node, audioContext } = this.assemblyAudioProcessor;
+            try { processor.disconnect(); } catch (e) {}
+            try { source_node.disconnect(); } catch (e) {}
+            try { audioContext.close(); } catch (e) {}
+            this.assemblyAudioProcessor = null;
+        }
+        // Clean up Deepgram WebSocket if active
+        if (this.deepgramWS) {
+            try { this.deepgramWS.send(JSON.stringify({ type: 'CloseStream' })); } catch (e) {}
+            try { this.deepgramWS.close(); } catch (e) {}
+            this.deepgramWS = null;
+        }
+        if (this.deepgramAudioProcessor) {
+            const { processor, source_node, audioContext } = this.deepgramAudioProcessor;
+            try { processor.disconnect(); } catch (e) {}
+            try { source_node.disconnect(); } catch (e) {}
+            try { audioContext.close(); } catch (e) {}
+            this.deepgramAudioProcessor = null;
+        }
+        // Clean up OpenAI Realtime WebSocket if active
+        if (this.openaiRealtimeWS) {
+            try { this.openaiRealtimeWS.send(JSON.stringify({ type: 'session.delete' })); } catch (e) {}
+            try { this.openaiRealtimeWS.close(); } catch (e) {}
+            this.openaiRealtimeWS = null;
+        }
+        if (this.openaiRealtimeAudioProcessor) {
+            const { processor, source_node, audioContext } = this.openaiRealtimeAudioProcessor;
+            try { processor.disconnect(); } catch (e) {}
+            try { source_node.disconnect(); } catch (e) {}
+            try { audioContext.close(); } catch (e) {}
+            this.openaiRealtimeAudioProcessor = null;
+        }
+        // Clean up Speechmatics WebSocket if active
+        if (this.speechmaticsWS) {
+            try { this.speechmaticsWS.send(JSON.stringify({ message: 'EndOfStream', last_seq_no: 0 })); } catch (e) {}
+            try { this.speechmaticsWS.close(); } catch (e) {}
+            this.speechmaticsWS = null;
+        }
+        if (this.speechmaticsAudioProcessor) {
+            const { processor, source_node, audioContext } = this.speechmaticsAudioProcessor;
+            try { processor.disconnect(); } catch (e) {}
+            try { source_node.disconnect(); } catch (e) {}
+            try { audioContext.close(); } catch (e) {}
+            this.speechmaticsAudioProcessor = null;
+        }
+
         // Stop browser recognition
         if (this.browserRecognition) {
             try {
@@ -285,6 +355,351 @@ class SharedTranscriptionState {
     getAudioBlob() {
         console.warn('[SHARED STATE] getAudioBlob called but MediaRecorder removed (Browser STT only)');
         return null;
+    }
+
+    /**
+     * AssemblyAI real-time streaming recording.
+     * Gets a short-lived token from the backend then opens a WebSocket to
+     * AssemblyAI and streams raw PCM16 chunks from the microphone.
+     */
+    async startAssemblyAIRecording(source, transcriptCallback) {
+        console.log('[SHARED STATE] Starting AssemblyAI recording...');
+        try {
+            // 1. Fetch a short-lived streaming token from our backend
+            const tokenResp = await fetch('/api/transcription/assemblyai-token', {
+                headers: { 'Authorization': `Bearer ${localStorage.getItem('authToken') || ''}` }
+            });
+            const tokenData = await tokenResp.json();
+            if (!tokenData.token) {
+                const msg = tokenData.error || 'AssemblyAI not configured for this organisation';
+                this.trigger('onError', msg);
+                throw new Error(msg);
+            }
+
+            // 2. Capture microphone at 16kHz
+            const audioStream = await navigator.mediaDevices.getUserMedia({
+                audio: { sampleRate: 16000, channelCount: 1, echoCancellation: true, noiseSuppression: true }
+            });
+            this.audioStream = audioStream;
+            this.currentAudioSource = 'microphone';
+            this.startAudioLevelMonitoring(audioStream);
+
+            // 3. Open WebSocket to AssemblyAI
+            const wsUrl = `wss://streaming.assemblyai.com/v3/ws?speech_model=u3-rt-pro&sample_rate=16000&token=${encodeURIComponent(tokenData.token)}`;
+            const ws = new WebSocket(wsUrl);
+            this.assemblyWS = ws;
+
+            // 4. Stream PCM16 via ScriptProcessorNode (800 frames = 50ms at 16kHz)
+            const audioCtx = new AudioContext({ sampleRate: 16000 });
+            const sourceNode = audioCtx.createMediaStreamSource(audioStream);
+            const processor = audioCtx.createScriptProcessor(800, 1, 1);
+
+            processor.onaudioprocess = (e) => {
+                if (!this.isRecording || ws.readyState !== WebSocket.OPEN) return;
+                const float32 = e.inputBuffer.getChannelData(0);
+                const int16 = new Int16Array(float32.length);
+                for (let i = 0; i < float32.length; i++) {
+                    int16[i] = Math.max(-32768, Math.min(32767, Math.round(float32[i] * 32767)));
+                }
+                ws.send(int16.buffer);
+            };
+
+            sourceNode.connect(processor);
+            processor.connect(audioCtx.destination);
+            this.assemblyAudioProcessor = { processor, source_node: sourceNode, audioContext: audioCtx };
+
+            // 5. Handle WebSocket events
+            ws.onopen = () => {
+                console.log('[SHARED STATE] AssemblyAI WebSocket connected');
+                this.isRecording = true;
+                this.trigger('onStart', source);
+                console.log('[SHARED STATE] ✅ AssemblyAI recording started');
+            };
+
+            ws.onmessage = (evt) => {
+                try {
+                    const data = JSON.parse(evt.data);
+                    if (data.type === 'Turn') {
+                        const text = data.transcript || '';
+                        const isFinal = data.end_of_turn === true;
+                        if (this.customTranscriptCallback) {
+                            this.customTranscriptCallback(isFinal ? text : '', isFinal ? '' : text);
+                        }
+                        this.trigger('onTranscript', {
+                            final: isFinal ? text : '',
+                            interim: isFinal ? '' : text,
+                            confidence: 0.95
+                        }, source);
+                    } else if (data.type === 'Begin') {
+                        console.log('[SHARED STATE] AssemblyAI session started:', data.id);
+                    } else if (data.type === 'Termination') {
+                        console.log('[SHARED STATE] AssemblyAI session terminated. Duration:', data.session_duration_seconds, 's');
+                    }
+                } catch (e) {
+                    console.warn('[SHARED STATE] AssemblyAI message parse error:', e);
+                }
+            };
+
+            ws.onerror = (e) => {
+                console.error('[SHARED STATE] AssemblyAI WebSocket error:', e);
+                this.trigger('onError', 'AssemblyAI connection error');
+            };
+
+            ws.onclose = (e) => {
+                console.log('[SHARED STATE] AssemblyAI WebSocket closed. Code:', e.code);
+                if (this.isRecording) {
+                    this.stopRecording();
+                }
+            };
+
+        } catch (error) {
+            console.error('[SHARED STATE] AssemblyAI recording failed:', error);
+            this.trigger('onError', error.message);
+            throw error;
+        }
+    }
+
+    /**
+     * Deepgram Nova-3 real-time streaming.
+     * GDPR/EU-friendly (EU data residency), built-in speaker diarization, fastest WER.
+     * Gets a short-lived temporary key from our backend, then streams PCM16 to Deepgram's WebSocket.
+     */
+    async startDeepgramRecording(source, transcriptCallback) {
+        console.log('[SHARED STATE] Starting Deepgram recording...');
+        try {
+            const tokenResp = await fetch('/api/transcription/deepgram-token', {
+                headers: { 'Authorization': `Bearer ${localStorage.getItem('authToken') || ''}` }
+            });
+            const tokenData = await tokenResp.json();
+            if (!tokenData.token) {
+                const msg = tokenData.error || 'Deepgram not configured for this organisation';
+                this.trigger('onError', msg);
+                throw new Error(msg);
+            }
+
+            const audioStream = await navigator.mediaDevices.getUserMedia({
+                audio: { sampleRate: 16000, channelCount: 1, echoCancellation: true, noiseSuppression: true }
+            });
+            this.audioStream = audioStream;
+            this.currentAudioSource = 'microphone';
+            this.startAudioLevelMonitoring(audioStream);
+
+            const params = new URLSearchParams({
+                model: 'nova-3', smart_format: 'true', diarize: 'true',
+                punctuate: 'true', encoding: 'linear16', sample_rate: '16000', channels: '1'
+            });
+            const ws = new WebSocket(`wss://api.deepgram.com/v1/listen?${params}`, ['token', tokenData.token]);
+            this.deepgramWS = ws;
+
+            const audioCtx = new AudioContext({ sampleRate: 16000 });
+            const sourceNode = audioCtx.createMediaStreamSource(audioStream);
+            const processor = audioCtx.createScriptProcessor(4096, 1, 1);
+            processor.onaudioprocess = (e) => {
+                if (!this.isRecording || ws.readyState !== WebSocket.OPEN) return;
+                const float32 = e.inputBuffer.getChannelData(0);
+                const int16 = new Int16Array(float32.length);
+                for (let i = 0; i < float32.length; i++) {
+                    int16[i] = Math.max(-32768, Math.min(32767, Math.round(float32[i] * 32767)));
+                }
+                ws.send(int16.buffer);
+            };
+            sourceNode.connect(processor);
+            processor.connect(audioCtx.destination);
+            this.deepgramAudioProcessor = { processor, source_node: sourceNode, audioContext: audioCtx };
+
+            ws.onopen = () => {
+                this.isRecording = true;
+                this.trigger('onStart', source);
+                console.log('[SHARED STATE] ✅ Deepgram recording started');
+            };
+            ws.onmessage = (evt) => {
+                try {
+                    const data = JSON.parse(evt.data);
+                    if (data.type === 'Results') {
+                        const alt = data.channel?.alternatives?.[0];
+                        const text = alt?.transcript || '';
+                        const isFinal = data.is_final === true;
+                        if (text) {
+                            if (this.customTranscriptCallback) this.customTranscriptCallback(isFinal ? text : '', isFinal ? '' : text);
+                            this.trigger('onTranscript', { final: isFinal ? text : '', interim: isFinal ? '' : text, confidence: alt?.confidence || 0.9 }, source);
+                        }
+                    }
+                } catch (e) { console.warn('[SHARED STATE] Deepgram parse error:', e); }
+            };
+            ws.onerror = (e) => { console.error('[SHARED STATE] Deepgram WS error:', e); this.trigger('onError', 'Deepgram connection error'); };
+            ws.onclose = () => { if (this.isRecording) this.stopRecording(); };
+        } catch (error) {
+            console.error('[SHARED STATE] Deepgram recording failed:', error);
+            this.trigger('onError', error.message);
+            throw error;
+        }
+    }
+
+    /**
+     * OpenAI Realtime API — GPT-4o quality transcription + full dialogue capability.
+     * Exchanges org's OpenAI key for a short-lived ephemeral token, then opens the Realtime WebSocket.
+     * Base64-encodes PCM16 audio chunks as JSON messages (OpenAI Realtime protocol).
+     */
+    async startOpenAIRealtimeRecording(source, transcriptCallback) {
+        console.log('[SHARED STATE] Starting OpenAI Realtime recording...');
+        try {
+            const tokenResp = await fetch('/api/transcription/openai-realtime-token', {
+                headers: { 'Authorization': `Bearer ${localStorage.getItem('authToken') || ''}` }
+            });
+            const tokenData = await tokenResp.json();
+            if (!tokenData.token) {
+                const msg = tokenData.error || 'OpenAI not configured for this organisation';
+                this.trigger('onError', msg);
+                throw new Error(msg);
+            }
+
+            const audioStream = await navigator.mediaDevices.getUserMedia({
+                audio: { sampleRate: 24000, channelCount: 1, echoCancellation: true, noiseSuppression: true }
+            });
+            this.audioStream = audioStream;
+            this.currentAudioSource = 'microphone';
+            this.startAudioLevelMonitoring(audioStream);
+
+            const model = tokenData.model || 'gpt-4o-realtime-preview';
+            const ws = new WebSocket(
+                `wss://api.openai.com/v1/realtime?model=${model}`,
+                ['realtime', `openai-insecure-api-key.${tokenData.token}`, 'openai-beta.realtime-v1']
+            );
+            this.openaiRealtimeWS = ws;
+
+            const audioCtx = new AudioContext({ sampleRate: 24000 });
+            const sourceNode = audioCtx.createMediaStreamSource(audioStream);
+            const processor = audioCtx.createScriptProcessor(4096, 1, 1);
+            processor.onaudioprocess = (e) => {
+                if (!this.isRecording || ws.readyState !== WebSocket.OPEN) return;
+                const float32 = e.inputBuffer.getChannelData(0);
+                const int16 = new Int16Array(float32.length);
+                for (let i = 0; i < float32.length; i++) {
+                    int16[i] = Math.max(-32768, Math.min(32767, Math.round(float32[i] * 32767)));
+                }
+                const bytes = new Uint8Array(int16.buffer);
+                let binary = '';
+                for (let i = 0; i < bytes.byteLength; i++) binary += String.fromCharCode(bytes[i]);
+                ws.send(JSON.stringify({ type: 'input_audio_buffer.append', audio: btoa(binary) }));
+            };
+            sourceNode.connect(processor);
+            processor.connect(audioCtx.destination);
+            this.openaiRealtimeAudioProcessor = { processor, source_node: sourceNode, audioContext: audioCtx };
+
+            ws.onopen = () => {
+                // Configure session for transcription mode
+                ws.send(JSON.stringify({
+                    type: 'session.update',
+                    session: {
+                        modalities: ['text'],
+                        input_audio_transcription: { model: 'whisper-1' },
+                        turn_detection: { type: 'server_vad', silence_duration_ms: 500 }
+                    }
+                }));
+                this.isRecording = true;
+                this.trigger('onStart', source);
+                console.log('[SHARED STATE] ✅ OpenAI Realtime recording started');
+            };
+            ws.onmessage = (evt) => {
+                try {
+                    const data = JSON.parse(evt.data);
+                    if (data.type === 'conversation.item.input_audio_transcription.completed') {
+                        const text = data.transcript || '';
+                        if (this.customTranscriptCallback) this.customTranscriptCallback(text, '');
+                        this.trigger('onTranscript', { final: text, interim: '', confidence: 0.97 }, source);
+                    } else if (data.type === 'input_audio_buffer.speech_started') {
+                        this.trigger('onTranscript', { final: '', interim: '\u2026', confidence: 0 }, source);
+                    }
+                } catch (e) {}
+            };
+            ws.onerror = (e) => { console.error('[SHARED STATE] OpenAI Realtime error:', e); this.trigger('onError', 'OpenAI Realtime connection error'); };
+            ws.onclose = () => { if (this.isRecording) this.stopRecording(); };
+        } catch (error) {
+            console.error('[SHARED STATE] OpenAI Realtime recording failed:', error);
+            this.trigger('onError', error.message);
+            throw error;
+        }
+    }
+
+    /**
+     * Speechmatics real-time streaming. EU WebSocket endpoint — GDPR-native.
+     * UK/EU company, best accuracy on accented English, speaker diarization built-in.
+     * Creates a short-lived JWT from our backend, then streams raw PCM16 to eu2.rt.speechmatics.com.
+     */
+    async startSpeechmaticsRecording(source, transcriptCallback) {
+        console.log('[SHARED STATE] Starting Speechmatics recording...');
+        try {
+            const tokenResp = await fetch('/api/transcription/speechmatics-token', {
+                headers: { 'Authorization': `Bearer ${localStorage.getItem('authToken') || ''}` }
+            });
+            const tokenData = await tokenResp.json();
+            if (!tokenData.token) {
+                const msg = tokenData.error || 'Speechmatics not configured for this organisation';
+                this.trigger('onError', msg);
+                throw new Error(msg);
+            }
+
+            const audioStream = await navigator.mediaDevices.getUserMedia({
+                audio: { sampleRate: 16000, channelCount: 1, echoCancellation: true, noiseSuppression: true }
+            });
+            this.audioStream = audioStream;
+            this.currentAudioSource = 'microphone';
+            this.startAudioLevelMonitoring(audioStream);
+
+            // EU endpoint — data stays in UK/EU for GDPR compliance
+            const ws = new WebSocket(`wss://eu2.rt.speechmatics.com/v2?jwt=${encodeURIComponent(tokenData.token)}`);
+            this.speechmaticsWS = ws;
+
+            const audioCtx = new AudioContext({ sampleRate: 16000 });
+            const sourceNode = audioCtx.createMediaStreamSource(audioStream);
+            const processor = audioCtx.createScriptProcessor(4096, 1, 1);
+            processor.onaudioprocess = (e) => {
+                if (!this.isRecording || ws.readyState !== WebSocket.OPEN) return;
+                const float32 = e.inputBuffer.getChannelData(0);
+                const int16 = new Int16Array(float32.length);
+                for (let i = 0; i < float32.length; i++) {
+                    int16[i] = Math.max(-32768, Math.min(32767, Math.round(float32[i] * 32767)));
+                }
+                ws.send(int16.buffer);
+            };
+            sourceNode.connect(processor);
+            processor.connect(audioCtx.destination);
+            this.speechmaticsAudioProcessor = { processor, source_node: sourceNode, audioContext: audioCtx };
+
+            ws.onopen = () => {
+                ws.send(JSON.stringify({
+                    message: 'StartRecognition',
+                    audio_format: { type: 'raw', encoding: 'pcm_s16le', sample_rate: 16000 },
+                    transcription_config: {
+                        language: 'en',
+                        enable_partials: true,
+                        speaker_diarization_config: { max_speakers: 10 }
+                    }
+                }));
+                this.isRecording = true;
+                this.trigger('onStart', source);
+                console.log('[SHARED STATE] ✅ Speechmatics recording started');
+            };
+            ws.onmessage = (evt) => {
+                try {
+                    const data = JSON.parse(evt.data);
+                    if (data.message === 'AddTranscript') {
+                        const text = data.metadata?.transcript || '';
+                        if (text && this.customTranscriptCallback) this.customTranscriptCallback(text, '');
+                        if (text) this.trigger('onTranscript', { final: text, interim: '', confidence: 0.92 }, source);
+                    } else if (data.message === 'AddPartialTranscript') {
+                        const text = data.metadata?.transcript || '';
+                        if (text) this.trigger('onTranscript', { final: '', interim: text, confidence: 0 }, source);
+                    }
+                } catch (e) { console.warn('[SHARED STATE] Speechmatics parse error:', e); }
+            };
+            ws.onerror = (e) => { console.error('[SHARED STATE] Speechmatics error:', e); this.trigger('onError', 'Speechmatics connection error'); };
+            ws.onclose = () => { if (this.isRecording) this.stopRecording(); };
+        } catch (error) {
+            console.error('[SHARED STATE] Speechmatics recording failed:', error);
+            this.trigger('onError', error.message);
+            throw error;
+        }
     }
 
     // Start audio preview BEFORE recording (tries system audio first, then microphone)
@@ -998,12 +1413,17 @@ class TranscriptionSidebarController {
                 if (durationSpan) durationSpan.textContent = this.formatDuration(duration);
             }
 
-            // Send to Whisper with language preference
-            if (statusSpan) statusSpan.textContent = 'Transcribing with Local Whisper AI...';
+            // Send to selected engine
+            const uploadEngine = document.querySelector('input[name="upload-engine"]:checked')?.value || 'local';
+            const engineLabels = {
+                'local': 'Local Whisper', 'openai': 'OpenAI gpt-4o-transcribe',
+                'deepgram': 'Deepgram Nova-3', 'assemblyai-async': 'AssemblyAI', 'speechmatics': 'Speechmatics'
+            };
+            if (statusSpan) statusSpan.textContent = `Transcribing with ${engineLabels[uploadEngine] || uploadEngine}...`;
             if (progressBar) progressBar.style.width = '50%';
             if (progressText) progressText.textContent = '50%';
 
-            const result = await this.sendFileToWhisper(audioBlob, file.name);
+            const result = await this.sendFileForTranscription(uploadEngine, audioBlob, file.name);
 
             if (progressBar) progressBar.style.width = '90%';
             if (progressText) progressText.textContent = '90%';
@@ -1135,6 +1555,41 @@ class TranscriptionSidebarController {
                 reject(new Error('Failed to load video'));
             };
         });
+    }
+
+    async sendFileForTranscription(engine, audioBlob, filename) {
+        const endpoint = '/api/transcribe';
+        const formData = new FormData();
+        formData.append('file', audioBlob, filename);
+        formData.append('engine', engine);
+
+        const diarizeCheckbox = document.getElementById('transcription-speaker-diarization');
+        if (diarizeCheckbox?.checked) formData.append('diarize', 'true');
+
+        const languageSelect = document.getElementById('whisper-language-select');
+        if (languageSelect && languageSelect.value !== 'auto') {
+            formData.append('language', languageSelect.value);
+        }
+
+        const response = await fetch(endpoint, {
+            method: 'POST',
+            headers: { 'Authorization': `Bearer ${localStorage.getItem('authToken') || ''}` },
+            body: formData
+        });
+
+        if (!response.ok) {
+            const errorText = await response.text();
+            throw new Error(`Transcription error (${engine}): ${response.status} - ${errorText}`);
+        }
+
+        const result = await response.json();
+        return {
+            transcript: result.transcript || result.text || '',
+            language: result.language || 'unknown',
+            confidence: result.confidence || null,
+            duration: result.duration || null,
+            speakers: result.speakers || null
+        };
     }
 
     async sendFileToWhisper(audioBlob, filename) {
@@ -1515,6 +1970,10 @@ class TranscriptionSidebarController {
             } catch (e) {
                 console.warn('[TRANSCRIPTION SIDEBAR] Failed to load history:', e);
             }
+        }
+        // Check all engine key statuses whenever settings tab opens
+        if (tabName === 'settings') {
+            this.checkEnginesStatus();
         }
     }
 
@@ -3456,6 +3915,123 @@ class TranscriptionSidebarController {
         alert('STT settings saved successfully');
     }
 
+    saveEngineSettings() {
+        const selected = document.querySelector('input[name="live-engine"]:checked')?.value || 'browser';
+        const stored = localStorage.getItem('transcription-stt-settings');
+        const settings = stored ? JSON.parse(stored) : {};
+        settings.liveEngine = selected;
+        localStorage.setItem('transcription-stt-settings', JSON.stringify(settings));
+        console.log('[TRANSCRIPTION SIDEBAR] Engine settings saved:', selected);
+        const labels = {
+            'browser': 'Browser STT', 'assemblyai': 'AssemblyAI Streaming',
+            'openai-realtime': 'OpenAI Realtime', 'deepgram': 'Deepgram Nova-3', 'speechmatics': 'Speechmatics'
+        };
+        alert(`Engine saved: ${labels[selected] || selected}`);
+    }
+
+    async checkEnginesStatus() {
+        try {
+            const resp = await fetch('/api/transcription/engines-status', {
+                headers: { 'Authorization': `Bearer ${localStorage.getItem('authToken') || ''}` }
+            });
+            if (!resp.ok) return;
+            const data = await resp.json();
+            const engines = data.engines || {};
+
+            // Map: platform key → live engine status element + upload chip id
+            const statusMap = [
+                { key: 'assemblyai',   elId: 'assemblyai-key-status',       radioId: 'engine-assemblyai',      uploadId: 'upload-engine-assemblyai', name: 'AssemblyAI',       fallbackEngine: 'browser' },
+                { key: 'openai',       elId: 'openai-realtime-key-status',  radioId: 'engine-openai-realtime', uploadId: 'upload-engine-openai',     name: 'OpenAI Realtime',  fallbackEngine: 'browser' },
+                { key: 'deepgram',     elId: 'deepgram-key-status',         radioId: 'engine-deepgram',        uploadId: 'upload-engine-deepgram',   name: 'Deepgram',         fallbackEngine: 'browser' },
+                { key: 'speechmatics', elId: 'speechmatics-key-status',     radioId: 'engine-speechmatics',    uploadId: 'upload-engine-speechmatics', name: 'Speechmatics',   fallbackEngine: 'browser' },
+            ];
+
+            const stored = localStorage.getItem('transcription-stt-settings');
+            const settings = stored ? JSON.parse(stored) : {};
+
+            for (const entry of statusMap) {
+                const el = document.getElementById(entry.elId);
+                const radio = document.getElementById(entry.radioId);
+                const uploadRadio = document.getElementById(entry.uploadId);
+                const uploadLabel = uploadRadio ? uploadRadio.closest('label') : null;
+                const hasKey = engines[entry.key]?.available === true;
+
+                // Live engine status badge
+                if (el) {
+                    el.innerHTML = hasKey
+                        ? '<i class="fas fa-check-circle" style="color:#3fb950"></i> API key configured'
+                        : `<i class="fas fa-times-circle" style="color:#e3b341"></i> No key &mdash; add ${entry.name} in Org Connections`;
+                }
+
+                // Disable live engine radio if no key
+                if (radio) radio.disabled = !hasKey;
+
+                // Grey out upload chip if no key; fall back to local if selected
+                if (uploadRadio) {
+                    uploadRadio.disabled = !hasKey;
+                    if (uploadLabel) {
+                        uploadLabel.style.opacity = hasKey ? '' : '0.45';
+                        uploadLabel.style.cursor = hasKey ? '' : 'not-allowed';
+                        uploadLabel.title = hasKey ? uploadLabel.title : `${entry.name} — no API key configured`;
+                    }
+                    if (!hasKey && uploadRadio.checked) {
+                        const localRadio = document.getElementById('upload-engine-local');
+                        if (localRadio) localRadio.checked = true;
+                    }
+                }
+
+                // Fall back to browser if selected live engine lost its key
+                if (!hasKey && settings.liveEngine === (radio ? radio.value : '')) {
+                    const browserRadio = document.getElementById('engine-browser');
+                    if (browserRadio) browserRadio.checked = true;
+                }
+            }
+
+            // Update upload engine status hint
+            const uploadStatusEl = document.getElementById('upload-engine-status');
+            if (uploadStatusEl) {
+                const localAvail = engines.local_whisper?.available === true;
+                uploadStatusEl.innerHTML = localAvail
+                    ? '<i class="fas fa-check-circle" style="color:#3fb950"></i> Local Whisper ready'
+                    : '<i class="fas fa-info-circle" style="color:#e3b341"></i> Local Whisper may be limited on this server &mdash; API engines available above';
+            }
+        } catch (e) {
+            console.warn('[TRANSCRIPTION SIDEBAR] Engine status check failed:', e);
+        }
+    }
+
+    async checkAssemblyAIKey() {
+        const statusEl = document.getElementById('assemblyai-key-status');
+        if (!statusEl) return;
+        statusEl.innerHTML = '<i class="fas fa-circle-notch fa-spin"></i> Checking&hellip;';
+        try {
+            const resp = await fetch('/api/transcription/assemblyai-status', {
+                headers: { 'Authorization': `Bearer ${localStorage.getItem('authToken') || ''}` }
+            });
+            if (!resp.ok) {
+                statusEl.innerHTML = '<i class="fas fa-times-circle" style="color:#f85149"></i> Error checking key';
+                return;
+            }
+            const data = await resp.json();
+            if (data.has_key) {
+                statusEl.innerHTML = '<i class="fas fa-check-circle" style="color:#3fb950"></i> API key configured';
+                document.getElementById('engine-assemblyai').disabled = false;
+            } else {
+                statusEl.innerHTML = '<i class="fas fa-times-circle" style="color:#e3b341"></i> No key &mdash; add AssemblyAI in Org Connections';
+                document.getElementById('engine-assemblyai').disabled = true;
+                // Fall back to browser if assemblyai was selected but no key
+                const stored = localStorage.getItem('transcription-stt-settings');
+                const settings = stored ? JSON.parse(stored) : {};
+                if (settings.liveEngine === 'assemblyai') {
+                    const browserRadio = document.getElementById('engine-browser');
+                    if (browserRadio) browserRadio.checked = true;
+                }
+            }
+        } catch (e) {
+            statusEl.innerHTML = '<i class="fas fa-times-circle" style="color:#f85149"></i> Error checking key';
+        }
+    }
+
     saveTTSSettings() {
         const settings = this.getTTSSettings();
         localStorage.setItem('transcription-tts-settings', JSON.stringify(settings));
@@ -3532,6 +4108,11 @@ class TranscriptionSidebarController {
                 document.getElementById('transcription-chunk-size').value = settings.chunkSize;
                 document.getElementById('transcription-sample-rate').value = settings.sampleRate;
 
+                // Restore saved engine selection
+                const savedEngine = settings.liveEngine || 'browser';
+                const engineRadio = document.getElementById(`engine-${savedEngine}`);
+                if (engineRadio) engineRadio.checked = true;
+
                 // Update hint with loaded URL
                 const hint = document.getElementById('backend-url-hint');
                 if (hint) {
@@ -3560,6 +4141,9 @@ class TranscriptionSidebarController {
 
         // Load advanced settings
         this.loadAdvancedSettings();
+
+        // Check all engine key statuses (async, non-blocking)
+        this.checkEnginesStatus();
     }
 }
 

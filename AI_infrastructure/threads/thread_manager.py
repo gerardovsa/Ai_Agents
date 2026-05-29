@@ -152,7 +152,7 @@ class ThreadManager:
                         embed_text = thread_data.name
                         if thread_data.description:
                             embed_text += f". {thread_data.description}"
-                        name_embedding = generate_embedding(embed_text[:2000])  # Limit to 2K chars
+                        name_embedding = generate_embedding(embed_text[:2000], user_id=thread_data.user_id)  # Limit to 2K chars
                 except Exception as e:
                     # Non-blocking: Continue even if embedding fails
                     logger.warning(f"Failed to generate thread embedding: {e}")
@@ -333,7 +333,7 @@ class ThreadManager:
                         embed_text = update_data.name or thread.name
                         if update_data.description or thread.description:
                             embed_text += f". {update_data.description or thread.description}"
-                        name_embedding = generate_embedding(embed_text[:2000])
+                        name_embedding = generate_embedding(embed_text[:2000], user_id=user_id)
                         updates.append("name_embedding = ?")
                         params.append(name_embedding)
                     except Exception as e:

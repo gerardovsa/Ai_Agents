@@ -1,19 +1,61 @@
 # Organisation Credentials System — Master Analysis
-**Date:** March 26, 2026 (Last Updated: April 30, 2026)
+**Date:** March 26, 2026 (Last Updated: May 28, 2026)
 **Purpose:** Complete authoritative reference for new chat sessions. Multi-tenant platform — one Render deployment, one Supabase database, all user types served.
-**Status:** ✅ All migration 020–039 work complete. Platform catalog (27 platforms), module catalog (26 modules), org/user/role system, credential vault (Fernet encrypted), and DB-driven permission model are LIVE in Supabase. ✅ April 8: Full invite system complete (create, email, accept-invite frontend); core `execute_query` DML bugs fixed; recursive trigger fixed. ✅ April 29: Vector DB security gaps all resolved (GAP-V1 through GAP-V8); pgvector dual-provider (migrations 044+045); `pgvector_tools.py` with 6 functions; `_get_vector_provider()` auto-routing. ✅ April 30: Account sidebar identity panel (`#account-identity-panel`) surfacing org role + org name; `_updateIdentityPanel()` in `AccountSidebar`.
+**Status:** ✅ Migrations 020–046 complete. Platform catalog (27 platforms), module catalog (26 modules), full org/user/role system, credential vault (Fernet encrypted), DB-driven permission model, and personal org tier are LIVE in Supabase. ✅ April 8: Full invite system; `execute_query` DML bugs fixed; recursive trigger fixed. ✅ April 29: Vector DB gaps resolved (GAP-V1–V8); pgvector dual-provider (migrations 044+045). ✅ April 30: Account sidebar identity panel (`#account-identity-panel`). ✅ **May 2026:** Migration 046 (personal org tier, `is_personal_org`, `default_member_role`, `create_personal_org()`); solo user backfill complete; credential resolution now **4-tier** (Tier 1.5 sub-user inheritance added); Synergy Team-visibility gating for personal-org users; Synergy write-route permission enforcement; member management (4 routes + UI); 12 new Synergy AI tools. Full record: `PERSONAL_ORG_SYNERGY_IMPLEMENTATION_PLAN_MAY2026.md`. ⚠️ `ORGANISATION_CREDENTIALS_ARCHITECTURE_UPDATED_APRIL30_2026.md` **ARCHIVED May 28, 2026** — unique content merged into this file.
 
 ---
 
 ## Multi-Tenant Platform Architecture
 
-### The Three User Types (All Served by One Render + One Supabase DB)
+### Three-Tier User Model (May 2026 — Authoritative)
 
-| Type | Login | Org | Session Visibility | Credential Access |
-|------|-------|-----|--------------------|-------------------|
-| **Individual** | Own email/password | Optional — org still recommended for key storage | private (default) | Personal user_platform_credentials |
-| **Team shared login** | One shared email + password | One org row, one user row | private + can set team to all see same sessions | Org-level keys behind vault password |
-| **Organisation multi-user** | Each person has own email/password | Same organisation_id, different org_role | private / shared (invite) / team (whole org) | Org-level keys, gated by org_role (viewer→owner) |
+> **Full implementation record:** [PERSONAL_ORG_SYNERGY_IMPLEMENTATION_PLAN_MAY2026.md](.github/PERSONAL_ORG_SYNERGY_IMPLEMENTATION_PLAN_MAY2026.md)
+
+```
+TIER 1 — SOLO (Personal Workspace)
+  ┌─────────────────────────────────────────────────────────────┐
+  │  organisations.is_personal_org = TRUE                       │
+  │  user.org_role = 'owner' (only member, no invite UI shown)  │
+  │  Credential tier 2 = their personal org vault               │
+  │  Synergy: private + shared only (team option hidden)        │
+  │  Account sidebar: hide invite/team-management subtabs       │
+  └─────────────────────────────────────────────────────────────┘
+
+TIER 2A — TEAM (Invited Members, 2–20 users)
+  ┌─────────────────────────────────────────────────────────────┐
+  │  organisations.is_personal_org = FALSE                      │
+  │  Real user accounts with org_role = member/admin/owner      │
+  │  Synergy: private + team + shared (with default_member_role)│
+  │  Account sidebar: full invite/member-management available   │
+  └─────────────────────────────────────────────────────────────┘
+
+TIER 2B — TEAM (Sub-Account Logins, migration 038)
+  ┌─────────────────────────────────────────────────────────────┐
+  │  Primary user: real account (is_sub_user = FALSE)           │
+  │  Sub-users: is_sub_user = TRUE, parent_user_id = primary.id │
+  │  Credential resolution tier 1.5: inherit parent keys        │
+  │  sessions.threads.team_id + sessions.messages.team_id set   │
+  │  data_access_scope: 'own' | 'team' | 'all'                  │
+  └─────────────────────────────────────────────────────────────┘
+
+TIER 3 — ORGANISATION (Enterprise)
+  ┌─────────────────────────────────────────────────────────────┐
+  │  Full role ladder: viewer/member/manager/admin/owner        │
+  │  org_module_access per feature, vault password option       │
+  │  Full audit log, invite tokens, role-based JWT invalidation │
+  │  Synergy: full visibility model + default_member_role       │
+  │  Account sidebar: all tabs visible per role                 │
+  └─────────────────────────────────────────────────────────────┘
+```
+
+**The single boolean `is_personal_org` on the org row drives all frontend branching.**
+
+| Tier | `is_personal_org` | `is_sub_user` | `org_role` | Synergy Visibility | Invite UI |
+|------|-------------------|---------------|------------|--------------------|-----------|
+| Tier 1 (Solo) | `TRUE` | `FALSE` | `owner` | private + shared | Hidden |
+| Tier 2A (Team member) | `FALSE` | `FALSE` | `member/admin/owner` | private + shared + team | Visible |
+| Tier 2B (Sub-account) | `FALSE` | `TRUE` | inherits parent | inherited | Hidden |
+| Tier 3 (Enterprise) | `FALSE` | `FALSE` | full ladder | full model | Visible |
 
 ### Session Visibility Rules (enforced at BOTH DB level via RLS + Python layer)
 
@@ -513,20 +555,37 @@ Dave (org=2, TechStart) → RLS at DB level: CANNOT see Acme Corp credentials at
 
 ---
 
-## Credential Resolution Priority
+## Credential Resolution — 4-Tier Model
+
+**File:** `AI_infrastructure/shared/org_credentials_loader.py`
 
 ```
 resolve_api_key(user_id=5, platform='anthropic')
-
-1. Check user_platform_credentials WHERE user_id=5, platform='anthropic'
-   → Personal key? Use it (e.g. dev's own API key for testing)
-
-2. Look up user 5's organisation_id → get org-level credential
-   → Most tools will land here (shared Anthropic billing key per client)
-
-3. os.getenv('ANTHROPIC_API_KEY')
-   → Legacy fallback, logs a warning — signals migration needed
+       │
+       ├─ Tier 1: user_platform_credentials WHERE user_id=5, platform='anthropic'
+       │          → Personal key? Use it (e.g. dev's own API key for testing)
+       │
+       ├─ Tier 1.5: If user 5 has is_sub_user=TRUE:
+       │            _get_parent_user_id(5) → query parent user's personal keys (Tier 1)
+       │            Sub-users inherit their parent user's credentials
+       │            (applies to migration 038 sub-account model)
+       │
+       ├─ Tier 2: Get user 5's organisation_id → org-level credential
+       │          organisation_platform_credentials WHERE org_id=X, platform='anthropic'
+       │          → Most tools land here (shared Anthropic billing key per client)
+       │          → Solo users (personal org): their vault is their org vault
+       │
+       └─ Tier 3: os.getenv('ANTHROPIC_API_KEY')
+                  → Legacy fallback, logs a WARNING — signals migration needed
 ```
+
+**Key point for solo users (Tier 1 model):** Every registered user now has an `organisation_id` pointing to their personal org (guaranteed by Migration 046 backfill + `register_user()` change). No `NULL` org_id scenarios remain in production.
+
+**Platforms that should be org-level (Tier 2):**
+`anthropic`, `openai`, `auspost`, `stripe`, `sendgrid`, `twilio`, `assemblyai`, `pinecone`, `deepseek`
+
+**Platforms that should stay user-level (Tier 1, OAuth tokens):**
+`google`, `microsoft`, `xero`, `gmail_oauth`, `outlook_oauth`
 
 ---
 
@@ -642,7 +701,7 @@ Before addressing gaps, the following components are working correctly and shoul
 | **Auth: profile endpoint** | `GET /api/auth/profile` returns org fields from DB join |
 | **Auth: RLS session vars** | `rls_session_manager.py` sets `app.current_user_id` + `app.current_organisation_id` per connection |
 | **Auth: per-request injection** | `database_utils.py` calls `inject_rls_vars(conn)` after every connection checkout |
-| **Credential resolver** | `org_credentials_loader.py` — correct 3-tier resolver (user → org → env), source-tagged |
+| **Credential resolver** | `org_credentials_loader.py` — **4-tier resolver** (Tier 1: user personal → Tier 1.5: sub-user inherits parent → Tier 2: org vault → Tier 3: env var), source-tagged |
 | **Org credentials API** | Full CRUD at `/api/org/*` with role enforcement |
 | **Vault security** | Vault password, reveal gating, bcrypt hash, 30s auto-close, audit log |
 | **Frontend: org tab** | `loadOrganisationTab()` + `OrgManager` — complete for all roles |
@@ -1268,47 +1327,281 @@ Work through the phases in sequence. Each phase builds on the previous. Complete
 | File | Lines | Purpose |
 |------|-------|---------|
 | `AI_infrastructure/migrations/add_organisations_and_org_credentials.sql` | 419 | DB schema — run once in Supabase |
-| `AI_infrastructure/migrations/025_synergy_sessions_multitenancy.sql` | — | ⏳ Synergy multi-tenancy: org FK, visibility, session_members, RLS — **NOT YET RUN** |
-| `AI_infrastructure/shared/rls_session_manager.py` | — | NEW (Session 3): Sets PostgreSQL RLS session vars on every connection |
-| `AI_infrastructure/routes/synergy_share_routes.py` | — | NEW (Session 3): PATCH visibility, GET/POST/DELETE members for synergy sessions |
+| `AI_infrastructure/migrations/025_synergy_sessions_multitenancy.sql` | — | ✅ run — Synergy multi-tenancy: org FK, visibility, session_members, RLS |
+| `AI_infrastructure/migrations/039_user_module_access.sql` | — | per-user module restrictions (`user_module_access` table, 3 new API endpoints) |
+| `AI_infrastructure/migrations/046_personal_org_and_synergy_defaults.sql` | — | Personal org support: `is_personal_org`, `default_member_role`, `create_personal_org()` |
+| `AI_infrastructure/shared/rls_session_manager.py` | — | Sets PostgreSQL RLS session vars on every connection |
+| `AI_infrastructure/routes/synergy_share_routes.py` | — | PATCH visibility, GET/POST/DELETE members for synergy sessions |
 | `migrations/021_synergy_sessions_schema.sql` | — | synergy_sessions schema (8 tables) |
 | `migrations/022_seed_user_data.sql` | — | gerardo user, preferences, OAuth token |
-| `migrations/023_seed_organisation.sql` | — | valorai org + workspace + org credentials (pinecone, anthropic, supabase_vsa) — **NEEDS RE-RUN** |
-| `migrations/024_seed_user_platform_credentials.sql` | 170 | 12 personal credentials for user_id=12 — **NEEDS RE-RUN** |
-| `AI_infrastructure/routes/organisation_credentials_routes.py` | 997 | Flask API for all org/credential operations |
-| `AI_infrastructure/shared/org_credentials_loader.py` | 416 | 3-tier key resolver used by all tools |
-| `AI_infrastructure/auth/user_auth.py` | — | login() JOINs organisations; JWT+response include org_name, org_role, org_slug |
-| `AI_infrastructure/flask_app.py` | — | /api/connections UNION uses org table (user_id=1 retired) |
-| `AI_infrastructure/shared/vsa_supabase_connector.py` | — | Fixed _get_credentials_from_db (was querying non-existent columns) |
-| `get_supabase_credentials.py` | — | Created (was missing — caused startup crash); reads supabase_vsa credentials |
-| `.github/ORGANISATION_CREDENTIALS_ARCHITECTURE.md` | ~270 | Architecture narrative + API quick reference |
+| `migrations/023_seed_organisation.sql` | — | valorai org + workspace + org credentials (pinecone, anthropic, supabase_vsa) |
+| `migrations/024_seed_user_platform_credentials.sql` | 170 | 12 personal credentials for user_id=12 |
+| `AI_infrastructure/routes/organisation_credentials_routes.py` | — | Flask API for all org/credential operations (25+ endpoints) |
+| `AI_infrastructure/shared/org_credentials_loader.py` | — | 4-tier key resolver used by all tools |
+| `AI_infrastructure/shared/credential_crypto.py` | — | Fernet AES-128-CBC encryption; `encrypt_credential()`, `decrypt_credential()`, `enc:v1:` prefix |
+| `AI_infrastructure/auth/user_auth.py` | — | login() JOINs organisations; JWT includes org_name, org_role, org_slug; `register_user()` auto-creates personal org via `create_personal_org()` |
+| `AI_infrastructure/flask_app.py` | — | /api/connections UNION uses org table |
+| `AI_infrastructure/shared/vsa_supabase_connector.py` | — | Fixed _get_credentials_from_db |
+| `get_supabase_credentials.py` | — | reads supabase_vsa credentials |
+| `tools/schemas/synergy_member_platform_tools.json` | — | 12 Synergy AI tool schemas (member chat, add/remove member, set visibility, etc.) |
+| `tools/implementations/synergy.py` | — | 12 Synergy AI tool implementations |
+| `.github/ORGANISATION_CREDENTIALS_ARCHITECTURE_UPDATED_APRIL30_2026.md` | — | **ARCHIVED** (renamed `_ARCHIVED_...`) — unique content merged into this file |
 | `.github/AUTH_FLOW_AND_ONBOARDING.md` | — | Auth UI/UX flows, org setup, invite system design |
-| `UI/business-ai-platform-v2.html` (line 30340) | — | `loadOrganisationTab()` + `OrgManager` JS object |
+| `PERSONAL_ORG_SYNERGY_IMPLEMENTATION_PLAN_MAY2026.md` | — | **AUTHORITATIVE** May 2026 record — personal org, sub-user flow, 12 AI tools, full implementation log |
+| `UI/business-ai-platform-v2.html` | — | `loadOrganisationTab()` + `OrgManager` JS object; module sidebar gating |
+
+---
+
+## Migration 046 — Personal Org & Synergy Defaults (May 2026)
+
+**File:** `AI_infrastructure/migrations/046_personal_org_and_synergy_defaults.sql`
+
+### New Columns
+
+```sql
+ALTER TABLE ai_infrastructure.organisations
+    ADD COLUMN IF NOT EXISTS is_personal_org      BOOLEAN      NOT NULL DEFAULT FALSE,
+    ADD COLUMN IF NOT EXISTS default_member_role  VARCHAR(50)  NOT NULL DEFAULT 'member';
+```
+
+| Column | Type | Default | Purpose |
+|--------|------|---------|---------|
+| `is_personal_org` | BOOLEAN | FALSE | Marks orgs auto-created for solo users; hidden from "join org" flows |
+| `default_member_role` | VARCHAR(50) | `member` | Role assigned to invited members unless overridden |
+
+### `create_personal_org()` SQL Function
+
+```sql
+CREATE OR REPLACE FUNCTION ai_infrastructure.create_personal_org(p_user_id INT)
+RETURNS INT AS $$
+DECLARE
+    v_org_id   INT;
+    v_username TEXT;
+BEGIN
+    SELECT username INTO v_username FROM ai_infrastructure.users WHERE id = p_user_id;
+    INSERT INTO ai_infrastructure.organisations
+        (name, slug, display_name, plan_tier, is_personal_org, is_active)
+    VALUES (
+        'personal_' || p_user_id,
+        'personal-' || p_user_id,
+        v_username || '''s Workspace',
+        'free',
+        TRUE,
+        TRUE
+    ) RETURNING id INTO v_org_id;
+    UPDATE ai_infrastructure.users SET organisation_id = v_org_id WHERE id = p_user_id;
+    INSERT INTO ai_infrastructure.organisation_members (organisation_id, user_id, role)
+        VALUES (v_org_id, p_user_id, 'owner');
+    RETURN v_org_id;
+END;
+$$ LANGUAGE plpgsql;
+```
+
+### `register_user()` Integration
+
+`AI_infrastructure/auth/user_auth.py` — `register_user()` now calls `create_personal_org()` immediately after INSERT:
+
+```python
+# After user INSERT:
+org_id = execute_query(
+    "SELECT ai_infrastructure.create_personal_org(%s)",
+    (user_id,),
+    fetch_mode='value'
+)
+```
+
+This ensures every new user has an org context from first login — no "no organisation" 403 errors.
+
+---
+
+## Vault Password — Access Decision Flow
+
+```
+User clicks "Reveal Key"
+        │ → API: POST /api/org/credentials/<id>/reveal
+        ├─ Authenticated? (JWT) → No → 401
+        ├─ Has organisation? → No → 403
+        ├─ org_role >= reveal_requires_role? → No → 403
+        ├─ Org has vault_password_hash set?
+        │   ├─ Yes → Check supplied vault_password → Mismatch → 403 + audit log
+        │   └─ No → Skip vault check
+        └─ All passed → Return plaintext ✅ + write to credential_access_log
+```
+
+### On-Screen Flow (UI Panel)
+
+```
+┌─────────────────────────────────────────────────────┐
+│  CREDENTIAL REVEAL FLOW                             │
+│                                                     │
+│  1. User clicks "👁 Reveal"                         │
+│  2. JS → POST /api/org/credentials/<id>/reveal      │
+│     Body: { vault_password: "..." }  (if locked)   │
+│  3. API validates: auth + role + vault password     │
+│  4. Returns: { credential_value: "plaintext" }      │
+│  5. JS displays in modal for 30s then clears        │
+│  6. Audit log: action=reveal, ip, user_agent        │
+└─────────────────────────────────────────────────────┘
+```
+
+**Vault lock status is shown in UI:** If `vault_password_hash` is set on the org, a lock icon appears next to each credential's reveal button. Revealing requires the vault password in the modal.
+
+---
+
+## Bug Audit — April 30, 2026
+
+Six bugs discovered and fixed during the April 30 session. All were in `account_profile.js` / `business-ai-platform-v2.html`.
+
+### BUG-1 (CRITICAL) — Missing Authorization Header on All Org API Calls
+
+**Symptom:** All org panel API calls (members, credentials, audit log, modules) returned 401.  
+**Root Cause:** `account_profile.js` functions were calling `/api/org/...` endpoints without the `Authorization: Bearer <token>` header. The `@require_auth` decorator rejected every call.  
+**Fix:** Added `Authorization` header to all 8 affected functions: `loadOrgInfo()`, `loadOrgMembers()`, `loadOrgCredentials()`, `loadOrgAuditLog()`, `loadModuleCatalog()`, `toggleModule()`, `addCredential()`, `revealCredential()`.  
+**Impact:** No org data was ever loading for any user until this fix.
+
+### BUG-2 (HIGH) — User Role Always Showing "—" in Org Header Card
+
+**Symptom:** The org panel header showed `Role: —` for all users.  
+**Root Cause:** `loadOrgInfo()` passed `data.organisation` to the render function, but `your_role` was on `data` (top-level), not `data.organisation`.  
+**Fix:** Merged before passing: `{ ...data.organisation, your_role: data.your_role }`.  
+**Impact:** Users could not see their own role — relevant for role-gated UI elements.
+
+### BUG-3 (HIGH) — Module Catalog Never Loading
+
+**Symptom:** The Modules subtab in the org panel stayed blank.  
+**Root Cause:** `loadModuleCatalog()` used `localStorage.getItem('auth_token')` — the actual key is `authToken`.  
+**Fix:** Changed to `localStorage.getItem('authToken')`.  
+**Impact:** No modules were ever shown in the org modules management tab.
+
+### BUG-4 (HIGH) — Team IDs Never Loading
+
+**Symptom:** Team ID checkbox list in sub-user management was always empty.  
+**Root Cause:** Same `auth_token` typo in `loadTeamIdCheckboxList()`.  
+**Fix:** Changed to `authToken`.  
+**Impact:** Admins could not assign team IDs to sub-users.
+
+### BUG-5 (MEDIUM) — InHouse Kanban Sidebar Gating Broken
+
+**Symptom:** `initModulesFromOrg()` hides elements with `data-module="inhouse_kanban"`, but no sidebar button had that attribute.  
+**Root Cause:** The InHouse Kanban sidebar `<li>` button was missing `data-module="inhouse_kanban"`.  
+**Fix:** Added `data-module="inhouse_kanban"` to the Kanban sidebar button.  
+**Impact:** Kanban was always visible (not gated) regardless of module access.
+
+### BUG-6 (MEDIUM) — Org Subtab Buttons Visible to All Roles
+
+**Symptom:** The Vault, Modules, and Audit Log subtab buttons were visible to `viewer` and `member` roles, though the API correctly rejects their access.  
+**Root Cause:** No role check on subtab visibility in the frontend.  
+**Fix:** Added `_gateOrgSubTabs(userRole)` function that hides subtabs based on minimum role: `vault` → admin, `modules` → admin, `audit` → admin.  
+**Impact:** Non-admin users could see (but not use) sensitive org management tabs.
+
+---
+
+## Migration 039 — Per-User Module Access
+
+**File:** `AI_infrastructure/migrations/039_user_module_access.sql`
+
+### Purpose
+
+Allows per-user module restrictions within an organisation. An admin can disable a specific module for a specific team member even if the org has that module enabled.
+
+### New Table: `user_module_access`
+
+```sql
+CREATE TABLE IF NOT EXISTS ai_infrastructure.user_module_access (
+    user_id      INT          NOT NULL REFERENCES ai_infrastructure.users(id) ON DELETE CASCADE,
+    module_name  VARCHAR(100) NOT NULL REFERENCES ai_infrastructure.module_catalog(module_name) ON DELETE CASCADE,
+    is_enabled   BOOLEAN      NOT NULL DEFAULT TRUE,
+    set_at       TIMESTAMPTZ  NOT NULL DEFAULT NOW(),
+    set_by       INT REFERENCES ai_infrastructure.users(id),
+    PRIMARY KEY (user_id, module_name)
+);
+```
+
+### 6-Step Module Enable Chain
+
+A module is visible to a user only if ALL of the following pass:
+
+1. `module_catalog.is_active = TRUE` (module exists and is globally active)
+2. `module_catalog.min_plan_tier` ≤ org's `plan_tier` (plan allows it)
+3. `org_module_access.is_enabled = TRUE` (org has enabled this module) — missing row = enabled by default if plan allows
+4. `user_module_access.is_enabled = TRUE` (user-level override) — missing row = inherit org setting
+5. User's `org_role` meets any role requirement
+6. Required platforms (from `module_catalog.required_platforms`) are connected in org vault
+
+### `get_user_enabled_modules()` Resolver
+
+```python
+def get_user_enabled_modules(user_id: int, org_id: int) -> list[str]:
+    \'\'\'
+    Returns list of module names enabled for this specific user,
+    respecting the 6-step chain: catalog → plan → org → user → role → platforms.
+    \'\'\'
+    rows = execute_query(\'\'\'
+        SELECT mc.module_name
+        FROM ai_infrastructure.module_catalog mc
+        LEFT JOIN ai_infrastructure.org_module_access oma
+            ON oma.module_name = mc.module_name AND oma.organisation_id = %s
+        LEFT JOIN ai_infrastructure.user_module_access uma
+            ON uma.module_name = mc.module_name AND uma.user_id = %s
+        JOIN ai_infrastructure.organisations o ON o.id = %s
+        WHERE mc.is_active = TRUE
+          AND (
+            mc.min_plan_tier = 'free'
+            OR (mc.min_plan_tier = 'starter' AND o.plan_tier IN ('starter','professional','enterprise'))
+            OR (mc.min_plan_tier = 'professional' AND o.plan_tier IN ('professional','enterprise'))
+            OR (mc.min_plan_tier = 'enterprise' AND o.plan_tier = 'enterprise')
+          )
+          AND COALESCE(oma.is_enabled, TRUE) = TRUE
+          AND COALESCE(uma.is_enabled, TRUE) = TRUE
+        ORDER BY mc.sort_order
+    \'\'\', (org_id, user_id, org_id), fetch_mode='all')
+    return [r['module_name'] for r in rows]
+```
+
+### New API Endpoints (3)
+
+| Method | Path | Min Role | Description |
+|--------|------|----------|-------------|
+| GET | `/api/org/members/<user_id>/modules` | admin | Get per-user module overrides |
+| PUT | `/api/org/members/<user_id>/modules/<module_name>` | admin | Set per-user module override |
+| DELETE | `/api/org/members/<user_id>/modules/<module_name>` | admin | Remove per-user override (revert to org default) |
+
+### Frontend: Puzzle-Piece Button in Member List
+
+Each member row in the org Members subtab has a puzzle-piece icon button (🧩) that opens a per-user modules modal. The modal shows all org-enabled modules with per-user enable/disable toggles.
 
 ---
 
 ## Changelog & TODO
 
-### Last Updated: April 8, 2026
+### Last Updated: May 28, 2026
 
 #### Recent Changes
+
+- ✅ **May 28** — Archived `ORGANISATION_CREDENTIALS_ARCHITECTURE_UPDATED_APRIL30_2026.md` (renamed `_ARCHIVED_...`); unique content (Vault flow, BUG-1–6, Migration 039) merged into this file
+- ✅ **May 2026** — Personal org system (Migration 046): `is_personal_org`, `default_member_role`, `create_personal_org()` SQL function, `register_user()` integration; every new user auto-gets a personal org
+- ✅ **May 2026** — 4-tier credential resolution: Tier 1 (user personal) → Tier 1.5 (sub-user inherits parent) → Tier 2 (org vault) → Tier 3 (env var); updated `org_credentials_loader.py`
+- ✅ **May 2026** — Synergy member management: 12 AI tools (chat, add/remove member, set visibility, archive, restore), route enforcement, `@require_auth` on all Synergy endpoints
+- ✅ **May 2026** — Frontend module gating: `initModulesFromOrg()` implemented, Zone 1 sidebar items gated with `data-module` attributes, `_gateOrgSubTabs()` role gating
+- ✅ **April 30** — Bug audit complete: BUG-1 (missing auth headers), BUG-2 (your_role path), BUG-3/4 (authToken typo), BUG-5 (Kanban gating), BUG-6 (subtab visibility)
 - ✅ **April 8** — Full accept-invite frontend: `checkPendingInvite()`, `handleAcceptInvite()`, `_showInviteAcceptDialog()`, `_showInviteNotice()` in `account_profile.js`; `?accept_invite=<token>` URL detection + sessionStorage stash in `initializeApp()` across all three login paths
 - ✅ **April 8** — `execute_query()` DML bug fixed (`database_utils.py`): DML without RETURNING no longer raises `ProgrammingError`; INSERT+RETURNING now auto-commits before pool return
 - ✅ **April 8** — Recursive trigger `trg_expire_invitations` fixed in production Supabase; migration `041_fix_invite_trigger_recursion.sql` created
 - ✅ **April 8** — `POST /api/org/invite` rewritten with `provider` field for inline Gmail/Outlook email; form updated with provider dropdown
-- ✅ **March 28** — Consolidated to 3 core documents; added Module Visibility + Org Table Schema sections  
+- ✅ **March 28** — Consolidated to 3 core documents; added Module Visibility + Org Table Schema sections
 - ✅ **March 26** — Complete multi-tenant architecture with credential vault and RLS policies (migrations 020–039)
 
 #### TODO (By Priority)
 
-**ACTIVE — Frontend Sidebar Gating:**
-- [ ] **`initModulesFromOrg()`** — DB-driven sidebar visibility (full spec in MODULE_VISIBILITY_ARCHITECTURE.md Section 6)
-- [ ] **WooCommerce gating** — `data-module="woocommerce"` on `tab-sales` sidebar button + content div
+**ACTIVE — Frontend Sidebar Gating (Partially Done):**
+- [x] ~~**`initModulesFromOrg()`**~~ — Implemented May 2026
+- [ ] **Zone 2 sidebar** — Replace `manifest.json`-driven `ModuleManager` with DB-driven rendering using `module_catalog` icon/color data (see copilot-instructions.md Pending Work §3)
+- [ ] **WooCommerce gating** — `data-module="woocommerce"` on `tab-sales` sidebar button + content div (see copilot-instructions.md Pending Work §2)
 
 **MEDIUM — Remaining Gaps:**
 - [ ] **GAP-M4** — Audit Shopify/Xero integration tables for `organisation_id` FK isolation
-- [ ] **GAP-E2** — Sub-user role restrictions (can’t promote above parent’s role)
-- [ ] **GAP-E3** — Sub-user credential vault access (inherit parent’s credentials, read-only)
+- [ ] **GAP-E2** — Sub-user role restrictions (can't promote above parent's role)
+- [ ] **GAP-E3** — Sub-user credential vault access (inherit parent's credentials, read-only)
 
 **LOW — Polish & Hardening:**
 - [ ] **GAP-L2** — Scheduled key rotation reminders (APScheduler + email)
@@ -1328,8 +1621,17 @@ Work through the phases in sequence. Each phase builds on the previous. Complete
 - ✅ Known Gap #1/9 — Full invite system (create, email, accept-invite frontend)
 - ✅ Known Gap #4 — Credential encryption (Fernet, `credential_crypto.py`)
 - ✅ Core DB fixes — `execute_query` DML commit + phantom INSERT bug + recursive trigger (April 8, 2026)
+- ✅ BUG-1–6 — Auth header, role path, authToken typos, Kanban gating, subtab visibility (April 30, 2026)
+- ✅ Personal org system — Migration 046, `create_personal_org()`, `register_user()` integration (May 2026)
+- ✅ 4-tier credential resolution — Tier 1.5 sub-user inheritance added (May 2026)
+- ✅ `initModulesFromOrg()` — DB-driven sidebar module gating (May 2026)
+- ✅ Migration 039 — Per-user module access (`user_module_access` table + 3 endpoints)
 
-#### Related Files (Keep These 3 as Source of Truth)
-- `../MODULE_VISIBILITY_ARCHITECTURE.md` — Module visibility model, sidebar gating, 4-layer framework
-- `../ORG_DOCUMENTATION_AND_UI_ALIGNMENT_SUMMARY_MAR28_2026.md` — Organisation table schema, UI forms, API endpoints
-- This file — Credentials, vault, multi-tenancy, RLS, role hierarchy, sub-user system
+#### Source of Truth Documents (Active)
+
+1. **This file** — Credentials, vault, multi-tenancy, RLS, role hierarchy, sub-user system, all bug records
+2. `../MODULE_VISIBILITY_ARCHITECTURE.md` — Module visibility model, sidebar gating, 4-layer framework
+3. `../ORG_DOCUMENTATION_AND_UI_ALIGNMENT_SUMMARY_MAR28_2026.md` — Organisation table schema, UI forms, API endpoints
+4. `PERSONAL_ORG_SYNERGY_IMPLEMENTATION_PLAN_MAY2026.md` — **AUTHORITATIVE** complete May 2026 implementation record
+
+> **ARCHIVED:** `_ARCHIVED_ORGANISATION_CREDENTIALS_ARCHITECTURE_UPDATED_APRIL30_2026.md` — Unique content merged into this file (May 28, 2026)

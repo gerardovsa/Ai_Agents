@@ -488,9 +488,9 @@ def create_thread():
                         thread_slug, workspace_id, name, user_id, created_at, updated_at,
                         metadata, location, tags, synergy_card_id,
                         parent_thread_id, branch_point_message_id, branch_name, team_id,
-                        idempotency_key
+                        idempotency_key, visibility
                     ) VALUES (
-                        %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s
+                        %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s
                     )
                     RETURNING id
                 """, (
@@ -508,7 +508,8 @@ def create_thread():
                     branch_point_message_id,
                     branch_name,
                     team_id,
-                    idempotency_key  # NEW: Store idempotency key
+                    idempotency_key,
+                    visibility
                 ))
                 
                 cursor.execute(sql, params)

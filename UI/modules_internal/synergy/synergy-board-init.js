@@ -1143,6 +1143,10 @@ window.synergyBoard = {
         const left = Math.round((window.innerWidth - width) / 2);
         const top  = Math.round((window.innerHeight - height) / 2);
 
+        // Solo users (personal org) should not see the Team option — they have no org members.
+        // window._orgIsPersonal is set by _updateIdentityPanel() after fetching /api/org/info.
+        const isPersonalOrg = window._orgIsPersonal === true;
+
         const vOpt = (val, icon, color, bg, label, sub) => `
             <div class="synergy-visibility-option${currentVisibility === val ? ' selected' : ''}" data-value="${val}"
                 onclick="synergyBoard.selectVisibility('${popupId}', '${val}')">
@@ -1179,11 +1183,19 @@ window.synergyBoard = {
                         ${this.escapeHtml(session.title || sessionId)}
                     </div>
 
+                    ${isPersonalOrg ? `
+                    <div style="background:rgba(59,130,246,0.08);border:1px solid rgba(59,130,246,0.25);
+                                border-radius:6px;padding:10px 12px;font-size:12px;
+                                color:var(--text-muted);margin-bottom:16px;">
+                        <i class="fas fa-info-circle" style="margin-right:6px;color:#3b82f6;"></i>
+                        You're on a personal workspace. <strong style="color:var(--text-primary);">Team</strong> sharing is available on team plans.
+                    </div>` : ''}
+
                     <div style="margin-bottom:20px;">
                         <div style="font-size:11px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.6px;margin-bottom:10px;">Visibility</div>
                         ${vOpt('private',  'fa-lock',        '#6b7280', 'rgba(107,114,128,0.12)', 'Private',  'Only you can see this session')}
                         ${vOpt('shared',   'fa-user-friends','#3b82f6', 'rgba(59,130,246,0.12)',  'Shared',   'Invite specific people with roles')}
-                        ${vOpt('team',     'fa-users',       '#22c55e', 'rgba(34,197,94,0.12)',   'Team',     'Everyone in your organisation')}
+                        ${!isPersonalOrg ? vOpt('team', 'fa-users', '#22c55e', 'rgba(34,197,94,0.12)', 'Team', 'Everyone in your organisation') : ''}
                     </div>
 
                     <div id="${popupId}-invite-panel" style="display:${currentVisibility === 'shared' ? 'block' : 'none'};">
@@ -1240,6 +1252,11 @@ window.synergyBoard = {
             popup.style.top  = (e.clientY - oy) + 'px';
         });
         document.addEventListener('mouseup', () => { dragging = false; popup.style.userSelect = ''; });
+
+        // Auto-load existing members if session is already in 'shared' mode
+        if (currentVisibility === 'shared') {
+            this.loadMemberList(sessionId, popupId);
+        }
     },
 
     closeSharePopup(popupId) {
@@ -1255,6 +1272,11 @@ window.synergyBoard = {
         // Show/hide invite panel
         const panel = document.getElementById(`${popupId}-invite-panel`);
         if (panel) panel.style.display = value === 'shared' ? 'block' : 'none';
+        // Eagerly load members when user switches to 'shared'
+        if (value === 'shared') {
+            const sessionId = popupId.replace('synergy-share-', '');
+            this.loadMemberList(sessionId, popupId);
+        }
     },
 
     async saveVisibility(sessionId, popupId) {
@@ -1311,22 +1333,68 @@ window.synergyBoard = {
 
             if (input) input.value = '';
 
-            // Add to displayed list
-            const list = document.getElementById(`${popupId}-members`);
-            if (list) {
-                const existing = list.querySelector('[data-placeholder]');
-                if (existing) existing.remove();
-                list.insertAdjacentHTML('beforeend', `
-                    <div class="synergy-member-row" data-email="${this.escapeHtml(email)}">
-                        <i class="fas fa-user-circle" style="color:var(--text-muted);"></i>
-                        <span style="flex:1;font-size:13px;">${this.escapeHtml(email)}</span>
-                        <span style="font-size:11px;padding:2px 8px;border-radius:4px;background:var(--bg-tertiary);color:var(--text-muted);">${role}</span>
-                        <button onclick="this.closest('.synergy-member-row').remove()" style="background:none;border:none;color:var(--text-muted);cursor:pointer;padding:0 4px;"><i class="fas fa-times"></i></button>
-                    </div>`);
-            }
+            // Refresh member list from backend
+            await this.loadMemberList(sessionId, popupId);
         } catch (err) {
             console.error('[SYNERGY] Invite failed:', err);
             alert(`Could not invite: ${err.message}`);
+        }
+    },
+
+    async loadMemberList(sessionId, popupId) {
+        const list = document.getElementById(`${popupId}-members`);
+        if (!list) return;
+
+        try {
+            const resp = await fetch(`/api/synergy/sessions/${sessionId}/members`, {
+                headers: { ...(window.UserAuth ? { 'Authorization': `Bearer ${window.UserAuth.token}` } : {}) }
+            });
+            if (!resp.ok) return;
+            const data = await resp.json();
+            const members = data.members || [];
+
+            if (members.length === 0) {
+                list.innerHTML = `<div data-placeholder style="color:var(--text-muted);font-size:13px;font-style:italic;">No members added yet</div>`;
+                return;
+            }
+
+            list.innerHTML = members.map(m => `
+                <div class="synergy-member-row" data-user-id="${m.user_id}"
+                    style="display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid var(--border-secondary);">
+                    <i class="fas fa-user-circle" style="color:var(--text-muted);font-size:16px;"></i>
+                    <span style="flex:1;font-size:13px;">${this.escapeHtml(m.username || m.email || 'Unknown')}</span>
+                    ${m.email ? `<span style="font-size:11px;color:var(--text-muted);">${this.escapeHtml(m.email)}</span>` : ''}
+                    <button onclick="synergyBoard.removeMember('${sessionId}', ${m.user_id}, '${popupId}')"
+                        title="Remove member"
+                        style="background:none;border:none;color:var(--text-muted);cursor:pointer;padding:0 4px;">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>`).join('');
+        } catch (err) {
+            console.error('[SYNERGY] Failed to load members:', err);
+        }
+    },
+
+    async removeMember(sessionId, memberUserId, popupId) {
+        try {
+            const resp = await fetch(`/api/synergy/sessions/${sessionId}/members/${memberUserId}`, {
+                method: 'DELETE',
+                headers: { 'Content-Type': 'application/json', ...(window.UserAuth ? { 'Authorization': `Bearer ${window.UserAuth.token}` } : {}) }
+            });
+            if (!resp.ok) {
+                const data = await resp.json().catch(() => ({}));
+                throw new Error(data.error || `HTTP ${resp.status}`);
+            }
+            // Remove row from UI immediately
+            const row = document.querySelector(`#${popupId}-members [data-user-id="${memberUserId}"]`);
+            if (row) row.remove();
+            const list = document.getElementById(`${popupId}-members`);
+            if (list && !list.children.length) {
+                list.innerHTML = `<div data-placeholder style="color:var(--text-muted);font-size:13px;font-style:italic;">No members added yet</div>`;
+            }
+        } catch (err) {
+            console.error('[SYNERGY] Failed to remove member:', err);
+            alert(`Could not remove member: ${err.message}`);
         }
     },
 

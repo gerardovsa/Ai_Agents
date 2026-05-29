@@ -54,25 +54,26 @@ def get_database_connection(schema_name: str = "workspace_chats"):
         raise Exception(f"Database connection failed: {str(e)}")
 
 
-def generate_embedding(text: str) -> List[float]:
+def generate_embedding(text: str, user_id: int = None) -> List[float]:
     """
-    Generate OpenAI embedding for text (1536 dimensions)
-    
-    Args:
-        text: Text to embed
-        
-    Returns:
-        List of 1536 floats representing the embedding vector
-        
-    Raises:
-        Exception if OpenAI API fails
+    Generate OpenAI embedding for text (1536 dimensions).
+    Resolves API key from org vault when user_id is provided (4-tier model),
+    falling back to OPENAI_API_KEY environment variable.
     """
     if not OPENAI_AVAILABLE:
         raise Exception("OpenAI library not installed - cannot generate embeddings")
     
     api_key = os.environ.get("OPENAI_API_KEY")
+    if user_id:
+        try:
+            from AI_infrastructure.shared.org_credentials_loader import resolve_api_key
+            vault_key = resolve_api_key(user_id, 'openai')
+            if vault_key:
+                api_key = vault_key
+        except Exception:
+            pass  # Fall through to env-var key
     if not api_key:
-        raise Exception("OPENAI_API_KEY environment variable not set")
+        raise Exception("OPENAI_API_KEY environment variable not set and no org vault key available")
     
     try:
         client = OpenAI(api_key=api_key)

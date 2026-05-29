@@ -3754,13 +3754,22 @@ function createAddAgentBar() {
 }
 
 function addAgentColumn() {
-    const agentId = MultiAgent.nextAgentId++;
-    if (agentId > 26) {
-        showNotification('Maximum 26 agents reached (NATO alphabet limit)', 'warning');
+    // Count actual visible columns (not nextAgentId) so closing a column re-enables adding
+    const activeCount = document.querySelectorAll('#multi-agent-container .agent-column').length;
+    if (activeCount >= 26) {
+        showNotification('Command Centre is full (26/26) — close a column to add a new one', 'warning');
         return;
     }
 
+    const agentId = MultiAgent.nextAgentId++;
     createAgentColumn(agentId);
+
+    // Disable bar if we just hit the 26-column limit
+    const newCount = document.querySelectorAll('#multi-agent-container .agent-column').length;
+    if (newCount >= 26) {
+        const bar = document.querySelector('.add-agent-bar');
+        if (bar) bar.classList.add('disabled');
+    }
 
     // [LOCK] IMMEDIATE WIDTH ENFORCEMENT: Ensure new column starts at 400px
     setTimeout(() => {
@@ -4336,6 +4345,10 @@ function closeAgentColumn(agentId) {
 
         // Remove badge from quick-nav bar
         MultiAgent.removeQuickNavBadge(agentId);
+
+        // Re-enable add bar now that a slot is free
+        const bar = document.querySelector('.add-agent-bar');
+        if (bar) bar.classList.remove('disabled');
 
         // Show notification if available
         if (typeof window.showNotification === 'function') {

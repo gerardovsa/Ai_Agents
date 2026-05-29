@@ -1,5 +1,7 @@
 # Account Profile UI Analysis — 8th April 2026
-**Last Updated: April 30, 2026**
+**Last Updated: May 28, 2026**
+
+> **May 28, 2026 update:** Personal org subtab gating implemented. `_gateOrgSubTabs()` extended to hide the Members and Invitations org sub-tab buttons when `window._orgIsPersonal = TRUE`. `initModulesFromOrg()` Step 3 added — hides the same buttons via the `isPersonalOrg` flag (was computed but not acted on). See May 2026 session changes below.
 
 > **April 30, 2026 update:** `#account-identity-panel` added to the account sidebar header (between Display Name input and OAuth connections expander). The panel renders: colour-coded org role badge (viewer=grey, member=green, manager=blue, admin=amber, owner=purple), live org display name (fetched async from `GET /api/org/info`), a team sub-account context notice (amber border, `role === 'team'`), and a platform developer notice (blue border). Implemented via `AccountSidebar._updateIdentityPanel(profile)` called from `loadUserInfo()`. The always-hidden `sidebarTeamBadge` element is superseded by this panel.
 
@@ -250,6 +252,47 @@ All team functions use `_showTeamNotification(message, type)`:
 
 ---
 
+## Session Changes Applied (May 28, 2026)
+
+### Personal Org Subtab Gating
+
+**Context:** Migration 046 (`personal_org_and_synergy_defaults.sql`) added `is_personal_org` to `ai_infrastructure.organisations`. When a user registers, `create_personal_org()` creates a personal org with `is_personal_org=TRUE`. Personal orgs are solo workspaces — there are no other members to invite or manage. The Members and Invitations subtabs in the Org settings panel are meaningless for personal orgs and should be hidden.
+
+**Gap found:** `initModulesFromOrg()` computed `isPersonalOrg` and cached it as `window._orgIsPersonal` but never used it to actually hide the org subtabs. `_gateOrgSubTabs()` gated only Vault/Modules/Audit (role-based), with no personal org check.
+
+#### 1. `_gateOrgSubTabs()` — `account_profile.js`
+
+Added personal org block after role-based gating:
+
+```javascript
+// Personal org (is_personal_org=TRUE) — solo workspace, no team to manage.
+// Hide Members and Invitations subtabs: there are no other members to invite/manage.
+const isPersonal = !!(window._orgIsPersonal);
+['members', 'invitations'].forEach(subtab => {
+    const btn = document.querySelector(`.org-sub-tab[data-subtab="${subtab}"]`);
+    if (btn) btn.style.display = isPersonal ? 'none' : '';
+});
+```
+
+#### 2. `initModulesFromOrg()` Step 3 — `business-ai-platform-v2.html`
+
+Added at the end of the function (after Zone 2 rebuild):
+
+```javascript
+// ── 3. Personal org — hide team-management org subtabs ────────────────
+['members', 'invitations'].forEach(function(subtab) {
+    const btn = document.querySelector('.org-sub-tab[data-subtab="' + subtab + '"');
+    if (btn) btn.style.display = isPersonalOrg ? 'none' : '';
+});
+```
+
+**Why both fixes?**
+- `initModulesFromOrg()` runs once on login — gates from first load
+- `_gateOrgSubTabs()` runs every time the Org settings tab is opened — re-gates reliably after org switch or settings re-open
+- Having both ensures the gating is applied in all code paths
+
+---
+
 ## Outstanding Items
 
 | # | Item | Priority | Status | Notes |
@@ -257,7 +300,8 @@ All team functions use `_showTeamNotification(message, type)`:
 | 1 | General/Org tabs — replace `alert()` with inline banners | 🟡 Medium | ✅ Done (Apr 8) | `_showGeneralNotification` + `_showOrgNotification` helpers added. `confirm()` replaced with `createInlineConfirm`. 9 affected functions updated. |
 | 2 | Team member inline edit (PUT endpoint exists) | 🟢 Low | ✅ Done (Apr 8) | Pencil-icon edit button per row expands inline panel: daily limit, active toggle, optional password. `editTeamMember()` + `saveTeamMemberEdit()` added. |
 | 3 | `tab-vsa-veterinary-alerts` orphaned tab | 🟢 Low | ✅ Done (Apr 8) | Tab content `<div>` + HTML comments removed. `vsa_veterinary` entry removed from JS module map. |
-| 4 | Zone 2 sidebar still driven by `manifest.json` | 🟡 Medium | ⏳ Pending | DB-driven module visibility not yet wired to sidebar. See `MODULE_VISIBILITY_ARCHITECTURE.md` for full spec. |
+| 4 | Zone 2 sidebar still driven by `manifest.json` | 🟡 Medium | ✅ Done (May 2026) | `initModulesFromOrg()` implemented: Zone 2 rebuilt from DB catalog data via `GET /api/org/modules`. `manifest.json` is now bypassed. |
+| 5 | Personal org — Members + Invitations subtabs not hidden | 🟡 Medium | ✅ Done (May 28) | `_gateOrgSubTabs()` extended to read `window._orgIsPersonal`; hides both subtab buttons when `TRUE`. `initModulesFromOrg()` Step 3 also hides them. |
 
 ### Remaining `alert()` Calls (Intentional — Not Changed)
 

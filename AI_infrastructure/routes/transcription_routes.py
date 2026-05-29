@@ -37,7 +37,7 @@ Features:
 LAST MODIFIED: 2025-12-18 - Disabled PyTorch/Whisper to optimize Docker builds (30min → 15min)
 """
 
-from flask import Blueprint, request, jsonify, Response
+from flask import Blueprint, request, jsonify, Response, g
 import os
 import logging
 from werkzeug.utils import secure_filename
@@ -103,6 +103,7 @@ def allowed_file(filename):
 
 
 @transcription_bp.route('/api/transcribe', methods=['POST', 'OPTIONS'])
+@require_auth
 def transcribe_audio():
     """
     Transcribe audio file using Whisper API
@@ -139,8 +140,10 @@ def transcribe_audio():
         # Get optional parameters
         session_id = request.form.get('session_id', 'unknown')
         language_hint = request.form.get('language', None)  # Optional language hint
-        
-        logger.info(f'[TRANSCRIPTION] Processing file: {file.filename} (session: {session_id}, language: {language_hint or "auto"})')
+        engine = request.form.get('engine', 'local')  # local | openai | deepgram | assemblyai-async
+        request_diarize = request.form.get('diarize', 'false').lower() == 'true'
+
+        logger.info(f'[TRANSCRIPTION] Processing file: {file.filename} (engine: {engine}, session: {session_id}, language: {language_hint or "auto"}, diarize: {request_diarize})')
         
         # Save file temporarily
         filename = secure_filename(file.filename)
@@ -156,60 +159,160 @@ def transcribe_audio():
         detected_language = None
         confidence_score = None
         duration_seconds = None
+        speakers_data = None
 
-        # Try to transcribe using whisper if available (lazy-loaded)
         if file_size == 0:
             transcript_text = '[Error: Audio file is empty]'
             logger.warning('[TRANSCRIPTION] Audio file is empty')
+
+        elif engine == 'openai':
+            # ── OpenAI gpt-4o-transcribe (most accurate, uses org vault key) ──
+            try:
+                from AI_infrastructure.shared.org_credentials_loader import resolve_api_key
+                from openai import OpenAI as _OpenAI
+                oai_key = resolve_api_key(g.user_id, 'openai')
+                if not oai_key:
+                    raise ValueError('OpenAI API key not configured. Add it in Org → Connections.')
+                client = _OpenAI(api_key=oai_key)
+                logger.info('[TRANSCRIPTION] Transcribing with OpenAI gpt-4o-transcribe...')
+                with open(temp_path, 'rb') as audio_file:
+                    transcription = client.audio.transcriptions.create(
+                        model='gpt-4o-transcribe',
+                        file=audio_file,
+                        language=language_hint if (language_hint and language_hint != 'auto') else None,
+                        response_format='verbose_json'
+                    )
+                transcript_text = transcription.text or ''
+                detected_language = getattr(transcription, 'language', None)
+                duration_seconds = getattr(transcription, 'duration', None)
+                confidence_score = 0.98
+                logger.info(f'[TRANSCRIPTION] OpenAI: {len(transcript_text)} chars, lang={detected_language}')
+            except Exception as e:
+                logger.error(f'[TRANSCRIPTION] OpenAI error: {e}', exc_info=True)
+                transcript_text = f'[OpenAI Error: {str(e)}]'
+
+        elif engine == 'deepgram':
+            # ── Deepgram Nova-3 (fast, GDPR/EU, speaker diarization) ──
+            try:
+                import requests as _ext_req
+                from AI_infrastructure.shared.org_credentials_loader import resolve_api_key
+                dg_key = resolve_api_key(g.user_id, 'deepgram')
+                if not dg_key:
+                    raise ValueError('Deepgram API key not configured. Add it in Org → Connections.')
+                logger.info(f'[TRANSCRIPTION] Transcribing with Deepgram (diarize={request_diarize})...')
+                with open(temp_path, 'rb') as audio_file:
+                    audio_data = audio_file.read()
+                params = {
+                    'model': 'nova-3', 'smart_format': 'true',
+                    'diarize': 'true' if request_diarize else 'false', 'punctuate': 'true',
+                }
+                if language_hint and language_hint != 'auto':
+                    params['language'] = language_hint
+                dg_resp = _ext_req.post(
+                    'https://api.deepgram.com/v1/listen', params=params, data=audio_data,
+                    headers={'Authorization': f'Token {dg_key}', 'Content-Type': 'audio/*'}, timeout=120
+                )
+                if dg_resp.status_code != 200:
+                    raise ValueError(f'Deepgram API error: {dg_resp.status_code}')
+                dg_json = dg_resp.json()
+                channel = dg_json.get('results', {}).get('channels', [{}])[0]
+                alt = channel.get('alternatives', [{}])[0]
+                words = alt.get('words', [])
+                if request_diarize and words and any('speaker' in w for w in words):
+                    lines, cur_speaker, cur_words = [], None, []
+                    for w in words:
+                        spk = w.get('speaker', 0)
+                        if spk != cur_speaker:
+                            if cur_words:
+                                lines.append(f'[Speaker {cur_speaker}] {" ".join(cur_words)}')
+                            cur_speaker, cur_words = spk, [w.get('punctuated_word', w.get('word', ''))]
+                        else:
+                            cur_words.append(w.get('punctuated_word', w.get('word', '')))
+                    if cur_words:
+                        lines.append(f'[Speaker {cur_speaker}] {" ".join(cur_words)}')
+                    transcript_text = '\n'.join(lines)
+                    speakers_data = list({w.get('speaker') for w in words if 'speaker' in w})
+                else:
+                    transcript_text = alt.get('transcript', '')
+                meta = dg_json.get('metadata', {})
+                duration_seconds = meta.get('duration')
+                confidence_score = alt.get('confidence', 0.9)
+                detected_language = channel.get('detected_language', 'en')
+                logger.info(f'[TRANSCRIPTION] Deepgram: {len(transcript_text)} chars, {len(speakers_data or [])} speakers')
+            except Exception as e:
+                logger.error(f'[TRANSCRIPTION] Deepgram error: {e}', exc_info=True)
+                transcript_text = f'[Deepgram Error: {str(e)}]'
+
+        elif engine == 'assemblyai-async':
+            # ── AssemblyAI async with optional speaker diarization ──
+            try:
+                import assemblyai as aai
+                from AI_infrastructure.shared.org_credentials_loader import resolve_api_key
+                aai_key = resolve_api_key(g.user_id, 'assemblyai')
+                if not aai_key:
+                    raise ValueError('AssemblyAI API key not configured. Add it in Org → Connections.')
+                aai.settings.api_key = aai_key
+                logger.info(f'[TRANSCRIPTION] Transcribing with AssemblyAI (diarize={request_diarize})...')
+                config = aai.TranscriptionConfig(
+                    speaker_labels=request_diarize,
+                    language_code=language_hint if (language_hint and language_hint != 'auto') else None,
+                )
+                transcriber = aai.Transcriber()
+                aai_result = transcriber.transcribe(temp_path, config=config)
+                if aai_result.status == aai.TranscriptStatus.error:
+                    raise ValueError(f'AssemblyAI error: {aai_result.error}')
+                if request_diarize and aai_result.utterances:
+                    lines = [f'[Speaker {u.speaker}] {u.text}' for u in aai_result.utterances]
+                    transcript_text = '\n'.join(lines)
+                    speakers_data = list({u.speaker for u in aai_result.utterances})
+                else:
+                    transcript_text = aai_result.text or ''
+                detected_language = language_hint or 'en'
+                confidence_score = aai_result.confidence
+                duration_seconds = aai_result.audio_duration
+                logger.info(f'[TRANSCRIPTION] AssemblyAI: {len(transcript_text)} chars')
+            except Exception as e:
+                logger.error(f'[TRANSCRIPTION] AssemblyAI error: {e}', exc_info=True)
+                transcript_text = f'[AssemblyAI Error: {str(e)}]'
+
         else:
+            # ── Default: Local PyTorch Whisper (engine='local') ──
             model = get_whisper_model()
             if model is None:
-                logger.warning('[TRANSCRIPTION] Whisper model not available; returning placeholder message')
-                transcript_text = '[Whisper not available - install openai-whisper or enable model]'
+                logger.warning('[TRANSCRIPTION] Local Whisper not available.')
+                transcript_text = ('[Local Whisper unavailable — Render Starter plan (512MB) is too small for '
+                                   'the base model (~1GB RAM). Upgrade to Standard (2GB) or use the OpenAI engine.')
             else:
                 try:
                     logger.info('[TRANSCRIPTION] Transcribing with local Whisper model...')
-                    
-                    # Build Whisper parameters
                     whisper_params = {}
                     if language_hint and language_hint != 'auto':
                         whisper_params['language'] = language_hint
-                        logger.info(f'[TRANSCRIPTION] Using language hint: {language_hint}')
-                    
-                    # Transcribe with Whisper (returns full result dict)
                     result_dict = model.transcribe(temp_path, **whisper_params)
-                    
                     transcript_text = result_dict.get('text', '').strip()
                     detected_language = result_dict.get('language', 'unknown')
-                    
-                    # Calculate average confidence from segments (if available)
                     segments = result_dict.get('segments', [])
                     if segments:
-                        # Some Whisper versions have 'no_speech_prob' or 'avg_logprob'
                         avg_logprobs = [s.get('avg_logprob', 0) for s in segments if 'avg_logprob' in s]
                         if avg_logprobs:
-                            # Convert log probability to approximate confidence (0-1)
                             avg_logprob = sum(avg_logprobs) / len(avg_logprobs)
-                            confidence_score = max(0, min(1, 1 + (avg_logprob / 10)))  # Rough mapping
-                    
-                    # Get duration from segments or result
-                    if segments:
-                        duration_seconds = segments[-1].get('end', None) if segments else None
-                    
-                    logger.info(f'[TRANSCRIPTION] Success: {len(transcript_text)} chars, language: {detected_language}, confidence: {confidence_score:.2f if confidence_score else "N/A"}, duration: {duration_seconds:.1f}s' if duration_seconds else f'{len(transcript_text)} chars')
-                    
+                            confidence_score = max(0, min(1, 1 + (avg_logprob / 10)))
+                        duration_seconds = segments[-1].get('end', None)
+                    logger.info(f'[TRANSCRIPTION] Local Whisper: {len(transcript_text)} chars, lang={detected_language}')
                 except Exception as e:
                     logger.error(f'[TRANSCRIPTION] Whisper error: {str(e)}', exc_info=True)
                     transcript_text = f'[Error: {str(e)}]'
-        
+
         # Build result with enhanced metadata
         result = {
-            'success': bool(transcript_text and not transcript_text.startswith('[Error')),
+            'success': bool(transcript_text and not transcript_text.startswith('[')),
             'transcript': transcript_text,
             'text': transcript_text,  # Backward compatibility
             'language': detected_language,
             'confidence': confidence_score,
             'duration': duration_seconds,
+            'engine': engine,
+            'speakers': speakers_data,
             'session_id': session_id,
             'file_info': {
                 'filename': filename,
@@ -458,6 +561,218 @@ def transcription_history():
             }), 200
         
         return jsonify({'success': False, 'error': str(e)}), 500
+
+
+# ============================================================================
+# ASSEMBLYAI STREAMING SUPPORT
+# ============================================================================
+
+@transcription_bp.route('/api/transcription/assemblyai-status', methods=['GET'])
+@require_auth
+def assemblyai_status():
+    """
+    GET /api/transcription/assemblyai-status
+    Lightweight check: does this org/user have an AssemblyAI API key configured?
+    Uses the full 4-tier resolver (user key → sub-user inheritance → org key → env var).
+    No external API call is made.
+    """
+    try:
+        from AI_infrastructure.shared.org_credentials_loader import resolve_api_key
+
+        user_id = g.user_id
+        api_key = resolve_api_key(user_id, 'assemblyai')
+        return jsonify({'has_key': bool(api_key)}), 200
+
+    except Exception as e:
+        logger.error(f'[TRANSCRIPTION] AssemblyAI status check error: {e}', exc_info=True)
+        return jsonify({'has_key': False, 'error': str(e)}), 200
+
+
+@transcription_bp.route('/api/transcription/assemblyai-token', methods=['GET'])
+@require_auth
+def get_assemblyai_token():
+    """
+    GET /api/transcription/assemblyai-token
+    Exchange the user's/org's AssemblyAI API key for a short-lived streaming token.
+    Uses the full 4-tier resolver: user key → sub-user inheritance → org key → env var.
+    Token expires in 60 seconds but allows a session of up to 1 hour.
+    The API key is NEVER sent to the browser — only the temporary token.
+    """
+    import requests as ext_requests
+    try:
+        from AI_infrastructure.shared.org_credentials_loader import resolve_api_key
+
+        user_id = g.user_id
+        api_key = resolve_api_key(user_id, 'assemblyai')
+        if not api_key:
+            return jsonify({'error': 'AssemblyAI API key not configured. Add it in Org → Connections.'}), 404
+
+        # Exchange for a short-lived streaming token (never exposed to browser)
+        token_resp = ext_requests.get(
+            'https://streaming.assemblyai.com/v3/token',
+            params={'expires_in_seconds': 60, 'max_session_duration_seconds': 3600},
+            headers={'Authorization': api_key},
+            timeout=10
+        )
+
+        if token_resp.status_code != 200:
+            logger.error(f'[TRANSCRIPTION] AssemblyAI token error: {token_resp.status_code} {token_resp.text}')
+            return jsonify({'error': 'Failed to obtain AssemblyAI streaming token'}), 502
+
+        token_json = token_resp.json()
+        return jsonify({'token': token_json.get('token'), 'expires_in': 60}), 200
+
+    except Exception as e:
+        logger.error(f'[TRANSCRIPTION] AssemblyAI token endpoint error: {e}', exc_info=True)
+        return jsonify({'error': str(e)}), 500
+
+
+
+# ============================================================================
+# ALL-ENGINES STATUS + TOKEN ENDPOINTS
+# ============================================================================
+
+@transcription_bp.route('/api/transcription/engines-status', methods=['GET'])
+@require_auth
+def engines_status():
+    """
+    GET /api/transcription/engines-status
+    Check all transcription engine API keys at once via the 4-tier credential resolver.
+    Returns {engines: {platform -> {has_key: bool, ...}}}
+    """
+    try:
+        from AI_infrastructure.shared.org_credentials_loader import resolve_api_key
+        user_id = g.user_id
+        result = {}
+        for platform in ('openai', 'assemblyai', 'deepgram', 'speechmatics'):
+            try:
+                key = resolve_api_key(user_id, platform)
+                result[platform] = {'has_key': bool(key)}
+            except Exception as e:
+                result[platform] = {'has_key': False, 'error': str(e)}
+        result['local_whisper'] = {
+            'has_key': True,
+            'available': _whisper_lib_available,
+            'model_loaded': whisper_model is not None,
+            'error': _whisper_load_error if not _whisper_lib_available else None,
+        }
+        return jsonify({'engines': result}), 200
+    except Exception as e:
+        logger.error(f'[TRANSCRIPTION] Engines status error: {e}', exc_info=True)
+        return jsonify({'error': str(e)}), 500
+
+
+@transcription_bp.route('/api/transcription/deepgram-token', methods=['GET'])
+@require_auth
+def get_deepgram_token():
+    """
+    GET /api/transcription/deepgram-token
+    Exchange the org's Deepgram API key for a short-lived streaming token (60s TTL).
+    Frontend connects directly: wss://api.deepgram.com/v1/listen?model=nova-3&token=<temp_key>
+    """
+    import requests as ext_requests
+    try:
+        from AI_infrastructure.shared.org_credentials_loader import resolve_api_key
+        api_key = resolve_api_key(g.user_id, 'deepgram')
+        if not api_key:
+            return jsonify({'error': 'Deepgram API key not configured. Add it in Org → Connections.'}), 404
+        # Step 1: get project ID
+        proj_resp = ext_requests.get(
+            'https://api.deepgram.com/v1/projects',
+            headers={'Authorization': f'Token {api_key}'},
+            timeout=10
+        )
+        if proj_resp.status_code != 200:
+            return jsonify({'error': 'Failed to retrieve Deepgram project list'}), 502
+        projects = proj_resp.json().get('projects', [])
+        if not projects:
+            return jsonify({'error': 'No Deepgram projects found for this API key'}), 404
+        project_id = projects[0]['project_id']
+        # Step 2: create temporary key (60s TTL)
+        key_resp = ext_requests.post(
+            f'https://api.deepgram.com/v1/projects/{project_id}/keys',
+            json={'comment': 'temp-streaming', 'scopes': ['usage:write'], 'time_to_live_in_seconds': 60},
+            headers={'Authorization': f'Token {api_key}', 'Content-Type': 'application/json'},
+            timeout=10
+        )
+        if key_resp.status_code not in (200, 201):
+            logger.error(f'[TRANSCRIPTION] Deepgram key creation failed: {key_resp.status_code}')
+            return jsonify({'error': 'Failed to create Deepgram streaming token'}), 502
+        temp_key = key_resp.json().get('key')
+        return jsonify({'token': temp_key, 'expires_in': 60}), 200
+    except Exception as e:
+        logger.error(f'[TRANSCRIPTION] Deepgram token error: {e}', exc_info=True)
+        return jsonify({'error': str(e)}), 500
+
+
+@transcription_bp.route('/api/transcription/openai-realtime-token', methods=['GET'])
+@require_auth
+def get_openai_realtime_token():
+    """
+    GET /api/transcription/openai-realtime-token
+    Exchange the org's OpenAI API key for a short-lived Realtime ephemeral token.
+    Frontend: new WebSocket(url, ['realtime', 'openai-insecure-api-key.{token}', 'openai-beta.realtime-v1'])
+    """
+    import requests as ext_requests
+    try:
+        from AI_infrastructure.shared.org_credentials_loader import resolve_api_key
+        api_key = resolve_api_key(g.user_id, 'openai')
+        if not api_key:
+            return jsonify({'error': 'OpenAI API key not configured. Add it in Org → Connections.'}), 404
+        resp = ext_requests.post(
+            'https://api.openai.com/v1/realtime/sessions',
+            json={
+                'model': 'gpt-4o-realtime-preview',
+                'voice': 'echo',
+                'input_audio_transcription': {'model': 'whisper-1'},
+                'instructions': 'You are a transcription assistant. Transcribe all speech accurately.'
+            },
+            headers={'Authorization': f'Bearer {api_key}', 'Content-Type': 'application/json'},
+            timeout=10
+        )
+        if resp.status_code != 200:
+            logger.error(f'[TRANSCRIPTION] OpenAI Realtime session error: {resp.status_code} {resp.text}')
+            return jsonify({'error': 'Failed to create OpenAI Realtime session'}), 502
+        data = resp.json()
+        client_secret = data.get('client_secret', {})
+        return jsonify({
+            'token': client_secret.get('value'),
+            'expires_at': client_secret.get('expires_at'),
+            'model': data.get('model', 'gpt-4o-realtime-preview')
+        }), 200
+    except Exception as e:
+        logger.error(f'[TRANSCRIPTION] OpenAI Realtime token error: {e}', exc_info=True)
+        return jsonify({'error': str(e)}), 500
+
+
+@transcription_bp.route('/api/transcription/speechmatics-token', methods=['GET'])
+@require_auth
+def get_speechmatics_token():
+    """
+    GET /api/transcription/speechmatics-token
+    Exchange the org's Speechmatics API key for a short-lived JWT (1h TTL).
+    EU endpoint wss://eu2.rt.speechmatics.com — GDPR-compliant UK/EU data processing.
+    """
+    import requests as ext_requests
+    try:
+        from AI_infrastructure.shared.org_credentials_loader import resolve_api_key
+        api_key = resolve_api_key(g.user_id, 'speechmatics')
+        if not api_key:
+            return jsonify({'error': 'Speechmatics API key not configured. Add it in Org → Connections.'}), 404
+        resp = ext_requests.post(
+            'https://mp.speechmatics.com/v1/api_keys?type=rt',
+            json={'ttl': 3600},
+            headers={'Authorization': f'Bearer {api_key}', 'Content-Type': 'application/json'},
+            timeout=10
+        )
+        if resp.status_code not in (200, 201):
+            logger.error(f'[TRANSCRIPTION] Speechmatics token error: {resp.status_code} {resp.text}')
+            return jsonify({'error': 'Failed to create Speechmatics JWT'}), 502
+        token = resp.json().get('key_value')
+        return jsonify({'token': token, 'expires_in': 3600}), 200
+    except Exception as e:
+        logger.error(f'[TRANSCRIPTION] Speechmatics token error: {e}', exc_info=True)
+        return jsonify({'error': str(e)}), 500
 
 
 # Export blueprint for flask_app.py to register

@@ -19,7 +19,7 @@ Implements patterns from GitHub research:
 LAST MODIFIED: 2025-12-07 - Fixed cursor management
 """
 
-from flask import Blueprint, request, jsonify
+from flask import Blueprint, request, jsonify, g
 from typing import Dict, List, Any, Optional
 import psycopg2
 from psycopg2.extras import RealDictCursor
@@ -82,7 +82,7 @@ def search_fulltext():
             offset,
             filters.get('source'),
             filters.get('file_type'),
-            filters.get('user_id')
+            g.user_id  # Enforce JWT user — ignore client-supplied user_id
         ))
         
         results = cursor.fetchall()
@@ -567,7 +567,7 @@ def list_documents():
     cursor = None  # ✅ Initialize cursor before try
     conn = None    # ✅ Initialize connection before try
     try:
-        user_id = request.user_id
+        user_id = g.user_id
         limit = request.args.get('limit', 20, type=int)
         offset = request.args.get('offset', 0, type=int)
         source = request.args.get('source')
@@ -583,8 +583,9 @@ def list_documents():
                 tags, categories, description, url, thumbnail_url, view_count
             FROM ai_infrastructure.document_library
             WHERE is_deleted = false
+            AND created_by_user_id = %s
         """
-        params = []
+        params = [user_id]
         
         if source:
             query += " AND source = %s"

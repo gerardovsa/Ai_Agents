@@ -393,6 +393,23 @@ class UserAuthManager:
                             ''', (user_id, gmail_data['email'], gmail_data['display_name'], gmail_data['is_primary']))
                         
                         print(f"✅ Auto-linked {len(gmail_accounts)} Gmail accounts from .env.master")
+
+                    # CREATE PERSONAL ORG — ensures every user has organisation_id set
+                    # so credential resolution uses their own org vault (Tier 2) rather
+                    # than falling through to shared env vars (Tier 3).
+                    # create_personal_org() is idempotent — safe even if org already exists.
+                    personal_org_id = None
+                    try:
+                        cursor.execute(
+                            "SELECT ai_infrastructure.create_personal_org(%s, %s, %s) AS personal_org_id",
+                            (user_id, username, username + "'s Workspace")
+                        )
+                        row = cursor.fetchone()
+                        personal_org_id = row['personal_org_id'] if row else None
+                        print(f"✅ Personal org created for user {username} (org_id: {personal_org_id})")
+                    except Exception as org_err:
+                        # Non-fatal: user is still created; org can be backfilled via migration
+                        print(f"⚠️ Personal org creation failed for {username}: {org_err}")
                 
                 conn.commit()
                 
@@ -404,7 +421,9 @@ class UserAuthManager:
                     'workspace_id': workspace_id,
                     'username': username,
                     'email': email,
-                    'role': role
+                    'role': role,
+                    'organisation_id': personal_org_id,
+                    'org_role': 'owner' if personal_org_id else None,
                 }
                 
         except Exception as e:

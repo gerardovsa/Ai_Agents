@@ -1,6 +1,8 @@
 # Module Visibility Architecture
-**Document Version: 1.2 — April 30, 2026**
-**Status: Current architecture documented + design spec for proper implementation. Invite system complete. Core DB framework fixes applied. Vector DB sidebar gating complete Apr 29. Account identity panel complete Apr 30.**
+**Document Version: 1.3 — May 28, 2026**
+**Status: IMPLEMENTATION COMPLETE. `initModulesFromOrg()` built and live (May 2026). Personal org subtab gating implemented (May 28, 2026). Tab-vsa-veterinary-alerts removed (Apr 8). Vector DB sidebar gating done (Apr 29). Account identity panel done (Apr 30).**
+
+> **Cross-reference:** Credentials/vault/role hierarchy → `ORG_CREDENTIALS_MASTER_ANALYSIS_UPDATED_MAY28_2026.md`
 
 ---
 
@@ -29,10 +31,10 @@ The platform currently has **two separate, disconnected module systems**:
 
 **The core problem:** The Org Settings > Modules panel lets admins toggle modules on/off per org — but that toggle data is never read to actually show or hide anything in the sidebar or main UI. The sidebar is driven by a static `manifest.json` file that is identical for every user.
 
-**What needs to be built:** A `initModulesFromOrg()` function that reads `/api/org/modules` on login/org switch, then drives:
-1. Which sidebar icons appear
-2. Which `tab-content` divs are allowed to be accessed
-3. Which hardcoded tabs (WooCommerce, Stock, etc.) are shown or hidden
+**✅ IMPLEMENTED (May 2026):** `initModulesFromOrg()` reads `/api/org/modules` on login and org switch, then drives:
+1. Which Zone 1 sidebar buttons appear (`data-module` attribute gating)
+2. Which Zone 2 module icons appear (rebuilt from DB catalog data)
+3. Whether team-management subtabs (Members, Invitations) are visible for personal orgs
 
 ---
 
@@ -225,14 +227,11 @@ These exist in `ai_infrastructure.module_catalog` (Migration 036) but have no `m
 | `vector_database` | Vector Search | Professional | `tab-vector-database` in HTML |
 | `woocommerce` | WooCommerce | Enterprise | `tab-sales` in HTML — **HARDCODED** |
 
-### 3d. VSA Veterinary Alerts — Orphaned Tab
+### 3d. VSA Veterinary Alerts — ✅ REMOVED
 
-**`tab-vsa-veterinary-alerts`** (HTML line 19202) is a fully rendered tab in the HTML that was built for a specific client (veterinary practice). It:
-- Has no sidebar icon/button to navigate to it
-- Has no entry in `manifest.json`
-- Has no entry in `module_catalog`
-- Is inaccessible to end users
-- Should be gated behind a module flag and sidebar icon, or removed
+**`tab-vsa-veterinary-alerts`** was a client-specific tab that had no sidebar button and was inaccessible to users. It was **removed from `business-ai-platform-v2.html` on April 8, 2026**. The `vsa_veterinary` entry was also removed from the `OPTIONAL_TAB_MAP` in `initModulesFromOrg()`. No further action needed.
+
+> **Note:** `VSA_API_BASE_URL` references that remain in the HTML (pointing to `vsa-agent-service.onrender.com`) are for a separate VSA automation agent service — unrelated to the veterinary tab.
 
 ---
 
@@ -287,24 +286,27 @@ document.querySelectorAll('[data-org-min-role]').forEach(el => {
 The Org Settings > Modules subtab (`#org-subtab-modules`) shows module cards with enable/disable toggles. When toggled:
 1. `OrgManager.toggleModule(name, enabled)` calls `PUT /api/org/modules/<name>`
 2. Row is upserted in `ai_infrastructure.org_module_access`
-3. **That's where it stops** — nothing reads this data to update the sidebar or hide tabs
+3. **✅ CONNECTED (May 2026):** On next login / page load, `initModulesFromOrg()` calls `GET /api/org/modules` and reflects the updated state in the sidebar
 
 ### 4d. Current Visibility Control Map
 
 ```
 ┌────────────────────────────────────────────────────────────────┐
-│  SIDEBAR CONTROL                                               │
-│  Zone 1 (core): HARDCODED HTML — no control possible          │
-│  Zone 2 (modules): manifest.json — static, same for everyone  │
+│  SIDEBAR CONTROL (May 2026 — IMPLEMENTED)                      │
+│  Zone 1 (core): data-module gated by initModulesFromOrg()     │
+│  Zone 2 (modules): DB-driven, rebuilt from org_module_access  │
 │  Zone 3 (bottom): HARDCODED HTML — no control possible        │
 ├────────────────────────────────────────────────────────────────┤
 │  TAB CONTENT CONTROL                                           │
 │  switchTab(id): shows tabId by adding .active class           │
-│  No visibility pre-check against org/role/module state        │
+│  Zone 1 buttons hidden means tabs unreachable (no direct URL) │
 ├────────────────────────────────────────────────────────────────┤
-│  ORG MODULE TOGGLES (DB)                                       │
-│  org_module_access: data stored but NEVER READ for UI         │
-│  Only rendered in /org/modules settings panel                 │
+│  ORG SETTINGS SUBTAB GATING                                    │
+│  _gateOrgSubTabs(): role-based (vault/modules/audit)          │
+│  + personal org: hides Members + Invitations subtabs          │
+├────────────────────────────────────────────────────────────────┤
+│  ORG MODULE TOGGLES (DB) — ✅ CONNECTED (May 2026)             │
+│  org_module_access → GET /api/org/modules → initModulesFromOrg│
 └────────────────────────────────────────────────────────────────┘
 ```
 
@@ -332,8 +334,8 @@ These should only appear in the sidebar when enabled for the org, not hardcoded:
 
 | Module | Icon | Tab ID | Plan Tier | DB module_name | Currently |
 |--------|------|--------|-----------|---------------|-----------|
-| **Vector Database** | `fas fa-database` | `tab-vector-database` | Professional | `vector_database` | ⚠️ **HARDCODED — always visible; requires Pinecone credential** |
-| **WooCommerce Management** | `fas fa-shopping-cart` | `tab-sales` | Enterprise | `woocommerce` | ⚠️ **HARDCODED — always visible** |
+| **Vector Database** | `fas fa-database` | `tab-vector-database` | Professional | `vector_database` | ✅ **Gated** — `data-module="vector_database"` on sidebar button; hidden by `initModulesFromOrg()` if not enabled |
+| **WooCommerce Management** | `fas fa-shopping-cart` | `tab-sales` / `tab-sales-v4` | Enterprise | `woocommerce` | ✅ **Gated** — both WooCommerce buttons have `data-module="woocommerce"`; hidden by `initModulesFromOrg()` |
 | Production Workflow (Kanban) | `fas fa-industry` | `tab-inhouse-kanban` | Enterprise | `inhouse_kanban` | Via manifest.json |
 | InHouse Print Tools | `fas fa-print` | (action) | Enterprise | `inhouse_print` | Via manifest.json |
 | Quote Calculator | `fas fa-calculator` | (action/tab) | Enterprise | `quote_calculator` | Via manifest.json |
@@ -349,9 +351,11 @@ These should only appear in the sidebar when enabled for the org, not hardcoded:
 
 ---
 
-## 6. Implementation Design — DB-Driven Sidebar Visibility
+## 6. Implementation — DB-Driven Sidebar Visibility
 
-### 6a. The Target Architecture
+> **Status: IMPLEMENTED (May 2026).** The design below was executed. Actual implementation differs slightly from the spec — see notes at end of section.
+
+### 6a. The Implemented Architecture
 
 ```
 Login / Org Switch
@@ -439,20 +443,21 @@ Add to the CSS section of `business-ai-platform-v2.html`:
 }
 ```
 
-### 6d. Wiring to Login Flow
+### 6d. Login Flow (As Implemented)
 
-Find the existing login success handler (where `AppState.user` is set) and add:
+In `business-ai-platform-v2.html` `loadUserInfo()` (around line 30688):
 
 ```javascript
-// After successful login / org load:
-const modulesResponse = await fetch(`${API_BASE_URL}/api/org/modules`, {
-    headers: { 'Authorization': `Bearer ${token}` }
-});
-const modulesData = await modulesResponse.json();
-if (modulesData.success) {
-    initModulesFromOrg(modulesData.modules || []);
+// After /api/org/modules fetch:
+if (data.success && window.initModulesFromOrg) {
+    const _effectiveRole = /* org_role or 'platform_developer' */;
+    window.initModulesFromOrg(data.modules || [], _effectiveRole, window._orgInfo || null);
 }
 ```
+
+**Actual signature:** `initModulesFromOrg(modules, userRole, orgInfo)` — 3 parameters, not 2.
+- `userRole` enables `platform_developer` super-role (sees all modules regardless of org settings)
+- `orgInfo` carries `is_personal_org` flag for team-management subtab gating
 
 ### 6e. `GET /api/org/modules` Response Schema
 
@@ -491,8 +496,8 @@ Complete reference combining sidebar visibility, HTML presence, code status, and
 | **Transcription** | Zone 1 Core | action panel | ❌ Built-in | `transcription` | Professional | Always On | None |
 | **Automation Workflows** | Zone 1 Core | `tab-automation` | ❌ Built-in | `automation` | Starter | Always On | None |
 | **Synergy Suite** | Zone 1 Core | `tab-synergy` | ❌ Built-in | `synergy` | Starter | Always On | None |
-| **Vector Database** | Zone 1 Core ⚠️ | `tab-vector-database` | ❌ Built-in | `vector_database` | Professional | **MUST BE OPTIONAL** | Gate behind `org_module_access`; requires `pinecone` credential. See `VECTOR_DB_ORG_ALIGNMENT_ANALYSIS_APR29_2026.md` |
-| **WooCommerce** | Zone 1 Core ⚠️ | `tab-sales` | ❌ Built-in | `woocommerce` | Enterprise | **MUST BE OPTIONAL** | Gate behind `org_module_access` |
+| **Vector Database** | Zone 1 Core | `tab-vector-database` | ❌ Built-in | `vector_database` | Professional | Optional | ✅ Done (Apr 29) — `data-module="vector_database"` gated by `initModulesFromOrg()` |
+| **WooCommerce (Legacy + V4)** | Zone 1 Core | `tab-sales`, `tab-sales-v4` | ❌ Built-in | `woocommerce` | Enterprise | Optional | ✅ Done (May 2026) — both buttons have `data-module="woocommerce"` |
 | **Production Workflow** | Zone 2 Dynamic | `tab-inhouse-kanban` | `inhouse-kanban/` | `inhouse_kanban` | Enterprise | Optional | Replace manifest.json with DB |
 | **InHouse Print** | Zone 2 Dynamic | (action) | `inhouse-print/` | `inhouse_print` | Enterprise | Optional | Replace manifest.json with DB |
 | **Quote Calculator** | Zone 3 Bottom | (action) | `quote-calculator/` | `quote_calculator` | Enterprise | Optional | Replace manifest.json with DB |
@@ -504,7 +509,7 @@ Complete reference combining sidebar visibility, HTML presence, code status, and
 | **Database Visualizer** | ❌ Not in sidebar | ❌ No tab | `database-visualizer/` | `database_visualizer` | Enterprise | Optional | Stub — add when ready |
 | **GitHub** | ❌ Not in sidebar | ❌ No tab | `github/` | `github` | Enterprise | Optional | Stub — add when ready |
 | **Render Management** | ❌ Not in sidebar | ❌ No tab | `render-management/` | `render_management` | Enterprise | Optional | Stub — add when ready |
-| **VSA Veterinary Alerts** | ❌ No sidebar btn | `tab-vsa-veterinary-alerts` | (built-in) | ❌ Not in DB | — | Optional | Add to DB + sidebar OR remove tab |
+| **VSA Veterinary Alerts** | ❌ Removed | ❌ Removed | N/A | ❌ Not in DB | — | N/A | ✅ Done (Apr 8) — Tab div + sidebar entry removed from HTML |
 | **Local Filesystem** | Zone 2 Dynamic | ❌ No tab | `local-filesystem/` | `local_filesystem` | Enterprise | Optional | Not implemented |
 
 ---
@@ -582,8 +587,11 @@ Follow the Module Plugin System pattern documented in `copilot-instructions.md`.
 
 | Date | Change | Author |
 |------|--------|--------|
-| April 30, 2026 | Added `#account-identity-panel` to account sidebar: colour-coded org role badge + live org name + team sub-account amber notice + platform developer blue notice. `_updateIdentityPanel()` method in `AccountSidebar`. `sidebarTeamBadge` replaced by this panel. | AI Agents dev session |
+| May 28, 2026 | **Personal org subtab gating:** `_gateOrgSubTabs()` extended to hide Members + Invitations subtab buttons when `window._orgIsPersonal=TRUE`. `initModulesFromOrg()` Step 3 added: hides Members + Invitations buttons for personal orgs using `isPersonalOrg` flag. The `isPersonalOrg` variable was computed but not acted on until this fix. | AI Agents dev session |
+| May 2026 | **`initModulesFromOrg()` IMPLEMENTED:** Zone 1 module gating via `data-module` attributes; Zone 2 rebuilt from DB catalog data (replaces `manifest.json`). Called from `loadUserInfo()` after `GET /api/org/modules`. Accepts `(modules, userRole, orgInfo)`. `platform_developer` super-role sees all modules. `is_personal_org` flag passed via `orgInfo`. Both WooCommerce sidebar buttons (`tab-sales` + `tab-sales-v4`) have `data-module="woocommerce"`. | AI Agents dev session |
+| April 30, 2026 | Added `#account-identity-panel` to account sidebar header: colour-coded org role badge + live org name + team sub-account amber notice + platform developer blue notice. `_updateIdentityPanel()` method in `AccountSidebar`. `sidebarTeamBadge` replaced by this panel. | AI Agents dev session |
 | April 29, 2026 | Vector DB sidebar button gated: `data-module="vector_database"` + `id` added to `business-ai-platform-v2.html`. pgvector as default provider. Migrations 044 (pgvector table) + 045 (catalog updates) confirmed running. | AI Agents dev session |
+| April 8, 2026 | `tab-vsa-veterinary-alerts` div removed from `business-ai-platform-v2.html`. `vsa_veterinary` removed from JS module map. | AI Agents dev session |
 | April 8, 2026 | Accept-invite frontend fully implemented; `execute_query()` DML bugs fixed; recursive trigger fixed (migration 041); `POST /api/org/invite` rewritten with provider field | AI Agents dev session |
 | March 28, 2026 | Added Section 1b: The 4-Layer Visibility Model + cross-references to org system docs | AI Agents dev session |
 | March 26, 2026 | Document created — full audit of current architecture, gap analysis, design spec for DB-driven visibility | AI Agents dev session |
@@ -595,7 +603,7 @@ Follow the Module Plugin System pattern documented in `copilot-instructions.md`.
 For complete information on the Organisation system that governs module visibility, see:
 
 - **[ORG_DOCUMENTATION_AND_UI_ALIGNMENT_SUMMARY_MAR28_2026.md](../ORG_DOCUMENTATION_AND_UI_ALIGNMENT_SUMMARY_MAR28_2026.md)** — Complete organisation table schema (20 columns), all 4 migrations, UI form mappings, API endpoints
-- **[ORG_CREDENTIALS_MASTER_ANALYSIS.md](./ORG_CREDENTIALS_MASTER_ANALYSIS.md)** — Multi-tenancy architecture, credential vault, role hierarchy, RLS policies, sub-user system
+- **[ORG_CREDENTIALS_MASTER_ANALYSIS_UPDATED_MAY28_2026.md](./ORG_CREDENTIALS_MASTER_ANALYSIS_UPDATED_MAY28_2026.md)** — Multi-tenancy architecture, credential vault, role hierarchy, RLS policies, sub-user system, personal org, 4-tier credential resolution, bug audit
 - **[../copilot-instructions.md](../copilot-instructions.md)** — Org/Platform/Module system reference (Section: Org, Team, Roles, Platform Catalog & Module System)
 
 ---

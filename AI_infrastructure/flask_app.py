@@ -1620,6 +1620,68 @@ def ws_synergy_user_heartbeat(data):
         log_error(logger, f"[WS ERROR] user_heartbeat handler failed: {e}")
 
 # ============================================================================
+# THREAD PRESENCE & TYPING INDICATORS  (namespace: /ws/synergy)
+# ============================================================================
+
+_thread_viewers = {}  # {thread_id: {str(user_id): {display_name, joined_at}}}
+
+@socketio.on('join_thread', namespace='/ws/synergy')
+def ws_join_thread(data):
+    """User enters a thread — add to viewer list and broadcast updated roster."""
+    from flask_socketio import join_room
+    thread_id  = data.get('thread_id')
+    user_id    = str(data.get('user_id', ''))
+    dname      = data.get('display_name', 'User')
+    if not thread_id or not user_id:
+        return
+    room = f'thread_{thread_id}'
+    join_room(room, namespace='/ws/synergy')
+    if thread_id not in _thread_viewers:
+        _thread_viewers[thread_id] = {}
+    _thread_viewers[thread_id][user_id] = {
+        'user_id': user_id,
+        'display_name': dname,
+        'joined_at': datetime.now().isoformat()
+    }
+    socketio.emit('viewers_update', {
+        'thread_id': thread_id,
+        'viewers': list(_thread_viewers[thread_id].values())
+    }, room=room, namespace='/ws/synergy')
+    log_config(logger, f"[WS PRESENCE] join_thread: user {user_id} joined thread {thread_id}")
+
+
+@socketio.on('leave_thread', namespace='/ws/synergy')
+def ws_leave_thread(data):
+    """User leaves a thread — remove from viewer list and broadcast."""
+    from flask_socketio import leave_room
+    thread_id = data.get('thread_id')
+    user_id   = str(data.get('user_id', ''))
+    if not thread_id:
+        return
+    room = f'thread_{thread_id}'
+    leave_room(room, namespace='/ws/synergy')
+    if thread_id in _thread_viewers:
+        _thread_viewers[thread_id].pop(user_id, None)
+    socketio.emit('viewers_update', {
+        'thread_id': thread_id,
+        'viewers': list(_thread_viewers.get(thread_id, {}).values())
+    }, room=room, namespace='/ws/synergy')
+
+
+@socketio.on('typing_indicator', namespace='/ws/synergy')
+def ws_typing_indicator(data):
+    """Broadcast typing notification to all other viewers of the thread."""
+    thread_id = data.get('thread_id')
+    dname     = data.get('display_name', 'User')
+    if not thread_id:
+        return
+    socketio.emit('user_typing', {
+        'thread_id': thread_id,
+        'display_name': dname
+    }, room=f'thread_{thread_id}', namespace='/ws/synergy', include_self=False)
+
+
+# ============================================================================
 # SOCKETIO ERROR HANDLERS
 # ============================================================================
 

@@ -76,8 +76,8 @@ Object.assign(window.ThreadManager, {
     /**
      * Create thread with full metadata (backend-first)
      */
-    async createThreadWithMetadata(title, tags, location = 'prime') {
-        console.log('🔄 [CRUD] Creating thread with metadata:', { title, tags, location });
+    async createThreadWithMetadata(title, tags, location = 'prime', visibility = 'personal') {
+        console.log('🔄 [CRUD] Creating thread with metadata:', { title, tags, location, visibility });
 
         try {
             const response = await fetch(`${this.apiBaseUrl}/api/threads/create`, {
@@ -87,7 +87,8 @@ Object.assign(window.ThreadManager, {
                     user_id: (UserAuth.user && (UserAuth.user.id || UserAuth.user.user_id)) || 1,
                     title: title,
                     tags: tags || [],
-                    location: location
+                    location: location,
+                    visibility: visibility
                 })
             });
 

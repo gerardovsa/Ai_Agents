@@ -6681,6 +6681,15 @@
             transform: translateX(2px);
         }
 
+        /* Thread viewer presence bar (Prime header) */
+        .thread-viewers-bar {
+            padding: 2px 12px 4px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            flex-wrap: wrap;
+        }
+
         /* Message View Mode Control - Prime Chat */
         #ai-chat-panel .view-mode-btn {
             width: 32px;
@@ -8694,7 +8703,7 @@
 
         /* Full panel drop overlay for Prime - with fade in animation */
         .ai-chat-panel.drag-over::before {
-            content: '?? Drop thread here to load in Prime';
+            content: 'Drop thread here to load in Prime';
             position: absolute;
             top: 50%;
             left: 50%;
@@ -12207,7 +12216,7 @@
         }
 
         .agent-column.drag-over::after {
-            content: '?? Drop thread here to load in this agent';
+            content: 'Drop thread here to load in this agent';
             position: absolute;
             top: 50%;
             left: 50%;
@@ -13796,6 +13805,35 @@
 
         .add-agent-bar:active {
             transform: translateX(3px) scale(0.98);
+        }
+
+        /* Disabled state: 26/26 columns reached */
+        .add-agent-bar.disabled {
+            cursor: not-allowed;
+            opacity: 0.45;
+            background: #2a2a2a;
+        }
+
+        .add-agent-bar.disabled:hover {
+            background: rgba(239, 68, 68, 0.25);
+            transform: none;
+            box-shadow:
+                6px 0 20px rgba(239, 68, 68, 0.45),
+                inset 0 0 20px rgba(239, 68, 68, 0.1);
+        }
+
+        .add-agent-bar.disabled:hover .add-agent-bar-content {
+            color: #ef4444;
+            letter-spacing: 2px;
+            transform: rotate(180deg);
+        }
+
+        .add-agent-bar.disabled:hover .add-agent-bar-content i {
+            animation: none;
+        }
+
+        .add-agent-bar.disabled::after {
+            display: none;
         }
 
         /* Show add-agent-bar only when multi-agent tab is active */
@@ -18727,7 +18765,7 @@
                 <i class="fas fa-users"></i>
             </button>
 
-            <button class="sidebar-icon-btn" data-tab="synergy" title="Synergy Dashboard - Session & Task Management">
+            <button class="sidebar-icon-btn" data-tab="synergy" data-module="synergy" title="Synergy Dashboard - Session & Task Management">
                 <i class="fa-solid fa-hexagon-nodes-bolt fa-lg"></i>
             </button>
 
@@ -18747,7 +18785,7 @@
 
             <div class="sidebar-divider"></div>
 
-            <button class="sidebar-icon-btn" data-action="calculator-tests" title="Calculator Tests (Admin)"
+            <button class="sidebar-icon-btn" data-action="calculator-tests" data-org-min-role="admin" title="Calculator Tests (Admin)"
                 onclick="openCalculatorDashboard()">
                 <i class="fas fa-calculator"></i>
             </button>
@@ -20753,6 +20791,10 @@
                         </div>
                         <div class="thread-selector-dropdown" id="thread-selector-prime" style="display: none;"></div>
                     </div>
+
+                    <!-- Thread presence: viewer badges (populated by ThreadPresence.js) -->
+                    <div id="prime-thread-viewers" class="thread-viewers-bar" style="display:none;"></div>
+
                 </div>
 
                 <!-- Thread View Choice Modal -->
@@ -20884,6 +20926,9 @@
                     <i class="fas fa-user-circle" style="margin-left: 8px; margin-right: 4px;"></i>
                     <span id="threadLockBannerUser" style="font-weight: 600;"></span>
                 </div>
+
+                <!-- Typing indicator: shown when a teammate is typing -->
+                <div id="prime-typing-indicator" style="display:none;padding:4px 14px;font-size:12px;color:var(--text-tertiary);font-style:italic;"></div>
 
                 <div class="ai-chat-input-container">
                     <!-- ==================== USER FEEDBACK AREA (Feature 2: Non-Blocking) ==================== -->
@@ -30556,14 +30601,21 @@
                         </div>`);
 
                     // Async-populate the org name from /api/org/info
+                    // Also cache is_personal_org so Synergy share popup + initModulesFromOrg can gate UI
                     const token = localStorage.getItem('authToken') || sessionStorage.getItem('authToken');
                     if (token) {
                         fetch(`${window.API_BASE_URL || ''}/api/org/info`, {
                             headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' }
                         }).then(r => r.json()).then(data => {
-                            const nameEl = document.getElementById('identity-org-name');
-                            if (nameEl && data.org) {
-                                nameEl.textContent = data.org.display_name || data.org.name || 'Organisation';
+                            const org = data.organisation || data.org;  // API returns 'organisation' key
+                            if (org) {
+                                // Populate org name in identity panel
+                                const nameEl = document.getElementById('identity-org-name');
+                                if (nameEl) nameEl.textContent = org.display_name || org.name || 'Organisation';
+
+                                // Cache personal org flag — read by openSharePopup() and initModulesFromOrg()
+                                window._orgIsPersonal = !!org.is_personal_org;
+                                window._orgInfo = org;  // full org object for downstream use
                             }
                         }).catch(() => {});
                     }
@@ -30663,9 +30715,11 @@
                         applyOrgRoleVisibility(profile);
 
                         // Load DB-driven module visibility (sidebar gating)
-                        // Org members + platform_developer (who may have no org_role in DB)
+                        // Run for: org members, users with an organisation_id (personal orgs post-046),
+                        // and platform_developer role (always sees everything)
                         const _isPlatformDev = (profile.role === 'platform_developer');
-                        if (profile.org_role || _isPlatformDev) {
+                        const _hasOrg = !!(profile.org_role || profile.organisation_id || _isPlatformDev);
+                        if (_hasOrg) {
                             const _token = localStorage.getItem('auth_token') || localStorage.getItem('token') || '';
                             const _apiBase = window.API_BASE_URL || '';
                             fetch(_apiBase + '/api/org/modules', {
@@ -30679,7 +30733,8 @@
                                 if (data.success && window.initModulesFromOrg) {
                                     // Pass 'platform_developer' as userRole so isPlatformDev flag fires
                                     const _effectiveRole = _isPlatformDev ? 'platform_developer' : profile.org_role;
-                                    window.initModulesFromOrg(data.modules || [], _effectiveRole);
+                                    // Pass window._orgInfo (set by _updateIdentityPanel) as third arg
+                                    window.initModulesFromOrg(data.modules || [], _effectiveRole, window._orgInfo || null);
                                 }
                             })
                             .catch(function(err) {
@@ -31349,14 +31404,21 @@
         //   1. Gate Zone 1 hardcoded buttons that have data-module attributes
         //   2. Rebuild #sidebarModulesSection (Zone 2) from DB catalog data
         // ============================================================
-        async function initModulesFromOrg(modules, userRole) {
+        async function initModulesFromOrg(modules, userRole, orgInfo) {
             const enabledSet = new Set((modules || []).map(function(m) { return m.module_name; }));
 
             // platform_developer sees everything — skip set-based gating
             const isPlatformDev = (userRole === 'platform_developer');
 
+            // Personal org flag — hides team-specific UI (invite members, org subtabs)
+            // orgInfo is passed from loadUserInfo() via window._orgInfo (set by _updateIdentityPanel)
+            const isPersonalOrg = !!(orgInfo && orgInfo.is_personal_org);
+            // Keep global in sync (may have been set earlier by _updateIdentityPanel fetch)
+            if (orgInfo) window._orgIsPersonal = isPersonalOrg;
+
             console.log('[MODULE GATE] initModulesFromOrg — enabled:', Array.from(enabledSet),
-                '| role:', userRole, isPlatformDev ? '(super — all modules visible)' : '');
+                '| role:', userRole, isPlatformDev ? '(super — all modules visible)' : '',
+                '| isPersonalOrg:', isPersonalOrg);
 
             // ── 1. Gate Zone 1 buttons with data-module attribute ─────────────
             document.querySelectorAll('[data-module]').forEach(function(btn) {
@@ -31433,10 +31495,153 @@
 
             console.log('[MODULE GATE] Zone 2 rebuilt — '
                 + container.children.length + ' module buttons rendered');
+
+            // ── 3. Personal org — hide team-management org subtabs ────────────
+            // Solo users (is_personal_org=TRUE) have no team members to manage.
+            // Hide the Members and Invitations subtab buttons in the Org settings panel.
+            ['members', 'invitations'].forEach(function(subtab) {
+                const btn = document.querySelector('.org-sub-tab[data-subtab="' + subtab + '"]');
+                if (btn) btn.style.display = isPersonalOrg ? 'none' : '';
+            });
+            if (isPersonalOrg) {
+                console.log('[MODULE GATE] Personal org — Members + Invitations subtabs hidden');
+            }
         }
 
         // ── Expose globally so profile load can call it ───────────────────────
         window.initModulesFromOrg = initModulesFromOrg;
+
+        // ============================================================
+        // ThreadPresence — real-time viewer badges + typing indicator
+        // for the AI Prime chat thread. Connects via window.SynergyRealtime.socket
+        // (the /ws/synergy Socket.IO namespace).
+        // ============================================================
+        window.ThreadPresence = (function() {
+            let _currentThreadId = null;
+            let _currentUserId   = null;
+            let _currentDName    = 'User';
+            let _typingTimer     = null;
+            const TYPING_DEBOUNCE_MS = 1500;
+
+            function _socket() {
+                return window.SynergyRealtime && window.SynergyRealtime.socket;
+            }
+
+            function _renderViewers(viewers) {
+                const el = document.getElementById('prime-thread-viewers');
+                if (!el) return;
+                if (!viewers || viewers.length <= 1) {
+                    el.style.display = 'none';
+                    el.innerHTML = '';
+                    return;
+                }
+                el.style.display = 'flex';
+                const myId = String(_currentUserId);
+                const others = viewers.filter(v => String(v.user_id) !== myId);
+                if (others.length === 0) { el.style.display = 'none'; el.innerHTML = ''; return; }
+                el.innerHTML = '<span style="font-size:11px;color:var(--text-tertiary);margin-right:4px;">Also viewing:</span>'
+                    + others.map(v => {
+                        const initials = (v.display_name || 'U').charAt(0).toUpperCase();
+                        return '<span title="' + (v.display_name || 'User') + '" style="'
+                            + 'display:inline-flex;align-items:center;justify-content:center;'
+                            + 'width:22px;height:22px;border-radius:50%;background:var(--accent-primary,#7c6af7);'
+                            + 'color:#fff;font-size:11px;font-weight:600;cursor:default;">'
+                            + initials + '</span>';
+                    }).join('');
+            }
+
+            function _showTyping(dname) {
+                const el = document.getElementById('prime-typing-indicator');
+                if (!el) return;
+                el.textContent = dname + ' is typing\u2026';
+                el.style.display = 'block';
+                clearTimeout(_typingTimer);
+                _typingTimer = setTimeout(() => { if (el) el.style.display = 'none'; }, 3000);
+            }
+
+            function _bindSocketEvents(socket) {
+                socket.off('viewers_update');
+                socket.off('user_typing');
+                socket.on('viewers_update', function(data) {
+                    if (data.thread_id === _currentThreadId) {
+                        _renderViewers(data.viewers);
+                    }
+                });
+                socket.on('user_typing', function(data) {
+                    if (data.thread_id === _currentThreadId) {
+                        _showTyping(data.display_name);
+                    }
+                });
+            }
+
+            return {
+                init: function() {
+                    // Called once after socket is available — wire up events
+                    const socket = _socket();
+                    if (socket) { _bindSocketEvents(socket); }
+                },
+
+                joinThread: function(threadId) {
+                    const socket = _socket();
+                    if (!socket) return;
+                    const profile = window.UserAuth && window.UserAuth.user;
+                    _currentUserId = profile && (profile.id || profile.user_id);
+                    _currentDName  = profile && (profile.display_name || profile.username || 'User');
+
+                    // Leave previous thread first
+                    if (_currentThreadId && _currentThreadId !== threadId) {
+                        socket.emit('leave_thread', {
+                            thread_id: _currentThreadId,
+                            user_id: _currentUserId
+                        });
+                    }
+                    _currentThreadId = threadId;
+                    socket.emit('join_thread', {
+                        thread_id: threadId,
+                        user_id:   _currentUserId,
+                        display_name: _currentDName
+                    });
+                    // Re-bind in case socket reconnected
+                    _bindSocketEvents(socket);
+                },
+
+                leaveThread: function(threadId) {
+                    const socket = _socket();
+                    if (!socket) return;
+                    socket.emit('leave_thread', { thread_id: threadId, user_id: _currentUserId });
+                    _currentThreadId = null;
+                    _renderViewers([]);
+                },
+
+                emitTyping: function(threadId) {
+                    const socket = _socket();
+                    if (!socket || !threadId) return;
+                    socket.emit('typing_indicator', {
+                        thread_id:    threadId,
+                        display_name: _currentDName
+                    });
+                }
+            };
+        })();
+
+        // Hook typing emit onto the AI Prime textarea
+        (function() {
+            function _attachTyping() {
+                const textarea = document.getElementById('ai-chat-input');
+                if (!textarea) { setTimeout(_attachTyping, 800); return; }
+                let _lastEmit = 0;
+                textarea.addEventListener('input', function() {
+                    const now = Date.now();
+                    if (now - _lastEmit < 1200) return; // throttle to ~1 emit/1.2s
+                    _lastEmit = now;
+                    const tid = window._primeThreadId;
+                    if (tid && window.ThreadPresence) {
+                        window.ThreadPresence.emitTyping(tid);
+                    }
+                });
+            }
+            document.addEventListener('DOMContentLoaded', _attachTyping);
+        })();
 
         // Re-apply role visibility whenever the account sidebar is opened
         const _originalToggleSidebar = AccountSidebar.toggleSidebar.bind(AccountSidebar);

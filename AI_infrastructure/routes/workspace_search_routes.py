@@ -159,8 +159,8 @@ def semantic_search():
                 'error': 'search_query is required'
             }), 400
         
-        # Get user from session
-        user_id = data.get('user_id')
+        # Extract user from JWT (set by @require_auth) — not request body (prevents spoofing)
+        user_id = request.user.get('user_id') if hasattr(request, 'user') else None
         
         # Get workspace filter
         workspace_ids = data.get('workspace_ids')
@@ -375,7 +375,8 @@ def global_workspace_search():
         if mode not in ['simple', 'semantic']:
             mode = 'simple'
         
-        user_id = data.get('user_id')  # TODO: Extract from session
+        # Extract user from JWT (set by @require_auth) — not request body (prevents spoofing)
+        user_id = request.user.get('user_id') if hasattr(request, 'user') else None
         
         # Get connection
         from tools.implementations.workspace_search import get_database_connection
@@ -424,7 +425,7 @@ def global_workspace_search():
                 # Generate embedding for query
                 from tools.implementations.workspace_search import generate_embedding
                 
-                embedding = generate_embedding(query)
+                embedding = generate_embedding(query, user_id=user_id)
                 if not embedding:
                     return jsonify({
                         'success': False,

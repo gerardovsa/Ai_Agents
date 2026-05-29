@@ -339,7 +339,8 @@ def get_org_info():
                timezone, country_code, is_active, created_at, updated_at,
                vault_password_hash, metadata,
                description, visibility, allowed_domains,
-               ai_provider, ai_model, ai_max_tokens
+               ai_provider, ai_model, ai_max_tokens,
+               COALESCE(is_personal_org, FALSE) AS is_personal_org
         FROM ai_infrastructure.organisations WHERE id = %s
         """,
         (ctx['organisation_id'],),
@@ -383,6 +384,7 @@ def get_org_info():
             'ai_provider':        org.get('ai_provider') or 'anthropic',
             'ai_model':           org.get('ai_model') or '',
             'ai_max_tokens':      org.get('ai_max_tokens') or 8192,
+            'is_personal_org':    bool(org.get('is_personal_org', False)),
         },
         'your_role': ctx['org_role'],
     })

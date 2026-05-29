@@ -90,10 +90,31 @@ def _get_vector_provider(user_id: int) -> str:
     Return the active vector provider for *user_id*'s org.
 
     Resolution order:
+      0. GAP-V9: If the user's org is a personal org (is_personal_org=TRUE) →
+         always 'pgvector'. No Pinecone credential lookup is performed — personal
+         orgs never have Pinecone configured, so the lookup is a no-op and this
+         short-circuit avoids the extra DB round-trip.
       1. If the org has a 'pinecone' credential in the vault → 'pinecone'
       2. If the org has NO pinecone credential but pgvector is available → 'pgvector'
       3. Default → 'pinecone' (backward-compat; caller must handle missing creds)
     """
+    # GAP-V9: short-circuit for Solo / personal-org users
+    if PGVECTOR_TOOLS_AVAILABLE:
+        try:
+            from AI_infrastructure.shared.database_utils import execute_query
+            row = execute_query(
+                """SELECT o.is_personal_org
+                   FROM ai_infrastructure.organisations o
+                   JOIN ai_infrastructure.users u ON u.organisation_id = o.id
+                   WHERE u.id = %s""",
+                (user_id,),
+                fetch_mode='one'
+            )
+            if row and row.get('is_personal_org'):
+                return 'pgvector'
+        except Exception:
+            pass  # Non-fatal — fall through to normal resolution
+
     pin_cred = resolve_credentials(user_id, 'pinecone')
     if pin_cred and (
         pin_cred.get('api_key')

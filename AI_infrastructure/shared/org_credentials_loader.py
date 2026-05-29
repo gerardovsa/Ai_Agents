@@ -58,15 +58,17 @@ logger = logging.getLogger(__name__)
 # ============================================================================
 
 PLATFORM_ENV_VARS: Dict[str, str] = {
-    'anthropic':  'ANTHROPIC_API_KEY',
-    'openai':     'OPENAI_API_KEY',
-    'auspost':    'AUSPOST_API_KEY',
-    'stripe':     'STRIPE_SECRET_KEY',
-    'assemblyai': 'ASSEMBLYAI_API_KEY',
-    'twilio':     'TWILIO_AUTH_TOKEN',
-    'sendgrid':   'SENDGRID_API_KEY',
-    'pinecone':   'PINECONE_API_KEY',
-    'deepseek':   'DEEPSEEK_API_KEY',
+    'anthropic':    'ANTHROPIC_API_KEY',
+    'openai':       'OPENAI_API_KEY',
+    'auspost':      'AUSPOST_API_KEY',
+    'stripe':       'STRIPE_SECRET_KEY',
+    'assemblyai':   'ASSEMBLYAI_API_KEY',
+    'twilio':       'TWILIO_AUTH_TOKEN',
+    'sendgrid':     'SENDGRID_API_KEY',
+    'pinecone':     'PINECONE_API_KEY',
+    'deepseek':     'DEEPSEEK_API_KEY',
+    'deepgram':     'DEEPGRAM_API_KEY',
+    'speechmatics': 'SPEECHMATICS_API_KEY',
 }
 
 
@@ -109,10 +111,11 @@ def resolve_credentials(
     bypass_cache: bool = False,
 ) -> Optional[Dict[str, Any]]:
     """
-    Resolve API credentials for a platform using a 3-tier lookup:
-        1. User-specific credential  (personal OAuth tokens, personal API keys)
-        2. Org-level credential      (shared across the entire organisation)
-        3. Environment variable      (legacy fallback, no per-org billing isolation)
+    Resolve API credentials for a platform using a 4-tier lookup:
+        1.  User-specific credential         (personal OAuth tokens, personal API keys)
+        1.5 Sub-user inherits parent creds   (sub-user has no personal creds → inherit from parent)
+        2.  Org-level credential             (shared across the entire organisation)
+        3.  Environment variable             (legacy fallback, no per-org billing isolation)
 
     Args:
         user_id:      The authenticated user making the request.

@@ -1,8 +1,8 @@
 # Vector Database — Org System Alignment Analysis & Change Plan
-**Date:** April 29, 2026
+**Date:** April 29, 2026 (Updated: May 29, 2026 — 4-tier model alignment)
 **Author:** Analysis via GitHub Copilot
-**Status:** ✅ FULLY IMPLEMENTED — All 8 gaps resolved April 29, 2026
-**Companion docs:** `ORGANISATION_CREDENTIALS_ARCHITECTURE.md`, `ORG_CREDENTIALS_MASTER_ANALYSIS.md`, `MODULE_VISIBILITY_ARCHITECTURE.md`
+**Status:** ✅ FULLY IMPLEMENTED — All 8 gaps resolved April 29, 2026. May 2026 update: 4-tier credential model documented; GAP-V9 (`_get_vector_provider()` personal-org short-circuit) ✅ implemented May 29, 2026.
+**Companion docs:** `ORG_CREDENTIALS_MASTER_ANALYSIS_UPDATED_MAY28_2026.md` *(formerly `ORGANISATION_CREDENTIALS_ARCHITECTURE.md` + `ORG_CREDENTIALS_MASTER_ANALYSIS.md` — both archived May 28, 2026)*, `MODULE_VISIBILITY_ARCHITECTURE.md`
 
 ---
 
@@ -11,7 +11,7 @@
 This document captures the complete gap analysis between the vector database module and the current org/team/credential architecture. It defines every change required to bring the vector database system into full alignment with:
 
 - The org credential vault (`organisation_platform_credentials`, Fernet-encrypted)
-- The `org_credentials_loader.resolve_credentials()` 3-tier resolution pattern
+- The `org_credentials_loader.resolve_credentials()` **4-tier** resolution pattern (Tier 1.5 sub-user inheritance added May 2026)
 - The JWT-based auth system (`@require_auth`, `g.rls_user_id`)
 - The module visibility system (`org_module_access`, `initModulesFromOrg()`)
 - The namespace isolation requirement (GAP-C1 partial fix completion)
@@ -365,3 +365,121 @@ The master analysis flagged Pinecone empty namespace as CRITICAL. The fix was pa
 | Sidebar settings tab (to update) | `UI/modules_internal/vector_database/vector_database.html` | Settings tab section |
 | Sidebar open button (needs ID) | `UI/business-ai-platform-v2.html` | Vector DB sidebar button |
 | Module status table | `.github/MODULE_VISIBILITY_ARCHITECTURE.md` | Section 7 row "Vector Database" |
+
+---
+
+## 10. May 2026 Update — 4-Tier Model Alignment
+
+**Updated:** May 29, 2026  
+**Reference:** `ORG_CREDENTIALS_MASTER_ANALYSIS_UPDATED_MAY28_2026.md` (authoritative as of May 28, 2026)  
+**Migration:** 046 (`is_personal_org`, `default_member_role`, `create_personal_org()`)
+
+---
+
+### 10.1 Credential Resolution Is Now 4-Tier (Not 3-Tier)
+
+The April 29 implementation used a 3-tier credential resolution chain:
+```
+Tier 1 → user_platform_credentials (personal)
+Tier 2 → organisation_platform_credentials (org vault)
+Tier 3 → os.getenv() (legacy env-var fallback)
+```
+
+As of May 2026, **Tier 1.5 is inserted** for sub-account users (`is_sub_user = TRUE`):
+```
+Tier 1   → user_platform_credentials (this user's own personal credentials)
+Tier 1.5 → parent user's user_platform_credentials (if is_sub_user=TRUE, parent_user_id)
+Tier 2   → organisation_platform_credentials (shared org vault)
+Tier 3   → os.getenv() (legacy fallback, logs a warning)
+```
+
+`resolve_credentials()` in `org_credentials_loader.py` must implement the Tier 1.5 lookup for sub-users. Any call within the vector DB module that uses `resolve_credentials(user_id, 'pinecone')` or `resolve_credentials(user_id, 'openai_embeddings')` will automatically benefit from this once the loader is updated.
+
+---
+
+### 10.2 Tier-by-Tier Vector DB Behaviour
+
+| Tier | `is_personal_org` | `is_sub_user` | Expected vector DB behaviour |
+|------|:-----------------:|:-------------:|-------------------------------|
+| **Tier 1 — Solo** | `TRUE` | `FALSE` | `_get_vector_provider()` should always return `'pgvector'`; Pinecone is never needed. Embedding credentials come from the personal org vault. |
+| **Tier 2A — Team member** | `FALSE` | `FALSE` | Unchanged from April 29 implementation. Provider resolves via `resolve_credentials(user_id, 'pinecone')` → pgvector if absent. |
+| **Tier 2B — Sub-account** | `FALSE` | `TRUE` | Credential resolution uses Tier 1.5 (parent user keys) before the org vault. Namespace is `org_{org_id}` — same as parent, which is correct (shared org index). Document `owner_user_id` is the sub-user's own `user_id`. |
+| **Tier 3 — Enterprise** | `FALSE` | `FALSE` | Unchanged from April 29 implementation. Full Pinecone or pgvector per org vault. |
+
+---
+
+### 10.3 GAP-V9 — Enhancement: Short-Circuit `_get_vector_provider()` for Personal Orgs
+
+**Severity:** LOW (current behaviour is already functionally correct — pgvector is returned when Pinecone credentials are absent)  
+**Status:** Identified, not yet implemented — low priority  
+**File:** `AI_infrastructure/routes/vector_db_routes.py` → `_get_vector_provider()`
+
+**Current behaviour:**
+```python
+def _get_vector_provider(user_id):
+    creds = resolve_credentials(user_id, 'pinecone')
+    if creds:
+        return 'pinecone', creds
+    return 'pgvector', {}
+```
+For a Tier 1 Solo user, this already returns `'pgvector'` because no Pinecone credential exists in a personal org vault. Functionally correct.
+
+**Proposed enhancement (optional):**
+```python
+def _get_vector_provider(user_id):
+    # Short-circuit for personal orgs — pgvector always, no Pinecone lookup needed
+    org_row = execute_query(
+        """SELECT o.is_personal_org FROM ai_infrastructure.organisations o
+           JOIN ai_infrastructure.users u ON u.organisation_id = o.id
+           WHERE u.id = %s""",
+        (user_id,), fetch_mode='one'
+    )
+    if org_row and org_row.get('is_personal_org'):
+        return 'pgvector', {}
+
+    creds = resolve_credentials(user_id, 'pinecone')
+    if creds:
+        return 'pinecone', creds
+    return 'pgvector', {}
+```
+
+**When to implement:** ~~Only if the extra DB round-trip from `resolve_credentials()` for personal-org users becomes a measurable performance concern, or if Pinecone credential resolution causes spurious errors/warnings for solo users.~~
+
+✅ **Implemented May 29, 2026.** The `is_personal_org` query is lightweight (single indexed JOIN), non-fatal on failure (try/except falls through), and runs only when `PGVECTOR_TOOLS_AVAILABLE` is true — so Pinecone-only deployments are unaffected.
+
+---
+
+### 10.4 Namespace Isolation Remains Correct for All Tiers
+
+The `org_{org_id}` namespace enforced by GAP-V4 (April 29) already handles all four tiers correctly:
+
+- **Tier 1 (Solo):** namespace = `org_{their_personal_org_id}` — isolated from all other orgs ✅
+- **Tier 2A (Team member):** namespace = `org_{shared_org_id}` — all team members share the same index partition ✅
+- **Tier 2B (Sub-account):** namespace = `org_{shared_org_id}` — same org as parent; correct sharing semantics ✅
+- **Tier 3 (Enterprise):** namespace = `org_{enterprise_org_id}` — isolated per enterprise ✅
+
+No namespace changes are needed.
+
+---
+
+### 10.5 Document Ownership for Sub-Users (Tier 2B)
+
+Documents uploaded by a sub-user are stored with `owner_user_id = sub_user.id` and `namespace = org_{org_id}`. This means:
+- The sub-user owns their own documents (correct — `owner_user_id` is their actual `user_id`)
+- The org-scoped visibility filter (GAP-V6) allows the whole team to see `visibility='team'` documents within the namespace
+- If the sub-user account is removed, their `owner_user_id` references remain (orphaned documents are accessible to the org via namespace, not leaked outside)
+
+No code changes needed for Tier 2B document ownership.
+
+---
+
+### 10.6 Summary: What Changed vs April 29 Implementation
+
+| Item | April 29 State | May 2026 State | Action Required |
+|------|---------------|----------------|-----------------|
+| Credential resolution tiers | 3-tier | 4-tier (Tier 1.5 added) | `org_credentials_loader.py` must add parent-user lookup for `is_sub_user=TRUE` (not vector-DB-specific) |
+| `_get_vector_provider()` | Checks Pinecone creds → pgvector fallback | Short-circuits to pgvector for `is_personal_org=TRUE` before any credential lookup | ✅ GAP-V9 implemented May 29, 2026 |
+| Namespace isolation | `org_{org_id}` for all users | Unchanged — correct for all 4 tiers | None |
+| Document ownership | `owner_user_id = user_id` | Unchanged — sub-user gets own `owner_user_id` | None |
+| Companion docs reference | `ORGANISATION_CREDENTIALS_ARCHITECTURE.md` | **ARCHIVED** → `ORG_CREDENTIALS_MASTER_ANALYSIS_UPDATED_MAY28_2026.md` | Updated in this file's header ✅ |
+| "3-tier resolution" language | All April 29 references | Updated to "4-tier" throughout this document | Updated ✅ |

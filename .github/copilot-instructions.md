@@ -647,99 +647,20 @@ SELECT COUNT(*) FROM ai_infrastructure.module_catalog;    -- expect 26
 
 ## Pending Work — What Still Needs Building
 
-> **For any AI agent picking up this codebase:** The items below are DESIGNED and DOCUMENTED but NOT yet coded into the application. The database schema and API endpoints are live. The frontend implementation is the missing piece.
+> **Last updated: May 2026.** All original items 1–13 are now ✅ COMPLETE.
+> Thread visibility + WebSocket presence + role gating all shipped May 2026.
+> Next focus: Module V4 pattern migration (13 modules) + WooCommerce 400 error.
 
-> **Last updated: April 30, 2026.** Items 7–11 (Vector DB gaps) are now ✅ COMPLETE. See `VECTOR_DB_ORG_ALIGNMENT_ANALYSIS_APR29_2026.md` for full record.
+### Summary: Current Status
 
-### 1. `initModulesFromOrg()` — DB-Driven Sidebar Visibility
-
-**Status: NOT implemented. Design spec exists.**  
-**Reference:** `.github/MODULE_VISIBILITY_ARCHITECTURE.md` — Section 6 (full function code provided)
-
-**What it is:** A JavaScript function that runs on login/org switch, calls `GET /api/org/modules`, then shows/hides sidebar items and tab content based on which modules the org has enabled.
-
-**Why it matters:** Right now, ALL sidebar items are visible to ALL users regardless of org or role. The DB module catalog (`org_module_access`) records which modules each org has enabled — but that data is never read to affect the UI. This function is the bridge that connects the DB to the sidebar.
-
-**What the function must do:**
-1. Call `GET /api/org/modules` → get `{ enabled_modules: ['core_chat', 'shopify', ...] }`
-2. For Zone 1 hardcoded items: check `data-module` attribute on each `<li>` → hide if not in enabled list
-3. For Zone 2 dynamic items: replace `manifest.json`-driven `ModuleManager` with DB-driven rendering
-4. For Zone 3 (account/settings): always visible — no gating needed
-5. Add CSS class `.module-hidden` (display:none) to disabled items
-
-**Files to edit:**
-- `UI/business-ai-platform-v2.html` — add `initModulesFromOrg()` function, call it after login/org switch
-- Add `data-module="<module_name>"` attributes to all Zone 1 sidebar `<li>` items
-
-**CSS needed (add once to `<style>` block):**
-```css
-.module-hidden { display: none !important; }
-```
-
----
-
-### 2. WooCommerce Tab Hardcoded — No Gating
-
-**Status: KNOWN ISSUE — hardcoded always-visible**  
-**File:** `UI/business-ai-platform-v2.html`  
-**Search for:** `data-tab="sales"` (sidebar button) and `id="tab-sales"` (tab content)
-
-The WooCommerce tab (`tab-sales`) is hardcoded in the sidebar with a shopping cart icon and zero module/role gating. It appears for every user in every org. It should only appear when:
-- The org has `woocommerce` module enabled in `org_module_access`
-- The user has at least `member` role (standard access)
-
-**Fix:** Add `data-module="woocommerce"` to the sidebar `<li>` button and handle it in `initModulesFromOrg()`.
-
----
-
-### 3. Zone 2 Sidebar Still Driven by `manifest.json`
-
-**Status: Static file still active — DB catalog NOT yet wired to sidebar**  
-**File:** `UI/modules_external/manifest.json`
-
-The `ModuleManager` JS class reads `manifest.json` (lists 7 modules: inhouse-kanban, inhouse-print, quote-calculator, stock-management, xero, shopify, local-filesystem) and renders icon buttons in `#sidebarModulesSection`. This is identical for every user.
-
-**What needs changing:** Replace the `ModuleManager` manifest-loading with a DB-driven call. When `initModulesFromOrg()` runs, it should render only the modules the org has enabled, using `icon_class` and `icon_color` from `module_catalog`.
-
-**`manifest.json` format (for reference):**
-```json
-{ "modules": [{ "id": "shopify", "name": "Shopify", "icon": "fab fa-shopify", "color": "#96bf48", "tab": "tab-shopify" }] }
-```
-This maps directly to `module_catalog` columns — migration is straightforward.
-
----
-
-### 4. Role-Based Sidebar Gating Not Implemented
-
-**Status: Designed but not applied**
-
-Some sidebar items should be hidden not just by module but by role. Example: viewers shouldn't see org settings. The design calls for `data-org-min-role="admin"` attributes on `<li>` items.
-
-**No code added yet.** After `initModulesFromOrg()` loads modules, a second pass should check `data-org-min-role` vs the user's current `org_role` and hide items the user's role doesn't meet.
-
----
-
-### 5. Orphaned Tab: `tab-vsa-veterinary-alerts`
-
-**Status: Dead code — inaccessible**  
-**File:** `UI/business-ai-platform-v2.html` — approximately line 19202
-
-A tab content div `id="tab-vsa-veterinary-alerts"` exists in the HTML with no corresponding sidebar button — it was never linked up. There is also no `vsa_veterinary_alerts` entry in `module_catalog`. This tab is completely inaccessible to users.
-
-**Action needed:** Either add a sidebar entry + module catalog entry, or delete the orphaned HTML block entirely.
-
----
-
-### Summary: What a New AI Should Implement Next
-
-| # | Task | File(s) | Status | Complexity |
-|---|------|---------|--------|------------|
-| 1 | Build `initModulesFromOrg()` | `business-ai-platform-v2.html` | ⏳ Pending | Medium — see Section 6 in `MODULE_VISIBILITY_ARCHITECTURE.md` |
-| 2 | Add `data-module` attributes to Zone 1 sidebar items | `business-ai-platform-v2.html` | ⏳ Pending | Low |
-| 3 | Gate WooCommerce `tab-sales` with `data-module="woocommerce"` | `business-ai-platform-v2.html` | ⏳ Pending | Low |
-| 4 | Replace `manifest.json` Zone 2 rendering with DB-driven | `business-ai-platform-v2.html` | ⏳ Pending | Medium |
-| 5 | Add `data-org-min-role` checks for role-based gating | `business-ai-platform-v2.html` | ⏳ Pending | Low |
-| 6 | Resolve orphaned `tab-vsa-veterinary-alerts` | `business-ai-platform-v2.html` | ⏳ Pending | Low |
+| # | Task | File(s) | Status | Notes |
+|---|------|---------|--------|-------|
+| 1 | `initModulesFromOrg()` DB-driven sidebar | `business-ai-platform-v2.html` | ✅ Done May 2026 | `initModulesFromOrg()` implemented; called from `loadUserInfo()` |
+| 2 | `data-module` attributes on Zone 1 sidebar | `business-ai-platform-v2.html` | ✅ Done May 2026 | All Zone 1 buttons have `data-module` |
+| 3 | Gate WooCommerce `tab-sales` | `business-ai-platform-v2.html` | ✅ Done May 2026 | `data-module="woocommerce"` added |
+| 4 | Replace `manifest.json` Zone 2 with DB-driven | `business-ai-platform-v2.html` | ✅ Done May 2026 | `initModulesFromOrg()` Step 2 rebuilds Zone 2 |
+| 5 | `data-org-min-role` checks (role gating) | `business-ai-platform-v2.html` | ✅ Done May 2026 | `applyOrgRoleVisibility()` implemented; `data-org-min-role="admin"` on Calculator Tests + Account modal tabs |
+| 6 | Resolve orphaned `tab-vsa-veterinary-alerts` | `business-ai-platform-v2.html` | ✅ Done Apr 8 | Removed |
 | 7 | Vector DB — Fix unauthenticated API endpoints (GAP-V1) | `vector_db_routes.py` | ✅ Done Apr 29 | `@require_auth` added, `g.rls_user_id` throughout |
 | 8 | Vector DB — Switch credential resolver (GAP-V2/V3) | `vector_db_routes.py`, `pinecone_tools.py` | ✅ Done Apr 29 | `resolve_credentials()` replaces `os.getenv()` |
 | 9 | Vector DB — Propagate namespace isolation (GAP-V4) | `pinecone_tools.py` | ✅ Done Apr 29 | `org_{org_id}` namespace enforced |
@@ -747,9 +668,15 @@ A tab content div `id="tab-vsa-veterinary-alerts"` exists in the HTML with no co
 | 11 | Vector DB — Gate sidebar item (GAP-V7/V8) | `business-ai-platform-v2.html` | ✅ Done Apr 29 | `data-module="vector_database"` + `id` added |
 | 12 | pgvector provider (GAP-V9) — Supabase built-in vector DB | `pgvector_tools.py`, migration 044, `_get_vector_provider()` | ✅ Done Apr 29 | Full dual-provider support |
 | 13 | Account sidebar identity panel | `business-ai-platform-v2.html` | ✅ Done Apr 30 | `#account-identity-panel` + `_updateIdentityPanel()` |
+| 14 | Thread visibility (personal / team / restricted) | `thread_routes.py`, `thread-manager-crud.js`, `thread-manager-interactions.js`, migration 047 | ✅ Done May 2026 | Visibility stored in DB; radio selector in new-chat modal |
+| 15 | WebSocket thread presence — viewer badges + typing | `flask_app.py`, `business-ai-platform-v2.html`, `thread-manager-interactions.js` | ✅ Done May 2026 | `ThreadPresence` object; `join_thread`/`leave_thread`/`typing_indicator` WS handlers; `#prime-thread-viewers` + `#prime-typing-indicator` UI elements |
+| 16 | Module V4 pattern migration (13 remaining modules) | `UI/modules_external/*/` | ⏳ Next | WooCommerce is the exemplar — apply same pattern to shopify, xero, auspost, etc. |
+| 17 | WooCommerce 400 validation errors | `woocommerce/` | ⏳ Pending | See `woocommerce_v4_exemplar_status.md` |
+| 18 | Thread visibility enforcement on read | `thread_routes.py` | ⏳ Pending | `GET /api/threads` should filter by visibility + org membership; currently returns all user threads |
 
-> **Architecture doc:** All implementation details (full function code, CSS, module inventory table) are in `.github/MODULE_VISIBILITY_ARCHITECTURE.md`.
-> **Vector DB gap analysis & fix record:** `.github/VECTOR_DB_ORG_ALIGNMENT_ANALYSIS_APR29_2026.md`
+> **Architecture docs:**
+> - Module visibility: `.github/MODULE_VISIBILITY_ARCHITECTURE.md`
+> - Vector DB gap analysis: `.github/VECTOR_DB_ORG_ALIGNMENT_ANALYSIS_APR29_2026.md`
 
 ---
 

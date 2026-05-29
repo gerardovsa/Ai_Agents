@@ -3185,7 +3185,8 @@ async function loadOrgTab() {
 
 /**
  * Hide org sub-tab buttons the current user's role is not permitted to access.
- * Vault: manager+, Modules: member+, Audit: admin+
+ * Vault: admin+, Modules: member+, Audit: admin+
+ * Members + Invitations: hidden entirely for personal orgs (is_personal_org=TRUE).
  */
 function _gateOrgSubTabs(userRole) {
     const ROLE_LEVELS = { viewer: 1, member: 2, manager: 3, admin: 4, owner: 5, platform_developer: 10 };
@@ -3198,6 +3199,14 @@ function _gateOrgSubTabs(userRole) {
     Object.entries(rules).forEach(([subtab, minLevel]) => {
         const btn = document.querySelector(`.org-sub-tab[data-subtab="${subtab}"]`);
         if (btn) btn.style.display = level >= minLevel ? '' : 'none';
+    });
+
+    // Personal org (is_personal_org=TRUE) — solo workspace, no team to manage.
+    // Hide Members and Invitations subtabs: there are no other members to invite/manage.
+    const isPersonal = !!(window._orgIsPersonal);
+    ['members', 'invitations'].forEach(subtab => {
+        const btn = document.querySelector(`.org-sub-tab[data-subtab="${subtab}"]`);
+        if (btn) btn.style.display = isPersonal ? 'none' : '';
     });
 }
 

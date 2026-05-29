@@ -1372,6 +1372,10 @@ const AgentColumn = (function () {
             column.remove();
             console.log(`[AgentColumn] ✅ Agent ${agentId} fully removed and cleaned up`);
 
+            // Re-enable add bar now that a slot is free
+            const bar = document.querySelector('.add-agent-bar');
+            if (bar) bar.classList.remove('disabled');
+
             // STEP 8: Dispatch cleanup event
             const cleanupEvent = new CustomEvent('agent-removed', {
                 detail: { agentId }

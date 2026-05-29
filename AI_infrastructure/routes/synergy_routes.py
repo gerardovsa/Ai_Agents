@@ -52,7 +52,7 @@ import sys
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 # Import database utility with auto-detection
-from shared.database_utils import get_database_connection, is_using_supabase, convert_sql_placeholders
+from shared.database_utils import get_database_connection, is_using_supabase, convert_sql_placeholders, execute_query
 from auth.user_auth import require_auth
 
 synergy_bp = Blueprint('synergy', __name__, url_prefix='/api/synergy')
@@ -779,6 +779,11 @@ def create_session():
         if visibility not in ('private', 'shared', 'team'):
             visibility = 'private'
 
+        # default_member_role: role granted to team members when visibility = 'team'
+        default_member_role = data.get('default_member_role', 'editor')
+        if default_member_role not in ('viewer', 'editor'):
+            default_member_role = 'editor'
+
         shared_with_users = json.dumps(data.get('shared_with_users', []))
 
         with get_database_connection('synergy_sessions') as conn:
@@ -804,8 +809,8 @@ def create_session():
                         assignees, recent_activity, checklist, due_date, created_at, last_active,
                         thread_ids, assigned_agents, uses_milestones,
                         owner_user_id, shared_with_users, project_name,
-                        organisation_id, visibility
-                    ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                        organisation_id, visibility, default_member_role
+                    ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
                 ''', (
                     session_id,
                     data.get('title', 'Untitled Session'),
@@ -832,6 +837,7 @@ def create_session():
                     data.get('project_name', ''),
                     organisation_id,
                     visibility,
+                    default_member_role,
                 ))
                 cursor.execute(insert_sql, insert_params)
                 
@@ -1131,6 +1137,217 @@ def update_session_permissions(session_id):
         }), 500
 
 
+@synergy_bp.route('/<session_id>/visibility', methods=['PATCH'])
+def update_session_visibility(session_id):
+    """
+    Update the visibility field of a session (private / shared / team).
+    Called by the Share popup's Save button in the frontend.
+    """
+    try:
+        data = request.json or {}
+        user_id = getattr(g, 'rls_user_id', None) or data.get('user_id')
+        visibility = data.get('visibility', 'private')
+        if visibility not in ('private', 'shared', 'team'):
+            return jsonify({'success': False, 'error': 'Invalid visibility value'}), 400
+
+        with get_database_connection('synergy_sessions') as conn:
+            with conn.cursor() as cursor:
+                sql, params = convert_sql_placeholders(
+                    'SELECT owner_user_id, permission_level, shared_with_users FROM synergy_sessions WHERE session_id = %s',
+                    (session_id,)
+                )
+                cursor.execute(sql, params)
+                row = cursor.fetchone()
+                if not row:
+                    return jsonify({'success': False, 'error': 'Session not found'}), 404
+
+                has_perm, perm_type = check_session_permission(dict(row), user_id, require_write=True)
+                if perm_type != 'owner':
+                    return jsonify({'success': False, 'error': 'Only the session owner can change visibility'}), 403
+
+                upd_sql, upd_params = convert_sql_placeholders(
+                    'UPDATE synergy_sessions SET visibility = %s, last_active = %s WHERE session_id = %s',
+                    (visibility, datetime.now().isoformat(), session_id)
+                )
+                cursor.execute(upd_sql, upd_params)
+                conn.commit()
+
+        return jsonify({'success': True, 'session_id': session_id, 'visibility': visibility})
+
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@synergy_bp.route('/<session_id>/members', methods=['GET'])
+def list_session_members(session_id):
+    """
+    Return the list of users explicitly invited to a shared session.
+    Reads shared_with_users (JSON array of user IDs) then enriches with
+    username/email from ai_infrastructure.users.
+    """
+    try:
+        user_id = getattr(g, 'rls_user_id', None) or request.args.get('user_id', type=int)
+
+        with get_database_connection('synergy_sessions') as conn:
+            with conn.cursor() as cursor:
+                sql, params = convert_sql_placeholders(
+                    'SELECT owner_user_id, permission_level, shared_with_users FROM synergy_sessions WHERE session_id = %s',
+                    (session_id,)
+                )
+                cursor.execute(sql, params)
+                row = cursor.fetchone()
+                if not row:
+                    return jsonify({'success': False, 'error': 'Session not found'}), 404
+
+                has_perm, _ = check_session_permission(dict(row), user_id)
+                if not has_perm:
+                    return jsonify({'success': False, 'error': 'Access denied'}), 403
+
+                raw = row['shared_with_users']
+                try:
+                    member_ids = json.loads(raw) if isinstance(raw, str) else (raw or [])
+                except Exception:
+                    member_ids = []
+
+        if not member_ids:
+            return jsonify({'success': True, 'members': []})
+
+        # Enrich with user details from ai_infrastructure schema
+        placeholders = ','.join(['%s'] * len(member_ids))
+        rows = execute_query(
+            f"SELECT id, username, email FROM ai_infrastructure.users WHERE id IN ({placeholders})",
+            tuple(member_ids),
+            fetch_mode='all'
+        ) or []
+
+        user_map = {r['id']: r for r in rows}
+        members = []
+        for uid in member_ids:
+            info = user_map.get(uid) or {}
+            members.append({
+                'user_id': uid,
+                'username': info.get('username', f'User {uid}'),
+                'email': info.get('email', ''),
+                'role': 'member',
+            })
+
+        return jsonify({'success': True, 'members': members})
+
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@synergy_bp.route('/<session_id>/members', methods=['POST'])
+def add_session_member(session_id):
+    """
+    Invite a user (by email) to a shared session.
+    Looks up the user by email, then appends their ID to shared_with_users.
+    Only the session owner can invite.
+    """
+    try:
+        data = request.json or {}
+        user_id = getattr(g, 'rls_user_id', None) or data.get('user_id')
+        email = (data.get('email') or '').strip().lower()
+        if not email:
+            return jsonify({'success': False, 'error': 'email field required'}), 400
+
+        # Look up invitee
+        rows = execute_query(
+            'SELECT id, username, email FROM ai_infrastructure.users WHERE LOWER(email) = %s',
+            (email,),
+            fetch_mode='all'
+        ) or []
+        if not rows:
+            return jsonify({'success': False, 'error': f'No user found with email: {email}'}), 404
+        invitee = rows[0]
+        invitee_id = invitee['id']
+
+        with get_database_connection('synergy_sessions') as conn:
+            with conn.cursor() as cursor:
+                sql, params = convert_sql_placeholders(
+                    'SELECT owner_user_id, permission_level, shared_with_users FROM synergy_sessions WHERE session_id = %s',
+                    (session_id,)
+                )
+                cursor.execute(sql, params)
+                row = cursor.fetchone()
+                if not row:
+                    return jsonify({'success': False, 'error': 'Session not found'}), 404
+
+                has_perm, perm_type = check_session_permission(dict(row), user_id, require_write=True)
+                if perm_type != 'owner':
+                    return jsonify({'success': False, 'error': 'Only the session owner can invite members'}), 403
+
+                raw = row['shared_with_users']
+                try:
+                    member_ids = json.loads(raw) if isinstance(raw, str) else (raw or [])
+                except Exception:
+                    member_ids = []
+
+                if invitee_id not in member_ids:
+                    member_ids.append(invitee_id)
+                    upd_sql, upd_params = convert_sql_placeholders(
+                        'UPDATE synergy_sessions SET shared_with_users = %s, last_active = %s WHERE session_id = %s',
+                        (json.dumps(member_ids), datetime.now().isoformat(), session_id)
+                    )
+                    cursor.execute(upd_sql, upd_params)
+                    conn.commit()
+
+        return jsonify({
+            'success': True,
+            'user_id': invitee_id,
+            'username': invitee.get('username'),
+            'email': invitee.get('email'),
+        })
+
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@synergy_bp.route('/<session_id>/members/<int:member_user_id>', methods=['DELETE'])
+def remove_session_member(session_id, member_user_id):
+    """
+    Remove a user from a shared session's explicit member list.
+    Only the session owner can remove members.
+    """
+    try:
+        data = request.json or {}
+        user_id = getattr(g, 'rls_user_id', None) or data.get('user_id')
+
+        with get_database_connection('synergy_sessions') as conn:
+            with conn.cursor() as cursor:
+                sql, params = convert_sql_placeholders(
+                    'SELECT owner_user_id, permission_level, shared_with_users FROM synergy_sessions WHERE session_id = %s',
+                    (session_id,)
+                )
+                cursor.execute(sql, params)
+                row = cursor.fetchone()
+                if not row:
+                    return jsonify({'success': False, 'error': 'Session not found'}), 404
+
+                has_perm, perm_type = check_session_permission(dict(row), user_id, require_write=True)
+                if perm_type != 'owner':
+                    return jsonify({'success': False, 'error': 'Only the session owner can remove members'}), 403
+
+                raw = row['shared_with_users']
+                try:
+                    member_ids = json.loads(raw) if isinstance(raw, str) else (raw or [])
+                except Exception:
+                    member_ids = []
+
+                member_ids = [uid for uid in member_ids if uid != member_user_id]
+                upd_sql, upd_params = convert_sql_placeholders(
+                    'UPDATE synergy_sessions SET shared_with_users = %s, last_active = %s WHERE session_id = %s',
+                    (json.dumps(member_ids), datetime.now().isoformat(), session_id)
+                )
+                cursor.execute(upd_sql, upd_params)
+                conn.commit()
+
+        return jsonify({'success': True, 'removed_user_id': member_user_id})
+
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
 @synergy_bp.route('/<session_id>', methods=['PATCH'])
 def update_session(session_id):
     """
@@ -1185,6 +1402,12 @@ def update_session(session_id):
                     if field in update_data:
                         updates.append(f"{field} = %s")
                         update_params.append(update_data[field])
+
+                # Validated enum field (CHECK constraint: viewer | editor)
+                if 'default_member_role' in update_data:
+                    val = update_data['default_member_role']
+                    updates.append("default_member_role = %s")
+                    update_params.append(val if val in ('viewer', 'editor') else 'editor')
                 
                 # JSON fields without normalization
                 for field in ['platforms_involved', 'tags', 'links', 
@@ -3100,7 +3323,21 @@ def create_milestone(session_id):
         
         with get_database_connection('synergy_sessions') as conn:
             with conn.cursor() as cursor:  # ✅ NESTED CONTEXT MANAGER
-                
+
+                # Permission check — only session owners/editors may add milestones
+                _uid = getattr(g, 'rls_user_id', None) or data.get('user_id')
+                if _uid:
+                    _psql, _ppar = convert_sql_placeholders(
+                        'SELECT owner_user_id, permission_level, shared_with_users FROM synergy_sessions WHERE session_id = %s',
+                        (session_id,)
+                    )
+                    cursor.execute(_psql, _ppar)
+                    _sess_row = cursor.fetchone()
+                    if _sess_row:
+                        _ok, _ = check_session_permission(dict(_sess_row), _uid, require_write=True)
+                        if not _ok:
+                            return jsonify({'success': False, 'error': 'Write permission required'}), 403
+
                 # Get max milestone_number
                 sql, params = convert_sql_placeholders(
                     'SELECT COALESCE(MAX(milestone_number), 0) as max_num FROM milestones WHERE session_id = %s',
@@ -3293,7 +3530,24 @@ def update_milestone(milestone_id):
         
         with get_database_connection('synergy_sessions') as conn:
             with conn.cursor() as cursor:  # ✅ NESTED CONTEXT MANAGER
-                
+
+                # Permission check — look up parent session via milestone
+                _uid = getattr(g, 'rls_user_id', None) or (data.get('user_id') if data else None)
+                if _uid:
+                    _psql, _ppar = convert_sql_placeholders(
+                        '''SELECT s.owner_user_id, s.permission_level, s.shared_with_users
+                           FROM milestones m
+                           JOIN synergy_sessions s ON s.session_id = m.session_id
+                           WHERE m.milestone_id = %s''',
+                        (milestone_id,)
+                    )
+                    cursor.execute(_psql, _ppar)
+                    _sess_row = cursor.fetchone()
+                    if _sess_row:
+                        _ok, _ = check_session_permission(dict(_sess_row), _uid, require_write=True)
+                        if not _ok:
+                            return jsonify({'success': False, 'error': 'Write permission required'}), 403
+
                 # Build update query
                 updates = []
                 update_params = []
@@ -3816,7 +4070,24 @@ def create_task(milestone_id):
         
         with get_database_connection('synergy_sessions') as conn:
             with conn.cursor() as cursor:  # ✅ NESTED CONTEXT MANAGER
-                
+
+                # Permission check — look up parent session via milestone
+                _uid = getattr(g, 'rls_user_id', None) or data.get('user_id')
+                if _uid:
+                    _psql, _ppar = convert_sql_placeholders(
+                        '''SELECT s.owner_user_id, s.permission_level, s.shared_with_users
+                           FROM milestones m
+                           JOIN synergy_sessions s ON s.session_id = m.session_id
+                           WHERE m.milestone_id = %s''',
+                        (milestone_id,)
+                    )
+                    cursor.execute(_psql, _ppar)
+                    _sess_row = cursor.fetchone()
+                    if _sess_row:
+                        _ok, _ = check_session_permission(dict(_sess_row), _uid, require_write=True)
+                        if not _ok:
+                            return jsonify({'success': False, 'error': 'Write permission required'}), 403
+
                 # Get max task_order
                 sql, params = convert_sql_placeholders(
                     'SELECT COALESCE(MAX(task_order), 0) as max_order FROM tasks WHERE milestone_id = %s',
@@ -3859,7 +4130,25 @@ def update_task(task_id):
         
         with get_database_connection('synergy_sessions') as conn:
             with conn.cursor() as cursor:  # ✅ NESTED CONTEXT MANAGER
-                
+
+                # Permission check — resolve session via task → milestone
+                _uid = getattr(g, 'rls_user_id', None) or (data.get('user_id') if data else None)
+                if _uid:
+                    _psql, _ppar = convert_sql_placeholders(
+                        '''SELECT s.owner_user_id, s.permission_level, s.shared_with_users
+                           FROM tasks t
+                           JOIN milestones m ON m.milestone_id = t.milestone_id
+                           JOIN synergy_sessions s ON s.session_id = m.session_id
+                           WHERE t.task_id = %s''',
+                        (task_id,)
+                    )
+                    cursor.execute(_psql, _ppar)
+                    _sess_row = cursor.fetchone()
+                    if _sess_row:
+                        _ok, _ = check_session_permission(dict(_sess_row), _uid, require_write=True)
+                        if not _ok:
+                            return jsonify({'success': False, 'error': 'Write permission required'}), 403
+
                 updates = []
                 update_params = []
                 
@@ -4867,7 +5156,24 @@ def create_milestone_task(milestone_id):
         
         with get_database_connection('synergy_sessions') as conn:
             with conn.cursor() as cursor:  # ✅ NESTED CONTEXT MANAGER
-                
+
+                # Permission check — look up parent session via milestone
+                _uid = getattr(g, 'rls_user_id', None) or data.get('user_id')
+                if _uid:
+                    _psql, _ppar = convert_sql_placeholders(
+                        '''SELECT s.owner_user_id, s.permission_level, s.shared_with_users
+                           FROM milestones m
+                           JOIN synergy_sessions s ON s.session_id = m.session_id
+                           WHERE m.milestone_id = %s''',
+                        (milestone_id,)
+                    )
+                    cursor.execute(_psql, _ppar)
+                    _sess_row = cursor.fetchone()
+                    if _sess_row:
+                        _ok, _ = check_session_permission(dict(_sess_row), _uid, require_write=True)
+                        if not _ok:
+                            return jsonify({'success': False, 'error': 'Write permission required'}), 403
+
                 # Check milestone exists
                 cursor.execute('SELECT milestone_id FROM milestones WHERE milestone_id = %s', (milestone_id,))
                 if not cursor.fetchone():
@@ -4961,7 +5267,25 @@ def create_task_subtask(task_id):
         
         with get_database_connection('synergy_sessions') as conn:
             with conn.cursor() as cursor:  # ✅ NESTED CONTEXT MANAGER
-                
+
+                # Permission check — resolve session via task → milestone
+                _uid = getattr(g, 'rls_user_id', None) or data.get('user_id')
+                if _uid:
+                    _psql, _ppar = convert_sql_placeholders(
+                        '''SELECT s.owner_user_id, s.permission_level, s.shared_with_users
+                           FROM tasks t
+                           JOIN milestones m ON m.milestone_id = t.milestone_id
+                           JOIN synergy_sessions s ON s.session_id = m.session_id
+                           WHERE t.task_id = %s''',
+                        (task_id,)
+                    )
+                    cursor.execute(_psql, _ppar)
+                    _sess_row = cursor.fetchone()
+                    if _sess_row:
+                        _ok, _ = check_session_permission(dict(_sess_row), _uid, require_write=True)
+                        if not _ok:
+                            return jsonify({'success': False, 'error': 'Write permission required'}), 403
+
                 # Check task exists
                 cursor.execute('SELECT task_id FROM tasks WHERE task_id = %s', (task_id,))
                 if not cursor.fetchone():

@@ -122,6 +122,9 @@ Object.assign(window.ThreadManager, {
             window._primeThreadId = threadId;
             console.log(`✅ [Interactions] Updated window._primeThreadId: ${threadId}`);
 
+            // Notify ThreadPresence: announce viewer badge for this user
+            if (window.ThreadPresence) { window.ThreadPresence.joinThread(threadId); }
+
             this.currentThreadId = threadId;
 
             // ✅ FIX: Sync AppState.currentThreadId so autoLoadPrimeThread() knows thread is loaded
@@ -1030,6 +1033,21 @@ Object.assign(window.ThreadManager, {
                                 <label for="threadTags">Additional Tags (comma-separated)</label>
                                 <input type="text" id="threadTags" class="form-control" placeholder="e.g., urgent, research, client-work">
                             </div>
+                            <div class="form-group">
+                                <label>Thread Visibility</label>
+                                <div style="display:flex;gap:16px;margin-top:6px;">
+                                    <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-weight:400;">
+                                        <input type="radio" name="threadVisibility" value="personal" checked> Personal
+                                    </label>
+                                    <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-weight:400;">
+                                        <input type="radio" name="threadVisibility" value="team"> Team
+                                    </label>
+                                    <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-weight:400;">
+                                        <input type="radio" name="threadVisibility" value="restricted"> Restricted
+                                    </label>
+                                </div>
+                                <small style="color:var(--text-tertiary);font-size:11px;margin-top:4px;display:block;">Personal = only you &bull; Team = all org members &bull; Restricted = invited members only</small>
+                            </div>
                             <div class="modal-actions">
                                 <button type="button" class="btn btn-secondary" onclick="const modal = document.getElementById('newChatModalOverlay'); if (modal) modal.remove();">
                                     Cancel
@@ -1120,6 +1138,7 @@ Object.assign(window.ThreadManager, {
 
             const title = document.getElementById('threadTitle').value.trim();
             const tagsStr = document.getElementById('threadTags').value.trim();
+            const visibility = document.querySelector('input[name="threadVisibility"]:checked')?.value || 'personal';
 
             // Collect selected platform tags (with specific IDs if available)
             const selectedPlatformTags = Array.from(document.querySelectorAll('.platform-tag-btn.selected'))
@@ -1140,7 +1159,7 @@ Object.assign(window.ThreadManager, {
 
             try {
                 // Create thread with metadata
-                const newThreadId = await this.createThreadWithMetadata(title, allTags, location);
+                const newThreadId = await this.createThreadWithMetadata(title, allTags, location, visibility);
 
                 // Close modal
                 const modalOverlay = document.getElementById('newChatModalOverlay');

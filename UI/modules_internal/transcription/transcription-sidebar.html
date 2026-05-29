@@ -47,6 +47,10 @@
             title="Transcripts">
             <i class="fas fa-file-alt"></i>
         </button>
+        <button class="transcription-tab" onclick="TranscriptionSidebar.switchTab('status')" data-tab="status"
+            title="System Status">
+            <i class="fas fa-chart-line"></i>
+        </button>
         <button class="transcription-tab" onclick="TranscriptionSidebar.switchTab('settings')" data-tab="settings"
             title="Settings">
             <i class="fas fa-cog"></i>
@@ -154,6 +158,41 @@
         <div class="transcription-section">
             <h3><i class="fas fa-cloud-upload-alt"></i> Upload Audio / Video</h3>
 
+            <!-- Upload Engine Selector -->
+            <div class="transcription-field" style="margin-bottom: 10px;">
+                <label style="font-weight: 600; margin-bottom: 6px; display: block; font-size: 12px; color: #8b949e;">
+                    <i class="fas fa-cogs"></i> Transcription Engine:
+                </label>
+                <div class="upload-engine-grid">
+                    <label class="upload-engine-btn" for="upload-engine-local" title="Server-side Whisper &mdash; free, no API key needed">
+                        <input type="radio" name="upload-engine" id="upload-engine-local" value="local" checked>
+                        <span>Local Whisper</span>
+                        <span class="engine-tier-badge engine-tier-local">Server</span>
+                    </label>
+                    <label class="upload-engine-btn" for="upload-engine-openai" title="OpenAI gpt-4o-transcribe &mdash; highest accuracy">
+                        <input type="radio" name="upload-engine" id="upload-engine-openai" value="openai">
+                        <span>OpenAI</span>
+                        <span class="engine-tier-badge engine-tier-api">API</span>
+                    </label>
+                    <label class="upload-engine-btn" for="upload-engine-deepgram" title="Deepgram Nova-3 &mdash; fast, GDPR/EU, diarization">
+                        <input type="radio" name="upload-engine" id="upload-engine-deepgram" value="deepgram">
+                        <span>Deepgram</span>
+                        <span class="engine-tier-badge engine-tier-eu">GDPR</span>
+                    </label>
+                    <label class="upload-engine-btn" for="upload-engine-assemblyai" title="AssemblyAI &mdash; best diarization">
+                        <input type="radio" name="upload-engine" id="upload-engine-assemblyai" value="assemblyai-async">
+                        <span>AssemblyAI</span>
+                        <span class="engine-tier-badge engine-tier-api">API</span>
+                    </label>
+                    <label class="upload-engine-btn" for="upload-engine-speechmatics" title="Speechmatics &mdash; EU company, best for accents">
+                        <input type="radio" name="upload-engine" id="upload-engine-speechmatics" value="speechmatics">
+                        <span>Speechmatics</span>
+                        <span class="engine-tier-badge engine-tier-eu">EU</span>
+                    </label>
+                </div>
+                <div id="upload-engine-status" style="font-size: 11px; color: #6e7681; margin-top: 4px; min-height: 16px;"></div>
+            </div>
+
             <div class="transcription-upload-zone" id="upload-zone"
                 onclick="document.getElementById('transcription-file-input').click()"
                 ondragover="TranscriptionSidebar.handleDragOver(event)"
@@ -163,8 +202,7 @@
                 <i class="fas fa-cloud-upload-alt" style="font-size: 36px; color: #58a6ff; margin-bottom: 8px;"></i>
                 <p style="color: #c9d1d9; margin-bottom: 4px;">Click or drag files here</p>
                 <small style="color: #8b949e;">Supports: MP3, WAV, MP4, WebM, OGG, M4A, FLAC (max 25MB)</small>
-                <small style="color: #6e7681; display: block; margin-top: 4px;">✨ Local Whisper transcription • 50+
-                    languages • High accuracy</small>
+                <small style="color: #6e7681; display: block; margin-top: 4px;">&#10024; Choose transcription engine above &bull; 50+ languages</small>
                 <input type="file" id="transcription-file-input" accept="audio/*,video/*" multiple
                     style="display: none;" onchange="TranscriptionSidebar.handleFileSelect(event)">
             </div>
@@ -172,7 +210,7 @@
             <!-- Language Selection (for Whisper) -->
             <div style="margin-top: 12px;">
                 <label style="color: #8b949e; font-size: 12px; display: block; margin-bottom: 4px;">
-                    <i class="fas fa-language"></i> Language (optional - Whisper auto-detects)
+                    <i class="fas fa-language"></i> Language (optional &mdash; engine auto-detects where supported)
                 </label>
                 <select id="whisper-language-select"
                     style="width: 100%; padding: 6px; border-radius: 4px; border: 1px solid #30363d; background: #0d1117; color: var(--text-primary);">
@@ -303,7 +341,6 @@
             </div>
         </div>
     </div>
-</div>
 
 <!-- ========== TRANSCRIPTS TAB ========== -->
 <div class="transcription-tab-content" id="transcripts-tab">
@@ -414,6 +451,93 @@
 
 <!-- ========== SETTINGS TAB ========== -->
 <div class="transcription-tab-content" id="settings-tab">
+
+    <!-- ========== ENGINE SELECTION ========== -->
+    <div class="transcription-section">
+        <h3><i class="fas fa-sliders-h"></i> Transcription Engine</h3>
+
+        <div class="transcription-field">
+            <label style="font-weight: 600; margin-bottom: 8px; display: block;">Live Recording Engine:</label>
+            <div class="engine-option-list">
+
+                <label class="engine-option-row" for="engine-browser">
+                    <input type="radio" name="live-engine" id="engine-browser" value="browser" checked>
+                    <div class="engine-option-body">
+                        <div class="engine-option-name">
+                            Browser STT
+                            <span class="engine-tier-badge engine-tier-free">Free</span>
+                        </div>
+                        <div class="engine-option-desc">Chrome &amp; Edge only &bull; Instant &bull; Audio stays on device</div>
+                    </div>
+                </label>
+
+                <label class="engine-option-row" for="engine-assemblyai">
+                    <input type="radio" name="live-engine" id="engine-assemblyai" value="assemblyai">
+                    <div class="engine-option-body">
+                        <div class="engine-option-name">
+                            AssemblyAI Streaming
+                            <span class="engine-tier-badge engine-tier-api">API Key</span>
+                        </div>
+                        <div class="engine-option-desc">All browsers &bull; sub-300ms latency &bull; Best accuracy</div>
+                        <div class="engine-key-status" id="assemblyai-key-status">
+                            <i class="fas fa-circle-notch fa-spin"></i> Checking&hellip;
+                        </div>
+                    </div>
+                </label>
+
+                <label class="engine-option-row" for="engine-openai-realtime">
+                    <input type="radio" name="live-engine" id="engine-openai-realtime" value="openai-realtime">
+                    <div class="engine-option-body">
+                        <div class="engine-option-name">
+                            OpenAI Realtime
+                            <span class="engine-tier-badge engine-tier-api">API Key</span>
+                            <span class="engine-tier-badge engine-tier-dialogue">Dialogue</span>
+                        </div>
+                        <div class="engine-option-desc">GPT-4o quality &bull; Transcription + dialogue &bull; Sub-300ms &bull; All browsers</div>
+                        <div class="engine-key-status" id="openai-realtime-key-status">
+                            <i class="fas fa-circle-notch fa-spin"></i> Checking&hellip;
+                        </div>
+                    </div>
+                </label>
+
+                <label class="engine-option-row" for="engine-deepgram">
+                    <input type="radio" name="live-engine" id="engine-deepgram" value="deepgram">
+                    <div class="engine-option-body">
+                        <div class="engine-option-name">
+                            Deepgram Nova-3
+                            <span class="engine-tier-badge engine-tier-api">API Key</span>
+                            <span class="engine-tier-badge engine-tier-eu">GDPR/EU</span>
+                        </div>
+                        <div class="engine-option-desc">Fastest + best accuracy &bull; Speaker diarization &bull; EU data residency available</div>
+                        <div class="engine-key-status" id="deepgram-key-status">
+                            <i class="fas fa-circle-notch fa-spin"></i> Checking&hellip;
+                        </div>
+                    </div>
+                </label>
+
+                <label class="engine-option-row" for="engine-speechmatics">
+                    <input type="radio" name="live-engine" id="engine-speechmatics" value="speechmatics">
+                    <div class="engine-option-body">
+                        <div class="engine-option-name">
+                            Speechmatics
+                            <span class="engine-tier-badge engine-tier-api">API Key</span>
+                            <span class="engine-tier-badge engine-tier-eu">GDPR/EU</span>
+                        </div>
+                        <div class="engine-option-desc">UK/EU company &bull; Best accent accuracy &bull; Speaker diarization</div>
+                        <div class="engine-key-status" id="speechmatics-key-status">
+                            <i class="fas fa-circle-notch fa-spin"></i> Checking&hellip;
+                        </div>
+                    </div>
+                </label>
+
+            </div>
+        </div>
+
+        <button class="transcription-btn" onclick="TranscriptionSidebar.saveEngineSettings()">
+            <i class="fas fa-save"></i> Save Engine
+        </button>
+    </div>
+
     <!-- Advanced Features Section -->
     <div class="transcription-section">
         <h3><i class="fas fa-star"></i> Advanced Features</h3>
