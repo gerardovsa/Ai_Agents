@@ -1,7 +1,7 @@
 # Organisation Credentials System — Master Analysis
 **Date:** March 26, 2026 (Last Updated: May 28, 2026)
 **Purpose:** Complete authoritative reference for new chat sessions. Multi-tenant platform — one Render deployment, one Supabase database, all user types served.
-**Status:** ✅ Migrations 020–046 complete. Platform catalog (27 platforms), module catalog (26 modules), full org/user/role system, credential vault (Fernet encrypted), DB-driven permission model, and personal org tier are LIVE in Supabase. ✅ April 8: Full invite system; `execute_query` DML bugs fixed; recursive trigger fixed. ✅ April 29: Vector DB gaps resolved (GAP-V1–V8); pgvector dual-provider (migrations 044+045). ✅ April 30: Account sidebar identity panel (`#account-identity-panel`). ✅ **May 2026:** Migration 046 (personal org tier, `is_personal_org`, `default_member_role`, `create_personal_org()`); solo user backfill complete; credential resolution now **4-tier** (Tier 1.5 sub-user inheritance added); Synergy Team-visibility gating for personal-org users; Synergy write-route permission enforcement; member management (4 routes + UI); 12 new Synergy AI tools. Full record: `PERSONAL_ORG_SYNERGY_IMPLEMENTATION_PLAN_MAY2026.md`. ⚠️ `ORGANISATION_CREDENTIALS_ARCHITECTURE_UPDATED_APRIL30_2026.md` **ARCHIVED May 28, 2026** — unique content merged into this file.
+**Status:** ✅ Migrations 020–046 complete. Platform catalog (27 platforms), module catalog (26 modules), full org/user/role system, credential vault (Fernet encrypted), DB-driven permission model, and personal org tier are LIVE in Supabase. ✅ April 8: Full invite system; `execute_query` DML bugs fixed; recursive trigger fixed. ✅ April 29: Vector DB gaps resolved (GAP-V1–V8); pgvector dual-provider (migrations 044+045). ✅ April 30: Account sidebar identity panel (`#account-identity-panel`). ✅ **May 2026:** Migration 046 (personal org tier, `is_personal_org`, `default_member_role`, `create_personal_org()`); solo user backfill complete; credential resolution now **4-tier** (Tier 1.5 sub-user inheritance added); Synergy Team-visibility gating for personal-org users; Synergy write-route permission enforcement; member management (4 routes + UI); 12 new Synergy AI tools. Full record: `PERSONAL_ORG_SYNERGY_IMPLEMENTATION_PLAN_MAY2026.md`. ⚠️ `ORGANISATION_CREDENTIALS_ARCHITECTURE_UPDATED_APRIL30_2026.md` **ARCHIVED May 28, 2026** — unique content merged into this file. ✅ **June 2, 2026:** Platform Connections UI (Account Profile → Connections) fully audited and aligned with 4-tier credential architecture. See **Platform Connections UI System** section below.
 
 ---
 
@@ -1572,12 +1572,180 @@ Each member row in the org Members subtab has a puzzle-piece icon button (🧩) 
 
 ---
 
+## Platform Connections UI System (Account Profile → Connections)
+**Last audited: June 2, 2026**
+
+### Architecture
+
+The Platform Connections panel (Account Profile → Platform Connections) gives users a read/edit view of **all credentials visible to them** across all tiers.
+
+| File | Role |
+|------|------|
+| `AI_infrastructure/routes/connection_routes.py` | Blueprint — all CRUD endpoints (`connections_bp`) |
+| `AI_infrastructure/flask_app.py` | Registers `connections_bp` at line ~504; legacy direct route **removed June 2** |
+| `UI/business-ai-platform-v2.html` | Frontend: `loadConnectionsModal()`, `displayConnectionsModal()`, `editPlatformConnection()`, `submitApiKeyForm()` |
+| `AI_infrastructure/shared/org_credentials_loader.py` | **Separate system** — used by AI tools, not by connection_routes.py |
+
+> **Important distinction:** `connection_routes.py` is the *UI management* layer. `org_credentials_loader.py` is the *AI tool runtime* layer. They read the same tables but serve different purposes. A credential saved via the UI will be found by the resolver at tool-call time.
+
+---
+
+### GET /api/connections — What Each User Tier Sees
+
+```
+Request: GET /api/connections (Bearer token required — @require_auth)
+         ↓
+list_user_connections() in connection_routes.py
+         ↓
+1. Query ai_infrastructure.oauth_tokens WHERE user_id = X
+   → Returns OAuth connections (google, microsoft, xero, gmail_oauth, outlook_oauth)
+   → id format: "oauth_<N>"
+
+2. Query ai_infrastructure.users WHERE id = X
+   → Gets: organisation_id, org_role, is_sub_user, parent_user_id
+   → If sub-user AND org_id is NULL: falls back to parent user's organisation_id
+     (Tier 1.5 UI parity — same logic as org_credentials_loader)
+
+3. Query ai_infrastructure.user_platform_credentials WHERE user_id = X
+   → Personal API keys, database connections
+   → id format: "platform_<N>", is_org_level: false
+
+4. If org_id IS NOT NULL:
+   Query ai_infrastructure.organisation_platform_credentials WHERE organisation_id = X
+   → Org vault credentials (shared across the whole org)
+   → Deduplicates platforms already shown from personal creds (personal takes priority)
+   → id format: "org_<N>", is_org_level: true
+
+Response also includes: user_org_role (for frontend button gating)
+```
+
+---
+
+### Frontend State After GET
+
+```javascript
+window._userOrgRole      // e.g. 'owner', 'admin', 'member', null
+window._connectionsCache // { "platform_12": {...conn}, "org_45": {...conn}, ... }
+
+const canManageOrg = ['admin', 'owner'].includes(window._userOrgRole || '');
+```
+
+---
+
+### Credential ID Prefix → DB Table Routing
+
+| Prefix | Table | Example |
+|--------|-------|---------|
+| `oauth_N` | `ai_infrastructure.oauth_tokens` | `oauth_7` |
+| `platform_N` | `ai_infrastructure.user_platform_credentials` | `platform_23` |
+| `org_N` | `ai_infrastructure.organisation_platform_credentials` | `org_45` |
+
+All backend endpoints (GET, PUT, DELETE, POST test) branch on this prefix. Backend always validates that the authenticated user has access rights before any mutation.
+
+---
+
+### Scenario Traces (Verified June 2, 2026)
+
+#### Scenario A — Solo User (personal org, org_role='owner')
+| Action | Flow | Result |
+|--------|------|--------|
+| Load connections | GET → queries all 4 sources; org_id = personal org vault | Sees personal keys + org vault keys, all with edit/delete |
+| Add credential | POST /api/connections → UPSERT to `user_platform_credentials` | Saves to personal table (Tier 1). For solo users this is functionally correct. |
+| Edit personal credential | editPlatformConnection('platform_23') → cache lookup → opens modal → PUT /api/connections/platform_23 | ✅ Updates `user_platform_credentials` |
+| Edit org credential | editPlatformConnection('org_45') → cache → PUT /api/connections/org_45 → org_role='owner' → updates `organisation_platform_credentials` | ✅ |
+| Delete org credential | DELETE /api/connections/org_45 → role check 'owner' → soft-delete | ✅ |
+| Test any credential | POST /api/connections/org_45/test → org JOIN query → returns platform name | ✅ |
+
+#### Scenario B — Team Member (org_role='member' or 'viewer')
+| Action | Flow | Result |
+|--------|------|--------|
+| Load connections | GET → sees personal keys + org shared keys | ✅ Org keys have "Org Shared" badge, NO edit/delete/disconnect buttons |
+| Test org credential | POST test → member is in org via JOIN → lookup succeeds | ✅ |
+| Edit/delete (no button shown) | Buttons hidden (canManageOrg=false) | ✅ Prevented at UI level |
+| Try direct PUT /api/connections/org_45 | Role check → 'member' not in ('admin','owner') → 403 | ✅ Backend enforces too |
+
+#### Scenario C — Team Admin (org_role='admin')
+| Action | Flow | Result |
+|--------|------|--------|
+| Load connections | GET → org creds show with edit/delete/disconnect buttons | ✅ canManageOrg=true |
+| Edit org credential | PUT /api/connections/org_45 → role check 'admin' → updates display_name + credential_value | ✅ |
+| Delete org credential | DELETE /api/connections/org_45 → role check 'admin' → soft-delete | ✅ |
+
+#### Scenario D — Sub-User (is_sub_user=TRUE, organisation_id=NULL)
+| Action | Flow | Result |
+|--------|------|--------|
+| Load connections | GET → organisation_id NULL → fallback to parent_user_id's org → queries parent org vault | ✅ Sub-user sees parent org's shared credentials |
+| Permissions | user_org_role inherited from parent user's org_role | ✅ Correct permission level |
+
+#### Scenario E — User with No Org (isolated)
+| Action | Flow | Result |
+|--------|------|--------|
+| Load connections | GET → org_id=NULL → Tier 2 query skipped | ✅ Shows only personal creds and OAuth tokens |
+| canManageOrg | false (no org_role) | ✅ |
+
+#### Scenario F — Edit Flow End-to-End
+```
+1. User clicks Edit button on a connection card
+   → editPlatformConnection('org_45') called
+
+2. editPlatformConnection():
+   → const conn = window._connectionsCache['org_45']    // cache lookup (no DOM scraping)
+   → Sets data-edit-mode='true' on #add-connection-modal
+   → Sets data-edit-credential-id='org_45'
+   → Opens modal, pre-fills platform (locked) and credential_key label
+
+3. User enters new credential value, submits form
+
+4. submitApiKeyForm():
+   → const modal = getElementById('add-connection-modal')  // correct kebab-case ID
+   → isEditMode = true, editCredentialId = 'org_45'
+   → url = PUT /api/connections/org_45
+   → method = 'PUT'
+   → Sends {credential_key, credential_value, ...}
+
+5. update_platform_credential('org_45'):
+   → id_type = 'org', id_value = '45'
+   → Checks org_role via JOIN → admin/owner required
+   → UPDATE organisation_platform_credentials SET display_name=..., credential_value=... WHERE id=45
+   → Returns {success: true}
+
+6. UI: closeAddConnectionModal() → refreshConnectionsModal() → loadConnectionsModal()
+   → _connectionsCache rebuilt with fresh data
+```
+
+---
+
+### Bugs Fixed June 2, 2026
+
+| ID | Severity | Bug | Fix |
+|----|----------|-----|-----|
+| CONN-BUG-1 | CRITICAL | Legacy `get_connections()` in `flask_app.py` (no JWT auth, uses `user_id=1`, conflicts with blueprint) | Removed entirely from flask_app.py |
+| CONN-BUG-2 | CRITICAL | GET /api/connections never returned Tier 2 org credentials — entire org vault invisible in UI | Added Tier 2 query to `list_user_connections()` with `is_org_level: true` flag |
+| CONN-BUG-3 | CRITICAL | `submitApiKeyForm()` read from `getElementById('addConnectionModal')` — wrong camelCase ID (actual: `add-connection-modal`) → `isEditMode` always null → edit mode never detected | Fixed to `getElementById('add-connection-modal')` |
+| CONN-BUG-4 | HIGH | `submitApiKeyForm()` always used `POST /api/connections` in edit mode → org credentials created new personal row instead of updating org table | Added `isEditMode` branch: `PUT /api/connections/${editCredentialId}` when editing |
+| CONN-BUG-5 | HIGH | `editPlatformConnection()` used DOM scraping (`querySelectorAll('.connection-row')`, `button[onclick=...]`) that matched nothing in the actual div-based card layout | Replaced with `window._connectionsCache[credentialId]` lookup |
+| CONN-BUG-6 | HIGH | `test/PUT/DELETE` endpoints only handled `platform_` and `oauth_` prefixes — org credentials (`org_N`) returned 400 | Added `org_` branch to all three endpoints with role enforcement |
+| CONN-BUG-7 | HIGH | Sub-users with `organisation_id=NULL` saw no org credentials in UI (org_credentials_loader.py handles this correctly for AI tools but connection_routes.py did not) | Added parent_user_id fallback to `list_user_connections()` matching loader logic |
+| CONN-BUG-8 | MEDIUM | Disconnect button always rendered on org credentials even for non-admin users (backend correctly 403s but UX is broken) | Gated disconnect button with same `!conn.is_org_level \|\| canManageOrg` check as edit button |
+
+---
+
+### Remaining Known Gaps
+
+| ID | Severity | Description | Impact |
+|----|----------|-------------|--------|
+| CONN-GAP-1 | LOW | `POST /api/connections` (add new) always saves to `user_platform_credentials` (Tier 1) regardless of platform. Org-shared platforms (`anthropic`, `openai`, `pinecone`) ideally go to Tier 2 for org users. | Functional — `resolve_credentials()` finds Tier 1 keys first. Sub-optimal: credential not shared with team. Workaround: add via Settings → Organisation → Credentials (org vault UI). |
+| CONN-GAP-2 | LOW | In edit mode, `submitApiKeyForm` requires a new credential value even if user only wants to rename the display label. | UX only — user must re-enter the API key when editing only the label. |
+
+---
+
 ## Changelog & TODO
 
-### Last Updated: May 28, 2026
+### Last Updated: June 2, 2026
 
 #### Recent Changes
 
+- ✅ **June 2** — Platform Connections UI fully audited and aligned with 4-tier credential model. 8 bugs fixed (CONN-BUG-1–8): legacy route removed, Tier 2 org credentials surfaced in UI, DOM ID mismatch fixed, edit mode routing fixed (POST→PUT), editPlatformConnection cache-based (no DOM scraping), `org_` prefix handling in test/PUT/DELETE, sub-user parent-org fallback, disconnect button gated for non-admin users. See **Platform Connections UI System** section.
 - ✅ **May 28** — Archived `ORGANISATION_CREDENTIALS_ARCHITECTURE_UPDATED_APRIL30_2026.md` (renamed `_ARCHIVED_...`); unique content (Vault flow, BUG-1–6, Migration 039) merged into this file
 - ✅ **May 2026** — Personal org system (Migration 046): `is_personal_org`, `default_member_role`, `create_personal_org()` SQL function, `register_user()` integration; every new user auto-gets a personal org
 - ✅ **May 2026** — 4-tier credential resolution: Tier 1 (user personal) → Tier 1.5 (sub-user inherits parent) → Tier 2 (org vault) → Tier 3 (env var); updated `org_credentials_loader.py`
@@ -1609,6 +1777,7 @@ Each member row in the org Members subtab has a puzzle-piece icon button (🧩) 
 - [ ] **GAP-L5** — Wire DeepSeek into `resolve_api_key` path (currently env-var only)
 
 **RESOLVED (closed):**
+- ✅ CONN-BUG-1–8 — Platform Connections UI 8 bugs fixed (legacy route, Tier 2 visibility, DOM ID, PUT routing, DOM scraping, org_ prefix, sub-user fallback, disconnect gating) — June 2, 2026
 - ✅ GAP-C1, C2, C3, C4 — Foundation security (Pinecone namespace, RLS role, AI engine per-request keys, JWT invalidation)
 - ✅ GAP-H1–H5 — Org UI fixes (saveOrgSettings, panel consolidation, RLS logging)
 - ✅ GAP-M1 — org_module_access + module_catalog (migrations 032, 036)

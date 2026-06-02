@@ -109,6 +109,44 @@ def list_user_connections():
                 }
                 connections.append(connection)
             
+            # Fetch user's organisation_id and org_role for Tier 2 and role gating
+            cursor.execute("""
+                SELECT organisation_id, org_role, is_sub_user, parent_user_id
+                FROM ai_infrastructure.users
+                WHERE id = %s
+            """, (user_id,))
+            user_meta_row = cursor.fetchone()
+            if isinstance(user_meta_row, dict):
+                org_id = user_meta_row.get('organisation_id')
+                user_org_role = user_meta_row.get('org_role')
+                is_sub_user = user_meta_row.get('is_sub_user')
+                parent_user_id = user_meta_row.get('parent_user_id')
+            elif user_meta_row:
+                org_id = user_meta_row[0]
+                user_org_role = user_meta_row[1]
+                is_sub_user = user_meta_row[2]
+                parent_user_id = user_meta_row[3]
+            else:
+                org_id = None
+                user_org_role = None
+                is_sub_user = False
+                parent_user_id = None
+
+            # Tier 1.5: Sub-users with no org_id inherit parent's organisation_id
+            if not org_id and is_sub_user and parent_user_id:
+                cursor.execute("""
+                    SELECT organisation_id, org_role
+                    FROM ai_infrastructure.users
+                    WHERE id = %s
+                """, (parent_user_id,))
+                parent_row = cursor.fetchone()
+                if isinstance(parent_row, dict):
+                    org_id = parent_row.get('organisation_id')
+                    user_org_role = parent_row.get('org_role')
+                elif parent_row:
+                    org_id = parent_row[0]
+                    user_org_role = parent_row[1]
+
             # 2. Query user_platform_credentials (API keys, databases, etc.)
             cursor.execute("""
                 SELECT 
@@ -190,12 +228,66 @@ def list_user_connections():
                     'credential_value_masked': masked_value,  # ✅ ADD MASKED VALUE
                     'account_name': account_name,  # ✅ ADD ACCOUNT NAME
                     'is_active': row_data['is_active'],
+                    'is_org_level': False,
                     'created_at': row_data['created_at'].isoformat() if row_data['created_at'] else None,
                     'updated_at': row_data['updated_at'].isoformat() if row_data['updated_at'] else None,
                     'metadata': metadata,
                     'has_credentials': bool(credentials)
                 }
                 connections.append(connection)
+
+            # 3. Query organisation_platform_credentials (Tier 2 - org vault)
+            if org_id:
+                # Track platforms already shown from personal credentials (to avoid duplicates)
+                user_platforms = {c['platform'] for c in connections}
+
+                cursor.execute("""
+                    SELECT
+                        id,
+                        platform,
+                        display_name,
+                        credential_value,
+                        credentials,
+                        is_active,
+                        created_at,
+                        updated_at,
+                        environment
+                    FROM ai_infrastructure.organisation_platform_credentials
+                    WHERE organisation_id = %s AND is_active = TRUE
+                    ORDER BY created_at DESC
+                """, (org_id,))
+
+                org_rows = cursor.fetchall()
+
+                for row in org_rows:
+                    if isinstance(row, dict):
+                        r = row
+                    else:
+                        r = {
+                            'id': row[0], 'platform': row[1], 'display_name': row[2],
+                            'credential_value': row[3], 'credentials': row[4],
+                            'is_active': row[5], 'created_at': row[6],
+                            'updated_at': row[7], 'environment': row[8]
+                        }
+
+                    # Skip platforms already covered by personal credentials
+                    if r['platform'] in user_platforms:
+                        continue
+
+                    connections.append({
+                        'id': f"org_{r['id']}",
+                        'platform': r['platform'],
+                        'credential_type': 'api_key',
+                        'credential_key': r['display_name'],
+                        'credential_value_masked': '••••••••',
+                        'account_name': None,
+                        'is_active': r['is_active'],
+                        'is_org_level': True,
+                        'created_at': r['created_at'].isoformat() if r['created_at'] else None,
+                        'updated_at': r['updated_at'].isoformat() if r['updated_at'] else None,
+                        'metadata': {'environment': r['environment']} if r.get('environment') else {},
+                        'has_credentials': True
+                    })
         
             # ✅ Close cursor before return
             cursor.close()
@@ -203,7 +295,8 @@ def list_user_connections():
             return jsonify({
                 'success': True,
                 'connections': connections,
-                'total_count': len(connections)
+                'total_count': len(connections),
+                'user_org_role': user_org_role
             }), 200
         
     except Exception as e:
@@ -222,6 +315,7 @@ def add_platform_credential():
     """
     POST /api/connections
     Add a new platform credential (API key, database connection, etc.)
+    Uses UPSERT to handle existing credentials for the same platform.
     
     Request Body:
         {
@@ -234,12 +328,13 @@ def add_platform_credential():
         }
     
     Returns:
-        {"success": bool, "message": str, "credential_id": int}
+        {"success": bool, "message": str, "credential_id": int, "is_update": bool}
     """
     user_id = request.user.get('user_id')
     if not user_id:
         return jsonify({'error': 'User ID not found in session'}), 401
     
+    conn = None  # Initialize for finally block
     try:
         data = request.get_json()
         platform = data.get('platform')
@@ -257,33 +352,131 @@ def add_platform_credential():
         
         # Add the main credential value to credentials dict
         credentials['main_credential'] = credential_value
-        
-        conn = None  # Initialize for finally block
+
+        # ── Smart Tier routing ────────────────────────────────────────────────────
+        # These platforms are intrinsically org-wide (AI providers, transactional
+        # email, shipping APIs, etc.).  When an admin/owner of an org submits one
+        # of them via this form, route the credential to Tier 2
+        # (organisation_platform_credentials) so every org member benefits.
+        # All other platforms — and any org-platform submitted by a member without
+        # admin/owner role — fall through to the normal Tier 1 path below.
+        ORG_PLATFORMS = {
+            'anthropic', 'openai', 'deepseek', 'assemblyai',
+            'pinecone', 'auspost', 'stripe', 'sendgrid', 'twilio',
+        }
+
         conn = get_database_connection('ai_infrastructure')
         cursor = conn.cursor()
-        
+
+        if platform in ORG_PLATFORMS:
+            cursor.execute("""
+                SELECT organisation_id, org_role
+                FROM ai_infrastructure.users
+                WHERE id = %s
+            """, (user_id,))
+            user_row = cursor.fetchone()
+            if isinstance(user_row, dict):
+                org_id = user_row.get('organisation_id')
+                org_role = user_row.get('org_role')
+            elif user_row:
+                org_id, org_role = user_row[0], user_row[1]
+            else:
+                org_id, org_role = None, None
+
+            if org_id and org_role in ('admin', 'owner'):
+                # Check for an existing active credential for this org + platform
+                cursor.execute("""
+                    SELECT id
+                    FROM ai_infrastructure.organisation_platform_credentials
+                    WHERE organisation_id = %s AND platform = %s AND is_active = TRUE
+                    LIMIT 1
+                """, (org_id, platform))
+                existing = cursor.fetchone()
+                existing_id = (
+                    existing.get('id') if isinstance(existing, dict) else existing[0]
+                ) if existing else None
+
+                if existing_id:
+                    cursor.execute("""
+                        UPDATE ai_infrastructure.organisation_platform_credentials
+                        SET display_name = %s,
+                            credential_value = %s,
+                            credentials = %s,
+                            updated_at = CURRENT_TIMESTAMP
+                        WHERE id = %s
+                    """, (credential_key, credential_value, json.dumps(credentials), existing_id))
+                    result_id = existing_id
+                    is_insert = False
+                else:
+                    cursor.execute("""
+                        INSERT INTO ai_infrastructure.organisation_platform_credentials
+                            (organisation_id, platform, display_name, credential_value,
+                             credentials, is_active, created_by_user_id)
+                        VALUES (%s, %s, %s, %s, %s, TRUE, %s)
+                        RETURNING id
+                    """, (org_id, platform, credential_key, credential_value,
+                          json.dumps(credentials), user_id))
+                    result = cursor.fetchone()
+                    result_id = (
+                        result.get('id') if isinstance(result, dict) else result[0]
+                    ) if result else None
+                    is_insert = True
+
+                cursor.close()
+                conn.commit()
+                return jsonify({
+                    'success': True,
+                    'message': f'{"Added" if is_insert else "Updated"} {platform} credentials (shared with org)',
+                    'credential_id': f'org_{result_id}',
+                    'is_update': not is_insert,
+                    'tier': 2
+                }), 201 if is_insert else 200
+
+        # ── Tier 1: personal credential ───────────────────────────────────────────
+        # ✅ FIX: Use UPSERT (INSERT ... ON CONFLICT) to handle existing credentials
+        # Since there's a UNIQUE constraint on (user_id, platform),
+        # we update if it exists, insert if it doesn't
         cursor.execute("""
             INSERT INTO ai_infrastructure.user_platform_credentials
-            (user_id, platform, credential_type, credential_key, credential_value, is_active, metadata, credentials)
-            VALUES (%s, %s, %s, %s, %s, TRUE, %s, %s)
-            RETURNING id
-        """, (user_id, platform, credential_type, credential_key, credential_value, 
+            (user_id, platform, credential_type, credential_key, credential_value, is_active, metadata, credentials, updated_at)
+            VALUES (%s, %s, %s, %s, %s, TRUE, %s, %s, CURRENT_TIMESTAMP)
+            ON CONFLICT (user_id, platform) DO UPDATE SET
+                credential_type = EXCLUDED.credential_type,
+                credential_key = EXCLUDED.credential_key,
+                credential_value = EXCLUDED.credential_value,
+                is_active = TRUE,
+                metadata = EXCLUDED.metadata,
+                credentials = EXCLUDED.credentials,
+                updated_at = CURRENT_TIMESTAMP
+            RETURNING id, (xmax = 0) as is_insert
+        """, (user_id, platform, credential_type, credential_key, credential_value,
               json.dumps(metadata), json.dumps(credentials)))
-        
-        credential_id = cursor.fetchone()[0]
-        
+
+        result = cursor.fetchone()
+        if result:
+            credential_id = result[0]
+            is_insert = result[1] if len(result) > 1 else True
+        else:
+            raise Exception("Failed to insert/update credential")
+
         # ✅ Close cursor before commit
         cursor.close()
         conn.commit()
-        
+
         return jsonify({
             'success': True,
-            'message': f'Added {platform} credentials',
-            'credential_id': credential_id
-        }), 201
+            'message': f'{"Added" if is_insert else "Updated"} {platform} credentials',
+            'credential_id': credential_id,
+            'is_update': not is_insert
+        }), 201 if is_insert else 200
         
     except Exception as e:
-        print(f"Error adding platform credential: {e}")
+        if conn:
+            try:
+                conn.rollback()
+            except:
+                pass
+        print(f"Error adding/updating platform credential for user {user_id}: {e}")
         import traceback
         traceback.print_exc()
         return jsonify({
@@ -324,8 +517,8 @@ def update_platform_credential(credential_id):
     if not user_id:
         return jsonify({'error': 'User ID not found in session'}), 401
     
-    # Parse credential_id format: "platform_123" or "oauth_456"
-    if not credential_id.startswith(('platform_', 'oauth_')):
+    # Parse credential_id format: "platform_123" or "oauth_456" or "org_789"
+    if not credential_id.startswith(('platform_', 'oauth_', 'org_')):
         return jsonify({'error': 'Invalid credential_id format'}), 400
     
     id_type, id_value = credential_id.split('_', 1)
@@ -335,6 +528,68 @@ def update_platform_credential(credential_id):
             'success': False,
             'error': 'OAuth credentials cannot be edited directly. Please re-authenticate.'
         }), 400
+
+    # Org-level credentials require admin or owner role
+    if id_type == 'org':
+        conn = None
+        try:
+            data = request.get_json()
+            conn = get_database_connection('ai_infrastructure')
+            cursor = conn.cursor()
+
+            # Verify user is admin/owner of the org that owns this credential
+            cursor.execute("""
+                SELECT u.org_role
+                FROM ai_infrastructure.users u
+                JOIN ai_infrastructure.organisation_platform_credentials opc
+                  ON opc.organisation_id = u.organisation_id
+                WHERE u.id = %s AND opc.id = %s AND opc.is_active = TRUE
+            """, (user_id, int(id_value)))
+            perm_row = cursor.fetchone()
+            org_role = (perm_row[0] if not isinstance(perm_row, dict) else perm_row.get('org_role')) if perm_row else None
+
+            if org_role not in ('admin', 'owner'):
+                cursor.close()
+                return jsonify({'success': False, 'error': 'Admin or owner role required to edit org credentials'}), 403
+
+            update_fields = []
+            update_values = []
+            if 'credential_key' in data:
+                update_fields.append('display_name = %s')
+                update_values.append(data['credential_key'])
+            if 'credential_value' in data and data['credential_value']:
+                update_fields.append('credential_value = %s')
+                update_values.append(data['credential_value'])
+            if not update_fields:
+                cursor.close()
+                return jsonify({'error': 'No fields to update'}), 400
+
+            update_fields.append('updated_at = CURRENT_TIMESTAMP')
+            update_values.append(int(id_value))
+
+            cursor.execute(f"""
+                UPDATE ai_infrastructure.organisation_platform_credentials
+                SET {', '.join(update_fields)}
+                WHERE id = %s AND is_active = TRUE
+            """, update_values)
+
+            cursor.close()
+            conn.commit()
+            return jsonify({'success': True, 'message': 'Org credential updated successfully'}), 200
+
+        except Exception as e:
+            if conn:
+                try:
+                    conn.rollback()
+                except:
+                    pass
+            return jsonify({'success': False, 'error': str(e)}), 500
+        finally:
+            if conn:
+                try:
+                    conn.close()
+                except:
+                    pass
     
     conn = None  # Initialize for finally block
     try:
@@ -437,64 +692,109 @@ def test_platform_credential(credential_id):
         return jsonify({'error': 'User ID not found in session'}), 401
     
     # Parse credential_id
-    if not credential_id.startswith(('platform_', 'oauth_')):
+    if not credential_id.startswith(('platform_', 'oauth_', 'org_')):
         return jsonify({'error': 'Invalid credential_id format'}), 400
     
     id_type, id_value = credential_id.split('_', 1)
+    
+    # ✅ FIX: Validate id_value is numeric before conversion
+    if not id_value.isdigit():
+        return jsonify({
+            'success': False,
+            'valid': False,
+            'message': 'Invalid credential ID format - ID must be numeric'
+        }), 400
     
     conn = None  # Initialize for finally block
     try:
         conn = get_database_connection('ai_infrastructure')
         cursor = conn.cursor()
         
-        if id_type == 'oauth':
-            # Test OAuth token
-            cursor.execute("""
-                SELECT platform, email, is_active, is_valid, expires_at
-                FROM ai_infrastructure.oauth_tokens
-                WHERE user_id = %s AND id = %s
-            """, (user_id, int(id_value)))
-        else:
-            # Test platform credential
-            cursor.execute("""
-                SELECT platform, credential_type, credential_value, credentials
-                FROM ai_infrastructure.user_platform_credentials
-                WHERE user_id = %s AND id = %s AND is_active = TRUE
-            """, (user_id, int(id_value)))
+        try:
+            if id_type == 'oauth':
+                # Test OAuth token
+                cursor.execute("""
+                    SELECT platform, email, is_active, is_valid, expires_at
+                    FROM ai_infrastructure.oauth_tokens
+                    WHERE user_id = %s AND id = %s
+                """, (user_id, int(id_value)))
+
+            elif id_type == 'org':
+                # Test org-level credential — any org member may test
+                cursor.execute("""
+                    SELECT opc.platform, opc.display_name, opc.is_active
+                    FROM ai_infrastructure.organisation_platform_credentials opc
+                    JOIN ai_infrastructure.users u ON u.organisation_id = opc.organisation_id
+                    WHERE u.id = %s AND opc.id = %s AND opc.is_active = TRUE
+                """, (user_id, int(id_value)))
+
+            else:
+                # Test platform credential
+                cursor.execute("""
+                    SELECT platform, credential_type, credential_value, credentials
+                    FROM ai_infrastructure.user_platform_credentials
+                    WHERE user_id = %s AND id = %s AND is_active = TRUE
+                """, (user_id, int(id_value)))
+            
+            row = cursor.fetchone()
+            
+            if not row:
+                cursor.close()
+                return jsonify({
+                    'success': False,
+                    'valid': False,
+                    'message': 'Credential not found or not active'
+                }), 404
+            
+            # Basic validation (actual API testing would go here)
+            # For now, just check if credential exists and is active
+            platform = row[0] if len(row) > 0 else None
+            
+            if not platform:
+                cursor.close()
+                return jsonify({
+                    'success': False,
+                    'valid': False,
+                    'message': 'Invalid credential data'
+                }), 500
+            
+            # ✅ Close cursor before return
+            cursor.close()
+            
+            return jsonify({
+                'success': True,
+                'valid': True,
+                'message': f'{platform} credentials are configured',
+                'details': {
+                    'platform': platform,
+                    'note': 'Full API validation not yet implemented'
+                }
+            }), 200
         
-        row = cursor.fetchone()
-        
-        if not row:
+        except (ValueError, TypeError) as e:
+            cursor.close()
             return jsonify({
                 'success': False,
                 'valid': False,
-                'message': 'Credential not found'
-            }), 404
-        
-        # Basic validation (actual API testing would go here)
-        # For now, just check if credential exists and is active
-        platform = row[0]
-        
-        # ✅ Close cursor before return
-        cursor.close()
-        
-        return jsonify({
-            'success': True,
-            'valid': True,
-            'message': f'{platform} credentials are configured',
-            'details': {
-                'platform': platform,
-                'note': 'Full API validation not yet implemented'
-            }
-        }), 200
-        
+                'message': f'Invalid credential ID: {str(e)}'
+            }), 400
+            
     except Exception as e:
-        print(f"Error testing credential {credential_id}: {e}")
+        print(f"Error testing credential {credential_id} for user {user_id}: {e}")
+        import traceback
+        traceback.print_exc()
         return jsonify({
             'success': False,
             'valid': False,
             'message': str(e)
         }), 500
+    finally:
+        # ✅ CRITICAL FIX: Always close connection
+        if conn:
+            try:
+                conn.close()
+            except:
+                pass
 
 
 @connections_bp.route('/api/connections/<credential_id>', methods=['DELETE'])
@@ -531,7 +831,30 @@ def disconnect_platform(credential_id):
                 WHERE user_id = %s AND id = %s
             """, (user_id, int(id_value)))
             affected_rows = cursor.rowcount
-            
+
+        elif credential_id.startswith('org_'):
+            # Org-level credential: check admin/owner role first
+            _, id_value = credential_id.split('_', 1)
+            cursor.execute("""
+                SELECT u.org_role
+                FROM ai_infrastructure.users u
+                JOIN ai_infrastructure.organisation_platform_credentials opc
+                  ON opc.organisation_id = u.organisation_id
+                WHERE u.id = %s AND opc.id = %s AND opc.is_active = TRUE
+            """, (user_id, int(id_value)))
+            perm_row = cursor.fetchone()
+            org_role = (perm_row[0] if not isinstance(perm_row, dict) else perm_row.get('org_role')) if perm_row else None
+            if org_role not in ('admin', 'owner'):
+                cursor.close()
+                return jsonify({'success': False, 'error': 'Admin or owner role required'}), 403
+            cursor.execute("""
+                UPDATE ai_infrastructure.organisation_platform_credentials
+                SET is_active = FALSE,
+                    updated_at = CURRENT_TIMESTAMP
+                WHERE id = %s
+            """, (int(id_value),))
+            affected_rows = cursor.rowcount
+
         elif credential_id.startswith('oauth_'):
             # New format: oauth_456
             _, id_value = credential_id.split('_', 1)

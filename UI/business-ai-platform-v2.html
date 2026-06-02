@@ -33546,6 +33546,11 @@ Thanks`;
                 const data = await response.json();
                 console.log(`[CONNECTIONS MODAL] Loaded ${data.connections.length} connections`);
 
+                // Cache org role for edit/delete gating on org-level credentials
+                if (data.user_org_role !== undefined) {
+                    window._userOrgRole = data.user_org_role;
+                }
+
                 displayConnectionsModal(data.connections);
 
             } catch (error) {
@@ -33637,6 +33642,13 @@ Thanks`;
                 return a.platform.localeCompare(b.platform);
             });
 
+            // Build lookup cache keyed by conn.id so editPlatformConnection() can retrieve data
+            window._connectionsCache = {};
+            sortedConnections.forEach(conn => { window._connectionsCache[conn.id] = conn; });
+
+            // Determine if the current user can edit/delete org-level credentials
+            const canManageOrg = ['admin', 'owner'].includes(window._userOrgRole || '');
+
             // Generate connections list content
             let connectionsListHtml = '';
             const connectionsButtonHtml = `
@@ -33669,6 +33681,14 @@ Thanks`;
                         typeBadge = '<span class="connection-badge database">Database</span>';
                     }
 
+                    // Org-shared badge for Tier 2 credentials
+                    const orgBadge = conn.is_org_level
+                        ? '<span class="connection-badge" style="background:rgba(139,92,246,0.15);color:#8b5cf6;border:1px solid rgba(139,92,246,0.3);">Org Shared</span>'
+                        : '';
+
+                    // Show edit button: personal credentials always; org credentials only for admin/owner
+                    const showEdit = conn.credential_type !== 'oauth' && (!conn.is_org_level || canManageOrg);
+
                     return `
                         <div style="padding: 14px; background: var(--bg-secondary); border: 1px solid ${isActive ? meta.color + '40' : 'var(--border-default)'}; border-left: 3px solid ${meta.color}; border-radius: 8px; display: flex; flex-direction: column; gap: 12px;">
                             <!-- Top row: Icon, buttons -->
@@ -33681,14 +33701,16 @@ Thanks`;
                                     <button onclick="testPlatformConnection('${conn.id}')" title="Test Connection" class="connection-btn test">
                                         <i class="fas fa-flask"></i>
                                     </button>
-                                    ${conn.credential_type !== 'oauth' ? `
+                                    ${showEdit ? `
                                         <button onclick="editPlatformConnection('${conn.id}')" title="Edit" class="connection-btn edit">
                                             <i class="fas fa-edit"></i>
                                         </button>
                                     ` : ''}
-                                    <button onclick="disconnectPlatformModal('${conn.id}')" title="Disconnect" class="connection-btn disconnect">
-                                        <i class="fas fa-trash"></i>
-                                    </button>
+                                    ${!conn.is_org_level || canManageOrg ? `
+                                        <button onclick="disconnectPlatformModal('${conn.id}')" title="Disconnect" class="connection-btn disconnect">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    ` : ''}
                                 </div>
                             </div>
                             
@@ -33698,6 +33720,7 @@ Thanks`;
                                 <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
                                     <span style="font-weight: 600; color: var(--text-primary); font-size: 14px;">${meta.displayName}</span>
                                     ${typeBadge}
+                                    ${orgBadge}
                                 </div>
                                 
                                 <!-- Status and created date row -->
@@ -33828,7 +33851,38 @@ Thanks`;
          * Close Add Connection Modal
          */
         function closeAddConnectionModal() {
-            document.getElementById('add-connection-modal').style.display = 'none';
+            const modal = document.getElementById('add-connection-modal');
+            modal.style.display = 'none';
+            
+            // ✅ Reset edit mode attributes
+            modal.removeAttribute('data-edit-mode');
+            modal.removeAttribute('data-edit-credential-id');
+            modal.removeAttribute('data-edit-platform');
+            
+            // Reset modal title to default
+            const modalTitle = modal.querySelector('.modal-header h3');
+            if (modalTitle) {
+                modalTitle.innerHTML = '<i class="fas fa-plug"></i> Add New Platform Connection';
+            }
+            
+            // Reset platform select (enable it)
+            const platformSelect = document.getElementById('apiKeyPlatform');
+            if (platformSelect) {
+                platformSelect.disabled = false;
+            }
+            
+            // Reset value input placeholder
+            const valueInput = document.getElementById('apiKeyValue');
+            if (valueInput) {
+                valueInput.placeholder = 'Enter your API key / password / token';
+            }
+            
+            // Reset submit button text
+            const submitBtn = modal.querySelector('button[type="submit"]');
+            if (submitBtn) {
+                submitBtn.textContent = 'Save Credential';
+            }
+            
             // Reset forms
             document.getElementById('apiKeyForm').reset();
             document.getElementById('databaseForm').reset();
@@ -34350,14 +34404,26 @@ Thanks`;
         async function submitApiKeyForm(event) {
             event.preventDefault();
 
+            // ✅ FIX: Use correct kebab-case modal ID (was 'addConnectionModal' — wrong)
+            const modal = document.getElementById('add-connection-modal');
+            const isEditMode = modal?.getAttribute('data-edit-mode') === 'true';
+            const editCredentialId = modal?.getAttribute('data-edit-credential-id');
+
             const platform = document.getElementById('apiKeyPlatform').value;
             const credentialKey = document.getElementById('apiKeyName').value;
             const credentialValue = document.getElementById('apiKeyValue').value;
 
+            // In add mode, credential_value is required.
+            // In edit mode, leaving it blank means "keep existing value" (label-only update).
+            if (!isEditMode && !credentialValue) {
+                showNotification('Please enter a credential value', 'warning');
+                return;
+            }
+
             // Collect any dynamically-rendered additional fields (dyn-field-* IDs)
             const catalogEntry = _orgPlatformCatalog?.platforms?.find(p => p.platform_name === platform);
             const requiredFields = catalogEntry?.required_fields || [];
-            const credentials = { api_key: credentialValue };
+            const credentials = credentialValue ? { api_key: credentialValue } : {};
             const metadata = {};
             // Additional fields are required_fields[1+]; field IDs are dyn-field-{name}
             requiredFields.slice(1).forEach(field => {
@@ -34376,29 +34442,50 @@ Thanks`;
 
             try {
                 const token = localStorage.getItem('authToken') || sessionStorage.getItem('authToken');
-                const response = await fetch(`${API_BASE_URL}/api/connections`, {
-                    method: 'POST',
+
+                // ✅ FIX: In edit mode use PUT /api/connections/<id>; in add mode use POST /api/connections
+                const url = isEditMode && editCredentialId
+                    ? `${API_BASE_URL}/api/connections/${editCredentialId}`
+                    : `${API_BASE_URL}/api/connections`;
+                const method = isEditMode && editCredentialId ? 'PUT' : 'POST';
+
+                const response = await fetch(url, {
+                    method,
                     headers: {
                         'Authorization': `Bearer ${token}`,
                         'Content-Type': 'application/json'
                     },
-                    body: JSON.stringify({
-                        platform,
-                        credential_type: 'api_key',
-                        credential_key: credentialKey,
-                        credential_value: credentialValue,
-                        credentials,
-                        metadata
-                    })
+                    // Edit mode: only send changed fields — omitting credential_value
+                    // means the backend leaves the stored secret untouched.
+                    body: JSON.stringify(
+                        isEditMode
+                            ? {
+                                platform,
+                                credential_type: 'api_key',
+                                credential_key: credentialKey,
+                                ...(credentialValue ? { credential_value: credentialValue } : {})
+                              }
+                            : {
+                                platform,
+                                credential_type: 'api_key',
+                                credential_key: credentialKey,
+                                credential_value: credentialValue,
+                                credentials,
+                                metadata
+                              }
+                    )
                 });
 
                 const data = await response.json();
 
                 if (data.success) {
-                    console.log('[ADD CONNECTION] API key added successfully');
+                    // ✅ FIX: Handle both add and update responses (PUT returns success:true too)
+                    const action = isEditMode ? 'updated' : (data.is_update ? 'updated' : 'added');
+                    const actionText = isEditMode ? 'updated successfully' : (data.is_update ? 'updated successfully' : 'added successfully');
+                    console.log(`[ADD CONNECTION] API key ${action}`);
                     closeAddConnectionModal();
                     refreshConnectionsModal();
-                    showNotification('Connection added successfully', 'success');
+                    showNotification(`Connection ${actionText}`, 'success');
                 } else {
                     throw new Error(data.error || 'Failed to add connection');
                 }
@@ -34495,11 +34582,74 @@ Thanks`;
         }
 
         /**
-         * Edit platform connection (placeholder - opens edit form)
+         * Edit platform connection - opens edit form with existing values
          */
         function editPlatformConnection(credentialId) {
-            showNotification('Edit functionality coming soon!', 'info');
-            // TODO: Implement edit form similar to add form
+            console.log(`[EDIT CONNECTION] Opening edit form for ${credentialId}`);
+
+            // ✅ FIX: Read from cache populated by displayConnectionsModal instead of DOM-scraping
+            const conn = window._connectionsCache?.[credentialId];
+            if (!conn) {
+                showNotification('Connection data not found. Please refresh the list.', 'error');
+                return;
+            }
+
+            const platform = conn.platform;
+            const accountName = conn.account_name || conn.credential_key || '';
+
+            console.log(`[EDIT CONNECTION] Editing ${platform} / ${accountName}`);
+            
+            // Open the add connection modal in edit mode
+            const modal = document.getElementById('add-connection-modal');
+            if (!modal) {
+                showNotification('Connection modal not found', 'error');
+                return;
+            }
+            
+            // ✅ Set edit mode data
+            modal.setAttribute('data-edit-mode', 'true');
+            modal.setAttribute('data-edit-credential-id', credentialId);
+            modal.setAttribute('data-edit-platform', platform);
+            
+            // Update modal title
+            const modalTitle = modal.querySelector('.modal-header h3');
+            if (modalTitle) {
+                modalTitle.innerHTML = `<i class="fas fa-edit"></i> Edit ${platform} Credential`;
+            }
+            
+            // Switch to API key form view
+            document.getElementById('platformSelectionView').style.display = 'none';
+            document.getElementById('apiKeyFormView').style.display = 'block';
+            document.getElementById('databaseFormView').style.display = 'none';
+            
+            // Set the platform select (locked in edit mode)
+            const platformSelect = document.getElementById('apiKeyPlatform');
+            if (platformSelect) {
+                platformSelect.value = platform;
+                platformSelect.disabled = true;
+            }
+            
+            // Pre-fill the credential key/label field
+            const keyInput = document.getElementById('apiKeyName');
+            if (keyInput) {
+                keyInput.value = accountName;
+            }
+            
+            // Clear the value field (user must re-enter for security)
+            const valueInput = document.getElementById('apiKeyValue');
+            if (valueInput) {
+                valueInput.value = '';
+                valueInput.placeholder = 'Enter new credential value (leave empty to keep existing)';
+            }
+            
+            // Update submit button text
+            const submitBtn = modal.querySelector('button[type="submit"]');
+            if (submitBtn) {
+                submitBtn.textContent = 'Update Credential';
+            }
+            
+            // Show modal
+            modal.style.display = 'block';
         }
 
         /**
