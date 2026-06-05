@@ -337,12 +337,24 @@ def add_platform_credential():
     conn = None  # Initialize for finally block
     try:
         data = request.get_json()
+        if not isinstance(data, dict):
+            return jsonify({'success': False, 'error': 'Invalid request body — expected JSON object'}), 400
         platform = data.get('platform')
         credential_type = data.get('credential_type', 'api_key')
         credential_key = data.get('credential_key')
         credential_value = data.get('credential_value')
         metadata = data.get('metadata', {})
         credentials = data.get('credentials', {})
+        # Guard against double-encoded JSON strings sent by misconfigured clients
+        if isinstance(credentials, str):
+            try:
+                credentials = json.loads(credentials)
+            except Exception:
+                credentials = {}
+        elif not isinstance(credentials, dict):
+            credentials = {}
+        if not isinstance(metadata, dict):
+            metadata = {}
         
         if not platform or not credential_key or not credential_value:
             return jsonify({
@@ -454,8 +466,13 @@ def add_platform_credential():
 
         result = cursor.fetchone()
         if result:
-            credential_id = result[0]
-            is_insert = result[1] if len(result) > 1 else True
+            # DatabaseCursor uses RealDictCursor — use named key access
+            if isinstance(result, dict):
+                credential_id = result.get('id')
+                is_insert = result.get('is_insert', True)
+            else:
+                credential_id = result[0]
+                is_insert = result[1] if len(result) > 1 else True
         else:
             raise Exception("Failed to insert/update credential")
 
@@ -729,9 +746,9 @@ def test_platform_credential(credential_id):
                 """, (user_id, int(id_value)))
 
             else:
-                # Test platform credential
+                # Test platform credential — omit credentials column to avoid schema issues
                 cursor.execute("""
-                    SELECT platform, credential_type, credential_value, credentials
+                    SELECT platform, credential_type, credential_value
                     FROM ai_infrastructure.user_platform_credentials
                     WHERE user_id = %s AND id = %s AND is_active = TRUE
                 """, (user_id, int(id_value)))
@@ -747,8 +764,11 @@ def test_platform_credential(credential_id):
                 }), 404
             
             # Basic validation (actual API testing would go here)
-            # For now, just check if credential exists and is active
-            platform = row[0] if len(row) > 0 else None
+            # row is a RealDictRow — use dict-style key access
+            if isinstance(row, dict):
+                platform = row.get('platform')
+            else:
+                platform = row[0] if len(row) > 0 else None
             
             if not platform:
                 cursor.close()

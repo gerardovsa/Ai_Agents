@@ -1347,10 +1347,22 @@ def get_platform_catalog():
                 entry['required_fields'] = _json.loads(entry['required_fields'])
             by_category[cat].append(entry)
 
+        # Also parse required_fields in the flat list (psycopg2 may return TEXT as string)
+        import json as _json2
+        platforms_out = []
+        for r in rows:
+            entry = dict(r)
+            if isinstance(entry.get('required_fields'), str):
+                try:
+                    entry['required_fields'] = _json2.loads(entry['required_fields'])
+                except Exception:
+                    entry['required_fields'] = []
+            platforms_out.append(entry)
+
         return jsonify({
             'success':     True,
-            'platforms':   rows,          # flat list (full detail)
-            'by_category': by_category,   # grouped for modal sections
+            'platforms':   platforms_out,  # flat list (full detail, required_fields parsed)
+            'by_category': by_category,    # grouped for modal sections
         })
     except Exception as e:
         logger.warning(f"[ORG_PLATFORMS] platform_catalog not yet created: {e}")

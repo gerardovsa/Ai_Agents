@@ -273,7 +273,7 @@
                         },
                         api: {
                             get: async (url) => {
-                                const fullUrl = url.startsWith('http') ? url : `${window.API_BASE_URL || 'http://localhost:5001'}${url}`;
+                                const fullUrl = url.startsWith('http') ? url : `${window.API_BASE_URL || window.location.origin}${url}`;
                                 const response = await fetch(fullUrl, {
                                     method: 'GET',
                                     headers: { 'Content-Type': 'application/json' }
@@ -281,7 +281,7 @@
                                 return response.json();
                             },
                             post: async (url, data) => {
-                                const fullUrl = url.startsWith('http') ? url : `${window.API_BASE_URL || 'http://localhost:5001'}${url}`;
+                                const fullUrl = url.startsWith('http') ? url : `${window.API_BASE_URL || window.location.origin}${url}`;
                                 const response = await fetch(fullUrl, {
                                     method: 'POST',
                                     headers: { 'Content-Type': 'application/json' },
@@ -290,7 +290,7 @@
                                 return response.json();
                             },
                             delete: async (url) => {
-                                const fullUrl = url.startsWith('http') ? url : `${window.API_BASE_URL || 'http://localhost:5001'}${url}`;
+                                const fullUrl = url.startsWith('http') ? url : `${window.API_BASE_URL || window.location.origin}${url}`;
                                 const response = await fetch(fullUrl, {
                                     method: 'DELETE',
                                     headers: { 'Content-Type': 'application/json' }
@@ -298,7 +298,7 @@
                                 return response.json();
                             },
                             call: async (endpoint, options = {}) => {
-                                const url = `${window.API_BASE_URL || 'http://localhost:5001'}${endpoint}`;
+                                const url = `${window.API_BASE_URL || window.location.origin}${endpoint}`;
                                 const response = await fetch(url, options);
                                 return response.json();
                             }

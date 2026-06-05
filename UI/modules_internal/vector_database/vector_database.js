@@ -69,6 +69,8 @@ window.VectorDatabaseModule = {
      */
     async onSidebarLoad(utilities) {
         Object.assign(this, utilities);
+        // Re-capture at runtime: this script loads before window.API_BASE_URL is set (static <script> tag)
+        this.state.API_BASE_URL = window.API_BASE_URL || window.location.origin;
         this.log.info('[VECTOR DB] Sidebar loading...');
 
         // Get container
@@ -125,6 +127,8 @@ window.VectorDatabaseModule = {
      */
     async onOpen(utilities) {
         Object.assign(this, utilities);
+        // Re-capture at runtime in case API_BASE_URL was not set when this script first loaded
+        this.state.API_BASE_URL = window.API_BASE_URL || window.location.origin;
         this.log.info('[VECTOR DB] Sidebar opened');
 
         // Refresh data when sidebar opens
@@ -134,6 +138,180 @@ window.VectorDatabaseModule = {
     /**
      * Called when module is unloaded
      */
+    openHelp() {
+        // Remove any existing help modal
+        const existing = document.getElementById('vdb-help-modal');
+        if (existing) { existing.remove(); return; }
+
+        const modal = document.createElement('div');
+        modal.id = 'vdb-help-modal';
+        modal.style.cssText = [
+            'position:fixed', 'top:80px', 'left:50%', 'transform:translateX(-50%)',
+            'width:640px', 'max-width:96vw', 'max-height:82vh',
+            'background:var(--bg-primary,#161b22)', 'color:var(--text-primary,#e6edf3)',
+            'border:1px solid var(--border-default,#30363d)', 'border-radius:12px',
+            'box-shadow:0 24px 64px rgba(0,0,0,.55)', 'z-index:99999',
+            'display:flex', 'flex-direction:column', 'overflow:hidden', 'user-select:none'
+        ].join(';');
+
+        modal.innerHTML = `
+<div id="vdb-help-drag" style="
+    padding:14px 18px; background:var(--bg-secondary,#21262d);
+    border-bottom:1px solid var(--border-default,#30363d);
+    display:flex; align-items:center; justify-content:space-between;
+    cursor:move; flex-shrink:0;">
+    <div style="display:flex;align-items:center;gap:10px;">
+        <i class="fas fa-database" style="color:#58a6ff;font-size:16px;"></i>
+        <span style="font-weight:700;font-size:15px;">Vector Database — Help Guide</span>
+    </div>
+    <button id="vdb-help-close" style="
+        background:none;border:none;color:var(--text-muted,#8b949e);
+        font-size:18px;cursor:pointer;padding:2px 6px;border-radius:4px;
+        line-height:1;" title="Close">&times;</button>
+</div>
+<div style="overflow-y:auto;padding:20px 22px;flex:1;line-height:1.65;font-size:13px;">
+
+<style>
+  #vdb-help-modal h3 {
+    font-size:13px;font-weight:700;color:#58a6ff;
+    margin:18px 0 6px;display:flex;align-items:center;gap:7px;
+  }
+  #vdb-help-modal h3:first-child{margin-top:0}
+  #vdb-help-modal p{margin:0 0 8px;color:var(--text-secondary,#c9d1d9);}
+  #vdb-help-modal table{width:100%;border-collapse:collapse;margin:8px 0 14px;font-size:12px;}
+  #vdb-help-modal th{text-align:left;padding:6px 8px;
+    background:var(--bg-secondary,#21262d);color:#58a6ff;
+    border-bottom:1px solid var(--border-default,#30363d);}
+  #vdb-help-modal td{padding:6px 8px;vertical-align:top;
+    border-bottom:1px solid var(--border-default,#30363d);
+    color:var(--text-secondary,#c9d1d9);}
+  #vdb-help-modal td:first-child{white-space:nowrap;font-weight:600;color:#e6edf3;}
+  #vdb-help-modal .tip{padding:8px 12px;
+    background:rgba(88,166,255,.1);border-left:3px solid #58a6ff;
+    border-radius:0 6px 6px 0;margin:8px 0 14px;font-size:12px;
+    color:var(--text-secondary,#c9d1d9);}
+  #vdb-help-modal .warn{padding:8px 12px;
+    background:rgba(255,193,7,.08);border-left:3px solid #ffc107;
+    border-radius:0 6px 6px 0;margin:8px 0 14px;font-size:12px;
+    color:var(--text-secondary,#c9d1d9);}
+  #vdb-help-modal hr{border:none;border-top:1px solid var(--border-default,#30363d);margin:16px 0;}
+</style>
+
+<h3><i class="fas fa-info-circle"></i> What is the Vector Database?</h3>
+<p>The Vector Database lets you upload documents so the AI can search them intelligently. Instead of keyword matching, it understands <em>meaning</em> — ask &ldquo;What is our refund policy?&rdquo; and it finds the right paragraph even if it never uses those exact words.</p>
+<div class="tip"><i class="fas fa-robot"></i> <strong>Tip:</strong> Once documents are indexed, the AI uses them automatically when you ask questions. No special command needed.</div>
+
+<hr>
+<h3><i class="fas fa-chart-bar"></i> Stats Bar (top of panel)</h3>
+<table>
+  <tr><th>Stat</th><th>What it means</th></tr>
+  <tr><td>Documents</td><td>Total files you have indexed.</td></tr>
+  <tr><td>Vectors</td><td>Total text chunks stored. One document creates many vectors (one per chunk).</td></tr>
+  <tr><td>Namespaces / Collections</td><td>Folder groups your documents are organised into.</td></tr>
+</table>
+
+<hr>
+<h3><i class="fas fa-upload"></i> Upload Tab</h3>
+<p><strong>Upload Zone</strong> — Drag files directly onto the dashed box, or click anywhere inside it to open your file browser. You can select multiple files at once.</p>
+<p>Supported formats: PDF, Word (.docx/.doc), Excel (.xlsx), PowerPoint (.pptx), Markdown, HTML, JSON, CSV, XML, RTF, EPUB, and many more (max 10 MB per file).</p>
+<p>After selecting files, a <strong>Process &amp; Upload</strong> button appears — click it to begin indexing.</p>
+
+<table>
+  <tr><th>Setting</th><th>What it does</th><th>Recommendation</th></tr>
+  <tr><td>Chunk Size</td><td>How many characters per text chunk when splitting the document.</td><td>800 for most docs. Use 400&ndash;600 for dense reference material; 1200+ for narrative text.</td></tr>
+  <tr><td>Chunk Overlap</td><td>Characters shared between adjacent chunks so context is not cut at boundaries.</td><td>100 (about 12% of chunk size). Never set to 0.</td></tr>
+  <tr><td>Target Namespace</td><td>Optional folder name to organise this upload. Leave blank for your org&rsquo;s default namespace.</td><td>Use project names, e.g. <em>contracts-2024</em> or <em>hr-handbook</em>.</td></tr>
+  <tr><td>Category</td><td>Tag documents by department for filtered searching later.</td><td>Pick the closest match; General is fine if unsure.</td></tr>
+  <tr><td>Tags</td><td>Comma-separated labels for finer filtering.</td><td>E.g. <em>draft, Q3, confidential</em></td></tr>
+  <tr><td>Visibility</td><td>Who can find this document when searching.</td><td>Organisation (your whole team) is the most useful default.</td></tr>
+</table>
+
+<table>
+  <tr><th>Visibility option</th><th>Who sees it</th></tr>
+  <tr><td>&#128274; Private</td><td>Only you.</td></tr>
+  <tr><td>&#127970; Organisation</td><td>Everyone in your organisation.</td></tr>
+  <tr><td>&#128101; Team</td><td>Only specific team members you invite.</td></tr>
+  <tr><td>&#127757; Global</td><td>All users on the platform.</td></tr>
+</table>
+
+<hr>
+<h3><i class="fas fa-folder"></i> Folders Tab</h3>
+<p>Lists every namespace (folder) that contains indexed documents. Each row shows the document count and vector count for that folder.</p>
+<p><strong>Refresh button</strong> (&#8635;) — Reloads the folder list from the database.</p>
+<div class="warn"><i class="fas fa-exclamation-triangle"></i> <strong>Delete namespace</strong> permanently removes the folder and <em>all</em> vectors inside it. This cannot be undone.</div>
+
+<hr>
+<h3><i class="fas fa-file-alt"></i> Documents Tab</h3>
+<p>Shows every indexed document with its metadata: file name, size, upload date, and how many chunks (vectors) it was split into. Use the <strong>Refresh</strong> button to reload. Click a document row to see its full metadata and a preview of its first chunk.</p>
+
+<hr>
+<h3><i class="fas fa-search"></i> Search Tab</h3>
+<p>Run a semantic (meaning-based) search directly from the panel, independent of the AI chat.</p>
+<table>
+  <tr><th>Field</th><th>What it does</th></tr>
+  <tr><td>Search Query</td><td>Type a natural language question or keywords.</td></tr>
+  <tr><td>Search In</td><td>Choose one or more folders. Hold Ctrl/Cmd to multi-select. &ldquo;All Folders&rdquo; searches everything.</td></tr>
+  <tr><td>Category Filter</td><td>Narrow results to a single document category.</td></tr>
+</table>
+<p>Results show the most relevant text excerpts with a similarity score (0&ndash;1; higher is better).</p>
+
+<hr>
+<h3><i class="fas fa-cog"></i> Settings Tab</h3>
+<table>
+  <tr><th>Setting</th><th>What it does</th></tr>
+  <tr><td>Provider</td><td>Which vector database engine stores your data. <strong>pgvector</strong> (default) is free and built into your Supabase database — no setup needed. <strong>Pinecone</strong> is a cloud service requiring an API key in Organisation Settings. <strong>Qdrant</strong> is a self-hosted option.</td></tr>
+  <tr><td>Hybrid Search</td><td>Combines semantic (meaning) search with keyword (BM25) search. Produces better results on short queries and exact phrases. Enable for most use cases.</td></tr>
+  <tr><td>Multi-Modal Embeddings</td><td>Experimental. Allows indexing images and audio alongside text.</td></tr>
+  <tr><td>Credentials</td><td>Click <em>Open Platform Connections</em> to add or change your Pinecone API key, OpenAI Embeddings key, or Voyager AI key.</td></tr>
+</table>
+<div class="tip"><i class="fas fa-elephant"></i> <strong>pgvector is recommended</strong> for most organisations. It is free, always on, and your data never leaves your Supabase database.</div>
+
+<hr>
+<h3><i class="fas fa-mouse-pointer"></i> Quick-Start Checklist</h3>
+<table>
+  <tr><td>1.</td><td>Make sure the status banner at the top shows <em>Connected</em> (green). If not, pgvector is still usable — no setup needed.</td></tr>
+  <tr><td>2.</td><td>Go to the <strong>Upload</strong> tab. Drag a PDF or click the upload zone to pick files.</td></tr>
+  <tr><td>3.</td><td>Adjust Chunk Size / Overlap if needed, then click <strong>Process &amp; Upload to Vector DB</strong>.</td></tr>
+  <tr><td>4.</td><td>Once the progress bar completes, go to <strong>Documents</strong> to confirm the file is listed.</td></tr>
+  <tr><td>5.</td><td>Open an AI chat and ask a question about your document — the AI will find and cite it automatically.</td></tr>
+</table>
+
+</div>`;
+
+        document.body.appendChild(modal);
+
+        // Close button
+        modal.querySelector('#vdb-help-close').addEventListener('click', () => modal.remove());
+
+        // Click outside to close
+        document.addEventListener('click', function outsideClick(e) {
+            if (!modal.contains(e.target)) {
+                modal.remove();
+                document.removeEventListener('click', outsideClick);
+            }
+        }, { capture: true });
+
+        // Draggable via header bar
+        const dragHandle = modal.querySelector('#vdb-help-drag');
+        let dragging = false, startX, startY, origLeft, origTop;
+        dragHandle.addEventListener('mousedown', (e) => {
+            dragging = true;
+            const rect = modal.getBoundingClientRect();
+            startX = e.clientX; startY = e.clientY;
+            origLeft = rect.left; origTop = rect.top;
+            modal.style.transform = 'none';
+            modal.style.left = origLeft + 'px';
+            modal.style.top  = origTop + 'px';
+            e.preventDefault();
+        });
+        document.addEventListener('mousemove', (e) => {
+            if (!dragging) return;
+            modal.style.left = (origLeft + e.clientX - startX) + 'px';
+            modal.style.top  = (origTop  + e.clientY - startY) + 'px';
+        });
+        document.addEventListener('mouseup', () => { dragging = false; });
+    },
+
     onUnload(utilities) {
         Object.assign(this, utilities);
         this.log.info('[VECTOR DB] Module unloading...');
@@ -168,28 +346,37 @@ window.VectorDatabaseModule = {
             }
         });
 
-        // Drag and drop - prevent default on dragenter to allow drop
+        // Drag and drop
+        // NOTE: e.currentTarget is the delegated container (this.container), NOT the upload-zone.
+        // Use e.target.closest('#upload-zone') to reliably reference the drop target.
         this.dom.on(this.container, 'dragenter', '#upload-zone', (e) => {
             e.preventDefault();
             e.stopPropagation();
-            e.currentTarget.classList.add('drag-over');
+            const zone = e.target.closest('#upload-zone');
+            if (zone) zone.classList.add('drag-over');
         });
 
         this.dom.on(this.container, 'dragover', '#upload-zone', (e) => {
             e.preventDefault();
             e.stopPropagation();
-            e.currentTarget.classList.add('drag-over');
+            const zone = e.target.closest('#upload-zone');
+            if (zone) zone.classList.add('drag-over');
         });
 
         this.dom.on(this.container, 'dragleave', '#upload-zone', (e) => {
             e.stopPropagation();
-            e.currentTarget.classList.remove('drag-over');
+            // Only remove when leaving the zone itself, not a child element
+            const zone = e.target.closest('#upload-zone');
+            if (zone && !zone.contains(e.relatedTarget)) {
+                zone.classList.remove('drag-over');
+            }
         });
 
         this.dom.on(this.container, 'drop', '#upload-zone', (e) => {
             e.preventDefault();
             e.stopPropagation();
-            e.currentTarget.classList.remove('drag-over');
+            const zone = e.target.closest('#upload-zone');
+            if (zone) zone.classList.remove('drag-over');
             const files = Array.from(e.dataTransfer.files);
             this.log.info(`[VECTOR DB] Drop event: ${files.length} file(s) dropped`);
             this.handleFileSelect(files);
@@ -203,8 +390,10 @@ window.VectorDatabaseModule = {
         });
 
         // Tab switching
+        // NOTE: use e.target.closest() — e.currentTarget is the delegated container, not the tab button.
         this.dom.on(this.container, 'click', '.vector-db-tab', (e) => {
-            const tabName = e.currentTarget.dataset.tab;
+            const tabBtn = e.target.closest('.vector-db-tab');
+            const tabName = tabBtn?.dataset.tab;
             if (tabName) {
                 this.switchTab(tabName);
             }

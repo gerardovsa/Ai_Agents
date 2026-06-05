@@ -496,8 +496,8 @@ const UnifiedMessageRenderer = (function () {
                             await processor.processChunk(textContent);  // Process the content
                             await processor.finalize();  // 🔥 FIX: Flush buffer and render remaining content
 
-                            if (!textDiv.innerHTML || textDiv.innerHTML.trim() === '') {
-                                console.warn('[renderAssistantContent] Visualization engine produced empty HTML, using markdown fallback');
+                            if (!textDiv.textContent || textDiv.textContent.trim() === '') {
+                                console.warn('[renderAssistantContent] Visualization engine produced empty content, using markdown fallback');
                                 renderMarkdown(textDiv, textContent);
                             } else {
                                 console.log(`[renderAssistantContent] ✅ Visualization engine rendered ${textDiv.innerHTML.length} chars`);
@@ -562,8 +562,13 @@ const UnifiedMessageRenderer = (function () {
                 await processor.processChunk(contentStr);  // ✅ FIX: AWAIT the async operation
                 await processor.finalize();                 // ✅ FIX: flush deferred renders (thread load)
 
-                // Verify content was rendered
-                if (!contentDiv.innerHTML || contentDiv.innerHTML.trim() === '') {
+                // Verify content was rendered.
+                // NOTE: Use textContent (not innerHTML) — the TwoRuleStreamProcessor
+                // constructor always appends an empty markdownContainer div, so innerHTML
+                // is never blank even when no real content was produced.
+                // For viz-only messages the loading placeholder text keeps textContent
+                // non-empty, so the fallback won't fire incorrectly.
+                if (!contentDiv.textContent || contentDiv.textContent.trim() === '') {
                     console.warn('[UnifiedMessageRenderer] Visualization engine produced empty content, using markdown');
                     renderMarkdown(contentDiv, contentStr);
                     processorUsed = 'markdown (fallback)';

@@ -213,64 +213,92 @@ class TwoRuleStreamProcessor {
         // Release all pending packages
         await this.releaseReadyPackages();
 
-        // CRITICAL FIX (Jan 23, 2026): Process deferred renders after DOM attachment
+        // Clear any lingering buffering indicator
+        this.removeBufferingIndicator();
+
+        // Process deferred visualizations (containers that were off-DOM during processChunk)
         if (this.deferredRenders && this.deferredRenders.length > 0) {
-            console.log(`🔄 TWO-RULE: Processing ${this.deferredRenders.length} deferred visualizations...`);
-            console.log(`🔄 TWO-RULE: Buffering indicator status before processing: ${this.loadingIndicator ? 'present' : 'not present'}`);
-            
-            // Wait for container to be in DOM (parent message should be attached by now)
-            await new Promise(resolve => requestAnimationFrame(resolve));
-            await new Promise(resolve => setTimeout(resolve, 200)); // Increased from 100ms to 200ms
-            
-            for (const deferred of this.deferredRenders) {
-                try {
-                    console.log(`🎨 TWO-RULE: Rendering deferred ${deferred.type}...`);
-                    console.log(`   Container in DOM: ${document.contains(deferred.container)}`);
-                    
-                    // Clear loading placeholder from viz-content-area (inner div)
-                    const vizContentArea = deferred.container.querySelector('.viz-content-area') || deferred.container;
-                    vizContentArea.innerHTML = '';
-                    
-                    // Render with full retry logic - target the inner content area
-                    await this.renderVisualization(
-                        deferred.type,
-                        deferred.content,
-                        vizContentArea
-                    );
-                    
-                    console.log(`✅ TWO-RULE: Deferred ${deferred.type} rendered successfully`);
-                } catch (error) {
-                    console.error(`❌ TWO-RULE: Deferred ${deferred.type} render failed:`, error);
-                    console.error(`   Error details:`, error.stack);
-                    
-                    // Show error in the viz-content-area
-                    const vizContentArea = deferred.container.querySelector('.viz-content-area') || deferred.container;
-                    vizContentArea.innerHTML = `
-                        <div class="viz-error" style="text-align: center; padding: 20px; color: var(--accent-red); background: rgba(239, 68, 68, 0.1); border-radius: 8px;">
-                            <h3 style="margin: 0 0 8px 0; font-size: 16px;">⚠️ ${deferred.type.toUpperCase()} Render Failed</h3>
-                            <p style="margin: 0; font-size: 13px; color: var(--text-secondary);">${error.message}</p>
-                            <details style="margin-top: 12px; text-align: left; font-size: 11px;">
-                                <summary style="cursor: pointer; color: var(--accent-primary);">Show Details</summary>
-                                <pre style="background: rgba(0,0,0,0.2); padding: 8px; border-radius: 4px; overflow-x: auto; white-space: pre-wrap; margin-top: 8px;">${error.stack || 'No stack trace'}</pre>
-                            </details>
-                        </div>
-                    `;
-                }
+            if (document.contains(this.container)) {
+                // Container is already in the DOM - render immediately
+                console.log(`🔄 TWO-RULE: Container in DOM - processing ${this.deferredRenders.length} deferred renders now`);
+                await this._processDeferredRenders();
+            } else {
+                // Container is NOT yet in the DOM (message_renderer appends it after finalize returns).
+                // Use a MutationObserver so we fire the instant the container is attached.
+                console.log(`📌 TWO-RULE: Container off-DOM - registering MutationObserver for ${this.deferredRenders.length} deferred renders`);
+                const self = this;
+                let resolved = false;
+
+                const observer = new MutationObserver(() => {
+                    if (!resolved && document.contains(self.container)) {
+                        resolved = true;
+                        observer.disconnect();
+                        console.log(`✅ TWO-RULE: Container entered DOM - triggering deferred renders`);
+                        self._processDeferredRenders().catch(err => {
+                            console.error('❌ TWO-RULE: Deferred render error after DOM attachment:', err);
+                        });
+                    }
+                });
+                observer.observe(document.body, { childList: true, subtree: true });
+
+                // Safety fallback: give up waiting after 5 s and render anyway
+                setTimeout(() => {
+                    if (!resolved) {
+                        resolved = true;
+                        observer.disconnect();
+                        console.warn('⚠️ TWO-RULE: Deferred render 5s timeout - forcing render');
+                        self._processDeferredRenders().catch(err => {
+                            console.error('❌ TWO-RULE: Deferred render timeout error:', err);
+                        });
+                    }
+                }, 5000);
             }
-            
-            // Clear buffering indicator AFTER rendering all deferred visualizations
-            console.log(`🔥 TWO-RULE: Clearing buffering indicator after processing deferred renders`);
-            this.removeBufferingIndicator();
-            
-            // Clear deferred queue
-            this.deferredRenders = [];
-        } else {
-            // No deferred renders - clear buffering indicator if it exists
-            // This handles real-time streaming where visualization completes synchronously
-            this.removeBufferingIndicator();
         }
 
         console.log(`✅ TWO-RULE: Finalized (${this.stats.chunksProcessed} chunks, ${this.stats.markdownPackages} markdown, ${this.stats.visualPackages} visuals)`);
+    }
+
+    /**
+     * Process all queued deferred visualizations.
+     * Called either immediately (container already in DOM) or via MutationObserver.
+     */
+    async _processDeferredRenders() {
+        if (!this.deferredRenders || this.deferredRenders.length === 0) return;
+
+        console.log(`🎨 TWO-RULE: _processDeferredRenders – ${this.deferredRenders.length} items`);
+
+        // One rAF + tiny timeout so the browser has painted the message bubble
+        await new Promise(resolve => requestAnimationFrame(resolve));
+        await new Promise(resolve => setTimeout(resolve, 50));
+
+        for (const deferred of this.deferredRenders) {
+            try {
+                console.log(`🎨 TWO-RULE: Rendering deferred ${deferred.type} (in DOM: ${document.contains(deferred.container)})`);
+
+                // Clear the loading placeholder inside the inner content area
+                const vizContentArea = deferred.container.querySelector('.viz-content-area') || deferred.container;
+                vizContentArea.innerHTML = '';
+
+                await this.renderVisualization(deferred.type, deferred.content, vizContentArea);
+
+                console.log(`✅ TWO-RULE: Deferred ${deferred.type} rendered successfully`);
+            } catch (error) {
+                console.error(`❌ TWO-RULE: Deferred ${deferred.type} render failed:`, error);
+                const vizContentArea = deferred.container.querySelector('.viz-content-area') || deferred.container;
+                vizContentArea.innerHTML = `
+                    <div class="viz-error" style="text-align:center;padding:20px;color:var(--accent-red);background:rgba(239,68,68,0.1);border-radius:8px;">
+                        <h3 style="margin:0 0 8px 0;font-size:16px;">⚠️ ${deferred.type.toUpperCase()} Render Failed</h3>
+                        <p style="margin:0;font-size:13px;color:var(--text-secondary);">${error.message}</p>
+                        <details style="margin-top:12px;text-align:left;font-size:11px;">
+                            <summary style="cursor:pointer;color:var(--accent-primary);">Show Details</summary>
+                            <pre style="background:rgba(0,0,0,0.2);padding:8px;border-radius:4px;overflow-x:auto;white-space:pre-wrap;margin-top:8px;">${error.stack || 'No stack trace'}</pre>
+                        </details>
+                    </div>
+                `;
+            }
+        }
+
+        this.deferredRenders = [];
     }
 
     /**
@@ -456,13 +484,18 @@ class TwoRuleStreamProcessor {
 
             this.packageVisualContent(completeVisualContent, this.currentDelimiter.type);
 
-            // 🔥 CRITICAL FIX (April 9, 2026): Immediately release visual packages
-            // Don't wait - render the visualization now while still in state machine
-            this.releaseReadyPackages().catch(err => {
-                console.error('❌ TWO-RULE: Error releasing visual packages immediately after buffering complete:', err);
-            });
+            // 🔥 CRITICAL FIX: Reset state BEFORE releasing packages so the while loop
+            // in processChunk detects progress and continues scanning the remainder of
+            // the buffer for more visualizations / markdown text.
+            this.bufferPosition = visualEndPosition;
+            this.state = 'NORMAL';
+            this.currentDelimiter = null;
+            this.removeBufferingIndicator();
 
-            this.updateBufferingIndicator(contentFromStart.length);
+            // Release packages now that state is reset
+            this.releaseReadyPackages().catch(err => {
+                console.error('❌ TWO-RULE: Error releasing visual packages after buffering complete:', err);
+            });
         }
     }
 
@@ -942,60 +975,37 @@ class TwoRuleStreamProcessor {
             }
         }
 
-        // IMPROVED DOM ATTACHMENT TIMING: Wait for DOM to be fully ready with multiple retries
-        // 🔥 FIX (Jan 20, 2026): Extended retry logic with better parent detection
-        // The parent might not be attached yet (e.g., during message rendering)
-        let attached = false;
-        let retries = 0;
-        const maxRetries = 10; // Increased from 5 to 10 retries
-
-        while (!attached && retries < maxRetries) {
-            await new Promise(resolve => requestAnimationFrame(resolve));
-
-            // Check if EITHER the viz container OR its parent is in the DOM
-            // Also check if any ancestor up to 3 levels is in DOM (handles nested structures)
-            let checkElement = vizContainer;
-            let foundInDOM = false;
-            
-            for (let i = 0; i < 3 && checkElement; i++) {
-                if (document.contains(checkElement)) {
-                    foundInDOM = true;
-                    break;
-                }
-                checkElement = checkElement.parentElement || this.container;
-            }
-            
-            if (foundInDOM) {
-                attached = true;
-            } else {
-                retries++;
-                if (retries < maxRetries) {
-                    // Progressive backoff: 50ms, 100ms, 150ms, etc.
-                    await new Promise(resolve => setTimeout(resolve, 50 * retries));
-                }
-            }
+        // ─── DOM-ATTACHMENT CHECK ────────────────────────────────────────────────────
+        // KEY DESIGN (June 2026): DO NOT use a retry loop here.
+        //
+        // During thread load the processor runs while the message element is still
+        // off-DOM (message_renderer appends it AFTER finalize() returns).  A retry
+        // loop would hold `isReleasing = true` for seconds, blocking every subsequent
+        // releaseReadyPackages() call and preventing markdown packages (text after the
+        // viz) from ever rendering.
+        //
+        // Instead: check once, synchronously.
+        //   • Off-DOM → push to deferredRenders immediately (no awaits).
+        //               finalize()'s MutationObserver fires the instant the message
+        //               is appended and _processDeferredRenders() renders the viz.
+        //   • In-DOM  → brief rAF wait for layout, then render now (live streaming).
+        let isInDom = false;
+        let checkEl = vizContainer;
+        for (let i = 0; i < 3 && checkEl; i++) {
+            if (document.contains(checkEl)) { isInDom = true; break; }
+            checkEl = checkEl.parentElement || this.container;
         }
 
-        if (!attached) {
-            console.warn('⚠️ TWO-RULE: Container not in DOM after retries - will retry after message attachment');
-            
-            // CRITICAL FIX (Jan 23, 2026): Defer rendering until message fully attached
-            // Store deferred render task to execute after DOM attachment
-            if (!this.deferredRenders) {
-                this.deferredRenders = [];
-            }
-            
+        if (!isInDom) {
+            // Off-DOM: defer immediately — NO awaits so isReleasing frees up at once.
+            if (!this.deferredRenders) this.deferredRenders = [];
             this.deferredRenders.push({
                 type: pkg.subType,
                 content: innerContent,
                 container: vizContainer,
                 chartId: `viz-${pkg.id || Date.now()}`
             });
-            
-            console.log(`📌 TWO-RULE: Deferred ${pkg.subType} render (will execute after finalize)`);
-            
-            // Show a visual placeholder in the vizContainer while waiting for rendering
-            // Get the viz-content-area where visualization will actually render
+
             const vizContentArea = vizContainer.querySelector('.viz-content-area') || vizContainer;
             vizContentArea.innerHTML = `
                 <div style="text-align: center; padding: 40px; color: var(--text-secondary);">
@@ -1003,9 +1013,12 @@ class TwoRuleStreamProcessor {
                     <p style="font-size: 14px; margin: 0;">Loading ${pkg.subType.toUpperCase()} visualization...</p>
                 </div>
             `;
-            
-            return; // Skip immediate render
+            console.log(`📌 TWO-RULE: Deferred ${pkg.subType} render (off-DOM – MutationObserver will handle)`);
+            return; // Synchronous return – isReleasing freed up immediately
         }
+
+        // In-DOM (live streaming): brief rAF so the browser has laid out the container.
+        await new Promise(resolve => requestAnimationFrame(resolve));
 
         // Render visualization using available engine
         await this.renderVisualization(pkg.subType, innerContent, vizContainer);
