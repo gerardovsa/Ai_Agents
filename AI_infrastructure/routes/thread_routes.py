@@ -384,7 +384,6 @@ def create_thread():
         location = data.get('location', 'unassigned')
         tags = data.get('tags', [])
         synergy_card_id = data.get('synergy_card_id')
-        visibility = data.get('visibility', 'personal')  # NEW: Thread visibility (personal/team/restricted)
         
         # NEW: Email context parameters (stored in metadata JSON)
         metadata = data.get('metadata', {})
@@ -675,7 +674,6 @@ def get_assigned_threads():
                         t.workflow_title,
                         t.internal_doc_slug,
                         t.internal_doc_title,
-                        t.visibility,
                         COUNT(CASE 
                             WHEN m.role = 'user' AND (
                                 m.metadata IS NULL 
@@ -695,8 +693,7 @@ def get_assigned_threads():
                     GROUP BY t.id, t.thread_slug, t.name, t.user_id, t.created_at, t.updated_at, 
                              t.metadata, t.location, t.tags, t.synergy_card_id, t.synergy_card_name,
                              t.parent_thread_id, t.branch_name, t.workflow_id, t.workflow_name,
-                             t.workflow_slug, t.workflow_title, t.internal_doc_slug, t.internal_doc_title,
-                             t.visibility
+                             t.workflow_slug, t.workflow_title, t.internal_doc_slug, t.internal_doc_title
                     ORDER BY CASE t.location
                         WHEN 'prime' THEN 1
                         WHEN 'agent-1' THEN 2
@@ -740,7 +737,6 @@ def get_assigned_threads():
                     'workflow_title': row.get('workflow_title'),
                     'internal_doc_slug': row.get('internal_doc_slug'),
                     'internal_doc_title': row.get('internal_doc_title'),
-                    'visibility': row.get('visibility', 'personal'),
                     'archived': False
                 }
                 threads.append(thread_data)
@@ -782,18 +778,14 @@ def list_threads():
         # Enforce reasonable limits
         limit = int(request.args.get('limit', 50))
         limit = min(limit, 100)  # Safety: never load more than 100
-
-        # Resolve caller's organisation_id from JWT (for team visibility)
-        from flask import g
-        caller_org_id = getattr(g, 'rls_organisation_id', None)
         
         print(f"\n🔍 [THREAD API] /api/threads/list called (LAZY-LOAD MODE)")
-        print(f"📊 [THREAD API] Parameters: user_id={user_id}, limit={limit}, org_id={caller_org_id}")
+        print(f"📊 [THREAD API] Parameters: user_id={user_id}, limit={limit}")
         
         with get_database_connection('sessions') as conn:
             with conn.cursor() as cursor:
                 # ✅ OPTIMIZED: Simplified query without heavy aggregations
-                # ✅ VISIBILITY: Filters by ownership + team + restricted member access
+                # Load only essential thread metadata; message counts are approximate
                 query = """
                     SELECT 
                         t.id,
@@ -818,42 +810,16 @@ def list_threads():
                         t.email_thread_id,
                         t.email_subject,
                         t.email_participants,
-                        t.visibility,
-                        t.organisation_id,
                         (SELECT COUNT(*) FROM sessions.messages WHERE thread_id = t.id) as message_count,
                         (SELECT MAX(created_at) FROM sessions.messages WHERE thread_id = t.id) as last_message_time,
                         (SELECT role FROM sessions.messages WHERE thread_id = t.id ORDER BY created_at DESC LIMIT 1) as last_message_role
                     FROM sessions.threads t
-                    WHERE (
-                        -- personal: owner only
-                        (t.visibility = 'personal' AND t.user_id = %s)
-                        -- team: owner OR same org member (only when org_id is known)
-                        OR (t.visibility = 'team' AND (
-                            t.user_id = %s
-                            OR (%s IS NOT NULL AND t.organisation_id = %s)
-                        ))
-                        -- restricted: owner OR explicit member
-                        OR (t.visibility = 'restricted' AND (
-                            t.user_id = %s
-                            OR EXISTS (
-                                SELECT 1 FROM sessions.thread_members tm
-                                WHERE tm.thread_id = t.thread_slug AND tm.user_id = %s
-                            )
-                        ))
-                    )
+                    WHERE t.user_id = %s
                     ORDER BY t.updated_at DESC
                     LIMIT %s
                 """
                 
-                cursor.execute(query, (
-                    user_id,                # personal owner check
-                    user_id,                # team owner check
-                    caller_org_id,          # team org_id null guard
-                    caller_org_id,          # team org_id match
-                    user_id,                # restricted owner check
-                    user_id,                # restricted member check
-                    limit
-                ))
+                cursor.execute(query, (user_id, limit))
                 rows = cursor.fetchall()
                 
                 print(f"✅ [THREAD API] Query returned {len(rows)} rows")
@@ -889,8 +855,6 @@ def list_threads():
                     'message_count': row.get('message_count') or 0,
                     'last_message_time': row.get('last_message_time'),
                     'last_message_role': row.get('last_message_role'),
-                    'visibility': row.get('visibility', 'personal'),  # ✅ ADDED: Include visibility in response
-                    'organisation_id': row.get('organisation_id'),  # ✅ ADDED: For team visibility checks
                     'archived': False
                 }
                 threads.append(thread_data)
@@ -945,7 +909,6 @@ def get_threads_bulk_with_messages():
                 placeholders = ','.join(['%s'] * len(locations))
                 
                 # Single query with JSON aggregation (PostgreSQL only)
-                # FIXED: Include visibility column for access control
                 query = f"""
                     WITH assigned_threads AS (
                         SELECT 
@@ -960,9 +923,7 @@ def get_threads_bulk_with_messages():
                             t.workflow_slug,
                             t.workflow_title,
                             t.internal_doc_slug,
-                            t.internal_doc_title,
-                            t.visibility,
-                            t.organisation_id
+                            t.internal_doc_title
                         FROM sessions.threads t
                         WHERE t.user_id = %s
                           AND t.location IN ({placeholders})
@@ -980,8 +941,6 @@ def get_threads_bulk_with_messages():
                         at.workflow_title,
                         at.internal_doc_slug,
                         at.internal_doc_title,
-                        at.visibility,
-                        at.organisation_id,
                         COALESCE(
                             json_agg(
                                 json_build_object(
@@ -1000,8 +959,7 @@ def get_threads_bulk_with_messages():
                     GROUP BY at.id, at.thread_slug, at.name, at.location, 
                              at.created_at, at.updated_at, at.synergy_card_id, 
                              at.workflow_id, at.workflow_slug, at.workflow_title,
-                             at.internal_doc_slug, at.internal_doc_title,
-                             at.visibility, at.organisation_id
+                             at.internal_doc_slug, at.internal_doc_title
                     ORDER BY at.updated_at DESC
                 """
                 
@@ -1022,255 +980,6 @@ def get_threads_bulk_with_messages():
         import traceback
         traceback.print_exc()
         return error_response(f'Bulk fetch failed: {str(e)}', 500)
-
-
-# ============================================================
-# THREAD VISIBILITY MANAGEMENT
-# ============================================================
-
-@thread_bp.route('/<thread_slug>/visibility', methods=['PATCH'])
-def update_thread_visibility(thread_slug):
-    """
-    Update visibility of a thread. Owner only.
-    
-    Body:
-        visibility (str, required): 'personal' | 'team' | 'restricted'
-    """
-    try:
-        data = request.get_json() or {}
-        visibility = data.get('visibility', '').strip().lower()
-        user_id = data.get('user_id')
-
-        if visibility not in ('personal', 'team', 'restricted'):
-            return error_response("visibility must be 'personal', 'team', or 'restricted'", 400)
-
-        if not user_id:
-            return error_response("user_id required", 400)
-
-        with get_database_connection('sessions') as conn:
-            with conn.cursor() as cursor:
-                # Verify ownership
-                sql, params = convert_sql_placeholders(
-                    "SELECT user_id FROM sessions.threads WHERE thread_slug = %s",
-                    (thread_slug,)
-                )
-                cursor.execute(sql, params)
-                row = cursor.fetchone()
-
-                if not row:
-                    return error_response("Thread not found", 404)
-
-                owner_id = row[0] if isinstance(row, tuple) else row.get('user_id')
-                if str(owner_id) != str(user_id):
-                    return error_response("Only the thread owner can change visibility", 403)
-
-                # Update visibility
-                sql, params = convert_sql_placeholders(
-                    "UPDATE sessions.threads SET visibility = %s, updated_at = NOW() WHERE thread_slug = %s",
-                    (visibility, thread_slug)
-                )
-                cursor.execute(sql, params)
-                conn.commit()
-
-        print(f"✅ [THREAD VISIBILITY] Thread {thread_slug} → {visibility}")
-        return success_response({'thread_slug': thread_slug, 'visibility': visibility},
-                                message='Thread visibility updated')
-
-    except Exception as e:
-        import traceback
-        traceback.print_exc()
-        return error_response(f'Failed to update visibility: {str(e)}', 500)
-
-
-# ============================================================
-# THREAD MEMBER MANAGEMENT (for restricted-visibility threads)
-# ============================================================
-
-@thread_bp.route('/<thread_slug>/members', methods=['GET'])
-def list_thread_members(thread_slug):
-    """
-    List members of a restricted-visibility thread.
-    Accessible by owner and existing members.
-    """
-    try:
-        user_id = request.args.get('user_id')
-        if not user_id:
-            return error_response("user_id required", 400)
-
-        with get_database_connection('sessions') as conn:
-            with conn.cursor() as cursor:
-                # Verify thread exists and caller has access
-                sql, params = convert_sql_placeholders(
-                    """SELECT t.user_id, t.visibility
-                       FROM sessions.threads t
-                       WHERE t.thread_slug = %s""",
-                    (thread_slug,)
-                )
-                cursor.execute(sql, params)
-                row = cursor.fetchone()
-                if not row:
-                    return error_response("Thread not found", 404)
-
-                owner_id = row[0] if isinstance(row, tuple) else row.get('user_id')
-                visibility = row[1] if isinstance(row, tuple) else row.get('visibility')
-
-                # Check if caller is owner or member
-                if str(owner_id) != str(user_id):
-                    sql2, params2 = convert_sql_placeholders(
-                        "SELECT 1 FROM sessions.thread_members WHERE thread_id = %s AND user_id = %s",
-                        (thread_slug, user_id)
-                    )
-                    cursor.execute(sql2, params2)
-                    if not cursor.fetchone():
-                        return error_response("Access denied", 403)
-
-                # Fetch members with usernames
-                sql3, params3 = convert_sql_placeholders(
-                    """SELECT tm.user_id, u.username, tm.can_write, tm.added_at, tm.added_by
-                       FROM sessions.thread_members tm
-                       LEFT JOIN ai_infrastructure.users u ON u.id = tm.user_id
-                       WHERE tm.thread_id = %s
-                       ORDER BY tm.added_at ASC""",
-                    (thread_slug,)
-                )
-                cursor.execute(sql3, params3)
-                member_rows = cursor.fetchall()
-
-        members = []
-        for r in member_rows:
-            if isinstance(r, tuple):
-                members.append({'user_id': r[0], 'username': r[1], 'can_write': r[2],
-                                'added_at': r[3].isoformat() if r[3] else None, 'added_by': r[4]})
-            else:
-                members.append({'user_id': r.get('user_id'), 'username': r.get('username'),
-                                'can_write': r.get('can_write'),
-                                'added_at': r.get('added_at').isoformat() if r.get('added_at') else None,
-                                'added_by': r.get('added_by')})
-
-        return success_response({'thread_slug': thread_slug, 'visibility': visibility, 'members': members})
-
-    except Exception as e:
-        import traceback
-        traceback.print_exc()
-        return error_response(f'Failed to list members: {str(e)}', 500)
-
-
-@thread_bp.route('/<thread_slug>/members', methods=['POST'])
-def add_thread_member(thread_slug):
-    """
-    Add a member to a restricted-visibility thread. Owner only.
-    
-    Body:
-        user_id (int, required): Caller's user ID
-        member_user_id (int, required): User to add
-        can_write (bool, optional): Whether member can send messages (default: true)
-    """
-    try:
-        data = request.get_json() or {}
-        caller_id = data.get('user_id')
-        member_user_id = data.get('member_user_id')
-        can_write = data.get('can_write', True)
-
-        if not caller_id or not member_user_id:
-            return error_response("user_id and member_user_id required", 400)
-
-        with get_database_connection('sessions') as conn:
-            with conn.cursor() as cursor:
-                # Verify ownership
-                sql, params = convert_sql_placeholders(
-                    "SELECT user_id FROM sessions.threads WHERE thread_slug = %s",
-                    (thread_slug,)
-                )
-                cursor.execute(sql, params)
-                row = cursor.fetchone()
-                if not row:
-                    return error_response("Thread not found", 404)
-
-                owner_id = row[0] if isinstance(row, tuple) else row.get('user_id')
-                if str(owner_id) != str(caller_id):
-                    return error_response("Only the thread owner can add members", 403)
-
-                # Verify target user exists
-                sql2, params2 = convert_sql_placeholders(
-                    "SELECT id, username FROM ai_infrastructure.users WHERE id = %s",
-                    (member_user_id,)
-                )
-                cursor.execute(sql2, params2)
-                target = cursor.fetchone()
-                if not target:
-                    return error_response("Target user not found", 404)
-
-                target_username = target[1] if isinstance(target, tuple) else target.get('username')
-
-                # Upsert into thread_members
-                sql3, params3 = convert_sql_placeholders(
-                    """INSERT INTO sessions.thread_members (thread_id, user_id, can_write, added_by)
-                       VALUES (%s, %s, %s, %s)
-                       ON CONFLICT (thread_id, user_id) DO UPDATE
-                           SET can_write = EXCLUDED.can_write""",
-                    (thread_slug, member_user_id, can_write, caller_id)
-                )
-                cursor.execute(sql3, params3)
-                conn.commit()
-
-        print(f"✅ [THREAD MEMBERS] Added user {member_user_id} ({target_username}) to thread {thread_slug}")
-        return success_response(
-            {'thread_slug': thread_slug, 'user_id': member_user_id,
-             'username': target_username, 'can_write': can_write},
-            message='Member added to thread'
-        )
-
-    except Exception as e:
-        import traceback
-        traceback.print_exc()
-        return error_response(f'Failed to add member: {str(e)}', 500)
-
-
-@thread_bp.route('/<thread_slug>/members/<int:member_user_id>', methods=['DELETE'])
-def remove_thread_member(thread_slug, member_user_id):
-    """
-    Remove a member from a restricted-visibility thread. Owner only.
-    
-    Query params:
-        user_id (int, required): Caller's user ID
-    """
-    try:
-        caller_id = request.args.get('user_id')
-        if not caller_id:
-            return error_response("user_id required", 400)
-
-        with get_database_connection('sessions') as conn:
-            with conn.cursor() as cursor:
-                # Verify ownership
-                sql, params = convert_sql_placeholders(
-                    "SELECT user_id FROM sessions.threads WHERE thread_slug = %s",
-                    (thread_slug,)
-                )
-                cursor.execute(sql, params)
-                row = cursor.fetchone()
-                if not row:
-                    return error_response("Thread not found", 404)
-
-                owner_id = row[0] if isinstance(row, tuple) else row.get('user_id')
-                # Owner can remove anyone; members can remove themselves
-                if str(owner_id) != str(caller_id) and str(member_user_id) != str(caller_id):
-                    return error_response("Only the thread owner can remove other members", 403)
-
-                sql2, params2 = convert_sql_placeholders(
-                    "DELETE FROM sessions.thread_members WHERE thread_id = %s AND user_id = %s",
-                    (thread_slug, member_user_id)
-                )
-                cursor.execute(sql2, params2)
-                conn.commit()
-
-        print(f"✅ [THREAD MEMBERS] Removed user {member_user_id} from thread {thread_slug}")
-        return success_response({'thread_slug': thread_slug, 'user_id': member_user_id},
-                                message='Member removed from thread')
-
-    except Exception as e:
-        import traceback
-        traceback.print_exc()
-        return error_response(f'Failed to remove member: {str(e)}', 500)
 
 
 @thread_bp.route('/metadata/update', methods=['POST'])

@@ -400,23 +400,60 @@ window.UniversalSearchModule = {
                         </h3>
                     </div>
                     <div class="card-content" style="padding: var(--space-4);">
-                        <div class="universal-search-filters" style="display: flex; gap: var(--space-4); flex-wrap: wrap;">
-                            <div class="filter-group" style="flex: 1; min-width: 200px;">
-                                <label style="display: block; margin-bottom: var(--space-2); color: var(--text-secondary); font-size: 13px;">Search Type:</label>
-                                <select id="search-type" class="filter-select" style="width: 100%; padding: 8px 12px; background: var(--bg-secondary); border: 1px solid var(--border-default); border-radius: 6px; color: var(--text-primary);">
-                                    <option value="hybrid">Hybrid (Best Results)</option>
-                                    <option value="semantic">Semantic (AI-Powered)</option>
-                                    <option value="fulltext">Full-Text (Exact Match)</option>
-                                </select>
+
+                        <!-- Search Mode row (top) -->
+                        <div style="margin-bottom: var(--space-4);">
+                            <div style="display: flex; align-items: center; gap: 6px; margin-bottom: var(--space-2);">
+                                <label style="color: var(--text-secondary); font-size: 13px; font-weight: 500;">Search Mode</label>
+                                <span class="us-info-badge" title="Choose how the search engine matches your query to stored content">
+                                    <i class="fas fa-info-circle"></i>
+                                </span>
                             </div>
-                            
-                            <div class="filter-group" style="flex: 2; min-width: 300px;">
-                                <label style="display: block; margin-bottom: var(--space-2); color: var(--text-secondary); font-size: 13px;">Sources:</label>
-                                <div class="source-checkboxes" style="display: flex; gap: var(--space-3); flex-wrap: wrap;">
-                                    ${this.renderSourceCheckboxes()}
+                            <select id="search-type" class="filter-select" style="padding: 8px 12px; background: var(--bg-secondary); border: 1px solid var(--border-default); border-radius: 6px; color: var(--text-primary); min-width: 260px;">
+                                <option value="hybrid">⚡ Hybrid — Best Results</option>
+                                <option value="semantic">🧠 Semantic — AI-Powered</option>
+                                <option value="fulltext">🔍 Full-Text — Exact Match</option>
+                            </select>
+                            <div id="us-mode-desc" class="us-mode-desc">
+                                <div data-desc="hybrid">
+                                    <i class="fas fa-bolt" style="color: #f59e0b;"></i>
+                                    <span><strong>Hybrid</strong> combines fast keyword matching with AI semantic understanding — best for most searches.</span>
+                                </div>
+                                <div data-desc="semantic" style="display:none;">
+                                    <i class="fas fa-brain" style="color: #8b5cf6;"></i>
+                                    <span><strong>Semantic</strong> uses AI embeddings to find conceptually related content, even when the exact words differ.</span>
+                                </div>
+                                <div data-desc="fulltext" style="display:none;">
+                                    <i class="fas fa-search" style="color: #3b82f6;"></i>
+                                    <span><strong>Full-Text</strong> searches for exact keywords or phrases — fastest mode, but misses synonyms and paraphrases.</span>
                                 </div>
                             </div>
                         </div>
+
+                        <!-- Divider -->
+                        <div style="height: 1px; background: var(--border-default); margin-bottom: var(--space-4);"></div>
+
+                        <!-- Sources row (below) -->
+                        <div>
+                            <div style="display: flex; align-items: center; gap: 6px; margin-bottom: var(--space-3);">
+                                <label style="color: var(--text-secondary); font-size: 13px; font-weight: 500;">Search Sources</label>
+                                <span class="us-info-badge" title="Toggle which platforms to include. Greyed-out sources need credentials added in Org Settings → Connections.">
+                                    <i class="fas fa-info-circle"></i>
+                                </span>
+                                <span style="margin-left: auto; font-size: 11px; color: var(--text-tertiary); display: flex; align-items: center; gap: 12px;">
+                                    <span><i class="fas fa-circle" style="color: #10b981; font-size: 7px; margin-right: 3px;"></i>Connected</span>
+                                    <span><i class="fas fa-circle" style="color: #ef4444; font-size: 7px; margin-right: 3px;"></i>Not Connected</span>
+                                </span>
+                            </div>
+                            <div class="source-checkboxes">
+                                ${this.renderSourceCheckboxes()}
+                            </div>
+                            <div class="us-tip-card" style="margin-top: var(--space-3);">
+                                <i class="fas fa-plug" style="color: #10b981; flex-shrink: 0; font-size: 13px; margin-top: 1px;"></i>
+                                <span style="font-size: 12px; color: var(--text-secondary);">Connect platforms via <strong style="color: var(--text-primary);">Org Settings → Connections</strong> to unlock additional sources.</span>
+                            </div>
+                        </div>
+
                     </div>
                 </div>
                 
@@ -793,6 +830,20 @@ window.UniversalSearchModule = {
         this.dom.on(this.container, 'click', '[data-action="close"]', () => {
             this.events.emit('sidebar-close');
         });
+
+        // Search type — update mode description
+        const searchTypeSelect = this.container.querySelector('#search-type');
+        if (searchTypeSelect) {
+            this.dom.on(searchTypeSelect, 'change', (e) => {
+                const mode = e.target.value;
+                const descContainer = this.container.querySelector('#us-mode-desc');
+                if (descContainer) {
+                    descContainer.querySelectorAll('[data-desc]').forEach(el => {
+                        el.style.display = el.dataset.desc === mode ? 'flex' : 'none';
+                    });
+                }
+            });
+        }
 
         // Source checkboxes
         const checkboxes = this.container.querySelectorAll('input[data-source]');

@@ -637,6 +637,56 @@
 }
 
 /* ========================================================================
+   INFO BADGES & TIP CARDS
+   ======================================================================== */
+
+.us-info-badge {
+    display: inline-flex;
+    align-items: center;
+    color: var(--text-tertiary, #6e7681);
+    font-size: 12px;
+    cursor: help;
+    transition: color 0.2s;
+}
+
+.us-info-badge:hover {
+    color: var(--accent-primary, #10b981);
+}
+
+.us-mode-desc {
+    margin-top: 10px;
+    padding: 10px 14px;
+    background: var(--bg-tertiary);
+    border-left: 3px solid var(--border-emphasis, #444c56);
+    border-radius: 0 6px 6px 0;
+    font-size: 13px;
+    color: var(--text-secondary);
+    line-height: 1.5;
+}
+
+.us-mode-desc > div {
+    display: flex;
+    gap: 10px;
+    align-items: flex-start;
+}
+
+.us-mode-desc > div i {
+    flex-shrink: 0;
+    margin-top: 2px;
+    font-size: 14px;
+}
+
+.us-tip-card {
+    display: flex;
+    gap: 10px;
+    align-items: flex-start;
+    padding: 10px 14px;
+    background: rgba(16, 185, 129, 0.05);
+    border: 1px solid rgba(16, 185, 129, 0.2);
+    border-radius: 6px;
+}
+
+/* ========================================================================
    RESULTS CONTAINER
    ======================================================================== */
 
