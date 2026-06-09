@@ -2762,16 +2762,16 @@ async function initMultiAgent() {
 
                 // Update stats
                 MultiAgent.updateDashboardStats();
-                // NOTE: restoreThreadAssignments() is intentionally NOT called here.
-                // loadDeferredThreadMessages() (called after UI is visible) handles thread card
-                // rendering AND message loading using the _pendingMessageLoads queue. Calling
-                // restoreThreadAssignments() here as well triggers loadThreadIntoAgent() →
-                // loadMessagesForThread() during startup — exactly when the server is cold and
-                // the DB pool is saturating, causing 18-60s 502 waterfalls on get?thread_id.
+                // Render thread info cards + populate _pendingMessageLoads for post-render message loading.
+                // _buildDeferredThreadUI does NOT overwrite window.loadDeferredThreadMessages.
                 ThreadManager._assignmentsRestored = true;
                 if (typeof MultiAgent !== 'undefined' && typeof MultiAgent.updateDashboardStats === 'function') {
                     MultiAgent.updateDashboardStats();
-                    console.log('🔄 [initMultiAgent] Dashboard stats updated (message load deferred to post-render)');
+                }
+                if (typeof window._buildDeferredThreadUI === 'function') {
+                    window._buildDeferredThreadUI().catch(err =>
+                        console.warn('⚠️ [initMultiAgent] _buildDeferredThreadUI error (non-fatal):', err.message)
+                    );
                 }
             })
             .catch(err => console.error('❌ [initMultiAgent] Thread loading failed:', err));
@@ -2781,15 +2781,11 @@ async function initMultiAgent() {
 }
 
 /**
- * Load all deferred thread messages AFTER the UI has rendered.
- *
- * Strategy: initMultiAgent() renders thread INFO cards instantly using cached thread list data.
- * The expensive per-thread message history API calls are deferred here, so the loading overlay
- * hides in ~5s instead of ~60s. Called from user_auth.js after hideLoadingOverlay().
- *
- * Sequential loading is intentional — prevents connection pool exhaustion on Render.
+ * Build deferred thread UI: render thread info cards and populate _pendingMessageLoads.
+ * Called internally by initMultiAgent after threads load from backend.
+ * NOTE: Does NOT overwrite window.loadDeferredThreadMessages (which processes the queue).
  */
-window.loadDeferredThreadMessages = async function () {
+window._buildDeferredThreadUI = async function () {
 
     // 🔍 DEBUG: Check parent container state
     const multiAgentContainer = document.getElementById('multi-agent-container');
