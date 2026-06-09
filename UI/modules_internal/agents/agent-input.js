@@ -271,6 +271,16 @@ const AgentInput = (function () {
         e.stopPropagation();
         e.target.classList.remove('drag-over');
 
+        // Thread card drop — delegate to ThreadManager instead of processing as file
+        const threadId = e.dataTransfer.getData('application/x-thread-id');
+        if (threadId) {
+            console.log(`[AgentInput] Thread drop detected on agent-${agentId} textarea, delegating to ThreadManager`);
+            if (typeof ThreadManager !== 'undefined' && typeof ThreadManager.handleDrop === 'function') {
+                ThreadManager.handleDrop(e, `agent-${agentId}`);
+            }
+            return;
+        }
+
         const files = Array.from(e.dataTransfer.files);
         if (files.length > 0) {
             handleFileSelection(agentId, files);

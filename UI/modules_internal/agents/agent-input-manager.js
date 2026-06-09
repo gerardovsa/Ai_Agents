@@ -513,19 +513,39 @@ const AgentInput = (function () {
         handlers[agentId].dragOver = (e) => {
             e.preventDefault();
             e.stopPropagation();
-            container.classList.add('drag-over');
+            // For thread drops, highlight the agent column instead of the input container
+            if (e.dataTransfer.types.includes('application/x-thread-id')) {
+                const agentColumn = document.getElementById(`agent-column-${agentId}`);
+                if (agentColumn) agentColumn.classList.add('drag-over');
+            } else {
+                container.classList.add('drag-over');
+            }
         };
 
         handlers[agentId].dragLeave = (e) => {
             e.preventDefault();
             e.stopPropagation();
             container.classList.remove('drag-over');
+            const agentColumn = document.getElementById(`agent-column-${agentId}`);
+            if (agentColumn) agentColumn.classList.remove('drag-over');
         };
 
         handlers[agentId].drop = (e) => {
             e.preventDefault();
             e.stopPropagation();
             container.classList.remove('drag-over');
+            const agentColumn = document.getElementById(`agent-column-${agentId}`);
+            if (agentColumn) agentColumn.classList.remove('drag-over');
+
+            // Thread card drop — delegate to ThreadManager instead of processing as file
+            const threadId = e.dataTransfer.getData('application/x-thread-id');
+            if (threadId) {
+                console.log(`[AgentInput] Thread drop detected on agent-${agentId} input area, delegating to ThreadManager`);
+                if (typeof ThreadManager !== 'undefined' && typeof ThreadManager.handleDrop === 'function') {
+                    ThreadManager.handleDrop(e, `agent-${agentId}`);
+                }
+                return;
+            }
 
             const files = Array.from(e.dataTransfer.files);
             if (files.length > 0) {

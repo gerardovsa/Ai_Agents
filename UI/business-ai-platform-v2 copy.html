@@ -19086,7 +19086,7 @@
                                         style="background: var(--bg-primary); border: 1px solid var(--border); border-radius: 6px; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; cursor: pointer; color: var(--text-primary); font-size: 18px; font-weight: bold; transition: all 0.2s;"
                                         onmouseover="this.style.background='var(--bg-hover)'; this.style.color='var(--accent-red)'"
                                         onmouseout="this.style.background='var(--bg-primary)'; this.style.color='var(--text-primary)'"
-                                        title="Close panel">×</button>
+                                        title="Close panel"><i class="fas fa-times"></i></button>
                                 </div>
 
                                 <!-- Search and Filters (Enhanced) -->
@@ -25345,6 +25345,7 @@
         let libraryLastClickTime = 0;
         let libraryLastClickedSlug = null;
         let loadedWorkflowSlugs = new Set(); // Track loaded workflows to prevent duplicates
+        let _libraryProductionWorkflows = null; // Cached items from automation_workflows table
 
         function toggleWorkflowLibraryPanel() {
             const panel = document.getElementById('workflow-library-panel');
@@ -25364,48 +25365,43 @@
                 console.log('[LIBRARY] Automations loaded:', AutomationsSidebar?.automationsLoaded);
                 console.log('[LIBRARY] Automations count:', AutomationsSidebar?.automations?.length);
 
-                // Always try to load/refresh workflows when opening
-                if (typeof AutomationsSidebar !== 'undefined') {
-                    if (!AutomationsSidebar.automationsLoaded) {
-                        console.log('[LIBRARY] Loading automations for first time...');
-                        AutomationsSidebar.loadAutomations().then(() => {
-                            showWorkflowLibraryContent();
-                        });
-                    } else {
-                        console.log('[LIBRARY] Automations already loaded, showing content');
-                        showWorkflowLibraryContent();
-                    }
-                } else {
-                    console.error('[LIBRARY] AutomationsSidebar not available!');
-                    const container = document.getElementById('workflow-library-content');
-                    if (container) {
-                        container.innerHTML = `
-                            <div style="padding: 60px; text-align: center; color: var(--text-secondary);">
-                                <i class="fas fa-exclamation-triangle" style="font-size: 48px; margin-bottom: 16px; color: var(--warning-color);"></i>
-                                <div style="font-size: 16px; font-weight: 500; margin-bottom: 8px;">AutomationsSidebar Not Loaded</div>
-                                <div style="font-size: 13px;">Please refresh the page</div>
-                            </div>
-                        `;
-                    }
-                }
+                // Load visual automations + production workflows in parallel
+                const loadVisualAutomations = (typeof AutomationsSidebar !== 'undefined' && !AutomationsSidebar.automationsLoaded)
+                    ? AutomationsSidebar.loadAutomations()
+                    : Promise.resolve();
+
+                const loadProductionWorkflows = fetch('/api/automation/workflows/list', {
+                    headers: { 'Authorization': `Bearer ${localStorage.getItem('jwt_token') || ''}` }
+                })
+                    .then(r => r.ok ? r.json() : { workflows: [] })
+                    .then(data => {
+                        _libraryProductionWorkflows = (data.workflows || []).map(w => ({ ...w, _itemType: 'workflow' }));
+                        console.log('[LIBRARY] Loaded', _libraryProductionWorkflows.length, 'production workflows');
+                    })
+                    .catch(e => {
+                        console.error('[LIBRARY] Failed to load production workflows:', e);
+                        _libraryProductionWorkflows = [];
+                    });
+
+                Promise.all([loadVisualAutomations, loadProductionWorkflows]).then(() => {
+                    showWorkflowLibraryContent();
+                });
             }
         }
 
         function showWorkflowLibraryContent() {
             console.log('[LIBRARY] showWorkflowLibraryContent called');
-            console.log('[LIBRARY] AutomationsSidebar:', typeof AutomationsSidebar !== 'undefined');
-            console.log('[LIBRARY] AutomationsSidebar.automations:', AutomationsSidebar?.automations);
-            console.log('[LIBRARY] Automations length:', AutomationsSidebar?.automations?.length);
+            console.log('[LIBRARY] Automations:', AutomationsSidebar?.automations?.length, '| Production workflows:', _libraryProductionWorkflows?.length);
 
-            if (typeof AutomationsSidebar === 'undefined' || !AutomationsSidebar.automations) {
-                console.error('[LIBRARY] AutomationsSidebar not available or no automations array');
+            const hasAnyData = (AutomationsSidebar?.automations?.length > 0) || (_libraryProductionWorkflows?.length > 0);
+
+            if (!hasAnyData && _libraryProductionWorkflows === null) {
                 const container = document.getElementById('workflow-library-content');
                 if (container) {
                     container.innerHTML = `
                         <div style="padding: 60px; text-align: center; color: var(--text-secondary);">
-                            <i class="fas fa-exclamation-triangle" style="font-size: 48px; margin-bottom: 16px; color: var(--warning-color);"></i>
-                            <div style="font-size: 16px; font-weight: 500; margin-bottom: 8px;">AutomationsSidebar Not Ready</div>
-                            <div style="font-size: 13px;">Automations module not loaded. Please refresh the page.</div>
+                            <i class="fas fa-spinner fa-spin" style="font-size: 48px; margin-bottom: 16px; color: var(--accent-primary);"></i>
+                            <div style="font-size: 16px; font-weight: 500;">Loading...</div>
                         </div>
                     `;
                 }
@@ -25418,11 +25414,16 @@
 
             if (filtered.length === 0) {
                 console.log('[LIBRARY] No workflows to display');
+                const emptyLabel = libraryWorkflowTypeFilter === 'automation' ? 'Automations' :
+                                   libraryWorkflowTypeFilter === 'workflow' ? 'Workflows' : 'Items';
+                const emptyHint = librarySearchQuery ? 'Try a different search term' :
+                                  libraryWorkflowTypeFilter === 'workflow' ? 'No production workflows found. Build one in the Visual Automation Canvas.' :
+                                  'Create your first automation to get started';
                 container.innerHTML = `
                     <div style="padding: 60px; text-align: center; color: var(--text-secondary);">
                         <i class="fas fa-inbox" style="font-size: 48px; margin-bottom: 16px; opacity: 0.5;"></i>
-                        <div style="font-size: 16px; font-weight: 500; margin-bottom: 8px;">No Workflows Found</div>
-                        <div style="font-size: 13px;">${librarySearchQuery ? 'Try a different search term' : 'Create your first workflow to get started'}</div>
+                        <div style="font-size: 16px; font-weight: 500; margin-bottom: 8px;">No ${emptyLabel} Found</div>
+                        <div style="font-size: 13px;">${emptyHint}</div>
                     </div>
                 `;
                 return;
@@ -25446,7 +25447,7 @@
             };
 
             // Determine if production (in automation_workflows) or draft (visual_automations only)
-            const isProduction = automation.is_production || automation.workflow_state === 'production';
+            const isProduction = automation._itemType === 'workflow' || automation.is_production || automation.workflow_state === 'production';
             const isDraft = !isProduction;
             const borderColor = isProduction ? '#10B981' : '#A855F7'; // Green for production, Purple for draft
             const stateLabel = isProduction ? 'PRODUCTION READY' : 'DRAFT MODE';
@@ -25575,11 +25576,23 @@
         }
 
         function getFilteredWorkflows() {
-            if (typeof AutomationsSidebar === 'undefined' || !AutomationsSidebar.automations) {
-                return [];
-            }
+            // Items from visual_automations table → Automations
+            const automationItems = (AutomationsSidebar?.automations || []).map(a => ({ ...a, _itemType: 'automation' }));
 
-            let filtered = [...AutomationsSidebar.automations];
+            // Items from automation_workflows table → Workflows
+            const workflowItems = _libraryProductionWorkflows || [];
+
+            let filtered;
+            if (libraryWorkflowTypeFilter === 'automation') {
+                filtered = [...automationItems];
+            } else if (libraryWorkflowTypeFilter === 'workflow') {
+                filtered = [...workflowItems];
+            } else {
+                // ALL: combine both, deduplicate by slug (prefer workflow version if in both)
+                const workflowSlugs = new Set(workflowItems.map(w => w.slug));
+                const automationsOnly = automationItems.filter(a => !workflowSlugs.has(a.slug));
+                filtered = [...workflowItems, ...automationsOnly];
+            }
 
             // Get dropdown values
             const categoryFilter = document.getElementById('workflow-filter-category')?.value || '';
@@ -25587,12 +25600,12 @@
 
             // Apply chip status filter (enabled/disabled/recent)
             if (libraryCurrentFilter === 'enabled') {
-                filtered = filtered.filter(a => a.enabled);
+                filtered = filtered.filter(a => a.enabled || a.automation_enabled);
             } else if (libraryCurrentFilter === 'disabled') {
-                filtered = filtered.filter(a => !a.enabled);
+                filtered = filtered.filter(a => !a.enabled && !a.automation_enabled);
             } else if (libraryCurrentFilter === 'recent') {
                 filtered = filtered.filter(a => {
-                    const lastRun = new Date(a.last_run_at);
+                    const lastRun = new Date(a.last_run_at || a.last_executed_at);
                     const dayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
                     return lastRun > dayAgo;
                 });
@@ -25608,17 +25621,10 @@
                 filtered = filtered.filter(a => a.status === statusFilter);
             }
 
-            // Apply workflow type filter (automation vs workflow)
-            if (libraryWorkflowTypeFilter === 'automation') {
-                filtered = filtered.filter(a => a.is_production || a.workflow_state === 'production');
-            } else if (libraryWorkflowTypeFilter === 'workflow') {
-                filtered = filtered.filter(a => !a.is_production && a.workflow_state !== 'production');
-            }
-
             // Apply search filter
             if (librarySearchQuery) {
                 filtered = filtered.filter(a => {
-                    const searchableText = `${a.name} ${a.slug} ${a.description || ''} ${a.category || ''}`.toLowerCase();
+                    const searchableText = `${a.name || a.title || ''} ${a.slug} ${a.description || ''} ${a.category || ''}`.toLowerCase();
                     return searchableText.includes(librarySearchQuery);
                 });
             }

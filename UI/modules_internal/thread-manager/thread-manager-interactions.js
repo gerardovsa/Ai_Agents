@@ -570,7 +570,9 @@ Object.assign(window.ThreadManager, {
 
         // Set thread data using custom MIME types (NOT text/plain to avoid browser including visible text)
         event.dataTransfer.setData('application/x-thread-id', threadId);  // Primary format
-        event.dataTransfer.setData('application/x-source-location', threadElement.dataset.currentLocation || 'unassigned');
+        // Read source location from either data-current-location (fallback template) or data-location (compact card template)
+        const sourceLocation = threadElement.dataset.currentLocation || threadElement.dataset.location || 'unassigned';
+        event.dataTransfer.setData('application/x-source-location', sourceLocation);
         event.dataTransfer.effectAllowed = 'move';
 
         // Prevent browser from including text content by clearing selection
@@ -670,7 +672,7 @@ Object.assign(window.ThreadManager, {
 
         // Check if dropping in same location - no action needed (EXCEPT for Prime)
         // Prime should always load the thread when dropped, even if already marked as in Prime
-        if (sourceLocation === targetLocation && targetLocation !== 'unassigned') {
+        if (sourceLocation === targetLocation && targetLocation !== 'unassigned' && targetLocation !== 'prime') {
             console.log('🔄 [Drop] Same location - no change needed');
             if (typeof showNotification === 'function') {
                 showNotification('Thread already in this location', 'info');
@@ -678,7 +680,7 @@ Object.assign(window.ThreadManager, {
             return;
         }
 
-        if (targetLocation === 'unassigned') {
+        if (targetLocation === 'unassigned' || targetLocation === 'prime') {
             console.log(`🎯 [Drop] Loading thread ${threadId} in Prime`);
 
             // Find the thread

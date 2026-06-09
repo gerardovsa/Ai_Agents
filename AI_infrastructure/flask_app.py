@@ -828,10 +828,17 @@ else:
 ping_timeout_config = 90 if IS_RENDER else 60  # 90s for Render cold starts
 ping_interval_config = 25  # Keep-alive ping every 25s
 
-# Auto-detect best async mode: gevent on Render (better for WebSockets), threading locally
-# None = auto-detect (Flask-SocketIO will choose gevent if available, else threading)
-async_mode_config = None  # Auto-detect: gevent if available, else threading
-log_config(logger, f"[WS] Async mode: auto-detect (will use gevent on Render, threading locally)")
+# ✅ FIXED JUNE 9: Explicitly detect async mode to fix WebSocket pending issue on Render
+# Check if gevent is available (required for WebSocket on Render)
+async_mode_config = None
+try:
+    import gevent
+    async_mode_config = 'gevent'
+    log_success(logger, f"[WS] Async mode: GEVENT (will support WebSocket connections efficiently)")
+except ImportError:
+    log_warning(logger, "[WS] Gevent not available - falling back to threading")
+    log_warning(logger, "[WS] ⚠️  Threading mode may cause WebSocket connection delays on Render")
+    async_mode_config = 'threading'
 
 try:
     socketio = SocketIO(
@@ -1090,25 +1097,32 @@ def default_connect():
     """
     Handle connection attempts to default namespace (/)
     Accept but do nothing - prevents WSGI "write before start_response" errors
+    ✅ FIXED JUNE 9: Add connection logging for Render debugging (WebSocket pending issue)
     """
     try:
-        log_warning(logger, f"[WS] Connection to default namespace from {request.sid}")
+        from flask import request as fr
+        client_sid = fr.sid if hasattr(fr, 'sid') else 'UNKNOWN'
+        remote_addr = request.remote_addr if hasattr(request, 'remote_addr') else 'UNKNOWN'
+        logger.info(f"[WS /] ✅ Connection from SID: {client_sid}, remote: {remote_addr}")
         # Don't return False - let it connect to avoid WSGI errors
         # Client should use /ws/synergy or /ws/streaming instead
         return True  # ✅ Explicitly return True to confirm connection
     except Exception as e:
-        log_error(logger, f"[WS] Error in default_connect: {e}")
+        log_error(logger, f"[WS /] Error in default_connect: {e}")
         return True  # Still return True to prevent errors
 
 @socketio.on('disconnect')
 def default_disconnect():
     """
     Handle disconnection from default namespace (/)
+    ✅ FIXED JUNE 9: Add logging for Render debugging
     """
     try:
-        logger.info(f"[WS] Disconnection from default namespace: {request.sid}")
+        from flask import request as fr
+        client_sid = fr.sid if hasattr(fr, 'sid') else 'UNKNOWN'
+        logger.info(f"[WS /] ⎯  Disconnection from default namespace: {client_sid}")
     except Exception as e:
-        log_error(logger, f"[WS] Error in default_disconnect: {e}")
+        log_error(logger, f"[WS /] Error in default_disconnect: {e}")
 
 # ============================================================================
 # COMPREHENSIVE SOCKETIO HANDLERS FOR /ws/synergy NAMESPACE
@@ -2617,6 +2631,84 @@ def health_check():
     return response
 
 
+# ✅ ADDED JUNE 9: WebSocket Diagnostic Endpoint (Fix WebSocket pending issue on Render)
+@app.route('/api/ws-diagnostics', methods=['GET', 'OPTIONS'])
+def ws_diagnostics():
+    """
+    Diagnostic endpoint to check WebSocket connection health and async mode
+    Use this to verify the WebSocket pending issue is fixed
+    
+    Response includes:
+    - async_mode: Threading, gevent, or unknown
+    - async_mode_detected: Whether gevent was successfully detected
+    - connected_clients: Number of active WebSocket connections
+    - ping configuration: Timeout and interval settings
+    - environment: Production (Render) or development
+    """
+    import sys
+    from datetime import datetime
+    
+    try:
+        # Check if gevent is available
+        gevent_available = False
+        gevent_version = None
+        try:
+            import gevent
+            gevent_available = True
+            gevent_version = gevent.__version__
+        except ImportError:
+            pass
+        
+        # Get async mode info
+        actual_async_mode = socketio.async_mode if socketio else 'NOT_INITIALIZED'
+        
+        response = {
+            'status': 'ok',
+            'timestamp': datetime.now(UTC).isoformat() + 'Z',
+            'environment': 'production' if IS_RENDER else 'development',
+            'websocket': {
+                'async_mode': actual_async_mode,
+                'async_mode_expected': 'gevent' if IS_RENDER else 'threading',
+                'gevent_available': gevent_available,
+                'gevent_version': gevent_version,
+                'ping_timeout': ping_timeout_config,
+                'ping_interval': ping_interval_config,
+                'connected_clients': len(connected_clients),
+                'max_http_buffer_size': 1e6  # 1MB per the config
+            },
+            'system': {
+                'platform': sys.platform,
+                'python_version': sys.version,
+                'workers': '1 (single-worker mode)' if IS_RENDER else 'N/A (dev mode)',
+                'message_queue': socketio_message_queue or 'None (single-worker required)'
+            },
+            'fixes_applied': [
+                'Favicon caching headers (30 days)',
+                'Explicit gevent detection for async_mode',
+                'Connection logging for Render debugging',
+                'Connection state recovery enabled'
+            ],
+            'troubleshooting': {
+                'websocket_pending': 'Check async_mode - should be "gevent" on production',
+                'gevent_not_available': 'Install: pip install gevent' if IS_RENDER and not gevent_available else 'N/A',
+                'connection_takes_long': 'Check ping_timeout - should be 90s on Render',
+                'favicon_cached': 'Browser should cache for 30 days now'
+            }
+        }
+        
+        result = jsonify(response)
+        result.headers.add('Access-Control-Allow-Origin', '*')
+        result.headers.add('Access-Control-Allow-Methods', 'GET,OPTIONS')
+        return result
+    except Exception as e:
+        log_error(logger, f'[Diagnostics] WS diagnostics error: {e}')
+        return jsonify({
+            'status': 'error',
+            'error': str(e),
+            'timestamp': datetime.now(UTC).isoformat() + 'Z'
+        }), 500
+
+
 # ✅ REFACTORED: /api/connections endpoint (FIXED CURSOR LEAK #2)
 @app.route('/api/connections', methods=['GET', 'OPTIONS'])
 def get_connections():
@@ -2887,11 +2979,18 @@ def serve_triple_agent():
     """Serve Triple Agent HTML UI"""
     return send_from_directory(TEMPLATE_DIR, 'triple_agent.html')
 
-# Serve favicon
+# Serve favicon with proper caching headers
 @app.route('/favicon.ico')
 def favicon():
-    """Serve favicon to prevent 404 errors - FIXED NOV 29 to use correct path"""
-    return send_from_directory(FAVICON_DIR, 'favicon.ico', mimetype='image/vnd.microsoft.icon')
+    """
+    Serve favicon to prevent 404 errors
+    ✅ FIXED JUNE 9: Add cache headers to prevent multiple requests (browser caches for 30 days)
+    """
+    response = send_from_directory(FAVICON_DIR, 'favicon.ico', mimetype='image/vnd.microsoft.icon')
+    # Cache favicon for 30 days (2592000 seconds) to prevent duplicate requests
+    response.headers['Cache-Control'] = 'public, max-age=2592000, immutable'
+    response.headers['ETag'] = '"favicon-v1"'  # Version hash for cache busting if needed later
+    return response
 
 # Serve external module files (HTML, CSS, JS) - ADDED NOV 29
 @app.route('/external/modules/<module_id>/<path:filename>')

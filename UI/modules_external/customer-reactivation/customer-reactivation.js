@@ -869,7 +869,7 @@ class CustomerReactivationModule extends BaseModule {
             <div class="modal campaign-builder">
                 <div class="modal-header">
                     <h3>Create New Campaign</h3>
-                    <button class="modal-close" onclick="this.closest('.modal-overlay').remove()">×</button>
+                    <button class="modal-close" onclick="this.closest('.modal-overlay').remove()"><i class="fas fa-times"></i></button>
                 </div>
                 <div class="modal-body">
                     <label>

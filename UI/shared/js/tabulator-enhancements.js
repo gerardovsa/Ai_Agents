@@ -327,7 +327,7 @@ class BulkActionsMenu {
             <div class="bulk-actions-menu" id="bulk-actions-menu-${tableKey}">
                 <div class="bulk-actions-header">
                     <span>${selected.length} items selected</span>
-                    <button onclick="bulkActions.closeMenu('${tableKey}')">×</button>
+                    <button onclick="bulkActions.closeMenu('${tableKey}')"><i class="fas fa-times"></i></button>
                 </div>
                 <div class="bulk-actions-body">
                     ${actions.map(action => `
@@ -787,7 +787,7 @@ class RowHistoryTracker {
                 <div class="history-modal-content" onclick="event.stopPropagation()">
                     <div class="history-modal-header">
                         <h3><i class="fas fa-history"></i> Change History: ${rowId}</h3>
-                        <button onclick="rowHistory.closeHistory()">×</button>
+                        <button onclick="rowHistory.closeHistory()"><i class="fas fa-times"></i></button>
                     </div>
                     <div class="history-modal-body">
                         <table class="history-table">
