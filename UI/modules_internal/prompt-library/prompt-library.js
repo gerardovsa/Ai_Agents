@@ -75,11 +75,16 @@ console.log('[PROMPT LIBRARY] ========================================');
     async function fetchPromptLibrary() {
         try {
             const token = getAuthToken();
-            const response = await fetch(`${getApiBaseUrl()}/api/prompts/library/db?user_id=1`, {
+            // Use actual authenticated user_id instead of the retired global user_id=1
+            const userId = (window.UserAuth && (window.UserAuth.user?.id || window.UserAuth.user?.user_id))
+                || window.currentUserId
+                || localStorage.getItem('user_id')
+                || '1';
+            const response = await fetch(`${getApiBaseUrl()}/api/prompts/library/db?user_id=${userId}`, {
                 headers: {
                     'Authorization': `Bearer ${token}`,
                     'Content-Type': 'application/json',
-                    'X-User-ID': '1'  // TODO: Get from actual user session
+                    'X-User-ID': String(userId)
                 }
             });
 

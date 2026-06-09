@@ -82,12 +82,10 @@ if (typeof AutomationCanvas === 'undefined') {
             console.log('[AUTOMATION] init() - Starting auto-save timer...');
             this.startAutoSave();
 
-            // Wait for authentication before loading workflows
-            console.log('[AUTOMATION] init() - Waiting for authentication...');
-            document.addEventListener('authComplete', () => {
-                console.log('[AUTOMATION] init() - Auth complete, loading workflows...');
-                this.loadWorkflows();
-            });
+            // Workflows are loaded lazily on first user interaction (e.g. clicking the load-workflow button).
+            // Removed eager authComplete load: it fetched /api/automation/list + /api/automation/workflows/list
+            // on every page load (~12s cold start) even when the user never visits the Automation tab.
+            console.log('[AUTOMATION] init() - Lazy mode: workflows will load on first user interaction.');
 
             console.log('[AUTOMATION] init() - Complete! Canvas ready.');
         }

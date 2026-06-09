@@ -23760,6 +23760,12 @@
              * Load all available tools from backend
              */
             async loadTools() {
+                // Cache guard: if tools are already loaded, return immediately without re-fetching
+                if (this.availableTools && this.availableTools.length > 0) {
+                    console.log(` Tools already cached (${this.availableTools.length} tools), skipping fetch`);
+                    return this.availableTools;
+                }
+
                 console.log(' Loading available tools from backend...');
 
                 try {
