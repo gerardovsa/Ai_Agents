@@ -2762,24 +2762,16 @@ async function initMultiAgent() {
 
                 // Update stats
                 MultiAgent.updateDashboardStats();
-                // ✅ FIX (Apr 8, 2026): Restore thread assignments into columns immediately after threads load.
-                // This ensures columns are populated regardless of whether ThreadManager.init() fires.
-                if (typeof ThreadManager.restoreThreadAssignments === 'function') {
-                    ThreadManager.restoreThreadAssignments()
-                        .then(() => {
-                            ThreadManager._assignmentsRestored = true;
-                            console.log('✅ [initMultiAgent] Thread assignments restored into columns');
-                            if (typeof MultiAgent.updateDashboardStats === 'function') {
-                                MultiAgent.updateDashboardStats();
-                            }
-                        })
-                        .catch(err => console.warn('⚠️ [initMultiAgent] Assignment restore error (non-fatal):', err));
-                } else {
-                    // Assignment module not yet loaded — fall back to dashboard stats only
-                    if (typeof MultiAgent !== 'undefined' && typeof MultiAgent.updateDashboardStats === 'function') {
-                        MultiAgent.updateDashboardStats();
-                        console.log('🔄 [initMultiAgent] Dashboard stats updated with loaded threads');
-                    }
+                // NOTE: restoreThreadAssignments() is intentionally NOT called here.
+                // loadDeferredThreadMessages() (called after UI is visible) handles thread card
+                // rendering AND message loading using the _pendingMessageLoads queue. Calling
+                // restoreThreadAssignments() here as well triggers loadThreadIntoAgent() →
+                // loadMessagesForThread() during startup — exactly when the server is cold and
+                // the DB pool is saturating, causing 18-60s 502 waterfalls on get?thread_id.
+                ThreadManager._assignmentsRestored = true;
+                if (typeof MultiAgent !== 'undefined' && typeof MultiAgent.updateDashboardStats === 'function') {
+                    MultiAgent.updateDashboardStats();
+                    console.log('🔄 [initMultiAgent] Dashboard stats updated (message load deferred to post-render)');
                 }
             })
             .catch(err => console.error('❌ [initMultiAgent] Thread loading failed:', err));
