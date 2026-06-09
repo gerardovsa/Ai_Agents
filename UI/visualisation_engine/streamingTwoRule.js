@@ -1031,11 +1031,16 @@ class TwoRuleStreamProcessor {
                 this.markdownContainer.appendChild(vizContainer);
             }
 
-            // Build ordered list of candidate siblings within the chosen parent
+            // Build ordered list of candidate siblings within the chosen parent.
+            // CRITICAL: Include two-rule-anchor elements so that viz containers are NOT
+            // moved past pending anchors for future visualizations.  Without anchors in
+            // the candidate list, the corrective pass sees no element with a higher
+            // stream position and blindly appends the viz to the end — pushing it past
+            // every anchor that was already placed for later visualizations.
             const candidates = Array.from(parent.children).filter(el => {
                 if (!(el instanceof Element)) return false;
                 const cls = el.classList || { contains: () => false };
-                return cls.contains('two-rule-markdown-content') || cls.contains('viz-container');
+                return cls.contains('two-rule-markdown-content') || cls.contains('viz-container') || cls.contains('two-rule-anchor');
             });
 
             // Find the first element with a position greater than this viz

@@ -384,6 +384,7 @@ def create_thread():
         location = data.get('location', 'unassigned')
         tags = data.get('tags', [])
         synergy_card_id = data.get('synergy_card_id')
+        visibility = data.get('visibility', 'personal')  # personal | team | restricted
         
         # NEW: Email context parameters (stored in metadata JSON)
         metadata = data.get('metadata', {})

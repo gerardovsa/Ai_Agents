@@ -115,8 +115,10 @@ class ReactRenderer {
             ? `  <script src="https://unpkg.com/prop-types@15/prop-types.min.js"><\/script>\n  <script src="https://unpkg.com/recharts@2/umd/Recharts.js"><\/script>` : '';
         const lucideScript = usesLucide
             ? `  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"><\/script>` : '';
+        // NOTE: cdn.tailwindcss.com serves a JavaScript file (not CSS), so it must
+        // be loaded with <script>, not <link rel="stylesheet">.
         const tailwindLink = usesTailwind
-            ? `  <link href="https://cdn.tailwindcss.com" rel="stylesheet">` : '';
+            ? `  <script src="https://cdn.tailwindcss.com"><\/script>` : '';
 
         // ── Global destructures for common libraries ────────────────────────────
         const rechartsSetup = usesRecharts ? `

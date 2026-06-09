@@ -4488,6 +4488,21 @@ class VisualizationEngine {
 
             mermaidDiv.innerHTML = svg;
 
+            // OVERRIDE: Mermaid sets style="max-width: Xpx" based on the SVG's own
+            // computed size.  When the container has zero visible width at render time
+            // (e.g. off-DOM deferred render, or very narrow initial layout), this
+            // produces a tiny max-width (as small as 80px) that makes the chart
+            // illegible.  Force width:100% so the diagram always fills its parent.
+            {
+                const svgEl = mermaidDiv.querySelector('svg');
+                if (svgEl) {
+                    // Remove inline max-width from mermaid and let CSS control sizing
+                    svgEl.style.maxWidth = '100%';
+                    svgEl.style.width = '100%';
+                    // Preserve the viewBox so the diagram still scales correctly
+                }
+            }
+
             // nhanced: Dynamic height calculation based on actual content
             const svgElement = mermaidDiv.querySelector('svg');
             if (svgElement) {
