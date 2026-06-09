@@ -484,18 +484,38 @@ class TwoRuleStreamProcessor {
 
             this.packageVisualContent(completeVisualContent, this.currentDelimiter.type);
 
-            // 🔥 CRITICAL FIX: Reset state BEFORE releasing packages so the while loop
-            // in processChunk detects progress and continues scanning the remainder of
-            // the buffer for more visualizations / markdown text.
+            // Reset state BEFORE the while loop re-checks progress (processChunk detects
+            // state === 'NORMAL' as progress and continues scanning for more content).
             this.bufferPosition = visualEndPosition;
             this.state = 'NORMAL';
             this.currentDelimiter = null;
             this.removeBufferingIndicator();
 
-            // Release packages now that state is reset
-            this.releaseReadyPackages().catch(err => {
-                console.error('❌ TWO-RULE: Error releasing visual packages after buffering complete:', err);
-            });
+            // ⚠️  DO NOT call releaseReadyPackages() here as a floating promise.
+            //
+            // During thread-reload (off-DOM), processChunk() is called once with the
+            // FULL message content.  The while-loop runs synchronously, calling
+            // parseBufferingState for every viz.  Each floating releaseReadyPackages()
+            // call is scheduled as a microtask (TASK-A, TASK-B, …).  processChunk's
+            // own `await releaseReadyPackages()` (TASK-FINAL) is ALSO a microtask.
+            //
+            // Microtask queue order: [TASK-A, TASK-B, …, TASK-FINAL]
+            // TASK-A starts, processes the first viz (pushes it to deferredRenders),
+            // then hits an internal `await renderPackage(markdown)` and SUSPENDS.
+            // TASK-B … TASK-FINAL all see isReleasing=true and return immediately,
+            // causing TASK-FINAL to resolve → processChunk resolves → the CALLER
+            // continues to finalize() → MutationObserver is registered with
+            // deferredRenders containing only ONE item (the first viz).
+            // When the DOM append fires the observer, only that one viz is rendered.
+            // The remaining vizes are pushed to deferredRenders by TASK-A's later
+            // continuations, but by then the observer has already disconnected.
+            //
+            // The fix: let the SINGLE `await releaseReadyPackages()` at the end of
+            // processChunk's while-loop handle everything.  By that time the entire
+            // while loop has run synchronously and ALL packages are in the queues.
+            // One sequential pass through releaseReadyPackages pushes all vizes to
+            // deferredRenders before processChunk resolves → finalize() sees all of
+            // them → _processDeferredRenders renders them all.
         }
     }
 
