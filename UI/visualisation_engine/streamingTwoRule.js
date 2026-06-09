@@ -1032,11 +1032,8 @@ class TwoRuleStreamProcessor {
             }
 
             // Build ordered list of candidate siblings within the chosen parent.
-            // CRITICAL: Include two-rule-anchor elements so that viz containers are NOT
-            // moved past pending anchors for future visualizations.  Without anchors in
-            // the candidate list, the corrective pass sees no element with a higher
-            // stream position and blindly appends the viz to the end — pushing it past
-            // every anchor that was already placed for later visualizations.
+            // CRITICAL: Include two-rule-anchor elements so we can detect if a future
+            // anchor (for a not-yet-rendered viz) sits before this viz's intended position.
             const candidates = Array.from(parent.children).filter(el => {
                 if (!(el instanceof Element)) return false;
                 const cls = el.classList || { contains: () => false };
@@ -1047,22 +1044,20 @@ class TwoRuleStreamProcessor {
             let referenceNode = null;
             for (const el of candidates) {
                 const posAttr = el.getAttribute('data-stream-position');
-                const pos = posAttr ? parseInt(posAttr, 10) : Number.MAX_SAFE_INTEGER; // markdown content always has pos; guard just in case
+                const pos = posAttr ? parseInt(posAttr, 10) : Number.MAX_SAFE_INTEGER;
                 if (pos > pkg.position) {
                     referenceNode = el;
                     break;
                 }
             }
 
-            if (referenceNode) {
-                if (vizContainer.nextSibling !== referenceNode) {
-                    parent.insertBefore(vizContainer, referenceNode);
-                }
-            } else {
-                // Should be last in order
-                if (vizContainer.parentElement !== parent || vizContainer !== parent.lastElementChild) {
-                    parent.appendChild(vizContainer);
-                }
+            // CRITICAL: Only move the viz if we have a concrete reference point.
+            // When no referenceNode exists, the viz is already last in the container
+            // (placed there by anchor replacement) — do NOT call appendChild, because
+            // that would move the viz past all future anchor placeholders that are
+            // already in the DOM, reversing the intended stream order.
+            if (referenceNode && vizContainer.nextSibling !== referenceNode) {
+                parent.insertBefore(vizContainer, referenceNode);
             }
         } catch (_) { }
 
