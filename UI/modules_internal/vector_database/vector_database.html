@@ -292,8 +292,9 @@
             <button type="button" class="btn-primary" id="process-btn" onclick="window.vectorDbSidebar.processFiles()"
                 style="width: 100%; margin-top: 16px; display: none;">
                 <i class="fas fa-cogs"></i> Process & Upload to Vector DB
-            </button>
-        </div>
+            </button>            <!-- Inline result shown directly below the upload button -->
+            <div id="upload-result-message" style="display:none; margin-top:10px; padding:10px 12px;
+                border-radius:6px; font-size:12px; line-height:1.5;"></div>        </div>
 
         <!-- Upload Settings -->
         <div class="upload-section">
@@ -527,7 +528,20 @@
                     </p>
                 </div>
             </div>
-
+            <!-- EMBEDDING MODEL SELECTOR -->
+            <div class="vector-db-provider-section" style="margin-bottom: 24px;">
+                <label class="vector-db-label">
+                    <i class="fas fa-brain"></i> Embedding Model
+                </label>
+                <select id="embedding-model-selector" class="vector-db-select">
+                    <option value="local" selected>Local BGE — FREE (bge-base-en-v1.5, on-server)</option>
+                    <option value="voyager">Voyage AI — voyage-4 (requires API key)</option>
+                    <option value="openai">OpenAI — text-embedding-3-small (requires API key)</option>
+                </select>
+                <div id="embedding-model-info" class="vector-db-provider-info" style="margin-top:8px;">
+                    <i class="fas fa-server"></i> <strong>Local BGE:</strong> Free, runs on-server, 768-dim, MIT license — no API key required
+                </div>
+            </div>
             <!-- EMBEDDING CONFIGURATION LINK -->
             <div
                 style="padding: 16px; background: var(--bg-tertiary); border: 1px solid var(--border-default); border-radius: 8px; margin-bottom: 16px;">

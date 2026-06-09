@@ -63,15 +63,16 @@ def _get_org_id(user_id: int) -> int:
     return row['organisation_id']
 
 
-def _generate_embedding(text: str, user_id: int, is_query: bool = False) -> List[float]:
+def _generate_embedding(text: str, user_id: int, is_query: bool = False, force_local: bool = False) -> List[float]:
     """
     Generate an embedding vector for *text* using the org-resolved provider.
     Priority: voyager → openai_embeddings → openai → local model (free fallback).
 
-    is_query: True for search queries, False for document passages.
-              Asymmetric retrieval models (BGE, Voyage AI) produce meaningfully
-              better results when query and passage embeddings are generated
-              differently — query gets a task prefix, passages do not.
+    is_query:    True for search queries, False for document passages.
+                 Asymmetric retrieval (BGE, Voyage) uses a query prefix for searches.
+    force_local: True → skip all credential lookup, go straight to the local
+                 BAAI/bge-base-en-v1.5 model. Used when the user explicitly selects
+                 'Local BGE' in the Settings tab.
     """
     from AI_infrastructure.shared.org_credentials_loader import resolve_credentials
 
@@ -89,13 +90,15 @@ def _generate_embedding(text: str, user_id: int, is_query: bool = False) -> List
         'voyage-2-lite': 'voyage-2',
     }
 
-    raw_cred = (
+    # When force_local is set (user chose 'Local BGE' in Settings) skip vault lookup
+    # so an invalid/unused credential can never cause a 500.
+    raw_cred = None if force_local else (
         resolve_credentials(user_id, 'voyager')
         or resolve_credentials(user_id, 'openai_embeddings')
         or resolve_credentials(user_id, 'openai')
     )
 
-    # ── No API credentials: free local model fallback ────────────────────────
+    # ── No API credentials (or force_local=True): free local model fallback ──────
     if not raw_cred:
         try:
             from sentence_transformers import SentenceTransformer
@@ -543,21 +546,25 @@ def pgvector_upload_document(
     chunk_overlap: int = 100,
     visibility: str = 'org',
     document_id: Optional[str] = None,
+    embedding_provider: Optional[str] = None,
     **kwargs
 ) -> Dict[str, Any]:
     """
     Full pipeline: chunk text → embed each chunk → upsert to pgvector.
 
     Args:
-        text_content:    Plain text to vectorise.
-        filename:        Original filename label.
-        file_type:       MIME type.
-        file_size_bytes: File size for metadata.
-        chunk_size:      Characters per chunk (default 800).
-        chunk_overlap:   Overlap between chunks (default 100).
-        visibility:      'private' | 'org' | 'global' (default 'org').
-        document_id:     Explicit document ID; auto-generated if omitted.
-        **kwargs:        Must contain _user_id.
+        text_content:       Plain text to vectorise.
+        filename:           Original filename label.
+        file_type:          MIME type.
+        file_size_bytes:    File size for metadata.
+        chunk_size:         Characters per chunk (default 800).
+        chunk_overlap:      Overlap between chunks (default 100).
+        visibility:         'private' | 'org' | 'global' (default 'org').
+        document_id:        Explicit document ID; auto-generated if omitted.
+        embedding_provider: 'local' | 'voyager' | 'openai' | None.
+                            'local' forces the free on-server BGE model.
+                            None = auto-resolve from org credential vault.
+        **kwargs:           Must contain _user_id.
 
     Returns:
         {"success": True, "document_id": "...", "vectors_uploaded": N}
@@ -589,9 +596,11 @@ def pgvector_upload_document(
         upload_ts = datetime.utcnow().isoformat()
 
         # ── Embed + upsert each chunk ───────────────────────────────────────
+        # 'local' → bypass credential vault, use free on-server BGE model.
+        _force_local = (embedding_provider == 'local')
         vectors = []
         for i, chunk in enumerate(chunks):
-            embedding = _generate_embedding(chunk, user_id)
+            embedding = _generate_embedding(chunk, user_id, force_local=_force_local)
             vectors.append({
                 'id': f"{document_id}_chunk_{i}",
                 'values': embedding,

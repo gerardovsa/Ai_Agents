@@ -298,6 +298,11 @@ def upload_document():
         _requested = request.form.get('provider', '').strip().lower()
         provider = _requested if _requested in ('pgvector', 'pinecone', 'qdrant') else _get_vector_provider(user_id)
 
+        # Embedding provider explicitly chosen in the UI.
+        # 'local' skips the org-vault lookup so an invalid credential never causes a 500.
+        _emb_prov = request.form.get('embedding_provider', '').strip().lower()
+        embedding_provider = _emb_prov if _emb_prov in ('local', 'voyager', 'openai') else None
+
         # Get file
         if 'file' not in request.files:
             return jsonify({'success': False, 'error': 'No file provided'}), 400
@@ -350,6 +355,7 @@ def upload_document():
                 chunk_overlap=chunk_overlap,
                 visibility=visibility,
                 document_id=document_id,
+                embedding_provider=embedding_provider,
                 _user_id=user_id,
             )
             if not pg_result.get('success'):
