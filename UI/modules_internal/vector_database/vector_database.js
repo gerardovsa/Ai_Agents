@@ -872,6 +872,10 @@ window.VectorDatabaseModule = {
                 formData.append('enable_ai_retrieval', 'true');
                 formData.append('file_type', file.type || 'application/octet-stream');
                 formData.append('upload_timestamp', new Date().toISOString());
+                // Tell the backend which provider the user has selected.
+                // Without this the backend auto-detects from org vault and may pick
+                // Pinecone even when the user has pgvector selected in the UI.
+                formData.append('provider', this.state.selectedProvider || 'pgvector');
 
                 const response = await fetch(`${this.state.API_BASE_URL}/api/vector-db/upload-document`, {
                     method: 'POST',

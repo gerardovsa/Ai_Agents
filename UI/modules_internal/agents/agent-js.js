@@ -3076,14 +3076,17 @@ window._buildDeferredThreadUI = async function () {
             }
 
             // Refresh Prime thread info card
+            // NOTE: 'assignments' is not in scope here (it's local to the .then() callback).
+            // Use ThreadManager.threads directly instead.
             const primeContainer = document.getElementById('prime-thread-info');
-            if (primeContainer && assignments['prime']) {
-                if (typeof ThreadManager !== 'undefined' && typeof ThreadManager.renderThreadInfoContainer === 'function') {
-                    const cardHtml = ThreadManager.renderThreadInfoContainer('prime', assignments['prime'], false);
-                    if (cardHtml && cardHtml.length > 600) {
-                        primeContainer.innerHTML = cardHtml;
-                        console.log(`✅ [initMultiAgent] Final refresh: Prime thread card rendered (${cardHtml.length} chars)`);
-                    }
+            const _primeThread = typeof ThreadManager !== 'undefined' && Array.isArray(ThreadManager.threads)
+                ? ThreadManager.threads.find(t => t.location === 'prime')
+                : null;
+            if (primeContainer && _primeThread && typeof ThreadManager !== 'undefined' && typeof ThreadManager.renderThreadInfoContainer === 'function') {
+                const cardHtml = ThreadManager.renderThreadInfoContainer('prime', _primeThread.id, false);
+                if (cardHtml && cardHtml.length > 600) {
+                    primeContainer.innerHTML = cardHtml;
+                    console.log(`✅ [initMultiAgent] Final refresh: Prime thread card rendered (${cardHtml.length} chars)`);
                 }
             }
 
@@ -3377,6 +3380,49 @@ window._buildDeferredThreadUI = async function () {
  * Sequential loading is intentional — prevents connection pool exhaustion on Render.
  */
 window.loadDeferredThreadMessages = async function () {
+    // If _buildDeferredThreadUI hasn't run yet (timing race on cold start),
+    // wait up to 5 seconds for it to populate the queue before giving up.
+    if (!window._pendingMessageLoads || window._pendingMessageLoads.length === 0) {
+        console.log('⏳ [DeferredLoad] Queue empty — waiting up to 5s for _buildDeferredThreadUI...');
+        const deadline = Date.now() + 5000;
+        while (Date.now() < deadline) {
+            await new Promise(r => setTimeout(r, 300));
+            if (window._pendingMessageLoads && window._pendingMessageLoads.length > 0) break;
+        }
+    }
+
+    // If still empty after waiting, build the queue directly from ThreadManager.threads
+    // (resilient fallback in case _buildDeferredThreadUI threw or was never called)
+    if (!window._pendingMessageLoads || window._pendingMessageLoads.length === 0) {
+        console.warn('⚠️ [DeferredLoad] Queue still empty after wait — building directly from ThreadManager.threads');
+        window._pendingMessageLoads = [];
+
+        if (typeof ThreadManager !== 'undefined' && Array.isArray(ThreadManager.threads)) {
+            const primeThread = ThreadManager.threads.find(t => t.location === 'prime');
+            if (primeThread) {
+                window._pendingMessageLoads.push({ type: 'prime', threadId: primeThread.id });
+                // Render Prime card if missing
+                const primeInfo = document.getElementById('prime-thread-info');
+                if (primeInfo && typeof ThreadManager.renderThreadInfoContainer === 'function') {
+                    primeInfo.innerHTML = ThreadManager.renderThreadInfoContainer('prime', primeThread.id, false) || primeInfo.innerHTML;
+                }
+            }
+            ThreadManager.threads.forEach(thread => {
+                if (!thread.location || !thread.location.startsWith('agent-')) return;
+                const agentId = parseInt(thread.location.replace('agent-', ''));
+                if (isNaN(agentId)) return;
+                window._pendingMessageLoads.push({ type: 'agent', agentId, thread });
+                // Render agent card if missing
+                const infoEl = document.getElementById(`thread-info-${agentId}`);
+                if (infoEl && typeof ThreadManager.renderThreadInfoContainer === 'function') {
+                    const html = ThreadManager.renderThreadInfoContainer(`agent-${agentId}`, thread.id, true);
+                    if (html && html.length > 100) infoEl.innerHTML = html;
+                }
+            });
+            console.log(`✅ [DeferredLoad] Built ${window._pendingMessageLoads.length} items from threads`);
+        }
+    }
+
     const loads = window._pendingMessageLoads || [];
     window._pendingMessageLoads = []; // Clear to prevent double-run
 

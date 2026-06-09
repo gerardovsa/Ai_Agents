@@ -63,12 +63,31 @@ def _get_org_id(user_id: int) -> int:
     return row['organisation_id']
 
 
-def _generate_embedding(text: str, user_id: int) -> List[float]:
+def _generate_embedding(text: str, user_id: int, is_query: bool = False) -> List[float]:
     """
     Generate an embedding vector for *text* using the org-resolved provider.
-    Priority: voyager → openai_embeddings → openai (env fallback).
+    Priority: voyager → openai_embeddings → openai → local model (free fallback).
+
+    is_query: True for search queries, False for document passages.
+              Asymmetric retrieval models (BGE, Voyage AI) produce meaningfully
+              better results when query and passage embeddings are generated
+              differently — query gets a task prefix, passages do not.
     """
     from AI_infrastructure.shared.org_credentials_loader import resolve_credentials
+
+    # ── Dimension constants ───────────────────────────────────────────────────
+    # ALL embedding paths must produce this exact dimension.
+    # DB column: vector(768) — set by migration 049.
+    # Upgrade path: add Voyage AI key → request output_dimension=768,
+    #               no schema change or re-indexing needed.
+    _TARGET_DIM = 768
+
+    # Voyage AI lite-model upgrade map — lite models cap at 512 dims.
+    _VOYAGE_LITE_UPGRADE = {
+        'voyage-4-lite': 'voyage-4',
+        'voyage-3-lite': 'voyage-3',
+        'voyage-2-lite': 'voyage-2',
+    }
 
     raw_cred = (
         resolve_credentials(user_id, 'voyager')
@@ -76,11 +95,60 @@ def _generate_embedding(text: str, user_id: int) -> List[float]:
         or resolve_credentials(user_id, 'openai')
     )
 
+    # ── No API credentials: free local model fallback ────────────────────────
     if not raw_cred:
-        raise PgvectorToolsError(
-            "No embedding credentials configured. Add OpenAI or Voyager credentials "
-            "in Organisation Settings > Connections."
-        )
+        try:
+            from sentence_transformers import SentenceTransformer
+            # BAAI/bge-base-en-v1.5 — chosen for best-in-class retrieval quality
+            # while fitting within the Standard plan RAM budget.
+            #
+            #   Model size : ~440 MB on disk, ~600 MB RAM when loaded
+            #   Dimensions : 768  ← matches vector(768) column, no migration needed
+            #   MTEB score : 63.55 vs 57.02 for all-mpnet-base-v2 (~11% better)
+            #   Design     : asymmetric retrieval — queries use a task prefix,
+            #                passages do not.  See _BGE_QUERY_PROMPT below.
+            #   License    : MIT
+            #
+            # Upgrade path: add a Voyage AI key → same column, zero re-indexing.
+            _model_name = 'BAAI/bge-base-en-v1.5'
+            # Query prefix — prepended only for search queries, NOT for document chunks.
+            # This asymmetric encoding is the main reason BGE outperforms symmetric
+            # models like mpnet on retrieval benchmarks.
+            _BGE_QUERY_PROMPT = 'Represent this sentence for searching relevant passages: '
+            # Use the persistent Render disk (/data) so the model (~440 MB)
+            # is downloaded once ever and survives all redeploys.
+            # Falls back to a local cache if /data is not mounted (local dev).
+            _cache_dir = '/data/vdb_models' if os.path.isdir('/data') else os.path.join(
+                os.path.expanduser('~'), '.cache', 'vdb_models'
+            )
+            if not hasattr(_generate_embedding, '_local_model'):
+                _from_cache = any(
+                    'bge' in p.lower()
+                    for p in os.listdir(_cache_dir)
+                ) if os.path.isdir(_cache_dir) else False
+                print(
+                    f'[PGVECTOR] Loading local embedding model {_model_name} '
+                    f'from {"disk cache" if _from_cache else "HuggingFace (first-time download, ~30-60s)"} '
+                    f'→ {_cache_dir}'
+                )
+                _generate_embedding._local_model = SentenceTransformer(
+                    _model_name, cache_folder=_cache_dir
+                )
+                print(f'[PGVECTOR] Local embedding model ready ({_TARGET_DIM} dims).')
+            encode_kwargs = {'normalize_embeddings': True, 'show_progress_bar': False}
+            if is_query:
+                encode_kwargs['prompt'] = _BGE_QUERY_PROMPT
+            vec = _generate_embedding._local_model.encode(text, **encode_kwargs).tolist()
+            assert len(vec) == _TARGET_DIM, (
+                f'Local model produced {len(vec)} dims, expected {_TARGET_DIM}'
+            )
+            return vec
+        except ImportError:
+            raise PgvectorToolsError(
+                'No embedding credentials configured and sentence-transformers is not installed.\n'
+                'Run: pip install sentence-transformers\n'
+                'Or add a Voyage AI (voyage-4) key in Organisation Settings > Connections.'
+            )
 
     creds_detail = raw_cred.get('credentials') or {}
     api_key = (
@@ -92,14 +160,25 @@ def _generate_embedding(text: str, user_id: int) -> List[float]:
     model    = creds_detail.get('model', 'text-embedding-3-small')
 
     if not api_key:
-        raise PgvectorToolsError("Embedding API key not found in credentials.")
+        raise PgvectorToolsError('Embedding API key not found in credentials.')
 
     if provider == 'voyager':
+        # Upgrade lite models — they cap at 512 dims, we need 768.
+        upgraded = _VOYAGE_LITE_UPGRADE.get(model, model)
+        if upgraded != model:
+            print(f'[PGVECTOR] Auto-upgrading Voyage model {model} → {upgraded} '
+                  f'(lite models cap at 512 dims, need {_TARGET_DIM})')
+            model = upgraded
         import requests
         resp = requests.post(
             'https://api.voyageai.com/v1/embeddings',
             headers={'Authorization': f'Bearer {api_key}', 'Content-Type': 'application/json'},
-            json={'input': [text], 'model': model},
+            json={
+                'input': [text],
+                'model': model,
+                'output_dimension': _TARGET_DIM,
+                'input_type': 'query' if is_query else 'document',
+            },
             timeout=30,
         )
         resp.raise_for_status()
@@ -107,7 +186,15 @@ def _generate_embedding(text: str, user_id: int) -> List[float]:
     else:
         from openai import OpenAI
         oc = OpenAI(api_key=api_key)
-        response = oc.embeddings.create(model=model, input=text)
+        # text-embedding-3-* supports a 'dimensions' parameter.
+        # text-embedding-ada-002 does not — fall back to its native 1536 dims
+        # (schema would need updating; warn and continue).
+        if 'text-embedding-3' in model:
+            response = oc.embeddings.create(model=model, input=text, dimensions=_TARGET_DIM)
+        else:
+            print(f'[PGVECTOR] WARNING: {model} does not support custom dimensions; '
+                  f'embedding may not match vector(768) column.')
+            response = oc.embeddings.create(model=model, input=text)
         return response.data[0].embedding
 
 
@@ -166,7 +253,7 @@ def pgvector_query_vectors(
         org_id = _get_org_id(user_id)
 
         if query_text and not query_vector:
-            query_vector = _generate_embedding(query_text, user_id)
+            query_vector = _generate_embedding(query_text, user_id, is_query=True)
         if not query_vector:
             raise PgvectorToolsError("Either query_text or query_vector is required")
 

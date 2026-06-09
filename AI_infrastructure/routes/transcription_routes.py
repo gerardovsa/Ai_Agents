@@ -51,18 +51,27 @@ logger = logging.getLogger(__name__)
 # Whisper model configuration (local) - lazy loaded to avoid blocking Flask startup
 WHISPER_AVAILABLE = False
 whisper_model = None
-_whisper_lib_available = False
 _whisper_load_error = None
 MODEL_SIZE = os.getenv('WHISPER_MODEL_SIZE', 'base')  # base, small, medium, large
 
-try:
-    import whisper  # noqa: F401
-    import torch  # noqa: F401
-    _whisper_lib_available = True
-except Exception as e:
-    _whisper_lib_available = False
-    _whisper_load_error = str(e)
-    logger.warning(f'[TRANSCRIPTION] Whisper library not available at import: {_whisper_load_error}')
+# Store Whisper models on the Render persistent disk (/data) so they survive
+# redeploys and don't re-download each time.  Same pattern as /data/vdb_models.
+# Falls back to ~/.cache/whisper on local dev where /data isn't mounted.
+WHISPER_CACHE_DIR = '/data/whisper_models' if os.path.isdir('/data') else os.path.join(
+    os.path.expanduser('~'), '.cache', 'whisper'
+)
+
+# Use find_spec() instead of importing torch/whisper at module level.
+# Actual import happens only inside get_whisper_model() on first transcription request.
+# This avoids a 30-60s cold-start penalty on Render (torch is ~1GB and slow to load).
+import importlib.util as _importlib_util
+_whisper_lib_available = (
+    _importlib_util.find_spec('whisper') is not None and
+    _importlib_util.find_spec('torch') is not None
+)
+if not _whisper_lib_available:
+    _whisper_load_error = 'whisper or torch package not installed'
+    logger.warning('[TRANSCRIPTION] Whisper/torch not found in environment')
 
 
 def get_whisper_model():
@@ -78,12 +87,19 @@ def get_whisper_model():
     try:
         import whisper
         import torch
-        logger.info(f'[TRANSCRIPTION] Loading Whisper model lazily: {MODEL_SIZE}')
-        whisper_model = whisper.load_model(MODEL_SIZE)
+        os.makedirs(WHISPER_CACHE_DIR, exist_ok=True)
+        from_cache = any(
+            f.endswith('.pt') for f in os.listdir(WHISPER_CACHE_DIR)
+        ) if os.path.isdir(WHISPER_CACHE_DIR) else False
+        logger.info(
+            f'[TRANSCRIPTION] Loading Whisper {MODEL_SIZE} from '
+            f'{"disk cache" if from_cache else "HuggingFace (first-time download)"} '
+            f'→ {WHISPER_CACHE_DIR}'
+        )
+        whisper_model = whisper.load_model(MODEL_SIZE, download_root=WHISPER_CACHE_DIR)
         WHISPER_AVAILABLE = True
         device = 'cuda' if torch.cuda.is_available() else 'cpu'
-        logger.info(f'[TRANSCRIPTION] Whisper loaded successfully on {device}')
-        logger.info(f'[TRANSCRIPTION] Model size: {MODEL_SIZE}')
+        logger.info(f'[TRANSCRIPTION] Whisper loaded on {device} ({MODEL_SIZE})')
         return whisper_model
     except Exception as e:
         _whisper_load_error = str(e)

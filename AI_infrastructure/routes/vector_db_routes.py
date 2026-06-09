@@ -291,8 +291,12 @@ def upload_document():
     try:
         user_id = g.rls_user_id
 
-        # Determine which vector provider this org uses
-        provider = _get_vector_provider(user_id)
+        # Respect the provider explicitly selected in the UI (sent as form field).
+        # Fall back to auto-detection only when the form field is absent or invalid.
+        # This prevents the org-vault Pinecone key (e.g. InHouse Print) from
+        # overriding a user's deliberate selection of pgvector.
+        _requested = request.form.get('provider', '').strip().lower()
+        provider = _requested if _requested in ('pgvector', 'pinecone', 'qdrant') else _get_vector_provider(user_id)
 
         # Get file
         if 'file' not in request.files:
