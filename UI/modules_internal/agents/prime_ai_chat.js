@@ -549,18 +549,23 @@ async function loadPlatformStatus() {
     }
 
     try {
-        const response = await fetch(`${window.API_BASE_URL}/api/agent/tools`);
-
-        if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
+        // Use ToolManager cache if available — avoids a duplicate /api/agent/tools fetch
+        // (ToolManager.loadTools() is already called during initializeMainApp)
+        let tools = [];
+        if (window.ToolManager && window.ToolManager.availableTools && window.ToolManager.availableTools.length > 0) {
+            console.log('[PlatformStatus] Using cached tools from ToolManager');
+            tools = window.ToolManager.availableTools;
+        } else {
+            const response = await fetch(`${window.API_BASE_URL}/api/agent/tools`);
+            if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+            const data = await response.json();
+            tools = data.tools || [];
         }
-
-        const data = await response.json();
 
         const platformMap = new Map();
 
-        if (data.tools && Array.isArray(data.tools)) {
-            data.tools.forEach(tool => {
+        if (tools && Array.isArray(tools)) {
+            tools.forEach(tool => {
                 const platform = tool.platform || 'Unknown';
                 if (!platformMap.has(platform)) {
                     platformMap.set(platform, {
@@ -595,7 +600,7 @@ async function loadPlatformStatus() {
             </div>
         `).join('');
 
-        console.log(`✅ Loaded ${platforms.length} platforms with ${data.tools.length} tools`);
+        console.log(`✅ Loaded ${platforms.length} platforms with ${tools.length} tools`);
 
     } catch (error) {
         console.error('❌ Failed to load platforms:', error);

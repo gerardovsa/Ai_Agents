@@ -20007,7 +20007,7 @@
                                         style="background: var(--bg-primary); border: 1px solid var(--border); border-radius: 6px; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; cursor: pointer; color: var(--text-primary); font-size: 18px; font-weight: bold; transition: all 0.2s;"
                                         onmouseover="this.style.background='var(--bg-hover)'; this.style.color='var(--accent-red)'"
                                         onmouseout="this.style.background='var(--bg-primary)'; this.style.color='var(--text-primary)'"
-                                        title="Close panel">�</button>
+                                        title="Close panel"><i class="fas fa-times"></i></button>
                                 </div>
 
                                 <!-- Search and Filters (Enhanced) -->
@@ -23760,14 +23760,20 @@
              * Load all available tools from backend
              */
             async loadTools() {
-                // Cache guard: if tools are already loaded, return immediately without re-fetching
+                // Cache guard: already loaded
                 if (this.availableTools && this.availableTools.length > 0) {
                     console.log(` Tools already cached (${this.availableTools.length} tools), skipping fetch`);
                     return this.availableTools;
                 }
+                // Deduplication: if a fetch is already in-flight, return the same Promise
+                // (prevents race condition where two simultaneous callers both see length===0)
+                if (this._loadingPromise) {
+                    console.log(' Tools fetch in-flight, awaiting same Promise...');
+                    return this._loadingPromise;
+                }
 
                 console.log(' Loading available tools from backend...');
-
+                this._loadingPromise = (async () => {
                 try {
                     const response = await fetch(`${API_BASE_URL}/api/agent/tools`);
                     if (!response.ok) throw new Error(`HTTP ${response.status}`);
@@ -23799,7 +23805,11 @@
                     console.error(' Failed to load tools:', error);
                     showNotification('Failed to load tools: ' + error.message, 'error');
                     return [];
+                } finally {
+                    this._loadingPromise = null;
                 }
+                })();
+                return this._loadingPromise;
             },
 
             /**
@@ -26153,6 +26163,21 @@
                 });
             }
 
+            // Transcription Sidebar button (Internal Module - Sidebar)
+            const transcriptionBtn = document.querySelector('#transcription-sidebar-toggle');
+            if (transcriptionBtn) {
+                transcriptionBtn.addEventListener('click', () => {
+                    console.log('[TRANSCRIPTION] Button clicked - Toggling sidebar');
+                    if (window.SidebarManager) {
+                        // Toggle Transcription sidebar (open if closed, close if open)
+                        window.SidebarManager.toggle('transcription-sidebar');
+                        console.log('[TRANSCRIPTION] Sidebar toggled');
+                    } else {
+                        console.error('[TRANSCRIPTION] SidebarManager not available');
+                    }
+                });
+            }
+
             // Communication Hub button (Internal Module - Initialize like Synergy)
             const commHubBtn = document.querySelector('.sidebar-icon-btn[data-action="communication-hub"]');
             if (commHubBtn) {
@@ -26902,9 +26927,9 @@
 
             // Apply workflow type filter (automation vs workflow)
             if (libraryWorkflowTypeFilter === 'automation') {
-                filtered = filtered.filter(a => a.is_production || a.workflow_state === 'production');
-            } else if (libraryWorkflowTypeFilter === 'workflow') {
                 filtered = filtered.filter(a => !a.is_production && a.workflow_state !== 'production');
+            } else if (libraryWorkflowTypeFilter === 'workflow') {
+                filtered = filtered.filter(a => a.is_production || a.workflow_state === 'production');
             }
 
             // Apply search filter
