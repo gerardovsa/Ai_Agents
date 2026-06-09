@@ -145,10 +145,18 @@ window.DataLoader = {
 
                 loader._log('[THREADS] Loading all threads for user:', userId);
 
-                const response = await fetch(
-                    `${loader.config.apiBaseUrl}/api/threads/list?user_id=${userId}`,
-                    { headers: { 'Content-Type': 'application/json' } }
-                );
+                // Retry on 502/503 — Render free tier cold-start
+                let response;
+                const delays = [0, 3000, 7000];
+                for (let i = 0; i < delays.length; i++) {
+                    if (delays[i]) await new Promise(r => setTimeout(r, delays[i]));
+                    response = await fetch(
+                        `${loader.config.apiBaseUrl}/api/threads/list?user_id=${userId}`,
+                        { headers: { 'Content-Type': 'application/json' } }
+                    );
+                    if (response.status !== 502 && response.status !== 503) break;
+                    if (i < delays.length - 1) loader._log(`[THREADS] Server starting up, retrying (attempt ${i + 2})...`);
+                }
 
                 if (!response.ok) throw new Error(`HTTP ${response.status}`);
 

@@ -462,6 +462,30 @@ const ThreadManager = {
         }
     },
 
+    /**
+     * Fetch with automatic retry on 502/503 (Render cold-start).
+     * Attempts: immediate → 3s → 7s → 15s
+     */
+    async _fetchWithRetry(url, options = {}, maxAttempts = 4) {
+        const delays = [0, 3000, 7000, 15000];
+        for (let attempt = 0; attempt < maxAttempts; attempt++) {
+            if (delays[attempt] > 0) {
+                console.log(`⏳ [ThreadManager] Server starting up, retrying in ${delays[attempt] / 1000}s (attempt ${attempt + 1}/${maxAttempts})...`);
+                await new Promise(r => setTimeout(r, delays[attempt]));
+            }
+            try {
+                const response = await fetch(url, options);
+                if (response.status === 502 || response.status === 503) {
+                    if (attempt < maxAttempts - 1) continue;
+                }
+                return response;
+            } catch (networkErr) {
+                if (attempt < maxAttempts - 1) continue;
+                throw networkErr;
+            }
+        }
+    },
+
     async loadThreadsFromBackend() {
         try {
             const userId = (UserAuth.user && (UserAuth.user.id || UserAuth.user.user_id)) || null;
@@ -474,7 +498,7 @@ const ThreadManager = {
             console.log(`📥 [ThreadManager] Loading threads for user_id: ${userId}`);
             console.log(`🌐 [ThreadManager] API URL: ${this.apiBaseUrl}/api/threads/list?user_id=${userId}&limit=200`);
 
-            const response = await fetch(`${this.apiBaseUrl}/api/threads/list?user_id=${userId}&limit=200`);
+            const response = await this._fetchWithRetry(`${this.apiBaseUrl}/api/threads/list?user_id=${userId}&limit=200`);
             console.log(`📡 [ThreadManager] Response status: ${response.status} ${response.statusText}`);
 
             const data = await response.json();

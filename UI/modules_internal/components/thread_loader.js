@@ -70,7 +70,14 @@ const ThreadLoader = {
                 url += `&limit=${limit}&offset=${offset}`;
             }
 
-            const response = await fetch(url);
+            // Retry on 502/503 — Render free tier cold-start (server should already be up
+            // from the thread list request, so only retry once after a short pause)
+            let response = await fetch(url);
+            if ((response.status === 502 || response.status === 503)) {
+                console.warn(`[ThreadLoader] ⚠️ Server not ready (${response.status}), retrying thread ${threadId} in 4s...`);
+                await new Promise(r => setTimeout(r, 4000));
+                response = await fetch(url);
+            }
 
             // ✅ FIX: Handle 500 errors for missing threads
             if (!response.ok) {
