@@ -54,6 +54,7 @@ google-cloud-monitoring>=2.16.0
 # Database
 psycopg2-binary==2.9.9
 supabase>=2.0.0,<3.0  # Pin to avoid gotrue backtracking
+httpx>=0.23.0,<0.28.0  # openai==1.35.0 passes 'proxies' to httpx.Client; httpx 0.28+ removed that param
 sqlalchemy==2.0.23
 pyodbc>=5.0.0
 pymssql>=2.2.0

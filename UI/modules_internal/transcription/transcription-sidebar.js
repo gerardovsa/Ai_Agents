@@ -3930,9 +3930,17 @@ class TranscriptionSidebarController {
     }
 
     async checkEnginesStatus() {
+        // Don't fire until an auth token is available — this can be called before
+        // the login flow completes (sidebar init runs at page load).
+        const token = localStorage.getItem('authToken');
+        if (!token) {
+            // Retry once the platform signals auth is complete
+            document.addEventListener('authComplete', () => this.checkEnginesStatus(), { once: true });
+            return;
+        }
         try {
             const resp = await fetch('/api/transcription/engines-status', {
-                headers: { 'Authorization': `Bearer ${localStorage.getItem('authToken') || ''}` }
+                headers: { 'Authorization': `Bearer ${token}` }
             });
             if (!resp.ok) return;
             const data = await resp.json();

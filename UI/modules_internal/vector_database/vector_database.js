@@ -106,6 +106,7 @@ window.VectorDatabaseModule = {
 
         // Setup event listeners (tracked automatically by framework)
         this.setupEventListeners();
+        this._listenersSetUp = true;  // guard so we only attach listeners once
 
         // Load saved credentials and check connection status
         await this.loadCredentials();
@@ -131,8 +132,14 @@ window.VectorDatabaseModule = {
         this.state.API_BASE_URL = window.API_BASE_URL || window.location.origin;
         this.log.info('[VECTOR DB] Sidebar opened');
 
-        // Refresh data when sidebar opens
-        await this.refresh();
+        // onSidebarLoad sets up the container reference and attaches ALL event listeners
+        // (upload zone click, drag-drop, tab switching, etc).  It is guarded by
+        // this._listenersSetUp so it only runs its heavy setup once, then is a no-op.
+        if (!this._listenersSetUp) {
+            await this.onSidebarLoad(utilities);
+        } else {
+            await this.refresh();
+        }
     },
 
     /**
@@ -1549,14 +1556,19 @@ docker run -d \\
     // ==================== UTILITIES ====================
 
     async refresh() {
-        await this.loadStats();
-        if (this.state.currentTab === 'documents') {
-            await this.loadDocuments();
+        try {
+            await this.loadStats();
+            if (this.state.currentTab === 'documents') {
+                await this.loadDocuments();
+            }
+            this.showMessage('Refreshed', 'success');
+        } catch (error) {
+            this.log?.error('[VECTOR DB] Refresh error:', error);
         }
-        this.showMessage('Refreshed', 'success');
     },
 
     showMessage(message, type) {
+        if (!this.container) return;  // guard: container may not be set yet
         const msgEl = this.container.querySelector('#credential-message');
         if (!msgEl) return;
 

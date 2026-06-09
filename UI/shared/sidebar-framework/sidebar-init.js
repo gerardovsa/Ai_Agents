@@ -331,14 +331,20 @@
                         }
                     };
 
-                    // Call onOpen lifecycle hook with utilities
-                    if (typeof window.VectorDatabaseModule.onOpen === 'function') {
-                        await window.VectorDatabaseModule.onOpen(utilities);
-                    } else {
-                        console.warn('[VECTOR DATABASE] onOpen method not found, using refresh fallback');
-                        if (typeof window.VectorDatabaseModule.refresh === 'function') {
-                            await window.VectorDatabaseModule.refresh();
+                    // Call onOpen lifecycle hook with utilities.
+                    // Wrapped in try/catch: an error inside onOpen must not prevent
+                    // the sidebar from displaying on this or subsequent opens.
+                    try {
+                        if (typeof window.VectorDatabaseModule.onOpen === 'function') {
+                            await window.VectorDatabaseModule.onOpen(utilities);
+                        } else {
+                            console.warn('[VECTOR DATABASE] onOpen method not found, using refresh fallback');
+                            if (typeof window.VectorDatabaseModule.refresh === 'function') {
+                                await window.VectorDatabaseModule.refresh();
+                            }
                         }
+                    } catch (openErr) {
+                        console.error('[VECTOR DATABASE] onOpen error (sidebar still displayed):', openErr);
                     }
                 } else {
                     console.error('[VECTOR DATABASE] window.VectorDatabaseModule not found');

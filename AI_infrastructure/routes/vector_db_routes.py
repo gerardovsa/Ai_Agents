@@ -122,9 +122,10 @@ def _get_vector_provider(user_id: int) -> str:
         or (pin_cred.get('credentials') or {}).get('api_key')
     ):
         return 'pinecone'
-    if PGVECTOR_TOOLS_AVAILABLE:
-        return 'pgvector'
-    return 'pinecone'
+    # Default to pgvector — it is the free built-in provider.
+    # Never default to 'pinecone' when no credential exists; that would
+    # trigger Pinecone/OpenAI client initialisation and crash on httpx incompatibility.
+    return 'pgvector'
 
 
 # Create blueprint
@@ -635,49 +636,55 @@ def get_stats():
     try:
         user_id = g.rls_user_id
 
-        provider = _get_vector_provider(user_id)
+        # Wrap provider detection: a failure here must never propagate as 500.
+        # Unknown / missing credentials always fall back to pgvector.
+        try:
+            provider = _get_vector_provider(user_id)
+        except Exception as e:
+            print(f'[VECTOR DB] _get_vector_provider error (defaulting to pgvector): {e}')
+            provider = 'pgvector'
 
         # ── pgvector stats ───────────────────────────────────────────────
-        if provider == 'pgvector' and PGVECTOR_TOOLS_AVAILABLE:
-            pg_result = _pgvec_stats(_user_id=user_id)
-            if pg_result.get('success'):
-                s = pg_result.get('stats', {})
-                return jsonify({
-                    'success': True,
-                    'stats': {
-                        'documents': s.get('documents', 0),
-                        'vectors':   s.get('vectors', 0),
-                        'namespaces': 1,
-                        'provider':  'pgvector',
-                    }
-                })
+        # IMPORTANT: when provider is pgvector, ALWAYS return here.
+        # Never fall through to the Pinecone path — that triggers httpx
+        # client initialisation which fails with older openai+httpx combos.
+        if provider == 'pgvector':
+            if PGVECTOR_TOOLS_AVAILABLE:
+                pg_result = _pgvec_stats(_user_id=user_id)
+                s = pg_result.get('stats', {}) if pg_result.get('success') else {}
+            else:
+                s = {}
+            return jsonify({
+                'success': True,
+                'stats': {
+                    'documents':  s.get('documents', 0),
+                    'vectors':    s.get('vectors', 0),
+                    'namespaces': 1,
+                    'provider':   'pgvector',
+                }
+            })
 
         # ── Pinecone stats ───────────────────────────────────────────────
-        # Get stats from Pinecone using org-resolved credentials (GAP-V1/V2)
+        # Only reached when the org vault has a Pinecone credential.
         if PINECONE_AVAILABLE and VECTOR_TOOLS_AVAILABLE:
             result = vector_db_list_namespaces(_user_id=user_id)
-            
             if result.get('success'):
                 namespaces = result.get('namespaces', [])
                 total_vectors = sum(ns.get('vector_count', 0) for ns in namespaces)
-                
                 return jsonify({
                     'success': True,
                     'stats': {
-                        'documents': 'unknown',  # Would need metadata query
-                        'vectors': total_vectors,
-                        'namespaces': len(namespaces)
+                        'documents':  'unknown',
+                        'vectors':    total_vectors,
+                        'namespaces': len(namespaces),
+                        'provider':   'pinecone',
                     }
                 })
-        
+
         # Fallback
         return jsonify({
             'success': True,
-            'stats': {
-                'documents': 0,
-                'vectors': 0,
-                'namespaces': 0
-            }
+            'stats': {'documents': 0, 'vectors': 0, 'namespaces': 0}
         })
     
     except Exception as e:
