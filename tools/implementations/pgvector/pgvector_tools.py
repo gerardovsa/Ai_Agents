@@ -125,18 +125,35 @@ def _generate_embedding(text: str, user_id: int, is_query: bool = False, force_l
                 os.path.expanduser('~'), '.cache', 'vdb_models'
             )
             if not hasattr(_generate_embedding, '_local_model'):
-                _from_cache = any(
-                    'bge' in p.lower()
-                    for p in os.listdir(_cache_dir)
-                ) if os.path.isdir(_cache_dir) else False
-                print(
-                    f'[PGVECTOR] Loading local embedding model {_model_name} '
-                    f'from {"disk cache" if _from_cache else "HuggingFace (first-time download, ~30-60s)"} '
-                    f'→ {_cache_dir}'
-                )
-                _generate_embedding._local_model = SentenceTransformer(
-                    _model_name, cache_folder=_cache_dir
-                )
+                # Resolve a local snapshot path so we can load without any
+                # HuggingFace network calls (avoids ~15 HEAD requests that
+                # cause 60+ s delays and Render 502s when model is cached).
+                # huggingface_hub stores: models--BAAI--bge-base-en-v1.5/snapshots/<hash>/
+                _safe_name = _model_name.replace('/', '--')
+                _hub_dir = os.path.join(_cache_dir, f'models--{_safe_name}')
+                _snap_dir = os.path.join(_hub_dir, 'snapshots')
+                _local_path = None
+                if os.path.isdir(_snap_dir):
+                    for _snap in sorted(os.listdir(_snap_dir)):
+                        _candidate = os.path.join(_snap_dir, _snap)
+                        if os.path.isfile(os.path.join(_candidate, 'config.json')):
+                            _local_path = _candidate
+                            break
+
+                if _local_path:
+                    print(
+                        f'[PGVECTOR] Loading local embedding model from disk path '
+                        f'(no HF network calls) → {_local_path}'
+                    )
+                    _generate_embedding._local_model = SentenceTransformer(_local_path)
+                else:
+                    print(
+                        f'[PGVECTOR] Downloading embedding model {_model_name} '
+                        f'from HuggingFace (first-time only, ~30-60s) → {_cache_dir}'
+                    )
+                    _generate_embedding._local_model = SentenceTransformer(
+                        _model_name, cache_folder=_cache_dir
+                    )
                 print(f'[PGVECTOR] Local embedding model ready ({_TARGET_DIM} dims).')
             encode_kwargs = {'normalize_embeddings': True, 'show_progress_bar': False}
             if is_query:
