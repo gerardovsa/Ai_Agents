@@ -1697,8 +1697,11 @@
 .thread-item[draggable="true"].dragging,
 .agent-thread-card[draggable="true"].dragging,
 .thread-info-card[draggable="true"].dragging {
-    opacity: 0.5;
+    opacity: 0.85;
     cursor: grabbing;
+    outline: 2px solid var(--accent-primary, #58a6ff);
+    box-shadow: 0 4px 20px rgba(88, 166, 255, 0.4);
+    border-radius: 6px;
 }
 
 /* Buttons, badges, and interactive elements should show pointer */

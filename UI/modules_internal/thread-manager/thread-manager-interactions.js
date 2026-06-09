@@ -620,12 +620,9 @@ Object.assign(window.ThreadManager, {
         event.preventDefault();
         event.stopPropagation();
 
-        // Validate drop target - only allow drops in Prime or agent columns
-        const validDropZone = event.target.closest('.agent-column, #ai-chat-panel');
-        if (!validDropZone) {
-            console.log('🚫 [Drop] Dropped outside valid zones (e.g., thread history) - no action');
-            // Clear all drag-over states
-            document.querySelectorAll('.drag-over').forEach(el => el.classList.remove('drag-over'));
+        // Guard: targetLocation must be provided by the drop zone listener (always trusted)
+        if (!targetLocation) {
+            console.warn('🚫 [Drop] No targetLocation provided - ignoring drop');
             return;
         }
 
