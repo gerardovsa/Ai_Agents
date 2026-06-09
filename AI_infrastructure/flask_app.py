@@ -4311,6 +4311,40 @@ def add_no_cache_headers(response):
 atexit.register(cleanup_resources)
 
 # ============================================================================
+# CONNECTION POOL PRE-WARMING
+# Pre-create pools at import time so the first real request doesn't pay the
+# 3-4 second Supabase TCP handshake cost during authentication.
+# Runs once when gunicorn imports this module (before any request arrives).
+# ============================================================================
+def _prewarm_connection_pools():
+    """Pre-warm DB connection pools in a background thread at startup."""
+    import threading
+    import time
+
+    def _warm():
+        try:
+            time.sleep(2)  # Let gunicorn fully bind before touching DB
+            logger.info('[STARTUP] Pre-warming connection pools...')
+            from AI_infrastructure.shared.database_utils import get_database_connection
+            for schema in ('ai_infrastructure', 'sessions'):
+                try:
+                    with get_database_connection(schema) as conn:
+                        with conn.cursor() as cur:
+                            cur.execute('SELECT 1')
+                    logger.info(f'[STARTUP] Pool pre-warmed: {schema}')
+                except Exception as e:
+                    logger.warning(f'[STARTUP] Pool pre-warm failed for {schema}: {e}')
+        except Exception as e:
+            logger.warning(f'[STARTUP] Pool pre-warm thread error: {e}')
+
+    t = threading.Thread(target=_warm, daemon=True, name='pool-prewarm')
+    t.start()
+
+# Only pre-warm when running under gunicorn (RENDER=true) or directly
+if os.environ.get('RENDER') == 'true' or __name__ == '__main__':
+    _prewarm_connection_pools()
+
+# ============================================================================
 # RUN APP
 # ============================================================================
 

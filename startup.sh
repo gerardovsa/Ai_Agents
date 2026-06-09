@@ -175,6 +175,7 @@ if [ "$RENDER" = "true" ]; then
         --workers 1 \
         --bind 0.0.0.0:$PORT \
         --timeout 120 \
+        --graceful-timeout 30 \
         --keep-alive 5 \
         --log-level info \
         --access-logfile - \
