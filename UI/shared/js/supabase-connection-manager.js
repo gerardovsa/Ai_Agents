@@ -297,17 +297,29 @@ window.SupabaseConnectionManager = {
             channel.subscribe((status) => {
                 if (status === 'SUBSCRIBED') {
                     console.log(`✅ [Supabase] Channel '${channelName}' subscribed`);
+                    // Reset per-channel reconnect counter so each channel gets
+                    // its own independent attempt budget after a successful connect.
+                    this.reconnectAttempts = 0;
                 } else if (status === 'CHANNEL_ERROR') {
                     console.error(`❌ [Supabase] Channel '${channelName}' error`);
                     this.channels.delete(channelName);
 
-                    // Attempt to reconnect if online
+                    // CRITICAL: Remove from Supabase's internal registry before
+                    // resubscribing. Without this, client.channel(name) returns the
+                    // same already-subscribed object, and calling .on('postgres_changes')
+                    // on it throws "cannot add callbacks after subscribe()".
+                    const unregister = this.client
+                        ? this.client.removeChannel(channel)
+                        : Promise.resolve();
+
                     if (this.isOnline && this.reconnectAttempts < this.maxReconnectAttempts) {
-                        setTimeout(() => {
-                            console.log(`🔄 [Supabase] Attempting to resubscribe: ${channelName}`);
-                            this.reconnectAttempts++;
-                            this.subscribeChannel(channelName, config);
-                        }, 2000);
+                        this.reconnectAttempts++;
+                        unregister.finally(() => {
+                            setTimeout(() => {
+                                console.log(`🔄 [Supabase] Attempting to resubscribe: ${channelName}`);
+                                this.subscribeChannel(channelName, config);
+                            }, 2000);
+                        });
                     }
                 }
             });
