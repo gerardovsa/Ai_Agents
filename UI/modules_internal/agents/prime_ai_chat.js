@@ -1877,7 +1877,8 @@ async function sendChatMessage() {
                                         if (is413Error) {
                                             console.error('[413 ERROR] Request too large - clearing failed message and reloading thread');
 
-                                            const lastAssistantMsg = document.querySelector('.ai-message.assistant:last-child');
+                                            // ✅ SCOPED to this chat's container (was unscoped — leaked into other columns)
+                                            const lastAssistantMsg = chatMessages.querySelector('.ai-message.assistant:last-child');
                                             if (lastAssistantMsg) {
                                                 lastAssistantMsg.remove();
                                             }
@@ -1935,7 +1936,8 @@ async function sendChatMessage() {
                                             }
 
                                             fullResponse = `Error: ${displayMessage}`;
-                                            const lastMsg = document.querySelector('.ai-message.assistant:last-child .ai-message-content');
+                                            // ✅ SCOPED to this chat's container (was unscoped — leaked into other columns)
+                                            const lastMsg = chatMessages.querySelector('.ai-message.assistant:last-child .ai-message-content');
                                             if (lastMsg) {
                                                 lastMsg.innerHTML = `<div style="color: #ef4444; padding: 16px; background: rgba(239, 68, 68, 0.1); border-radius: 8px; border-left: 4px solid #ef4444;">
                                                     <div style="display: flex; align-items: start; gap: 12px;">
@@ -2226,7 +2228,11 @@ async function sendChatMessage() {
         if (is413Error) {
             console.error('[413 ERROR] Request too large caught in error handler');
 
-            const lastAssistantMsg = document.querySelector('.ai-message.assistant:last-child');
+            // ✅ SCOPED to Prime's chat container (was unscoped — leaked into other columns)
+            const primeMessages = document.getElementById('ai-chat-messages');
+            const lastAssistantMsg = primeMessages
+                ? primeMessages.querySelector('.ai-message.assistant:last-child')
+                : null;
             if (lastAssistantMsg) {
                 lastAssistantMsg.remove();
             }

@@ -2948,7 +2948,14 @@ def execute_streaming_request(
 
         if not api_key:
             print(f"{log_prefix} ❌ {default_key_error}")
-            yield {'type': 'error', 'error': default_key_error}
+            # Include session_id + round so the frontend can route the error
+            # to the correct chat container (was missing — left "undefined" in logs).
+            yield {
+                'type': 'error',
+                'error': default_key_error,
+                'session_id': session_id,
+                'round': current_round,
+            }
             return
 
         print(f"{log_prefix} 🚀 Initializing {platform_name} client with key from: {api_key_source}")
