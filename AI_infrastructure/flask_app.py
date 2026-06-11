@@ -291,23 +291,70 @@ def initialize_semantic_search_async():
         print("[BACKGROUND] Loading tool registry...")
         registry = get_registry()
         print(f"[BACKGROUND] [OK] Registry loaded with {len(registry.tools)} tools")
-        
-        # ✅ FIX (Jan 21, 2026): Invalidate stale Redis cache on startup
-        # This ensures meta-tools and other new tools are always fresh-loaded
-        if registry.redis_manager and registry.redis_manager.connected:
-            print("[BACKGROUND] Invalidating stale Redis cache to force fresh tool loading...")
-            cache_cleared = registry.invalidate_cache()
-            if cache_cleared:
-                print("[BACKGROUND] [OK] Redis cache invalidated - next load will be fresh")
-                # Force reload from disk
+
+        # ✅ FIX (June 11, 2026): Disk-backed registry cache on /data
+        # Previously: every gunicorn worker recycle re-walked tools/schemas/*.json
+        # + every UI/modules_external/*/tools/*.json (3-5 s on cold start).
+        # Now: warm starts hit /data/tool_registry_cache/ via a version-hash check
+        # (~50 ms). Cold starts (real code change to a schema) detect the hash
+        # mismatch and rebuild transparently. Pickling callables is intentionally
+        # avoided — implementations are re-imported from disk (safe + fast).
+        try:
+            from AI_infrastructure.shared.tool_registry_disk_cache import (
+                compute_version_hash,
+                should_use_disk_cache,
+                load_schemas_from_disk,
+                save_schemas_to_disk,
+            )
+            # Compute the hash of what was just loaded by get_registry() (it
+            # already populated registry.tools from a Redis cache or fresh read).
+            current_hash = compute_version_hash(registry.tools)
+            if should_use_disk_cache(current_hash):
+                print(f"[BACKGROUND] [DISK_CACHE] Hash {current_hash[:8]} matches /data cache — loading schemas from disk")
+                if load_schemas_from_disk(registry):
+                    # Implementations must always be re-imported (they are
+                    # Python callables, not JSON-serializable, and not in cache).
+                    print("[BACKGROUND] [DISK_CACHE] Re-importing implementations + module plugins (fast path)")
+                    registry._load_implementations()
+                    registry._load_module_plugins()
+                    print(f"[BACKGROUND] [OK] Disk-cache fast path: {len(registry.tools)} tools, {len(registry.implementations)} implementations")
+                else:
+                    # Cache load failed despite hash match — fall back to full rebuild
+                    print("[BACKGROUND] [DISK_CACHE] Cache read failed, falling back to full rebuild")
+                    registry._load_schemas()
+                    registry._load_implementations()
+                    registry._load_module_plugins()
+                    save_schemas_to_disk(registry)
+            else:
+                print(f"[BACKGROUND] [DISK_CACHE] Cache miss or hash mismatch — full rebuild")
                 registry._load_schemas()
                 registry._load_implementations()
                 registry._load_module_plugins()
-                # Save fresh cache
-                registry._save_to_cache()
+                save_schemas_to_disk(registry)
                 print(f"[BACKGROUND] [OK] Reloaded fresh tools: {len(registry.tools)} total")
-            else:
-                print("[BACKGROUND] [INFO] Redis cache not available - using fresh load")
+        except ImportError as e:
+            # Disk cache helper not available — fall back to the old Redis path
+            print(f"[BACKGROUND] [DISK_CACHE] Helper not available ({e}), using legacy path")
+            if registry.redis_manager and registry.redis_manager.connected:
+                print("[BACKGROUND] Invalidating stale Redis cache to force fresh tool loading...")
+                cache_cleared = registry.invalidate_cache()
+                if cache_cleared:
+                    print("[BACKGROUND] [OK] Redis cache invalidated - next load will be fresh")
+                    registry._load_schemas()
+                    registry._load_implementations()
+                    registry._load_module_plugins()
+                    registry._save_to_cache()
+                    print(f"[BACKGROUND] [OK] Reloaded fresh tools: {len(registry.tools)} total")
+                else:
+                    print("[BACKGROUND] [INFO] Redis cache not available - using fresh load")
+        except Exception as e:
+            # Defensive: any failure in the disk-cache path must not crash startup
+            print(f"[BACKGROUND] [DISK_CACHE] Error: {e}, falling back to fresh load")
+            import traceback
+            traceback.print_exc()
+            registry._load_schemas()
+            registry._load_implementations()
+            registry._load_module_plugins()
         
         # Initialize persistent semantic search (loads from Supabase or regenerates)
         print("[BACKGROUND] Loading embeddings from Supabase (or regenerating if needed)...")
