@@ -274,12 +274,27 @@ def list_user_connections():
                     if r['platform'] in user_platforms:
                         continue
 
+                    # Mask the org credential value (same convention as Tier 1 personal
+                    # credentials) so the UI shows first4…last4 instead of 8 dots.
+                    # The hardcoded '••••••••' was masking every org-level credential
+                    # the same way — including the new MiniMax platform — making it
+                    # impossible to tell from the UI whether a key was actually saved.
+                    org_masked_value = None
+                    if r.get('credential_value'):
+                        try:
+                            from AI_infrastructure.auth.credential_encryptor import get_encryptor as _get_org_encryptor
+                            org_masked_value = _get_org_encryptor().mask_credential(r['credential_value'])
+                        except Exception:
+                            # Fallback to a non-empty placeholder if encryptor import fails
+                            # — the actual key is still in the DB, just not preview-able.
+                            org_masked_value = '••••••••'
+
                     connections.append({
                         'id': f"org_{r['id']}",
                         'platform': r['platform'],
                         'credential_type': 'api_key',
                         'credential_key': r['display_name'],
-                        'credential_value_masked': '••••••••',
+                        'credential_value_masked': org_masked_value or '••••••••',
                         'account_name': None,
                         'is_active': r['is_active'],
                         'is_org_level': True,
