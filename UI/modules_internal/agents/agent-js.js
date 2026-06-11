@@ -5607,6 +5607,11 @@ async function sendAgentMessage(agentId) {
                             // Create error bubble (red exclamation triangle)
                             removeProcessingIndicator(agentId);
 
+                            // Stop the per-agent icon's pulsing ring on stream error
+                            if (typeof AgentStatusIndicator !== 'undefined') {
+                                AgentStatusIndicator.clear(agentId);
+                            }
+
                             const errorBubble = document.createElement('div');
                             errorBubble.className = 'ai-message error';
                             errorBubble.dataset.agentId = agentId;
@@ -5638,11 +5643,15 @@ async function sendAgentMessage(agentId) {
                             contentDiv.className = 'ai-message-content';
                             contentDiv.style.color = '#ef4444';
 
-                            const errorMsg = data.error_message || 'Unknown error';
+                            // Prefer the friendly server-side message; fall back to the raw SDK repr
+                            // only if the backend didn't include one. Show the category in the header
+                            // so users see e.g. "OVERLOADED" or "RATE_LIMIT" instead of just "API Error".
+                            const errorMsg = data.user_message || data.error_message || 'Unknown error';
+                            const errorCategory = (data.error_category || 'ERROR').replace(/_/g, ' ');
                             const truncated = errorMsg.length > 500 ? errorMsg.substring(0, 500) + '...' : errorMsg;
 
                             contentDiv.innerHTML = `
-                                <strong><i class="fas fa-times-circle"></i> API Error: ${data.error_type || 'Unknown'}</strong><br>
+                                <strong><i class="fas fa-times-circle"></i> ${errorCategory}: ${data.error_type || 'Unknown'}</strong><br>
                                 <pre style="background: rgba(0,0,0,0.3); padding: 12px; border-radius: 6px; margin-top: 8px; white-space: pre-wrap;">${truncated}</pre>
                             `;
 

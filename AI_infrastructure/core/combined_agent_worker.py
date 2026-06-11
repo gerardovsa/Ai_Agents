@@ -3887,6 +3887,15 @@ Proceed to the NEXT step now."""
         elif 'api key' in str(e).lower() or 'authentication' in str(e).lower():
             error_details['error_category'] = 'AUTH_ERROR'
             error_details['user_message'] = 'Authentication error. Please contact support.'
+        elif 'overloaded' in str(e).lower():
+            # Anthropic returns `overloaded_error` (HTTP 529) when the API is
+            # saturated. The SDK repr is ugly JSON — replace it with a clean
+            # retry-friendly message so the chat bubble doesn't leak it.
+            error_details['error_category'] = 'OVERLOADED'
+            error_details['user_message'] = (
+                'The AI provider is currently overloaded. '
+                'Please try again in a few moments.'
+            )
         else:
             error_details['error_category'] = 'UNKNOWN'
             error_details['user_message'] = f'An error occurred: {str(e)}'

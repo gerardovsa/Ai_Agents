@@ -1927,6 +1927,12 @@ async function sendChatMessage() {
                                             if (errorCategory === 'TIMEOUT') errorIcon = '⏱️';
                                             else if (errorCategory === 'RATE_LIMIT') errorIcon = '🚦';
                                             else if (errorCategory === 'AUTH_ERROR') errorIcon = '🔒';
+                                            else if (errorCategory === 'OVERLOADED') errorIcon = '🚧';
+
+                                            // Stop the Prime AI icon's pulsing ring on stream error
+                                            if (typeof clearAIStatusIndicator === 'function') {
+                                                clearAIStatusIndicator();
+                                            }
 
                                             fullResponse = `Error: ${displayMessage}`;
                                             const lastMsg = document.querySelector('.ai-message.assistant:last-child .ai-message-content');
@@ -1945,7 +1951,7 @@ async function sendChatMessage() {
                                             }
 
                                             // Show notification for critical errors
-                                            if (errorCategory === 'TIMEOUT' || errorCategory === 'RATE_LIMIT') {
+                                            if (errorCategory === 'TIMEOUT' || errorCategory === 'RATE_LIMIT' || errorCategory === 'OVERLOADED') {
                                                 const container = document.getElementById('notification-container');
                                                 if (container) {
                                                     const notification = document.createElement('div');
