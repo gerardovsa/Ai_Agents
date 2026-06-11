@@ -1,16 +1,20 @@
 # SYNERGY DASHBOARD DOCUMENTATION
 
-**Last Updated:** November 9, 2025  
-**Status:** Production Ready ✅
+**Last Updated:** November 9, 2025 (historical) / June 11, 2026 (row 46 link updates)
+**Status:** Historical Index ✅ (see update notes below)
 
 ---
+
+> **Update (June 11, 2026, archive-cleanup row 46):** The "Complete Reference" and
+> "UI Fixes Summary" files referenced below were moved to the top-level
+> `docs/archive/kanban/_ARCHIVED_*.md` namespace (they were dated Nov 9, 2025
+> snapshot docs, not durable canonical references). Only the **Card Structure**
+> doc remains as a current reference.
 
 ## QUICK LINKS
 
 📖 **Start Here:**
-- [Complete Reference](./SYNERGY_COMPLETE_REFERENCE_NOV9_2025.md) - Master documentation (1,100+ lines)
-- [UI Fixes Summary](./SYNERGY_UI_FIXES_SUMMARY_NOV9_2025.md) - November 9 updates summary
-- [Card Structure](./SYNERGY_CARD_STRUCTURE_DOCUMENTATION.md) - Field reference and data formats
+- [Card Structure](./SYNERGY_CARD_STRUCTURE_DOCUMENTATION.md) - Field reference and data formats (current reference)
 
 🔧 **For Developers:**
 - Frontend: `UI/business-ai-platform-v2-fixed.html` (25,871 lines)
@@ -19,7 +23,8 @@
 - Tools: `tools/schemas/synergy_tools.json`
 
 📦 **Archived Documentation:**
-- [Archive Folder](./archive/) - Previous documentation versions
+- Archived files now consolidated at: `docs/archive/kanban/_ARCHIVED_SYNERGY_*.md`
+  (the in-tree `docs/synergy/archive/` subdir was retired during the June 2026 cleanup)
 
 ---
 
@@ -53,7 +58,7 @@ Fixed 11 critical UI display issues:
 
 **Impact:** 100% data visibility, professional UX, robust field handling
 
-**See:** [UI Fixes Summary](./SYNERGY_UI_FIXES_SUMMARY_NOV9_2025.md) for details
+(See archived [UI Fixes Summary](../../archive/kanban/_ARCHIVED_SYNERGY_UI_FIXES_SUMMARY_NOV9_2025.md) for the full Nov 9 details — this section is now historical.)
 
 ---
 
@@ -62,34 +67,25 @@ Fixed 11 critical UI display issues:
 ### Core Documentation (docs/synergy/)
 
 **Main References:**
-- `SYNERGY_COMPLETE_REFERENCE_NOV9_2025.md` - Master documentation
-  - Architecture overview
-  - Database schema (30 columns)
-  - Frontend components
-  - Backend API endpoints
-  - Tool integration patterns
-  - Testing & troubleshooting
-  - Future enhancements
-
-- `SYNERGY_UI_FIXES_SUMMARY_NOV9_2025.md` - November 9 summary
-  - All 11 fixes detailed
-  - Before/after comparisons
-  - Technical implementation
-  - Testing results
-
-- `SYNERGY_CARD_STRUCTURE_DOCUMENTATION.md` - Field reference
+- `SYNERGY_CARD_STRUCTURE_DOCUMENTATION.md` - Field reference (current canonical)
   - 30 database fields
   - JSON array structures
   - Field name variations
   - Data format examples
 
-### Archived Documentation (docs/synergy/archive/)
+> The previous "Complete Reference" (Nov 9, 2025) and "UI Fixes Summary"
+> (Nov 9, 2025) docs were moved to `docs/archive/kanban/_ARCHIVED_*.md` during
+> the June 2026 cleanup. They are 7+ months out of date.
 
-Previous documentation versions (superseded by current docs):
-- `SYNERGY_DISPLAY_FIX_COMPLETE.md` - Earlier fixes
-- `SYNERGY_HTML_DB_VERIFICATION_COMPLETE.md` - Database verification
-- `SYNERGY_THREAD_LINKING_ANALYSIS.md` - Thread linking analysis
-- `SYNERGY_THREAD_INTEGRATION_COMPLETE.md` - Thread integration guide
+### Archived Documentation
+
+Previous documentation versions (now at `docs/archive/kanban/_ARCHIVED_SYNERGY_*.md`):
+- `_ARCHIVED_SYNERGY_DISPLAY_FIX_COMPLETE.md` - Earlier fixes
+- `_ARCHIVED_SYNERGY_HTML_DB_VERIFICATION_COMPLETE.md` - Database verification
+- `_ARCHIVED_SYNERGY_THREAD_LINKING_ANALYSIS.md` - Thread linking analysis
+- `_ARCHIVED_SYNERGY_THREAD_INTEGRATION_COMPLETE.md` - Thread integration guide
+- `_ARCHIVED_SYNERGY_COMPLETE_REFERENCE_NOV9_2025.md` - Nov 9 master doc (archived)
+- `_ARCHIVED_SYNERGY_UI_FIXES_SUMMARY_NOV9_2025.md` - Nov 9 UI fixes summary (archived)
 
 ---
 
@@ -201,7 +197,7 @@ await synergy_agent_instructions('troubleshooting');  // Common issues
 - `assigned_agents` - ["agent1", "agent2"]
 - `recent_activity` - [{description, type, timestamp, user}]
 
-**See [Complete Reference](./SYNERGY_COMPLETE_REFERENCE_NOV9_2025.md) for full schema**
+(Schema details from archived [Complete Reference](../../archive/kanban/_ARCHIVED_SYNERGY_COMPLETE_REFERENCE_NOV9_2025.md) — full schema in the current `SYNERGY_CARD_STRUCTURE_DOCUMENTATION.md`.)
 
 ---
 
@@ -217,7 +213,7 @@ await synergy_agent_instructions('troubleshooting');  // Common issues
 ### New (Nov 9, 2025)
 - `POST /api/threads/details` - Get thread data for multiple IDs
 
-**See [Complete Reference](./SYNERGY_COMPLETE_REFERENCE_NOV9_2025.md) for full API docs**
+(Full API docs in the archived [Complete Reference](../../archive/kanban/_ARCHIVED_SYNERGY_COMPLETE_REFERENCE_NOV9_2025.md).)
 
 ---
 
@@ -293,10 +289,8 @@ All items verified ✅:
 ## FILE LOCATIONS
 
 ### Documentation
-- Master Reference: `docs/synergy/SYNERGY_COMPLETE_REFERENCE_NOV9_2025.md`
-- UI Fixes Summary: `docs/synergy/SYNERGY_UI_FIXES_SUMMARY_NOV9_2025.md`
-- Card Structure: `docs/synergy/SYNERGY_CARD_STRUCTURE_DOCUMENTATION.md`
-- Archive: `docs/synergy/archive/`
+- Card Structure (current canonical): `docs/synergy/SYNERGY_CARD_STRUCTURE_DOCUMENTATION.md`
+- Archive (historical, June 2026 consolidated): `docs/archive/kanban/_ARCHIVED_SYNERGY_*.md`
 
 ### Code
 - Frontend: `UI/business-ai-platform-v2-fixed.html`
@@ -315,9 +309,9 @@ All items verified ✅:
 ## SUPPORT
 
 **For Issues:**
-1. Check [Complete Reference](./SYNERGY_COMPLETE_REFERENCE_NOV9_2025.md)
-2. Review [UI Fixes Summary](./SYNERGY_UI_FIXES_SUMMARY_NOV9_2025.md)
-3. Use `synergy_agent_instructions('troubleshooting')` tool
+1. Check the archived [Complete Reference](../../archive/kanban/_ARCHIVED_SYNERGY_COMPLETE_REFERENCE_NOV9_2025.md) (historical)
+2. Review the archived [UI Fixes Summary](../../archive/kanban/_ARCHIVED_SYNERGY_UI_FIXES_SUMMARY_NOV9_2025.md) (historical)
+3. Use `synergy_agent_instructions('troubleshooting')` tool (current)
 4. Check frontend console for errors
 5. Verify backend logs in Flask output
 
