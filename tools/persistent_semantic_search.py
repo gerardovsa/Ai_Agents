@@ -39,6 +39,7 @@ DATE: 2026-01-02
 
 import json
 import hashlib
+import os
 import numpy as np
 from typing import Dict, List, Any, Optional, Tuple
 from datetime import datetime
@@ -80,7 +81,49 @@ class PersistentSemanticToolSearch:
         try:
             # Step 1: Load sentence-transformers model
             from sentence_transformers import SentenceTransformer
-            self.model = SentenceTransformer('all-MiniLM-L6-v2')
+            # FIX (June 11, 2026): Load from local snapshot path to skip
+            # HuggingFace network calls. The previous code used
+            # `SentenceTransformer('all-MiniLM-L6-v2')` (load-by-name), which
+            # made ~15 HEAD requests on every cold start and caused 60+ s
+            # delays → Render 502s. Pattern mirrored from
+            # tools/implementations/pgvector/pgvector_tools.py:127 (the fix
+            # from commit a62b8f36). Model stays `all-MiniLM-L6-v2` (384 dim)
+            # because the tool_embedding_cache table is `vector(384)` —
+            # switching models would invalidate the Supabase cache and force
+            # a full re-embed of every tool.
+            _model_name = 'all-MiniLM-L6-v2'
+            # /data is the Render persistent disk (~10 GB). Falls back to
+            # ~/.cache on local dev so unit tests don't require /data to
+            # be mounted.
+            _cache_dir = '/data/vdb_models' if os.path.isdir('/data') else os.path.join(
+                os.path.expanduser('~'), '.cache', 'vdb_models'
+            )
+            # huggingface_hub stores: models--<safe_name>/snapshots/<hash>/
+            _safe_name = _model_name.replace('/', '--')
+            _hub_dir = os.path.join(_cache_dir, f'models--{_safe_name}')
+            _snap_dir = os.path.join(_hub_dir, 'snapshots')
+            _local_path = None
+            if os.path.isdir(_snap_dir):
+                for _snap in sorted(os.listdir(_snap_dir)):
+                    _candidate = os.path.join(_snap_dir, _snap)
+                    if os.path.isfile(os.path.join(_candidate, 'config.json')):
+                        _local_path = _candidate
+                        break
+            if _local_path:
+                print(
+                    f'[SEMANTIC_SEARCH] Loading local embedding model from '
+                    f'disk path (no HF network calls) → {_local_path}'
+                )
+                self.model = SentenceTransformer(_local_path)
+            else:
+                print(
+                    f'[SEMANTIC_SEARCH] Downloading embedding model '
+                    f'{_model_name} from HuggingFace (first-time only, '
+                    f'~30-60 s) → {_cache_dir}'
+                )
+                self.model = SentenceTransformer(
+                    _model_name, cache_folder=_cache_dir
+                )
             self.available = True
             
             # Step 2: Calculate version hash (checksum of all tool definitions)

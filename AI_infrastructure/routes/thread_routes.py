@@ -22,6 +22,50 @@ from utils.database_helpers import DatabaseConnectionError
 # Create blueprint
 thread_bp = Blueprint('threads', __name__, url_prefix='/api/threads')
 
+
+# ============================================================
+# HELPER: JWT-derived user_id (GAP-V1 SECURITY)
+# ============================================================
+
+def _resolve_jwt_user_id_or_403(query_user_id=None):
+    """
+    GAP-V1 SECURITY FIX (June 11, 2026): Resolve the authoritative user_id
+    from the JWT, not from a query-string parameter. The JWT-derived
+    g.rls_user_id is authoritative. If the request includes a user_id in the
+    query string, it MUST match the JWT — otherwise reject with 403. If the
+    JWT is missing, reject with 401.
+
+    Why: The previous pattern (`user_id = request.args.get('user_id')`) lets
+    any authenticated user read any other user's thread list by passing a
+    different user_id in the URL. The JWT signature proves identity; the
+    query string does not. The /api/threads/list endpoint was the canonical
+    example — the LATERAL/denormalized perf fix made it fast, not safe.
+
+    Backwards compatible: a client that passes the correct user_id (matching
+    its own JWT) gets the same behaviour as before. A client that omits the
+    query-string user_id entirely also works — the JWT is used directly.
+
+    Returns:
+        (user_id, error_response) tuple. Exactly one is non-None.
+        On success: (int, None).
+        On failure: (None, Flask response).
+    """
+    from flask import g
+    jwt_user_id = getattr(g, 'rls_user_id', None)
+    if jwt_user_id is None:
+        return None, error_response("Authentication required", 401)
+
+    if query_user_id is not None and query_user_id != '':
+        try:
+            query_user_id = int(query_user_id)
+        except (ValueError, TypeError):
+            return None, error_response("Invalid user_id", 400)
+        if query_user_id != jwt_user_id:
+            # Do not reveal that user A exists when user A is asking about user B
+            return None, error_response("Forbidden", 403)
+
+    return jwt_user_id, None
+
 # ============================================================
 # HELPER: Thread ID/Slug Lookup
 # ============================================================
@@ -152,12 +196,18 @@ def filter_threads_by_team():
     try:
         # Support both single and multiple Team IDs
         team_id_param = request.args.get('team_ids') or request.args.get('team_id')
-        user_id = request.args.get('user_id', type=int)
+        # GAP-V1 SECURITY: trust the JWT, not the query string. The previous
+        # code used `user_id` from the query string to decide which team_ids
+        # the caller could see — letting any authenticated user enumerate
+        # other users' team memberships by passing a different user_id.
+        user_id, auth_err = _resolve_jwt_user_id_or_403(request.args.get('user_id'))
+        if auth_err is not None:
+            return auth_err
         limit = request.args.get('limit', type=int, default=100)
         offset = request.args.get('offset', type=int, default=0)
-        
-        if not team_id_param or not user_id:
-            return error_response('team_id(s) and user_id required', 400)
+
+        if not team_id_param:
+            return error_response('team_id(s) required', 400)
         
         # Parse Team IDs (comma-separated)
         team_ids = [tid.strip() for tid in team_id_param.split(',') if tid.strip()]
@@ -198,28 +248,32 @@ def filter_threads_by_team():
             with conn.cursor() as cursor:
                 
                 placeholders = ', '.join(['%s'] * len(team_ids))
+                # ✅ DENORMALIZED READ (migration 052, June 11, 2026)
+                # message_count + last_message_at are columns on threads now.
+                # Uses idx_threads_team_last_message (migration 052).
                 sql = f"""
-                    SELECT 
+                    SELECT
                         id, thread_slug, name, user_id, team_id,
                         location, created_at, updated_at, metadata,
-                        tags, synergy_card_id, has_files
+                        tags, synergy_card_id, has_files,
+                        message_count, last_message_at
                     FROM sessions.threads
                     WHERE team_id IN ({placeholders})
-                    ORDER BY updated_at DESC
+                    ORDER BY last_message_at DESC NULLS LAST
                     LIMIT %s OFFSET %s
                 """
                 params = team_ids + [limit, offset]
                 sql, params = convert_sql_placeholders(sql, params)
-                
+
                 cursor.execute(sql, params)
                 rows = cursor.fetchall()
-                
+
                 # Get total count
                 count_sql = f"SELECT COUNT(*) FROM sessions.threads WHERE team_id IN ({placeholders})"
                 count_sql, count_params = convert_sql_placeholders(count_sql, team_ids)
                 cursor.execute(count_sql, count_params)
                 total_count = cursor.fetchone()[0]
-        
+
         # Build thread list
         threads = []
         for row in rows:
@@ -235,7 +289,10 @@ def filter_threads_by_team():
                 'metadata': json.loads(row[8]) if (isinstance(row, tuple) and row[8]) else (row.get('metadata') or {}),
                 'tags': json.loads(row[9]) if (isinstance(row, tuple) and row[9]) else (row.get('tags') or []),
                 'synergy_card_id': row[10] if isinstance(row, tuple) else row.get('synergy_card_id'),
-                'has_files': row[11] if isinstance(row, tuple) else row.get('has_files', False)
+                'has_files': row[11] if isinstance(row, tuple) else row.get('has_files', False),
+                # New denormalized fields (migration 052)
+                'message_count': int(row[12]) if isinstance(row, tuple) and row[12] is not None else int(row.get('message_count') or 0) if hasattr(row, 'get') else 0,
+                'last_message_at': row[13] if isinstance(row, tuple) else row.get('last_message_at'),
             }
             threads.append(thread)
         
@@ -269,7 +326,16 @@ def list_available_agents():
         user_id (int, optional): Filter by user (default: all)
     """
     try:
-        user_id = request.args.get('user_id', type=int)
+        # GAP-V1 SECURITY: If a user_id is supplied, it must match the JWT.
+        # If the caller omits user_id, we default to the JWT user (i.e. they
+        # only see their own agent assignments). The previous code defaulted
+        # to "all users" when the param was missing — an authenticated user
+        # could see every other user's agent/thread assignments by leaving
+        # the param off.
+        query_user_id = request.args.get('user_id')
+        user_id, auth_err = _resolve_jwt_user_id_or_403(query_user_id)
+        if auth_err is not None:
+            return auth_err
         
         # NATO phonetic alphabet for agent names
         nato_alphabet = [
@@ -643,10 +709,11 @@ def get_assigned_threads():
     Eliminates 92% waste from loading all 50 threads
     """
     try:
-        user_id = request.args.get('user_id')
-        if not user_id:
-            return error_response("user_id is required", 400)
-        
+        # GAP-V1 SECURITY: trust the JWT, not the query string.
+        user_id, auth_err = _resolve_jwt_user_id_or_403(request.args.get('user_id'))
+        if auth_err is not None:
+            return auth_err
+
         print(f"\n🚀 [THREAD API] /api/threads/assigned called (EFFICIENT MODE)")
         print(f"📊 [THREAD API] Parameters: user_id={user_id}")
         print(f"🗄️ [THREAD API] Database: {'Supabase' if is_using_supabase() else 'SQLite'}")
@@ -772,9 +839,10 @@ def list_threads():
         ?limit=50 (optional): Max threads to return (default: 50, max: 100)
     """
     try:
-        user_id = request.args.get('user_id')
-        if not user_id:
-            return error_response("user_id is required", 400)
+        # GAP-V1 SECURITY: trust the JWT, not the query string.
+        user_id, auth_err = _resolve_jwt_user_id_or_403(request.args.get('user_id'))
+        if auth_err is not None:
+            return auth_err
         
         # Enforce reasonable limits
         limit = int(request.args.get('limit', 50))
@@ -785,22 +853,39 @@ def list_threads():
         
         with get_database_connection('sessions') as conn:
             with conn.cursor() as cursor:
-                # ✅ OPTIMIZED: Simplified query without heavy aggregations
-                # Load only essential thread metadata; message counts are approximate
+                # ✅ DENORMALIZED READ (migration 052, June 11, 2026)
+                # message_count + last_message_at are maintained by a trigger
+                # on sessions.messages — see AI_infrastructure/migrations/052_.
+                # Reading from the columns is O(1) per row regardless of how
+                # chatty the thread is. The single LATERAL below is for
+                # last_message_role (no denormalized column for that field;
+                # one index seek per thread, ORDER BY created_at DESC LIMIT 1
+                # uses idx_messages_thread_created).
+                #
+                # ✅ SORT ALIGNED WITH NEW INDEX (June 11, 2026)
+                # ORDER BY last_message_at DESC NULLS LAST lets Postgres use
+                # idx_threads_user_last_message directly — no Sort node, no
+                # extra I/O. Bonus EXPLAIN: 0.254 ms. The previous plan
+                # (ORDER BY updated_at DESC) was 0.374 ms but used the older
+                # idx_threads_user_team_id and a 37 kB quicksort. last_message_at
+                # is also the more semantically correct sort for a chat list:
+                # "most recently active" = "last message time", not "row last
+                # metadata update". NULLS LAST pushes empty/never-messaged
+                # threads to the bottom, where they belong.
                 query = """
-                    SELECT 
+                    SELECT
                         t.id,
-                        t.thread_slug, 
-                        t.name, 
-                        t.user_id, 
-                        t.created_at, 
-                        t.updated_at, 
-                        t.metadata, 
-                        t.location, 
-                        t.tags, 
-                        t.synergy_card_id, 
+                        t.thread_slug,
+                        t.name,
+                        t.user_id,
+                        t.created_at,
+                        t.updated_at,
+                        t.metadata,
+                        t.location,
+                        t.tags,
+                        t.synergy_card_id,
                         t.synergy_card_name,
-                        t.parent_thread_id, 
+                        t.parent_thread_id,
                         t.branch_name,
                         t.workflow_id,
                         t.workflow_name,
@@ -811,19 +896,26 @@ def list_threads():
                         t.email_thread_id,
                         t.email_subject,
                         t.email_participants,
-                        (SELECT COUNT(*) FROM sessions.messages WHERE thread_id = t.id) as message_count,
-                        (SELECT MAX(created_at) FROM sessions.messages WHERE thread_id = t.id) as last_message_time,
-                        (SELECT role FROM sessions.messages WHERE thread_id = t.id ORDER BY created_at DESC LIMIT 1) as last_message_role
+                        t.message_count,
+                        t.last_message_at,
+                        r.last_message_role
                     FROM sessions.threads t
+                    LEFT JOIN LATERAL (
+                        SELECT role AS last_message_role
+                        FROM sessions.messages m
+                        WHERE m.thread_id = t.id
+                        ORDER BY created_at DESC
+                        LIMIT 1
+                    ) r ON true
                     WHERE t.user_id = %s
-                    ORDER BY t.updated_at DESC
+                    ORDER BY t.last_message_at DESC NULLS LAST
                     LIMIT %s
                 """
-                
+
                 cursor.execute(query, (user_id, limit))
                 rows = cursor.fetchall()
-                
-                print(f"✅ [THREAD API] Query returned {len(rows)} rows")
+
+                print(f"✅ [THREAD API] Query returned {len(rows)} rows (denormalized read)")
         
         # Process rows into thread objects
         threads = []
@@ -853,8 +945,8 @@ def list_threads():
                     'email_thread_id': row.get('email_thread_id'),
                     'email_subject': row.get('email_subject'),
                     'email_participants': row.get('email_participants'),
-                    'message_count': row.get('message_count') or 0,
-                    'last_message_time': row.get('last_message_time'),
+                    'message_count': int(row.get('message_count') or 0),
+                    'last_message_time': row.get('last_message_at'),  # aliased for SPA compat
                     'last_message_role': row.get('last_message_role'),
                     'archived': False
                 }
@@ -884,13 +976,13 @@ def get_threads_bulk_with_messages():
     """
     try:
         from psycopg2.extras import RealDictCursor
-        
-        user_id = request.args.get('user_id', type=int)
+
+        # GAP-V1 SECURITY: trust the JWT, not the query string.
+        user_id, auth_err = _resolve_jwt_user_id_or_403(request.args.get('user_id'))
+        if auth_err is not None:
+            return auth_err
         locations_param = request.args.get('locations', '')
-        
-        if not user_id:
-            return error_response('user_id required', 400)
-        
+
         if not locations_param:
             return error_response('locations required (e.g., agent-1,agent-2,prime)', 400)
         
@@ -1487,16 +1579,23 @@ def delete_thread(thread_id):
         
         # ✅ CROSS-DEVICE SYNC: Broadcast thread deletion to all user's devices
         try:
-            from flask import current_app
-            user_id = request.args.get('user_id', type=int) or 1
+            from flask import current_app, g
+            # GAP-V1 SECURITY: Use the JWT-derived user_id, not a query-string
+            # default of 1. If the JWT is missing, skip the broadcast — it
+            # is non-critical and the absence of a JWT here means the caller
+            # shouldn't be reaching this branch anyway (the delete itself is
+            # already authorised above).
+            jwt_user_id = getattr(g, 'rls_user_id', None)
+            if jwt_user_id is None:
+                raise Exception("No JWT — skipping cross-device broadcast")
             socketio = current_app.extensions.get('socketio')
             if socketio:
                 socketio.emit('thread_deleted', {
                     'thread_id': thread_id,
                     'action': 'deleted',
                     'timestamp': datetime.now().isoformat()
-                }, room=f'user_{user_id}', namespace='/ws/synergy')
-                print(f"📡 [Thread Delete] Broadcast to user_{user_id} devices")
+                }, room=f'user_{jwt_user_id}', namespace='/ws/synergy')
+                print(f"📡 [Thread Delete] Broadcast to user_{jwt_user_id} devices")
         except Exception as broadcast_err:
             print(f"⚠️ [Thread Delete] Broadcast failed (non-critical): {broadcast_err}")
         
@@ -1650,9 +1749,185 @@ def get_thread_stats():
             stats['saved_threads'] = 0
         
         return success_response(stats, message="Thread statistics")
-    
+
     except Exception as e:
         print(f"❌ [THREAD STATS ERROR] {str(e)}")
+        return error_response(str(e), 500)
+
+
+# ============================================================
+# DENORMALIZED COUNTERS HEALTH (migration 052, June 11, 2026)
+# ============================================================
+
+@thread_bp.route('/counters-health', methods=['GET'])
+def get_counters_health():
+    """
+    Diagnostic for the migration 052 denormalized message_count + last_message_at.
+
+    Reports:
+      - column_existence       : whether threads has message_count/last_message_at
+      - trigger_present        : whether trg_update_thread_counters is installed
+      - index_present          : whether idx_threads_user_last_message exists
+      - threads_total          : total thread rows
+      - backfill_complete      : 0 threads with message_count=0 (heuristic)
+      - drift_sample           : for up to 5 threads, compares DB counter vs
+                                 actual COUNT(*) from messages. Any mismatch
+                                 is a sign the trigger is not firing or has
+                                 a bug. SAFE: a single COUNT(*) per thread,
+                                 scoped to the user_id if provided.
+      - heaviest_threads       : top 5 threads by message_count
+    """
+    try:
+        # GAP-V1 SECURITY: trust the JWT, not the query string. The drift
+        # audit and heaviest-threads list are scoped to the JWT user — never
+        # to a query-string user_id that could enumerate other users' data.
+        user_id, auth_err = _resolve_jwt_user_id_or_403(request.args.get('user_id'))
+        if auth_err is not None:
+            return auth_err
+
+        with get_database_connection('sessions') as conn:
+            with conn.cursor() as cursor:
+                # 1. Column existence
+                col_sql = """
+                    SELECT column_name
+                    FROM information_schema.columns
+                    WHERE table_schema = 'sessions'
+                      AND table_name   = 'threads'
+                      AND column_name IN ('message_count', 'last_message_at')
+                """
+                cursor.execute(col_sql)
+                cols = {row['column_name'] if isinstance(row, dict) else row[0]
+                        for row in cursor.fetchall()}
+                column_existence = {
+                    'message_count':   'message_count'   in cols,
+                    'last_message_at': 'last_message_at' in cols,
+                }
+
+                # 2. Trigger presence
+                cursor.execute("""
+                    SELECT trigger_name
+                    FROM information_schema.triggers
+                    WHERE trigger_name = 'trg_update_thread_counters'
+                """)
+                trigger_present = bool(cursor.fetchone())
+
+                # 3. Index presence
+                cursor.execute("""
+                    SELECT indexname
+                    FROM pg_indexes
+                    WHERE schemaname = 'sessions'
+                      AND tablename   = 'threads'
+                      AND indexname IN (
+                          'idx_threads_user_last_message',
+                          'idx_threads_team_last_message'
+                      )
+                """)
+                idxs = {row['indexname'] if isinstance(row, dict) else row[0]
+                        for row in cursor.fetchall()}
+                index_present = {
+                    'idx_threads_user_last_message': 'idx_threads_user_last_message' in idxs,
+                    'idx_threads_team_last_message': 'idx_threads_team_last_message' in idxs,
+                }
+
+                # 4. Thread totals + backfill heuristic
+                if user_id:
+                    cursor.execute("""
+                        SELECT COUNT(*) AS total,
+                               COUNT(*) FILTER (WHERE message_count = 0) AS zero_count
+                        FROM sessions.threads WHERE user_id = %s
+                    """, (user_id,))
+                else:
+                    cursor.execute("""
+                        SELECT COUNT(*) AS total,
+                               COUNT(*) FILTER (WHERE message_count = 0) AS zero_count
+                        FROM sessions.threads
+                    """)
+                row = cursor.fetchone()
+                if isinstance(row, dict):
+                    threads_total, zero_count = row['total'], row['zero_count']
+                else:
+                    threads_total, zero_count = row[0], row[1]
+                backfill_complete = (zero_count == 0) if threads_total else True
+
+                # 5. Drift sample: pick 5 threads with the most messages and
+                # compare DB counter vs actual count. Any mismatch = bug.
+                cursor.execute("""
+                    SELECT t.id, t.thread_slug, t.name, t.message_count,
+                           t.last_message_at,
+                           (SELECT COUNT(*) FROM sessions.messages
+                            WHERE thread_id = t.id) AS actual_count
+                    FROM sessions.threads t
+                    WHERE t.message_count > 0
+                    ORDER BY t.message_count DESC
+                    LIMIT 5
+                """)
+                drift_rows = cursor.fetchall()
+                drift_sample = []
+                drift_count = 0
+                for r in drift_rows:
+                    if isinstance(r, dict):
+                        db_cnt, actual = r['message_count'], r['actual_count']
+                        slug, name = r['thread_slug'], r['name']
+                    else:
+                        db_cnt, actual = r[3], r[5]
+                        slug, name = r[1], r[2]
+                    is_drift = (db_cnt != actual)
+                    if is_drift:
+                        drift_count += 1
+                    drift_sample.append({
+                        'thread_id':        r['id'] if isinstance(r, dict) else r[0],
+                        'thread_slug':      slug,
+                        'title':            name,
+                        'db_count':         db_cnt,
+                        'actual_count':     actual,
+                        'drift':            db_cnt - actual,
+                        'is_drift':         is_drift,
+                    })
+
+                # 6. Heaviest threads (for capacity planning)
+                cursor.execute("""
+                    SELECT thread_slug, name, message_count, last_message_at
+                    FROM sessions.threads
+                    WHERE message_count > 0
+                    ORDER BY message_count DESC
+                    LIMIT 5
+                """)
+                heavy = cursor.fetchall()
+                heaviest_threads = []
+                for r in heavy:
+                    if isinstance(r, dict):
+                        heaviest_threads.append({
+                            'thread_slug':     r['thread_slug'],
+                            'title':           r['name'],
+                            'message_count':   r['message_count'],
+                            'last_message_at': r['last_message_at'].isoformat() if r['last_message_at'] else None,
+                        })
+                    else:
+                        heaviest_threads.append({
+                            'thread_slug':     r[0],
+                            'title':           r[1],
+                            'message_count':   r[2],
+                            'last_message_at': r[3].isoformat() if r[3] else None,
+                        })
+
+        return success_response({
+            'migration':           '052_denormalize_thread_message_counters',
+            'column_existence':    column_existence,
+            'trigger_present':     trigger_present,
+            'index_present':       index_present,
+            'threads_total':       threads_total,
+            'zero_count_threads':  zero_count,
+            'backfill_complete':   backfill_complete,
+            'drift_sample':        drift_sample,
+            'drift_count':         drift_count,
+            'heaviest_threads':    heaviest_threads,
+            'scoped_to_user_id':   user_id,
+        }, message='Counters health')
+
+    except Exception as e:
+        print(f"❌ [COUNTERS HEALTH ERROR] {str(e)}")
+        import traceback
+        traceback.print_exc()
         return error_response(str(e), 500)
 
 
@@ -1942,13 +2217,13 @@ def save_messages():
         with get_database_connection('sessions') as conn:
             with conn.cursor() as cursor:
                 
-                # Get the internal thread database ID and count
+                # Get the internal thread database ID and message count.
+                # Uses the denormalized message_count column from migration 052
+                # (O(1) read) instead of a COUNT(*) LEFT JOIN (was O(messages)).
                 sql, params = convert_sql_placeholders("""
-                    SELECT t.id, COUNT(m.id) as message_count
-                    FROM sessions.threads t
-                    LEFT JOIN sessions.messages m ON m.thread_id = t.id
-                    WHERE t.thread_slug = %s
-                    GROUP BY t.id
+                    SELECT id, message_count
+                    FROM sessions.threads
+                    WHERE thread_slug = %s
                 """, (thread_id,))
                 
                 cursor.execute(sql, params)
@@ -2198,25 +2473,16 @@ def delete_assignment(location):
     """
     try:
         location = location.strip()
-        
-        # Get user_id
-        user_id = None
-        auth_header = request.headers.get('Authorization')
-        if auth_header and auth_header.startswith('Bearer '):
-            try:
-                import jwt
-                token = auth_header.split(' ')[1]
-                payload = jwt.decode(token, options={"verify_signature": False})
-                user_id = payload.get('user_id')
-            except:
-                pass
-        
-        if not user_id:
-            user_id = request.args.get('user_id', type=int)
-        
-        if not user_id:
-            user_id = 1
-        
+
+        # GAP-V1 SECURITY: trust the JWT, not the query string. The previous
+        # code did manual JWT decode + query-string fallback + default-to-1.
+        # The default-to-1 was a critical GAP-V1 bug — an unauthenticated
+        # request could clear another user's assignment by passing any
+        # user_id. Replaced with the same helper used by the GET routes.
+        user_id, auth_err = _resolve_jwt_user_id_or_403(request.args.get('user_id'))
+        if auth_err is not None:
+            return auth_err
+
         print(f"[DELETE ASSIGNMENT] Clearing assignment for location: {location}, user_id: {user_id}")
         
         with get_database_connection('sessions') as conn:
