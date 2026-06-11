@@ -325,10 +325,59 @@ def create_organisation():
 # ROUTES: ORGANISATION INFO
 # ============================================================================
 
+@org_credentials_bp.route('/credential-source', methods=['GET'])
+@require_auth
+@require_org_role('member')
+def get_credential_source():
+    """GET /api/org/credential-source?platform=MiniMax
+    Diagnostic: show which tier the credential resolver will pick for the
+    current user.  Returns the source ('user' / 'parent_user' / 'org' / 'env' / None)
+    plus a masked preview of the key so the operator can confirm whether
+    the DB tiered lookup is winning over the Render env-var fallback.
+    """
+    platform = (request.args.get('platform') or '').lower().strip()
+    if not platform:
+        return jsonify({'success': False, 'error': 'Missing ?platform=<name> query parameter'}), 400
+
+    from AI_infrastructure.shared.org_credentials_loader import resolve_credentials
+    cred = resolve_credentials(g.user_id, platform, prefer_user=True)
+
+    if not cred:
+        return jsonify({
+            'success': True,
+            'platform': platform,
+            'source':   None,
+            'message':  f'No credential found for {platform} in any tier '
+                        f'(user, parent_user, org, env)'
+        }), 200
+
+    source = cred.get('_source', 'unknown')
+    raw    = cred.get('credential_value') or cred.get('api_key') or ''
+    masked = f"{raw[:6]}…{raw[-4:]}" if len(raw) > 14 else ('***' if raw else '')
+
+    env_var = cred.get('_env_var') or ''
+    return jsonify({
+        'success':  True,
+        'platform': platform,
+        'source':   source,
+        'env_var':  env_var if source == 'env' else None,
+        'preview':  masked,
+        'message': {
+            'user':        f'Tier 1: comes from user_platform_credentials (user_id={g.user_id}).',
+            'parent_user': f'Tier 1.5: inherited from parent user (sub-user).',
+            'org':         f'Tier 2: comes from organisation_platform_credentials (shared org vault).',
+            'env':         f'Tier 3 ⚠️ : env-var fallback ({env_var}). Per-org billing is NOT enforced — migrate to org vault.',
+        }.get(source, f'Unknown source: {source}')
+    }), 200
+
+
 @org_credentials_bp.route('/info', methods=['GET'])
 @require_auth
 @require_org_role('member')
 def get_org_info():
+    """GET /api/org/info — Org details for any org member."""
+    ctx = g.org_ctx
+    logger.info(f"[ORG_DEBUG] get_org_info(): ctx={ctx}")
     """GET /api/org/info — Org details for any org member."""
     ctx = g.org_ctx
     logger.info(f"[ORG_DEBUG] get_org_info(): ctx={ctx}")
@@ -434,8 +483,8 @@ def update_org_info():
     # ai_provider: must be one of the supported providers (GAP-M3)
     if 'ai_provider' in data:
         provider = str(data['ai_provider']).strip().lower()
-        if provider not in ('anthropic', 'openai', 'deepseek'):
-            return jsonify({'success': False, 'error': 'ai_provider must be anthropic, openai, or deepseek'}), 400
+        if provider not in ('anthropic', 'openai', 'deepseek', 'MiniMax'):
+            return jsonify({'success': False, 'error': 'ai_provider must be anthropic, openai, deepseek, or MiniMax'}), 400
         updates['ai_provider'] = provider
 
     # ai_model: free-form model string (GAP-M3)
@@ -654,7 +703,7 @@ def add_credential():
     except Exception:
         # platform_catalog table not yet created — fall back to hardcoded set
         LEGACY_ALLOWED_PLATFORMS = {
-            'anthropic', 'openai', 'deepseek', 'assemblyai', 'pinecone',
+            'anthropic', 'openai', 'deepseek', 'MiniMax', 'assemblyai', 'pinecone',
             'shopify', 'xero', 'sendgrid', 'twilio', 'auspost', 'stripe',
             'google', 'microsoft', 'gmail_oauth', 'outlook_oauth',
             'supabase', 'supabase_vsa', 'kajabi', 'hunter',
@@ -819,7 +868,7 @@ def test_credential(cred_id: int):
     """
     POST /api/org/credentials/<id>/test
     Makes a minimal live API call to verify the credential is valid.
-    Supported platforms: anthropic, openai, deepseek, auspost, shopify, xero_*.
+    Supported platforms: anthropic, openai, deepseek, MiniMax, auspost, shopify, xero_*.
     """
     ctx = g.org_ctx
 
@@ -893,6 +942,23 @@ def _test_platform_credential(platform: str, cred_value: str) -> dict:
                 return {'success': True, 'message': 'DeepSeek API key is valid',
                         'latency_ms': int((time.monotonic() - t0) * 1000)}
             return {'success': False, 'message': f'DeepSeek returned HTTP {resp.status_code}',
+                    'latency_ms': int((time.monotonic() - t0) * 1000)}
+
+        # ---- MiniMax ---------------------------------------------------------
+        elif platform == 'MiniMax':
+            # Verify the key works against the public OpenAI-compatible models
+            # listing endpoint.  MiniMax returns 200 with a JSON object containing
+            # every available model — success means the key is valid.
+            import requests as rq
+            resp = rq.get(
+                'https://api.minimax.io/v1/models',
+                headers={'Authorization': f'Bearer {cred_value}'},
+                timeout=8
+            )
+            if resp.status_code == 200:
+                return {'success': True, 'message': 'MiniMax API key is valid',
+                        'latency_ms': int((time.monotonic() - t0) * 1000)}
+            return {'success': False, 'message': f'MiniMax returned HTTP {resp.status_code}',
                     'latency_ms': int((time.monotonic() - t0) * 1000)}
 
         # ---- AusPost ---------------------------------------------------------
@@ -1258,6 +1324,43 @@ _FALLBACK_MODEL_CATALOG = [
      'display_name': 'DeepSeek Reasoner (V3.2)', 'tier': 'reasoning',
      'is_recommended': False, 'supports_tools': True, 'supports_vision': False,
      'supports_thinking': True, 'sort_order': 220},
+    # MiniMax — source: https://platform.minimax.io/docs
+    {'provider': 'MiniMax', 'model_id': 'MiniMax-M3',
+     'display_name': 'MiniMax-M3 (1M Context)', 'tier': 'powerful',
+     'is_recommended': True,  'supports_tools': True, 'supports_vision': True,
+     'supports_thinking': True, 'sort_order': 230},
+    {'provider': 'MiniMax', 'model_id': 'MiniMax-M2.7',
+     'display_name': 'MiniMax-M2.7', 'tier': 'balanced',
+     'is_recommended': False, 'supports_tools': True, 'supports_vision': False,
+     'supports_thinking': False, 'sort_order': 235},
+    {'provider': 'MiniMax', 'model_id': 'MiniMax-M2.7-highspeed',
+     'display_name': 'MiniMax-M2.7 Highspeed', 'tier': 'fast',
+     'is_recommended': False, 'supports_tools': True, 'supports_vision': False,
+     'supports_thinking': False, 'sort_order': 236},
+    {'provider': 'MiniMax', 'model_id': 'MiniMax-M2.5',
+     'display_name': 'MiniMax-M2.5', 'tier': 'balanced',
+     'is_recommended': False, 'supports_tools': True, 'supports_vision': False,
+     'supports_thinking': False, 'sort_order': 240},
+    {'provider': 'MiniMax', 'model_id': 'MiniMax-M2.5-highspeed',
+     'display_name': 'MiniMax-M2.5 Highspeed', 'tier': 'fast',
+     'is_recommended': False, 'supports_tools': True, 'supports_vision': False,
+     'supports_thinking': False, 'sort_order': 241},
+    {'provider': 'MiniMax', 'model_id': 'MiniMax-M2.1',
+     'display_name': 'MiniMax-M2.1', 'tier': 'balanced',
+     'is_recommended': False, 'supports_tools': True, 'supports_vision': False,
+     'supports_thinking': False, 'sort_order': 245},
+    {'provider': 'MiniMax', 'model_id': 'MiniMax-M2.1-highspeed',
+     'display_name': 'MiniMax-M2.1 Highspeed', 'tier': 'fast',
+     'is_recommended': False, 'supports_tools': True, 'supports_vision': False,
+     'supports_thinking': False, 'sort_order': 246},
+    {'provider': 'MiniMax', 'model_id': 'MiniMax-M2',
+     'display_name': 'MiniMax-M2', 'tier': 'balanced',
+     'is_recommended': False, 'supports_tools': True, 'supports_vision': False,
+     'supports_thinking': False, 'sort_order': 250},
+    {'provider': 'MiniMax', 'model_id': 'M2-her',
+     'display_name': 'MiniMax M2-her (Role-play)', 'tier': 'fast',
+     'is_recommended': False, 'supports_tools': True, 'supports_vision': False,
+     'supports_thinking': False, 'sort_order': 255},
 ]
 
 
@@ -1376,7 +1479,7 @@ def get_platform_catalog():
                                    'type': 'password', 'required': True}],
              'description': None, 'docs_url': None, 'sort_order': 100}
             for p in sorted([
-                'anthropic', 'openai', 'deepseek', 'assemblyai', 'pinecone',
+                'anthropic', 'openai', 'deepseek', 'MiniMax', 'assemblyai', 'pinecone',
                 'shopify', 'xero', 'sendgrid', 'twilio', 'auspost', 'stripe',
                 'google', 'microsoft', 'gmail_oauth', 'outlook_oauth',
                 'supabase', 'supabase_vsa', 'kajabi', 'hunter',

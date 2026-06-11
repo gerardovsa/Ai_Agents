@@ -1,8 +1,8 @@
 # Vector Database — Org System Alignment Analysis & Change Plan
-**Date:** April 29, 2026 (Updated: May 29, 2026 — 4-tier model alignment)
+**Date:** April 29, 2026 (Updated: May 29, 2026 — 4-tier model alignment; Updated: June 11, 2026 — BGE model, embedding selector, local-path loading fix)
 **Author:** Analysis via GitHub Copilot
-**Status:** ✅ FULLY IMPLEMENTED — All 8 gaps resolved April 29, 2026. May 2026 update: 4-tier credential model documented; GAP-V9 (`_get_vector_provider()` personal-org short-circuit) ✅ implemented May 29, 2026.
-**Companion docs:** `ORG_CREDENTIALS_MASTER_ANALYSIS_UPDATED_MAY28_2026.md` *(formerly `ORGANISATION_CREDENTIALS_ARCHITECTURE.md` + `ORG_CREDENTIALS_MASTER_ANALYSIS.md` — both archived May 28, 2026)*, `MODULE_VISIBILITY_ARCHITECTURE.md`
+**Status:** ✅ FULLY IMPLEMENTED — All 8 gaps resolved April 29, 2026. May 2026: 4-tier credential model + GAP-V9 implemented. June 2026: Local BGE embedding model (BAAI/bge-base-en-v1.5), user-selectable embedding provider, `force_local` bypass, HuggingFace offline loading fix (commit `a62b8f36`). See Section 11.
+**Companion docs:** `ORG_CREDENTIALS_MASTER_ANALYSIS_UPDATED_MAY28_2026.md` *(formerly `ORGANISATION_CREDENTIALS_ARCHITECTURE.md` + `ORG_CREDENTIALS_MASTER_ANALYSIS.md` — both archived May 28, 2026)*, `MODULE_VISIBILITY_ARCHITECTURE.md`, `VECTOR_DB_DEVELOPER_REFERENCE.md` *(new June 11, 2026 — authoritative quick-reference for AI developers)*
 
 ---
 
@@ -483,3 +483,229 @@ No code changes needed for Tier 2B document ownership.
 | Document ownership | `owner_user_id = user_id` | Unchanged — sub-user gets own `owner_user_id` | None |
 | Companion docs reference | `ORGANISATION_CREDENTIALS_ARCHITECTURE.md` | **ARCHIVED** → `ORG_CREDENTIALS_MASTER_ANALYSIS_UPDATED_MAY28_2026.md` | Updated in this file's header ✅ |
 | "3-tier resolution" language | All April 29 references | Updated to "4-tier" throughout this document | Updated ✅ |
+---
+
+## 11. June 2026 Implementation Record
+
+**Date:** June 2026 (commits `bb5e805e` through `a62b8f36`)
+**Reference:** `ORG_CREDENTIALS_MASTER_ANALYSIS_UPDATED_MAY28_2026.md`, `VECTOR_DB_DEVELOPER_REFERENCE.md`
+
+This section documents all vector database changes applied in June 2026. The changes are backend (`pgvector_tools.py`, `vector_db_routes.py`) and frontend (`vector_database.js`, `vector_database.html`).
+
+---
+
+### 11.1 Embedding Model Upgrade: all-mpnet → BAAI/bge-base-en-v1.5
+
+**Files:** `tools/implementations/pgvector/pgvector_tools.py`
+**Commit:** `bb5e805e`
+
+The local free-tier embedding model was upgraded from `all-mpnet-base-v2` to `BAAI/bge-base-en-v1.5`.
+
+| Property | Before (all-mpnet-base-v2) | After (bge-base-en-v1.5) |
+|----------|---------------------------|--------------------------|
+| Dimensions | 768 | 768 (no migration needed) |
+| MTEB retrieval | 57.02 | 63.55 (+11%) |
+| Design | Symmetric (no query prefix) | Asymmetric (query prefix for searches) |
+| License | Apache 2.0 | MIT |
+| Disk size | ~420 MB | ~440 MB |
+| RAM (loaded) | ~550 MB | ~600 MB |
+
+**Asymmetric encoding (`is_query` parameter):**
+BGE models use a query instruction prefix only for search queries, not for document passages. This is the primary reason for its improved retrieval performance.
+```python
+_BGE_QUERY_PROMPT = 'Represent this sentence for searching relevant passages: '
+# Applied in _generate_embedding() when is_query=True:
+encode_kwargs['prompt'] = _BGE_QUERY_PROMPT
+```
+- `pgvector_query_vectors()` → calls `_generate_embedding(query_text, user_id, is_query=True)`
+- `pgvector_upload_document()` → calls `_generate_embedding(chunk, user_id, is_query=False)` (no prefix)
+
+**Cache location:**
+```
+Render production: /data/vdb_models/models--BAAI--bge-base-en-v1.5/snapshots/<hash>/
+Local dev:        ~/.cache/vdb_models/models--BAAI--bge-base-en-v1.5/snapshots/<hash>/
+```
+
+---
+
+### 11.2 Critical Fix: HuggingFace Offline Load (502 → <1s)
+
+**Files:** `tools/implementations/pgvector/pgvector_tools.py`
+**Commit:** `a62b8f36`
+**Problem:** Even when the BGE model was fully cached on disk, `SentenceTransformer('BAAI/bge-base-en-v1.5', ...)` made ~15 HEAD requests to HuggingFace on every load to check for model updates. On Render, these added 60–90 seconds before the first embedding could be computed — exceeding Render's proxy timeout and returning 502 Bad Gateway.
+
+**Root Cause:** Passing the model *name* to `SentenceTransformer()` always triggers HuggingFace Hub version-check network calls, regardless of whether a local cache exists.
+
+**Fix:** Resolve the huggingface_hub snapshot directory and pass the absolute local *path* instead of the model name. When given a local path, `SentenceTransformer()` skips all HF Hub network calls.
+```python
+_safe_name = 'BAAI--bge-base-en-v1.5'  # HF uses -- separator in directory names
+_snap_dir  = os.path.join(_cache_dir, f'models--{_safe_name}', 'snapshots')
+_local_path = None
+if os.path.isdir(_snap_dir):
+    for _snap in sorted(os.listdir(_snap_dir)):
+        _candidate = os.path.join(_snap_dir, _snap)
+        if os.path.isfile(os.path.join(_candidate, 'config.json')):
+            _local_path = _candidate
+            break
+
+if _local_path:
+    # Local path → no HF calls. Loads in <1s from disk.
+    _generate_embedding._local_model = SentenceTransformer(_local_path)
+else:
+    # First-ever deployment: download from HF (one-time, ~30-60s)
+    _generate_embedding._local_model = SentenceTransformer(_model_name, cache_folder=_cache_dir)
+```
+
+**After fix:** Weights load in under 1 second from disk. No HuggingFace network calls ever made after first deployment.
+
+---
+
+### 11.3 `force_local` Parameter — Vault Bypass
+
+**Files:** `tools/implementations/pgvector/pgvector_tools.py`, `AI_infrastructure/routes/vector_db_routes.py`
+**Commit:** `bb5e805e`
+
+**Problem:** If an org vault contains an invalid/revoked credential for `voyager`, `openai_embeddings`, or `openai`, `resolve_credentials()` would find and return it. The embedding code would then try to use that invalid key, producing a 401/500 error even when the local BGE model would have worked.
+
+**Fix — `force_local` parameter:**
+```python
+def _generate_embedding(text: str, user_id: int, is_query: bool = False, force_local: bool = False):
+    # force_local=True → skip vault lookup entirely, go straight to BGE
+    raw_cred = None if force_local else (
+        resolve_credentials(user_id, 'voyager')
+        or resolve_credentials(user_id, 'openai_embeddings')
+        or resolve_credentials(user_id, 'openai')
+    )
+```
+
+**`embedding_provider` in `pgvector_upload_document()`:**
+```python
+def pgvector_upload_document(..., embedding_provider: Optional[str] = None, **kwargs):
+    _force_local = (embedding_provider == 'local')
+    # ... passes force_local=_force_local to every _generate_embedding() call
+```
+
+**Route reads `embedding_provider` from form data:**
+```python
+_emb_prov = request.form.get('embedding_provider', '').strip().lower()
+embedding_provider = _emb_prov if _emb_prov in ('local', 'voyager', 'openai') else None
+# Passed to _pgvec_upload(embedding_provider=embedding_provider, ...)
+```
+
+Note: `force_local` only affects *upload* embedding. Search queries always use `is_query=True` but still go through normal credential resolution — a separate `force_local` for queries could be added if needed.
+
+---
+
+### 11.4 Embedding Provider UI Selector
+
+**Files:** `UI/modules_internal/vector_database/vector_database.html`, `UI/modules_internal/vector_database/vector_database.js`
+**Commit:** `bb5e805e`
+
+A three-option selector was added to the Vector DB Settings tab, giving users explicit control over which embedding model is used for uploads:
+
+| Option | Value | Cost | Notes |
+|--------|-------|------|-------|
+| Local BGE (default) | `local` | Free | BAAI/bge-base-en-v1.5, on-server, MTEB 63.6 |
+| Voyage AI | `voyager` | ~$0.06/M tokens | voyage-4, 768 dims, requires org vault credential |
+| OpenAI | `openai` | ~$0.13/M tokens | text-embedding-3-small, 768 dims, requires org vault credential |
+
+**State management:**
+- `state.embeddingProvider` — current selection (`'local'` default)
+- Persisted to `localStorage.vdb_embedding_provider` across page loads
+- Restored on `onSidebarLoad()`
+
+**Banner update:**
+`showConnectedBanner()` now reads `state.embeddingProvider` to display the actual model name instead of a hardcoded string.
+
+**⚠️ Mixing-model warning:** Switching embedding provider after documents are already uploaded creates mixed embeddings in the same org namespace. Semantic search will be degraded because vectors from different models are not comparable. To fix: delete all documents and re-upload after switching.
+
+---
+
+### 11.5 Voyage AI Improvements
+
+**Files:** `tools/implementations/pgvector/pgvector_tools.py`
+
+1. **`input_type` parameter added:**
+   ```python
+   json={'input': [text], 'model': model, 'output_dimension': 768,
+         'input_type': 'query' if is_query else 'document'}
+   ```
+   Voyage AI's asymmetric encoding (like BGE) improves retrieval quality when the query and document types are declared.
+
+2. **Lite model auto-upgrade:**
+   ```python
+   _VOYAGE_LITE_UPGRADE = {
+       'voyage-4-lite': 'voyage-4',
+       'voyage-3-lite': 'voyage-3',
+       'voyage-2-lite': 'voyage-2',
+   }
+   ```
+   Voyage lite models are capped at 512 dimensions. Since the schema column is `vector(768)`, using a lite model would fail. The auto-upgrade map transparently swaps lite models for their full counterparts.
+
+---
+
+### 11.6 Inline Error Display
+
+**Files:** `UI/modules_internal/vector_database/vector_database.html`, `UI/modules_internal/vector_database/vector_database.js`
+**Commit:** `bb5e805e`
+
+A `#upload-result-message` div was added directly below the "Process & Upload" button. Upload errors and success messages are now displayed inline rather than as disappearing toast notifications.
+
+This change means that if the upload fails (e.g. embedding error, file extraction error), the user sees the exact error message while the document is still staged — they can fix the problem without re-selecting the file.
+
+---
+
+### 11.7 Help Modal Rewrite
+
+**Files:** `UI/modules_internal/vector_database/vector_database.js`
+**Commit:** `bb5e805e`
+
+The `openHelp()` function was completely rewritten to reflect the current state of the system:
+
+| Section | Before | After |
+|---------|--------|-------|
+| Stats bar | "Namespaces / Collections" | "Org Scope" (correct — one namespace per org) |
+| Credentials | Instructions to use Settings form | "Credentials are managed in Org Settings > Connections" |
+| Embedding model | Not documented | Full table: Local BGE / Voyage AI / OpenAI with cost + MTEB scores |
+| Mixing-models warning | Missing | Added — explains re-upload requirement |
+| Quick-start | 5 steps | 7 steps including timing tip for BGE first-load |
+| Provider table | Hardcoded "Voyage AI" | Shows all 3 options with accurate details |
+
+---
+
+### 11.8 Migration 049: `vector(768)` Column
+
+**File:** `AI_infrastructure/migrations/049_pgvector_dimension_768.sql`
+**Status:** ✅ Applied in production
+
+Migration 048 set the column to `vector(1024)` (matching Voyage AI voyage-4). Migration 049 changes it to `vector(768)` to match the BGE model and OpenAI `text-embedding-3-small` with `dimensions=768`. The Voyage AI path also outputs 768 via `output_dimension=768`.
+
+All three providers now target exactly 768 dimensions — no provider-specific schema changes needed when switching.
+
+---
+
+### 11.9 Summary: What Changed vs May 2026
+
+| Item | May 2026 State | June 2026 State |
+|------|----------------|-----------------|
+| Local embedding model | `all-mpnet-base-v2` (no `is_query`) | `BAAI/bge-base-en-v1.5` with asymmetric `is_query` prefix |
+| First-upload latency (cached model) | 60–90s (HF version-check HEAD requests) | <1s (local snapshot path, no network calls) |
+| Invalid credential handling | Vault credential used → 401/500 error | `force_local=True` bypasses vault entirely |
+| User embedding choice | No UI — auto-selected from vault | 3-option selector in Settings tab, persisted in localStorage |
+| Upload error visibility | Disappearing toast | Inline `#upload-result-message` below Process button |
+| Voyage AI encoding | No `input_type` | `input_type='query'|'document'` added |
+| Voyage AI lite models | Would fail at 512 dims | Auto-upgraded to full models (voyage-4, voyage-3, voyage-2) |
+| Vector column dimension | `vector(1024)` (migration 048) | `vector(768)` (migration 049) |
+| Help modal accuracy | Referred to retired credential form | Fully rewritten with accurate current info |
+
+---
+
+### 11.10 Outstanding Items / Future Work
+
+| Item | Priority | Notes |
+|------|----------|-------|
+| `force_local` for search queries | LOW | Currently only upload respects `force_local`. Queries always use vault resolution. If a vault has invalid OpenAI/Voyage keys, search would also fail. Could add `embedding_provider` to the search request path. |
+| Cross-model search degradation warning | LOW | If documents were uploaded with mixed models, return a warning in search results indicating reduced quality. Could detect by checking `emb_model` column diversity in `org_vector_documents`. |
+| Model pre-warm on startup | MEDIUM | BGE model is loaded on first upload request. On cold-start Render instances, the first upload will always wait for model load (~5s from disk). Could pre-warm in `flask_app.py` startup with a background thread. |
+| Pinecone provider path for `embedding_provider` | MEDIUM | The `embedding_provider` form field only affects pgvector uploads. The Pinecone upload path (`upload_document()` else-branch) still uses `resolve_credentials()` for embedding and does not respect `force_local`. Add the same guard for Pinecone path if needed. |
+| HF_TOKEN for rate limit protection | LOW | HuggingFace unauthenticated requests are rate-limited. Set `HF_TOKEN` env var and pass `token=os.getenv('HF_TOKEN')` to `SentenceTransformer()` on first-time download to avoid rate limits during initial deployment. Not needed after model is cached. |

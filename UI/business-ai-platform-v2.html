@@ -21828,6 +21828,18 @@
                                     <option value="deepseek-chat">DeepSeek Chat V3 (Fast)</option>
                                     <option value="deepseek-reasoner">DeepSeek R1 (Reasoning)</option>
                                 </optgroup>
+                                <!-- ── MiniMax ─────────────────────────────────────── -->
+                                <optgroup label="MiniMax">
+                                    <option value="MiniMax-M3">MiniMax-M3 ★ 1M Context</option>
+                                    <option value="MiniMax-M2.7">MiniMax-M2.7</option>
+                                    <option value="MiniMax-M2.7-highspeed">MiniMax-M2.7 Highspeed (Fast)</option>
+                                    <option value="MiniMax-M2.5">MiniMax-M2.5</option>
+                                    <option value="MiniMax-M2.5-highspeed">MiniMax-M2.5 Highspeed (Fast)</option>
+                                    <option value="MiniMax-M2.1">MiniMax-M2.1</option>
+                                    <option value="MiniMax-M2.1-highspeed">MiniMax-M2.1 Highspeed (Fast)</option>
+                                    <option value="MiniMax-M2">MiniMax-M2</option>
+                                    <option value="M2-her">MiniMax M2-her (Role-play)</option>
+                                </optgroup>
                             </select>
                             <small style="color: var(--text-muted); margin-top: 4px; display: block;">Select the
                                 AI model to use for agent processing &mdash;
@@ -23043,6 +23055,7 @@
                                     <option value="anthropic">Anthropic (Claude)</option>
                                     <option value="openai">OpenAI (GPT)</option>
                                     <option value="deepseek">DeepSeek</option>
+                                    <option value="MiniMax">MiniMax</option>
                                 </select>
                             </div>
                             <div>
@@ -31838,6 +31851,7 @@
                             shopify:'fab fa-shopify',    xero:'fas fa-receipt',        woocommerce:'fab fa-wordpress',
                             stripe:'fab fa-stripe',      paypal:'fab fa-paypal',       twilio:'fas fa-phone',
                             assemblyai:'fas fa-microphone', deepseek:'fas fa-robot',   voyager:'fas fa-vector-square',
+                            MiniMax:'fas fa-bolt',
                             sendgrid:'fas fa-paper-plane', hunter:'fas fa-search',     auspost:'fas fa-truck',
                             google:'fab fa-google',      microsoft:'fab fa-microsoft', gmail_oauth:'fas fa-envelope',
                             outlook_oauth:'fas fa-envelope', kajabi:'fas fa-graduation-cap',
@@ -31850,6 +31864,7 @@
                             shopify:'#96bf48',   xero:'#13B5EA',     woocommerce:'#96588A',
                             stripe:'#635BFF',    paypal:'#00457C',   twilio:'#F22F46',
                             assemblyai:'#FF6B6B', deepseek:'#4169E1', voyager:'#8B5CF6',
+                            MiniMax:'#FF6A00',
                             sendgrid:'#1A82E2',  hunter:'#F97316',   auspost:'#FF4B27',
                             google:'#4285f4',    microsoft:'#00a4ef', gmail_oauth:'#EA4335',
                             outlook_oauth:'#0078D4', kajabi:'#7B68EE',
@@ -32602,6 +32617,17 @@ Thanks`;
             deepseek: [
                 { value: 'deepseek-chat', label: 'DeepSeek Chat V3 (Fast)' },
                 { value: 'deepseek-reasoner', label: 'DeepSeek R1 (Reasoning)' }
+            ],
+            MiniMax: [
+                { value: 'MiniMax-M3', label: 'MiniMax-M3 ★ 1M Context (Recommended)' },
+                { value: 'MiniMax-M2.7', label: 'MiniMax-M2.7' },
+                { value: 'MiniMax-M2.7-highspeed', label: 'MiniMax-M2.7 Highspeed (Fast)' },
+                { value: 'MiniMax-M2.5', label: 'MiniMax-M2.5' },
+                { value: 'MiniMax-M2.5-highspeed', label: 'MiniMax-M2.5 Highspeed (Fast)' },
+                { value: 'MiniMax-M2.1', label: 'MiniMax-M2.1' },
+                { value: 'MiniMax-M2.1-highspeed', label: 'MiniMax-M2.1 Highspeed (Fast)' },
+                { value: 'MiniMax-M2', label: 'MiniMax-M2' },
+                { value: 'M2-her', label: 'MiniMax M2-her (Role-play)' }
             ]
         };
 
@@ -32786,7 +32812,7 @@ Thanks`;
             ];
 
             // Non-Anthropic providers never support Extended Thinking
-            const isNonAnthropic = /^(gpt-|o1|o3|deepseek-)/.test(model);
+            const isNonAnthropic = /^(gpt-|o1|o3|deepseek-|MiniMax-|M2-her)/.test(model);
 
             if (note) {
                 if (ADAPTIVE_ONLY.includes(base)) {
@@ -33616,6 +33642,7 @@ Thanks`;
                 'auspost':       { icon: 'fas fa-truck',           color: '#FF4B27', authType: 'api_key', displayName: 'Australia Post' },
                 'kajabi':        { icon: 'fas fa-graduation-cap',  color: '#7B68EE', authType: 'api_key', displayName: 'Kajabi' },
                 'deepseek':      { icon: 'fas fa-robot',           color: '#4169E1', authType: 'api_key', displayName: 'DeepSeek' },
+                'MiniMax':  { icon: 'fas fa-bolt',           color: '#FF6A00', authType: 'api_key', displayName: 'MiniMax' },
                 'supabase_vsa':  { icon: 'fas fa-database',        color: '#3ECF8E', authType: 'database', displayName: 'Supabase (VSA)' },
                 'default': { icon: 'fas fa-plug', color: '#64748b', authType: 'api_key', displayName: 'Unknown Platform' }
             };
@@ -33921,6 +33948,7 @@ Thanks`;
             anthropic: 'Anthropic (Claude)',
             openai:    'OpenAI (GPT / o-series)',
             deepseek:  'DeepSeek',
+            MiniMax: 'MiniMax',
         };
         const TIER_BADGES = {
             fast:      ' ⚡',
@@ -33935,6 +33963,7 @@ Thanks`;
             if (modelId.startsWith('claude-')) return 'anthropic';
             if (modelId.startsWith('gpt-') || /^o[0-9]/.test(modelId)) return 'openai';
             if (modelId.startsWith('deepseek-')) return 'deepseek';
+            if (modelId.startsWith('MiniMax-') || modelId.startsWith('M2-her') || modelId.startsWith('M2.') || modelId.startsWith('M2-')) return 'MiniMax';
             return 'anthropic';
         }
 
@@ -33964,7 +33993,7 @@ Thanks`;
 
                 // Rebuild the <select> with dynamic optgroups
                 sel.innerHTML = '';
-                const providerOrder = ['anthropic', 'openai', 'deepseek'];
+                const providerOrder = ['anthropic', 'openai', 'deepseek', 'MiniMax'];
                 // Any provider not in preferred order goes last
                 const extraProviders = Object.keys(byProvider).filter(p => !providerOrder.includes(p));
                 const orderedProviders = [...providerOrder, ...extraProviders].filter(p => byProvider[p]?.length);
@@ -34610,6 +34639,7 @@ Thanks`;
                     'woocommerce': { icon: 'fab fa-wordpress', color: '#96588A', displayName: 'WooCommerce' },
                     'auspost': { icon: 'fas fa-truck', color: '#FF4B27', displayName: 'Australia Post' },
                     'deepseek': { icon: 'fas fa-robot', color: '#4169E1', displayName: 'DeepSeek' },
+                    'MiniMax': { icon: 'fas fa-bolt', color: '#FF6A00', displayName: 'MiniMax' },
                     'supabase': { icon: 'fas fa-database', color: '#3ECF8E', displayName: 'Supabase' },
                     'sql_database': { icon: 'fas fa-database', color: '#0078D4', displayName: 'SQL Database' },
                 };

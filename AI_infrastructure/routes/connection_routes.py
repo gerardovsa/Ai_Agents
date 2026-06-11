@@ -373,7 +373,7 @@ def add_platform_credential():
         # All other platforms — and any org-platform submitted by a member without
         # admin/owner role — fall through to the normal Tier 1 path below.
         ORG_PLATFORMS = {
-            'anthropic', 'openai', 'deepseek', 'assemblyai',
+            'anthropic', 'openai', 'deepseek', 'MiniMax', 'assemblyai',
             'pinecone', 'auspost', 'stripe', 'sendgrid', 'twilio',
         }
 

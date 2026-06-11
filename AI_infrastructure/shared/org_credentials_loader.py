@@ -38,6 +38,8 @@ PLATFORM NAME CONVENTIONS:
     twilio       → Twilio SMS / voice
     sendgrid     → SendGrid email
     pinecone     → Pinecone vector DB
+    deepseek     → DeepSeek language models
+    MiniMax  → MiniMax M-series (M3, M2.7, M2.5, M2.1, M2)
 
 AUTHOR: GitHub Copilot
 DATE: March 2026
@@ -67,6 +69,7 @@ PLATFORM_ENV_VARS: Dict[str, str] = {
     'sendgrid':     'SENDGRID_API_KEY',
     'pinecone':     'PINECONE_API_KEY',
     'deepseek':     'DEEPSEEK_API_KEY',
+    'MiniMax':  'MINIMAX_API_KEY',
     'deepgram':     'DEEPGRAM_API_KEY',
     'speechmatics': 'SPEECHMATICS_API_KEY',
 }
@@ -143,6 +146,26 @@ def resolve_credentials(
     """
     platform = platform.lower().strip()
 
+    def _preview(raw: str) -> str:
+        """Safe masked preview: first 6 + … + last 4 (or '***' for short/empty)."""
+        if not raw:
+            return '***'
+        if len(raw) <= 14:
+            return '***'
+        return f"{raw[:6]}…{raw[-4:]}"
+
+    def _extract_key(cred: Optional[Dict[str, Any]]) -> str:
+        if not cred:
+            return ''
+        return (
+            cred.get('credential_value')
+            or cred.get('api_key')
+            or (cred.get('credentials') or {}).get('api_key')
+            or (cred.get('credentials') or {}).get('access_token')
+            or (cred.get('credentials') or {}).get('secret_key')
+            or ''
+        )
+
     # ------------------------------------------------------------------
     # TIER 1: User-specific credential
     # ------------------------------------------------------------------
@@ -150,7 +173,10 @@ def resolve_credentials(
         user_cred = _get_user_credential(user_id, platform, bypass_cache)
         if user_cred:
             user_cred['_source'] = 'user'
-            logger.debug(f"[ORG_CREDS_LOADER] Resolved {platform} from user credential (user_id={user_id})")
+            logger.info(
+                f"[ORG_CREDS_LOADER] ✅ Resolved {platform} from USER credential "
+                f"(Tier 1, user_id={user_id}, key={_preview(_extract_key(user_cred))})"
+            )
             return user_cred
 
     # ------------------------------------------------------------------
@@ -162,9 +188,10 @@ def resolve_credentials(
         parent_user_cred = _get_user_credential(parent_id, platform, bypass_cache)
         if parent_user_cred:
             parent_user_cred['_source'] = 'parent_user'
-            logger.debug(
-                f"[ORG_CREDS_LOADER] Resolved {platform} from parent user credential "
-                f"(sub_user_id={user_id}, parent_user_id={parent_id})"
+            logger.info(
+                f"[ORG_CREDS_LOADER] ✅ Resolved {platform} from PARENT user credential "
+                f"(Tier 1.5, sub_user_id={user_id}, parent_user_id={parent_id}, "
+                f"key={_preview(_extract_key(parent_user_cred))})"
             )
             return parent_user_cred
 
@@ -176,7 +203,10 @@ def resolve_credentials(
     org_cred = _get_org_credential(user_id, platform, bypass_cache)
     if org_cred:
         org_cred['_source'] = 'org'
-        logger.debug(f"[ORG_CREDS_LOADER] Resolved {platform} from org credential (user_id={user_id})")
+        logger.info(
+            f"[ORG_CREDS_LOADER] ✅ Resolved {platform} from ORG credential "
+            f"(Tier 2, user_id={user_id}, key={_preview(_extract_key(org_cred))})"
+        )
         return org_cred
 
     # If prefer_user=False we haven't tried user yet — try it as second option
@@ -184,20 +214,32 @@ def resolve_credentials(
         user_cred = _get_user_credential(user_id, platform, bypass_cache)
         if user_cred:
             user_cred['_source'] = 'user'
-            logger.debug(f"[ORG_CREDS_LOADER] Resolved {platform} from user credential (fallback, user_id={user_id})")
+            logger.info(
+                f"[ORG_CREDS_LOADER] ✅ Resolved {platform} from USER credential "
+                f"(Tier 1 fallback, user_id={user_id}, key={_preview(_extract_key(user_cred))})"
+            )
             return user_cred
 
     # ------------------------------------------------------------------
     # TIER 3: Environment variable fallback
     # ------------------------------------------------------------------
-    env_key = env_fallback or PLATFORM_ENV_VARS.get(platform)
+    # Case-insensitive lookup: the dict uses canonical names (some capitalised,
+    # some not — e.g. 'MiniMax') but callers may pass either case.
+    env_key = env_fallback
+    if not env_key:
+        env_key = PLATFORM_ENV_VARS.get(platform)
+        if not env_key:
+            for k, v in PLATFORM_ENV_VARS.items():
+                if k.lower() == platform:
+                    env_key = v
+                    break
     if env_key:
         env_val = os.getenv(env_key)
         if env_val:
             logger.warning(
-                f"[ORG_CREDS_LOADER] Using env var {env_key} for platform={platform}. "
-                f"Consider migrating to org credentials for proper per-org isolation. "
-                f"(user_id={user_id})"
+                f"[ORG_CREDS_LOADER] ⚠️  Using env var {env_key} for platform={platform} "
+                f"(Tier 3, user_id={user_id}, key={_preview(env_val)}). "
+                f"Per-org billing isolation is NOT enforced — migrate to org credentials."
             )
             return {
                 '_source':      'env',
@@ -207,7 +249,7 @@ def resolve_credentials(
             }
 
     logger.warning(
-        f"[ORG_CREDS_LOADER] No credential found for platform={platform}, user_id={user_id}. "
+        f"[ORG_CREDS_LOADER] ❌ No credential found for platform={platform}, user_id={user_id}. "
         f"Check org or user credentials in the admin panel."
     )
     return None
@@ -497,7 +539,7 @@ def get_provider_for_model(model_id: str) -> str:
       1. ai_model_catalog DB table (most accurate)
       2. Regex prefix fallback (always succeeds)
 
-    Returns one of: 'anthropic', 'openai', 'deepseek'
+    Returns one of: 'anthropic', 'openai', 'deepseek', 'MiniMax'
     """
     import re
     if not model_id:
@@ -511,6 +553,8 @@ def get_provider_for_model(model_id: str) -> str:
         return 'openai'
     if model_id.startswith('deepseek-'):
         return 'deepseek'
+    if model_id.startswith(('MiniMax-', 'M2-her', 'M2.7-', 'M2.5-', 'M2.1-')):
+        return 'MiniMax'
 
     # Fallback: try the catalog table for exotic model names
     try:
@@ -532,12 +576,14 @@ _PROVIDER_DEFAULT_MODELS: Dict[str, str] = {
     'anthropic': 'claude-sonnet-4-6',   # Claude Sonnet 4.6 — recommended (no date suffix)
     'openai':    'gpt-5.4',
     'deepseek':  'deepseek-chat',
+    'MiniMax':   'MiniMax-M3',          # Frontier 1M-context model
 }
 
 _PROVIDER_DEFAULT_MAX_TOKENS: Dict[str, int] = {
     'anthropic': 8192,
     'openai':    4096,
     'deepseek':  8192,
+    'MiniMax':   8192,
 }
 
 

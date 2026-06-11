@@ -1,9 +1,14 @@
 """
 Unified AI Client - Multi-Provider Support
-Supports: Anthropic Claude, DeepSeek, OpenAI GPT
+Supports: Anthropic Claude, DeepSeek, OpenAI GPT, MiniMax
 
 This client wraps all AI providers with a unified interface
 so routes can switch providers without code changes.
+
+MiniMax is exposed via an Anthropic-compatible endpoint
+(https://api.minimax.io/anthropic), so we re-use the Anthropic SDK
+with a custom base_url.  This gives us thinking blocks, tool use, and
+the same content-block shape as Claude with no extra translation layer.
 """
 
 import httpx
@@ -65,12 +70,13 @@ class ToolUseAgent:
 class UnifiedAIClient:
     """
     Multi-provider AI client with unified interface
-    
+
     Supported Providers:
     - Anthropic (Claude Sonnet, Haiku)
     - DeepSeek (deepseek-chat, deepseek-reasoner)
     - OpenAI (GPT-4o, GPT-4o-mini)
-    
+    - MiniMax (MiniMax-M3, MiniMax-M2.7, MiniMax-M2.5, MiniMax-M2.1, MiniMax-M2, M2-her)
+
     Features:
     - Single interface for all providers
     - SSE streaming for all providers
@@ -78,11 +84,11 @@ class UnifiedAIClient:
     - Server-side tool execution
     - Same SSE event format (NO UI CHANGES)
     """
-    
+
     def __init__(self, config_path: str):
         """
         Initialize multi-provider AI client
-        
+
         Args:
             config_path: Path to database-config.json
         """
@@ -92,19 +98,21 @@ class UnifiedAIClient:
             if not content or len(content) == 0:
                 raise ValueError(f"Config file is empty: {config_path}")
             self.config = json.loads(content)
-        
+
         # Initialize all providers
         self._init_anthropic()
         self._init_deepseek()
         self._init_openai()
-        
+        self._init_MiniMax()
+
         # Initialize tool use agent (server-side tools)
         self.tool_agent = ToolUseAgent(config_path)
-        
+
         print(f"[UnifiedAIClient] Initialized with providers:")
         print(f"  - Anthropic: {self.anthropic_model}")
         print(f"  - DeepSeek: {self.deepseek_model}")
         print(f"  - OpenAI: {self.openai_model}")
+        print(f"  - MiniMax: {self.MiniMax_model}")
     
     def _get_api_key_from_supabase(self, platform='anthropic', user_id=1):
         """
@@ -201,6 +209,53 @@ class UnifiedAIClient:
         if openai_key:
             openai.api_key = openai_key
         self.openai_model = self.config.get('AI', {}).get('OpenAIModel', 'gpt-4o-mini')
+
+    def _init_MiniMax(self):
+        """Initialize MiniMax client (uses Anthropic SDK with custom base_url).
+
+        MiniMax exposes an Anthropic-compatible endpoint at
+        https://api.minimax.io/anthropic, so we re-use the Anthropic SDK
+        pointing at that base URL.  This gives us native support for
+        thinking blocks, tool use, and the same content-block shape as Claude
+        without any translation layer.
+        """
+        # Priority: Supabase → Environment Variable → Config File
+        api_key_supabase = self._get_api_key_from_supabase('MiniMax')
+        api_key_env = os.environ.get('MINIMAX_API_KEY')
+        api_key_config = self.config.get('AI', {}).get('MiniMaxAPIKey', '')
+
+        api_key = api_key_supabase or api_key_env or api_key_config
+
+        # Default base URL (Anthropic-compatible recommended path)
+        self.MiniMax_base_url = (
+            os.environ.get('MINIMAX_BASE_URL')
+            or self.config.get('AI', {}).get('MiniMaxBaseURL', '')
+            or 'https://api.minimax.io/anthropic'
+        )
+
+        if api_key:
+            key_display = f"{api_key[:20]}...{api_key[-8:]}" if len(api_key) > 28 else api_key
+            if api_key == api_key_supabase:
+                print(f"[UnifiedAIClient] 🔐 Using MiniMax key from SUPABASE (key: {key_display})")
+            elif api_key == api_key_env:
+                print(f"[UnifiedAIClient] 🔐 Using MiniMax key from ENVIRONMENT (key: {key_display})")
+            else:
+                print(f"[UnifiedAIClient] 🔐 Using MiniMax key from CONFIG FILE (key: {key_display})")
+
+            # Re-use the Anthropic SDK pointing at MiniMax's Anthropic-compatible
+            # endpoint.  M3 supports thinking + tool use natively.
+            _MiniMax_timeout = httpx.Timeout(connect=30.0, read=600.0, write=60.0, pool=10.0)
+            self.MiniMax_client = Anthropic(
+                api_key=api_key,
+                base_url=self.MiniMax_base_url,
+                timeout=_MiniMax_timeout,
+                max_retries=3,
+            )
+            print(f"[UnifiedAIClient] MiniMax client initialized (base_url={self.MiniMax_base_url})")
+        else:
+            self.MiniMax_client = None
+            print("⚠️  Warning: No MiniMax API key found. Check Supabase credentials or set MINIMAX_API_KEY.")
+        self.MiniMax_model = self.config.get('AI', {}).get('MiniMaxModel', 'MiniMax-M3')
     
     def _get_tool_usage_instructions(self) -> str:
         """Load tool usage instructions from prompt file"""
@@ -317,7 +372,7 @@ Always explain what you're doing when using these tools so the user understands 
         session_data: Dict,
         prompt: str,
         files: Optional[List] = None,
-        provider: Literal['anthropic', 'deepseek', 'openai'] = 'anthropic',
+        provider: Literal['anthropic', 'deepseek', 'openai', 'MiniMax'] = 'anthropic',
         sse_callback: Optional[Callable] = None,
         user_id: Optional[int] = None,
         org_model: Optional[str] = None,
@@ -352,6 +407,10 @@ Always explain what you're doing when using these tools so the user understands 
         elif provider == 'openai':
             return self._process_openai(session_id, session_data, prompt, sse_callback,
                                         user_id=user_id, org_model=org_model, org_max_tokens=org_max_tokens)
+
+        elif provider == 'MiniMax':
+            return self._process_MiniMax(session_id, session_data, prompt, files, sse_callback,
+                                          user_id=user_id, org_model=org_model, org_max_tokens=org_max_tokens)
 
         else:
             raise ValueError(f"Unknown provider: {provider}")
@@ -898,9 +957,212 @@ Always explain what you're doing when using these tools so the user understands 
         conversation.append({'role': 'user', 'content': [{'type': 'text', 'text': prompt}]})
         # NOTE: OpenAI responses are text-only (no thinking/tool_use support)
         conversation.append({'role': 'assistant', 'content': [{'type': 'text', 'text': assistant_text}]})
-        
+
         return conversation
-    
+
+    def _process_MiniMax(
+        self,
+        session_id: str,
+        session_data: Dict,
+        prompt: str,
+        files: Optional[List],
+        sse_callback: Optional[Callable],
+        user_id: Optional[int] = None,
+        org_model: Optional[str] = None,
+        org_max_tokens: Optional[int] = None,
+    ) -> List[Dict]:
+        """Process with MiniMax (streaming, Anthropic-compatible).
+
+        MiniMax exposes an Anthropic-compatible endpoint, so this implementation
+        is structurally identical to _process_anthropic — same content blocks,
+        same tool_use / thinking handling.  We swap the client (base_url points
+        at api.minimax.io/anthropic) and the model id ('MiniMax-M3' etc.).
+
+        Per MiniMax docs: M3 supports thinking + interleaved-thinking + tool use
+        with the same Anthropic headers.  Other M-series models (M2.7, M2.5,
+        M2.1, M2) support tool use but not thinking.
+        """
+        # Resolve per-request API key from the org vault
+        MiniMax_client = self.MiniMax_client
+        try:
+            if user_id:
+                from AI_infrastructure.shared.org_credentials_loader import resolve_api_key
+                per_request_key = resolve_api_key(user_id, 'MiniMax')
+                if per_request_key:
+                    from anthropic import Anthropic as _Anthropic
+                    MiniMax_client = _Anthropic(
+                        api_key=per_request_key,
+                        base_url=self.MiniMax_base_url,
+                        timeout=httpx.Timeout(connect=30.0, read=600.0, write=60.0, pool=10.0),
+                        max_retries=3,
+                    )
+        except Exception as _key_err:
+            import logging as _log
+            _log.getLogger(__name__).warning(
+                f"[UnifiedAIClient] Per-request MiniMax key resolution failed, using startup key: {_key_err}"
+            )
+
+        if MiniMax_client is None:
+            raise ValueError("MiniMax client not initialized. Set MINIMAX_API_KEY.")
+
+        # System prompt
+        system_prompt = self.get_system_prompt(
+            session_data['ui_context'],
+            session_data.get('agent_id')
+        )
+
+        # Build conversation
+        conversation = session_data.get('conversation', [])
+
+        # Build user message
+        user_message = {'role': 'user', 'content': []}
+
+        # Add files if present (vision / multimodal)
+        if files:
+            for file_data in files:
+                user_message['content'].append({
+                    'type': 'image' if file_data['media_type'].startswith('image/') else 'document',
+                    'source': {
+                        'type': 'base64',
+                        'media_type': file_data['media_type'],
+                        'data': file_data['data']
+                    }
+                })
+
+        # Add text
+        user_message['content'].append({'type': 'text', 'text': prompt})
+
+        # Add to conversation
+        conversation.append(user_message)
+
+        # Resolve tool definitions from registry_v3
+        from tools import registry_v3
+        registry = registry_v3.get_registry()
+        client_tools = registry.get_anthropic_tools()
+
+        # Add ToolUseAgent tools if available
+        try:
+            tool_agent_tools = self.tool_agent._get_tool_definitions()
+            print(f"[UnifiedAIClient] Loaded {len(tool_agent_tools)} ToolUseAgent tools (MiniMax)")
+            client_tools.extend(tool_agent_tools)
+        except Exception:
+            pass
+
+        # Validate and fix client tools (same logic as Anthropic path)
+        validated_tools = []
+        invalid_count = 0
+
+        for idx, tool in enumerate(client_tools):
+            is_valid, errors = self._validate_tool_schema(tool, idx)
+            if not is_valid:
+                fixed_tool = self._fix_tool_schema(tool)
+                is_fixed, _ = self._validate_tool_schema(fixed_tool, idx)
+                if is_fixed:
+                    validated_tools.append(fixed_tool)
+                else:
+                    invalid_count += 1
+            else:
+                validated_tools.append(tool)
+
+        if invalid_count > 0:
+            print(f"⚠️  [UnifiedAIClient/MiniMax] Skipped {invalid_count} invalid tools in streaming mode")
+
+        # MiniMax does NOT have Anthropic server tools (no web_search/web_fetch).
+        # Tool use is handled locally by the registered client tools.
+        all_tools = validated_tools
+        print(f"[UnifiedAIClient/MiniMax] Total tools: {len(all_tools)} (client only — no server tools)")
+
+        # Reorder assistant message content blocks so any thinking block is first
+        for msg in conversation:
+            if msg['role'] == 'assistant' and isinstance(msg.get('content'), list):
+                has_thinking = any(block.get('type') == 'thinking' for block in msg['content'])
+                if has_thinking and msg['content'] and msg['content'][0].get('type') != 'thinking':
+                    thinking_blocks = [b for b in msg['content'] if b.get('type') == 'thinking']
+                    other_blocks   = [b for b in msg['content'] if b.get('type') != 'thinking']
+                    msg['content'] = thinking_blocks + other_blocks
+
+        # Thinking is only supported on M3.
+        # The MiniMax docs treat thinking as opt-in via the same Anthropic param
+        # shape, so we follow the user toggle the same way as the Claude path.
+        model_id = org_model or self.MiniMax_model
+        thinking_enabled = session_data.get('enable_thinking', True) and model_id == 'MiniMax-M3'
+
+        if thinking_enabled:
+            final_temperature = 1.0
+        else:
+            final_temperature = session_data.get('temperature', 1.0)
+
+        assistant_message = {'role': 'assistant', 'content': []}
+
+        # Build stream params
+        stream_params = {
+            'model': model_id,
+            'max_tokens': org_max_tokens or 12000,
+            'temperature': final_temperature,
+            'system': system_prompt,
+            'messages': conversation,
+            'tools': all_tools,
+        }
+
+        # MiniMax accepts the same `thinking` block as Anthropic; only M3 supports it.
+        if thinking_enabled:
+            stream_params['thinking'] = {
+                'type': 'enabled',
+                'budget_tokens': session_data.get('thinking_budget', 5000),
+            }
+
+        # The MiniMax docs do not require the `anthropic-beta` headers, so we
+        # omit them by default.  Callers that need interleaved-thinking on M3
+        # get it for free through the Anthropic SDK's `thinking` param.
+
+        with MiniMax_client.messages.stream(**stream_params) as stream:
+            for event in stream:
+                sse_event = self._convert_anthropic_event_to_sse(event)
+                if sse_event and sse_callback:
+                    sse_callback(sse_event)
+
+                if event.type == 'content_block_start':
+                    block = event.content_block
+                    if block.type == 'thinking':
+                        assistant_message['content'].append({'type': 'thinking', 'thinking': ''})
+                    elif block.type == 'text':
+                        assistant_message['content'].append({'type': 'text', 'text': ''})
+                    elif block.type == 'tool_use':
+                        assistant_message['content'].append({
+                            'type': 'tool_use',
+                            'id': block.id,
+                            'name': block.name,
+                            'input': {},
+                        })
+
+                elif event.type == 'content_block_delta':
+                    if event.delta.type == 'thinking_delta':
+                        assistant_message['content'][-1]['thinking'] += event.delta.thinking
+                    elif event.delta.type == 'text_delta':
+                        assistant_message['content'][-1]['text'] += event.delta.text
+                    elif event.delta.type == 'input_json_delta':
+                        if assistant_message['content']:
+                            last_block = assistant_message['content'][-1]
+                            if last_block['type'] == 'tool_use':
+                                try:
+                                    import json as _json
+                                    partial_input = _json.loads(event.delta.partial_json)
+                                    last_block['input'].update(partial_input)
+                                except Exception:
+                                    pass  # Partial JSON
+
+        # Handle CLIENT tool use (MiniMax has no server tools)
+        client_tool_blocks = [
+            block for block in assistant_message['content']
+            if block['type'] == 'tool_use'
+        ]
+
+        if client_tool_blocks:
+            assistant_message = self._handle_tool_use(assistant_message, sse_callback)
+
+        conversation.append(assistant_message)
+        return conversation
+
     def _convert_anthropic_event_to_sse(self, event) -> Optional[Dict]:
         """
         Convert Anthropic event to SSE format
@@ -1074,7 +1336,7 @@ Always explain what you're doing when using these tools so the user understands 
     def create_message(
         self,
         messages: List[Dict],
-        provider: Literal['anthropic', 'deepseek', 'openai'] = 'anthropic',
+        provider: Literal['anthropic', 'deepseek', 'openai', 'MiniMax'] = 'anthropic',
         model: Optional[str] = None,
         max_tokens: int = 4000,
         system: Optional[str] = None,
@@ -1442,7 +1704,7 @@ Always explain what you're doing when using these tools so the user understands 
                 messages=openai_messages,
                 max_tokens=max_tokens
             )
-            
+
             # Convert to Anthropic-like format
             return {
                 'id': response.id,
@@ -1461,7 +1723,130 @@ Always explain what you're doing when using these tools so the user understands 
                     'output_tokens': response.usage.completion_tokens
                 }
             }
-        
+
+        elif provider == 'MiniMax':
+            # MiniMax is Anthropic-compatible, so this mirrors the anthropic branch
+            # but uses the MiniMax client and skips the Anthropic-only server tools
+            # (web_search / web_fetch) — MiniMax does not implement those.
+            if not self.MiniMax_client:
+                raise ValueError("MiniMax client not initialized. Set MINIMAX_API_KEY.")
+
+            # Resolve per-request key from the org vault
+            MiniMax_client_nonstream = self.MiniMax_client
+            try:
+                if user_id:
+                    from AI_infrastructure.shared.org_credentials_loader import resolve_api_key
+                    per_request_key = resolve_api_key(user_id, 'MiniMax')
+                    if per_request_key:
+                        from anthropic import Anthropic as _Anthropic
+                        MiniMax_client_nonstream = _Anthropic(
+                            api_key=per_request_key,
+                            base_url=self.MiniMax_base_url,
+                            timeout=httpx.Timeout(connect=30.0, read=600.0, write=60.0, pool=10.0),
+                            max_retries=3,
+                        )
+            except Exception:
+                pass
+
+            # Use specified model or default
+            model = model or self.MiniMax_model
+
+            # Validate and fix client tools
+            client_tools = tools or []
+            validated_tools = []
+            invalid_count = 0
+
+            for idx, tool in enumerate(client_tools):
+                is_valid, errors = self._validate_tool_schema(tool, idx)
+                if not is_valid:
+                    print(f"⚠️  [MiniMax] Tool #{idx} '{tool.get('name', 'UNKNOWN')}' validation failed:")
+                    for error in errors:
+                        print(f"    {error}")
+                    fixed_tool = self._fix_tool_schema(tool)
+                    is_fixed, _ = self._validate_tool_schema(fixed_tool, idx)
+                    if is_fixed:
+                        print(f"    ✅ Auto-fixed!")
+                        validated_tools.append(fixed_tool)
+                    else:
+                        print(f"    ❌ Could not fix - SKIPPING tool")
+                        invalid_count += 1
+                else:
+                    validated_tools.append(tool)
+
+            if invalid_count > 0:
+                print(f"⚠️  [MiniMax] Skipped {invalid_count} invalid tools")
+
+            # MiniMax has no server-side web_search / web_fetch tools.
+            all_tools = validated_tools
+            print(f"[UnifiedAIClient/MiniMax] create_message: {len(all_tools)} client tools (no server tools)")
+
+            # Reorder assistant content blocks so thinking is first (matches Anthropic rule)
+            for idx, msg in enumerate(messages):
+                if msg['role'] == 'assistant' and isinstance(msg.get('content'), list):
+                    has_thinking = any(block.get('type') == 'thinking' for block in msg['content'])
+                    if has_thinking and msg['content'] and msg['content'][0].get('type') != 'thinking':
+                        thinking_blocks = [b for b in msg['content'] if b.get('type') == 'thinking']
+                        other_blocks   = [b for b in msg['content'] if b.get('type') != 'thinking']
+                        msg['content'] = thinking_blocks + other_blocks
+
+            # API params
+            api_params = {
+                "model": model,
+                "max_tokens": max_tokens,
+                "system": system or "You are a helpful AI assistant.",
+                "messages": messages,
+                "tools": all_tools,
+            }
+
+            # Thinking is opt-in for M3 only.
+            if enable_thinking and model == 'MiniMax-M3':
+                api_params["thinking"] = {
+                    "type": "enabled",
+                    "budget_tokens": thinking_budget,
+                }
+                # Anthropic rule: temperature must be 1.0 when thinking is enabled
+                api_params["temperature"] = 1.0
+            else:
+                api_params["temperature"] = temperature
+
+            print(f"\n[UnifiedAIClient/MiniMax] 📤 Sending request to MiniMax (model={model})...\n")
+
+            # Call MiniMax API
+            response = MiniMax_client_nonstream.messages.create(**api_params)
+
+            # Convert to expected format (same as Anthropic branch)
+            content_blocks = []
+            for block in response.content:
+                block_dict = {'type': block.type}
+
+                if hasattr(block, 'text'):
+                    block_dict['text'] = block.text
+
+                if hasattr(block, 'thinking'):
+                    block_dict['thinking'] = block.thinking
+                    if hasattr(block, 'signature') and block.signature:
+                        block_dict['signature'] = block.signature
+
+                if block.type == 'tool_use':
+                    block_dict['id'] = getattr(block, 'id', None)
+                    block_dict['name'] = getattr(block, 'name', None)
+                    block_dict['input'] = getattr(block, 'input', {})
+
+                content_blocks.append(block_dict)
+
+            return {
+                'id': response.id,
+                'type': response.type,
+                'role': response.role,
+                'content': content_blocks,
+                'model': response.model,
+                'stop_reason': response.stop_reason,
+                'usage': {
+                    'input_tokens': response.usage.input_tokens,
+                    'output_tokens': response.usage.output_tokens
+                }
+            }
+
         else:
             raise ValueError(f"Unknown provider: {provider}")
     

@@ -2700,7 +2700,7 @@ def execute_streaming_request(
     max_rounds: int = 30,
     current_round: int = 1,
     ai_model: str = 'claude-sonnet-4-6',
-    ai_provider: str = 'anthropic',
+    ai_provider: str = 'anthropic',   # 'anthropic' | 'openai' | 'deepseek' | 'MiniMax'
     ai_temperature: float = 1.0,
     ai_max_tokens: int = 16000,
     ai_thinking_enabled: bool = True,
@@ -2890,18 +2890,50 @@ def execute_streaming_request(
         #   Tier 1: user_platform_credentials for the requesting user
         #   Tier 2: organisation_platform_credentials for the user's org  ← org vault
         #   Tier 3: ANTHROPIC_API_KEY environment variable (legacy fallback)
+        #
+        # Provider-aware (June 2026): MiniMax is routed the same way — same SDK,
+        # different base_url, different key.  The Anthropic client is reused
+        # because MiniMax is Anthropic-API-compatible.
         api_key = None
         api_key_source = None
         lookup_user_id = user_id if user_id else 1
+
+        # Determine the platform whose key we should resolve
+        if ai_provider == 'MiniMax':
+            platform_name = 'MiniMax'
+            env_var_name  = 'MINIMAX_API_KEY'
+            client_base_url = (
+                os.environ.get('MINIMAX_BASE_URL')
+                or 'https://api.minimax.io/anthropic'
+            )
+            default_key_error = (
+                f"MiniMax API key not found. Checked: "
+                f"1) user_platform_credentials for user_id={lookup_user_id} (platform='MiniMax'), "
+                f"2) organisation_platform_credentials for user's org, "
+                f"3) {env_var_name} environment variable. "
+                f"Please add your MiniMax API key in Organisation Settings → Connections."
+            )
+        else:
+            platform_name  = 'anthropic'
+            env_var_name   = 'ANTHROPIC_API_KEY'
+            client_base_url = None
+            default_key_error = (
+                f"Anthropic API key not found. Checked: "
+                f"1) user_platform_credentials for user_id={lookup_user_id}, "
+                f"2) organisation_platform_credentials for user's org, "
+                f"3) {env_var_name} environment variable. "
+                f"Please add your Anthropic API key in Organisation Settings → Connections."
+            )
+
         try:
-            from AI_infrastructure.shared.org_credentials_loader import resolve_api_key as _resolve_anthropic_key
-            print(f"{log_prefix} 🔍 Loading Anthropic credentials via org-aware resolver (user_id={lookup_user_id})...")
-            api_key = _resolve_anthropic_key(lookup_user_id, 'anthropic')
+            from AI_infrastructure.shared.org_credentials_loader import resolve_api_key as _resolve_provider_key
+            print(f"{log_prefix} 🔍 Loading {platform_name} credentials via org-aware resolver (user_id={lookup_user_id})...")
+            api_key = _resolve_provider_key(lookup_user_id, platform_name)
             if api_key:
                 api_key_source = f'org_credentials_loader (user_id={lookup_user_id})'
-                print(f"{log_prefix} ✅ Resolved Anthropic API key (last 8 chars: ...{api_key[-8:]})")
+                print(f"{log_prefix} ✅ Resolved {platform_name} API key (last 8 chars: ...{api_key[-8:]})")
             else:
-                print(f"{log_prefix} ❌ No Anthropic credential found via org-aware resolver for user_id={lookup_user_id}")
+                print(f"{log_prefix} ❌ No {platform_name} credential found via org-aware resolver for user_id={lookup_user_id}")
         except Exception as e:
             import traceback
             print(f"{log_prefix} ⚠️ org_credentials_loader failed: {e}")
@@ -2909,25 +2941,27 @@ def execute_streaming_request(
 
         # Final fallback: environment variable (if loader found nothing)
         if not api_key:
-            api_key = os.getenv('ANTHROPIC_API_KEY')
+            api_key = os.getenv(env_var_name)
             if api_key:
-                api_key_source = 'environment variable (ANTHROPIC_API_KEY)'
-                print(f"{log_prefix} 🔐 Using Anthropic API key from environment variable (last 8 chars: ...{api_key[-8:]})")
+                api_key_source = f'environment variable ({env_var_name})'
+                print(f"{log_prefix} 🔐 Using {platform_name} API key from environment variable (last 8 chars: ...{api_key[-8:]})")
 
         if not api_key:
-            error_msg = (
-                f"Anthropic API key not found. Checked: "
-                f"1) user_platform_credentials for user_id={lookup_user_id}, "
-                f"2) organisation_platform_credentials for user's org, "
-                f"3) ANTHROPIC_API_KEY environment variable. "
-                f"Please add your Anthropic API key in Organisation Settings → Connections."
-            )
-            print(f"{log_prefix} ❌ {error_msg}")
-            yield {'type': 'error', 'error': error_msg}
+            print(f"{log_prefix} ❌ {default_key_error}")
+            yield {'type': 'error', 'error': default_key_error}
             return
-        
-        print(f"{log_prefix} 🚀 Initializing Anthropic client with key from: {api_key_source}")
-        client = Anthropic(api_key=api_key, timeout=120.0, max_retries=3)
+
+        print(f"{log_prefix} 🚀 Initializing {platform_name} client with key from: {api_key_source}")
+        if client_base_url:
+            # MiniMax / future Anthropic-compatible providers
+            client = Anthropic(
+                api_key=api_key,
+                base_url=client_base_url,
+                timeout=120.0,
+                max_retries=3,
+            )
+        else:
+            client = Anthropic(api_key=api_key, timeout=120.0, max_retries=3)
         
         # Track content blocks and stop reason
         all_content_blocks = []
@@ -2966,8 +3000,14 @@ def execute_streaming_request(
             'claude-3-7-sonnet',
             'claude-opus-4-7',  # Opus 4.7 supports adaptive thinking
         }
-        model_supports_thinking = (ai_provider == 'anthropic' and
-                                   _base in SUPPORTS_THINKING_MODELS)
+        # Provider-aware thinking support: MiniMax-M3 supports thinking, others don't.
+        # The check is (provider supports thinking) AND (model in SUPPORTS_THINKING_MODELS).
+        _PROVIDER_THINKING_MODELS = {
+            'anthropic': SUPPORTS_THINKING_MODELS,
+            'MiniMax':  {'MiniMax-M3'},  # Only M3 supports Interleaved Thinking
+        }
+        _provider_thinking_set = _PROVIDER_THINKING_MODELS.get(ai_provider, set())
+        model_supports_thinking = _base in _provider_thinking_set
         if ai_thinking_enabled and model_supports_thinking:
             if _base in ADAPTIVE_THINKING_MODELS:
                 thinking_param = {'type': 'adaptive'}

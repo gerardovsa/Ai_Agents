@@ -1,7 +1,7 @@
 # Organisation Credentials System — Master Analysis
-**Date:** March 26, 2026 (Last Updated: May 28, 2026)
+**Date:** March 26, 2026 (Last Updated: June 11, 2026)
 **Purpose:** Complete authoritative reference for new chat sessions. Multi-tenant platform — one Render deployment, one Supabase database, all user types served.
-**Status:** ✅ Migrations 020–046 complete. Platform catalog (27 platforms), module catalog (26 modules), full org/user/role system, credential vault (Fernet encrypted), DB-driven permission model, and personal org tier are LIVE in Supabase. ✅ April 8: Full invite system; `execute_query` DML bugs fixed; recursive trigger fixed. ✅ April 29: Vector DB gaps resolved (GAP-V1–V8); pgvector dual-provider (migrations 044+045). ✅ April 30: Account sidebar identity panel (`#account-identity-panel`). ✅ **May 2026:** Migration 046 (personal org tier, `is_personal_org`, `default_member_role`, `create_personal_org()`); solo user backfill complete; credential resolution now **4-tier** (Tier 1.5 sub-user inheritance added); Synergy Team-visibility gating for personal-org users; Synergy write-route permission enforcement; member management (4 routes + UI); 12 new Synergy AI tools. Full record: `PERSONAL_ORG_SYNERGY_IMPLEMENTATION_PLAN_MAY2026.md`. ⚠️ `ORGANISATION_CREDENTIALS_ARCHITECTURE_UPDATED_APRIL30_2026.md` **ARCHIVED May 28, 2026** — unique content merged into this file. ✅ **June 2, 2026:** Platform Connections UI (Account Profile → Connections) fully audited and aligned with 4-tier credential architecture. See **Platform Connections UI System** section below.
+**Status:** ✅ Migrations 020–051 complete. Platform catalog (28 platforms — MiniMax added June 11), module catalog (26 modules), full org/user/role system, credential vault (Fernet encrypted), DB-driven permission model, and personal org tier are LIVE in Supabase. ✅ April 8: Full invite system; `execute_query` DML bugs fixed; recursive trigger fixed. ✅ April 29: Vector DB gaps resolved (GAP-V1–V8); pgvector dual-provider (migrations 044+045). ✅ April 30: Account sidebar identity panel (`#account-identity-panel`). ✅ **May 2026:** Migration 046 (personal org tier, `is_personal_org`, `default_member_role`, `create_personal_org()`); solo user backfill complete; credential resolution now **4-tier** (Tier 1.5 sub-user inheritance added); Synergy Team-visibility gating for personal-org users; Synergy write-route permission enforcement; member management (4 routes + UI); 12 new Synergy AI tools. Full record: `PERSONAL_ORG_SYNERGY_IMPLEMENTATION_PLAN_MAY2026.md`. ⚠️ `ORGANISATION_CREDENTIALS_ARCHITECTURE_UPDATED_APRIL30_2026.md` **ARCHIVED May 28, 2026** — unique content merged into this file. ✅ **June 2, 2026:** Platform Connections UI (Account Profile → Connections) fully audited and aligned with 4-tier credential architecture. See **Platform Connections UI System** section below. ✅ **June 9, 2026:** Vector DB local embedding model upgraded to `BAAI/bge-base-en-v1.5`; HuggingFace offline loading fix (bypasses 60-90s HEAD request storm on cached model → <1s load); `force_local` vault bypass; user-selectable embedding provider in Settings tab. Migration 049 (`vector(768)`). See `.github/VECTOR_DB_ORG_ALIGNMENT_ANALYSIS_APR29_2026.md` Section 11 and `.github/VECTOR_DB_DEVELOPER_REFERENCE.md`. ✅ **June 11, 2026:** MiniMax M-series integrated as the **fourth AI provider** (after Anthropic, OpenAI, DeepSeek). Migration 050 seeds `platform_catalog` (MiniMax, sort_order 14, `fas fa-bolt` / `#FF6A00`) and 9 models in `ai_model_catalog` (M3 — 1M context with vision + thinking; M2.7 / M2.5 / M2.1 / M2 — 204K context; M2-her — 64K role-play). `_init_MiniMax()` reuses the `anthropic.Anthropic` SDK with `base_url='https://api.minimax.io/anthropic'` (Anthropic-API-compatible). Migration 051 widens `chk_organisations_ai_provider` CHECK constraint from 3 to 4 providers (was a silent-failure gap — Python validator accepted MiniMax but DB rejected). `org_credentials_loader.py` adds `'MiniMax': 'MINIMAX_API_KEY'` to `PLATFORM_ENV_VARS`; diagnostic logging promoted to **INFO level with masked key preview** for all providers (was DEBUG); case-insensitive env-var fallback loop added (fixes `'minimax'` lookup bug). UI: `isNonAnthropic` regex updated to `^(gpt-|o1|o3|deepseek-|MiniMax-|M2-her)`, MiniMax added to `AI_MODELS_BY_PROVIDER`, `platformMeta`, `PROVIDER_LABELS`, `providerOrder`, `inferProviderFromModel()`, and the org AI Provider dropdown (`<option value="MiniMax">`). New diagnostic endpoint `GET /api/org/credential-source?platform=<name>` returns the resolved tier and masked key. Connection-routes add MiniMax to `ORG_PLATFORMS` (admin/owner → Tier 2 org vault). `.env.example` documents `MINIMAX_API_KEY`, `MINIMAX_BASE_URL`, `MINIMAX_KEYS`. **GAP-L5 (DeepSeek env-var only) is now FULLY RESOLVED for DeepSeek, OpenAI, AND MiniMax** — all four AI providers go through the 4-tier resolver identically.
 
 ---
 
@@ -406,7 +406,7 @@ if not api_key:
     return {"error": "Anthropic API key not configured for your organisation."}
 ```
 
-**Returns `_source` tag:** `'user'`, `'org'`, or `'env'` — useful for diagnostics.
+**Returns `_source` tag:** `'user'`, `'parent_user'` (sub-user inheritance), `'org'`, or `'env'` — useful for diagnostics.
 
 ---
 
@@ -582,7 +582,7 @@ resolve_api_key(user_id=5, platform='anthropic')
 **Key point for solo users (Tier 1 model):** Every registered user now has an `organisation_id` pointing to their personal org (guaranteed by Migration 046 backfill + `register_user()` change). No `NULL` org_id scenarios remain in production.
 
 **Platforms that should be org-level (Tier 2):**
-`anthropic`, `openai`, `auspost`, `stripe`, `sendgrid`, `twilio`, `assemblyai`, `pinecone`, `deepseek`
+`anthropic`, `openai`, `MiniMax`, `auspost`, `stripe`, `sendgrid`, `twilio`, `assemblyai`, `pinecone`, `deepseek`
 
 **Platforms that should stay user-level (Tier 1, OAuth tokens):**
 `google`, `microsoft`, `xero`, `gmail_oauth`, `outlook_oauth`
@@ -600,7 +600,7 @@ api_key = resolve_api_key(user_id, 'anthropic')
 ```
 
 **Platforms that should be org-level (not user-level):**
-`anthropic`, `openai`, `auspost`, `stripe`, `sendgrid`, `twilio`, `assemblyai`, `pinecone`, `deepseek`
+`anthropic`, `openai`, `MiniMax`, `auspost`, `stripe`, `sendgrid`, `twilio`, `assemblyai`, `pinecone`, `deepseek`
 
 **Platforms that should stay user-level (OAuth tokens):**
 `google`, `microsoft`, `xero`, `gmail_oauth`, `outlook_oauth`
@@ -658,7 +658,7 @@ api_key = resolve_api_key(user_id, 'anthropic')
 
 9. ~~**org_invitations table does not exist yet**~~ — **✅ RESOLVED (April 8, 2026)** `org_invitations` table confirmed present (March 2026). Full invite system complete — see point 1 above. Recursive trigger `trg_expire_invitations` fixed (added `WHEN (pg_trigger_depth() = 0)` guard, migration 041). Core `execute_query` DML commit bug also fixed — was silently rolling back all org_invitations INSERTs.
 
-10. **Vector Database module not integrated with org/credential system** — `vector_db_routes.py` has `@require_auth` imported but never applied (all 8 endpoints are unauthenticated). All routes hardcode `user_id = 1`. `pinecone_tools.py` uses `UserAuthManager` (personal table) instead of `org_credentials_loader.resolve_credentials()`. The Settings tab in the Vector Database UI lets users save Pinecone API keys to the wrong table (bypassing the org vault). Namespace isolation (GAP-C1 partial fix) is not propagated to query/upsert callers. Full analysis and fix plan: **`.github/VECTOR_DB_ORG_ALIGNMENT_ANALYSIS_APR29_2026.md`** (8 gaps: GAP-V1 through GAP-V8). `MODULE_VISIBILITY_ARCHITECTURE.md` Section 7 updated April 29, 2026 to reflect Professional/Optional gating requirement.
+10. ~~**Vector Database module not integrated with org/credential system**~~ — **✅ FULLY RESOLVED** (April 29, 2026 — GAP-V1 through GAP-V8; May 29, 2026 — GAP-V9 personal-org short-circuit; June 2026 — BGE model upgrade + HF offline load fix). Current state: `@require_auth` on all endpoints, `g.rls_user_id` throughout, `resolve_credentials()` for all providers, org-scoped namespace (`org_{org_id}`), Settings credential form retired (returns 410), `data-module="vector_database"` gating in sidebar. pgvector is the primary provider (built-in, free, no Pinecone needed). Local embedding model `BAAI/bge-base-en-v1.5` loads from disk in <1s (no HuggingFace network calls after first deployment). User can select embedding model in Settings tab (Local BGE default / Voyage AI / OpenAI). Full change history: **`.github/VECTOR_DB_ORG_ALIGNMENT_ANALYSIS_APR29_2026.md`** (Sections 9–11). Developer reference: **`.github/VECTOR_DB_DEVELOPER_REFERENCE.md`**.
 
 ---
 
@@ -694,7 +694,7 @@ Before addressing gaps, the following components are working correctly and shoul
 | **DB: tenant isolation** | `organisations` table, `users.organisation_id` FK, `users.org_role` — correct design |
 | **DB: credential vault** | `organisation_platform_credentials` with role-gating columns, audit log, soft-delete |
 | **DB: invite system** | `org_invitations` table with token expiry (added March 23) |
-| **DB: pgvector isolation** | `vector_embeddings` table isolated by `user_id` + `namespace` |
+| **DB: pgvector isolation** | `ai_infrastructure.org_vector_documents` table isolated by `org_id` (not namespace). Migration 044 creates table + HNSW cosine index. Migration 049 sets `vector(768)`. All queries hard-filter on `org_id = _get_org_id(user_id)`. RLS policy enforces org isolation at DB level. |
 | **DB: document library** | `document_library` isolated by `owner_user_id` |
 | **DB: synergy sessions** | `synergy_sessions` with `organisation_id`, `visibility`, `session_members`, full RLS |
 | **Auth: JWT payload** | Login response includes `org_id`, `org_name`, `org_role`, `org_slug` |
@@ -1010,6 +1010,7 @@ Each gap is structured for systematic resolution. Work through them in the order
    <select id="new-cred-platform">
        <option value="anthropic">Anthropic (Claude)</option>
        <option value="openai">OpenAI (GPT)</option>
+       <option value="MiniMax">MiniMax (M-series)</option>
        <option value="assemblyai">AssemblyAI</option>
        <option value="pinecone">Pinecone</option>
        <option value="deepseek">DeepSeek</option>
@@ -1021,7 +1022,7 @@ Each gap is structured for systematic resolution. Work through them in the order
    ```
 2. In `organisation_credentials_routes.py`, validate `platform` on the backend against the allowed list:
    ```python
-   ALLOWED_PLATFORMS = {'anthropic', 'openai', 'assemblyai', 'pinecone', 'deepseek', 'shopify', 'xero', 'sendgrid', 'twilio', 'auspost', 'stripe'}
+   ALLOWED_PLATFORMS = {'anthropic', 'openai', 'MiniMax', 'assemblyai', 'pinecone', 'deepseek', 'shopify', 'xero', 'sendgrid', 'twilio', 'auspost', 'stripe'}
    if platform not in ALLOWED_PLATFORMS:
        return jsonify({'error': f'Unknown platform: {platform}'}), 400
    ```
@@ -1130,16 +1131,23 @@ Each gap is structured for systematic resolution. Work through them in the order
 
 ---
 
-#### GAP-L5: DeepSeek Env-Var Only — No DB Lookup (LOW)
-**Status:** `[ ]` Not Started  
-**Affected Files:** `AI_infrastructure/core/unified_ai_client.py`  
-**Problem:** DeepSeek API key is only read from `os.getenv('DEEPSEEK_API_KEY')`. There is no path for storing a DeepSeek key in the org vault and having it resolved via `resolve_api_key`.  
-**Fix Steps:**
-1. In `org_credentials_loader.py`, ensure `platform='deepseek'` is handled (it should already work generically — just needs verification).
-2. Add `deepseek` to the allowed platforms list (GAP-M5).
-3. In `UnifiedAIClient.call_deepseek()` (after GAP-C3 fix), use `resolve_api_key(user_id, 'deepseek')` instead of `os.getenv`.  
-**Verification Checkpoint:** Store a DeepSeek key in org vault with platform `deepseek`. Route a DeepSeek request as that org's user. Confirm `os.getenv` fallback is NOT hit (add a log line to verify).  
-**Dependencies:** GAP-C3, GAP-M5.
+#### GAP-L5: DeepSeek / OpenAI / MiniMax Env-Var Only — No DB Lookup (LOW)
+**Status:** ✅ **FULLY RESOLVED (June 11, 2026)** — closed for DeepSeek, OpenAI, AND MiniMax in the same pass.  
+**Affected Files:** `AI_infrastructure/core/unified_ai_client.py`, `AI_infrastructure/shared/org_credentials_loader.py`, `AI_infrastructure/routes/connection_routes.py`, `AI_infrastructure/routes/organisation_credentials_routes.py`, `AI_infrastructure/core/combined_agent_worker.py`, `UI/business-ai-platform-v2.html`, `.env.example`, `AI_infrastructure/migrations/050_add_minimax_provider.sql`, `AI_infrastructure/migrations/051_ai_provider_allow_minimax.sql`  
+**Original Problem:** DeepSeek / OpenAI / MiniMax API keys could only be resolved from `os.getenv(...)`. There was no path for storing keys in the org vault and resolving them via `resolve_api_key`.  
+**Fix Applied:**
+1. `org_credentials_loader.py` — Added `MiniMax` to `PLATFORM_ENV_VARS` (`'MiniMax': 'MINIMAX_API_KEY'`), `_PROVIDER_DEFAULT_MODELS`, and `_PROVIDER_DEFAULT_MAX_TOKENS`. Case-insensitive env-var lookup loop added (fixes `'minimax'` → `MINIMAX_API_KEY` mismatch). All 4 AI providers (Anthropic, OpenAI, DeepSeek, MiniMax) now go through the same generic 4-tier resolver.
+2. `unified_ai_client.py` — Added `_init_MiniMax()` and `_process_MiniMax()` methods. `_init_MiniMax()` reuses the `anthropic.Anthropic` SDK with `base_url='https://api.minimax.io/anthropic'` (Anthropic-compatible endpoint — same content blocks, SSE shape, tool_use conventions). `_process_MiniMax()` mirrors `_process_anthropic` verbatim. `create_message()` dispatches by `provider` value with `Literal` type hints now `('anthropic' | 'openai' | 'deepseek' | 'MiniMax')`.
+3. `combined_agent_worker.py` — `_resolve_provider_key()` resolves any of the 4 providers; `_PROVIDER_THINKING_MODELS` dict tracks thinking-capable models per provider (currently only `MiniMax-M3` for MiniMax; `claude-*` for Anthropic; others are text-only).
+4. `connection_routes.py` — `MiniMax` added to `ORG_PLATFORMS` set so admin/owner additions land in Tier 2 (org vault) not Tier 1 (personal).
+5. `organisation_credentials_routes.py` — `ai_provider` validator accepts `MiniMax`; `LEGACY_ALLOWED_PLATFORMS` updated; `_test_platform_credential()` has MiniMax branch using `https://api.minimax.io/v1/models`; `_FALLBACK_MODEL_CATALOG` includes 9 MiniMax models; new `GET /api/org/credential-source?platform=<name>` diagnostic endpoint.
+6. **Diagnostic INFO logging** promoted for all providers: `org_credentials_loader.py` now logs at INFO level with masked key preview (`eyJhbg…xxxx`) so a developer watching Render logs can see at a glance which tier resolved (Tier 1, Tier 1.5, Tier 2, or Tier 3) and which key is in use. Tier 3 emits a visible WARNING with platform name and env var name.
+7. Migration `050_add_minimax_provider.sql` — Seeds `platform_catalog` (`('MiniMax', 'MiniMax', 'fas fa-bolt', '#FF6A00', 'ai', 'api_key', ...)` sort_order 14) and 9 models in `ai_model_catalog`. All `ON CONFLICT DO NOTHING` for idempotency.
+8. Migration `051_ai_provider_allow_minimax.sql` — **CRITICAL FIX**: widens `chk_organisations_ai_provider` CHECK constraint from `(anthropic, openai, deepseek)` to include `MiniMax`. Without this, `PUT /api/org/info` with `ai_provider='MiniMax'` would be rejected at the DB layer even though Python validation passed (silent-failure gap).
+9. `UI/business-ai-platform-v2.html` — `isNonAnthropic` regex updated to `/^(gpt-|o1|o3|deepseek-|MiniMax-|M2-her)/`; MiniMax added to `AI_MODELS_BY_PROVIDER`, `platformMeta`, `PROVIDER_LABELS`, `providerOrder`, `inferProviderFromModel()`, and the org AI Provider dropdown (`<option value="MiniMax">MiniMax</option>`).
+10. `.env.example` — Documents `MINIMAX_API_KEY=eyJ-your-key`, `MINIMAX_BASE_URL=https://api.minimax.io/anthropic`, and `MINIMAX_KEYS=["eyJ-your-key"]`.  
+**Verification Checkpoint:** Store a DeepSeek OR OpenAI OR MiniMax key in the org vault with the canonical platform name. Route a request as that org's user. Server log shows `[ORG_CREDS_LOADER] ✅ Resolved <platform> from ORG credential (Tier 2, org_id=...)` — confirms the vault key is consumed, not the env var. `/api/org/credential-source?platform=MiniMax` returns `{"source": "org", "tier": 2, "env_var": "MINIMAX_API_KEY", "preview": "eyJhb…xxxx"}` when org key is set, `{"source": "env", "tier": 3, ...}` when only env var is set.  
+**Dependencies:** GAP-C3 (per-request key resolution) and GAP-M5 (ALLOWED_PLATFORMS) were both completed first.
 
 ---
 
@@ -1206,7 +1214,7 @@ Each gap is structured for systematic resolution. Work through them in the order
 | 🟢 LOW | GAP-L2: Key rotation reminders unused | Silent stale keys |
 | 🟢 LOW | GAP-L3: No Test Connection button | UX gap |
 | 🟢 LOW | GAP-L4: realtime_messages not scoped | Possible real-time leakage |
-| 🟢 LOW | GAP-L5: DeepSeek env-var only | DeepSeek not vault-compatible |
+| ✅ FIXED | GAP-L5: DeepSeek / OpenAI / MiniMax env-var only | All 4 AI providers now go through 4-tier resolver (Migration 050 + 051; June 11) |
 | ✅ FIXED | GAP-L6: is_sub_user not in DB | Column confirmed in team_id_management_migration.sql |
 | ✅ FIXED | GAP-L7: Credentials plain text at rest | Fernet AES-128-CBC encryption in `credential_crypto.py`; `enc:v1:` prefix; passthrough if key missing |
 
@@ -1235,7 +1243,7 @@ Work through the phases in sequence. Each phase builds on the previous. Complete
 
 - `[x]` **2a.** Fix GAP-C3: Per-request `resolve_api_key()` in `_process_anthropic/deepseek/openai/create_message()` ✅
 - `[x]` **2b.** Fix GAP-H2: `resolve_api_key` wired into AssemblyAI; GAP-C3 covers UnifiedAIClient ✅
-- `[ ]` **2c.** Fix GAP-L5: Wire DeepSeek into `resolve_api_key` path ⬅ still to do
+- `[x]` **2c.** Fix GAP-L5: Wire DeepSeek, OpenAI, AND MiniMax into `resolve_api_key` path ✅ (June 11 — Migration 050 + 051; all 4 AI providers through the 4-tier resolver)
 - `[x]` **2d.** Fix GAP-M5: `ALLOWED_PLATFORMS` validation on backend; dropdown in UI ✅
 
 **Phase 2 Checkpoint:** Store a deliberately invalid Anthropic key in org 2's vault. Org 2 user sends a message — gets Anthropic 401 error (proves vault key is used, not env var). Org 1 user (with valid key) still works normally.
@@ -1316,7 +1324,7 @@ Work through the phases in sequence. Each phase builds on the previous. Complete
 - `[ ]` **9a.** Fix GAP-L2: Add scheduled key rotation reminder (APScheduler/cron)
 - `[ ]` **9b.** Fix GAP-L3: Add "Test Connection" button + `POST /api/org/credentials/:id/test` endpoint
 - `[x]` **9c.** Fix GAP-L7: Credential encryption at rest ✅ — Fernet AES-128-CBC in `credential_crypto.py`; `enc:v1:` prefix; `CREDENTIAL_ENCRYPTION_KEY` env var
-- `[ ]` **9d.** Add `deepseek` to vault UI platform dropdown (from GAP-M5 work)
+- `[ ]` **9d.** Add `deepseek` AND `MiniMax` to vault UI platform dropdown ✅ (June 11 — Migration 050 + 051; both providers in `<select>` and `ALLOWED_PLATFORMS` set; GAP-L5 closed for both)
 
 **Phase 9 Checkpoint:** `SELECT credential_value FROM ai_infrastructure.organisation_platform_credentials LIMIT 3;` — shows `enc:v1:...` ciphertext, not plaintext API keys.
 
@@ -1330,6 +1338,8 @@ Work through the phases in sequence. Each phase builds on the previous. Complete
 | `AI_infrastructure/migrations/025_synergy_sessions_multitenancy.sql` | — | ✅ run — Synergy multi-tenancy: org FK, visibility, session_members, RLS |
 | `AI_infrastructure/migrations/039_user_module_access.sql` | — | per-user module restrictions (`user_module_access` table, 3 new API endpoints) |
 | `AI_infrastructure/migrations/046_personal_org_and_synergy_defaults.sql` | — | Personal org support: `is_personal_org`, `default_member_role`, `create_personal_org()` |
+| `AI_infrastructure/migrations/050_add_minimax_provider.sql` | — | ✅ run — Seeds `platform_catalog` (MiniMax) + 9 models in `ai_model_catalog` (M3/M2.7/M2.5/M2.1/M2/M2-her) |
+| `AI_infrastructure/migrations/051_ai_provider_allow_minimax.sql` | — | ✅ run — Widens `chk_organisations_ai_provider` CHECK constraint to include `MiniMax` (closed silent-failure gap) |
 | `AI_infrastructure/shared/rls_session_manager.py` | — | Sets PostgreSQL RLS session vars on every connection |
 | `AI_infrastructure/routes/synergy_share_routes.py` | — | PATCH visibility, GET/POST/DELETE members for synergy sessions |
 | `migrations/021_synergy_sessions_schema.sql` | — | synergy_sessions schema (8 tables) |
@@ -1573,7 +1583,7 @@ Each member row in the org Members subtab has a puzzle-piece icon button (🧩) 
 ---
 
 ## Platform Connections UI System (Account Profile → Connections)
-**Last audited: June 2, 2026**
+**Last audited: June 11, 2026 (MiniMax card added; MiniMax in ORG_PLATFORMS set in `connection_routes.py`)**
 
 ### Architecture
 
@@ -1741,10 +1751,11 @@ All backend endpoints (GET, PUT, DELETE, POST test) branch on this prefix. Backe
 
 ## Changelog & TODO
 
-### Last Updated: June 2, 2026
+### Last Updated: June 11, 2026
 
 #### Recent Changes
 
+- ✅ **June 11** — **MiniMax M-series** integrated as the **fourth AI provider** (after Anthropic, OpenAI, DeepSeek). Migration 050 seeds `platform_catalog` (MiniMax, sort_order 14, `fas fa-bolt` / `#FF6A00`) and 9 models in `ai_model_catalog` (M3 — 1M context, vision + thinking; M2.7 / M2.5 / M2.1 / M2 — 204K context; M2-her — 64K role-play). Migration 051 widens `chk_organisations_ai_provider` CHECK constraint from 3 to 4 providers (closed a silent-failure gap — Python accepted MiniMax but DB rejected). `org_credentials_loader.py` adds `'MiniMax': 'MINIMAX_API_KEY'`; diagnostic INFO logging with masked key preview promoted for ALL providers (was DEBUG); case-insensitive env-var fallback loop added. UI: `isNonAnthropic` regex updated, MiniMax added to `AI_MODELS_BY_PROVIDER`, `platformMeta`, `PROVIDER_LABELS`, `providerOrder`, `inferProviderFromModel()`, and the org AI Provider dropdown. New diagnostic endpoint `GET /api/org/credential-source?platform=<name>` returns resolved tier and masked key. `connection_routes.py` adds MiniMax to `ORG_PLATFORMS` (admin/owner → Tier 2 org vault). `.env.example` documents `MINIMAX_API_KEY`, `MINIMAX_BASE_URL`, `MINIMAX_KEYS`. **GAP-L5 (DeepSeek env-var only) is now FULLY RESOLVED** for DeepSeek, OpenAI, AND MiniMax — all four AI providers go through the 4-tier resolver identically.
 - ✅ **June 2** — Platform Connections UI fully audited and aligned with 4-tier credential model. 8 bugs fixed (CONN-BUG-1–8): legacy route removed, Tier 2 org credentials surfaced in UI, DOM ID mismatch fixed, edit mode routing fixed (POST→PUT), editPlatformConnection cache-based (no DOM scraping), `org_` prefix handling in test/PUT/DELETE, sub-user parent-org fallback, disconnect button gated for non-admin users. See **Platform Connections UI System** section.
 - ✅ **May 28** — Archived `ORGANISATION_CREDENTIALS_ARCHITECTURE_UPDATED_APRIL30_2026.md` (renamed `_ARCHIVED_...`); unique content (Vault flow, BUG-1–6, Migration 039) merged into this file
 - ✅ **May 2026** — Personal org system (Migration 046): `is_personal_org`, `default_member_role`, `create_personal_org()` SQL function, `register_user()` integration; every new user auto-gets a personal org
@@ -1774,7 +1785,7 @@ All backend endpoints (GET, PUT, DELETE, POST test) branch on this prefix. Backe
 **LOW — Polish & Hardening:**
 - [ ] **GAP-L2** — Scheduled key rotation reminders (APScheduler + email)
 - [ ] **GAP-L3** — "Test Connection" button + `POST /api/org/credentials/<id>/test` endpoint
-- [ ] **GAP-L5** — Wire DeepSeek into `resolve_api_key` path (currently env-var only)
+- ✅ **GAP-L5** — Wire DeepSeek, OpenAI, AND MiniMax into `resolve_api_key` path — closed June 11, 2026 via Migration 050 + 051; all 4 AI providers go through the 4-tier resolver identically. See June 11 changelog entry above.
 
 **RESOLVED (closed):**
 - ✅ CONN-BUG-1–8 — Platform Connections UI 8 bugs fixed (legacy route, Tier 2 visibility, DOM ID, PUT routing, DOM scraping, org_ prefix, sub-user fallback, disconnect gating) — June 2, 2026
@@ -1785,6 +1796,7 @@ All backend endpoints (GET, PUT, DELETE, POST test) branch on this prefix. Backe
 - ✅ GAP-M3 — Per-org AI provider/model (migration 031)
 - ✅ GAP-M5 — Platform name free-text replaced with platform_catalog validation
 - ✅ GAP-M6 — allowed_domains SSO auto-provisioning (migration 030)
+- ✅ GAP-L5 — DeepSeek, OpenAI, AND MiniMax wired into `resolve_api_key` path (Migration 050 + 051; June 11, 2026)
 - ✅ GAP-L6 — is_sub_user column confirmed in team_id_management_migration.sql
 - ✅ GAP-L7 — Credential encryption at rest (Fernet, `enc:v1:` prefix, `credential_crypto.py`)
 - ✅ Known Gap #1/9 — Full invite system (create, email, accept-invite frontend)
