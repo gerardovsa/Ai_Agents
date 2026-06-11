@@ -3358,7 +3358,63 @@ def execute_streaming_request(
         if thinking_param:
             stream_params['thinking'] = thinking_param
             print(f"{log_prefix} 🧠 Thinking enabled: {thinking_param}")
-        
+
+        # =========================================================================
+        # PRE-FLIGHT BANNER (June 11, 2026): single consolidated block showing
+        # provider, model, endpoint, credential tier, masked key, and request
+        # parameters — replaces the 6+ distributed log lines developers had to
+        # mentally correlate before. Easy to grep with `[AI_REQUEST]`.
+        # =========================================================================
+        import time as _time
+        _ai_request_start_ts = _time.time()
+
+        # Look up resolution source + tier (diagnostic helper, no extra DB hit if cached)
+        try:
+            from AI_infrastructure.shared.org_credentials_loader import get_credential_source_info as _get_src_info
+            _src_info = _get_src_info(lookup_user_id, platform_name)
+            _resolution_source = _src_info.get('resolution_source', 'unknown') or 'unknown'
+            _tier_map = {'user': 1, 'parent_user': '1.5', 'org': 2, 'env': 3}
+            _tier_num = _tier_map.get(_resolution_source, 0)
+            _tier_label = f"Tier {_tier_num} ({_resolution_source.upper()})"
+        except Exception as _src_err:
+            _tier_label = f"Tier ? (lookup failed: {_src_err})"
+
+        # Build endpoint URL
+        if client_base_url:
+            _endpoint = f"{client_base_url.rstrip('/')}/v1/messages"
+        else:
+            _endpoint = "https://api.anthropic.com/v1/messages"
+
+        # Mask key (first 6 + last 4 — same convention as org_credentials_loader)
+        _key_raw = api_key or ""
+        if len(_key_raw) > 14:
+            _key_preview = f"{_key_raw[:6]}…{_key_raw[-4:]}"
+        elif _key_raw:
+            _key_preview = "***"
+        else:
+            _key_preview = "MISSING"
+
+        _thinking_str = (
+            f"enabled ({ai_thinking_budget} tok)"
+            if ai_thinking_enabled
+            else "disabled"
+        )
+        _conv_tokens_str = (
+            f"{final_tokens:,} / 150,000" if 'final_tokens' in dir() else "n/a"
+        )
+
+        print(f"{log_prefix} ━━━━━━━━━━ [AI_REQUEST] ━━━━━━━━━━")
+        print(f"{log_prefix} provider:     {platform_name}")
+        print(f"{log_prefix} model:        {ai_model}")
+        print(f"{log_prefix} endpoint:     {_endpoint}")
+        print(f"{log_prefix} credential:   {_tier_label} — user_id={lookup_user_id}")
+        print(f"{log_prefix} key preview:  {_key_preview}")
+        print(f"{log_prefix} temperature:  {final_temperature}")
+        print(f"{log_prefix} max_tokens:   {ai_max_tokens}")
+        print(f"{log_prefix} thinking:     {_thinking_str}")
+        print(f"{log_prefix} conv tokens:  {_conv_tokens_str}")
+        print(f"{log_prefix} ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
+
         with client.messages.stream(**stream_params) as stream:
             # Process streaming events
             for event in stream:
@@ -3478,6 +3534,33 @@ def execute_streaming_request(
         # interleaved thinking (where redacted_thinking blocks appear between tool_use blocks).
         thinking_count = sum(1 for b in serialized_content if b.get('type') in ('thinking', 'redacted_thinking'))
         print(f"{log_prefix} Serialized {len(serialized_content)} blocks ({thinking_count} thinking/redacted_thinking, order preserved)")
+
+        # =========================================================================
+        # POST-FLIGHT BANNER (June 11, 2026): closing block showing how the API
+        # call actually went — duration, stop_reason, input/output tokens, blocks.
+        # Pairs with the [AI_REQUEST] banner emitted before the stream call.
+        # =========================================================================
+        try:
+            _ai_request_duration = _time.time() - _ai_request_start_ts
+        except Exception:
+            _ai_request_duration = 0.0
+        print(f"{log_prefix} ━━━━━━━━━━ [AI_RESPONSE] ━━━━━━━━━")
+        print(f"{log_prefix} duration:      {_ai_request_duration:.2f}s")
+        print(f"{log_prefix} stop_reason:   {stop_reason or 'unknown'}")
+        # Token usage — Anthropic SDK exposes .input_tokens / .output_tokens;
+        # defensive getattr so a future SDK change doesn't crash the worker.
+        try:
+            if final_message is not None and getattr(final_message, 'usage', None) is not None:
+                _in_tok  = getattr(final_message.usage, 'input_tokens',  None)
+                _out_tok = getattr(final_message.usage, 'output_tokens', None)
+                if _in_tok is not None:
+                    print(f"{log_prefix} input_tokens:  {_in_tok:,}")
+                if _out_tok is not None:
+                    print(f"{log_prefix} output_tokens: {_out_tok:,}")
+        except Exception as _usage_err:
+            print(f"{log_prefix} token_usage:   <unavailable: {_usage_err}>")
+        print(f"{log_prefix} blocks:        {len(serialized_content)} ({thinking_count} thinking)")
+        print(f"{log_prefix} ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
         
         # Add assistant response to history (with ALL blocks including thinking)
         # CRITICAL (Jan 19, 2026): Add source tracking for debugging duplicate message issues
