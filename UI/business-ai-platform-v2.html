@@ -32873,36 +32873,24 @@ Thanks`;
          * Save all account settings (auto-save on field change)
          */
         function saveSettings() {
-            console.log('[ACCOUNT SETTINGS] Auto-saving settings to localStorage...');
+            // Called by every input's onchange/oninput in the Account Settings modal.
+            // Writes to localStorage synchronously (instant, survives refresh) and
+            // schedules a debounced POST to the backend so the row in
+            // ai_infrastructure.user_preferences is updated.
+            const settings = _collectSettingsFromUI();
+            _settingsLastPayload = settings;
 
-            // Collect all settings from UI
-            const settings = {
-                // Personalization
-                nickname: document.getElementById('userNickname')?.value || '',
-                communication_style: document.getElementById('communicationStyle')?.value || 'professional',
-                detail_level: document.querySelector('input[name="detailLevel"]:checked')?.value || 'standard',
-                auth_platform: document.getElementById('authPlatform')?.value || 'auto',
+            // Immediate localStorage write — survives refresh
+            try { localStorage.setItem('accountSettings', JSON.stringify(settings)); }
+            catch (e) { console.warn('[ACCOUNT SETTINGS] localStorage write failed:', e); }
 
-                // AI Settings
-                ai_model: document.getElementById('modelSelect')?.value || 'claude-sonnet-4-5-20250929',
-                ai_temperature: parseFloat(document.getElementById('temperature')?.value || 1.0),
-                ai_top_p: parseFloat(document.getElementById('topP')?.value || 1.0),
-                ai_max_tokens: parseInt(document.getElementById('maxTokens')?.value || 16000),
-                ai_thinking_enabled: document.getElementById('enableThinking')?.checked ? 1 : 0,
-                ai_thinking_budget: parseInt(document.getElementById('thinkingBudgetSlider')?.value || 10000),
-                ai_streaming_enabled: document.getElementById('enableStreaming')?.checked ? 1 : 0,
-
-                // Round Parameters
-                max_rounds: parseInt(document.getElementById('maxRounds')?.value || 20),
-                round_timeout: parseInt(document.getElementById('roundTimeout')?.value || 30),
-
-                // Timestamps
-                updated_at: new Date().toISOString()
-            };
-
-            // Save to localStorage
-            localStorage.setItem('accountSettings', JSON.stringify(settings));
-            console.log('[ACCOUNT SETTINGS] Settings saved to localStorage');
+            // Debounced backend POST
+            _setSaveIndicator('pending');
+            if (_settingsSaveTimer) clearTimeout(_settingsSaveTimer);
+            _settingsSaveTimer = setTimeout(() => {
+                _settingsSaveTimer = null;
+                _pushSettingsToBackend(settings);
+            }, SETTINGS_SAVE_DEBOUNCE_MS);
         }
 
         /**
@@ -32981,9 +32969,52 @@ Thanks`;
         }
 
         function closeAccountSettings() {
+            // Flush any pending debounced auto-save BEFORE closing, so the
+            // user's most recent edit is not lost if they close immediately
+            // after typing/moving a slider.
+            try {
+                if (typeof flushSettingsSave === 'function') {
+                    flushSettingsSave(); // fire-and-forget; indicator still shows status
+                }
+            } catch (e) { console.warn('[ACCOUNT SETTINGS] flush on close failed:', e); }
+
             const sidebar = document.getElementById('account-sidebar');
             if (sidebar && !sidebar.classList.contains('collapsed')) {
                 AccountSidebar.toggleSidebar();
+            }
+        }
+
+        /**
+         * Main "Save Changes" button at the bottom of the Account Profile modal.
+         * Flushes any pending debounced save (so the last keystroke reaches the
+         * backend), shows visual feedback, then closes the modal.
+         */
+        async function saveAndCloseSettings() {
+            const btn = document.getElementById('savePreferencesBtn');
+            const origHTML = btn ? btn.innerHTML : null;
+
+            if (btn) {
+                btn.disabled = true;
+                btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving…';
+            }
+
+            try {
+                const ok = await flushSettingsSave();
+                if (btn) {
+                    btn.innerHTML = ok
+                        ? '<i class="fas fa-check"></i> Saved'
+                        : '<i class="fas fa-exclamation-triangle"></i> Save failed';
+                }
+                // Brief pause so the user can see the feedback
+                await new Promise(r => setTimeout(r, 600));
+            } catch (e) {
+                console.error('[ACCOUNT SETTINGS] saveAndCloseSettings error:', e);
+            } finally {
+                if (btn && origHTML) {
+                    btn.disabled = false;
+                    btn.innerHTML = origHTML;
+                }
+                closeAccountSettings();
             }
         }
 
@@ -33268,29 +33299,171 @@ Thanks`;
             }
         }
 
+        // ====================================================================
+        //  Account Settings — auto-save to backend (debounced)
+        // ====================================================================
+        //  Every input in the modal already fires saveSettings() on input/change.
+        //  The original saveSettings() only wrote to localStorage, so changes
+        //  never reached the DB. The fix below keeps the localStorage write
+        //  (instant, for offline/refresh) and *also* POSTs to the backend on
+        //  a 600ms debounce, so the row in ai_infrastructure.user_preferences
+        //  is updated and the agent run picks it up.
+        // ====================================================================
+
+        // Map UI element IDs (camelCase) → backend column names (snake_case).
+        // Used by both saveSettingsSection() and _collectSettingsFromUI() to
+        // keep the two code paths in lockstep.
+        const UI_TO_BACKEND_KEY = {
+            'modelSelect':           'ai_model',
+            'temperature':           'ai_temperature',
+            'topP':                  'ai_top_p',
+            'maxTokens':             'ai_max_tokens',
+            'enableThinking':        'ai_thinking_enabled',
+            'thinkingBudgetSlider':  'ai_thinking_budget',
+            'enableStreaming':       'ai_streaming_enabled',
+            'maxRounds':             'max_rounds',
+            'roundTimeout':          'round_timeout',
+            'userNickname':          'nickname',
+            'communicationStyle':    'communication_style',
+            'authPlatform':          'auth_platform',
+            'enableNotifications':   'enable_notifications',
+            'enableSounds':          'enable_sounds'
+            // 'detailLevel' is handled specially — it's a radio group by name
+        };
+
+        // Debounce / inflight state for auto-save
+        let _settingsSaveTimer = null;
+        let _settingsLastPayload = null;
+        const SETTINGS_SAVE_DEBOUNCE_MS = 600;
+
+        // Visual status indicator (Editing… / Saving… / Saved / Error)
+        function _setSaveIndicator(state, detail) {
+            let el = document.getElementById('accountSettingsSaveStatus');
+            if (!el) {
+                const actions = document.querySelector('.account-header-actions');
+                if (!actions) return;
+                el = document.createElement('span');
+                el.id = 'accountSettingsSaveStatus';
+                el.style.cssText = 'display: inline-flex; align-items: center; gap: 6px; margin-right: 10px; font-size: 12px; color: var(--text-secondary); transition: opacity 0.25s; white-space: nowrap;';
+                // Insert before the close button
+                actions.insertBefore(el, actions.firstChild);
+            }
+
+            if (state === 'idle') {
+                el.style.opacity = '0';
+            } else if (state === 'pending') {
+                el.innerHTML = '<i class="fas fa-pen" style="font-size:10px;color:var(--text-muted)"></i> <span>Editing…</span>';
+                el.style.opacity = '1';
+            } else if (state === 'saving') {
+                el.innerHTML = '<i class="fas fa-spinner fa-spin" style="font-size:11px;color:var(--accent-primary)"></i> <span>Saving…</span>';
+                el.style.opacity = '1';
+            } else if (state === 'saved') {
+                el.innerHTML = '<i class="fas fa-check-circle" style="font-size:11px;color:#22c55e"></i> <span>Saved</span>';
+                el.style.opacity = '1';
+                setTimeout(() => {
+                    if (el && el.innerHTML.includes('Saved')) el.style.opacity = '0';
+                }, 1800);
+            } else if (state === 'error') {
+                el.innerHTML = '<i class="fas fa-exclamation-circle" style="font-size:11px;color:#ef4444"></i> <span>' + (detail || 'Save failed') + '</span>';
+                el.style.opacity = '1';
+            }
+        }
+
+        // Collect every account-profile field from the DOM and return as
+        // a flat object with backend column names as keys.
+        function _collectSettingsFromUI() {
+            return {
+                // Personalization
+                nickname:            document.getElementById('userNickname')?.value || '',
+                communication_style: document.getElementById('communicationStyle')?.value || 'professional',
+                detail_level:        document.querySelector('input[name="detailLevel"]:checked')?.value || 'standard',
+                auth_platform:       document.getElementById('authPlatform')?.value || 'auto',
+
+                // AI Settings
+                ai_model:             document.getElementById('modelSelect')?.value || 'claude-sonnet-4-5-20250929',
+                ai_temperature:       parseFloat(document.getElementById('temperature')?.value || 1.0),
+                ai_top_p:             parseFloat(document.getElementById('topP')?.value || 1.0),
+                ai_max_tokens:        parseInt(document.getElementById('maxTokens')?.value || 16000),
+                ai_thinking_enabled:  document.getElementById('enableThinking')?.checked ? 1 : 0,
+                ai_thinking_budget:   parseInt(document.getElementById('thinkingBudgetSlider')?.value || 10000),
+                ai_streaming_enabled: document.getElementById('enableStreaming')?.checked ? 1 : 0,
+
+                // Round Parameters
+                max_rounds:    parseInt(document.getElementById('maxRounds')?.value || 20),
+                round_timeout: parseInt(document.getElementById('roundTimeout')?.value || 30),
+
+                updated_at: new Date().toISOString()
+            };
+        }
+
+        // Push a settings object to the backend POST endpoint.
+        async function _pushSettingsToBackend(settings) {
+            const token = localStorage.getItem('authToken') || sessionStorage.getItem('authToken');
+            if (!token) {
+                _setSaveIndicator('error', 'Not logged in');
+                return false;
+            }
+            _setSaveIndicator('saving');
+            try {
+                const response = await fetch(`${API_BASE_URL}/api/user/preferences`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(settings)
+                });
+                if (response.ok) {
+                    _setSaveIndicator('saved');
+                    return true;
+                }
+                let detail = `HTTP ${response.status}`;
+                try { const j = await response.json(); if (j && j.error) detail = j.error; } catch (_) {}
+                _setSaveIndicator('error', detail);
+                return false;
+            } catch (e) {
+                console.error('[ACCOUNT SETTINGS] Auto-save failed:', e);
+                _setSaveIndicator('error', e.message || 'Network error');
+                return false;
+            }
+        }
+
+        // Flush any pending debounced save immediately. Used on modal close
+        // and when the user clicks the main "Save Changes" button.
+        async function flushSettingsSave() {
+            if (_settingsSaveTimer) {
+                clearTimeout(_settingsSaveTimer);
+                _settingsSaveTimer = null;
+            }
+            const settings = _settingsLastPayload || _collectSettingsFromUI();
+            return _pushSettingsToBackend(settings);
+        }
+
         /**
-         * Save section inputs to backend (sends partial preferences object)
+         * Save section inputs to backend (sends partial preferences object).
+         * Translates UI element IDs to backend column names via UI_TO_BACKEND_KEY
+         * so that fields with id="modelSelect" are sent as "ai_model", etc.
          */
         async function saveSettingsSection(button) {
             const section = button.closest('.settings-section');
             if (!section) return;
 
-            // Collect inputs
+            // Collect inputs from this section
             const payload = {};
             section.querySelectorAll('input, select, textarea').forEach(input => {
-                const key = input.name || input.id;
-                if (!key) return;
+                const rawKey = input.name || input.id;
+                if (!rawKey) return;
+                const key = UI_TO_BACKEND_KEY[rawKey] || rawKey;
 
-                if (input.type === 'checkbox') payload[key] = input.checked;
-                else if (input.type === 'radio') {
+                if (input.type === 'checkbox') {
+                    payload[key] = input.checked;
+                } else if (input.type === 'radio') {
                     if (input.checked) payload[key] = input.value;
+                } else if (input.tagName.toLowerCase() === 'textarea' && input.dataset.json !== undefined) {
+                    try { payload[key] = JSON.parse(input.value || '{}'); }
+                    catch (e) { payload[key] = input.value; }
                 } else {
-                    // Try to parse JSON if textarea has data-json
-                    if (input.tagName.toLowerCase() === 'textarea' && input.dataset.json !== undefined) {
-                        try { payload[key] = JSON.parse(input.value || '{}'); } catch (e) { payload[key] = input.value; }
-                    } else {
-                        payload[key] = input.value;
-                    }
+                    payload[key] = input.value;
                 }
             });
 
