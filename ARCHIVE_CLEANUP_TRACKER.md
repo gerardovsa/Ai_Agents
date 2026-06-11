@@ -131,7 +131,7 @@ Use the established categories in each destination — do not invent new sub-dir
 | 44 | Top-level migration trees audit | code | `database/`, `database_migrations/`, `database_scripts/`, `migrations/`, `supabase_migrations/`. Confirm `AI_infrastructure/migrations/` is the only authoritative set; archive the rest. | | | TODO | | |
 | 45 | Top-level archive directories audit | meta | `ARCHIVE_OCT30_2025/`, `archive/`, `_ARCHIVED_NOV25/`, `UI/ARCHIVE_OLD_UI_20251030_223356/`, `UI/components_ARCHIVED/`. For each: confirm contents are truly historical; consolidate where appropriate. | | | TODO | | |
 | 46 | `docs/` directory consolidation | docs | The 15 .md at root + subdirs. Promote what should be canonical. Move dated fix logs to `docs/archive/`. | | | TODO | | |
-| 47 | `docs/archive/` internal cleanup | docs | 358 files already there. Verify categorization; split into topic sub-archives where appropriate. | | | TODO | | |
+| 47 | `docs/archive/` internal cleanup | docs | 358 files already there. Verify categorization; split into topic sub-archives where appropriate. | claude-row47-2026-06-11 | 2026-06-11 | CLAIMED | cleanup/docs-archive | |
 | 48 | `.github/` directory cleanup | docs | The 40+ files. Cross-link to canonical docs; archive superseded analyses; retire `copilot-instructions.md.disabled`; **process `copilot-instructions.md` LAST** (row 49). | | | TODO | | |
 | 49 | `.github/copilot-instructions.md` rewrite | docs | After every other doc row is done, rewrite this to point only at canonical docs. ~40 inbound links. | | | TODO | | **Process LAST.** |
 
