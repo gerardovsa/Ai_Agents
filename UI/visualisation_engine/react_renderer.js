@@ -104,10 +104,18 @@ class ReactRenderer {
         const usesLucide   = /lucide|LucideIcon|import.*from.*['"](lucide|lucide-react)['"]|\b(ChevronRight|ChevronDown|Circle|Square|Triangle|Star|Heart|Home|User|Settings|Search|Bell|Mail|Check|X|Plus|Minus|Edit|Trash|Download|Upload|Eye|Lock|Unlock|ArrowRight|ArrowLeft|ArrowUp|ArrowDown)\b/.test(jsxContent);
         const usesTailwind = /className=["'`][^"'`]*(flex|grid|p-\d|m-\d|pt-|pb-|pl-|pr-|mt-|mb-|ml-|mr-|px-|py-|text-[a-z]|bg-[a-z]|border|rounded|shadow|w-\d|h-\d|gap-|space-|items-|justify-|font-|leading-|tracking-)[^"'`]*["'`]/.test(jsxContent);
 
-        // ── Strip ES import statements — replaced by UMD globals ────────────────
-        // Keep the user's code clean; only remove `import … from '…'` lines
+        // ── Strip ES module boilerplate — replaced by UMD globals ──────────────
+        // Babel-standalone in <script type="text/babel"> (non-module) mode throws
+        // a SyntaxError on `export` keywords.  The AI commonly emits
+        // `export default Dashboard;` after defining the root component, which
+        // silently aborts the entire script and leaves the iframe blank.
+        // Remove both `import` and `export` forms so the user's code is plain
+        // script-mode JS that Babel-standalone can transpile and execute.
         const cleanedJSX = jsxContent
             .replace(/^[ \t]*import\s+[\s\S]*?from\s+['"][^'"]+['"]\s*;?[ \t]*$/gm, '')
+            .replace(/^[ \t]*export\s+default\s+[\s\S]*?;?[ \t]*$/gm, '')
+            .replace(/^[ \t]*export\s+(?:const|let|var|function|class|async\s+function)\s+[\s\S]*?$/gm, '')
+            .replace(/^[ \t]*export\s*\{[\s\S]*?\}\s*;?[ \t]*$/gm, '')
             .trim();
 
         // ── CDN script tags ─────────────────────────────────────────────────────
@@ -194,17 +202,28 @@ ${lucideSetup}
     ${cleanedJSX}
 
     // ── Auto-mount: find the root component and render it ─────────────────────
-    const rootEl = document.getElementById('root');
-    const rootComponent =
-        typeof App       !== 'undefined' ? App       :
-        typeof Component !== 'undefined' ? Component :
-        typeof Dashboard !== 'undefined' ? Dashboard :
-        null;
+    try {
+        const rootEl = document.getElementById('root');
+        const rootComponent =
+            typeof App       !== 'undefined' ? App       :
+            typeof Component !== 'undefined' ? Component :
+            typeof Dashboard !== 'undefined' ? Dashboard :
+            null;
 
-    if (rootComponent) {
-        ReactDOM.createRoot(rootEl).render(React.createElement(rootComponent));
-    } else {
-        rootEl.innerHTML = '<p style="color:red;padding:16px">⚠️ No <code>App</code>, <code>Component</code>, or <code>Dashboard</code> function found. Define one as your root component.</p>';
+        if (rootComponent) {
+            ReactDOM.createRoot(rootEl).render(React.createElement(rootComponent));
+        } else {
+            rootEl.innerHTML = '<p style="color:red;padding:16px">⚠️ No <code>App</code>, <code>Component</code>, or <code>Dashboard</code> function found. Define one as your root component.</p>';
+        }
+    } catch (err) {
+        // Surface any transpile/parse/runtime failure inside the sandbox so
+        // a blank iframe is never silent — the user sees a red diagnostic
+        // instead of a white box.
+        const rootEl = document.getElementById('root');
+        const msg = (err && err.message) ? err.message : String(err);
+        rootEl.innerHTML = '<pre style="color:#b91c1c;background:#fef2f2;padding:16px;border-radius:8px;white-space:pre-wrap;font-family:ui-monospace,monospace;font-size:13px;line-height:1.5;border:1px solid #fecaca;">⚠️ JSX execution error:\n\n' + msg + '</pre>';
+        window.parent.postMessage({ type: 'iframe-resize', id: '${chartId}', height: 400 }, '*');
+        console.error('[REACT_RENDERER] iframe execution error:', err);
     }
   <\/script>
 
