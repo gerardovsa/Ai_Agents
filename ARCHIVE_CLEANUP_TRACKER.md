@@ -184,6 +184,7 @@ This is the minimum report shape for any `code-trace` row.
 ```
 2026-06-11 | bootstrap | n/a | n/a | Created tracker (49 rows) | DONE
 2026-06-11 | seed | cleanup/jun-2026 | local-commit-f5b76ad8 | Added CLAUDE.md + tracker + 3 prompts to staging worktree (5 files, 1653 insertions) | DONE
+2026-06-11 | sync | cleanup/jun-2026 | local-merge-007f029d | Merged v11@0cf2f9f9 (perf hotfix: 5 files, 864+/91-) into cleanup branch; v11 pushed to gerardo | DONE
 ```
 
 ---
