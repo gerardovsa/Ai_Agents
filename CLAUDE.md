@@ -201,6 +201,7 @@ python tests/run_group3_tests.py
 python tests/run_group4_tests.py
 python tests/run_group5_tests.py
 ```
+**Row 42 audit (June 12, 2026):** these 5 are the only top-level `tests/` scripts documented in CLAUDE.md. 2 dead files moved to `archive/top_level_tests_row42_dead/` (17.5MB log + 9K FRED-system test); 24 other top-level test files remain as load-bearing or recently-validated.
 There is **no `pytest` config in repo root** and `package.json` test script just echoes an error — do not call `npm test`.
 
 ### Smoke checks (one-liners)
