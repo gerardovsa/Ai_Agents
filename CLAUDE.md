@@ -135,7 +135,7 @@ AI_agents/                                       (this repo root, package.json "
 **Archived / deprecated — touch only with explicit instruction**
 - `AI_infrastructure/core/archived/` — old `agent_worker.py`, `streaming_agent_worker.py`, `session_handler.py`, etc. Do not import from.
 - `flask_app copy.py`, `routes/* copy.py` — historical copies.
-- `supabase_migrations/`, `database_migrations/`, `database_scripts/`, `migrations/`, `database/`, `database/` — multiple migration trees from earlier eras. The **only authoritative** set is `AI_infrastructure/migrations/`.
+- `supabase_migrations/`, `database_migrations/`, `database_scripts/`, `migrations/`, `database/`, `database/` — multiple migration trees from earlier eras. The **only authoritative** set is `AI_infrastructure/migrations/`. Of the 5 listed: `database/`, `database_migrations/`, `supabase_migrations/` were already gone before row 44; `database_scripts/` and `migrations/` were moved under `archive/` during the row 44 audit (June 12, 2026).
 - `ARCHIVE_OCT30_2025/`, `archive/` (top-level) — historical directories. Both audited:
   - `archive/` and `ARCHIVE_OCT30_2025/` audited June 11, 2026 (row 45 of `ARCHIVE_CLEANUP_TRACKER.md`)
   - `Woocommerce/`, `Cloudflare/`, `Render_backend/`, `Supabase/`, `tslot_bed_frame_docs/`, `temp_v9_comparison/` audited June 12, 2026 (row 43) and moved under `archive/`
@@ -638,7 +638,7 @@ These are **real, repository-evidenced** risks — not generic advice.
 
 10. **`MiniMax` constraint cascade** — `organisations.ai_provider` CHECK constraint must be widened **at the same time** as adding a new provider to the catalogs (migration 051 fixes the gap from migration 050). Apply the same pattern for any future provider.
 
-11. **Migration drift** — there are several legacy migration trees in the repo root (`supabase_migrations/`, `database_migrations/`, `database/`, `migrations/`). The **only** authoritative set is `AI_infrastructure/migrations/`. Do not add new files to the others.
+11. **Migration drift** — there are several legacy migration trees in the repo root (`supabase_migrations/`, `database_migrations/`, `database/`, `migrations/`). The **only** authoritative set is `AI_infrastructure/migrations/`. Do not add new files to the others. Status as of row 44 (June 12, 2026): `database/`, `database_migrations/`, `supabase_migrations/` were already gone; `database_scripts/` and `migrations/` were moved under `archive/` and are now historical.
 
 12. **Archived code that is still imported** — `AI_infrastructure/core/archived/` contains copies of the agent worker. If an old `from core.archived.X import Y` exists anywhere, it is a leak to be fixed, not a feature.
 
