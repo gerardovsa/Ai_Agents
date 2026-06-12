@@ -1,0 +1,121 @@
+Row 52 classification summary
+============================================================
+
+Total files: 102
+
+By bucket + ext:
+  Archive    .css       2 files  (      33,236 bytes)
+  Archive    .csv       3 files  (      17,793 bytes)
+  Archive    .html     15 files  (     259,227 bytes)
+  Archive    .js       21 files  (     512,558 bytes)
+  Archive    .ps1      22 files  (     102,346 bytes)
+  Archive    .sh        3 files  (      14,176 bytes)
+  Archive    .svg       1 files  (       6,045 bytes)
+  Archive    .txt      32 files  (   2,413,174 bytes)
+  Archive    .yaml      3 files  (      30,346 bytes)
+
+Files to KEEP at root:
+
+Files to ARCHIVE:
+  .txt   ADAPTIVE_INVESTIGATION_FLOWCHART.txt
+  .ps1   add_email_badge_script.ps1
+  .ps1   apply_automation_slug_migration.ps1
+  .ps1   apply_comm_hub_fixes.ps1
+  .ps1   APPLY_PRIME_LOADED_FIX.ps1
+  .svg   architecture_diagram_content_blocks.svg
+  .ps1   batch_add_short_descriptions.ps1
+  .txt   BISTART_current.txt
+  .ps1   BISTARTVALOR.ps1
+  .js    CHAT_SIDEBAR_REGISTRATION_TEST.js
+  .js    CHAT_SIDEBAR_SMOKE_TEST.js
+  .js    check_message_order.js
+  .ps1   check_v10_deployment.ps1
+  .ps1   comment_all_font_weights_final.ps1
+  .ps1   comment_font_weights.ps1
+  .ps1   comment_font_weights_v2.ps1
+  .ps1   comment_remaining_font_weights.ps1
+  .txt   COMMIT_COMMANDS.txt
+  .txt   complete_test_run.txt
+  .sh    create_threads_table_render.sh
+  .txt   database_data_locations.txt
+  .js    debug_css_leak.js
+  .js    debug_kanban_board.js
+  .js    debug_message_count.js
+  .html  diagnose_kanban_dashboard.html
+  .ps1   DIAGNOSE_TRANSCRIPTION_SIDEBAR.ps1
+  .js    diagnostic_agent_loading.js
+  .ps1   FIX_HTML_STRUCTURE.ps1
+  .js    FIX_MISSING_BUTTONS.js
+  .ps1   fix_schema_required.ps1
+  .ps1   fix_ui_paths.ps1
+  .ps1   fix_ui_paths_round2.ps1
+  .txt   flask_debug_output.txt
+  .js    force_reload_agent2_with_logging.js
+  .txt   full_test_output.txt
+  .sh    integrate-synergy-realtime.sh
+  .js    MASTER_PRIME_DEBUGGER.js
+  .js    MESSAGE_TIMESTAMP_UI_IMPLEMENTATION.js
+  .txt   meta_test_output.txt
+  .txt   output.txt
+  .js    PRIME_ROOT_CAUSE_FINDER.js
+  .txt   QUICK_REFERENCE_CARD.txt
+  .yaml  render-docker.yaml
+  .yaml  render-v10.yaml
+  .yaml  render_cleaned.yaml
+  .txt   RENDER_CREDENTIALS_TEMPLATE.txt
+  .sh    RENDER_DOWNLOAD_UPDATED_DBS.sh
+  .txt   RENDER_V10_ENV_VARS.txt
+  .txt   requirements_text_extraction.txt
+  .txt   SEARCH_TERM_DEMONSTRATION.txt
+  .txt   semantic_test_20_more_results.txt
+  .txt   semantic_test_results.txt
+  .html  SETTINGS_BUTTON_INTEGRATION.html
+  .txt   SHIPPING_INTEGRATION_DIAGRAM.txt
+  .txt   SPIRAL_FIXED_FEE_IMPACT_ANALYSIS.txt
+  .ps1   START_WITH_SUPABASE.ps1
+  .ps1   SUPABASE_SETUP_COMPLETE.ps1
+  .ps1   sync-to-valorai.ps1
+  .txt   synergy_full_output.txt
+  .txt   synergy_output.txt
+  .html  synergy_ui_test.html
+  .txt   temp_check.txt
+  .css   TEMP_OLD_inhouse-kanban.css
+  .js    TEMP_OLD_inhouse-kanban.js
+  .css   temp_synergy_styles.css
+  .js    TEMP_V9_analysis.js
+  .html  test-ai-api-sequential.html
+  .html  test-ai-tools-flow.html
+  .txt   test_77_queries_output.txt
+  .js    test_api_response.js
+  .html  test_comm_hub_simple.html
+  .html  test_communication_hub.html
+  .html  test_communication_hub_live.html
+  .js    test_communication_hub_smoke.js
+  .html  test_communication_hub_standalone.html
+  .html  test_communication_with_auth.html
+  .ps1   test_email_thread_system.ps1
+  .txt   test_fix_output.txt
+  .html  test_frontend_imports.html
+  .txt   test_guide_output.txt
+  .html  test_modern_framework_loading.html
+  .txt   test_output.txt
+  .txt   test_output_temp.txt
+  .js    TEST_PRIME_FIX.js
+  .js    TEST_PRIME_SCROLL_VISIBILITY.js
+  .txt   test_result.txt
+  .txt   test_results.txt
+  .html  TEST_SVG_METADATA_HIDING.html
+  .js    test_thinking_separator.js
+  .html  TEST_THREAD_EXPANSION_FIXES.html
+  .js    test_thread_id_system.js
+  .html  test_vector_database_v4.html
+  .txt   thread_2111_db_order.txt
+  .txt   thread_2111_detailed.txt
+  .txt   THREAD_COPY_OUTPUT_EXAMPLE.txt
+  .csv   thread_locations_export.csv
+  .csv   tmp_row52_classification.csv
+  .csv   tmp_row52_inventory.csv
+  .txt   tmp_row52_summary.txt
+  .ps1   track_script_balance.ps1
+  .ps1   verify_ui_paths.ps1
+  .js    watch_dom_mutations.js
