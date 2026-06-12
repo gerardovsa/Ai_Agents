@@ -133,7 +133,7 @@ AI_agents/                                       (this repo root, package.json "
 - Frontend code outside `UI/` → it will not be served by Flask.
 
 **Archived / deprecated — touch only with explicit instruction**
-- `AI_infrastructure/core/archived/` — old `agent_worker.py`, `streaming_agent_worker.py`, `session_handler.py`, etc. Do not import from.
+- `AI_infrastructure/core/archived/` — old `agent_worker.py`, `streaming_agent_worker.py`, `session_handler.py`, etc. Do not import from. **Freeze verified clean — June 12, 2026 (row 41); 0 live importers.**
 - `flask_app copy.py`, `routes/* copy.py` — historical copies.
 - `supabase_migrations/`, `database_migrations/`, `database_scripts/`, `migrations/`, `database/`, `database/` — multiple migration trees from earlier eras. The **only authoritative** set is `AI_infrastructure/migrations/`. Of the 5 listed: `database/`, `database_migrations/`, `supabase_migrations/` were already gone before row 44; `database_scripts/` and `migrations/` were moved under `archive/` during the row 44 audit (June 12, 2026).
 - `ARCHIVE_OCT30_2025/`, `archive/` (top-level) — historical directories. Both audited:
@@ -640,7 +640,7 @@ These are **real, repository-evidenced** risks — not generic advice.
 
 11. **Migration drift** — there are several legacy migration trees in the repo root (`supabase_migrations/`, `database_migrations/`, `database/`, `migrations/`). The **only** authoritative set is `AI_infrastructure/migrations/`. Do not add new files to the others. Status as of row 44 (June 12, 2026): `database/`, `database_migrations/`, `supabase_migrations/` were already gone; `database_scripts/` and `migrations/` were moved under `archive/` and are now historical.
 
-12. **Archived code that is still imported** — `AI_infrastructure/core/archived/` contains copies of the agent worker. If an old `from core.archived.X import Y` exists anywhere, it is a leak to be fixed, not a feature.
+12. **Archived code that is still imported** — `AI_infrastructure/core/archived/` contains copies of the agent worker. If an old `from core.archived.X import Y` exists anywhere, it is a leak to be fixed, not a feature. **Freeze verified clean — June 12, 2026 (row 41); 0 live importers; 0 leaks.**
 
 13. **Hardcoded `user_id=1` "platform superuser"** — was retired. Any line containing `user_id = 1` outside of test fixtures is a bug.
 
@@ -658,7 +658,7 @@ These are **real, repository-evidenced** risks — not generic advice.
 - `AI_infrastructure/flask_app copy.py` and `AI_infrastructure/routes/* copy.py` — historical copies.
 - BGE model snapshot files at `/data/vdb_models/…` or `~/.cache/vdb_models/…` — managed by `sentence-transformers`.
 - `.env.master` — add new env-var **keys** to the template; never put real values.
-- `AI_infrastructure/core/archived/*` — frozen. Do not import from.
+- `AI_infrastructure/core/archived/*` — frozen. Do not import from. **Freeze verified clean — June 12, 2026 (row 41).**
 
 ---
 
