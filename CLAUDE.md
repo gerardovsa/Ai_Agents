@@ -136,7 +136,10 @@ AI_agents/                                       (this repo root, package.json "
 - `AI_infrastructure/core/archived/` — old `agent_worker.py`, `streaming_agent_worker.py`, `session_handler.py`, etc. Do not import from.
 - `flask_app copy.py`, `routes/* copy.py` — historical copies.
 - `supabase_migrations/`, `database_migrations/`, `database_scripts/`, `migrations/`, `database/`, `database/` — multiple migration trees from earlier eras. The **only authoritative** set is `AI_infrastructure/migrations/`.
-- `ARCHIVE_OCT30_2025/`, `archive/`, `temp_v9_comparison/`, `tslot_bed_frame_docs/`, `Microsoft_365_Connection/`, `google_workspace/`, `WooCommerce/` (top-level) — historical directories. `archive/` and `ARCHIVE_OCT30_2025/` were audited June 11, 2026 (row 45 of `ARCHIVE_CLEANUP_TRACKER.md`); the others remain unaudited.
+- `ARCHIVE_OCT30_2025/`, `archive/` (top-level) — historical directories. Both audited:
+  - `archive/` and `ARCHIVE_OCT30_2025/` audited June 11, 2026 (row 45 of `ARCHIVE_CLEANUP_TRACKER.md`)
+  - `Woocommerce/`, `Cloudflare/`, `Render_backend/`, `Supabase/`, `tslot_bed_frame_docs/`, `temp_v9_comparison/` audited June 12, 2026 (row 43) and moved under `archive/`
+- `google_workspace/`, `Microsoft_365_Connection/` (top-level) — **load-bearing** at top level despite the legacy "historical directories; leave alone" wording above. Both are actively imported by live route/core code. Verified June 12, 2026 (row 43): `google_workspace/` has 4+ live importers (oauth_routes.py, communication_routes.py, context_aware_ai.py, session_orchestrator.py, tools/implementations/ai_personal_tasks.py, …); `Microsoft_365_Connection/microsoft365_oauth_manager.py` is imported by `routes/microsoft_auth_routes_V2_FIXED.py`. The other 4 files in `Microsoft_365_Connection/` were extracted to `archive/Microsoft_365_Connection_unused/` (not imported by any code).
 - `copilot-instructions.md.disabled` (Nov 2025 version).
 
 ---
