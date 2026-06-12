@@ -136,7 +136,7 @@ AI_agents/                                       (this repo root, package.json "
 - `AI_infrastructure/core/archived/` — old `agent_worker.py`, `streaming_agent_worker.py`, `session_handler.py`, etc. Do not import from.
 - `flask_app copy.py`, `routes/* copy.py` — historical copies.
 - `supabase_migrations/`, `database_migrations/`, `database_scripts/`, `migrations/`, `database/`, `database/` — multiple migration trees from earlier eras. The **only authoritative** set is `AI_infrastructure/migrations/`.
-- `ARCHIVE_OCT30_2025/`, `archive/`, `temp_v9_comparison/`, `tslot_bed_frame_docs/`, `Microsoft_365_Connection/`, `google_workspace/`, `WooCommerce/` (top-level) — historical directories; leave alone.
+- `ARCHIVE_OCT30_2025/`, `archive/`, `temp_v9_comparison/`, `tslot_bed_frame_docs/`, `Microsoft_365_Connection/`, `google_workspace/`, `WooCommerce/` (top-level) — historical directories. `archive/` and `ARCHIVE_OCT30_2025/` were audited June 11, 2026 (row 45 of `ARCHIVE_CLEANUP_TRACKER.md`); the others remain unaudited.
 - `copilot-instructions.md.disabled` (Nov 2025 version).
 
 ---
