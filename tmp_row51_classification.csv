@@ -1,0 +1,1237 @@
+filename,size,bucket,action,reason,first_line
+502_ERROR_DEBUGGING_COMPLETE.md,18298,Suspicious,review-needed,no pattern matched - needs judgement,# 502 Bad Gateway Error - Complete Debugging Analysis & Fixes
+502_FIX_CONNECTION_POOL_EXHAUSTION.md,15989,Suspicious,review-needed,no pattern matched - needs judgement,# 502 Bad Gateway Fix - Connection Pool Exhaustion
+ACCOUNT_SIDEBAR_FIX_DEC9_2025.md,8861,Historical,git mv -> archive/timelines_and_reports/,dated 2025,"# 🔧 Account Sidebar Data Loading Fix - December 9, 2025"
+ACTIVATE_WHISPER_PRODUCTION.md,8575,Suspicious,review-needed,no pattern matched - needs judgement,# Activate Whisper for Render Production
+ADD_SHORT_DESCRIPTIONS_TO_ALL_TOOLS.md,25861,Suspicious,review-needed,no pattern matched - needs judgement,# AI Agent Instructions: Add Short Descriptions to All Tool Schemas
+ADD_SHORT_DESCRIPTIONS_TO_TOOLS_GUIDE.md,16310,Suspicious,review-needed,no pattern matched - needs judgement,# AI Agent Instructions: Add Short Descriptions to Tool Schemas
+ADD_TIMESTAMPS_TO_MESSAGES_GUIDE.md,8251,Scratch,git mv -> archive/timelines_and_reports/,title contains 'complete guide',# ✅ Add Timestamps to Messages - Complete Guide
+AGENT_PROMPT_ASSIGNMENT_COMPLETE_JAN19_2026.md,17696,Scratch,git mv -> archive/timelines_and_reports/,dated 2026,# Agent-Specific Prompt Assignment Feature - Complete Implementation
+AGENT_STOP_BUTTON_SCOPE_FIX_JAN19_2026.md,6452,Scratch,git mv -> archive/timelines_and_reports/,dated 2026,"# Agent Stop Button Scope Fix - January 19, 2026"
+AI Agent Conversation Layout & Bubble Architecture — Deep Dive_May29_2026.md,72744,Scratch,git mv -> archive/timelines_and_reports/,dated 2026,# AI Agent Conversation Layout & Bubble Architecture — Deep Dive
+AI_AGENTS.md,56674,Suspicious,review-needed,no pattern matched - needs judgement,# AI Agents - Multi-Agent Coordination System
+AI_AUTOMATION_SCHEDULER_COMPLETE.md,18632,Suspicious,review-needed,no pattern matched - needs judgement,# AI Automation Scheduler System
+AI_CHAT_ATTACHMENTS_ISSUE_ANALYSIS.md,7759,Scratch,git mv -> archive/timelines_and_reports/,title contains 'issue analysis',# AI Chat Attachments Issue Analysis
+AI_EXECUTION_PATHWAY_COMPLETE_ANALYSIS.md,59794,Scratch,git mv -> archive/timelines_and_reports/,title contains 'complete analysis',# AI Execution Pathway - Complete Analysis
+AI_INFINITE_LOOP_FIX_COMPLETE_JAN26_2026.md,12688,Scratch,git mv -> archive/timelines_and_reports/,dated 2026,"# AI Infinite Loop Fix - COMPLETE Analysis (Jan 26, 2026)"
+AI_INFINITE_LOOP_FIX_JAN26_2026.md,12270,Scratch,git mv -> archive/timelines_and_reports/,dated 2026,"# AI Infinite Loop Fix - January 26, 2026"
+AI_PRIME_CORRUPTION_ANALYSIS_NOV22.md,14826,Historical,git mv -> archive/timelines_and_reports/,dated 2025,"# AI Prime Message Corruption Analysis - November 22, 2025"
+AI_PRIME_FIX_COMPLETE_SOLUTION_NOV22.md,12142,Historical,git mv -> archive/timelines_and_reports/,dated 2025,# AI Prime Complete Fix - Message Corruption Solution
+AI_SCHEDULER_QUICK_REFERENCE.md,12440,Scratch,git mv -> archive/timelines_and_reports/,fix/progress/summary content,# AI Scheduler Quick Reference
+AI_STOP_BUTTON_IMPLEMENTATION_JAN19_2026.md,15060,Scratch,git mv -> archive/timelines_and_reports/,fix/progress/summary content,# AI Stop Button Implementation
+AI_TOOL_INTELLIGENCE_SYSTEM_DESIGN.md,32508,Suspicious,review-needed,no pattern matched - needs judgement,# AI Tool Usage Intelligence System - Complete Design
+AI_VISUALIZATION_IMPLEMENTATION_SUMMARY.md,12845,Scratch,git mv -> archive/timelines_and_reports/,fix/progress/summary content,# AI Visualization Implementation - Complete Summary
+AI_WORKFLOW_INTEGRATION_VERIFIED.md,21272,Scratch,git mv -> archive/timelines_and_reports/,fix/progress/summary content,# AI Workflow Integration - Complete Verification ✅
+ALL_9_SHOPIFY_CALCULATORS_COMPLETE_JAN23_2026.md,13247,Scratch,git mv -> archive/timelines_and_reports/,dated 2026,"# Complete Shopify Calculator Audit - January 23, 2026"
+ALL_FIXES_COMPLETE_NOV19.md,9881,Historical,git mv -> archive/timelines_and_reports/,dated 2025,"# All Fixes Complete - November 19, 2025 ✅"
+ALL_NOTEPADS_REWRITE_COMPLETE_JAN24_2026.md,13039,Scratch,git mv -> archive/timelines_and_reports/,dated 2026,"# ALL 3 NOTEPADS SHOPIFY CALCULATORS REWRITTEN - JANUARY 24, 2026"
+ANALYSIS_SUMMARY_JAN13_2026.md,9723,Scratch,git mv -> archive/timelines_and_reports/,dated 2026,# Analysis Complete: User ID Injection & ToolUseAgent Issues
+ANTHROPIC_MESSAGE_FORMAT_VERIFIED_NOV23.md,11978,Scratch,git mv -> archive/timelines_and_reports/,fix/progress/summary content,"# Anthropic Message Format Verification - November 23, 2025"
+APEXCHARTS_DOM_ATTACHMENT_FIX_JAN23_2026.md,16237,Scratch,git mv -> archive/timelines_and_reports/,dated 2026,"# APEXCHARTS DOM ATTACHMENT FIX - Jan 23, 2026"
+APEXCHARTS_DOM_VALIDATION_FIX_JAN22_2026.md,10469,Scratch,git mv -> archive/timelines_and_reports/,dated 2026,# ApexCharts DOM Validation Fix
+API_TESTING_RESULTS_NOV17.md,7942,Historical,git mv -> archive/timelines_and_reports/,dated 2025,"# API Endpoint Testing Results - November 17, 2025"
+ARCHITECTURE.md,47201,Suspicious,review-needed,no pattern matched - needs judgement,# AI Agents Platform - System Architecture
+ARCHITECTURE_COMPARISON_BEFORE_AFTER.md,17862,Scratch,git mv -> archive/timelines_and_reports/,fix/progress/summary content,# Communication Hub Architecture: Before vs After Option 2
+ARCHIVE_CLEANUP_PLAN.md,25359,Contract,keep,untouchable per per-feature prompt hard rules,# Archive & Cleanup Plan - v6 Branch
+ARCHIVE_CLEANUP_SUMMARY_NOV30.md,5900,Contract,keep,untouchable per per-feature prompt hard rules,"# Archive Cleanup Summary - November 30, 2025"
+ARCHIVE_CLEANUP_TRACKER.md,35741,Contract,keep,untouchable per per-feature prompt hard rules,# Archive & Cleanup Tracker
+ARCHIVE_SAFETY_VERIFICATION.md,17420,Contract,keep,untouchable per per-feature prompt hard rules,# Archive Safety Verification Report
+ARROW_RENDERING_FIX_COMPLETE.md,12312,Scratch,git mv -> archive/timelines_and_reports/,title contains 'complete analysis',# Arrow Rendering Fix - Complete Analysis and Solution
+ASSESSMENT_SUMMARY.md,6757,Scratch,git mv -> archive/timelines_and_reports/,title contains 'assessment',# Connection Pool Implementation - Assessment Summary
+ATTACHMENT_AND_THREAD_COMPLETE_ANALYSIS_DEC23_2025.md,19865,Historical,git mv -> archive/timelines_and_reports/,dated 2025,# 📎 Email Attachment & Thread History - Complete Analysis
+ATTACHMENT_CONVERSION_SUMMARY.md,5184,Scratch,git mv -> archive/timelines_and_reports/,title contains 'implementation summary',# Outlook Attachment Conversion - Implementation Summary
+ATTACHMENT_ENDPOINTS_IMPLEMENTATION_COMPLETE_DEC23_2025.md,7737,Historical,git mv -> archive/timelines_and_reports/,dated 2025,# Email Attachment Endpoints - Implementation Complete
+ATTACHMENT_FIX_QUICK_START.md,8329,Historical,git mv -> archive/timelines_and_reports/,fix/debug/incident content,# Attachment Token Overflow - Quick Fix Guide
+ATTACHMENT_TOKEN_OVERFLOW_FIX_JAN2_2026.md,9844,Scratch,git mv -> archive/timelines_and_reports/,dated 2026,"# 📎 Attachment Token Overflow Fix - January 2, 2026"
+AUTH_VISUAL_ENHANCEMENTS_NOV25.md,5225,Historical,git mv -> archive/timelines_and_reports/,dated 2025,"# Authentication Visual Enhancements - November 25, 2025"
+AUTO_EMBEDDING_IMPLEMENTATION.md,9103,Scratch,git mv -> archive/timelines_and_reports/,fix/progress/summary content,# Auto-Embedding Implementation ✅
+AUTO_RECOVERY_QUICK_REFERENCE.md,9511,Scratch,git mv -> archive/timelines_and_reports/,fix/progress/summary content,"# Auto-Recovery Quick Reference - November 22, 2025"
+AUTOMATION_AI_TOOL_SELECTION_GUIDE.md,12311,Suspicious,review-needed,no pattern matched - needs judgement,# AI Agent Automation Tool Selection Guide 🤖
+AUTOMATION_CANVAS_BUG_FIXES.md,5544,Historical,git mv -> archive/timelines_and_reports/,fix/debug/incident content,"# Automation Canvas Bug Fixes - November 16, 2025"
+AUTOMATION_CANVAS_BUTTONS_FIX_NOV23.md,10342,Historical,git mv -> archive/timelines_and_reports/,dated 2025,"# Automation Canvas Buttons Fix - IMPLEMENTED (November 23, 2025)"
+AUTOMATION_CANVAS_CORS_FIX_NOV19.md,4871,Historical,git mv -> archive/timelines_and_reports/,dated 2025,"# Automation Canvas CORS Fix - November 19, 2025"
+AUTOMATION_CANVAS_FIX_COMPLETE.md,12443,Scratch,git mv -> archive/timelines_and_reports/,title contains 'complete fix',# VISUAL AUTOMATION CANVAS - COMPLETE FIX IMPLEMENTATION
+AUTOMATION_CANVAS_FIXES_NOV25.md,8450,Historical,git mv -> archive/timelines_and_reports/,dated 2025,"# Automation Canvas Fixes - November 25, 2025"
+AUTOMATION_CANVAS_FIXES_NOV28.md,10291,Historical,git mv -> archive/timelines_and_reports/,dated 2025,"# 🔧 Automation Canvas Critical Fixes - November 28, 2025"
+AUTOMATION_CANVAS_IMPLEMENTATION_NOV19.md,16257,Scratch,git mv -> archive/timelines_and_reports/,fix/progress/summary content,"# Visual Automation Canvas Implementation - November 19, 2025"
+AUTOMATION_CANVAS_QUICK_REF.md,5948,Scratch,git mv -> archive/timelines_and_reports/,fix/progress/summary content,# Visual Automation Canvas - Quick Reference
+AUTOMATION_CANVAS_QUICK_START.md,8949,Scratch,git mv -> archive/timelines_and_reports/,fix/progress/summary content,# AUTOMATION CANVAS - QUICK START GUIDE
+AUTOMATION_CANVAS_SYNTAX_FIX_NOV17.md,7031,Historical,git mv -> archive/timelines_and_reports/,dated 2025,# Automation Canvas Syntax Error Fix
+AUTOMATION_CANVAS_UX_IMPROVEMENTS.md,9194,Suspicious,review-needed,no pattern matched - needs judgement,# Automation Canvas UX Improvements
+AUTOMATION_SCHEMA_DEBUG_COMPLETE_NOV24.md,13641,Historical,git mv -> archive/timelines_and_reports/,dated 2025,# Automation Tool Suite Schema Update & Debug Logging - COMPLETE
+AUTOMATION_SETTINGS_INTEGRATION_COMPLETE.md,22529,Scratch,git mv -> archive/timelines_and_reports/,title contains 'complete implementation',# 🎯 Automation Settings Integration - Complete Implementation Guide
+AUTOMATION_SETTINGS_QUICK_REFERENCE.md,9875,Scratch,git mv -> archive/timelines_and_reports/,fix/progress/summary content,# 🚀 Automation Settings - Quick Reference
+AUTOMATION_SLUG_ARCHITECTURE.md,28439,Suspicious,review-needed,no pattern matched - needs judgement,# Automation Slug Architecture - Complete Integration Guide
+AUTOMATION_TABLES_SETUP_COMPLETE.md,3733,Suspicious,review-needed,no pattern matched - needs judgement,# Automation Tables Setup Complete
+AUTOMATION_TOOL_SUITE_GAP_ANALYSIS.md,41134,Suspicious,review-needed,no pattern matched - needs judgement,# Automation Tool Suite - Comprehensive Gap Analysis
+AUTOMATION_TOOLS_DOCUMENTATION_COMPLETE.md,14764,Suspicious,review-needed,no pattern matched - needs judgement,# Automation Tools Documentation - Complete ✅
+AUTOMATION_TOOLS_PHASE1_COMPLETE.md,7575,Scratch,git mv -> archive/timelines_and_reports/,title contains 'phase 1',# Automation Tool Suite - Phase 1 Schema Updates Complete
+AUTOMATION_TOOLS_PHASE1_PROGRESS.md,15225,Scratch,git mv -> archive/timelines_and_reports/,title contains 'phase 1',# Automation Tool Suite - Phase 1 Progress Report
+AUTOMATION_UPDATE_TOOL_COMPLETE.md,12890,Suspicious,review-needed,no pattern matched - needs judgement,# Automation Update Tool Implementation - COMPLETE ✅
+AUTOMATION_VS_WORKFLOW_TABLES_ANALYSIS.md,36358,Scratch,git mv -> archive/timelines_and_reports/,title contains 'complete analysis',# 🔍 Automation vs Workflow Tables - Complete Analysis
+AUTOMATION_WORKFLOW_CONSOLIDATION_COMPLETE.md,7937,Scratch,git mv -> archive/timelines_and_reports/,fix/progress/summary content,# Automation Workflow Consolidation - Complete
+AUTOMATION_WORKFLOW_RENDERING_FIX_NOV23.md,7674,Historical,git mv -> archive/timelines_and_reports/,dated 2025,"# Automation Workflow Rendering Fix - November 23, 2025"
+AUTOMATION_WORKFLOW_SYSTEM_COMPLETE.md,13760,Scratch,git mv -> archive/timelines_and_reports/,title contains 'complete implementation',# ✅ Automation Workflow System - Complete Implementation
+AUTOMATION_WORKFLOW_TABLES_GUIDE.md,17193,Suspicious,review-needed,no pattern matched - needs judgement,# 📊 Automation Workflow Tables - Visual Guide
+AUTOMATION_WORKFLOWS.md,118413,Suspicious,review-needed,no pattern matched - needs judgement,# AUTOMATION_WORKFLOWS - Visual Workflow Canvas System
+AUTOMATION_WORKFLOWS_CONSOLIDATION_REPORT.md,15607,Scratch,git mv -> archive/timelines_and_reports/,fix/progress/summary content,# AUTOMATION_WORKFLOWS.md - Consolidation Report
+AUTOMATION_WORKFLOWS_ERROR_HANDLING_FIX.md,4604,Suspicious,review-needed,no pattern matched - needs judgement,# Automation Workflows Error Handling Fix - COMPLETE ✅
+AUTOMATION_WORKFLOWS_FIX_COMPLETE.md,16948,Scratch,git mv -> archive/timelines_and_reports/,title contains 'fix complete',# Automation Workflows Module - Comprehensive Fix Complete
+AUTOMATION_WORKFLOWS_QUICK_TEST.md,8016,Scratch,git mv -> archive/timelines_and_reports/,fix/progress/summary content,# Automation Workflows - Quick Test Guide
+AUTOSAVE_FIX_NOV26.md,10803,Historical,git mv -> archive/timelines_and_reports/,dated 2025,"# Auto-Save Fix - November 26, 2025"
+AUTOSCROLL_BUTTON_ANALYSIS.md,8896,Suspicious,review-needed,no pattern matched - needs judgement,# Auto-Scroll Button Logic Analysis - Agent Column
+AVATAR_ICON_FIXES_NOV19.md,8320,Historical,git mv -> archive/timelines_and_reports/,dated 2025,"# Avatar & Icon Fixes - November 19, 2025"
+BACKEND_DOESNT_SAVE_MESSAGES_PROBLEM.md,14263,Scratch,git mv -> archive/timelines_and_reports/,title contains 'discovery:',"# CRITICAL DISCOVERY: Backend Doesn't Save Messages! (Nov 22, 2025)"
+BACKEND_POLLING_FLOW.md,9460,Suspicious,review-needed,no pattern matched - needs judgement,# Backend Polling Flow Diagram
+BACKEND_SAVE_TESTING_GUIDE.md,10822,Scratch,git mv -> archive/timelines_and_reports/,fix/progress/summary content,"# Backend Message Save Testing Guide (Nov 22, 2025)"
+BADGE_DEBUG_COMPREHENSIVE_GUIDE.md,11154,Scratch,git mv -> archive/timelines_and_reports/,title contains 'investigation',# Thread History Badge Investigation - Comprehensive Debug
+BADGE_DEBUG_QUICK_REF.md,3304,Historical,git mv -> archive/timelines_and_reports/,fix/debug/incident content,# Quick Debug Reference - Thread History Badge Issue
+BADGE_NOTIFICATION_SYSTEM_DEC13.md,16355,Historical,git mv -> archive/timelines_and_reports/,dated 2025,"# Badge Notification System - December 13, 2025"
+BATCHED_SEQUENTIAL_RENDERING_FIX_JAN4_2026.md,8817,Scratch,git mv -> archive/timelines_and_reports/,dated 2026,"# 🔧 Batched Sequential Rendering Fix - Jan 4, 2026"
+BISTART_CACHE_SYSTEM_UPGRADE_DEC9.md,7151,Historical,git mv -> archive/timelines_and_reports/,dated 2025,# BISTART Cache-Busting System - Universal Upgrade
+BLUEPRINT_SYSTEM_IMPLEMENTATION_COMPLETE.md,15285,Scratch,git mv -> archive/timelines_and_reports/,title contains 'implementation complete',# 🎯 Deployment Blueprint System - Implementation Complete
+BOLLARD_SIGNS_ALIGNED_JAN23_2026.md,3838,Scratch,git mv -> archive/timelines_and_reports/,dated 2026,# Bollard Signs - Complete Alignment Fix
+BOLLARD_SIGNS_REAUDIT_JAN23_2026.md,14846,Scratch,git mv -> archive/timelines_and_reports/,dated 2026,"# BOLLARD SIGNS - JSON-First Re-Audit (January 23, 2026)"
+BOLLARD_SIGNS_SHOPIFY_VALIDATION_SPECS.md,8492,Suspicious,review-needed,no pattern matched - needs judgement,# BOLLARD SIGNS - SHOPIFY VALIDATION TEST CASES
+BOLTS_INTEGRATION_SUCCESS.md,10276,Scratch,git mv -> archive/timelines_and_reports/,fix/progress/summary content,# ✅ BOLTS Fastener Library Integration - SUCCESS
+BOUND_BOOKS_CALCULATOR_ANALYSIS_JAN23_2026.md,11502,Scratch,git mv -> archive/timelines_and_reports/,dated 2026,# BOUND BOOKS CALCULATOR ANALYSIS
+BROWSER_CACHE_ISSUE_RESOLVED_NOV29.md,4924,Historical,git mv -> archive/timelines_and_reports/,dated 2025,"# Browser Cache Issue - Resolved November 29, 2025"
+BROWSER_CONSOLE_COMMANDS.md,7919,Suspicious,review-needed,no pattern matched - needs judgement,# 🔧 Browser Console Commands - Module System Diagnostics
+BROWSER_HISTORY_MANAGEMENT_COMPLETE.md,17890,Scratch,git mv -> archive/timelines_and_reports/,title contains 'complete implementation',# Browser History Management System - Complete Implementation
+BUSINESS_CARDS_ECONOMICAL_BACKEND_VERIFIED_JAN24_2026.md,9601,Scratch,git mv -> archive/timelines_and_reports/,fix/progress/summary content,# Economical Business Cards - Backend Validation Status
+BUSINESS_CARDS_PREMIUM_VALIDATION_COMPLETE_JAN24_2026.md,11050,Scratch,git mv -> archive/timelines_and_reports/,dated 2026,# Premium Business Cards - Validation Complete
+BUSINESS_CARDS_TXT_VS_BACKEND_COMPARISON_JAN24_2026.md,3958,Scratch,git mv -> archive/timelines_and_reports/,dated 2026,# Business Cards - TXT vs Backend Comparison
+CACHE_CLEAR_INSTRUCTIONS.md,5513,Suspicious,review-needed,no pattern matched - needs judgement,# 🔄 Clear Browser Cache - Fix Thread & Response Issues
+CACHING_EXPLAINED_DEC5_2025.md,11976,Historical,git mv -> archive/timelines_and_reports/,dated 2025,# How Smart Caching Works - Explained Simply
+CAD_ACCURACY_FIX_README.md,7918,Suspicious,review-needed,no pattern matched - needs judgement,# 🎯 CAD Accuracy Fix - Complete Solution
+CAD_ACTION_BAR_COMPLETE.md,15247,Scratch,git mv -> archive/timelines_and_reports/,title contains 'complete implementation',# CAD Action Bar Enhancement - Complete Implementation
+CAD_BEFORE_AFTER_COMPARISON.md,12997,Scratch,git mv -> archive/timelines_and_reports/,fix/progress/summary content,# Visual Comparison: Before vs After
+CAD_QUICK_REFERENCE.md,7924,Scratch,git mv -> archive/timelines_and_reports/,fix/progress/summary content,# CAD Visualization - Quick Reference
+CADQUERY_CHAT_RENDERING_GUIDE.md,15010,Scratch,git mv -> archive/timelines_and_reports/,title contains 'complete guide',# CadQuery Chat Rendering - Complete Guide
+CADQUERY_PERSISTENT_STORAGE_SETUP.md,10736,Suspicious,review-needed,no pattern matched - needs judgement,# CadQuery Persistent Storage Setup - Complete ✅
+CADQUERY_PLATFORM_INTEGRATION_ANALYSIS.md,14374,Debug,git mv -> archive/analysis_reports/,analysis/audit/research content,# ✅ CadQuery Platform Integration Analysis - COMPLETE
+CADQUERY_PYTHON_CAD_SUCCESS.md,13591,Scratch,git mv -> archive/timelines_and_reports/,fix/progress/summary content,# ✅ CadQuery Python-Generated CAD - COMPLETE
+CALCULATOR_ALIGNMENT_ASSESSMENT_JAN26_2026.md,14399,Scratch,git mv -> archive/timelines_and_reports/,fix/progress/summary content,"# CALCULATOR ALIGNMENT ASSESSMENT - January 26, 2026"
+CALCULATOR_ALIGNMENT_AUDIT_JAN23_2026.md,17261,Debug,git mv -> archive/analysis_reports/,analysis/audit/research content,"# Calculator Alignment Audit - January 23, 2026"
+CALCULATOR_ALIGNMENT_AUDIT_JAN26_2026.md,8860,Debug,git mv -> archive/analysis_reports/,analysis/audit/research content,# CALCULATOR PATHWAY ALIGNMENT AUDIT - 11 Calculators
+CALCULATOR_ALIGNMENT_INSTRUCTIONS.md,32631,Suspicious,review-needed,no pattern matched - needs judgement,# **CALCULATOR ALIGNMENT INSTRUCTIONS - Functional Flow & Architecture**
+CALCULATOR_AUDIT_COMPLETE_JAN23_2026.md,15115,Scratch,git mv -> archive/timelines_and_reports/,dated 2026,"# Complete Calculator Audit Results - January 23, 2026"
+CALCULATOR_FIX_PROGRESS_JAN23_2026.md,4726,Scratch,git mv -> archive/timelines_and_reports/,dated 2026,"# Calculator Fix Progress - January 23, 2026"
+CALCULATOR_KWARGS_FIX_COMPLETE_JAN28_2026.md,12873,Scratch,git mv -> archive/timelines_and_reports/,dated 2026,# Calculator **kwargs Fix - Complete Resolution
+CALCULATOR_KWARGS_FIX_JAN28_2026.md,5542,Scratch,git mv -> archive/timelines_and_reports/,dated 2026,"# Calculator Wrapper **kwargs Fix - January 28, 2026"
+CALCULATOR_PATHWAY_ALIGNMENT_GUIDE.md,46355,Suspicious,review-needed,no pattern matched - needs judgement,# CALCULATOR FUNCTION PATHWAY ALIGNMENT - CRITICAL PROCESS
+CALCULATOR_TEST_QUOTES_SUMMARY_JAN26_2026.md,33443,Scratch,git mv -> archive/timelines_and_reports/,dated 2026,# CALCULATOR TEST QUOTES & WEBSITE VALIDATION DATA
+CALCULATOR_VALIDATION_TESTING_REANALYSIS_JAN26_2026.md,19049,Debug,git mv -> archive/analysis_reports/,analysis/audit/research content,# CALCULATOR VALIDATION & TESTING STATUS - COMPREHENSIVE REANALYSIS
+CENTRALIZED_MESSAGE_STORE_IMPLEMENTATION.md,23854,Scratch,git mv -> archive/timelines_and_reports/,fix/progress/summary content,# Centralized Message Store - Implementation Guide
+CHANGES_SUMMARY_NOV17.md,11056,Historical,git mv -> archive/timelines_and_reports/,dated 2025,"# Changes Summary - November 17, 2025"
+CHAT_BUTTON_FIXES_DECEMBER_2024.md,9101,Suspicious,review-needed,no pattern matched - needs judgement,# Chat Button Behavior Fixes - December 2024
+CHAT_SIDEBAR_END_TO_END_TRACE.md,19800,Suspicious,review-needed,no pattern matched - needs judgement,# Chat Sidebar - Complete End-to-End Trace
+CHAT_SIDEBAR_FINAL_SUMMARY.md,28811,Scratch,git mv -> archive/timelines_and_reports/,title contains 'implementation summary',# WhatsApp-Style Chat Sidebar - Final Implementation Summary
+CHAT_SIDEBAR_HTML_TEMPLATE.md,13021,Suspicious,review-needed,no pattern matched - needs judgement,# Chat Sidebar HTML Template
+CHAT_SIDEBAR_IMPLEMENTATION_GUIDE.md,17350,Scratch,git mv -> archive/timelines_and_reports/,fix/progress/summary content,# 💬 WhatsApp-Style Chat Sidebar - Complete Implementation Guide
+CHAT_SIDEBAR_QUICK_REFERENCE.md,7664,Scratch,git mv -> archive/timelines_and_reports/,fix/progress/summary content,# Chat Sidebar - Quick Reference Card
+CHAT_SIDEBAR_STYLING_DEBUG.md,7195,Suspicious,review-needed,no pattern matched - needs judgement,# Chat Sidebar Styling Debug Guide
+CHAT_SIDEBAR_TABS_DESIGN.md,3,Suspicious,review-needed,no pattern matched - needs judgement,﻿
+CIRCUIT_ANIMATION_FIX_COMPLETE.md,10010,Suspicious,review-needed,no pattern matched - needs judgement,# Circuit Animation Fix - Complete
+CIRCUIT_ANIMATION_FIX_DEC10.md,8457,Historical,git mv -> archive/timelines_and_reports/,dated 2025,# ✅ Circuit Animation Fixed - UI Shows Immediately
+CLAUDE.md,62325,Contract,keep,untouchable per per-feature prompt hard rules,# CLAUDE.md — AI Agents Platform (V11)
+CLEANUP_COMPLETE_NOV20_2025.md,13532,Historical,git mv -> archive/timelines_and_reports/,dated 2025,# 🎉 Session Files Cleanup Complete
+CLEANUP_SUCCESS_DEC11.md,11343,Scratch,git mv -> archive/timelines_and_reports/,fix/progress/summary content,# Calculator Cleanup - SUCCESS! ✅
+CLEAR_SERVICE_WORKER_CACHE.md,3154,Scratch,git mv -> archive/timelines_and_reports/,fix/progress/summary content,# 🚨 CRITICAL: Service Worker Cache Blocking Update
+CLIENTS_TABLE_FIX_SUMMARY_DEC23_2025.md,5732,Historical,git mv -> archive/timelines_and_reports/,dated 2025,"# 🔧 InHouse Database Clients Table Fix - December 23, 2025"
+CLOUD_STORAGE_OUTLOOK_SEARCH_INTEGRATION.md,22734,Scratch,git mv -> archive/timelines_and_reports/,fix/progress/summary content,# Cloud Storage & Outlook Universal Search Integration
+CLOUD_STORAGE_VECTOR_QUICK_START.md,18050,Scratch,git mv -> archive/timelines_and_reports/,fix/progress/summary content,# Cloud Storage to Vector Database - Quick Start Guide
+CODE_ARCHAEOLOGY_COMPLETE_USER_MESSAGE_FIX.md,19734,Suspicious,review-needed,no pattern matched - needs judgement,# CODE ARCHAEOLOGY COMPLETE: User Message Persistence Bug
+CODE_ARCHEOLOGY_ASSIGNEES_MAP_ERROR_DEC16.md,13904,Historical,git mv -> archive/timelines_and_reports/,dated 2025,"# Code Archeology Report: ""assignees.map is not a function"" Error"
+CODE_ARCHEOLOGY_PHASE2_CREDENTIAL_FLOW_MAP.md,27679,Scratch,git mv -> archive/timelines_and_reports/,title contains 'phase 2',# Code Archeology Phase 2: Forward Trace - Complete Credential Flow Map
+CODE_BLOCK_ENHANCEMENT_IMPLEMENTATION_DEC5_2025.md,21304,Scratch,git mv -> archive/timelines_and_reports/,fix/progress/summary content,# 🎨 Code Block Enhancement Implementation - AI_agents System
+CODE_BLOCK_FIX_VISUAL_GUIDE.md,13083,Scratch,git mv -> archive/timelines_and_reports/,title contains 'before/after',# 🎨 Code Block Enhancement - Visual Before/After Guide
+CODE_BLOCK_QUICK_START_DEC5_2025.md,5357,Scratch,git mv -> archive/timelines_and_reports/,fix/progress/summary content,# 🚀 Code Block Enhancement - Quick Start Guide
+CODE_BLOCK_RENDERING_FIX_DEC5_2025.md,13654,Historical,git mv -> archive/timelines_and_reports/,dated 2025,"# 🔧 Code Block Rendering Fix - December 5, 2025"
+CODE_BLOCK_UI_IMPROVEMENTS_DEC5_2025.md,10774,Historical,git mv -> archive/timelines_and_reports/,dated 2025,"# 🎨 Code Block UI Improvements - December 5, 2025"
+CODE_BLOCK_UI_IMPROVEMENTS_DEC8_2025.md,6549,Historical,git mv -> archive/timelines_and_reports/,dated 2025,"# Code Block UI Improvements - December 8, 2025"
+CODE_BLOCK_VISUAL_GUIDE.md,12915,Scratch,git mv -> archive/timelines_and_reports/,title contains 'before & after',# 🎨 Code Block Visual Guide - Before & After
+CODE_CHANGES_EXACT_DIFF.md,6630,Suspicious,review-needed,no pattern matched - needs judgement,# Code Changes - Exact Diff
+CODE_UPDATE_CHECKLIST.md,13800,Suspicious,review-needed,no pattern matched - needs judgement,# Code Update Checklist - Thread Schema Migration
+COMMIT_READY_SUMMARY.md,5705,Scratch,git mv -> archive/timelines_and_reports/,title contains 'implementation complete',# Feature Implementation Complete - Ready to Commit
+COMMUNICATION_HUB_AI_ASSIGNMENT_FIX_JAN21_2026.md,15387,Scratch,git mv -> archive/timelines_and_reports/,dated 2026,"# Communication Hub AI Assignment Display Fix - January 21, 2026"
+COMMUNICATION_HUB_ASSIGNED_AGENT_COLUMN_FIX_JAN18_2026.md,14953,Scratch,git mv -> archive/timelines_and_reports/,dated 2026,# Communication Hub - Assigned Agent Column Fix
+COMMUNICATION_HUB_IMMEDIATE_UI_FIX_COMPLETE_JAN21_2026.md,14961,Scratch,git mv -> archive/timelines_and_reports/,dated 2026,# Communication Hub - Immediate AI Assignment UI Fix (COMPLETE)
+COMMUNICATION_HUB_TECHNICAL_DOCUMENTATION.md,65538,Suspicious,review-needed,no pattern matched - needs judgement,# Communication Hub - Technical Documentation
+COMMUNICATION_HUB_THREAD_FIX_JAN19_2026.md,9330,Scratch,git mv -> archive/timelines_and_reports/,dated 2026,# Communication Hub Thread Fix - Show Both Inbound & Outbound Emails
+COMMUNICATION_HUB_THREAD_FIX_JAN21_2026.md,9795,Scratch,git mv -> archive/timelines_and_reports/,dated 2026,"# Communication Hub Thread Fix - January 21, 2026"
+COMMUNICATION_HUB_THREAD_SENT_EMAILS_FIX_JAN18_2026.md,10465,Scratch,git mv -> archive/timelines_and_reports/,dated 2026,# Communication Hub - Thread Sent Emails Fix
+COMPILATION_TEST_RESULTS_JAN18_2026.md,7572,Scratch,git mv -> archive/timelines_and_reports/,dated 2026,# ✅ TOOL DISCOVERY SYSTEM - COMPILATION & TEST RESULTS
+COMPLETE_DATABASE_AUDIT_RESULTS.md,9042,Debug,git mv -> archive/analysis_reports/,analysis/audit/research content,# Complete Database Audit Results
+COMPLETE_FIX_SUMMARY_JAN2_2026.md,13155,Scratch,git mv -> archive/timelines_and_reports/,dated 2026,# COMPLETE FIX SUMMARY - File Processing with Content Blocks
+COMPLETE_FIX_SUMMARY_NOV22.md,10382,Historical,git mv -> archive/timelines_and_reports/,dated 2025,# Complete Fix Summary - Message Save & Anthropic API
+COMPLETE_FIX_VERIFICATION_NOV19.md,8991,Historical,git mv -> archive/timelines_and_reports/,dated 2025,# Complete Fix Verification - Success ✅
+COMPLETE_FIXES_SUMMARY_NOV22.md,14693,Historical,git mv -> archive/timelines_and_reports/,dated 2025,"# Complete Fixes Summary - November 22, 2025"
+COMPLETE_INITIALIZATION_MAP.md,46103,Suspicious,review-needed,no pattern matched - needs judgement,# 🔍 Complete System Initialization Analysis - AI Agents Platform
+COMPLETE_PARAMETER_MISMATCH_ANALYSIS_JAN22_2026.md,11402,Scratch,git mv -> archive/timelines_and_reports/,dated 2026,"# Complete Parameter Mismatch Analysis - January 22, 2026"
+COMPLETE_SCHEMA_CONSOLIDATION_PLAN.md,7414,Scratch,git mv -> archive/timelines_and_reports/,fix/progress/summary content,# Complete Schema Consolidation Plan
+COMPLETE_SEARCH_ARCHITECTURE_DIAGRAM.md,30744,Suspicious,review-needed,no pattern matched - needs judgement,# Complete Universal Search Architecture
+COMPLETE_SYNERGY_INTEGRATION_VERIFICATION.md,19744,Scratch,git mv -> archive/timelines_and_reports/,fix/progress/summary content,# ✅ COMPLETE SYNERGY INTEGRATION VERIFICATION
+COMPLETE_SYSTEM_DOCUMENTATION.md,31905,Suspicious,review-needed,no pattern matched - needs judgement,# AI Agents Platform - Complete System Documentation
+COMPLETE_TOOL_SCHEMA_PATTERN.md,21033,Suspicious,review-needed,no pattern matched - needs judgement,# Complete Tool Schema Pattern - All 4 Layers
+COMPLETE_UNIVERSAL_SEARCH_SUMMARY.md,19733,Suspicious,review-needed,no pattern matched - needs judgement,# Complete Universal Search System Summary
+COMPREHENSIVE_CALCULATOR_ANALYSIS_JAN22_2026.md,17070,Scratch,git mv -> archive/timelines_and_reports/,dated 2026,"# Comprehensive Calculator Test Analysis - January 22, 2026"
+COMPREHENSIVE_CALCULATOR_AUDIT_JAN23_2026.md,17275,Debug,git mv -> archive/analysis_reports/,analysis/audit/research content,"# COMPREHENSIVE CALCULATOR AUDIT - January 23, 2026"
+COMPREHENSIVE_LOGGING_ADDED_NOV29.md,6996,Historical,git mv -> archive/timelines_and_reports/,dated 2025,"# Comprehensive Function Call Logging - November 29, 2025"
+COMPREHENSIVE_LOGGING_GUIDE.md,7398,Suspicious,review-needed,no pattern matched - needs judgement,# Comprehensive Logging Guide for Thread Routes
+COMPREHENSIVE_MESSAGE_FIX_NOV20_V2.md,8790,Historical,git mv -> archive/timelines_and_reports/,dated 2025,"# Comprehensive Message Fix - November 20, 2025 (v2)"
+COMPREHENSIVE_TEST_RESULTS_DEC10.md,11252,Historical,git mv -> archive/timelines_and_reports/,dated 2025,# Comprehensive Calculator Testing Results
+COMPREHENSIVE_TEST_SUCCESS_DEC10.md,10564,Scratch,git mv -> archive/timelines_and_reports/,fix/progress/summary content,# 🎉 COMPREHENSIVE CALCULATOR TESTING - 100% SUCCESS
+COMPUTER_USE_INVESTIGATION_METHODOLOGY.md,17833,Scratch,git mv -> archive/timelines_and_reports/,title contains 'investigation',# COMPUTER USE INVESTIGATION METHODOLOGY
+CONFIDENCE_STYLING_REFERENCE.md,13085,Suspicious,review-needed,no pattern matched - needs judgement,# 🎨 Confidence-Based Styling Reference - Dual-Mode STT
+CONFLICT_ANALYSIS_NOV19.md,14285,Historical,git mv -> archive/timelines_and_reports/,dated 2025,# Conflict Analysis - Tool Result Bubbles Implementation
+CONNECTION_DOUBLE_CLOSE_FIX_COMPLETE.md,9586,Suspicious,review-needed,no pattern matched - needs judgement,# Connection Double-Close Fix - Complete ✅
+CONNECTION_LEAK_ABORTED_TRANSACTION_FIX_DEC24_2025.md,11735,Historical,git mv -> archive/timelines_and_reports/,dated 2025,"# Connection Leak Fix - Aborted Transactions (December 24, 2025)"
+CONNECTION_LEAK_ANALYSIS_DEC02.md,10374,Historical,git mv -> archive/timelines_and_reports/,dated 2025,"# 🔍 Connection Leak Analysis - December 2, 2025"
+CONNECTION_LEAK_COMPREHENSIVE_FIX_NOV25.md,6316,Historical,git mv -> archive/timelines_and_reports/,dated 2025,"# Comprehensive Connection Leak Fix - November 25, 2025"
+CONNECTION_LEAK_FIX_FINAL_DEC02.md,4121,Historical,git mv -> archive/timelines_and_reports/,dated 2025,"# Connection Leak Fix - Final Solution (December 2, 2025)"
+CONNECTION_LEAK_FIX_NOV25.md,5100,Historical,git mv -> archive/timelines_and_reports/,dated 2025,"# Database Connection Leak Fix - November 25, 2025"
+CONNECTION_LEAK_FIX_NOV28.md,7554,Historical,git mv -> archive/timelines_and_reports/,dated 2025,"# 🔧 Connection Leak Fix - November 28, 2025"
+CONNECTION_LEAK_FIX_NOV29.md,8502,Historical,git mv -> archive/timelines_and_reports/,dated 2025,"# Database Connection Leak Fix - November 29, 2025"
+CONNECTION_LEAK_FIX_QUICK_REFERENCE.md,4650,Historical,git mv -> archive/timelines_and_reports/,fix/debug/incident content,# Connection Leak Fix Summary - Quick Reference
+CONNECTION_LEAK_FIXES_COMPLETE.md,9435,Scratch,git mv -> archive/timelines_and_reports/,title contains 'complete summary',# Connection Pool Leak Fixes - Complete Summary
+CONNECTION_LEAK_FIXES_COMPLETE_NOV25.md,7670,Historical,git mv -> archive/timelines_and_reports/,dated 2025,"# Connection Leak Fixes Complete - November 25, 2025"
+CONNECTION_LEAK_FIXES_DEC18_2025.md,6679,Historical,git mv -> archive/timelines_and_reports/,dated 2025,"# Connection Pool Leak Fixes - December 18, 2025"
+CONNECTION_LEAK_FIXES_ROUND_2_COMPLETE.md,17087,Historical,git mv -> archive/timelines_and_reports/,fix/debug/incident content,# Connection Leak Fixes - Round 2 Complete ✅
+CONNECTION_LEAK_ROOT_CAUSE_NOV25.md,7956,Historical,git mv -> archive/timelines_and_reports/,dated 2025,"# Connection Leak Root Cause Analysis - November 25, 2025"
+CONNECTION_LEAK_STREAMING_FIX_COMPLETE.md,9960,Scratch,git mv -> archive/timelines_and_reports/,title contains 'fix complete',# Connection Leak - Streaming Endpoint Fix Complete ✅
+CONNECTION_LEAKS_FIX_STATUS_NOV25.md,9206,Historical,git mv -> archive/timelines_and_reports/,dated 2025,"# Connection Leak Fixes - Status Report (November 25, 2025)"
+CONNECTION_LEAKS_FIXED_NOV25.md,6165,Historical,git mv -> archive/timelines_and_reports/,dated 2025,"# Connection Pool Leak Fixes - November 25, 2025"
+CONNECTION_LEAKS_REMAINING_NOV25.md,13259,Historical,git mv -> archive/timelines_and_reports/,dated 2025,"# Connection Leaks - Remaining Issues (November 25, 2025)"
+CONNECTION_MODAL_STYLES_EXTRACTED_DEC10.md,6260,Historical,git mv -> archive/timelines_and_reports/,dated 2025,"# Connection Modal Styles Complete Theme Fix - Dec 10, 2025"
+CONNECTION_POOL_ASSESSMENT.md,15509,Scratch,git mv -> archive/timelines_and_reports/,title contains 'assessment',# Connection Pool Implementation Assessment
+CONNECTION_POOL_EXHAUSTION_COMPLETE_FIX_JAN6.md,9614,Scratch,git mv -> archive/timelines_and_reports/,dated 2026,# Connection Pool Exhaustion - Complete Fix Summary
+CONNECTION_POOL_EXHAUSTION_FIX_ML_ROUTES.md,8252,Suspicious,review-needed,no pattern matched - needs judgement,# Connection Pool Exhaustion Fix - ML Routes
+CONNECTION_POOL_EXHAUSTION_FIX_NOV22.md,7533,Historical,git mv -> archive/timelines_and_reports/,dated 2025,"# Connection Pool Exhaustion Fix - November 22, 2025"
+CONNECTION_POOL_EXHAUSTION_FIX_V2_JAN6.md,9521,Scratch,git mv -> archive/timelines_and_reports/,dated 2026,# Connection Pool Exhaustion Fix V2 - ML Routes
+CONNECTION_POOL_FINAL_FIX_NOV25.md,8409,Historical,git mv -> archive/timelines_and_reports/,dated 2025,"# Connection Pool Final Fix - November 25, 2025"
+CONNECTION_POOL_FIX_COMPLETE.md,8786,Scratch,git mv -> archive/timelines_and_reports/,title contains 'fix complete',# Connection Pool Fix Complete ✅
+CONNECTION_POOL_FIXES_NOV25.md,7551,Historical,git mv -> archive/timelines_and_reports/,dated 2025,"# Connection Pool Exhaustion Fixes - November 25, 2025"
+CONNECTION_POOL_ISOLATION_LEVEL_FIX.md,7837,Suspicious,review-needed,no pattern matched - needs judgement,# Connection Pool Isolation Level Fix - CRITICAL
+CONNECTION_POOL_LEAK_FIX.md,5605,Suspicious,review-needed,no pattern matched - needs judgement,# Database Connection Pool Leak Fix
+CONNECTION_POOL_LEAK_FIX_DEC16_2025.md,6767,Historical,git mv -> archive/timelines_and_reports/,dated 2025,"# Supabase Connection Pool Leak Fix - December 16, 2025"
+CONNECTION_POOL_LEAK_FIX_DEC6_2025.md,6946,Historical,git mv -> archive/timelines_and_reports/,dated 2025,"# Connection Pool Leak Fix - December 6, 2025"
+CONNECTION_POOL_LEAK_FIX_DEC8_2025.md,11976,Historical,git mv -> archive/timelines_and_reports/,dated 2025,"# 🔌 Connection Pool Exhaustion Fix - December 8, 2025"
+CONNECTION_POOL_LEAK_FIX_DEC9_2025.md,8605,Historical,git mv -> archive/timelines_and_reports/,dated 2025,"# Connection Pool Leak Fix - December 9, 2025"
+CONNECTION_POOL_LEAK_FIX_NOV25.md,9339,Historical,git mv -> archive/timelines_and_reports/,dated 2025,"# Connection Pool Leak Fix - November 25, 2025"
+CONNECTION_POOL_LEAK_FIX_NOV30.md,6249,Historical,git mv -> archive/timelines_and_reports/,dated 2025,"# Connection Pool Leak Fix - November 30, 2025"
+CONNECTION_ROUTES_INDENTATION_FIX_DEC9.md,7479,Historical,git mv -> archive/timelines_and_reports/,dated 2025,# 🐛 Critical Bug Fix - connection_routes.py Indentation Error
+CONSECUTIVE_USER_MESSAGES_FIX_NOV18.md,7314,Historical,git mv -> archive/timelines_and_reports/,dated 2025,"# Consecutive User Messages Bug Fix (November 18, 2025)"
+CONSOLE_COMMANDS_FORCE_MODULES.md,9245,Suspicious,review-needed,no pattern matched - needs judgement,# 🎮 Console Commands - Force Show Modules
+CONSOLE_COMMANDS_READY_TO_USE.md,10798,Suspicious,review-needed,no pattern matched - needs judgement,# Prime Chat Panel Issues - Console Commands Ready
+CONSOLE_COMMANDS_WORKING_VERSION.md,9094,Suspicious,review-needed,no pattern matched - needs judgement,# 🎮 Working Console Commands - Fixed Version
+CONSTRUCTION_SIGNS_ALIGNED_JAN23_2026.md,7970,Scratch,git mv -> archive/timelines_and_reports/,dated 2026,"# Construction Signs Calculator Alignment Complete (Jan 23, 2026)"
+CONSTRUCTION_SIGNS_REAUDIT_JAN23_2026.md,19746,Scratch,git mv -> archive/timelines_and_reports/,dated 2026,# Construction Signs - JSON-First Re-Audit
+CONSTRUCTION_SIGNS_SHOPIFY_VALIDATION_JAN23_2026.md,13436,Scratch,git mv -> archive/timelines_and_reports/,dated 2026,# Construction Signs - Shopify Website Validation Results
+CONSTRUCTION_SIGNS_TXT_VS_BACKEND_COMPARISON_JAN23_2026.md,8786,Scratch,git mv -> archive/timelines_and_reports/,dated 2026,# Construction Signs TXT vs Backend Comparison
+CONSTRUCTION_SIGNS_TXT_VS_JSON_COMPARISON_JAN23_2026.md,14122,Scratch,git mv -> archive/timelines_and_reports/,dated 2026,# Construction Signs - TXT vs JSON Comparison Analysis
+CONTAINER_ID_RENAME_COMPLETE_NOV19.md,9281,Historical,git mv -> archive/timelines_and_reports/,dated 2025,"# Container ID Rename Complete - November 19, 2025"
+CONV_SYNC_FIX_DEC15_2025.md,9645,Historical,git mv -> archive/timelines_and_reports/,dated 2025,"# Conversation Sync Fix - December 15, 2025"
+CONVERSATION_HISTORY_BUG_FIX_NOV22.md,10690,Historical,git mv -> archive/timelines_and_reports/,fix/debug/incident content,"# Conversation History Bug Fix - November 22, 2025"
+CONVERSATION_HISTORY_FORMAT_PROOF.md,15371,Suspicious,review-needed,no pattern matched - needs judgement,# 🔍 PROOF: Conversation History Format & Order
+CONVERSATION_HISTORY_SYSTEM_ANALYSIS.md,26818,Suspicious,review-needed,no pattern matched - needs judgement,# Conversation History System Analysis
+CONVERSATION_SYNC_FIX_NOV22.md,8696,Historical,git mv -> archive/timelines_and_reports/,dated 2025,"# Conversation Sync Fix - November 22, 2025 ✅"
+CONVERSATION_TRUNCATION_LOOP_FIX_JAN19_2026.md,15553,Scratch,git mv -> archive/timelines_and_reports/,dated 2026,"# CONVERSATION TRUNCATION LOOP FIX - January 19, 2026"
+CONVERT_SQL_PLACEHOLDERS_BUG_AUDIT_NOV25.md,12477,Historical,git mv -> archive/timelines_and_reports/,fix/debug/incident content,"# convert_sql_placeholders() Bug Audit - November 25, 2024"
+COPILOT_INSTRUCTIONS_ANALYSIS_NOV29.md,8894,Historical,git mv -> archive/timelines_and_reports/,dated 2025,"# Copilot Instructions Analysis - November 29, 2025"
+COPY_CONVERSATION_QUICK_START.md,3184,Scratch,git mv -> archive/timelines_and_reports/,fix/progress/summary content,# Copy Thread Conversation - Quick Start Guide
+CORE_FILES_INVENTORY_AND_TESTING.md,13798,Suspicious,review-needed,no pattern matched - needs judgement,# Core Files Inventory & Testing Plan
+CORE_FILES_TEST_RESULTS.md,9297,Scratch,git mv -> archive/timelines_and_reports/,title contains 'test results',# Core Files Test Results
+CORFLUTE_A-FRAME_TXT_VS_BACKEND_COMPARISON_JAN23_2026.md,6902,Scratch,git mv -> archive/timelines_and_reports/,dated 2026,# Corflute Insert A-Frame TXT vs Backend Comparison
+CORFLUTE_CALCULATORS_ASSESSMENT_JAN23_2026.md,9704,Scratch,git mv -> archive/timelines_and_reports/,fix/progress/summary content,# CORFLUTE CALCULATORS - Consolidated Assessment
+CORRECT_ARCHITECTURE_FIX_DEC11.md,9829,Historical,git mv -> archive/timelines_and_reports/,dated 2025,"# ✅ CORRECT ARCHITECTURE FIX - December 11, 2025"
+CREDENTIAL_POPULATION_COMPLETE.md,26697,Scratch,git mv -> archive/timelines_and_reports/,title contains 'complete implementation',# 🎯 Credential Population Feature - Complete Implementation
+CREDENTIAL_POPULATION_DEBUG.md,2354,Suspicious,review-needed,no pattern matched - needs judgement,# 🔧 Quick Fix - Credential Population Debug
+CREDENTIAL_SECURITY_FINAL_IMPLEMENTATION_NOV29.md,24208,Scratch,git mv -> archive/timelines_and_reports/,fix/progress/summary content,# 🔐 Credential Security Final Implementation - Complete
+CREDENTIAL_SECURITY_IMPROVEMENTS_NOV29.md,20600,Historical,git mv -> archive/timelines_and_reports/,dated 2025,"# 🔐 Credential Security Improvements - November 29, 2025"
+CREDENTIAL_SYSTEM_ARCHEOLOGY_COMPLETE.md,50149,Suspicious,review-needed,no pattern matched - needs judgement,# Code Archeology Analysis - Credential System & Platform Integration
+CRITICAL_DISCOVERY_MULTI_LAYER_MISMATCH_JAN23_2026.md,18428,Scratch,git mv -> archive/timelines_and_reports/,dated 2026,"# CRITICAL DISCOVERY: Multi-Layer Format Mismatch - January 23, 2026"
+CRITICAL_ISSUES_FOUND_DEC10.md,7298,Historical,git mv -> archive/timelines_and_reports/,dated 2025,# CRITICAL ISSUES FOUND - AI Workflow Testing
+CRITICAL_WRAPPER_MISMATCHES_JAN23_2026.md,7248,Scratch,git mv -> archive/timelines_and_reports/,dated 2026,# CRITICAL: Calculator Wrapper Mismatches Found
+CROSS_DEVICE_SYNC_IMPLEMENTATION.md,21496,Scratch,git mv -> archive/timelines_and_reports/,fix/progress/summary content,# Cross-Device Synchronization Implementation
+CSS_EXTRACTOR_DYNAMIC_ELEMENTS.md,9065,Suspicious,review-needed,no pattern matched - needs judgement,# CSS Extractor - Working with Dynamic Elements
+CSS_EXTRACTOR_GUIDE.md,10979,Scratch,git mv -> archive/timelines_and_reports/,title contains 'complete guide',# CSS Extractor Tool - Complete Guide
+CSS_EXTRACTOR_IMPLEMENTATION_COMPLETE.md,10805,Scratch,git mv -> archive/timelines_and_reports/,title contains 'complete summary',# CSS Extractor Implementation - Complete Summary
+CSS_EXTRACTOR_QUICK_START.md,5007,Scratch,git mv -> archive/timelines_and_reports/,fix/progress/summary content,# CSS Extractor - Quick Start Guide
+CURSOR_AUDIT_communication_routes.md,8182,Scratch,git mv -> archive/timelines_and_reports/,title contains 'audit',# ✅ CURSOR MANAGEMENT AUDIT - communication_routes.py
+CURSOR_LEAK_FIX_DEC6_2025.md,11178,Historical,git mv -> archive/timelines_and_reports/,dated 2025,"# 🔧 Cursor Leak Fix - December 6, 2025"
+CURSOR_LEAK_FIX_ROUND2_DEC6_2025.md,7378,Historical,git mv -> archive/timelines_and_reports/,dated 2025,"# Cursor Leak Fix - Round 2 - December 6, 2025"
+CURSOR_MANAGEMENT_ANALYSIS_universal_search_routes.md,15191,Suspicious,review-needed,no pattern matched - needs judgement,# Cursor Management Analysis: universal_search_routes.py
+CUSTOMER_HEALTH_ANALYSIS_AND_RECOMMENDATIONS.md,20373,Scratch,git mv -> archive/timelines_and_reports/,title contains 'assessment',# Customer Health/Churn Analysis - Full Assessment & Recommendations
+CUSTOMER_INTELLIGENCE_BEFORE_AFTER_COMPARISON_JAN18_2026.md,10839,Scratch,git mv -> archive/timelines_and_reports/,fix/progress/summary content,# Customer Intelligence Risk Logic - Before & After Comparison
+CUSTOMER_INTELLIGENCE_DASHBOARD_COMPLETE.md,22797,Scratch,git mv -> archive/timelines_and_reports/,title contains 'implementation complete',# Customer Intelligence Dashboard - Implementation Complete
+CUSTOMER_INTELLIGENCE_DEAD_CUSTOMER_FIX_COMPLETE_JAN18_2026.md,12758,Scratch,git mv -> archive/timelines_and_reports/,dated 2026,# Customer Intelligence Dashboard - Dead Customer Fix COMPLETE
+CUSTOMER_INTELLIGENCE_DEAD_CUSTOMER_FIX_JAN18_2026.md,17005,Scratch,git mv -> archive/timelines_and_reports/,dated 2026,# Customer Intelligence Dashboard - Dead Customer Fix
+CUSTOMER_REACTIVATION_DEPLOYMENT.md,15864,Runbook,keep,matches runbook pattern,# Customer Reactivation Module - Deployment Guide
+DASHBOARD_SWITCHING_DIAGNOSTIC_NOV29.md,11332,Historical,git mv -> archive/timelines_and_reports/,dated 2025,"# Dashboard Switching Diagnostic Logging - November 29, 2024"
+DATA_FLOW_TRACE_DEC27.md,7095,Historical,git mv -> archive/timelines_and_reports/,dated 2025,""""""""
+DATABASE_ANALYZER_ALL_PHASES_SUMMARY.md,15532,Suspicious,review-needed,no pattern matched - needs judgement,# Database Analyzer - All 5 Phases Complete ✅
+DATABASE_ANALYZER_BEFORE_AFTER.md,12183,Scratch,git mv -> archive/timelines_and_reports/,fix/progress/summary content,# Database Analyzer - Before vs After Comparison
+DATABASE_ANALYZER_ENHANCED_COMPLETE.md,15194,Scratch,git mv -> archive/timelines_and_reports/,fix/progress/summary content,# Database Structure Analyzer - Enhanced Version Complete ✅
+DATABASE_ANALYZER_IMPLEMENTATION_SUMMARY.md,15308,Scratch,git mv -> archive/timelines_and_reports/,fix/progress/summary content,# Database Analyzer Enhancement - Implementation Summary
+DATABASE_ANALYZER_PHASE5_COMPLETE.md,16009,Scratch,git mv -> archive/timelines_and_reports/,title contains 'phase 5',# Database Analyzer - Phase 5 Real-Time Health Checks ✅
+DATABASE_ANALYZER_PHASE5_IMPLEMENTATION_COMPLETE.md,16497,Scratch,git mv -> archive/timelines_and_reports/,title contains 'implementation complete',# Database Analyzer Phase 5 - Implementation Complete ✅
+DATABASE_ANALYZER_QUICK_START.md,10419,Scratch,git mv -> archive/timelines_and_reports/,fix/progress/summary content,# Database Analyzer - Quick Start Guide 🚀
+DATABASE_ANALYZER_TESTING_GUIDE.md,20160,Scratch,git mv -> archive/timelines_and_reports/,fix/progress/summary content,# Database Analyzer - Testing Guide 🧪
+DATABASE_CLEANUP_PLAN_NOV17.md,11800,Historical,git mv -> archive/timelines_and_reports/,dated 2025,"# Database Schema Cleanup - November 17, 2025"
+DATABASE_CONSTRAINT_FIX_NOV24.md,5500,Historical,git mv -> archive/timelines_and_reports/,dated 2025,"# Database Constraint Fix - prime-loaded Location (Nov 24, 2025)"
+DATABASE_ISSUES_FOUND_AND_FIX_PLAN.md,5549,Scratch,git mv -> archive/timelines_and_reports/,title contains 'complete fix',# Database Issues Found - Complete Fix Plan
+DATABASE_LAZY_LOADING_ENHANCEMENTS_DEC5_2025.md,15399,Historical,git mv -> archive/timelines_and_reports/,dated 2025,"# Database Lazy Loading Enhancements (Dec 5, 2025)"
+DATABASE_QUERY_TOOLS_COMPLETE_GUIDE.md,17299,Scratch,git mv -> archive/timelines_and_reports/,title contains 'complete guide',# Database Query Tools - Complete Guide
+DATABASE_SCHEMA_RELATIONSHIPS.md,23813,Suspicious,review-needed,no pattern matched - needs judgement,# Database Schema Relationships - Automation & Threads
+DATABASE_STRUCTURE_EXPLANATION.md,8328,Suspicious,review-needed,no pattern matched - needs judgement,# Database Structure - Messages Table
+DATABASE_TEST_RESULTS_NOV21.md,11540,Historical,git mv -> archive/timelines_and_reports/,dated 2025,# Database Connection Test Results
+DATABASE_TOOLS_TEST_RESULTS.md,10437,Scratch,git mv -> archive/timelines_and_reports/,title contains 'test results',# Database Query Tools - Test Results Summary
+DEBUG_AGENT_400_ERROR.md,7339,Suspicious,review-needed,no pattern matched - needs judgement,# Debugging: 400 Error on /api/agent/agent/1/start
+DEBUG_ASSISTANT_MESSAGES.md,2694,Suspicious,review-needed,no pattern matched - needs judgement,# Debug Assistant Message Rendering
+DEBUG_COMMUNICATION_HUB_THREADING.md,10364,Suspicious,review-needed,no pattern matched - needs judgement,# Debug Guide: Communication Hub Threading Not Working
+DEBUG_HTML_TREE_FIX.md,4302,Suspicious,review-needed,no pattern matched - needs judgement,# Debug HTML Tree Rendering Fix - COMPLETE ✅
+DEBUG_LOGGING_GUIDE.md,7793,Scratch,git mv -> archive/timelines_and_reports/,title contains 'debug log',# Debug Logging Guide - Multi-Agent Dashboard
+DEBUG_MODULE_APPSTATE_FIX.md,4040,Suspicious,review-needed,no pattern matched - needs judgement,# Debug Module AppState Fix - COMPLETE ✅
+DEBUG_MODULE_COMPLETE.md,9939,Suspicious,review-needed,no pattern matched - needs judgement,# Debug Module - COMPLETE ✅
+DEBUG_MODULE_ENHANCED_TEST_RESULTS.md,13892,Historical,git mv -> archive/timelines_and_reports/,fix/debug/incident content,# Debug Module Enhanced Test Results
+DEBUG_MODULE_REALTIME_COMPLETE.md,11369,Suspicious,review-needed,no pattern matched - needs judgement,# Debug Module Real-Time Updates - COMPLETE ✅
+DEBUG_MODULE_STYLING_FIXED.md,7939,Suspicious,review-needed,no pattern matched - needs judgement,# Debug Module Styling - FIXED ✅
+DEBUG_MODULE_UX_IMPROVEMENTS_COMPLETE.md,14378,Suspicious,review-needed,no pattern matched - needs judgement,# Debug Module UX Improvements - COMPLETE ✅
+DEBUG_PANEL_ENHANCEMENTS.md,9572,Suspicious,review-needed,no pattern matched - needs judgement,# Debug Panel Enhancements - Expand & Auto-Scroll Fix
+DEBUG_SUMMARY_AND_QUICK_START.md,7785,Historical,git mv -> archive/timelines_and_reports/,fix/debug/incident content,# Prime Panel & Agent Column Issues - Debug & Fix Summary
+DEBUGGING_ANALYSIS_DEC01.md,21421,Historical,git mv -> archive/timelines_and_reports/,dated 2025,"# 🔍 DEBUGGING INVESTIGATION: Module Loading Failures - December 1, 2025"
+DELETE_THREAD_MANAGER_ADDITIONAL.md,5007,Suspicious,review-needed,no pattern matched - needs judgement,# 🚀 QUICK REFERENCE: Delete thread_manager_additional.js
+DEPLOY_META_TOOLS_FIX.md,5065,Suspicious,review-needed,no pattern matched - needs judgement,# Deploy Meta-Tools Fix - Quick Checklist
+DEPLOY_TO_RENDER_QUICK_START.md,3910,Scratch,git mv -> archive/timelines_and_reports/,fix/progress/summary content,# Deploy to Render.com - Quick Start Guide
+DEPLOYMENT_BLUEPRINT_SYSTEM.md,19154,Suspicious,review-needed,no pattern matched - needs judgement,# Deployment Blueprint System - Multi-Version Strategy
+DEPLOYMENT_CHECKLIST.md,4142,Suspicious,review-needed,no pattern matched - needs judgement,# Supabase Fix - Deployment Checklist
+DEPLOYMENT_CHECKLIST_CREDENTIAL_SECURITY.md,17976,Suspicious,review-needed,no pattern matched - needs judgement,# 🚀 Credential Security Deployment Checklist
+DEPLOYMENT_CHECKLIST_DEC17.md,10337,Historical,git mv -> archive/timelines_and_reports/,dated 2025,# Communication Hub V4 - Deployment Checklist
+DEPLOYMENT_CHECKLIST_NOV19.md,10093,Historical,git mv -> archive/timelines_and_reports/,dated 2025,"# Deployment Checklist - November 19, 2025"
+DEPLOYMENT_CHECKLIST_SYNERGY_FIX.md,5774,Suspicious,review-needed,no pattern matched - needs judgement,# DEPLOYMENT CHECKLIST - Synergy Backend Fix
+DEPLOYMENT_FIX_DEC12_2025.md,7368,Historical,git mv -> archive/timelines_and_reports/,dated 2025,"# Deployment Fix - December 12, 2025"
+DEPLOYMENT_READY_SUMMARY.md,8471,Suspicious,review-needed,no pattern matched - needs judgement,# ✅ Markdown Text Extraction - Deployment Ready
+DEPLOYMENT_STATUS_ASSESSMENT_DEC13_2025.md,11669,Scratch,git mv -> archive/timelines_and_reports/,fix/progress/summary content,"# Deployment & Commit Status Assessment - December 13, 2025"
+DEPLOYMENT_STATUS_SUMMARY.md,7965,Suspicious,review-needed,no pattern matched - needs judgement,"# Deployment Status Summary - November 16, 2025"
+DEPLOYMENT_SUMMARY_NOV25.md,10601,Historical,git mv -> archive/timelines_and_reports/,dated 2025,"# Deployment Summary - November 25, 2025"
+DESIGN_ENGINEERING_AI_TOOLS_EXPLAINED.md,25415,Suspicious,review-needed,no pattern matched - needs judgement,# 🤖 Design Engineering AI Tools - Complete Technical Guide
+DESIGN_ENGINEERING_DEPLOYMENT_READY_DEC10.md,15168,Historical,git mv -> archive/timelines_and_reports/,dated 2025,# 🎉 Design Engineering Module - Production Ready
+DESIGN_ENGINEERING_MODULE_COMPLETE.md,21777,Scratch,git mv -> archive/timelines_and_reports/,title contains 'implementation complete',# 🎉 DESIGN ENGINEERING MODULE - IMPLEMENTATION COMPLETE
+DIAGNOSE_MISSING_BUTTONS.md,6409,Suspicious,review-needed,no pattern matched - needs judgement,# 🔍 Diagnostic Guide - Missing Module Buttons
+DIAGNOSIS_USER_MESSAGES_NOT_SAVED.md,8757,Suspicious,review-needed,no pattern matched - needs judgement,# 🔍 Diagnosis: User Messages Not Saved to Database
+DIAGNOSTIC_INTEGRATION_SUMMARY_NOV29.md,9912,Historical,git mv -> archive/timelines_and_reports/,dated 2025,"# Diagnostic Integration Summary - November 29, 2025"
+DOCKER_BUILD_OPTIMIZATION_10GB_DISK.md,12440,Suspicious,review-needed,no pattern matched - needs judgement,# Docker Build Optimization - 10GB Persistent Disk Strategy
+DOCKER_VS_NATIVE_PYTHON.md,9106,Suspicious,review-needed,no pattern matched - needs judgement,# Docker vs Native Python on Render - Comparison
+DOCUMENT_LIBRARY_QUICK_START.md,3411,Scratch,git mv -> archive/timelines_and_reports/,fix/progress/summary content,# Document Library - Quick Start Guide
+DOCUMENT_LIBRARY_SEARCH_IMPLEMENTATION_COMPLETE.md,16668,Suspicious,review-needed,no pattern matched - needs judgement,# Document Library Search Implementation - COMPLETE ✅
+DOCUMENT_SERVICE_INTEGRATION_COMPLETE.md,9556,Scratch,git mv -> archive/timelines_and_reports/,title contains 'implementation complete',# Document Service Integration - Implementation Complete
+DOCUMENT_SERVICE_INTEGRATION_COMPLETE_V2.md,12818,Suspicious,review-needed,no pattern matched - needs judgement,# Document Service Integration - COMPLETE ✅
+DOCUMENT_SERVICE_INTEGRATION_GAPS_ANALYSIS.md,25120,Debug,git mv -> archive/analysis_reports/,analysis/audit/research content,# Document Service Integration - System Architecture Analysis
+DOCUMENTATION_INDEX.md,10881,Suspicious,review-needed,no pattern matched - needs judgement,# Documentation Index - AI Agents Project
+DOCUMENTS_LIBRARY_SIDEBAR_DESIGN.md,42088,Suspicious,review-needed,no pattern matched - needs judgement,# 📚 Documents Library Sidebar - Complete Design Specification
+DOUBLE_CLICK_FIX_DEC12_2025.md,6465,Historical,git mv -> archive/timelines_and_reports/,dated 2025,"# Double-Click Auto-Load Fix - December 12, 2025"
+DRAG_DROP_FULL_CONTAINER_COMPLETE.md,8107,Suspicious,review-needed,no pattern matched - needs judgement,# Drag & Drop: Full Container Drop Zones - COMPLETE ✅
+DRAG_DROP_UX_ENHANCEMENTS_COMPLETE.md,12092,Suspicious,review-needed,no pattern matched - needs judgement,# Drag & Drop UX Enhancements - COMPLETE ✅
+DUAL_ARCHITECTURE_CLEANUP_PLAN.md,16398,Suspicious,review-needed,no pattern matched - needs judgement,# 🚨 CRITICAL: Dual Module Architecture Analysis & Cleanup Plan
+DUAL_METHOD_TEST_SUITE_COMPLETE_JAN23_2026.md,17116,Scratch,git mv -> archive/timelines_and_reports/,dated 2026,# Dual Method Test Suite - Complete ✅
+DUAL_STT_IMPLEMENTATION_SUMMARY.md,15987,Scratch,git mv -> archive/timelines_and_reports/,fix/progress/summary content,# ✅ Dual-Mode STT Implementation Complete - Summary
+DUAL_STT_MIGRATION_GUIDE.md,16580,Scratch,git mv -> archive/timelines_and_reports/,fix/progress/summary content,# 🔄 Migration Guide: Backend-Only STT → Dual-Mode STT with Real-Time Streaming
+DUAL_STT_QUICK_START.md,9251,Scratch,git mv -> archive/timelines_and_reports/,fix/progress/summary content,# ⚡ Dual-Mode STT - 5-Minute Quick Start
+DUAL_STT_VISUAL_FLOW.md,36828,Suspicious,review-needed,no pattern matched - needs judgement,# 🎯 Dual-Mode STT Visual Flow Diagram
+DUPLICATE_CLIENT_FIX_NOV24.md,5608,Historical,git mv -> archive/timelines_and_reports/,dated 2025,"# Duplicate Supabase Client Fix (Nov 24, 2025)"
+DUPLICATE_DECLARATIONS_CHECK_NOV29.md,9819,Historical,git mv -> archive/timelines_and_reports/,dated 2025,# Duplicate Declarations Check - Module Analyzer Enhancement
+DUPLICATE_MESSAGE_FIX_TESTING_GUIDE.md,7605,Historical,git mv -> archive/timelines_and_reports/,fix/debug/incident content,# Duplicate Message Fix - Testing Guide
+DUPLICATE_REQUEST_HANDLING_ANALYSIS_DEC4_2025.md,13538,Historical,git mv -> archive/timelines_and_reports/,dated 2025,"# 🔄 Duplicate Request Handling Analysis - December 4, 2025"
+DUPLICATE_SCHEMA_BUG_DISCOVERY_DEC11_2025.md,16217,Historical,git mv -> archive/timelines_and_reports/,dated 2025,# Duplicate Schema Bug Discovery & Fix
+DUPLICATE_THREAD_LOADING_FIX_NOV28.md,12016,Historical,git mv -> archive/timelines_and_reports/,dated 2025,"# Duplicate Thread Loading Fix - November 28, 2025 (FLAG-BASED APPROACH)"
+DUPLICATION_FLOW_DIAGRAM.md,23433,Suspicious,review-needed,no pattern matched - needs judgement,# Message Duplication Flow Diagram
+EFFICIENT_LOADING_COMPLETE.md,7261,Suspicious,review-needed,no pattern matched - needs judgement,# ✅ EFFICIENT LOADING SOLUTION - COMPLETE
+EFFICIENT_LOADING_STRATEGY.md,10466,Suspicious,review-needed,no pattern matched - needs judgement,# Efficient Loading Strategy - Why Load 50 Threads When You Only Need 4?
+EMAIL_AI_CONTEXT_IMPLEMENTATION_COMPLETE.md,11014,Suspicious,review-needed,no pattern matched - needs judgement,# Email AI Context Implementation - COMPLETE ✅
+EMAIL_ASSIGNMENT_LOCATION_BUG_FIX.md,7931,Historical,git mv -> archive/timelines_and_reports/,fix/debug/incident content,# Email Assignment Location Bug Fix
+EMAIL_ATTACHMENT_PROCESSING_ANALYSIS_DEC23_2025.md,26440,Historical,git mv -> archive/timelines_and_reports/,dated 2025,# 📎 Email Attachment Processing Analysis - Communication Hub V4
+EMAIL_CONTEXT_DEPLOYMENT_CHECKLIST.md,9288,Suspicious,review-needed,no pattern matched - needs judgement,# Email Context Implementation - Deployment Checklist
+EMAIL_CONTEXT_QUICK_SUMMARY.md,2103,Suspicious,review-needed,no pattern matched - needs judgement,# Email Context Implementation - Quick Summary
+EMAIL_INTEGRATION_VISUAL_FLOW.md,20318,Scratch,git mv -> archive/timelines_and_reports/,title contains 'integration complete',# Email Integration Complete Visual Flow
+EMAIL_REASSIGNMENT_ANALYSIS_DEC23_2025.md,21213,Historical,git mv -> archive/timelines_and_reports/,dated 2025,"# Email Reassignment Analysis - December 23, 2025"
+EMAIL_THREAD_INTEGRATION_COMPLETE_WORKFLOW.md,37317,Suspicious,review-needed,no pattern matched - needs judgement,# 📧 EMAIL-THREAD INTEGRATION: COMPLETE SYSTEM WORKFLOW
+EMAIL_THREAD_PLACEHOLDER_IMPLEMENTATION.md,12356,Scratch,git mv -> archive/timelines_and_reports/,fix/progress/summary content,# Email Thread Placeholder System - Implementation Complete
+EMAIL_THREAD_SYSTEM_ANALYSIS.md,25178,Scratch,git mv -> archive/timelines_and_reports/,title contains 'complete analysis',# Email Thread System - Complete Analysis & Testing
+EMAIL_THREAD_SYSTEM_COMPLETE_ANALYSIS.md,17491,Scratch,git mv -> archive/timelines_and_reports/,title contains 'complete implementation',# Email Thread System - Complete Implementation Analysis
+EMAIL_THREAD_TAGS_SYNERGY_PATTERN_ANALYSIS.md,31953,Suspicious,review-needed,no pattern matched - needs judgement,# Email Thread Tags - Apply Synergy Session Pattern Analysis
+EMAIL_THREADING_IMPLEMENTATION_JAN12.md,20134,Scratch,git mv -> archive/timelines_and_reports/,fix/progress/summary content,# Email Threading Implementation - Gmail-Style Collapsed View
+EMAIL_TOOLS_DEACTIVATION_STATUS.md,8822,Suspicious,review-needed,no pattern matched - needs judgement,"# 🚫 Email Tools Deactivation Status - December 2, 2025"
+EMAIL_TRACKING_QUICK_REFERENCE.md,2886,Scratch,git mv -> archive/timelines_and_reports/,fix/progress/summary content,# 📋 **EMAIL TRACKING + LEGACY DEPRECATION - QUICK REFERENCE**
+EMPTY_MESSAGE_FIX_DEC14_2025.md,8006,Historical,git mv -> archive/timelines_and_reports/,dated 2025,"# Empty Message Content Fix - December 14, 2025"
+ENGINEERING_LIBRARIES_INSTALLED_DEC10.md,7952,Historical,git mv -> archive/timelines_and_reports/,dated 2025,# Engineering & CAD Libraries Installation Summary
+ERROR_HANDLING_ROADMAP_NOV22.md,40786,Historical,git mv -> archive/timelines_and_reports/,dated 2025,"# Error Handling & Robustness Roadmap - November 22, 2025"
+ERROR_MONITORING_GUIDE.md,9371,Suspicious,review-needed,no pattern matched - needs judgement,# Error Monitoring Quick Reference Guide
+ERROR_RECOVERY_FIX_NOV25.md,9241,Historical,git mv -> archive/timelines_and_reports/,dated 2025,# Error Recovery Fix - Infinite Loop Detection Enhancement
+ERROR_RECOVERY_IMPLEMENTATION_COMPLETE.md,14196,Scratch,git mv -> archive/timelines_and_reports/,title contains 'implementation complete',# Error Recovery System - Implementation Complete ✅
+ERROR_RECOVERY_SETTINGS_COMPLETE_NOV23.md,8810,Historical,git mv -> archive/timelines_and_reports/,dated 2025,# Error Recovery Settings System - Complete Implementation
+EXCEL_ENHANCEMENT_COMPLETE.md,8703,Scratch,git mv -> archive/timelines_and_reports/,title contains 'implementation summary',# Excel Enhancement Implementation Summary
+EXECUTE_QUERY_LIBRARY_FIX_COMPLETE.md,3598,Suspicious,review-needed,no pattern matched - needs judgement,"# ✅ COMPLETED: execute_query_library Fix (Dec 23, 2025)"
+EXECUTE_QUERY_LIBRARY_INVESTIGATION_DEC23_2025.md,21639,Historical,git mv -> archive/timelines_and_reports/,dated 2025,"# Execute Query Library Tool Investigation - December 23, 2025"
+EXECUTE_TOOL_PARAMETER_BUG_FIX_JAN19_2026.md,12520,Historical,git mv -> archive/timelines_and_reports/,fix/debug/incident content,"# execute_tool Parameter Bug Fix - January 19, 2026"
+EXECUTE_TOOL_PARAMETER_UNWRAPPING_FIX_DEC24_2025.md,10109,Historical,git mv -> archive/timelines_and_reports/,dated 2025,# Execute Tool Parameter Unwrapping Fix
+EXPORT_MANAGER_AND_NATURAL_LANGUAGE_COMPLETE.md,12315,Suspicious,review-needed,no pattern matched - needs judgement,# Export Manager & Natural Language Integration - COMPLETE
+EXTERNAL_ANALYSIS_ACCURACY_ASSESSMENT.md,12989,Scratch,git mv -> archive/timelines_and_reports/,title contains 'assessment',# External Analysis vs Actual Root Cause - Accuracy Assessment
+FALLBACK_UI_REMOVAL_NOV29.md,8158,Historical,git mv -> archive/timelines_and_reports/,dated 2025,"# Fallback UI Removal - November 29, 2025"
+FIELD_EXTENSIBILITY_IMPLEMENTATION_SUMMARY.md,12694,Scratch,git mv -> archive/timelines_and_reports/,fix/progress/summary content,# 📋 **FIELD EXTENSIBILITY IMPLEMENTATION SUMMARY**
+FILE_PROCESSING_ARCHITECTURE.md,16914,Suspicious,review-needed,no pattern matched - needs judgement,# File Processing Architecture - Multi-Modal Content Blocks
+FIX_3_COMPLETE_SUMMARY.md,5104,Suspicious,review-needed,no pattern matched - needs judgement,# ✅ FIX #3 COMPLETE - NO ROLLBACK NEEDED
+FIX_3_PROPER_IMPLEMENTATION_DEC10.md,14707,Historical,git mv -> archive/timelines_and_reports/,fix/debug/incident content,# ✅ FIX #3: CASCADE Debouncing - PROPER IMPLEMENTATION
+FIX_EXECUTE_QUERY_LIBRARY_HANDLER.md,3805,Scratch,git mv -> archive/timelines_and_reports/,title contains 'fix:',# FIX: Add execute_query_library Handler to ToolUseAgent
+FIXES_APPLIED_SUMMARY.md,8076,Suspicious,review-needed,no pattern matched - needs judgement,# Production Deployment Fixes Applied
+FIXES_COMPLETE_DEC22_2025.md,12335,Historical,git mv -> archive/timelines_and_reports/,dated 2025,# ✅ Communication Hub Critical Fixes - COMPLETE
+FIXES_COMPLETE_NOV20_2025.md,9636,Historical,git mv -> archive/timelines_and_reports/,dated 2025,# Core Files Bug Fixes - Complete
+FIXES_VERIFICATION_COMPLETE_NOV19.md,16109,Historical,git mv -> archive/timelines_and_reports/,dated 2025,"# COMPLETE FIXES VERIFICATION - November 19, 2025"
+FLASK_UI_ROUTES_ALREADY_CONFIGURED.md,3338,Suspicious,review-needed,no pattern matched - needs judgement,"# Flask UI Routes - Already Configured - December 6, 2025"
+FOLDED_FLYERS_TXT_VS_BACKEND_COMPARISON_JAN24_2026.md,14123,Scratch,git mv -> archive/timelines_and_reports/,dated 2026,# Folded Flyers - TXT vs Backend Comparison
+FOLDED_FLYERS_WEBSITE_TESTS_JAN24_2026.md,11175,Scratch,git mv -> archive/timelines_and_reports/,dated 2026,# Folded Flyers - Website Validation Tests
+FORCE_MODULE_INSPECTION_COMMANDS.md,17392,Suspicious,review-needed,no pattern matched - needs judgement,# Force Module Inspection Commands
+FORCE_REFRESH_TRANSCRIPTION.md,3619,Suspicious,review-needed,no pattern matched - needs judgement,# 🔥 FORCE REFRESH - Clear Service Worker Cache
+FORECAST_AUDIT_DEC24_2025.md,14086,Historical,git mv -> archive/timelines_and_reports/,dated 2025,# 🔍 Forecast & Projection Audit Report
+FRED_DATABASE_TOOLS_MISSING_IMPLEMENTATION_DEC5_2025.md,12115,Scratch,git mv -> archive/timelines_and_reports/,fix/progress/summary content,# Fred Database Tools - Missing Implementation Issue
+FRED_QUERY_OPTIMIZATION_DEC5_2025.md,21596,Historical,git mv -> archive/timelines_and_reports/,dated 2025,# FRED SQL Query Data Flow & Optimization Analysis
+FRED_QUERY_STORAGE_DESIGN_DEC5_2025.md,32946,Historical,git mv -> archive/timelines_and_reports/,dated 2025,# FRED Query Storage & Smart Routing Design
+FRONTEND_BACKEND_ALIGNMENT_ANALYSIS.md,27018,Suspicious,review-needed,no pattern matched - needs judgement,# 🔍 COMPREHENSIVE FRONTEND-BACKEND ALIGNMENT ANALYSIS
+FRONTEND_REALTIME_INTEGRATION_GUIDE_JAN19_2026.md,14128,Scratch,git mv -> archive/timelines_and_reports/,fix/progress/summary content,# Frontend Real-Time Collaboration Integration Guide
+FRONTEND_SAVE_AUDIT_COMPLETE_NOV22.md,17418,Debug,git mv -> archive/analysis_reports/,analysis/audit/research content,"# Frontend Save Audit - Complete Analysis (Nov 22, 2025)"
+FRONTEND_STATUS_COMPLETE_ANALYSIS.md,20415,Scratch,git mv -> archive/timelines_and_reports/,title contains 'complete analysis',# ✅ FRONTEND-BACKEND ALIGNMENT STATUS - COMPLETE ANALYSIS
+GIT_CHANGES_COLLATION_DEC13_2025.md,16673,Historical,git mv -> archive/timelines_and_reports/,dated 2025,"# Git Changes Collation - December 13, 2025"
+GITHUB_MODULE_MIGRATION_COMPLETE.md,7976,Scratch,git mv -> archive/timelines_and_reports/,fix/progress/summary content,# ✅ GitHub Module Migration to External Modules - COMPLETE
+GITHUB_PERSONAL_INTEGRATION_COMPLETE.md,9876,Scratch,git mv -> archive/timelines_and_reports/,title contains 'complete guide',# 🔐 GitHub Personal Integration - Complete Guide
+GLOBAL_CREDENTIALS_INJECTOR_COMPLETE.md,11648,Suspicious,review-needed,no pattern matched - needs judgement,# 🎯 Global Credentials Injector - Quick Reference
+GMAIL_ATTACHMENT_FUNCTIONS_COMPLETE.md,12545,Scratch,git mv -> archive/timelines_and_reports/,title contains 'implementation complete',# Gmail Attachment Functions - Implementation Complete
+GMAIL_FUNCTIONS_QUICK_REFERENCE.md,11626,Scratch,git mv -> archive/timelines_and_reports/,fix/progress/summary content,# Gmail Attachment Functions - Quick Reference Card
+GMAIL_FUNCTIONS_TEST_RESULTS.md,10984,Scratch,git mv -> archive/timelines_and_reports/,title contains 'test results',# Gmail Attachment Functions - Test Results ✅
+GMAIL_THREADING_IMPLEMENTATION_COMPLETE_JAN12.md,15731,Scratch,git mv -> archive/timelines_and_reports/,dated 2026,# ✅ Gmail-Style Threading Implementation - COMPLETE
+GOD_CALCULATOR_DEPRECATION_JAN28_2026.md,10975,Scratch,git mv -> archive/timelines_and_reports/,dated 2026,"# GOD Calculator Deprecation for Business Cards - January 28, 2026"
+GOOGLE_ANALYTICS_FIX_NOV28.md,4733,Historical,git mv -> archive/timelines_and_reports/,dated 2025,"# Google Analytics Tools Fix - November 28, 2025"
+GOOGLE_DOCS_HEADING_FIX_NOV28.md,4253,Historical,git mv -> archive/timelines_and_reports/,dated 2025,"# Google Docs Heading Formatting Fix - November 28, 2025"
+GOOGLE_DOCS_TOKEN_FIX_QUICK_REFERENCE.md,4235,Scratch,git mv -> archive/timelines_and_reports/,fix/progress/summary content,# Google Docs Token Overflow - Quick Reference
+GOOGLE_DOCS_TOKEN_FIX_SUMMARY.md,10983,Scratch,git mv -> archive/timelines_and_reports/,title contains 'summary:',"# Summary: Google Docs Token Overflow Solution - November 27, 2025"
+GOOGLE_DOCS_TOKEN_OVERFLOW_FIX_NOV27.md,14174,Historical,git mv -> archive/timelines_and_reports/,dated 2025,"# Google Docs Token Overflow Fix - November 27, 2025"
+GOOGLE_DOCS_V2_ANALYSIS_DEC1.md,13785,Historical,git mv -> archive/timelines_and_reports/,dated 2025,"# Google Docs Tools V2 - Comprehensive Analysis (December 1, 2025)"
+GOOGLE_DOCS_V2_FIXES_DEC1.md,10584,Historical,git mv -> archive/timelines_and_reports/,dated 2025,"# Google Docs V2 - Critical Fixes Applied (December 1, 2025)"
+GOOGLE_FORMS_FIX_AND_SMART_TOOLS_NOV28.md,16798,Historical,git mv -> archive/timelines_and_reports/,dated 2025,"# Google Forms **kwargs Fix + Smart Tools Analysis - November 28, 2025"
+GOOGLE_FORMS_SCHEMA_ANALYSIS_NOV28.md,12752,Historical,git mv -> archive/timelines_and_reports/,dated 2025,"# Google Forms Schema Analysis - November 28, 2025"
+GOOGLE_INTEGRATION.md,58675,Scratch,git mv -> archive/timelines_and_reports/,fix/progress/summary content,# Google Workspace Integration Documentation
+GOOGLE_OAUTH_NEW_USER_FIX_DEC4_2025.md,4733,Historical,git mv -> archive/timelines_and_reports/,dated 2025,"# Google OAuth New User Login Fix - December 4, 2025"
+GOOGLE_OAUTH_USER_CREATION_FIX_NOV24.md,4410,Historical,git mv -> archive/timelines_and_reports/,dated 2025,"# Google OAuth User Creation Fix - November 24, 2025"
+GOOGLE_SHEETS_ENHANCEMENT_ANALYSIS.md,17911,Debug,git mv -> archive/analysis_reports/,analysis/audit/research content,# Google Sheets Tools Enhancement Analysis
+GOOGLE_SHEETS_FORMATTER_V3_COMPLETE.md,18148,Scratch,git mv -> archive/timelines_and_reports/,title contains 'v3.0',# Google Sheets Markdown Formatter v3.0 - COMPLETE 🚀
+GOOGLE_SHEETS_IMPLEMENTATION_COMPLETE.md,12322,Suspicious,review-needed,no pattern matched - needs judgement,# Google Sheets Enhancement Implementation - COMPLETE ✅
+GOOGLE_SHEETS_MARKDOWN_FORMATTER_DOCUMENTATION.md,15024,Suspicious,review-needed,no pattern matched - needs judgement,# Google Sheets Markdown Formatter - Custom Tool 📊
+GOOGLE_SHEETS_V3_IMPLEMENTATION_SUMMARY.md,10507,Scratch,git mv -> archive/timelines_and_reports/,title contains 'implementation summary',# Google Sheets Markdown Formatter v3.0 - IMPLEMENTATION SUMMARY ✅
+GOOGLE_SHEETS_V3_QUICK_REFERENCE.md,2107,Scratch,git mv -> archive/timelines_and_reports/,fix/progress/summary content,# Google Sheets Markdown v3.0 - Quick Reference Card 📋
+GOOGLE_SLIDES_AUDIT_DEC4_2025.md,9117,Debug,git mv -> archive/analysis_reports/,analysis/audit/research content,# Google Slides Functions - Credential Injection Audit
+GOOGLE_SLIDES_INSERT_FIX_DEC4_2025.md,6771,Historical,git mv -> archive/timelines_and_reports/,dated 2025,# Google Slides Insert Functions - OAuth Credential Fix
+GOOGLE_WORKSPACE_CREDENTIAL_AUDIT_DEC4_2025.md,10862,Debug,git mv -> archive/analysis_reports/,analysis/audit/research content,# Google Workspace - Complete OAuth Credential Audit
+GOOGLE_WORKSPACE_FORMAT_REFERENCE.md,26567,Scratch,git mv -> archive/timelines_and_reports/,title contains 'complete guide',# Google Workspace Format Reference - Complete Guide
+HEALTH_CHECKS_AND_REALTIME_ANALYSIS_DEC9.md,10237,Historical,git mv -> archive/timelines_and_reports/,dated 2025,"# Health Checks & Realtime Analysis - December 9, 2025"
+HIGH_PRIORITY_SQLITE_CLEANUP_NOV17.md,11415,Historical,git mv -> archive/timelines_and_reports/,dated 2025,"# High Priority SQLite Cleanup (November 17, 2025)"
+HYPERLINK_TARGET_BLANK_FIX_DEC8.md,8059,Historical,git mv -> archive/timelines_and_reports/,dated 2025,"# Hyperlink Target=""_blank"" Fix - December 8, 2025"
+IMMEDIATE_FIX_SEQUENTIAL_LOADING.md,11046,Scratch,git mv -> archive/timelines_and_reports/,title contains 'fix:',# IMMEDIATE FIX: Sequential Message Loading
+IMPLEMENTATION_COMPLETE.md,6473,Scratch,git mv -> archive/timelines_and_reports/,title contains 'implementation complete',# ✅ SUPABASE CONNECTION FIX - IMPLEMENTATION COMPLETE
+IMPLEMENTATION_COMPLETE_DEC16.md,15519,Historical,git mv -> archive/timelines_and_reports/,dated 2025,# ✅ Implementation Complete - Realtime Messaging System
+IMPLEMENTATION_COMPLETE_FINAL_NOV19.md,11523,Historical,git mv -> archive/timelines_and_reports/,dated 2025,# Implementation Complete - Tool Result Bubbles + Status Borders
+IMPLEMENTATION_COMPLETE_MESSAGE_SOURCE.md,8545,Scratch,git mv -> archive/timelines_and_reports/,title contains 'implementation complete',# IMPLEMENTATION COMPLETE: Option 4 + Enhanced System Prompt
+IMPLEMENTATION_COMPLETE_OVERVIEW.md,10910,Scratch,git mv -> archive/timelines_and_reports/,title contains 'implementation complete',# 🎉 PRIME BADGE DOUBLE-CLICK FEATURE - IMPLEMENTATION COMPLETE
+IMPLEMENTATION_COMPLETE_STATUS_BORDERS_NOV19.md,5767,Historical,git mv -> archive/timelines_and_reports/,dated 2025,# Implementation Complete: Tool Result Bubbles + Status Borders
+IMPLEMENTATION_EVALUATION_NOV19.md,11921,Historical,git mv -> archive/timelines_and_reports/,dated 2025,# Implementation Evaluation - Tool Result Bubbles + Status Borders
+IMPLEMENTATION_SUMMARY.md,12792,Scratch,git mv -> archive/timelines_and_reports/,title contains 'implementation complete',# 🎉 IMPLEMENTATION COMPLETE: Proactive Semantic Tool Search
+IMPLEMENTATION_SUMMARY_DEC13_2025.md,7887,Historical,git mv -> archive/timelines_and_reports/,dated 2025,"# Implementation Summary - December 13, 2025"
+IMPLEMENTATION_SUMMARY_JAN21_2026.md,11971,Scratch,git mv -> archive/timelines_and_reports/,dated 2026,# Communication Hub - Immediate UI Update Implementation Summary
+IMPLEMENTATION_SUMMARY_NOV18_2025.md,9606,Historical,git mv -> archive/timelines_and_reports/,dated 2025,"# Implementation Summary - November 18, 2025"
+INFINITE_LOOP_DETECTION_FIX_NOV25.md,8060,Historical,git mv -> archive/timelines_and_reports/,dated 2025,"# Infinite Loop Detection Fix - November 25, 2025"
+INFINITE_LOOP_FIX_COMPLETE_JAN27_2026.md,9436,Scratch,git mv -> archive/timelines_and_reports/,dated 2026,"# Infinite Loop Fix - Complete Solution (Jan 27, 2026)"
+INFINITE_LOOP_FIX_PROGRESSIVE_SEARCH_DEC5_2025.md,8769,Historical,git mv -> archive/timelines_and_reports/,dated 2025,# Infinite Loop Detection Fix - Progressive Search Support
+INHOUSE_CODE_ANALYSIS_JAN18_2026.md,26761,Scratch,git mv -> archive/timelines_and_reports/,dated 2026,# InHouse Print Tools - Complete Code Analysis
+INHOUSE_FIXES_COMPLETE_JAN18_2026.md,10983,Scratch,git mv -> archive/timelines_and_reports/,dated 2026,# InHouse Tools Fixes - Complete Summary
+INHOUSE_KANBAN.md,50748,Suspicious,review-needed,no pattern matched - needs judgement,# 🏭 INHOUSE KANBAN - MASTER DOCUMENTATION
+INHOUSE_PRINT.md,72436,Suspicious,review-needed,no pattern matched - needs judgement,# InHouse Print Integration - Complete Technical Documentation
+INHOUSE_SCHEMA_FIXES_COMPLETE_JAN18_2026.md,11290,Scratch,git mv -> archive/timelines_and_reports/,dated 2026,# InHouse Print Schema Fixes - Complete Summary
+INHOUSE_TOOLS_FIXES_JAN18_2026.md,10434,Scratch,git mv -> archive/timelines_and_reports/,dated 2026,"# InHouse Tools Fixes - January 18, 2026"
+INHOUSE_TOOLS_FIXES_JAN19_2026.md,17752,Scratch,git mv -> archive/timelines_and_reports/,dated 2026,# InHouse Print Tools - Critical Bug Fixes Applied
+INHOUSE_WRAPPER_VALIDATION_COMPLETE_JAN23_2026.md,13016,Scratch,git mv -> archive/timelines_and_reports/,dated 2026,# ✅ InHouse Wrapper Validation Implementation Complete
+INITIALIZATION_FIX_COMPLETE_NOV24.md,15205,Historical,git mv -> archive/timelines_and_reports/,dated 2025,"# INITIALIZATION FIX COMPLETE - Nov 24, 2025"
+INLINE_HTML_DELIMITER_DEC5_2025.md,20659,Historical,git mv -> archive/timelines_and_reports/,dated 2025,# Inline Executable HTML Delimiter
+INLINE_INTERACTION_IMPLEMENTATION_COMPLETE.md,6297,Scratch,git mv -> archive/timelines_and_reports/,title contains 'implementation complete',# Inline Interaction System - Implementation Complete ✅
+INLINE_INTERACTION_QUICK_START.md,5876,Scratch,git mv -> archive/timelines_and_reports/,fix/progress/summary content,# Inline Interaction System - Quick Start
+INTEGRATION_QUICK_START.md,12928,Scratch,git mv -> archive/timelines_and_reports/,fix/progress/summary content,# AI Visualization Integration - Quick Start Guide
+INTEGRATION_STATUS_COMPLETE_DEC10.md,12272,Historical,git mv -> archive/timelines_and_reports/,dated 2025,# 🎉 SHOPIFY CALCULATOR INTEGRATION: STATUS COMPLETE
+INTELLIGENCE_LAYERS_IMPLEMENTATION_PROGRESS.md,16456,Scratch,git mv -> archive/timelines_and_reports/,fix/progress/summary content,# 🧠 Intelligence Layers - Implementation Progress
+INTELLIGENT_DISCOVERY_IMPLEMENTATION_COMPLETE.md,21534,Scratch,git mv -> archive/timelines_and_reports/,title contains 'implementation complete',# Intelligent Tool Discovery - Implementation Complete
+INTELLIGENT_DISCOVERY_PRODUCTION_COMPLETE.md,14164,Scratch,git mv -> archive/timelines_and_reports/,title contains 'integration complete',# Intelligent Tool Discovery - Production Integration Complete
+INTELLIGENT_DISCOVERY_SKIP_DESIGN.md,32734,Suspicious,review-needed,no pattern matched - needs judgement,# Intelligent Discovery Skip System - Design Document
+INTELLIGENT_QUOTE_GENERATION_SYSTEM_DEC23_2025.md,17079,Historical,git mv -> archive/timelines_and_reports/,dated 2025,"# 🧠 Intelligent Quote Generation System - December 23, 2025"
+INTERACTION_FRAMEWORK_GUIDE.md,33461,Suspicious,review-needed,no pattern matched - needs judgement,# 🎯 Two-Way Interaction Framework - Integration Guide
+INTERACTION_FRAMEWORK_QUICK_REFERENCE.md,9346,Scratch,git mv -> archive/timelines_and_reports/,fix/progress/summary content,# 🚀 Two-Way Interaction Framework - Quick Reference
+INTERNAL_DOCUMENT_MODULE.md,71680,Suspicious,review-needed,no pattern matched - needs judgement,# Internal Document Module - Complete Documentation
+INVESTIGATION_COMPLETE_NOV20.md,12267,Historical,git mv -> archive/timelines_and_reports/,dated 2025,# Message Duplication Investigation - Complete Summary
+INVESTIGATION_SUMMARY_NOV20.md,10724,Historical,git mv -> archive/timelines_and_reports/,dated 2025,# Investigation Summary: Message Duplication Bug
+INVOICE_ML_DASHBOARD_DESIGN.md,58428,Suspicious,review-needed,no pattern matched - needs judgement,# Invoice ML Dashboard - Complete Design Specification
+KAJABI_COURSE_CREATION_WORKAROUNDS.md,19918,Scratch,git mv -> archive/timelines_and_reports/,title contains 'complete guide',# Kajabi Course Creation Workarounds - Complete Guide
+KAJABI_ENHANCED_INTEGRATION_COMPLETE.md,16313,Suspicious,review-needed,no pattern matched - needs judgement,# 🚀 Kajabi Enhanced Integration - Complete Documentation
+KAJABI_INTEGRATION_COMPLETE.md,14763,Scratch,git mv -> archive/timelines_and_reports/,title contains 'complete implementation',# Kajabi Integration - Complete Implementation
+KANBAN_404_FIX_NOV30.md,10693,Historical,git mv -> archive/timelines_and_reports/,dated 2025,"# Kanban Dashboard 404 Fix - November 30, 2025"
+KANBAN_MODULE_VERIFICATION.md,7544,Suspicious,review-needed,no pattern matched - needs judgement,# InHouse Kanban Module - Complete Verification
+LANGCHAIN_MEMORY_VS_CHAT_HISTORY.md,9118,Suspicious,review-needed,no pattern matched - needs judgement,# LangChain Memory vs Chat History - Complete Explanation
+LAZY_LOADING_OPTIMIZATION_COMPLETE.md,13927,Suspicious,review-needed,no pattern matched - needs judgement,# Lazy-Loading Optimization: AI_Agents → ValorAI Pattern
+LEGACY_VB_QUOTES_TO_ORDERS_WORKFLOW.md,19859,Suspicious,review-needed,no pattern matched - needs judgement,# 🔷 Legacy VB.NET Quotes System - Complete Workflow Analysis
+LIBRARY_LOADING_FIX_COMPLETE.md,6843,Suspicious,review-needed,no pattern matched - needs judgement,# Library Loading & Dev Mode Fix - Complete
+LINKAGE_REALTIME_FIXES_COMPLETE.md,16489,Suspicious,review-needed,no pattern matched - needs judgement,# Thread Linkage Realtime Fixes - COMPLETE ✅
+LINKAGE_SYNC_STATUS_ANALYSIS.md,22670,Suspicious,review-needed,no pattern matched - needs judgement,"# Thread Linkage Sync Status - Dec 1, 2025"
+LOADING_OPTIMIZATION_PLAN.md,7580,Suspicious,review-needed,no pattern matched - needs judgement,# Loading Optimization Plan - Sequential Load Strategy
+LOADING_SEQUENCE_DIAGRAM.md,16523,Suspicious,review-needed,no pattern matched - needs judgement,# 🔄 Loading Sequence Diagram - AI Agents Platform
+LOCATION_NAMING_REFACTOR_ANALYSIS.md,11308,Debug,git mv -> archive/analysis_reports/,analysis/audit/research content,# Location Naming Convention Refactor Analysis
+LOCK_TOGGLE_IMPLEMENTATION_COMPLETE.md,6889,Suspicious,review-needed,no pattern matched - needs judgement,# Lock/Unlock Toggle Button Implementation
+LOGGER_NAMEERROR_FIX_JAN20_2026.md,5022,Scratch,git mv -> archive/timelines_and_reports/,dated 2026,# Logger NameError Fix - Production Render v11
+LOGGING_SPAM_FIX_DEC1.md,8411,Historical,git mv -> archive/timelines_and_reports/,dated 2025,"# Logging Spam Fix - December 1, 2025"
+MAIN_CONTENT_MISSING_FIX_NOV29.md,8489,Historical,git mv -> archive/timelines_and_reports/,dated 2025,"# Main Content Container Missing Fix - November 29, 2025"
+MANAGER_CLASSES_IMPLEMENTATION_COMPLETE.md,5428,Suspicious,review-needed,no pattern matched - needs judgement,# Manager Classes Implementation - Complete
+MANIFEST_ANALYSIS_NOV30.md,16561,Historical,git mv -> archive/timelines_and_reports/,dated 2025,# Manifest Analysis - Module Path Compatibility
+MANIFEST_FIX_COMPLETE_NOV30.md,8897,Historical,git mv -> archive/timelines_and_reports/,dated 2025,# Module Manifest Fixes - COMPLETE ✅
+MANUAL_TEST_THREAD_ISOLATION.md,6624,Suspicious,review-needed,no pattern matched - needs judgement,# Manual Thread Isolation Test
+MARKDOWN_DEFAULT_ARCHITECTURE.md,17756,Suspicious,review-needed,no pattern matched - needs judgement,# Markdown-First Architecture - Complete Solution
+MARKDOWN_EXTRACTION_DEPLOYMENT.md,6921,Runbook,keep,matches runbook pattern,# 🚀 Markdown Text Extraction - Deployment Checklist
+MARKDOWN_EXTRACTION_VISUAL_EXAMPLES.md,9875,Suspicious,review-needed,no pattern matched - needs judgement,# 📸 Markdown Text Extraction - Visual Examples
+MARKDOWN_RENDERING_FIX.md,8126,Suspicious,review-needed,no pattern matched - needs judgement,# Markdown Rendering Fix - Code Block Hash Symbol Issue
+MARKDOWN_TEXT_EXTRACTION_COMPLETE.md,14546,Scratch,git mv -> archive/timelines_and_reports/,fix/progress/summary content,# 📝 Markdown Text Extraction - Complete Implementation
+MARKDOWN_V2_FINAL_FIXES_NOV30.md,7511,Historical,git mv -> archive/timelines_and_reports/,dated 2025,"# Markdown V2 - FINAL FIXES (November 30, 2025)"
+MARKDOWN_V2_FIXES_VERIFICATION.md,11660,Suspicious,review-needed,no pattern matched - needs judgement,# Markdown V2 Fixes - Verification Against User Issues
+MARKDOWN_V2_FORMATTING_FIXES_NOV30.md,8909,Historical,git mv -> archive/timelines_and_reports/,dated 2025,"# Markdown V2 Formatting Fixes - November 30, 2025"
+MASTER_CHECKLIST_COMPLETE.md,9810,Suspicious,review-needed,no pattern matched - needs judgement,# Prime Badge Double-Click Feature - Complete Master Checklist
+MEMORY_CONTEXT_ANALYSIS_COMPLETE.md,24629,Scratch,git mv -> archive/timelines_and_reports/,title contains 'complete analysis',# 🧠 Memory Context (Layer 4) - Complete Analysis
+MEMORY_CONTEXT_VISUAL_GUIDE.md,33325,Suspicious,review-needed,no pattern matched - needs judgement,# 🧠 Memory Context - Visual Architecture Guide
+MEMORY_SEMANTIC_SEARCH_SYSTEM_DESIGN.md,32433,Suspicious,review-needed,no pattern matched - needs judgement,# Memory & Semantic Search System - Complete Architecture
+MESSAGE_BUBBLE_FULLSCREEN_COMPLETE_DEC4_2025.md,10800,Historical,git mv -> archive/timelines_and_reports/,dated 2025,# Message Bubble Fullscreen Implementation - Complete ✅
+MESSAGE_BUBBLE_FULLSCREEN_IMPLEMENTATION.md,9038,Scratch,git mv -> archive/timelines_and_reports/,fix/progress/summary content,# Message Bubble Fullscreen View Implementation
+MESSAGE_BUBBLE_RENDERING_ANALYSIS.md,31903,Suspicious,review-needed,no pattern matched - needs judgement,# Message Bubble Rendering Analysis: AI Prime vs Agent Columns
+MESSAGE_BUBBLE_TOGGLE_IMPLEMENTATION.md,6685,Scratch,git mv -> archive/timelines_and_reports/,fix/progress/summary content,# Message Bubble Display Toggle Controls Implementation
+MESSAGE_CENTRALIZATION_PLAN.md,49487,Suspicious,review-needed,no pattern matched - needs judgement,# Message Centralization Plan
+MESSAGE_CONTENT_FORMAT_FIX.md,10057,Suspicious,review-needed,no pattern matched - needs judgement,# Message Content Format Fix - Complete Solution
+MESSAGE_CORRUPTION_FIX_COMPLETE_NOV22.md,10188,Historical,git mv -> archive/timelines_and_reports/,dated 2025,# Message Corruption Fix - COMPLETE ✅
+MESSAGE_COUNT_FIX_COMPLETE_NOV26.md,9158,Historical,git mv -> archive/timelines_and_reports/,dated 2025,# Message Count Fix - Complete Analysis & Implementation ✅
+MESSAGE_DEDUPLICATION_FIX_NOV20.md,5884,Historical,git mv -> archive/timelines_and_reports/,dated 2025,"# Message Deduplication Fix - November 20, 2025"
+MESSAGE_DUPLICATION_ROOT_CAUSE_ANALYSIS.md,12760,Suspicious,review-needed,no pattern matched - needs judgement,# Message Duplication Root Cause Analysis
+MESSAGE_FIX_VISUAL_GUIDE.md,18161,Suspicious,review-needed,no pattern matched - needs judgement,# MESSAGE SAVE/LOAD FIX - VISUAL GUIDE
+MESSAGE_FORMAT_COMPLETE_ANALYSIS.md,12425,Scratch,git mv -> archive/timelines_and_reports/,title contains 'complete analysis',# MESSAGE FORMAT COMPLETE ANALYSIS
+MESSAGE_FORMAT_VISUAL_FLOW.md,20817,Suspicious,review-needed,no pattern matched - needs judgement,# MESSAGE FORMAT VISUAL FLOW
+MESSAGE_PAGINATION_SCROLL_COMPLETE.md,9573,Suspicious,review-needed,no pattern matched - needs judgement,# Message Pagination with Infinite Scroll - COMPLETE ✅
+MESSAGE_SAVE_ENHANCEMENT_COMPLETE.md,7748,Scratch,git mv -> archive/timelines_and_reports/,fix/progress/summary content,# Message Save Enhancement - Complete Implementation
+MESSAGE_SAVE_FIX_COMPLETE.md,8859,Suspicious,review-needed,no pattern matched - needs judgement,# MESSAGE SAVE/LOAD FIX - COMPLETE
+MESSAGE_STORE_QUICK_START.md,11377,Scratch,git mv -> archive/timelines_and_reports/,fix/progress/summary content,# MessageStore Quick Start Guide
+MESSAGE_VIEW_MODES_V2.md,8485,Suspicious,review-needed,no pattern matched - needs judgement,# Message View Modes V2 - 5 Display Options
+MESSAGESTORE_MINIMAL_IMPLEMENTATION_COMPLETE.md,11892,Suspicious,review-needed,no pattern matched - needs judgement,# MessageStore Minimal Implementation - COMPLETE ✅
+MESSAGING_SIDEBAR_DESIGN.md,35508,Suspicious,review-needed,no pattern matched - needs judgement,# 💬 Messaging Sidebar - Complete Design Specification
+META_TOOL_TRUNCATION_FIX_NOV19.md,7218,Historical,git mv -> archive/timelines_and_reports/,dated 2025,"# Meta-Tool Truncation Fix - Complete (Nov 19, 2025)"
+META_TOOLS_DEPLOYMENT_STATUS_JAN21_2026.md,5594,Scratch,git mv -> archive/timelines_and_reports/,dated 2026,"# Meta-Tools Deployment Status - January 21, 2026"
+META_TOOLS_DUPLICATION_FIX_JAN19_2026.md,8218,Scratch,git mv -> archive/timelines_and_reports/,dated 2026,# Meta-Tools Duplication Fix - Complete
+META_TOOLS_QUICK_FIX.md,1545,Suspicious,review-needed,no pattern matched - needs judgement,# META TOOLS - Quick Fix Reference Card
+META_TOOLS_RENDER_FIX_DEPLOYMENT_GUIDE.md,8174,Suspicious,review-needed,no pattern matched - needs judgement,"# META-TOOLS FIX FOR RENDER PRODUCTION - January 21, 2026"
+META_TOOLS_RENDER_ISSUE_JAN21_2026.md,10344,Scratch,git mv -> archive/timelines_and_reports/,dated 2026,"# META-TOOLS RENDER ISSUE - January 21, 2026"
+META_TOOLS_SYSTEM_PROMPT_FIX_JAN21_2026.md,8709,Scratch,git mv -> archive/timelines_and_reports/,dated 2026,"# META-TOOLS SYSTEM PROMPT FIX - January 21, 2026"
+META_TOOLS_USAGE_CLAUDE_AI.md,7146,Suspicious,review-needed,no pattern matched - needs judgement,# Meta Tools Usage - For Claude AI / GitHub Copilot
+MICROSOFT_AUTO_REFRESH_COMPLETE.md,16524,Scratch,git mv -> archive/timelines_and_reports/,title contains 'implementation complete',# Microsoft OAuth Auto-Refresh Implementation Complete ✅
+MICROSOFT_FILE_ATTACHMENTS_QUICK_REF.md,5154,Scratch,git mv -> archive/timelines_and_reports/,fix/progress/summary content,# 📧📁 **MICROSOFT + FILE ATTACHMENTS - QUICK REFERENCE**
+MICROSOFT_PLATFORM_FILE_ATTACHMENTS.md,26259,Suspicious,review-needed,no pattern matched - needs judgement,# 📧🔗 **MICROSOFT PLATFORM INTEGRATION + FILE ATTACHMENTS FOR ORDERS**
+MICROSOFT_TOOLS_500_ERROR_FIX.md,5737,Suspicious,review-needed,no pattern matched - needs judgement,"# Microsoft Tools 500 Error Fix - November 16, 2025"
+MICROSOFT_TOOLS_WRAPPER_FIX_DEC15.md,6633,Historical,git mv -> archive/timelines_and_reports/,dated 2025,"# Microsoft Tools Wrapper Fix - December 15, 2025"
+MICROSOFT_WORD_MARKDOWN_ENHANCEMENT_PLAN.md,31600,Scratch,git mv -> archive/timelines_and_reports/,fix/progress/summary content,# Microsoft Word Markdown Tool Enhancement Plan
+MIGRATION_COMPLETE_DEC27.md,7154,Historical,git mv -> archive/timelines_and_reports/,dated 2025,# Migration Complete: 'prime' → 'unassigned'
+MILESTONE_FRONTEND_COMPLETE_NOV19.md,16118,Historical,git mv -> archive/timelines_and_reports/,dated 2025,# SYNERGY MILESTONE FRONTEND IMPLEMENTATION - COMPLETE ✅
+MILESTONE_MIGRATION_PROGRESS_NOV19.md,12504,Historical,git mv -> archive/timelines_and_reports/,dated 2025,# SYNERGY MILESTONE MIGRATION - PROGRESS REPORT
+MISSING_THREAD_FIX_NOV29.md,7306,Historical,git mv -> archive/timelines_and_reports/,dated 2025,"# Missing Thread Error Fix - November 29, 2025"
+ML_CUSTOMER_INTELLIGENCE_SYSTEM.md,31213,Suspicious,review-needed,no pattern matched - needs judgement,# 🧠 ML-Enhanced Customer Intelligence System
+ML_VS_OLD_COMPARISON.md,7842,Suspicious,review-needed,no pattern matched - needs judgement,# ML Models vs Old Approach - What Changed?
+MODAL_FIX_DEC14_2025.md,4295,Historical,git mv -> archive/timelines_and_reports/,dated 2025,"# 🔧 Modal Fix - December 14, 2025"
+MODULE_ANALYZER_RUNTIME_DIAGNOSTIC_NOV29.md,12567,Historical,git mv -> archive/timelines_and_reports/,dated 2025,"# Module Analyzer Runtime Diagnostic Feature - November 29, 2025"
+MODULE_ARCHITECTURE_PATTERNS.md,14717,Suspicious,review-needed,no pattern matched - needs judgement,# Module Architecture Patterns Analysis
+MODULE_CLEANUP_COMPLETE_NOV29.md,17945,Historical,git mv -> archive/timelines_and_reports/,dated 2025,# Module System Cleanup - COMPLETE ✅
+MODULE_CLEANUP_REORGANIZATION_NOV29.md,14915,Historical,git mv -> archive/timelines_and_reports/,dated 2025,"# Module Loading System Cleanup & Reorganization - November 29, 2025"
+MODULE_DEPLOYMENT_CONFIGURATION_GUIDE.md,15585,Scratch,git mv -> archive/timelines_and_reports/,title contains 'configuration guide',# Module Deployment Configuration Guide
+MODULE_DEPLOYMENT_IMPLEMENTATION_COMPLETE.md,9961,Scratch,git mv -> archive/timelines_and_reports/,title contains 'implementation complete',# ✅ Module Deployment Configuration - IMPLEMENTATION COMPLETE
+MODULE_DEPLOYMENT_QUICKSTART.md,7655,Suspicious,review-needed,no pattern matched - needs judgement,# Module Deployment Configuration - Quick Start
+MODULE_DOM_GETCONTAINER_DEBUG_NOV30.md,5199,Historical,git mv -> archive/timelines_and_reports/,dated 2025,"# Module DOM getContainer() Debug Fix - November 30, 2025"
+MODULE_FILES_OBJECT_FIX_NOV30.md,4224,Historical,git mv -> archive/timelines_and_reports/,dated 2025,"# Module Files Object Support Fix - November 30, 2025"
+MODULE_FIX_APPLIED_DEC01.md,11728,Historical,git mv -> archive/timelines_and_reports/,dated 2025,"# Module Loading Fix - Applied December 1, 2025"
+MODULE_FIX_COMPLETE_DEC19_2025.md,17852,Historical,git mv -> archive/timelines_and_reports/,dated 2025,"# Module Fix Complete - December 19, 2025"
+MODULE_HTML_PATTERNS_DOCUMENTED_NOV28.md,11117,Historical,git mv -> archive/timelines_and_reports/,dated 2025,"# Module HTML Patterns - Documentation Update (November 28, 2025)"
+MODULE_LOADING_COMPLETE_FIX_NOV29.md,10483,Historical,git mv -> archive/timelines_and_reports/,dated 2025,"# 🔧 Module Loading Complete Fix - November 29, 2025"
+MODULE_LOADING_PROBLEM_DIAGNOSIS_NOV29.md,6970,Historical,git mv -> archive/timelines_and_reports/,dated 2025,"# 🚨 Module Loading Problem - EXACT CAUSE IDENTIFIED - November 29, 2025"
+MODULE_LOADING_V5_V6_REVERT_COMPLETE.md,9599,Suspicious,review-needed,no pattern matched - needs judgement,# Module Loading Fix - V5/V6 Revert Complete ✅
+MODULE_METADATA_STANDARD.md,11122,Suspicious,review-needed,no pattern matched - needs judgement,# Module Metadata Standard
+MODULE_MIGRATION_COMPLETE_NOV25.md,13452,Historical,git mv -> archive/timelines_and_reports/,dated 2025,"# Module Migration Complete - November 25, 2025"
+MODULE_MIGRATION_LOG.md,12249,Suspicious,review-needed,no pattern matched - needs judgement,# Module Migration Tracking Log
+MODULE_PATH_FIX_NOV28.md,11260,Historical,git mv -> archive/timelines_and_reports/,dated 2025,"# Module Path Fix - November 28, 2025"
+MODULE_SIDEBAR_SORTING_FIX_NOV29.md,4859,Historical,git mv -> archive/timelines_and_reports/,dated 2025,"# 🎯 Module Sidebar Button Sorting - November 29, 2025"
+MODULE_SYSTEM_ARCHITECTURE_COMPLETE.md,41077,Suspicious,review-needed,no pattern matched - needs judgement,# Module System Architecture - Self-Registering Modules with Automatic Credential Discovery
+MODULE_SYSTEM_FOLDER_ARCHITECTURE.md,32657,Suspicious,review-needed,no pattern matched - needs judgement,# Module System Folder Architecture - Technical Specification
+MODULE_SYSTEM_INTEGRATION_GUIDE.md,9577,Scratch,git mv -> archive/timelines_and_reports/,fix/progress/summary content,# Module System Integration Guide
+MODULE_TAB_HIERARCHY_FIX_DEC5_2025.md,11264,Historical,git mv -> archive/timelines_and_reports/,dated 2025,"# Module Tab Hierarchy Fix - December 5, 2025"
+MODULES.md,91867,Suspicious,review-needed,no pattern matched - needs judgement,# Modules - Technical Documentation
+MODULES_SUCCESS_SUMMARY.md,8916,Scratch,git mv -> archive/timelines_and_reports/,fix/progress/summary content,# ✅ Universal Search & Vector Database - Success Summary
+MULTI_FORMAT_IMPLEMENTATION_COMPLETE_NOV27.md,19768,Historical,git mv -> archive/timelines_and_reports/,dated 2025,# Multi-Format Google Workspace Implementation - Complete ✅
+MULTI_MODE_DEPLOYMENT_READY.md,12622,Suspicious,review-needed,no pattern matched - needs judgement,# ✅ Multi-Mode File Processing - DEPLOYMENT READY
+MULTI_MODE_FILE_PROCESSING_COMPLETE.md,18486,Scratch,git mv -> archive/timelines_and_reports/,title contains 'complete implementation',# 🎯 Multi-Mode File Processing - Complete Implementation
+MULTI_MODE_QUICK_START.md,7432,Scratch,git mv -> archive/timelines_and_reports/,fix/progress/summary content,# 🚀 Multi-Mode File Processing - Quick Start Guide
+MULTI_PROFESSIONAL_VISUALIZATION_GUIDE.md,36778,Suspicious,review-needed,no pattern matched - needs judgement,# 🎨 Multi-Professional Visualization Guide
+MULTI_SESSION_ANALYSIS.md,11481,Suspicious,review-needed,no pattern matched - needs judgement,# Multi-Session User Analysis & WebRTC Requirements
+MULTI_SESSION_INTEGRATION_ANALYSIS.md,22700,Scratch,git mv -> archive/timelines_and_reports/,fix/progress/summary content,# Multi-Session Chat Integration with Device Lock & Presence System
+NAMEERROR_FIX_SUCCESS_NOV19.md,8984,Historical,git mv -> archive/timelines_and_reports/,fix/debug/incident content,# NameError Fix Success Report ✅
+NEXT_STEPS_TOOL_ENHANCEMENT.md,14403,Suspicious,review-needed,no pattern matched - needs judgement,# Next Steps: Complete Tool Enhancement Strategy
+NOTEPADS_ANALYSIS_COMPLETE_JAN24_2026.md,10289,Scratch,git mv -> archive/timelines_and_reports/,dated 2026,# NOTEPADS CALCULATOR ANALYSIS - ALL 3 SIZES
+NULL_REFERENCE_PATTERN_ANALYSIS.md,7208,Suspicious,review-needed,no pattern matched - needs judgement,# Null Reference Pattern Analysis - Module DOM Access Issues
+OAUTH_CALLBACK_LOGIN_LOOP_FIX_NOV27.md,12694,Historical,git mv -> archive/timelines_and_reports/,dated 2025,"# OAuth Callback Login Loop Fix - November 27, 2025"
+OAUTH_COMPARISON_GOOGLE_VS_MICROSOFT_DEC5_2025.md,5626,Historical,git mv -> archive/timelines_and_reports/,dated 2025,"# OAuth Code Comparison: Google vs Microsoft - December 5, 2025"
+OAUTH_CONNECTION_LEAK_FIX_NOV25.md,5698,Historical,git mv -> archive/timelines_and_reports/,dated 2025,"# OAuth Connection Leak Fix - November 25, 2025"
+OAUTH_DEBUGGING_FORENSICS_NOV27.md,36031,Historical,git mv -> archive/timelines_and_reports/,dated 2025,# 🔍 OAuth Login Loop - Complete Debugging Forensics Analysis
+OAUTH_FIX_COMPARISON_NOV27.md,11170,Historical,git mv -> archive/timelines_and_reports/,dated 2025,# OAuth Fix - Before vs After Comparison
+OAUTH_LOGIN_LOOP_ROOT_CAUSE_NOV27.md,9170,Historical,git mv -> archive/timelines_and_reports/,dated 2025,# OAuth Login Loop - Root Cause Analysis & Fix
+OAUTH_SCOPE_MAPPING_COMPLETE.md,19189,Scratch,git mv -> archive/timelines_and_reports/,title contains 'complete implementation',# OAuth Scope to Service Mapping - Complete Implementation ✅
+OAUTH_SESSION_STORAGE_FIX.md,9244,Suspicious,review-needed,no pattern matched - needs judgement,# OAuth Session Storage Fix - Complete Resolution
+OPTIMIZATION_ANSWERS.md,17945,Suspicious,review-needed,no pattern matched - needs judgement,# ❓ Your Questions Answered - Loading Optimization Strategy
+OPTIMIZED_LOADING_STRATEGY.md,25296,Suspicious,review-needed,no pattern matched - needs judgement,# 🚀 Optimized Loading Strategy - AI Agents Platform
+OPTION_1_IMPLEMENTATION_COMPLETE_NOV19.md,7833,Historical,git mv -> archive/timelines_and_reports/,dated 2025,# Option 1 Implementation Complete - Separate Tool Result Bubbles
+OPTION_2_IMPLEMENTATION_SUMMARY.md,9768,Scratch,git mv -> archive/timelines_and_reports/,title contains 'implementation complete',# Option 2 Implementation Complete - Backend Enhancement for Communication Hub
+OPTION_2_QUICK_REFERENCE.md,3569,Scratch,git mv -> archive/timelines_and_reports/,fix/progress/summary content,# Option 2 Quick Reference - Enhanced /api/agent/start
+ORG_DOCUMENTATION_AND_UI_ALIGNMENT_SUMMARY_MAR28_2026.md,12803,Scratch,git mv -> archive/timelines_and_reports/,dated 2026,# Organisation Documentation & UI Alignment Summary
+ORG_TEAM_ALIGNMENT_REPORT_FEB2026.md,27464,Scratch,git mv -> archive/timelines_and_reports/,dated 2026,"# Organisation, Team IDs & Role Levels — Full Alignment Report"
+ORGANISATION_TAB_500_ERROR_FIX_MAR31_2026.md,5675,Scratch,git mv -> archive/timelines_and_reports/,dated 2026,"# Organisation Tab 500 Error — Root Cause & Fix — March 31, 2026"
+ORPHANED_TOOL_USE_FIX_COMPLETE_NOV23.md,9044,Historical,git mv -> archive/timelines_and_reports/,dated 2025,# Orphaned Tool_Use Blocks Fix - Complete Solution
+OUTLOOK_ATTACHMENT_AI_CONVERSION_GUIDE.md,14318,Suspicious,review-needed,no pattern matched - needs judgement,# Outlook Attachment AI Conversion Guide
+OUTLOOK_ATTACHMENT_ANTHROPIC_FIX.md,19615,Suspicious,review-needed,no pattern matched - needs judgement,# Outlook Attachment Token Overflow Fix - Complete Solution
+OUTLOOK_ATTACHMENT_ID_FIX_JAN13_2026.md,11266,Scratch,git mv -> archive/timelines_and_reports/,dated 2026,"# Outlook Attachment Processing Fix - January 13, 2026"
+OUTLOOK_FILTERING_GUIDE_NOV19.md,10252,Historical,git mv -> archive/timelines_and_reports/,dated 2025,"# Outlook Email Filtering Guide - Complete (Nov 19, 2025)"
+PERCENTAGE_BUG_FIX_DEC10.md,7489,Historical,git mv -> archive/timelines_and_reports/,dated 2025,"# ""Percentage"" Float Conversion Bug - FIXED ✅"
+PERFECT_WORKFLOW_EXAMPLES.md,13642,Suspicious,review-needed,no pattern matched - needs judgement,# Perfect Workflow Examples - Reference Templates
+PERFORMANCE_OPTIMIZATION_ANALYSIS.md,40478,Suspicious,review-needed,no pattern matched - needs judgement,# Performance Optimization Analysis - AI Agent Project
+PERFORMANCE_OPTIMIZATION_DEPLOYMENT.md,7723,Runbook,keep,matches runbook pattern,# Performance Optimization Deployment Guide
+PHANTOM_THREAD_FIX_COMPLETE_NOV22.md,10327,Historical,git mv -> archive/timelines_and_reports/,dated 2025,"# Phantom Thread Fix Complete (November 22, 2025)"
+PHASE2_COMPLETE_PRIME_AI_INTEGRATION.md,8979,Scratch,git mv -> archive/timelines_and_reports/,fix/progress/summary content,# Phase 2 Complete - Prime AI Integration with MessageStore ✅
+PHASE_1_IMPLEMENTATION_COMPLETE.md,7533,Scratch,git mv -> archive/timelines_and_reports/,title contains 'implementation complete',# ✅ Phase 1 Implementation Complete - Ready to Test
+PHASE_2_INTEGRATION_COMPLETE_DEC10.md,14375,Historical,git mv -> archive/timelines_and_reports/,dated 2025,# Shopify Calculator Integration - Phase 2 Complete
+PHASE_2_SCHEMA_ENHANCEMENTS_COMPLETE_JAN27_2026.md,20333,Scratch,git mv -> archive/timelines_and_reports/,dated 2026,# Phase 2 Schema Enhancements Complete - Perfect Bound & Saddle Stitch Books
+PHASE_3_BUSINESS_CARDS_COMPLETE_DEC10.md,10245,Historical,git mv -> archive/timelines_and_reports/,dated 2025,# ✅ PHASE 3 COMPLETE: Business Card Calculators Integration
+PHONE_TOOLS_COMPLETE.md,10348,Scratch,git mv -> archive/timelines_and_reports/,title contains 'implementation complete',# ✅ Phone Communication Tools - IMPLEMENTATION COMPLETE
+PHONE_TOOLS_SETUP_GUIDE.md,14934,Suspicious,review-needed,no pattern matched - needs judgement,# Phone Communication Tools - Setup Guide
+PLACEHOLDER_AND_WARNINGS_FIX_COMPLETE.md,3250,Suspicious,review-needed,no pattern matched - needs judgement,# Placeholder Image & Console Warnings Fix - Complete
+PLATFORM_AUTHENTICATION_ANALYSIS_DEC17.md,21643,Historical,git mv -> archive/timelines_and_reports/,dated 2025,# Platform Authentication Analysis & System Prompt Recommendations
+Platform_Comparison_UX_Analysis_May29_2026.md,30691,Scratch,git mv -> archive/timelines_and_reports/,dated 2026,# Platform Comparison & UI/UX Improvement Analysis
+PLATFORM_CONNECTION_REQUIREMENTS.md,27547,Suspicious,review-needed,no pattern matched - needs judgement,# 🔌 Platform Connection Requirements for AI Agents
+PLATFORM_CREDENTIAL_SYSTEM.md,19576,Suspicious,review-needed,no pattern matched - needs judgement,# Platform Credential Auto-Registration System
+PLATFORM_CREDENTIALS_QUICK_START.md,14071,Scratch,git mv -> archive/timelines_and_reports/,fix/progress/summary content,# Platform Credentials Management - Quick Start Guide
+PLATFORM_CREDENTIALS_UI_COMPLETE.md,25530,Suspicious,review-needed,no pattern matched - needs judgement,# Platform Credentials Management UI - Complete Documentation
+PLATFORM_CREDENTIALS_UX_IMPROVEMENTS.md,19350,Suspicious,review-needed,no pattern matched - needs judgement,# 🎨 Platform Credentials UI/UX Improvements
+PLATFORM_FILTERING_AND_FORMATTING_COMPLETE.md,15898,Suspicious,review-needed,no pattern matched - needs judgement,# 🎯 Platform Filtering & Formatting Improvements - COMPLETE
+PLATFORM_FILTERING_IMPACT.md,9656,Suspicious,review-needed,no pattern matched - needs judgement,# Platform Filtering Impact Analysis
+PLATFORM_FILTERING_QUICK_REFERENCE.md,8822,Scratch,git mv -> archive/timelines_and_reports/,fix/progress/summary content,# Platform Filtering - Quick Reference Guide
+PLATFORM_INVENTORY_SHORT_DESCRIPTION_TASK.md,12660,Suspicious,review-needed,no pattern matched - needs judgement,# Platform Inventory - Short Description Addition Task
+PLATFORM_KEYWORD_DETECTION_REFERENCE.md,13271,Suspicious,review-needed,no pattern matched - needs judgement,# Platform Keyword Detection - Quick Reference
+PLATFORM_LOADING_ANALYSIS_COMPARISON.md,25959,Suspicious,review-needed,no pattern matched - needs judgement,# Platform Loading Sequence Comparison: AI_Agents vs ValorAI
+PLATFORM_START_UP.md,59668,Suspicious,review-needed,no pattern matched - needs judgement,# 🔍 COMPREHENSIVE UI STARTUP SEQUENCE ANALYSIS & FIX GUIDE
+POOL_EFFICIENCY_FIX_COMPLETE.md,4936,Suspicious,review-needed,no pattern matched - needs judgement,# Connection Pool Efficiency Fix - COMPLETE
+POOL_OPTIMIZATION_IMPLEMENTATION_COMPLETE.md,10295,Scratch,git mv -> archive/timelines_and_reports/,title contains 'implementation complete',# Supabase Connection Pool Optimization - Implementation Complete
+POPOUT_EXPAND_BUTTON_ADDED_DEC6_2025.md,9065,Historical,git mv -> archive/timelines_and_reports/,dated 2025,# Popout/Expand Button Added to Message Actions ✅
+POPOUT_STATE_PRESERVATION_FIX_DEC12.md,8654,Historical,git mv -> archive/timelines_and_reports/,dated 2025,"# Pop-Out Window State Preservation Fix - December 12, 2025"
+POSITIONING_FIX_VISUAL_EXPLANATION.md,7755,Suspicious,review-needed,no pattern matched - needs judgement,# Visual Explanation - Prime Scroll Controls Positioning
+POTENTIAL_TOKEN_OVERFLOW_ANALYSIS.md,14288,Suspicious,review-needed,no pattern matched - needs judgement,# Potential Token Overflow Functions - Analysis Report
+PRE_AUTH_BACKEND_CHECK_FIX.md,9451,Suspicious,review-needed,no pattern matched - needs judgement,# Pre-Authentication Backend Connection Fix
+PRE_COMMIT_DEMO.md,10601,Suspicious,review-needed,no pattern matched - needs judgement,# Pre-Commit Review Agent Demo
+PRE_COMMIT_IMPLEMENTATION_COMPLETE.md,10895,Scratch,git mv -> archive/timelines_and_reports/,title contains 'implementation summary',# Pre-Commit Review Agent - Implementation Summary
+PRE_COMMIT_REVIEW_COMPLETE.md,12065,Scratch,git mv -> archive/timelines_and_reports/,fix/progress/summary content,# Pre-Commit Review Agent - Complete Guide
+PRE_COMMIT_REVIEW_QUICK_START.md,5480,Scratch,git mv -> archive/timelines_and_reports/,fix/progress/summary content,# Pre-Commit Review Agent - Quick Start
+PREMIUM_BOOKMARKS_JSON_FIX_COMPLETE.md,6772,Scratch,git mv -> archive/timelines_and_reports/,title contains 'fix complete',# Premium Bookmarks - JSON Fix COMPLETE
+PRIME_AI_PHANTOM_FIX_NOV22.md,10066,Historical,git mv -> archive/timelines_and_reports/,dated 2025,"# Prime AI Phantom Thread Fix (November 22, 2025)"
+PRIME_BADGE_DOUBLE_CLICK_FEATURE.md,6291,Suspicious,review-needed,no pattern matched - needs judgement,# Prime Badge Double-Click Feature ✅
+PRIME_BADGE_IMPLEMENTATION_COMPLETE.md,6132,Scratch,git mv -> archive/timelines_and_reports/,title contains 'implementation complete',# Prime Badge Double-Click Feature - Implementation Complete ✅
+PRIME_BADGE_QUICK_REFERENCE.md,6556,Scratch,git mv -> archive/timelines_and_reports/,fix/progress/summary content,# 🚀 Prime Badge Double-Click Feature - Quick Reference
+PRIME_BADGE_QUICK_TEST.md,2834,Scratch,git mv -> archive/timelines_and_reports/,fix/progress/summary content,# ⚡ QUICK TEST - Prime Badge Double-Click
+PRIME_BADGE_SUMMARY.md,7957,Scratch,git mv -> archive/timelines_and_reports/,title contains 'complete summary',# ✅ Prime Badge Double-Click Feature - Complete Summary
+PRIME_BADGE_VISUAL_GUIDE.md,14411,Suspicious,review-needed,no pattern matched - needs judgement,# Prime Badge Double-Click Feature - Visual Guide
+PRIME_DROP_SAME_LOCATION_FIX_NOV24.md,10378,Historical,git mv -> archive/timelines_and_reports/,dated 2025,"# Prime Drop - Same Location Bug Fix (November 24, 2025)"
+PRIME_EXPANSION_DEBUG_COMMANDS.md,14776,Suspicious,review-needed,no pattern matched - needs judgement,# Prime Chat Panel Expansion - Debug Console Commands
+PRIME_FIX_SUMMARY_DEC13.md,4197,Historical,git mv -> archive/timelines_and_reports/,dated 2025,# Prime Chat Panel Expansion - FIX APPLIED ✅
+PRIME_LOADED_FEATURE_COMPLETE.md,10730,Scratch,git mv -> archive/timelines_and_reports/,title contains 'implementation complete',# Prime-Loaded Feature Implementation Complete ✅
+PRIME_LOADED_REMOVAL_COMPLETE.md,7127,Suspicious,review-needed,no pattern matched - needs judgement,# PRIME-LOADED Removal Complete ✅
+PRIME_LOADED_REMOVAL_PLAN.md,15517,Suspicious,review-needed,no pattern matched - needs judgement,# PRIME-LOADED Removal Analysis & Migration Plan
+PRIME_SCROLL_BUTTONS_QUICK_FIX.md,4217,Scratch,git mv -> archive/timelines_and_reports/,title contains 'fix summary',# ⚡ QUICK FIX SUMMARY - Prime Scroll Controls Now Visible
+PRIME_SCROLL_CONTROLS_FIX_DEC13.md,5991,Historical,git mv -> archive/timelines_and_reports/,dated 2025,# Prime Scroll Controls - Visibility Fix ✅
+PRIME_THREAD_INFO_FIX_COMPLETE.md,8560,Suspicious,review-needed,no pattern matched - needs judgement,# Prime Thread Info Fix - Complete
+PRINTED_FLYERS_CALCULATOR_COMPLETE_JAN23_2026.md,9797,Scratch,git mv -> archive/timelines_and_reports/,dated 2026,# Printed Flyers Shopify Calculator - COMPLETE
+PRINTED_FLYERS_WEBSITE_TESTS_JAN24_2026.md,10923,Scratch,git mv -> archive/timelines_and_reports/,dated 2026,# Printed Flyers - Website Validation Tests
+PRINTED_LETTERHEADS_ALIGNMENT_ANALYSIS_JAN26_2026.md,21811,Scratch,git mv -> archive/timelines_and_reports/,dated 2026,# Printed Letterheads Calculator - Alignment Analysis
+PRINTING_BUSINESS_PROMPTS_COMPLETE.md,15629,Scratch,git mv -> archive/timelines_and_reports/,title contains 'complete implementation',# InHouse Print Business Prompts - Complete Implementation
+PROACTIVE_TOOL_SEARCH_COMPLETE.md,13010,Scratch,git mv -> archive/timelines_and_reports/,title contains 'deployment complete',# 🎯 Proactive Semantic Tool Search - DEPLOYMENT COMPLETE
+PROACTIVE_TOOL_SEARCH_IMPLEMENTATION.md,16293,Scratch,git mv -> archive/timelines_and_reports/,fix/progress/summary content,# 🚀 Proactive Semantic Tool Search - Implementation Complete
+PROCESS_FILES_USER_ID_FIX_JAN22_2026.md,8507,Scratch,git mv -> archive/timelines_and_reports/,dated 2026,"# Process Files/Attachments User ID Fix - January 22, 2026"
+PRODUCTION_CALCULATOR_ANALYSIS_JAN22_2026.md,27782,Scratch,git mv -> archive/timelines_and_reports/,dated 2026,"# Production Calculator Analysis - January 22, 2026"
+PRODUCTION_DEPLOYMENT_ISSUES_ANALYSIS.md,15596,Suspicious,review-needed,no pattern matched - needs judgement,# Production Deployment Issues - Root Cause Analysis
+PRODUCTION_ERRORS_FIXED_JAN19_2026.md,9786,Scratch,git mv -> archive/timelines_and_reports/,dated 2026,"# Production Error Fixes - January 19, 2026"
+PROFILE_401_DUPLICATE_CALL_FIX.md,5220,Suspicious,review-needed,no pattern matched - needs judgement,# Profile 401 Error - Duplicate Call Fix
+PROFILE_401_FIX_COMPLETE.md,7810,Scratch,git mv -> archive/timelines_and_reports/,title contains 'complete implementation',# Profile 401 Error Fix - Complete Implementation
+PROFILE_DUPLICATE_LOAD_FIX_VERIFIED.md,4402,Historical,git mv -> archive/timelines_and_reports/,fix/debug/incident content,# Profile Duplicate Load Fix - Verification Complete
+PROFILE_PREFERENCES_INTEGRATION_DEC9.md,10702,Scratch,git mv -> archive/timelines_and_reports/,fix/progress/summary content,"# 🎨 Profile & Preferences Integration - December 9, 2025"
+PROGRESSIVE_LEARNING_ADDED_NOV22.md,12843,Historical,git mv -> archive/timelines_and_reports/,dated 2025,"# Progressive Learning System Added - November 22, 2025 ✅"
+PROGRESSIVE_TOOL_LOADING_COMPARISON_ANALYSIS.md,33831,Suspicious,review-needed,no pattern matched - needs judgement,# Progressive Tool Loading: Comprehensive Multi-Framework Comparison Analysis
+PROMPT_ASSIGNMENT_VISUAL_UI_JAN19_2026.md,14118,Scratch,git mv -> archive/timelines_and_reports/,dated 2026,# Visual Prompt Assignment UI - Complete Implementation
+PROMPT_CATALOGUE.md,50060,Suspicious,review-needed,no pattern matched - needs judgement,# PROMPT CATALOGUE - Master Documentation
+PROMPT_INJECTION_FIX_JAN19_2026.md,11413,Scratch,git mv -> archive/timelines_and_reports/,dated 2026,# Prompt Injection System - Fixed & Development Prompts Backed Up
+PROMPT_INJECTION_FLOW_ANALYSIS.md,11546,Suspicious,review-needed,no pattern matched - needs judgement,# Prompt Injection Flow Analysis
+PROMPT_LIBRARY_ENHANCEMENTS_COMPLETE.md,11865,Suspicious,review-needed,no pattern matched - needs judgement,# Prompt Library Enhancements - COMPLETE
+PROMPT_LIBRARY_TIMEOUT_FIX.md,5367,Historical,git mv -> archive/timelines_and_reports/,fix/debug/incident content,# Prompt Library Timeout Fix
+PROMPT_PERSISTENCE_AND_INPUT_EXPANSION_FIXES.md,8503,Suspicious,review-needed,no pattern matched - needs judgement,# CRITICAL FIXES - Prompt Persistence & Agent Input Expansion
+PYTHON_EXEC_IMPLEMENTATION_COMPLETE.md,10741,Scratch,git mv -> archive/timelines_and_reports/,title contains 'implementation complete',# Python Execution Tools - Implementation Complete ✅
+PYTHON_EXECUTION_MODULE_COMPLETE_GUIDE.md,50799,Scratch,git mv -> archive/timelines_and_reports/,title contains 'complete guide',# Python Execution Module - Complete Guide
+QUANTITY_ENUM_REMOVAL_SUMMARY.md,3434,Suspicious,review-needed,no pattern matched - needs judgement,﻿# Quantity Enum Restrictions Removed - Summary
+QUICK_ACTIONS_PHASE_4_COMPLETE.md,16897,Scratch,git mv -> archive/timelines_and_reports/,fix/progress/summary content,# Quick Actions Phase 4: User-Facing Interfaces - COMPLETE
+QUICK_DEBUG_PRIME_AND_UNLOAD.md,9848,Suspicious,review-needed,no pattern matched - needs judgement,# Prime Chat Panel & Agent Column Unload - Quick Debug Commands
+QUICK_DEPLOY_GUIDE.md,1709,Suspicious,review-needed,no pattern matched - needs judgement,# Cross-Device Sync - Quick Deployment Guide
+QUICK_FIX_APPLIED_NOV20.md,11745,Historical,git mv -> archive/timelines_and_reports/,dated 2025,# Quick Fix Applied - Duplicate Prevention
+QUICK_FIX_MODULE_LOADER_INSTANCE.md,3109,Scratch,git mv -> archive/timelines_and_reports/,title contains 'fix:',# Quick Fix: ModuleLoader V4 Instance vs Class Reference
+QUICK_FIX_MODULE_PATHS.md,2646,Scratch,git mv -> archive/timelines_and_reports/,title contains 'fix:',"# Quick Fix: Module Path Resolution (Nov 30, 2025)"
+QUICK_NAV_BADGE_FIX_DEC16_2025.md,5368,Historical,git mv -> archive/timelines_and_reports/,dated 2025,"# Quick Nav Badge Highlighting Fixes - December 16, 2025"
+QUICK_NAV_BADGE_STATUS_IMPLEMENTATION.md,11533,Scratch,git mv -> archive/timelines_and_reports/,fix/progress/summary content,# Quick Navigation Badge Status Indicators - Implementation Complete
+QUICK_REFERENCE_CONTENT_BLOCKS.md,5135,Suspicious,review-needed,no pattern matched - needs judgement,# Quick Reference Card - File Processing with Content Blocks
+QUICK_REFERENCE_FIXES_NOV20.md,2337,Historical,git mv -> archive/timelines_and_reports/,dated 2025,# Quick Reference - Core Files Fixes
+QUICK_REFERENCE_JAN21_2026.md,6959,Scratch,git mv -> archive/timelines_and_reports/,dated 2026,# Communication Hub Immediate UI Fix - Quick Reference
+QUICK_REFERENCE_SESSION_CLEANUP.md,2960,Suspicious,review-needed,no pattern matched - needs judgement,# 🚀 Quick Reference - Session Cleanup Complete
+QUICK_START_VISUALIZATION_BUTTONS_DEC5_2025.md,17181,Historical,git mv -> archive/timelines_and_reports/,dated 2025,# 🚀 Quick Start: Adding Visualization Action Buttons to AI_agents
+QUICK_TEST_INSTRUCTIONS.md,6944,Suspicious,review-needed,no pattern matched - needs judgement,# 🚀 Quick Test Instructions - Module Cache Fix
+QUICK_VALIDATION_GUIDE.md,3426,Suspicious,review-needed,no pattern matched - needs judgement,# 🎯 QUICK VALIDATION GUIDE - Ready to Test
+QUICKACTIONS_ARCHITECTURE_ANALYSIS.md,35390,Suspicious,review-needed,no pattern matched - needs judgement,# QuickActions System Architecture Analysis
+QUICKACTIONS_DEPLOYMENT_ISSUE_DEC6.md,8691,Historical,git mv -> archive/timelines_and_reports/,dated 2025,"# Quick Actions Deployment Issue - December 6, 2025"
+QUICKACTIONS_NO_DEPLOYMENT_FIX_DEC6.md,7178,Historical,git mv -> archive/timelines_and_reports/,dated 2025,"# Quick Actions - No Deployment Issue - December 6, 2025"
+QUICKACTIONS_USER_GUIDE.md,23854,Suspicious,review-needed,no pattern matched - needs judgement,# QuickActions User Guide
+QUICKACTIONS_WORKFLOWS.md,34430,Suspicious,review-needed,no pattern matched - needs judgement,# QuickActions Visual Workflows
+QUOTE_CALCULATOR.md,98023,Suspicious,review-needed,no pattern matched - needs judgement,# QUOTE_CALCULATOR - InHouse Print Quote Calculation System
+QUOTE_GENERATION_VERIFICATION_DEC23_2025.md,12305,Historical,git mv -> archive/timelines_and_reports/,dated 2025,# ✅ Quote Generation Implementation Verification
+QUOTE_WORKFLOW_IMPLEMENTATION_STATUS.md,16167,Scratch,git mv -> archive/timelines_and_reports/,fix/progress/summary content,"# Quote Workflow Implementation Status - January 18, 2026"
+README.md,9443,Contract,keep,untouchable per per-feature prompt hard rules,# AI Agents Platform - Multi-Agent AI Orchestration System
+README_V11.md,4776,Contract,keep,untouchable per per-feature prompt hard rules,﻿# AI Agents V11 - InHouse Print Configuration
+READY_TO_FIX_SUMMARY.md,10268,Scratch,git mv -> archive/timelines_and_reports/,title contains 'fix:',# Ready to Fix: Message Duplication Bug
+REAL_FIX_AWAIT_PROCESSCHUNK_JAN4_2026.md,10457,Scratch,git mv -> archive/timelines_and_reports/,dated 2026,"# 🔧 REAL FIX: Await TwoRuleStreamProcessor.processChunk() - Jan 4, 2026"
+REAL_VINYL_STOCK_NO_MULTIPLIERS.md,9440,Suspicious,review-needed,no pattern matched - needs judgement,# Real Vinyl Stock Analysis - NO MULTIPLIERS NEEDED
+REALTIME_COLLABORATION_IMPLEMENTED_JAN19_2026.md,25590,Scratch,git mv -> archive/timelines_and_reports/,dated 2026,# Real-Time Team Collaboration - FULLY IMPLEMENTED ✅
+REALTIME_COLLABORATION_INTEGRATION_AUDIT_JAN19_2026.md,34347,Debug,git mv -> archive/analysis_reports/,analysis/audit/research content,# System Integration Architect Analysis
+REALTIME_COLLABORATION_SYSTEM_EXPLAINED_JAN19_2026.md,23752,Scratch,git mv -> archive/timelines_and_reports/,dated 2026,# Real-Time Team Collaboration System - Complete Explanation & Fixes
+REALTIME_CONSOLIDATION_DEC14.md,8018,Scratch,git mv -> archive/timelines_and_reports/,fix/progress/summary content,"# Real-Time Consolidation - December 14, 2025"
+REALTIME_CORRECT_IMPLEMENTATION.md,13952,Scratch,git mv -> archive/timelines_and_reports/,fix/progress/summary content,# Supabase Realtime - Correct Implementation Guide
+REALTIME_INTEGRATION_ANALYSIS.md,14058,Suspicious,review-needed,no pattern matched - needs judgement,# Real-Time Integration Analysis Report
+REALTIME_MESSAGE_SYNC_IMPLEMENTATION.md,13079,Scratch,git mv -> archive/timelines_and_reports/,fix/progress/summary content,# Real-time Cross-Session Message Synchronization Implementation
+REALTIME_QUICK_START_CHECKLIST.md,4434,Scratch,git mv -> archive/timelines_and_reports/,fix/progress/summary content,# Real-time Subscriptions - Quick Start Checklist ✅
+REALTIME_STRATEGY_FLASK_VS_SUPABASE_JAN19_2026.md,19580,Scratch,git mv -> archive/timelines_and_reports/,dated 2026,# Real-Time Collaboration Strategy: Flask-SocketIO vs Supabase Realtime
+REALTIME_SUBSCRIPTIONS_IMPLEMENTATION_SUMMARY.md,9203,Scratch,git mv -> archive/timelines_and_reports/,fix/progress/summary content,# Real-time Subscription System Implementation Summary
+REALTIME_SUBSCRIPTIONS_INTEGRATION_GUIDE.md,16385,Scratch,git mv -> archive/timelines_and_reports/,fix/progress/summary content,# Supabase Real-time Subscriptions Integration Guide
+REALTIME_SYNC_ARCHITECTURE_VISUAL.md,38768,Suspicious,review-needed,no pattern matched - needs judgement,# Real-Time Multi-Device Synchronization Architecture
+REALTIME_SYNC_CRITICAL_CLARIFICATION_JAN6_2026.md,8685,Scratch,git mv -> archive/timelines_and_reports/,dated 2026,# Real-Time Sync Implementation - CRITICAL CLARIFICATION
+REALTIME_SYNC_IMPLEMENTATION_JAN6_2026.md,18999,Scratch,git mv -> archive/timelines_and_reports/,fix/progress/summary content,# Real-Time Multi-Device Synchronization Implementation
+REALTIME_SYNC_SUMMARY_JAN6_2026.md,30450,Scratch,git mv -> archive/timelines_and_reports/,dated 2026,# 🔍 Real-Time Multi-Device Synchronization - Implementation Summary
+REALTIME_SYNC_TEST_GUIDE.md,4587,Suspicious,review-needed,no pattern matched - needs judgement,# Real-time Message Sync - Quick Test Guide
+REALTIME_SYSTEM_COMPLETE.md,15875,Suspicious,review-needed,no pattern matched - needs judgement,# Complete Realtime System Implementation
+REALTIME_THREAD_METADATA_EXPANSION_DEC9.md,22602,Historical,git mv -> archive/timelines_and_reports/,dated 2025,"# Real-time Thread Metadata Expansion - December 9, 2025"
+RENDER_API_URL_FIX_SOLUTION.md,7632,Suspicious,review-needed,no pattern matched - needs judgement,# 🎯 RENDER API URL FIX - ROOT CAUSE FOUND!
+RENDER_AUTH_ISSUE_DIAGNOSIS.md,8443,Suspicious,review-needed,no pattern matched - needs judgement,# Render.com Authentication Issue - Diagnosis & Fix
+RENDER_DATABASE_CONFIG_PATH_FIX.md,4689,Suspicious,review-needed,no pattern matched - needs judgement,# Render.com Database Config Path Fix
+RENDER_DEPLOYMENT_AUTH_FIX_NOV25.md,12373,Historical,git mv -> archive/timelines_and_reports/,dated 2025,"# Render Deployment - Authentication & Tools Fix (November 25, 2025)"
+RENDER_DEPLOYMENT_CONFIG.md,7465,Suspicious,review-needed,no pattern matched - needs judgement,# Render Deployment Configuration
+RENDER_DEPLOYMENT_FIX.md,7437,Suspicious,review-needed,no pattern matched - needs judgement,# Render Deployment Fix - Thread Creation 400 Error
+RENDER_DEPLOYMENT_FIX_NOV17.md,8162,Historical,git mv -> archive/timelines_and_reports/,dated 2025,"# Render Deployment Fix - November 17, 2025"
+RENDER_DEPLOYMENT_FIX_SUMMARY.md,8071,Scratch,git mv -> archive/timelines_and_reports/,title contains 'fix summary',# Render Deployment Fix Summary ✅
+RENDER_DEPLOYMENT_FIXES.md,9433,Suspicious,review-needed,no pattern matched - needs judgement,"# Render Deployment Fixes - November 24, 2025"
+RENDER_DEPLOYMENT_FIXES_NOV25.md,9779,Historical,git mv -> archive/timelines_and_reports/,dated 2025,"# Render Deployment Fixes - November 25, 2025"
+RENDER_DEPLOYMENT_GUIDE.md,14927,Suspicious,review-needed,no pattern matched - needs judgement,# Render Deployment Guide - Supabase PostgreSQL Integration
+RENDER_DEPLOYMENT_ISSUE_NOV27.md,6845,Historical,git mv -> archive/timelines_and_reports/,dated 2025,# Render Deployment Issue - OAuth Fix Not Live Yet
+RENDER_DEPLOYMENT_THREADING_FIX_JAN2026.md,13392,Scratch,git mv -> archive/timelines_and_reports/,dated 2026,# Render Deployment Threading Issue - FIXED ✅
+RENDER_DEPLOYMENT_URL_FIX_NOV25.md,6908,Historical,git mv -> archive/timelines_and_reports/,dated 2025,"# Automation Tools Direct Database Access - November 25, 2025"
+RENDER_DEPLOYMENT_VERIFIED_NOV19.md,17233,Scratch,git mv -> archive/timelines_and_reports/,fix/progress/summary content,"# Render.com Deployment Verification - November 19, 2025"
+RENDER_ENV_UPDATE_NOV21.md,10339,Historical,git mv -> archive/timelines_and_reports/,dated 2025,# Render.com Environment Variable Update
+RENDER_FIXES_COMPLETE_NOV17.md,10139,Historical,git mv -> archive/timelines_and_reports/,dated 2025,"# Render Production Fixes - November 17, 2025"
+RENDER_HEALTH_CHECK_TIMEOUT_FIX_JAN11.md,8021,Historical,git mv -> archive/timelines_and_reports/,fix/debug/incident content,"# Render Health Check Timeout Fix - January 11, 2026"
+RENDER_NEXT_STEPS.md,4479,Suspicious,review-needed,no pattern matched - needs judgement,# 🚀 NEXT STEP: Add Environment Variables to Render
+RENDER_QUICK_FIX.md,7679,Suspicious,review-needed,no pattern matched - needs judgement,# 🚨 IMMEDIATE FIX - Supabase Connection on Render
+RENDER_SUPABASE_IPV6_FIX.md,6020,Suspicious,review-needed,no pattern matched - needs judgement,# Render Supabase IPv6 Connection Fix
+RENDER_TOKEN_OVERFLOW_FIX.md,7168,Suspicious,review-needed,no pattern matched - needs judgement,# Render Deployment Token Overflow Fix
+RENDER_V10_DEPLOYMENT_COMPLETE.md,9321,Suspicious,review-needed,no pattern matched - needs judgement,# Render v10 Deployment Creation - Complete
+RENDER_WORKER_FIX_COMPLETE.md,6385,Suspicious,review-needed,no pattern matched - needs judgement,# Render Worker Crash Fix - Complete
+RENDERER_FIX_DEC6_2025.md,7282,Historical,git mv -> archive/timelines_and_reports/,dated 2025,""""""""
+RESEARCH_AI_VISUALIZATION_GENERATION.md,13742,Suspicious,review-needed,no pattern matched - needs judgement,# Research: AI Integration for Graph/Chart Visualization Generation
+RESTART_SERVER_NOW.md,1654,Suspicious,review-needed,no pattern matched - needs judgement,# ⚠️ CRITICAL: RESTART FLASK SERVER NOW!
+ROBUST_LONG_TERM_SOLUTION_JAN23_2026.md,15985,Scratch,git mv -> archive/timelines_and_reports/,dated 2026,# ROBUST LONG-TERM SOLUTION IMPLEMENTATION
+ROLLBACK_DOCUMENT_SERVICE_INTEGRATION.md,10655,Scratch,git mv -> archive/timelines_and_reports/,fix/progress/summary content,# Rollback Guide - Document Service Integration
+ROOT_CAUSE_INSTABILITY_FIX_NOV29.md,10290,Historical,git mv -> archive/timelines_and_reports/,dated 2025,# 🎯 ROOT CAUSE: Module System Instability - DEFINITIVE FIX
+SADDLE_STITCH_BOOKS_COMPLETE_FIX_JAN23_2026.md,7873,Scratch,git mv -> archive/timelines_and_reports/,dated 2026,# ✅ SADDLE STITCH BOOKS - COMPLETE FIX & VALIDATION
+SADDLE_STITCH_BOOKS_TEST_CASES_JAN23_2026.md,11180,Scratch,git mv -> archive/timelines_and_reports/,dated 2026,# SADDLE STITCH BOOKS - TEST CASES
+SADDLE_STITCH_WEBSITE_TEST_QUOTES_JAN24_2026.md,12615,Scratch,git mv -> archive/timelines_and_reports/,dated 2026,# SADDLE STITCH BOOKS - WEBSITE VALIDATION TEST QUOTES
+SAMPLE_WORKFLOWS_CREATED_NOV19.md,9916,Historical,git mv -> archive/timelines_and_reports/,dated 2025,"# Sample Workflows Created - November 19, 2025"
+SAVE_LOAD_FLOW_COMPLETE_ANALYSIS.md,9754,Suspicious,review-needed,no pattern matched - needs judgement,"# Complete Save/Load Flow Analysis - November 21, 2025"
+SCHEDULER_COLUMN_FIX_COMPLETE.md,7427,Suspicious,review-needed,no pattern matched - needs judgement,# Scheduler Column Fix - Complete
+SCHEDULER_CONNECTION_LEAK_FIX_DEC24.md,9893,Historical,git mv -> archive/timelines_and_reports/,dated 2025,"# Connection Leak Fixes - December 24-25, 2025"
+SCHEDULER_CONNECTION_LEAKS_FIXED_NOV25.md,8218,Historical,git mv -> archive/timelines_and_reports/,dated 2025,"# Scheduler Connection Leaks Fixed - November 25, 2025"
+SCHEDULER_CURSOR_LEAK_FIX_DEC02.md,4082,Historical,git mv -> archive/timelines_and_reports/,dated 2025,"# Scheduler Cursor Leak Fix - December 2, 2025"
+SCHEDULER_FIX_WORKER_DUPLICATION.md,5026,Suspicious,review-needed,no pattern matched - needs judgement,# Scheduler Worker Duplication Fix
+SCHEDULER_IMPLEMENTATION_COMPLETE.md,12121,Scratch,git mv -> archive/timelines_and_reports/,title contains 'complete implementation',# ✅ AI Automation Scheduler - Complete Implementation Summary
+SCHEDULER_TOOLS_AI_INTEGRATION.md,12021,Scratch,git mv -> archive/timelines_and_reports/,fix/progress/summary content,# Scheduler Tools - AI Integration Summary
+SCHEMA_BACKEND_AUDIT_JAN22_2026.md,10303,Debug,git mv -> archive/analysis_reports/,analysis/audit/research content,"# Schema/Backend Discrepancy Audit - January 22, 2026"
+SCHEMA_BACKEND_MISMATCH_ANALYSIS_DEC11.md,12015,Historical,git mv -> archive/timelines_and_reports/,dated 2025,# Schema-Backend Parameter Mismatch Analysis
+SCHEMA_GUIDANCE_IMPROVEMENTS_JAN18_2026.md,6956,Scratch,git mv -> archive/timelines_and_reports/,dated 2026,"# Schema Guidance Improvements - January 18, 2026"
+SCHEMA_UPDATE_SUCCESS_DEC11.md,14047,Scratch,git mv -> archive/timelines_and_reports/,fix/progress/summary content,# Quote Calculator Schema Update - SUCCESS! ✅
+SCRIPT_AUDIT_AND_CLEANUP_GUIDE.md,18228,Scratch,git mv -> archive/timelines_and_reports/,title contains 'audit',# Script Audit & Cleanup Guide
+SCROLL_CONTROLS_FIX_DEC9_2025.md,9046,Historical,git mv -> archive/timelines_and_reports/,dated 2025,# Scroll Controls Visibility Fix
+SELFIE_FRAMES_TXT_VS_BACKEND_COMPARISON_JAN23_2026.md,7570,Scratch,git mv -> archive/timelines_and_reports/,dated 2026,# Selfie Frames TXT vs Backend Comparison
+SEMANTIC_EMBEDDINGS_CACHE_GUIDE.md,6843,Suspicious,review-needed,no pattern matched - needs judgement,# 🚀 Tool Embeddings - Smart Caching System
+SESSION_CLEANUP_VISUAL_GUIDE.md,12051,Suspicious,review-needed,no pattern matched - needs judgement,# 🎨 Session Files Cleanup - Visual Guide
+SESSION_FILES_ANALYSIS_AND_ACTION_PLAN.md,15898,Suspicious,review-needed,no pattern matched - needs judgement,# Session Files Analysis & Action Plan
+SESSION_SUMMARY_NOV20_2025.md,9618,Historical,git mv -> archive/timelines_and_reports/,dated 2025,"# Session Summary - November 20, 2025"
+SESSIONS_CONNECTION_LEAK_FIX_NOV29.md,10030,Historical,git mv -> archive/timelines_and_reports/,dated 2025,"# Sessions Database Connection Leak Fix - November 29, 2025"
+SHARED_RESOURCES_REORGANIZATION_COMPLETE_NOV29.md,12293,Historical,git mv -> archive/timelines_and_reports/,dated 2025,# Shared Resources Reorganization - COMPLETE ✅
+SHARED_UTILITIES_REORGANIZATION_NOV29.md,11866,Historical,git mv -> archive/timelines_and_reports/,dated 2025,"# Shared Utilities Reorganization - November 29, 2025"
+SHERLOCK_TEST_RESULTS.md,6837,Scratch,git mv -> archive/timelines_and_reports/,title contains 'test results',# Sherlock Integration Test Results ✅
+SHIPPING_TESTING_GUIDE_JAN26_2026.md,11621,Scratch,git mv -> archive/timelines_and_reports/,dated 2026,# WooCommerce Shipping Integration - Testing Guide
+SHOPIFY_CALCULATOR_JSON_FIRST_METHODOLOGY.md,40738,Suspicious,review-needed,no pattern matched - needs judgement,# SHOPIFY CALCULATOR JSON-FIRST METHODOLOGY
+SHOPIFY_INTEGRATION.md,56070,Scratch,git mv -> archive/timelines_and_reports/,fix/progress/summary content,# WooCommerce E-Commerce Integration - Complete Technical Documentation
+SHOPIFY_INTEGRATION_V2_ACCURATE.md,74080,Suspicious,review-needed,no pattern matched - needs judgement,# WooCommerce E-Commerce Integration - Accurate Technical Documentation
+SHORT_DESCRIPTION_EXAMPLES_BY_PLATFORM.md,12152,Suspicious,review-needed,no pattern matched - needs judgement,# Short Description Examples by Platform Type
+SHORT_DESCRIPTION_FIX_JAN20_2026.md,8357,Scratch,git mv -> archive/timelines_and_reports/,dated 2026,"# Short Description Fix - January 20, 2026"
+SHORT_DESCRIPTION_PROGRESS_TRACKER.md,6850,Suspicious,review-needed,no pattern matched - needs judgement,# Short Description Addition - Progress Tracker
+SIDEBAR_MODULE_INTEGRATION_COMPLETE_NOV28.md,12659,Historical,git mv -> archive/timelines_and_reports/,dated 2025,# Sidebar Framework ↔️ Module System Integration - COMPLETE ✅
+SIDEBAR_MODULE_LOADING_ISSUE.md,7613,Scratch,git mv -> archive/timelines_and_reports/,title contains 'issue analysis',# Sidebar Module Loading Issue Analysis
+SIDEBAR_SCROLLING_ENHANCEMENT_NOV29.md,5188,Scratch,git mv -> archive/timelines_and_reports/,fix/progress/summary content,"# 📜 Left Sidebar Scrolling Enhancement - November 29, 2025"
+SIGNATURE_FIX_IMPLEMENTATION_ANALYSIS_DEC13.md,14099,Historical,git mv -> archive/timelines_and_reports/,fix/debug/incident content,# Implementation Analysis: Thinking Block Signature Fix
+SLUG_SYNC_ANALYSIS_AND_RESULTS.md,12293,Scratch,git mv -> archive/timelines_and_reports/,title contains 'complete analysis',# Slug Synchronization System - Complete Analysis & Test Results
+SLUG_SYNC_FIXES_COMPLETE.md,20513,Scratch,git mv -> archive/timelines_and_reports/,title contains 'complete implementation',# Slug Synchronization Fixes - Complete Implementation
+SLUG_SYSTEM_QUICK_REFERENCE.md,6671,Scratch,git mv -> archive/timelines_and_reports/,fix/progress/summary content,# Slug System Quick Reference Guide
+SMART_BUILDER_COMPREHENSIVE_GUIDE.md,12540,Suspicious,review-needed,no pattern matched - needs judgement,# 🎯 microsoft_excel_smart_sheet_builder - THE COMPLETE EXCEL TOOL
+SMART_OAUTH_URL_DETECTION.md,8312,Suspicious,review-needed,no pattern matched - needs judgement,# Smart OAuth URL Detection - Complete Solution
+SMART_SHEET_BUILDER_GUIDE.md,11150,Suspicious,review-needed,no pattern matched - needs judgement,# 🎯 SMART Sheet Builder - Build Excel from Scratch
+SMART_TOOLS_IMPLEMENTATION_COMPLETE.md,10881,Scratch,git mv -> archive/timelines_and_reports/,title contains 'implementation complete',"# SMART Bundled Tools Implementation Complete - January 13, 2026"
+SMART_TOOLS_QUICK_REFERENCE.md,5704,Scratch,git mv -> archive/timelines_and_reports/,fix/progress/summary content,# SMART Tools Quick Reference
+SMOKE_TEST_EXECUTION_TRACE.md,19024,Suspicious,review-needed,no pattern matched - needs judgement,# 🔍 Smoke Test & Execution Trace Report
+SMOKE_TEST_RESULTS_DEC27.md,8578,Historical,git mv -> archive/timelines_and_reports/,dated 2025,# Smoke Test Results - Prime → Unassigned Migration
+SMOKE_TEST_RESULTS_NOV20.md,26106,Historical,git mv -> archive/timelines_and_reports/,dated 2025,"# 🧪 SMOKE TEST RESULTS - November 20, 2025"
+SOCIAL_MEDIA_API_OPTIONS.md,19575,Suspicious,review-needed,no pattern matched - needs judgement,# SOCIAL MEDIA API OPTIONS FOR PROFILE VERIFICATION
+SPIRAL_BOUND_FIELD_MAPPING.md,11037,Suspicious,review-needed,no pattern matched - needs judgement,# Spiral Bound Books - Complete Field Mapping & Values
+SPIRAL_BOUND_QUICK_GUIDE.md,2191,Suspicious,review-needed,no pattern matched - needs judgement,# Spiral Bound Books - Quick Validation Guide
+SPIRAL_BOUND_VALIDATION_SUMMARY.md,8633,Suspicious,review-needed,no pattern matched - needs judgement,# Spiral Bound Books Calculator - Validation Complete (Backend)
+SPIRAL_BOUND_WEBSITE_VALIDATION_CHECKLIST.md,11580,Suspicious,review-needed,no pattern matched - needs judgement,# Spiral Bound Books - Website Validation Checklist
+SPREADSHEET_ADVANCED_FEATURES_COMPLETE.md,13680,Scratch,git mv -> archive/timelines_and_reports/,title contains 'complete implementation',# Spreadsheet Advanced Features - Complete Implementation
+SQLITE_ELIMINATION_COMPLETE_DEC14.md,9532,Historical,git mv -> archive/timelines_and_reports/,dated 2025,"# 🎯 SQLite Elimination Complete - December 14, 2025"
+SQLITE_REMOVAL_PLAN.md,2896,Suspicious,review-needed,no pattern matched - needs judgement,# SQLite Removal/Supabase Migration Plan
+SSE_STREAM_INCOMPLETE_CHUNKED_ENCODING_FIX_DEC4_2025.md,18282,Historical,git mv -> archive/timelines_and_reports/,dated 2025,# 🔴 ERR_INCOMPLETE_CHUNKED_ENCODING - Root Cause Analysis & Fix
+START_HERE.md,4089,Runbook,keep,matches runbook pattern,# 🚀 Quick Start - AI Agents Platform
+START_UP_CONSOLE_LOG.md,0,Suspicious,review-needed,no pattern matched - needs judgement,
+STARTUP_FIX_OPTIONS_ANALYSIS.md,10891,Suspicious,review-needed,no pattern matched - needs judgement,# OPTIONS ANALYSIS: Fixing the 50-Second Startup Issue
+STARTUP_OPTIMIZATIONS_COMPLETE_NOV28.md,11919,Historical,git mv -> archive/timelines_and_reports/,dated 2025,# 🚀 Platform Startup Optimizations - Complete Implementation
+STARTUP_PERFORMANCE_ANALYSIS_COMPLETE.md,33861,Suspicious,review-needed,no pattern matched - needs judgement,# AI Agents V10 - Startup Performance & Loading Sequence Analysis
+STOCK_MANAGEMENT_SUPABASE_MIGRATION_DEC4_2025.md,11406,Scratch,git mv -> archive/timelines_and_reports/,fix/progress/summary content,"# Stock Management Module - Supabase Migration (Dec 4, 2025)"
+STREAM_400_ERROR_ANALYSIS.md,7869,Suspicious,review-needed,no pattern matched - needs judgement,# Stream 400 Error - Root Cause Analysis
+STREAM_FIX_COMPLETE_NOV19.md,8265,Historical,git mv -> archive/timelines_and_reports/,dated 2025,# Stream Endpoint NameError Fix - Complete
+STREAMING_ERROR_FIXES_DEC3_2025.md,13943,Historical,git mv -> archive/timelines_and_reports/,dated 2025,"# Streaming Error Fixes - December 3, 2025"
+STREAMING_TRANSCRIPTION_ANALYSIS.md,15015,Suspicious,review-needed,no pattern matched - needs judgement,# 🎤 Streaming Transcription Architecture Analysis
+SUB_USER_MESSAGING_ARCHITECTURE.md,26568,Suspicious,review-needed,no pattern matched - needs judgement,# Sub-User Messaging Architecture
+SUPABASE_API_ASSESSMENT.md,11257,Scratch,git mv -> archive/timelines_and_reports/,title contains 'assessment',# Supabase Migration - Complete API Assessment
+SUPABASE_ARCHITECTURE_DIAGRAM.md,20400,Suspicious,review-needed,no pattern matched - needs judgement,# 🏗️ Supabase Connection Architecture - Visual Guide
+SUPABASE_AUTH_ENDPOINTS_ANALYSIS.md,5052,Suspicious,review-needed,no pattern matched - needs judgement,# Supabase Auth Endpoints Analysis
+SUPABASE_CLI_GUIDE.md,22574,Suspicious,review-needed,no pattern matched - needs judgement,# Supabase CLI Tools - Complete Usage Guide
+SUPABASE_CLI_SETUP.md,12694,Suspicious,review-needed,no pattern matched - needs judgement,# Supabase CLI & Edge Functions Setup Guide
+SUPABASE_COMPATIBILITY_FIX_COMPLETE.md,13396,Suspicious,review-needed,no pattern matched - needs judgement,# Supabase Compatibility Fix - Complete
+SUPABASE_COMPLETE_FIX_SUMMARY.md,8143,Scratch,git mv -> archive/timelines_and_reports/,title contains 'complete fix',# Supabase Migration - Complete Fix Summary
+SUPABASE_CONFIG_FIX_COMPLETE.md,10395,Suspicious,review-needed,no pattern matched - needs judgement,"# Supabase Configuration Fix - November 17, 2025"
+SUPABASE_CONNECTION_FIX_COMPLETE.md,5995,Suspicious,review-needed,no pattern matched - needs judgement,# Supabase Connection Fix - Complete ✅
+SUPABASE_CONNECTION_FIX_COMPLETE_NOV24.md,18373,Historical,git mv -> archive/timelines_and_reports/,dated 2025,"# Supabase Connection Manager - Complete Fix (Nov 24, 2025)"
+SUPABASE_CONNECTION_MODES.md,5606,Scratch,git mv -> archive/timelines_and_reports/,title contains 'configuration guide',# Supabase Connection Modes - Configuration Guide
+SUPABASE_CONNECTION_OPTIMIZATION_COMPLETE.md,15706,Suspicious,review-needed,no pattern matched - needs judgement,# Supabase Nano Tier Connection Pool Optimization - COMPLETE SOLUTION
+SUPABASE_CONNECTION_POOL_COMPLETE.md,11160,Suspicious,review-needed,no pattern matched - needs judgement,# Supabase Connection Pool Implementation - COMPLETE ✅
+SUPABASE_CONNECTION_SUCCESS.md,6579,Scratch,git mv -> archive/timelines_and_reports/,fix/progress/summary content,# Supabase Connection - SUCCESS ✅
+SUPABASE_CONNECTION_TEST_RESULTS.md,5374,Scratch,git mv -> archive/timelines_and_reports/,title contains 'test results',# Supabase Connection Test Results
+SUPABASE_CUSTOM_QUERY_TOOLS.md,16012,Suspicious,review-needed,no pattern matched - needs judgement,# Supabase Custom Query & Search Tools
+SUPABASE_DATABASE.md,40562,Suspicious,review-needed,no pattern matched - needs judgement,# Supabase Database Architecture
+SUPABASE_DEPLOYMENT_CHECKLIST.md,7533,Suspicious,review-needed,no pattern matched - needs judgement,# 🎯 Deployment Checklist - Supabase Connection Fix
+SUPABASE_FIX_FINAL_SUMMARY_NOV24.md,14860,Historical,git mv -> archive/timelines_and_reports/,dated 2025,"# Supabase Connection Fix - Final Summary (Nov 24, 2025)"
+SUPABASE_FIX_SUMMARY.md,3833,Suspicious,review-needed,no pattern matched - needs judgement,# Supabase Connection Fix - Summary
+SUPABASE_HEARTBEAT_SYSTEM_COMPLETE.md,15613,Scratch,git mv -> archive/timelines_and_reports/,title contains 'complete implementation',# Supabase Heartbeat System - Complete Implementation
+SUPABASE_IPV4_FIX_COMPLETE.md,7355,Suspicious,review-needed,no pattern matched - needs judgement,# Supabase IPv4 Connection Fix - Complete
+SUPABASE_MIGRATION_AGENT_ROUTES_V4.md,9096,Suspicious,review-needed,no pattern matched - needs judgement,# Supabase Migration: agent_routes_v4.py
+SUPABASE_MIGRATION_COMPLETE.md,14712,Scratch,git mv -> archive/timelines_and_reports/,title contains 'implementation complete',# Supabase Migration - Implementation Complete
+SUPABASE_MIGRATION_FINAL_STATUS.md,11739,Suspicious,review-needed,no pattern matched - needs judgement,# Supabase Migration - Final Status Report
+SUPABASE_MIGRATION_GUIDE.md,10731,Scratch,git mv -> archive/timelines_and_reports/,title contains 'complete guide',# 🚀 Supabase Migration - Complete Guide
+SUPABASE_ONLY_FIX_COMPLETE.md,12670,Suspicious,review-needed,no pattern matched - needs judgement,# Supabase-Only Architecture Fix - Complete
+SUPABASE_PLACEHOLDER_FIX.md,6651,Suspicious,review-needed,no pattern matched - needs judgement,# Supabase Database Placeholder Fix
+SUPABASE_REALTIME_CAD_INTEGRATION.md,17330,Scratch,git mv -> archive/timelines_and_reports/,fix/progress/summary content,# SUPABASE REALTIME INTEGRATION GUIDE
+SUPABASE_REALTIME_FIX.md,6300,Suspicious,review-needed,no pattern matched - needs judgement,# Supabase Realtime Crash Fix
+SUPABASE_REALTIME_THREAD_ASSIGNMENTS.md,16346,Suspicious,review-needed,no pattern matched - needs judgement,# Supabase Realtime for Thread Assignments
+SUPABASE_SEARCH_INTEGRATION_COMPLETE.md,12178,Suspicious,review-needed,no pattern matched - needs judgement,# Supabase Search System Integration - COMPLETE ✅
+SUPABASE_UI_FIX_COMPLETE.md,12822,Scratch,git mv -> archive/timelines_and_reports/,title contains 'fix complete',# Supabase UI Integration - Script Loading Fix Complete ✅
+SVG_OVERLAPPING_TEXT_FIX_DEC23_2025.md,9590,Historical,git mv -> archive/timelines_and_reports/,dated 2025,"# SVG Overlapping Text Fix - December 23, 2025"
+SYNERGY_4ROW_CARD_REDESIGN_COMPLETE.md,11551,Scratch,git mv -> archive/timelines_and_reports/,fix/progress/summary content,# Synergy 4-Row Card Redesign - COMPLETE
+SYNERGY_AUDIT_QUICK_REFERENCE.md,6967,Debug,git mv -> archive/analysis_reports/,analysis/audit/research content,# 🔍 Synergy Audit - Quick Reference Guide
+SYNERGY_BACKEND_FIX_URGENT.md,6080,Suspicious,review-needed,no pattern matched - needs judgement,# URGENT: Synergy Backend Fix Required
+SYNERGY_BACKEND_FIXES_NOV30.md,19061,Historical,git mv -> archive/timelines_and_reports/,dated 2025,"# 🔧 Synergy Backend Issues - Fixes Required (Nov 30, 2025)"
+SYNERGY_CLICKABLE_LINKS_NOV28.md,11462,Historical,git mv -> archive/timelines_and_reports/,dated 2025,"# Synergy Clickable Links Implementation - November 28, 2025"
+SYNERGY_COLLABORATION.md,68551,Suspicious,review-needed,no pattern matched - needs judgement,# SYNERGY & COLLABORATION - Technical Documentation
+SYNERGY_COMPLETE_FIX_SUMMARY_DEC1.md,11660,Historical,git mv -> archive/timelines_and_reports/,dated 2025,# 🎉 Synergy Backend - Complete Fix Summary
+SYNERGY_COMPREHENSIVE_AUDIT_NOV30.md,20268,Debug,git mv -> archive/analysis_reports/,analysis/audit/research content,"# 🔍 Synergy Comprehensive Audit - November 30, 2025"
+SYNERGY_COMPREHENSIVE_AUDIT_REPORT.md,21310,Debug,git mv -> archive/analysis_reports/,analysis/audit/research content,# Synergy Tools Comprehensive Audit Report
+SYNERGY_COMPREHENSIVE_LEAK_FIX_NOV25.md,7266,Historical,git mv -> archive/timelines_and_reports/,dated 2025,# Synergy Routes - Comprehensive Connection Leak Fix
+SYNERGY_CONNECTION_LEAKS_FIX_NOV25.md,10654,Historical,git mv -> archive/timelines_and_reports/,dated 2025,"# Synergy Connection Leaks Fix - November 25, 2025"
+SYNERGY_CONTEXT_ENHANCEMENT.md,9156,Suspicious,review-needed,no pattern matched - needs judgement,"# Synergy Context Enhancement - December 1, 2025"
+SYNERGY_CRITICAL_ISSUES_ANALYSIS_DEC1.md,8272,Historical,git mv -> archive/timelines_and_reports/,dated 2025,"# Synergy Critical Issues Analysis - December 1, 2025"
+SYNERGY_DASHBOARD_FIX_DEC23_2025.md,8782,Historical,git mv -> archive/timelines_and_reports/,dated 2025,"# Synergy Dashboard Fix - December 23, 2025"
+SYNERGY_DATABASE_STRUCTURE_COMPLETE.md,17145,Debug,git mv -> archive/analysis_reports/,analysis/audit/research content,# Synergy Sessions Database Structure - Complete Analysis
+SYNERGY_DIAGNOSTICS_FIX_NOV23.md,10417,Historical,git mv -> archive/timelines_and_reports/,dated 2025,"# Synergy Diagnostics & Expand/Collapse Fix - November 23, 2025"
+SYNERGY_DOCUMENT_PICKER_COMPLETE.md,8236,Suspicious,review-needed,no pattern matched - needs judgement,# Synergy Document Picker Implementation - Complete
+SYNERGY_DOCUMENTS_ADD_BUTTON_FIX_DEC10.md,10361,Historical,git mv -> archive/timelines_and_reports/,dated 2025,# Synergy Documents Section - Add Button Fix
+SYNERGY_DOCUMENTS_LINKS_COMPLETE.md,17514,Scratch,git mv -> archive/timelines_and_reports/,title contains 'implementation complete',# Synergy Milestone Document/Link System - IMPLEMENTATION COMPLETE ✅
+SYNERGY_DUPLICATE_SESSION_FIX_NOV30.md,7854,Historical,git mv -> archive/timelines_and_reports/,dated 2025,"# 🔧 Synergy Duplicate Session Fix - November 30, 2025"
+SYNERGY_DYNAMIC_URL_FIX.md,7580,Suspicious,review-needed,no pattern matched - needs judgement,"# Synergy Dynamic URL Detection - December 10, 2025"
+SYNERGY_ENHANCEMENT_SESSION_SUMMARY.md,11738,Scratch,git mv -> archive/timelines_and_reports/,fix/progress/summary content,# Synergy Tools Enhancement - Session Summary
+SYNERGY_EXTERNAL_MODULE_COMPLETE.md,18584,Suspicious,review-needed,no pattern matched - needs judgement,# Synergy External Sidebar Module - COMPLETE ✅
+SYNERGY_EXTRACTION_COMPLETE.md,7792,Suspicious,review-needed,no pattern matched - needs judgement,# SYNERGY CODE EXTRACTION COMPLETE
+SYNERGY_FILES_ENHANCEMENTS_DEC9_2025.md,13182,Historical,git mv -> archive/timelines_and_reports/,dated 2025,# Synergy Files Enhancement Implementation
+SYNERGY_FILES_INTEGRATION_ARCHITECTURE_DEC9_2025.md,31741,Scratch,git mv -> archive/timelines_and_reports/,fix/progress/summary content,# Synergy Files (Docs/Sheets) - Complete Integration Architecture
+SYNERGY_FILES_REBRANDING_DEC8_2025.md,16246,Historical,git mv -> archive/timelines_and_reports/,dated 2025,# ✅ Synergy Files Rebranding - Complete Update
+SYNERGY_FIX_INSTRUCTIONS.md,6226,Suspicious,review-needed,no pattern matched - needs judgement,# Synergy Dashboard Fix - Action Required 🔧
+SYNERGY_FIXES_APPLIED_NOV30.md,12897,Historical,git mv -> archive/timelines_and_reports/,dated 2025,"# Synergy Backend Fixes Applied - November 30, 2025"
+SYNERGY_FIXES_SUMMARY.md,9753,Suspicious,review-needed,no pattern matched - needs judgement,"# 🎯 Synergy Backend Issues - Quick Summary (Nov 30, 2025)"
+SYNERGY_FLAT_SPACING_COMPLETE.md,11589,Scratch,git mv -> archive/timelines_and_reports/,title contains 'implementation complete',# SYNERGY FLAT SPACING IMPLEMENTATION COMPLETE
+SYNERGY_FLAT_SPACING_VISUAL_GUIDE.md,12016,Suspicious,review-needed,no pattern matched - needs judgement,# SYNERGY FLAT SPACING - VISUAL COMPARISON
+SYNERGY_IMPLEMENTATION_PLAN_MISSING_FEATURES.md,42445,Scratch,git mv -> archive/timelines_and_reports/,title contains 'complete implementation',# 🎯 Synergy Missing Features - Complete Implementation Plan
+SYNERGY_INLINE_EDIT_FEATURE.md,7615,Suspicious,review-needed,no pattern matched - needs judgement,"# Synergy Inline Edit Feature - November 20, 2025"
+SYNERGY_INTERNAL_DOC_FIX_NOV30.md,8513,Historical,git mv -> archive/timelines_and_reports/,dated 2025,"# Synergy Internal Document Fix - November 30, 2025"
+SYNERGY_INTERNAL_DOCS_GUIDE.md,13801,Suspicious,review-needed,no pattern matched - needs judgement,# SYNERGY INTERNAL DOCS INTEGRATION GUIDE
+SYNERGY_KANBAN_DRAG_DROP_COMPLETE.md,14957,Suspicious,review-needed,no pattern matched - needs judgement,# Synergy Kanban Drag-and-Drop & Column Management - COMPLETE
+SYNERGY_KANBAN_QUICK_GUIDE.md,3751,Suspicious,review-needed,no pattern matched - needs judgement,# Synergy Kanban - Quick User Guide
+SYNERGY_LINKED_THREADS_FIX_DEC22_2025.md,13490,Historical,git mv -> archive/timelines_and_reports/,dated 2025,# Synergy Linked Threads Loading Issue - FIXED
+SYNERGY_MILESTONE_CSS_MAPPING.md,11288,Suspicious,review-needed,no pattern matched - needs judgement,# SYNERGY MILESTONE UI REDESIGN - CSS MAPPING PLAN
+SYNERGY_MILESTONE_IMPLEMENTATION_PLAN.md,22899,Scratch,git mv -> archive/timelines_and_reports/,fix/progress/summary content,# SYNERGY MILESTONE MIGRATION - COMPLETE IMPLEMENTATION PLAN
+SYNERGY_MILESTONE_UPDATE_COMPLETE.md,18702,Suspicious,review-needed,no pattern matched - needs judgement,# Synergy Milestone-Based Project Management - Complete Update
+SYNERGY_MODAL_REMOVAL_COMPLETE_DEC5_2025.md,7218,Historical,git mv -> archive/timelines_and_reports/,dated 2025,# Synergy Modal Removal - COMPLETE ✅
+SYNERGY_MODAL_REMOVAL_IMPLEMENTATION_DEC5_2025.md,10589,Scratch,git mv -> archive/timelines_and_reports/,fix/progress/summary content,# Synergy Modal Removal - Complete Implementation Guide
+SYNERGY_MODULAR_SYSTEM_COMPLETE.md,15710,Scratch,git mv -> archive/timelines_and_reports/,title contains 'complete implementation',# Synergy Modular System - Complete Implementation
+SYNERGY_MODULE_MIGRATION_COMPLETE.md,8741,Scratch,git mv -> archive/timelines_and_reports/,fix/progress/summary content,# SYNERGY MODULE MIGRATION COMPLETE ✅
+SYNERGY_POPUP_FIX_CORRECTED_DEC5_2025.md,7025,Historical,git mv -> archive/timelines_and_reports/,dated 2025,# Synergy Popup Fix - CORRECTED ✅
+SYNERGY_POPUP_MODAL_FIX.md,6208,Suspicious,review-needed,no pattern matched - needs judgement,"# Synergy Popup Modal Fix - November 25, 2025"
+SYNERGY_POPUP_MODAL_REMOVAL_ANALYSIS_DEC5_2025.md,8862,Historical,git mv -> archive/timelines_and_reports/,dated 2025,# Synergy Popup Modal Removal Analysis
+SYNERGY_PRIORITY_AND_MARKDOWN_IMPLEMENTATION.md,20531,Scratch,git mv -> archive/timelines_and_reports/,fix/progress/summary content,# Synergy Priority & Markdown Implementation - Complete
+SYNERGY_PRIORITY_COLUMN_FIX.md,6077,Suspicious,review-needed,no pattern matched - needs judgement,"# Synergy Priority Column Fix - November 20, 2025"
+SYNERGY_PRIORITY_QUICK_START.md,7826,Scratch,git mv -> archive/timelines_and_reports/,fix/progress/summary content,# Synergy Priority & Markdown - Quick Start Guide
+SYNERGY_REALTIME_COLLABORATION_DESIGN.md,14915,Suspicious,review-needed,no pattern matched - needs judgement,# Synergy Sessions Real-Time Collaboration System
+SYNERGY_REALTIME_ENHANCEMENTS_DEC9.md,17373,Historical,git mv -> archive/timelines_and_reports/,dated 2025,# Synergy Realtime Enhancements - Full Implementation
+SYNERGY_REALTIME_WEBSOCKET_COMPLETE.md,24348,Suspicious,review-needed,no pattern matched - needs judgement,# Synergy Real-Time WebSocket Integration - Complete
+SYNERGY_REFERENCE_CLEANUP_NOV28.md,7315,Historical,git mv -> archive/timelines_and_reports/,dated 2025,"# Synergy Reference Tools Cleanup - November 28, 2025"
+SYNERGY_ROUTES_ANALYSIS.md,10566,Suspicious,review-needed,no pattern matched - needs judgement,# Synergy Routes Analysis - Inline Interaction System
+SYNERGY_ROUTES_REFACTOR_INSTRUCTIONS.md,20072,Scratch,git mv -> archive/timelines_and_reports/,fix/progress/summary content,# Synergy Routes Refactor Instructions
+SYNERGY_SCHEMA_FIX_DEC16_2025.md,5993,Historical,git mv -> archive/timelines_and_reports/,dated 2025,"# Synergy Sessions Schema Fix - December 16, 2025"
+SYNERGY_SCHEMA_REQUIREMENTS.md,21708,Suspicious,review-needed,no pattern matched - needs judgement,"# Synergy Schema Requirements - December 1, 2025"
+SYNERGY_SMART_TOOL_MILESTONE_UPDATE.md,23660,Suspicious,review-needed,no pattern matched - needs judgement,# Synergy Smart Tool - Milestone Support Added
+SYNERGY_SMART_TRACKER_ANALYSIS_DEC8_2025.md,22772,Historical,git mv -> archive/timelines_and_reports/,dated 2025,"# Synergy Smart Tracker Analysis - December 8, 2025"
+SYNERGY_SMART_TRACKER_COMPLETE_FIX_DEC8_2025.md,18816,Historical,git mv -> archive/timelines_and_reports/,dated 2025,# ✅ SYNERGY SMART TRACKER - COMPLETE FIX IMPLEMENTED
+SYNERGY_THREAD_LINKING_SMOKE_TEST_REPORT.md,13470,Scratch,git mv -> archive/timelines_and_reports/,title contains 'test report',# 🎯 Synergy Thread Linking - Module Smoke Test Report
+SYNERGY_TITLE_DESC_QUICK_START.md,5531,Scratch,git mv -> archive/timelines_and_reports/,fix/progress/summary content,# SYNERGY TITLE + DESCRIPTION - QUICK START
+SYNERGY_TITLE_DESCRIPTION_ENHANCEMENT.md,14966,Suspicious,review-needed,no pattern matched - needs judgement,# SYNERGY TITLE + DESCRIPTION ENHANCEMENT
+SYNERGY_TITLE_FIELD_ANALYSIS.md,24046,Suspicious,review-needed,no pattern matched - needs judgement,"# Synergy Session Title Field Analysis - December 1, 2025"
+SYNERGY_TITLE_MIGRATION_SUCCESS.md,7763,Scratch,git mv -> archive/timelines_and_reports/,fix/progress/summary content,# ✅ Synergy Title/Description Migration - COMPLETE
+SYNERGY_TOOL_AUDIT_COMPLETE_DEC10.md,18567,Debug,git mv -> archive/analysis_reports/,analysis/audit/research content,## Synergy Tool Suite Audit - Complete Analysis
+SYNERGY_TOOL_COMPREHENSIVE_RENAME_DEC12_2025.md,12384,Historical,git mv -> archive/timelines_and_reports/,dated 2025,"# 🎯 Synergy Tool Comprehensive Renaming & Enhancement - Dec 12, 2025"
+SYNERGY_TOOL_GUIDE_QUICK_REFERENCE.md,15730,Scratch,git mv -> archive/timelines_and_reports/,fix/progress/summary content,# Synergy Session Platform - Quick Tool Reference
+SYNERGY_TOOLS_UPDATE_SUMMARY_DEC8_2025.md,15070,Historical,git mv -> archive/timelines_and_reports/,dated 2025,# ✅ Synergy Tools - Schema & Documentation Update Complete
+SYNERGY_TOOLTIP_AND_CLICK_FIXES.md,13951,Suspicious,review-needed,no pattern matched - needs judgement,"# Synergy Tooltip & Click Handler Fixes - December 3, 2025"
+SYNERGY_UI_DATABASE_SCHEMA_GAP_ANALYSIS.md,20177,Suspicious,review-needed,no pattern matched - needs judgement,# 🔍 Synergy UI vs Database Schema - Complete Gap Analysis
+SYNERGY_UI_FIX_COMPLETE_NOV22.md,11613,Historical,git mv -> archive/timelines_and_reports/,dated 2025,# Synergy Dashboard & Sidebar UI Fix - Complete
+SYNERGY_UI_FIXES_NOV25.md,4737,Historical,git mv -> archive/timelines_and_reports/,dated 2025,"# Synergy UI Fixes - November 25, 2025"
+SYNERGY_UI_FIXES_NOV30_PART2.md,5126,Historical,git mv -> archive/timelines_and_reports/,dated 2025,"# Synergy UI Fixes - Part 2 (November 30, 2025)"
+SYNERGY_WEBSOCKET_QUICK_START.md,5709,Scratch,git mv -> archive/timelines_and_reports/,fix/progress/summary content,# Synergy Real-Time WebSocket - Quick Start Guide
+SYNERGY_WIDTH_TOGGLE_FIXES_COMPLETE.md,12102,Suspicious,review-needed,no pattern matched - needs judgement,# Synergy Width Toggle - All Fixes Implemented ✅
+SYNTAX_ERROR_FIX_CACHE_CLEAR.md,2428,Suspicious,review-needed,no pattern matched - needs judgement,# Syntax Error Fix - Browser Cache Clear Required
+SYSTEM_AUDIO_CAPTURE_NOV27.md,17745,Historical,git mv -> archive/timelines_and_reports/,dated 2025,"# 🔊 System Audio Capture - November 27, 2025"
+SYSTEM_INTEGRATION_CREDENTIAL_ANALYSIS_NOV29.md,42644,Historical,git mv -> archive/timelines_and_reports/,dated 2025,# 🔐 System Integration Analysis - Credential Management & Authentication Flow
+SYSTEM_PROMPT_413_ERROR_FIX_COMPLETE.md,6703,Suspicious,review-needed,no pattern matched - needs judgement,# System Prompt 413 Error - FIXED ✅
+SYSTEM_PROMPT_META_TOOL_FIX_JAN23_2026.md,9051,Scratch,git mv -> archive/timelines_and_reports/,dated 2026,"# System Prompt Meta-Tool Documentation Fix - January 23, 2026"
+TAB_VISIBILITY_AUDIT_DEC5_2025.md,12842,Debug,git mv -> archive/analysis_reports/,analysis/audit/research content,"# Tab Visibility System Audit - December 5, 2025"
+TAG_SYSTEM_COMPLETE_FLOW_TRACE.md,21213,Suspicious,review-needed,no pattern matched - needs judgement,# 🏷️ Tag System: Complete Flow Trace (All Tag Types)
+TAG_SYSTEM_IMPLEMENTATION_SUMMARY.md,13933,Scratch,git mv -> archive/timelines_and_reports/,fix/progress/summary content,# 🏷️ Tag System Implementation Summary
+TEAM_AUTHENTICATION_ARCHITECTURE.md,27623,Suspicious,review-needed,no pattern matched - needs judgement,# Team Authentication Architecture - Complete Reference
+TEAM_AUTHENTICATION_INTEGRATION_GUIDE.md,16832,Scratch,git mv -> archive/timelines_and_reports/,fix/progress/summary content,# Team Authentication Integration Guide
+TEAM_AUTHENTICATION_QUICK_REFERENCE.md,9488,Scratch,git mv -> archive/timelines_and_reports/,fix/progress/summary content,# Team Authentication - Quick Reference Card
+TEAM_ID_BACKEND_IMPLEMENTATION.md,3,Scratch,git mv -> archive/timelines_and_reports/,fix/progress/summary content,﻿
+TEAM_ID_IMPLEMENTATION_SUMMARY.md,13246,Scratch,git mv -> archive/timelines_and_reports/,fix/progress/summary content,# Team ID System - Complete Implementation Summary
+TEAM_ID_INTEGRATION_PLAN.md,6734,Scratch,git mv -> archive/timelines_and_reports/,fix/progress/summary content,# Team ID Implementation - Complete Integration Plan
+TEAM_ID_MANAGEMENT_COMPLETE.md,38841,Scratch,git mv -> archive/timelines_and_reports/,title contains 'complete implementation',# Team ID Management System - Complete Implementation
+TEAM_ID_PRODUCTION_ENHANCEMENTS_COMPLETE.md,17635,Suspicious,review-needed,no pattern matched - needs judgement,# Team ID System - Production Enhancements Complete
+TEAM_ID_ROUTING_TEST_RESULTS.md,8041,Scratch,git mv -> archive/timelines_and_reports/,title contains 'test results',# Team ID Routing - Test Results Summary
+TEAM_ID_SYSTEM_INTEGRATION_ANALYSIS.md,40752,Debug,git mv -> archive/analysis_reports/,analysis/audit/research content,# Team ID System - Complete Integration Architecture Analysis
+TEAM_ID_THREAD_SHARING_ANALYSIS.md,3,Suspicious,review-needed,no pattern matched - needs judgement,﻿
+TEAM_ID_VIDEO_CHAT_INFRASTRUCTURE_GUIDE.md,35224,Suspicious,review-needed,no pattern matched - needs judgement,# Team ID & Video Chat Infrastructure Guide
+TEAM_ID_VISUAL_INTEGRATION_COMPLETE.md,16816,Suspicious,review-needed,no pattern matched - needs judgement,# Team ID Visual Integration - Frontend Complete
+TEAM_MESSAGING_SESSION_IDENTITY_IMPLEMENTATION.md,25579,Scratch,git mv -> archive/timelines_and_reports/,fix/progress/summary content,# Team Messaging: Session Identity Management
+TEAM_MESSAGING_WITH_SUB_USERS.md,23685,Suspicious,review-needed,no pattern matched - needs judgement,# Team Messaging with Sub-Users
+TEAM_SYSTEM_FRONTEND_IMPLEMENTATION_MAR28_2026.md,14485,Scratch,git mv -> archive/timelines_and_reports/,fix/progress/summary content,"# Teams System Frontend Implementation - March 28, 2026"
+TEAMS_ENDPOINT_ANALYSIS_MAR31_2026.md,7579,Scratch,git mv -> archive/timelines_and_reports/,dated 2026,"# Teams Endpoint Analysis & Fix — March 31, 2026"
+TEMPLATE_LIBRARY_INTEGRATION_PLAN.md,14639,Scratch,git mv -> archive/timelines_and_reports/,fix/progress/summary content,# 🎯 Template Library Integration Plan
+TEST_BADGE_DEBUG.md,5438,Suspicious,review-needed,no pattern matched - needs judgement,# Thread History Badge Debug Test
+test_login_double_init_fix.md,4287,Suspicious,review-needed,no pattern matched - needs judgement,"# Login Double Initialization Fix - November 17, 2025"
+TEST_MULTIUSER_SYNC.md,6461,Suspicious,review-needed,no pattern matched - needs judgement,# Multi-User Sync Diagnostic Test
+test_phantom_thread_fix.md,6681,Suspicious,review-needed,no pattern matched - needs judgement,"# Quick Test: Phantom Thread Fix (Nov 22, 2025)"
+TEST_PRIME_REMOVAL.md,1841,Suspicious,review-needed,no pattern matched - needs judgement,# Quick Test Commands - Prime-Loaded Removal
+TEST_QUOTES_BY_CATEGORY_NO_ANSWERS.md,17230,Suspicious,review-needed,no pattern matched - needs judgement,# Test Quotes by Product Category - Questions Only
+TEST_QUOTES_BY_CATEGORY_WITH_ANSWERS.md,27381,Suspicious,review-needed,no pattern matched - needs judgement,# Test Quotes by Product Category - With Calculated Answers
+TEST_QUOTES_CLIENT_EMAILS.md,19992,Suspicious,review-needed,no pattern matched - needs judgement,# Test Quote Requests - Client Email Format
+TEST_RESULTS_COMPREHENSIVE.md,8220,Scratch,git mv -> archive/timelines_and_reports/,title contains 'test results',# 🧪 COMPREHENSIVE TEST RESULTS
+TEST_RESULTS_DEC13_2025.md,5657,Historical,git mv -> archive/timelines_and_reports/,dated 2025,"# 🧪 System Test Results - December 13, 2025"
+TEST_RESULTS_NOV18_2025.md,11863,Historical,git mv -> archive/timelines_and_reports/,dated 2025,"# Test Results - November 18, 2025"
+TEST_RESULTS_SUMMARY.md,9736,Scratch,git mv -> archive/timelines_and_reports/,title contains 'test results',# Intelligent Discovery System - Test Results Summary
+TEST_RESULTS_SUMMARY_JAN9.md,9168,Scratch,git mv -> archive/timelines_and_reports/,dated 2026,# Test Results Summary - Universal File Tools Fix
+TEST_SUITE_EXPANSION_COMPLETE_JAN23_2026.md,14027,Scratch,git mv -> archive/timelines_and_reports/,dated 2026,# Test Suite Expansion Complete ✅
+TEST_SUITE_PATH_FIX.md,11576,Suspicious,review-needed,no pattern matched - needs judgement,"# Test Suite Module Path Fix - December 1, 2025"
+TEST_SUITE_REQUIREMENTS_JAN23_2026.md,21401,Scratch,git mv -> archive/timelines_and_reports/,dated 2026,"# Test Suite Requirements - January 23, 2026"
+TEST_SUITE_SUCCESS_51_PERCENT.md,9999,Scratch,git mv -> archive/timelines_and_reports/,fix/progress/summary content,# Test Suite Success - 51.4% Pass Rate Achieved! 🎉
+TEST_SUITE_SUMMARY.md,10387,Suspicious,review-needed,no pattern matched - needs judgement,# Test Suite - Persistent Semantic Search ✅
+test_synergy_drag_drop.md,5422,Suspicious,review-needed,no pattern matched - needs judgement,# Synergy Drag & Drop Debugging Guide
+TEST_THINKING_BLOCK_FIX.md,7580,Suspicious,review-needed,no pattern matched - needs judgement,# Test Plan: Thinking Block Order Fix
+test_with_browser.md,2145,Suspicious,review-needed,no pattern matched - needs judgement,# Test Device Lock with Browser
+TESTING_INTELLIGENCE_LAYERS.md,11550,Suspicious,review-needed,no pattern matched - needs judgement,# 🧪 Testing Intelligence Layers - Quick Start Guide
+THINKING_BLOCK_IMMUTABILITY_FIX_DEC4_2025.md,8036,Historical,git mv -> archive/timelines_and_reports/,dated 2025,"# Thinking Block Immutability Fix - December 4, 2025"
+THINKING_BLOCK_ORDER_FIX_NOV22.md,6677,Historical,git mv -> archive/timelines_and_reports/,dated 2025,"# Thinking Block Order Fix - November 22, 2025"
+THINKING_BLOCKS_CURRENT_BEHAVIOR_ANALYSIS.md,12369,Suspicious,review-needed,no pattern matched - needs judgement,# Thinking Block Handling Analysis - Current vs Recommended
+THINKING_BLOCKS_DEBUGGING_CHECKLIST_DEC13.md,7382,Historical,git mv -> archive/timelines_and_reports/,fix/debug/incident content,"# Thinking Blocks Debugging Checklist - December 13, 2025"
+THINKING_BLOCKS_SIGNATURE_TIMESTAMP_ANALYSIS_DEC13.md,10416,Historical,git mv -> archive/timelines_and_reports/,dated 2025,"# Deep Dive: Tool Schemas, Signatures, Timestamps, and Thinking Blocks"
+THINKING_DOTS_REMOVAL_COMPLETE.md,5301,Suspicious,review-needed,no pattern matched - needs judgement,# Thinking Dots Removal - Complete
+THREAD_ASSIGNMENTS_CORRECTED.md,8085,Suspicious,review-needed,no pattern matched - needs judgement,# Thread Assignments - CORRECTED Documentation
+THREAD_CARD_EMAIL_BADGE_SUMMARY.md,12640,Scratch,git mv -> archive/timelines_and_reports/,title contains 'implementation summary',# Thread Card Email Badge - Implementation Summary
+THREAD_CARD_EXPAND_BUTTON_FIX.md,11274,Suspicious,review-needed,no pattern matched - needs judgement,# Thread Card Expand Button Fix
+THREAD_CARD_EXPAND_COLLAPSE_DIRECT_ANSWERS.md,13003,Suspicious,review-needed,no pattern matched - needs judgement,# Thread Card Expand/Collapse - Direct Answers to Your Questions
+THREAD_CARD_EXPANSION_FIX_DEC9_2025.md,9704,Historical,git mv -> archive/timelines_and_reports/,dated 2025,"# Thread Card Expansion Button Fix - December 9, 2025"
+THREAD_CARD_EXPANSION_VISUAL_GUIDE.md,19470,Suspicious,review-needed,no pattern matched - needs judgement,# Thread Card Expansion - Visual Reference Guide
+THREAD_CARD_INTEGRATION_INDEX.md,9795,Scratch,git mv -> archive/timelines_and_reports/,fix/progress/summary content,# Thread Card Integration - Documentation Index
+THREAD_CARD_INTEGRATION_SUMMARY.md,9689,Scratch,git mv -> archive/timelines_and_reports/,fix/progress/summary content,# Thread Card Module Integration - Complete Summary
+THREAD_CARD_MODULARIZATION_COMPLETE.md,19850,Scratch,git mv -> archive/timelines_and_reports/,fix/progress/summary content,# Thread Card Modularization - COMPLETE ✅
+THREAD_CARD_PLACEHOLDER_FIX_NOV29.md,7717,Historical,git mv -> archive/timelines_and_reports/,dated 2025,"# Thread Card Placeholder Fix - November 29, 2025"
+THREAD_CASCADE_ARCHITECTURE.md,34153,Suspicious,review-needed,no pattern matched - needs judgement,# Thread Assignment Cascade Architecture
+THREAD_CASCADE_IMPLEMENTATION_STATUS.md,21078,Scratch,git mv -> archive/timelines_and_reports/,fix/progress/summary content,# Thread Assignment CASCADE Implementation Guide
+THREAD_COPY_CONVERSATION_COMPLETE.md,6724,Suspicious,review-needed,no pattern matched - needs judgement,# Thread Copy Conversation Feature - Complete
+THREAD_CREATION_POSTGRESQL_FIX_NOV17.md,12209,Historical,git mv -> archive/timelines_and_reports/,dated 2025,"# Thread Creation PostgreSQL Fix (November 17, 2025)"
+THREAD_DATABASE_SUPABASE_COMPLETE.md,11802,Scratch,git mv -> archive/timelines_and_reports/,title contains 'migration complete',# Thread & Message Database - Supabase Migration Complete
+THREAD_DELETE_AND_AGENT_ICON_ANALYSIS.md,12120,Suspicious,review-needed,no pattern matched - needs judgement,# Thread Delete & Agent Icon Analysis
+THREAD_DRAG_DROP_FIX_NOV21.md,6005,Historical,git mv -> archive/timelines_and_reports/,dated 2025,"# Thread Drag & Drop Fix - November 21, 2025"
+THREAD_EXPANSION_CSS_FIX_DEC9_2025.md,4678,Historical,git mv -> archive/timelines_and_reports/,dated 2025,"# Thread Card Expansion CSS Fix - December 9, 2025"
+THREAD_EXPANSION_DEBUG_DEC9.md,7775,Historical,git mv -> archive/timelines_and_reports/,dated 2025,"# Thread Card Expansion - Debug Guide (Dec 9, 2025)"
+THREAD_EXPANSION_ISOLATION_FIXES_DEC13.md,9239,Historical,git mv -> archive/timelines_and_reports/,dated 2025,"# Thread Card Expansion - Isolation Fixes (Dec 13, 2025)"
+THREAD_EXPANSION_STATE_PRESERVATION_FIX_DEC9.md,8399,Historical,git mv -> archive/timelines_and_reports/,dated 2025,"# Thread Card Expansion State Preservation - December 9, 2025"
+THREAD_EXPANSION_TEST_EXECUTION.md,9034,Suspicious,review-needed,no pattern matched - needs judgement,# Thread Card Expansion Fixes - Test Execution Report
+THREAD_INFO_CARD_ANALYSIS.md,25656,Scratch,git mv -> archive/timelines_and_reports/,title contains 'complete analysis',# Thread Info Card - Complete Analysis
+THREAD_INFO_CARD_DEBUG_COMPLETE.md,6644,Scratch,git mv -> archive/timelines_and_reports/,title contains 'debug complete',# Thread Info Card Debug Complete
+THREAD_INFO_CARD_DOM_STRUCTURE_AND_ISOLATION.md,21249,Debug,git mv -> archive/analysis_reports/,analysis/audit/research content,# Thread Info Card Structure - Complete DOM & Isolation Analysis
+THREAD_INFO_CARD_FRAMEWORK_ANALYSIS.md,28258,Suspicious,review-needed,no pattern matched - needs judgement,# Thread Info Card Integration Analysis - Complete Framework Flow
+THREAD_INFO_CARDS_AND_TAGS_COMPLETE_ANALYSIS.md,25053,Suspicious,review-needed,no pattern matched - needs judgement,# Thread Info Cards & Tags - Complete System Analysis
+THREAD_INFO_CARDS_SYSTEM_INTEGRATION_ARCHITECTURE.md,53054,Debug,git mv -> archive/analysis_reports/,analysis/audit/research content,# Thread Info Cards System - Complete Integration Architecture Analysis
+THREAD_INFO_VERTICAL_AND_EMPTY_STATE_FIX_DEC6_2025.md,14232,Historical,git mv -> archive/timelines_and_reports/,dated 2025,"# Thread Info Vertical Layout & Empty State Analysis - December 6, 2025"
+THREAD_ISOLATION_BUG_ANALYSIS.md,12412,Scratch,git mv -> archive/timelines_and_reports/,title contains 'complete analysis',# Thread Isolation Bug - Complete Analysis
+THREAD_ISOLATION_ISSUES_EXPLAINED.md,12073,Suspicious,review-needed,no pattern matched - needs judgement,# Thread Isolation Issues - Diagnosis & Fixes
+THREAD_LOCATION_BADGE_FIX_DEC29_2025.md,8370,Historical,git mv -> archive/timelines_and_reports/,dated 2025,"# Thread Location Badge Display Fix - December 29, 2025"
+THREAD_MANAGER_ADDITIONAL_SMOKE_TEST.md,8488,Scratch,git mv -> archive/timelines_and_reports/,title contains 'test report',# FINAL SMOKE TEST REPORT
+THREAD_MESSAGE_LOADING_ANALYSIS.md,23739,Suspicious,review-needed,no pattern matched - needs judgement,# Thread Message Loading Analysis
+THREAD_METADATA_TEST_INSTRUCTIONS.md,6758,Suspicious,review-needed,no pattern matched - needs judgement,# Thread Metadata Persistence - Manual Test Instructions
+THREAD_ROUTES_SQLITE_FIX.md,5821,Suspicious,review-needed,no pattern matched - needs judgement,"# Thread Routes SQLite Query Fix - November 17, 2025"
+THREAD_ROUTES_SQLITE_TO_SUPABASE_COMPLETE.md,8052,Suspicious,review-needed,no pattern matched - needs judgement,# Thread Routes SQLite → Supabase Migration - Complete
+THREAD_SLUG_NAMEERROR_FIX_NOV23.md,11840,Historical,git mv -> archive/timelines_and_reports/,dated 2025,# NameError Fix: thread_slug Undefined in run_simple_agent_worker
+THREAD_SYNERGY_DELETION_GUIDE.md,5847,Suspicious,review-needed,no pattern matched - needs judgement,# Thread-Synergy Deletion Guide - Quick Reference
+THREAD_SYNERGY_EXTRACTION_COMPLETE.md,15919,Scratch,git mv -> archive/timelines_and_reports/,fix/progress/summary content,# Thread-Synergy Extraction Complete ✅
+THREAD_SYSTEM.md,36156,Suspicious,review-needed,no pattern matched - needs judgement,# Thread System Architecture
+THREAD_TAGS_USAGE_ANALYSIS.md,13415,Suspicious,review-needed,no pattern matched - needs judgement,# Thread Tags Usage Analysis
+THREAD_UNLOAD_FUNCTIONALITY_COMPLETE_DEC8.md,10303,Historical,git mv -> archive/timelines_and_reports/,dated 2025,# Thread Unload Functionality - Complete Implementation
+THREAD_VISIBILITY_COMPLETE_AUDIT_MAY29.md,11526,Debug,git mv -> archive/analysis_reports/,analysis/audit/research content,# Thread Visibility — Complete Audit Report
+THREAD_VISIBILITY_FIX_SUMMARY_MAY29_2026.md,11139,Scratch,git mv -> archive/timelines_and_reports/,dated 2026,# Thread Visibility — Complete Fix Summary & Status Report
+THREE_WARNINGS_ANALYSIS_JAN19_2026.md,14900,Scratch,git mv -> archive/timelines_and_reports/,dated 2026,"# Three Production Warnings Analysis - January 19, 2026"
+TIPTAP_ADVANCED_EXTENSIONS_PLAN.md,18102,Suspicious,review-needed,no pattern matched - needs judgement,# Tiptap Advanced Extensions - Implementation Plan
+TOKEN_OVERFLOW_FIX_JAN20_2026.md,11601,Scratch,git mv -> archive/timelines_and_reports/,dated 2026,"# 🔥 TOKEN OVERFLOW FIX - January 20, 2026"
+TOKEN_REDUCTION_EXAMPLES.md,40793,Suspicious,review-needed,no pattern matched - needs judgement,# Token Reduction Examples - Before vs After
+TOOL_CONSTRUCTION_PROCESS.md,34306,Scratch,git mv -> archive/timelines_and_reports/,title contains 'complete guide',# Tool Construction Process - Complete Guide
+TOOL_DISCOVERY.md,21379,Suspicious,review-needed,no pattern matched - needs judgement,# TOOL DISCOVERY - Technical Documentation
+TOOL_EMBEDDINGS_PERSISTENCE_COMPLETE.md,12447,Suspicious,review-needed,no pattern matched - needs judgement,# Tool Embeddings - Supabase Persistence Implementation
+TOOL_ENHANCEMENT_INSTRUCTIONS.md,45663,Suspicious,review-needed,no pattern matched - needs judgement,# Tool Enhancement Instructions - Intelligence Layers Integration
+TOOL_ENHANCEMENT_QUICK_START.md,12070,Scratch,git mv -> archive/timelines_and_reports/,fix/progress/summary content,# Tool Enhancement Quick Start Guide
+TOOL_EXECUTION_ARCHITECTURE_CLARIFICATION_DEC15.md,8221,Historical,git mv -> archive/timelines_and_reports/,dated 2025,"# Tool Execution Architecture - CORRECTED - December 15, 2025"
+TOOL_INTELLIGENCE_IMPLEMENTATION_SUMMARY.md,20756,Scratch,git mv -> archive/timelines_and_reports/,fix/progress/summary content,# AI Tool Intelligence System - Implementation Summary
+TOOL_LIBRARY_ARCHITECTURE_ANALYSIS.md,66319,Suspicious,review-needed,no pattern matched - needs judgement,# Tool Library Architecture - Comprehensive Analysis
+tool_quality_report.md,481302,Scratch,git mv -> archive/timelines_and_reports/,title contains 'audit',# Tool Quality Audit Report
+TOOL_RESULT_BUBBLES_TEST_PLAN.md,5760,Suspicious,review-needed,no pattern matched - needs judgement,# Tool Result Bubbles Test Plan
+TOOL_RESULT_SEPARATE_BUBBLES_IMPLEMENTATION_NOV19.md,7225,Scratch,git mv -> archive/timelines_and_reports/,fix/progress/summary content,# Tool Result Separate Bubbles Implementation (Option 1)
+TOOL_RESULT_VISUAL_COMPARISON.md,8896,Suspicious,review-needed,no pattern matched - needs judgement,# Tool Result Bubbles - Visual Comparison
+TOOL_RESULT_VISUAL_MOCKUP.md,10844,Suspicious,review-needed,no pattern matched - needs judgement,# Tool Result Visual Mockup - What You Want
+TOOL_SCHEMA_QUALITY_ANALYSIS.md,12446,Suspicious,review-needed,no pattern matched - needs judgement,# Tool Schema Quality Analysis
+TOOL_SHORT_DESCRIPTION_ASSESSMENT_JAN19_2026.md,19362,Scratch,git mv -> archive/timelines_and_reports/,fix/progress/summary content,# Tool Implementation Assessment: Short Descriptions for Vectorization
+TOOL_STRUCTURE_AND_CATEGORIES_GUIDE.md,39895,Scratch,git mv -> archive/timelines_and_reports/,title contains 'complete guide',"# Tool Structure, Locations, and Categories - Complete Guide"
+TOOL_USE_ERROR_FIX_PLAN.md,5685,Suspicious,review-needed,no pattern matched - needs judgement,# Tool Use / Tool Result Error Fix Plan
+TOOL_USE_ID_MISMATCH_FIX_COMPLETE.md,9733,Suspicious,review-needed,no pattern matched - needs judgement,# Tool Use ID Mismatch Fix - COMPLETE ✅
+TOOL_USE_TOOL_RESULT_CONVERSATION_FIX_NOV19.md,9338,Historical,git mv -> archive/timelines_and_reports/,dated 2025,"# Tool Use/Tool Result Conversation History Fix (November 19, 2025)"
+TOOL_USE_VALIDATION_FIX_NOV21.md,6266,Historical,git mv -> archive/timelines_and_reports/,dated 2025,"# Tool Use Validation Fix - November 21, 2025"
+TOOL_VECTORIZATION_INTEGRATION_GUIDE.md,30881,Scratch,git mv -> archive/timelines_and_reports/,fix/progress/summary content,# Tool Vectorization & Intelligent Discovery - Integration Guide
+TRANSCRIPTION.md,74650,Suspicious,review-needed,no pattern matched - needs judgement,# TRANSCRIPTION.md
+TRANSCRIPTION_CSS_PATH_FIX_NOV29.md,4050,Historical,git mv -> archive/timelines_and_reports/,dated 2025,"# Transcription CSS Path Fix - November 29, 2025"
+Transcription_Feature_Analysis_May28_2026.md,55939,Scratch,git mv -> archive/timelines_and_reports/,dated 2026,"# Transcription Feature Analysis — May 28, 2026"
+TRANSCRIPTION_FINAL_FIX_NOV27_COMPLETE.md,10025,Historical,git mv -> archive/timelines_and_reports/,dated 2025,"# 🎯 TRANSCRIPTION FINAL FIX - ALL ISSUES RESOLVED - November 27, 2024"
+TRANSCRIPTION_FIX_APPLIED_NOV27.md,12451,Historical,git mv -> archive/timelines_and_reports/,dated 2025,"# ✅ Transcription Streaming Fix Applied - November 27, 2025"
+TRANSCRIPTION_NO_TEXT_APPEARING_FIX_NOV27.md,10921,Historical,git mv -> archive/timelines_and_reports/,dated 2025,"# Transcription Text NOT Appearing - ROOT CAUSE FIX - November 27, 2024"
+TRANSCRIPTION_SEND_TO_CHAT_BUTTONS_ADDED_NOV27.md,9628,Historical,git mv -> archive/timelines_and_reports/,dated 2025,"# Transcription ""Send to Chat"" Buttons - Added November 27, 2024"
+TRANSCRIPTION_STREAMING_ANALYSIS_NOV27.md,19409,Historical,git mv -> archive/timelines_and_reports/,dated 2025,"# 🔍 Transcription Streaming Analysis - November 27, 2025"
+TRANSCRIPTION_UPLOAD_ENHANCEMENTS_DEC17.md,19814,Historical,git mv -> archive/timelines_and_reports/,dated 2025,# Transcription File Upload Enhancements
+TRANSCRIPTION_UPLOAD_TAB_COMPLETE.md,13376,Suspicious,review-needed,no pattern matched - needs judgement,# 🎤 Transcription System - Upload Tab & Database Storage Complete
+TRANSLATION_REMOVAL_ANALYSIS_JAN26_2026.md,20034,Scratch,git mv -> archive/timelines_and_reports/,dated 2026,"# Translation Removal Analysis - January 26, 2026"
+TRUNCATION_FIX_COMPLETE_NOV19.md,6312,Historical,git mv -> archive/timelines_and_reports/,dated 2025,"# Tool Result Truncation Fix - Complete (Nov 19, 2025)"
+TRUNCATION_LOGIC_DISABLED_JAN27_2026.md,9440,Scratch,git mv -> archive/timelines_and_reports/,dated 2026,"# Truncation Logic Disabled - Jan 27, 2026"
+TWO_WAY_INTERACTION_FRAMEWORK_COMPLETE.md,15047,Scratch,git mv -> archive/timelines_and_reports/,title contains 'implementation complete',# Two-Way Interaction Framework - Implementation Complete ✅
+TWORULE_ROBUSTNESS_FIXES_COMPLETE.md,11014,Suspicious,review-needed,no pattern matched - needs judgement,# TwoRule Per-Bubble Processor - Robustness Fixes Complete
+UI_CONTROL_MISSING_FROM_PROMPT_NOV22.md,8713,Historical,git mv -> archive/timelines_and_reports/,dated 2025,"# UI Control Instructions Missing from System Prompt - November 22, 2025"
+UI_MODULES_INTEGRATION_COMPLETE_NOV28.md,13910,Historical,git mv -> archive/timelines_and_reports/,dated 2025,"# UI/modules Integration Complete - November 28, 2025"
+UI_PATH_FIX_COMPLETE_NOV30.md,8751,Historical,git mv -> archive/timelines_and_reports/,dated 2025,# UI PATH FIX - 404 Errors Resolved
+UI_STRUCTURE_AND_WORKFLOW_CARD_PLACEMENT.md,13341,Suspicious,review-needed,no pattern matched - needs judgement,# UI Structure & Workflow Card Placement Guide
+UNCOMMITTED_CHANGES_DEC10_2025.md,7007,Historical,git mv -> archive/timelines_and_reports/,dated 2025,# Uncommitted Changes Summary
+UNCOMMITTED_CHANGES_SUMMARY.md,7820,Scratch,git mv -> archive/timelines_and_reports/,fix/progress/summary content,"# Uncommitted Changes Summary - December 13, 2025"
+UNIFIED_CUSTOMER_INTELLIGENCE_DASHBOARD.md,36642,Suspicious,review-needed,no pattern matched - needs judgement,# Unified Customer Intelligence Dashboard - Complete Specification
+UNIVERSAL_FILE_HANDLER_COMPLETE.md,24804,Suspicious,review-needed,no pattern matched - needs judgement,# 🎯 Universal File Handler - Complete Documentation
+UNIVERSAL_FILE_HANDLER_QUICK_START.md,11282,Scratch,git mv -> archive/timelines_and_reports/,fix/progress/summary content,# 🚀 Universal File Handler - Quick Start Guide
+UNIVERSAL_FILE_TOOLS_CREDENTIAL_FIX_JAN9.md,9922,Scratch,git mv -> archive/timelines_and_reports/,dated 2026,# Universal File Tools - Credential Injection Fix
+UNIVERSAL_SEARCH_ARCHITECTURE_ANALYSIS.md,27779,Suspicious,review-needed,no pattern matched - needs judgement,# 🔍 Universal Search - Multi-Platform Multi-Database Architecture Analysis
+UNIVERSAL_SEARCH_DEPLOYMENT_GUIDE.md,24010,Suspicious,review-needed,no pattern matched - needs judgement,# 🔍 Universal Search System - Complete Deployment Guide
+UNIVERSAL_SEARCH_QUICK_REFERENCE.md,7694,Scratch,git mv -> archive/timelines_and_reports/,fix/progress/summary content,# Universal Search - Quick Reference Card
+UNIVERSAL_SIDEBAR_FRAMEWORK_COMPLETE_NOV28.md,13979,Historical,git mv -> archive/timelines_and_reports/,dated 2025,# Universal Sidebar Framework - COMPLETE ✅
+UNLOAD_FIXES_DEC12_2025.md,9663,Historical,git mv -> archive/timelines_and_reports/,dated 2025,"# Unload Button Fixes - December 12, 2025"
+UPDATECURRENTTHREAD_ANALYSIS.md,20753,Suspicious,review-needed,no pattern matched - needs judgement,# 🔍 updateCurrentThread() METHOD ANALYSIS
+URGENT_FIX_SUMMARY_DEC6.md,6124,Historical,git mv -> archive/timelines_and_reports/,dated 2025,# URGENT FIX APPLIED - Connection Pool Leak & LazyLoader Paths
+USER_FEEDBACK_REINFORCEMENT_LEARNING.md,20710,Suspicious,review-needed,no pattern matched - needs judgement,# User Feedback & Reinforcement Learning System
+USER_ID_AND_TOOLUSE_ANALYSIS_JAN13_2026.md,17409,Scratch,git mv -> archive/timelines_and_reports/,dated 2026,# User ID Injection & ToolUseAgent Dependency Analysis
+USER_ID_FIX_COMPLETE_JAN13_2026.md,8824,Scratch,git mv -> archive/timelines_and_reports/,dated 2026,# User ID Injection Fix - IMPLEMENTED
+USER_ID_INJECTION_FIX_IMPLEMENTATION_JAN13_2026.md,16859,Historical,git mv -> archive/timelines_and_reports/,fix/debug/incident content,# User ID Injection Fix - Implementation Guide
+USER_PLATFORM_FILTERING_COMPLETE.md,21334,Scratch,git mv -> archive/timelines_and_reports/,title contains 'implementation complete',# User Platform Filtering - Implementation Complete
+USER_PREFERENCES_INTEGRATION_DEC9.md,12749,Scratch,git mv -> archive/timelines_and_reports/,fix/progress/summary content,# 🎨 User Preferences Integration - Account Sidebar
+USER_PREFERENCES_LOADING_FIX_DEC10.md,8742,Historical,git mv -> archive/timelines_and_reports/,dated 2025,"# User Preferences Database Loading Fix - December 10, 2025"
+USER_SESSIONS_DUPLICATE_TABLE_FIX.md,6825,Scratch,git mv -> archive/timelines_and_reports/,title contains 'complete fix',# User Sessions Duplicate Table - Complete Fix
+USERAUTH_ERROR_FIX_COMPLETE.md,11993,Suspicious,review-needed,no pattern matched - needs judgement,# UserAuth Error Fix - Complete ✅
+V10_URL_REDIRECT_FIX_COMPLETE.md,7512,Suspicious,review-needed,no pattern matched - needs judgement,# V10 URL Redirect Fix - Complete
+V11_OAUTH_CONFIGURATION_GUIDE.md,7659,Scratch,git mv -> archive/timelines_and_reports/,title contains 'configuration guide',﻿# V11 OAuth Configuration Guide
+V5_V6_MODULE_LOADING_COMPARISON.md,13947,Suspicious,review-needed,no pattern matched - needs judgement,# V5/V6 vs Current Main Branch - Module Loading Comparison
+V6_DEPLOYMENT_FIXES.md,10309,Suspicious,review-needed,no pattern matched - needs judgement,# V6 Branch - Deployment Fixes for Supabase Integration
+VALIDATION_COMPLETE_JAN19_2026.md,13720,Scratch,git mv -> archive/timelines_and_reports/,dated 2026,"# ✅ VALIDATION COMPLETE - All 27 Calculators (Jan 19, 2026)"
+VALIDATION_TESTING_COMPLETE_JAN23_2026.md,12285,Scratch,git mv -> archive/timelines_and_reports/,dated 2026,# InHouse Wrapper Validation - Testing Complete ✅
+VECTOR_DATABASE.md,58153,Suspicious,review-needed,no pattern matched - needs judgement,# Vector Database System Documentation
+VECTOR_UNIVERSAL_SEARCH_INTEGRATION_ANALYSIS.md,53574,Debug,git mv -> archive/analysis_reports/,analysis/audit/research content,# 🔍 **VECTOR DATABASE & UNIVERSAL SEARCH - Complete System Integration Analysis**
+VERIFICATION_SYSTEM_WEAKNESSES_AND_IMPROVEMENTS.md,32673,Suspicious,review-needed,no pattern matched - needs judgement,# Verification System: Critical Analysis & Improvements
+VERIFY_JSON_SAVING_NOW.md,5042,Suspicious,review-needed,no pattern matched - needs judgement,# VERIFY JSON SAVING - IMMEDIATE ACTION ITEMS
+VETERINARY_ALERTS_IMPLEMENTATION_COMPLETE.md,11218,Scratch,git mv -> archive/timelines_and_reports/,title contains 'implementation complete',# 🎉 VETERINARY ALERTS TOOLS - IMPLEMENTATION COMPLETE
+VETERINARY_ALERTS_TOOLS_README.md,18194,Suspicious,review-needed,no pattern matched - needs judgement,# 🏥 Veterinary Alerts Management Tools
+VETERINARY_TOOLS_OVERLAP_ANALYSIS.md,9623,Suspicious,review-needed,no pattern matched - needs judgement,# 🔍 Veterinary Tools Overlap Analysis
+VIEW_MODE_PERSISTENCE_FIX_DEC12_2025.md,14432,Historical,git mv -> archive/timelines_and_reports/,dated 2025,"# View Mode Persistence Fix - December 12, 2025"
+VIEW_MODE_PERSISTENCE_INVESTIGATION_DEC12_2025.md,21203,Historical,git mv -> archive/timelines_and_reports/,dated 2025,"# View Mode Persistence Investigation - December 12, 2025"
+VINYL_STOCK_ANALYSIS_SUMMARY.md,12428,Scratch,git mv -> archive/timelines_and_reports/,title contains 'analysis summary',# Vinyl Stock Analysis Summary
+VISUAL_AUTOMATION_CANVAS_COMPLETE.md,37677,Scratch,git mv -> archive/timelines_and_reports/,title contains 'complete implementation',# Visual Automation Canvas - Complete Implementation Guide
+VISUALIZATION_ACTION_BUTTONS_ANALYSIS_DEC5_2025.md,31149,Historical,git mv -> archive/timelines_and_reports/,dated 2025,# 🎨 Visualization Action Buttons Analysis
+VISUALIZATION_BUTTONS_DESIGN_SPEC_DEC5_2025.md,35450,Historical,git mv -> archive/timelines_and_reports/,dated 2025,# 🎨 Visualization Action Buttons - Design Specification
+VISUALIZATION_IMPLEMENTATION_TEST_REPORT.md,11639,Scratch,git mv -> archive/timelines_and_reports/,title contains 'test report',# 🧪 Visualization Implementation Test Report
+VISUALIZATION_INTERACTIVITY_REQUIREMENTS.md,9914,Suspicious,review-needed,no pattern matched - needs judgement,""""""""
+VISUALIZATION_POPUP_REDESIGN_DEC5_2025.md,17970,Scratch,git mv -> archive/timelines_and_reports/,fix/progress/summary content,# Visualization Popup Redesign & Horizontal Scrolling
+VISUALIZATION_STREAMING_FIXES_APRIL9_2026.md,9049,Suspicious,review-needed,no pattern matched - needs judgement,"# Visualization Streaming Engine Fixes — April 9, 2026"
+VISUALIZATION_TEXT_VISIBILITY_FIX_DEC5_2025.md,14045,Historical,git mv -> archive/timelines_and_reports/,dated 2025,# Visualization Text Visibility & Sizing Fix
+VSA_AI_CHAT_INTEGRATION_TOOLS.md,47170,Scratch,git mv -> archive/timelines_and_reports/,fix/progress/summary content,# 🤖 VSA Alerts AI Chat Integration - Tool Library & Implementation
+VSA_ALERTS_AI_AGENT_INTEGRATION_OPTIONS.md,47762,Debug,git mv -> archive/analysis_reports/,analysis/audit/research content,# 🤖 VSA Veterinary Alerts + AI Agent System Integration
+VSA_ALERTS_DATA_ALIGNMENT_FIX.md,13622,Suspicious,review-needed,no pattern matched - needs judgement,# ✅ VSA Alerts Data Alignment Fix - COMPLETE
+VSA_ALERTS_DATABASE_INTEGRATION_ANALYSIS.md,15183,Debug,git mv -> archive/analysis_reports/,analysis/audit/research content,# VSA Veterinary Alerts - Database Integration Analysis
+VSA_ALERTS_EXECUTIVE_SUMMARY.md,7562,Suspicious,review-needed,no pattern matched - needs judgement,# 🚨 VSA Veterinary Alerts - Executive Summary
+VSA_ALERTS_GAP_ANALYSIS_COMPLETE.md,63982,Suspicious,review-needed,no pattern matched - needs judgement,# 🔍 Code Archeology Analysis - VSA Veterinary Alerts Module
+VSA_ALERTS_HEADER_FIX_DEC10.md,10781,Historical,git mv -> archive/timelines_and_reports/,dated 2025,# ✅ VSA Alerts Header & Scroll Fix - COMPLETE
+VSA_ALERTS_PHASE0_IMPLEMENTATION_COMPLETE.md,15987,Suspicious,review-needed,no pattern matched - needs judgement,# ✅ VSA Alerts Phase 0 Implementation - COMPLETE
+VSA_ALERTS_UNIFIED_IMPLEMENTATION_PLAN.md,34813,Debug,git mv -> archive/analysis_reports/,analysis/audit/research content,# 🎯 VSA Veterinary Alerts - Unified Implementation Plan
+VSA_ALERTS_V4_FRAMEWORK_FIX_DEC1.md,8655,Historical,git mv -> archive/timelines_and_reports/,dated 2025,# VSA Veterinary Alerts - V4 Framework Integration Fix
+VSA_COACHING_FEATURE_COMPLETE.md,13199,Scratch,git mv -> archive/timelines_and_reports/,title contains 'implementation complete',# VSA Coaching Feature - Implementation Complete ✅
+VSA_FIXES_DEC10_2025.md,13688,Historical,git mv -> archive/timelines_and_reports/,dated 2025,"# VSA Veterinary Alerts - Bug Fixes (December 10, 2025)"
+VSA_PHONE_SYSTEM_TOOLS_REDESIGN.md,33069,Suspicious,review-needed,no pattern matched - needs judgement,# 📞 VSA Phone System AI Tools - Prompt-Centric Redesign
+VSA_PHONE_TOOLS_SMART_DEFAULTS.md,21991,Suspicious,review-needed,no pattern matched - needs judgement,# 📞 VSA Phone Tools - Smart Defaults Design
+VSA_PHONE_TOOLS_VARIABLE_DRIVEN_COMPLETE.md,44968,Suspicious,review-needed,no pattern matched - needs judgement,# 📞 VSA Phone System Tools - Complete Variable-Driven Architecture
+VSA_PLATFORM_GAP_ANALYSIS.md,20887,Suspicious,review-needed,no pattern matched - needs judgement,# VSA Platform Gap Analysis - SQL_Data_AI_UI_v5 vs AI_agents
+VSA_TAB_ID_MISMATCH_FIX_DEC5_2025.md,12177,Historical,git mv -> archive/timelines_and_reports/,dated 2025,# VSA Veterinary Alerts Tab ID Mismatch Fix
+VSA_vs_KANBAN_ARCHITECTURE_ANALYSIS.md,19872,Suspicious,review-needed,no pattern matched - needs judgement,# 🔍 Code Archeology Analysis: VSA vs InHouse Kanban Display Issue
+VSCODE_TEST_RESULTS_JAN21_2026.md,11590,Scratch,git mv -> archive/timelines_and_reports/,dated 2026,# VS Code Test Results - Outlook Conversation Fix
+WEATHER_INTEGRATION_COMPLETE.md,10503,Scratch,git mv -> archive/timelines_and_reports/,title contains 'integration complete',"# Weather Integration Complete - December 29, 2025"
+WEBSITE_VALIDATION_CHECKLIST_JAN24_2026.md,8718,Scratch,git mv -> archive/timelines_and_reports/,fix/progress/summary content,# SHOPIFY CALCULATOR WEBSITE VALIDATION CHECKLIST
+WEBSITE_VALIDATION_RESULTS_JAN24_2026.md,8703,Scratch,git mv -> archive/timelines_and_reports/,dated 2026,"# WEBSITE VALIDATION RESULTS - January 24, 2026"
+WEBSOCKET_CONNECTION_ERROR_FIX.md,6988,Suspicious,review-needed,no pattern matched - needs judgement,# WebSocket Connection Error - Diagnostic & Fix
+WEBSOCKET_DISCONNECT_FIX_COMPLETE.md,9449,Suspicious,review-needed,no pattern matched - needs judgement,# WebSocket Disconnect Handler Fix - Complete
+WEBSOCKET_PENDING_FIX_JUNE9_2026.md,11372,Suspicious,review-needed,no pattern matched - needs judgement,"# WebSocket Pending Connection Fix - June 9, 2026"
+WELCOME_MESSAGES_AUDIT.md,19624,Scratch,git mv -> archive/timelines_and_reports/,title contains 'audit',# Welcome Messages Audit - All Variations
+WELCOME_TO_PRIME_FIX_COMPLETE.md,12450,Suspicious,review-needed,no pattern matched - needs judgement,"# ""Welcome to Prime"" Message Fix - Complete"
+WHAT_TO_EXPECT_IN_LOGS.md,8787,Suspicious,review-needed,no pattern matched - needs judgement,"# What To Expect In Flask Logs - November 25, 2025"
+WHAT_YOU_WANT_EXPLANATION_NOV19.md,9061,Historical,git mv -> archive/timelines_and_reports/,dated 2025,# What You Want - AI Agents Tool Result Bubble Implementation
+WHISPER_BACKEND_COMPLETE_DISABLE_NOV27.md,10397,Historical,git mv -> archive/timelines_and_reports/,dated 2025,"# 🛑 WHISPER BACKEND COMPLETE DISABLE - November 27, 2024"
+WHISPER_LOCAL_SETUP.md,6856,Suspicious,review-needed,no pattern matched - needs judgement,# Whisper Transcription - Local Model Setup
+WHY_LOCALHOST_WORKED_NOV27.md,6473,Historical,git mv -> archive/timelines_and_reports/,dated 2025,# Why OAuth Login Worked on Localhost but Not on Render
+WITHCOMPLIMENTSSLIPS_ALIGNMENT_COMPLETE.md,7979,Suspicious,review-needed,no pattern matched - needs judgement,# WithComplimentsSlips Calculator Alignment Complete ✅
+WOOCOMMERCE_REFACTORING_SESSION_SUMMARY.md,16575,Scratch,git mv -> archive/timelines_and_reports/,fix/progress/summary content,# WooCommerce V4 Refactoring Session - Comprehensive Summary
+WOOCOMMERCE_SHIPPING_INTEGRATION_JAN26_2026.md,10266,Scratch,git mv -> archive/timelines_and_reports/,fix/progress/summary content,# WooCommerce Shipping Column Integration - Complete Implementation
+WORKFLOW_BADGE_IMMEDIATE_UPDATE_NOV25.md,17161,Historical,git mv -> archive/timelines_and_reports/,dated 2025,"# Workflow Badge Immediate Update & Auto-Save Fix - November 25, 2025"
+WORKFLOW_FULL_FUNCTIONALITY_FIX_NOV19.md,14815,Historical,git mv -> archive/timelines_and_reports/,dated 2025,"# Workflow Full Functionality Fix - November 19, 2025"
+WORKFLOW_INSTRUCTIONS_MIGRATION_COMPLETE.md,10084,Scratch,git mv -> archive/timelines_and_reports/,fix/progress/summary content,# Workflow Instructions Migration - Complete ✅
+WORKFLOW_LIBRARY_PANEL_UI_UPDATE.md,6686,Suspicious,review-needed,no pattern matched - needs judgement,# Workflow Library Panel UI Updates
+WORKFLOW_LOAD_FEATURE_COMPLETE_NOV19.md,13423,Historical,git mv -> archive/timelines_and_reports/,dated 2025,# Visual Automation Canvas - Load Workflow Feature Complete
+WORKFLOW_LOADING_CONFIRMATION_POPUP_COMPLETE.md,19508,Suspicious,review-needed,no pattern matched - needs judgement,# 🎯 Workflow Loading Confirmation Popup - Complete Documentation
+WORKFLOW_LOADING_DIAGNOSIS_COMPLETE.md,10042,Suspicious,review-needed,no pattern matched - needs judgement,# Workflow Loading Diagnosis - COMPLETE
+WORKFLOW_LOADING_FIX_NOV19.md,12441,Historical,git mv -> archive/timelines_and_reports/,dated 2025,"# Workflow Loading Visual Fix - November 19, 2025"
+WORKFLOW_NULL_LABEL_FIX_NOV19.md,10326,Historical,git mv -> archive/timelines_and_reports/,dated 2025,"# Workflow ""null"" Label Fix - November 19, 2025"
+WORKFLOW_RENDER_BUG_FIX_NOV19.md,10699,Historical,git mv -> archive/timelines_and_reports/,fix/debug/incident content,"# Workflow Rendering Bug Fix - November 19, 2025"
+WORKFLOW_SLUG_AI_EXAMPLES.md,14716,Suspicious,review-needed,no pattern matched - needs judgement,# Workflow Slug - AI Usage Examples
+WORKFLOW_SLUG_FIX_NOV19.md,12500,Historical,git mv -> archive/timelines_and_reports/,dated 2025,"# Workflow Slug System - CRITICAL FIX (November 19, 2025)"
+WORKFLOW_SLUG_SYSTEM_EXPLANATION.md,11956,Suspicious,review-needed,no pattern matched - needs judgement,# Workflow Slug System - Complete Explanation
+WORKFLOW_SLUG_VISUAL_GUIDE.md,14487,Suspicious,review-needed,no pattern matched - needs judgement,# Workflow Slug - Visual UI Guide
+WORKFLOW_TITLE_NULL_FIX_COMPLETE.md,8263,Suspicious,review-needed,no pattern matched - needs judgement,# Workflow Title Null Error Fix - Complete Solution
+WORKFLOW_UI_IMPLEMENTATION_GUIDE.md,49049,Scratch,git mv -> archive/timelines_and_reports/,fix/progress/summary content,# 🎨 Workflow UI Implementation Guide
+WORKFLOW_UI_IMPROVEMENTS_NOV19.md,5752,Historical,git mv -> archive/timelines_and_reports/,dated 2025,"# Workflow UI Improvements - November 19, 2025"
+WORKFLOW_UI_LOCATION_GUIDE.md,15275,Suspicious,review-needed,no pattern matched - needs judgement,# Workflow UI - Where Everything Is Located
+WORKSPACE_PERSISTENCE_DEPLOYMENT_SUMMARY_DEC12.md,13739,Historical,git mv -> archive/timelines_and_reports/,dated 2025,# 🎯 WORKSPACE PERSISTENCE - DEPLOYMENT SUMMARY
+WORKSPACE_PERSISTENCE_IMPLEMENTATION_COMPLETE_DEC12.md,11659,Historical,git mv -> archive/timelines_and_reports/,dated 2025,# Workspace Persistence & Resizable Columns - Implementation Complete
+WORKSPACE_PERSISTENCE_TESTING_GUIDE_DEC12.md,17000,Scratch,git mv -> archive/timelines_and_reports/,fix/progress/summary content,# 🧪 WORKSPACE PERSISTENCE - TESTING GUIDE
+WORKSPACE_SCHEMA_FIX_DEC14_2025.md,4523,Historical,git mv -> archive/timelines_and_reports/,dated 2025,"# Workspace Manager Schema Fix - December 14, 2025"
+WORKSPACE_SEARCH_COMPLETE_GUIDE.md,21369,Scratch,git mv -> archive/timelines_and_reports/,title contains 'complete implementation',# Workspace Search & Message Retrieval - Complete Implementation Guide
+WORKSPACE_SEARCH_IMPLEMENTATION_SUMMARY.md,11524,Scratch,git mv -> archive/timelines_and_reports/,fix/progress/summary content,# Workspace Search & Message Retrieval - Implementation Complete! ✅
+WORKSPACE_SEARCH_TESTING_INSTRUCTIONS.md,18312,Scratch,git mv -> archive/timelines_and_reports/,fix/progress/summary content,# Workspace Search & Message Retrieval - Complete Testing Instructions
+WORKSPACE_SEMANTIC_SEARCH_EXPLANATION.md,22111,Suspicious,review-needed,no pattern matched - needs judgement,# 🔍 Workspace & Transcription Semantic Search - Complete Explanation
+WRAPPER_INTEGRATION_COMPLETE_DEC10.md,12779,Historical,git mv -> archive/timelines_and_reports/,dated 2025,# Shopify Calculator Wrapper Integration Complete ✅
+WRAPPER_VS_DIRECT_CALCULATOR_ANALYSIS.md,16069,Suspicious,review-needed,no pattern matched - needs judgement,# Wrapper vs Direct Calculator Analysis
+WRAPPER_VS_DIRECT_DIAGRAMS.md,5851,Suspicious,review-needed,no pattern matched - needs judgement,```mermaid
+XERO_AI_ML_ENHANCEMENT_OPPORTUNITIES.md,45060,Scratch,git mv -> archive/timelines_and_reports/,fix/progress/summary content,# 🤖 Xero Module AI/ML Enhancement Opportunities
+XERO_COMPLETE_ENDPOINT_TEST_DEC21_2025.md,16519,Historical,git mv -> archive/timelines_and_reports/,dated 2025,"# Xero Module Complete Endpoint Testing - December 21, 2025"
+XERO_CONTACT_DATA_STRUCTURE.md,9341,Suspicious,review-needed,no pattern matched - needs judgement,# Xero Contact Data Structure - Complete Field Reference
+XERO_DASHBOARDS_COMPLETE_IMPLEMENTATION.md,27255,Scratch,git mv -> archive/timelines_and_reports/,fix/progress/summary content,# Xero Dashboards - Complete Implementation Summary
+XERO_DASHBOARDS_QUICK_START.md,7556,Scratch,git mv -> archive/timelines_and_reports/,fix/progress/summary content,# Xero Dashboards - Quick Start Guide
+XERO_EXPORT_FOR_AI_FEATURE.md,13227,Suspicious,review-needed,no pattern matched - needs judgement,# Xero Dashboard - Export for AI Feature
+XERO_EXPORT_QUICK_START.md,10005,Scratch,git mv -> archive/timelines_and_reports/,fix/progress/summary content,# Quick Start: Export for AI Feature
+XERO_FIX_SUMMARY_DEC8_2025.md,6428,Historical,git mv -> archive/timelines_and_reports/,dated 2025,"# Xero Integration Fix Summary - December 8, 2025"
+XERO_FIXES_COMPLETE.md,5701,Suspicious,review-needed,no pattern matched - needs judgement,"# ✅ XERO FIXES COMPLETE - December 8, 2025"
+XERO_FORECAST_FIX_DEC24_2025.md,13640,Historical,git mv -> archive/timelines_and_reports/,dated 2025,# 🔧 Xero Forecast Model - Critical Bug Fix
+XERO_INTEGRATION.md,85648,Scratch,git mv -> archive/timelines_and_reports/,fix/progress/summary content,# XERO INTEGRATION - Master Documentation
+XERO_INTEGRATION_ANALYSIS_PHASE1.md,20491,Suspicious,review-needed,no pattern matched - needs judgement,# Xero Module - System Integration Architect Analysis
+XERO_INTEGRATION_DISCOVERED_COMPLETE.md,18136,Scratch,git mv -> archive/timelines_and_reports/,title contains 'complete analysis',# 🔷 **XERO INTEGRATION DISCOVERED - Complete Analysis**
+XERO_INVOICES_ML_ENHANCEMENT_COMPLETE.md,13151,Scratch,git mv -> archive/timelines_and_reports/,fix/progress/summary content,# Xero Invoices Tab - ML Enhancement Complete ✅
+XERO_METADATA_QUICK_REFERENCE.md,8245,Scratch,git mv -> archive/timelines_and_reports/,fix/progress/summary content,# Xero Metadata Tools - Quick Reference
+XERO_ML_IMPLEMENTATION_PHASE1_COMPLETE.md,13506,Scratch,git mv -> archive/timelines_and_reports/,fix/progress/summary content,# 🚀 Xero ML Enhancement Implementation - Phase 1
+XERO_ML_INTEGRATION_COMPLETE.md,8372,Suspicious,review-needed,no pattern matched - needs judgement,# ✅ Xero ML Integration - Complete!
+XERO_ML_INTEGRATION_COMPLETE_ANALYSIS.md,19852,Scratch,git mv -> archive/timelines_and_reports/,title contains 'complete analysis',# Xero Module + ML Integration - Complete Analysis
+XERO_MODULE_COMPREHENSIVE_GAP_ANALYSIS.md,28117,Suspicious,review-needed,no pattern matched - needs judgement,# 🔍 **XERO MODULE - COMPREHENSIVE GAP ANALYSIS**
+XERO_MODULE_COMPREHENSIVE_UX_ANALYSIS.md,43337,Suspicious,review-needed,no pattern matched - needs judgement,# Xero Module - Comprehensive UI/UX Analysis & Business Intelligence Enhancement
+XERO_MODULE_FIX_COMPLETE_DEC20_2025.md,24092,Historical,git mv -> archive/timelines_and_reports/,dated 2025,"# Xero Module Complete Fix - December 20, 2025"
+XERO_QUICK_PROMPTS_DESIGN.md,57236,Suspicious,review-needed,no pattern matched - needs judgement,# Xero Quick Prompts Design Document
+XERO_QUICK_PROMPTS_IMPLEMENTATION_COMPLETE.md,13622,Scratch,git mv -> archive/timelines_and_reports/,title contains 'implementation complete',# Xero Quick Prompts - Implementation Complete ✅
+XERO_QUICK_PROMPTS_STRATEGIC_SUMMARY.md,17985,Suspicious,review-needed,no pattern matched - needs judgement,# Xero Quick Prompts - Strategic Analysis Framework
+XERO_QUICK_PROMPTS_USER_GUIDE.md,11872,Scratch,git mv -> archive/timelines_and_reports/,title contains 'release:',# Xero Quick Prompts - User Guide
+XERO_QUOTES_COMPREHENSIVE_ANALYSIS.md,24776,Suspicious,review-needed,no pattern matched - needs judgement,# 🔷 Xero Quotes System - Comprehensive Analysis & Implementation Plan
+XERO_REPORTS_COMPREHENSIVE_ANALYSIS.md,23437,Suspicious,review-needed,no pattern matched - needs judgement,""""""""
+XERO_REPORTS_FIX_DEC22.md,9456,Historical,git mv -> archive/timelines_and_reports/,dated 2025,# 🔧 Xero Reports Fix - Tabulator Tables & Date Parsing
+XERO_REPORTS_IMPLEMENTATION_COMPLETE.md,22795,Scratch,git mv -> archive/timelines_and_reports/,title contains 'implementation complete',# Xero Reports - Full Implementation Complete
+XERO_TABS_ML_ENHANCEMENT_ANALYSIS.md,39988,Debug,git mv -> archive/analysis_reports/,analysis/audit/research content,# 🎯 Xero UI Tabs - Complete Analysis & ML Enhancement Opportunities
+XERO_TABULATOR_ARCHITECTURE_ANALYSIS.md,51184,Suspicious,review-needed,no pattern matched - needs judgement,# Xero Tabulator Architecture: Comprehensive Analysis
+XERO_TOOLS_COMPLETE.md,13101,Suspicious,review-needed,no pattern matched - needs judgement,# Xero Tools - Complete Documentation
+XERO_TOOLS_SCHEMA_COMPLETE.md,6945,Suspicious,review-needed,no pattern matched - needs judgement,# ✅ Xero Contact + Quotes Tools - Complete Schema Registration
+XERO_TOOLS_TESTING_INSTRUCTIONS.md,20827,Scratch,git mv -> archive/timelines_and_reports/,fix/progress/summary content,# Xero Tools - Complete Testing Instructions for AI
+XERO_UI_FIXES_DEC21_2025.md,12535,Historical,git mv -> archive/timelines_and_reports/,dated 2025,"# Xero Module UI Fixes - December 21, 2025"
+YOUR_QUESTIONS_ANSWERED_FILE_PROCESSING.md,19977,Suspicious,review-needed,no pattern matched - needs judgement,# Your Questions Answered - File Processing & Multi-Tool Execution

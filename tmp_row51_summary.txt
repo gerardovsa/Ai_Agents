@@ -1,0 +1,447 @@
+Row 51 classification summary
+============================================================
+
+Total files: 1236
+
+By bucket:
+  Suspicious        433 files  (   7,314,856 bytes)
+  Scratch           422 files  (   6,462,492 bytes)
+  Historical        341 files  (   3,760,763 bytes)
+  Debug              29 files  (     637,247 bytes)
+  Contract            7 files  (     160,964 bytes)
+  Runbook             4 files  (      34,597 bytes)
+
+Suspicious (need manual review):
+  502_ERROR_DEBUGGING_COMPLETE.md                              | # 502 Bad Gateway Error - Complete Debugging Analysis & Fixes
+  502_FIX_CONNECTION_POOL_EXHAUSTION.md                        | # 502 Bad Gateway Fix - Connection Pool Exhaustion
+  ACTIVATE_WHISPER_PRODUCTION.md                               | # Activate Whisper for Render Production
+  ADD_SHORT_DESCRIPTIONS_TO_ALL_TOOLS.md                       | # AI Agent Instructions: Add Short Descriptions to All Tool Schemas
+  ADD_SHORT_DESCRIPTIONS_TO_TOOLS_GUIDE.md                     | # AI Agent Instructions: Add Short Descriptions to Tool Schemas
+  AI_AGENTS.md                                                 | # AI Agents - Multi-Agent Coordination System
+  AI_AUTOMATION_SCHEDULER_COMPLETE.md                          | # AI Automation Scheduler System
+  AI_TOOL_INTELLIGENCE_SYSTEM_DESIGN.md                        | # AI Tool Usage Intelligence System - Complete Design
+  ARCHITECTURE.md                                              | # AI Agents Platform - System Architecture
+  AUTOMATION_AI_TOOL_SELECTION_GUIDE.md                        | # AI Agent Automation Tool Selection Guide 🤖
+  AUTOMATION_CANVAS_UX_IMPROVEMENTS.md                         | # Automation Canvas UX Improvements
+  AUTOMATION_SLUG_ARCHITECTURE.md                              | # Automation Slug Architecture - Complete Integration Guide
+  AUTOMATION_TABLES_SETUP_COMPLETE.md                          | # Automation Tables Setup Complete
+  AUTOMATION_TOOL_SUITE_GAP_ANALYSIS.md                        | # Automation Tool Suite - Comprehensive Gap Analysis
+  AUTOMATION_TOOLS_DOCUMENTATION_COMPLETE.md                   | # Automation Tools Documentation - Complete ✅
+  AUTOMATION_UPDATE_TOOL_COMPLETE.md                           | # Automation Update Tool Implementation - COMPLETE ✅
+  AUTOMATION_WORKFLOW_TABLES_GUIDE.md                          | # 📊 Automation Workflow Tables - Visual Guide
+  AUTOMATION_WORKFLOWS.md                                      | # AUTOMATION_WORKFLOWS - Visual Workflow Canvas System
+  AUTOMATION_WORKFLOWS_ERROR_HANDLING_FIX.md                   | # Automation Workflows Error Handling Fix - COMPLETE ✅
+  AUTOSCROLL_BUTTON_ANALYSIS.md                                | # Auto-Scroll Button Logic Analysis - Agent Column
+  BACKEND_POLLING_FLOW.md                                      | # Backend Polling Flow Diagram
+  BOLLARD_SIGNS_SHOPIFY_VALIDATION_SPECS.md                    | # BOLLARD SIGNS - SHOPIFY VALIDATION TEST CASES
+  BROWSER_CONSOLE_COMMANDS.md                                  | # 🔧 Browser Console Commands - Module System Diagnostics
+  CACHE_CLEAR_INSTRUCTIONS.md                                  | # 🔄 Clear Browser Cache - Fix Thread & Response Issues
+  CAD_ACCURACY_FIX_README.md                                   | # 🎯 CAD Accuracy Fix - Complete Solution
+  CADQUERY_PERSISTENT_STORAGE_SETUP.md                         | # CadQuery Persistent Storage Setup - Complete ✅
+  CALCULATOR_ALIGNMENT_INSTRUCTIONS.md                         | # **CALCULATOR ALIGNMENT INSTRUCTIONS - Functional Flow & Architecture**
+  CALCULATOR_PATHWAY_ALIGNMENT_GUIDE.md                        | # CALCULATOR FUNCTION PATHWAY ALIGNMENT - CRITICAL PROCESS
+  CHAT_BUTTON_FIXES_DECEMBER_2024.md                           | # Chat Button Behavior Fixes - December 2024
+  CHAT_SIDEBAR_END_TO_END_TRACE.md                             | # Chat Sidebar - Complete End-to-End Trace
+  CHAT_SIDEBAR_HTML_TEMPLATE.md                                | # Chat Sidebar HTML Template
+  CHAT_SIDEBAR_STYLING_DEBUG.md                                | # Chat Sidebar Styling Debug Guide
+  CHAT_SIDEBAR_TABS_DESIGN.md                                  | ﻿
+  CIRCUIT_ANIMATION_FIX_COMPLETE.md                            | # Circuit Animation Fix - Complete
+  CODE_ARCHAEOLOGY_COMPLETE_USER_MESSAGE_FIX.md                | # CODE ARCHAEOLOGY COMPLETE: User Message Persistence Bug
+  CODE_CHANGES_EXACT_DIFF.md                                   | # Code Changes - Exact Diff
+  CODE_UPDATE_CHECKLIST.md                                     | # Code Update Checklist - Thread Schema Migration
+  COMMUNICATION_HUB_TECHNICAL_DOCUMENTATION.md                 | # Communication Hub - Technical Documentation
+  COMPLETE_INITIALIZATION_MAP.md                               | # 🔍 Complete System Initialization Analysis - AI Agents Platform
+  COMPLETE_SEARCH_ARCHITECTURE_DIAGRAM.md                      | # Complete Universal Search Architecture
+  COMPLETE_SYSTEM_DOCUMENTATION.md                             | # AI Agents Platform - Complete System Documentation
+  COMPLETE_TOOL_SCHEMA_PATTERN.md                              | # Complete Tool Schema Pattern - All 4 Layers
+  COMPLETE_UNIVERSAL_SEARCH_SUMMARY.md                         | # Complete Universal Search System Summary
+  COMPREHENSIVE_LOGGING_GUIDE.md                               | # Comprehensive Logging Guide for Thread Routes
+  CONFIDENCE_STYLING_REFERENCE.md                              | # 🎨 Confidence-Based Styling Reference - Dual-Mode STT
+  CONNECTION_DOUBLE_CLOSE_FIX_COMPLETE.md                      | # Connection Double-Close Fix - Complete ✅
+  CONNECTION_POOL_EXHAUSTION_FIX_ML_ROUTES.md                  | # Connection Pool Exhaustion Fix - ML Routes
+  CONNECTION_POOL_ISOLATION_LEVEL_FIX.md                       | # Connection Pool Isolation Level Fix - CRITICAL
+  CONNECTION_POOL_LEAK_FIX.md                                  | # Database Connection Pool Leak Fix
+  CONSOLE_COMMANDS_FORCE_MODULES.md                            | # 🎮 Console Commands - Force Show Modules
+  CONSOLE_COMMANDS_READY_TO_USE.md                             | # Prime Chat Panel Issues - Console Commands Ready
+  CONSOLE_COMMANDS_WORKING_VERSION.md                          | # 🎮 Working Console Commands - Fixed Version
+  CONVERSATION_HISTORY_FORMAT_PROOF.md                         | # 🔍 PROOF: Conversation History Format & Order
+  CONVERSATION_HISTORY_SYSTEM_ANALYSIS.md                      | # Conversation History System Analysis
+  CORE_FILES_INVENTORY_AND_TESTING.md                          | # Core Files Inventory & Testing Plan
+  CREDENTIAL_POPULATION_DEBUG.md                               | # 🔧 Quick Fix - Credential Population Debug
+  CREDENTIAL_SYSTEM_ARCHEOLOGY_COMPLETE.md                     | # Code Archeology Analysis - Credential System & Platform Integration
+  CSS_EXTRACTOR_DYNAMIC_ELEMENTS.md                            | # CSS Extractor - Working with Dynamic Elements
+  CURSOR_MANAGEMENT_ANALYSIS_universal_search_routes.md        | # Cursor Management Analysis: universal_search_routes.py
+  DATABASE_ANALYZER_ALL_PHASES_SUMMARY.md                      | # Database Analyzer - All 5 Phases Complete ✅
+  DATABASE_SCHEMA_RELATIONSHIPS.md                             | # Database Schema Relationships - Automation & Threads
+  DATABASE_STRUCTURE_EXPLANATION.md                            | # Database Structure - Messages Table
+  DEBUG_AGENT_400_ERROR.md                                     | # Debugging: 400 Error on /api/agent/agent/1/start
+  DEBUG_ASSISTANT_MESSAGES.md                                  | # Debug Assistant Message Rendering
+  DEBUG_COMMUNICATION_HUB_THREADING.md                         | # Debug Guide: Communication Hub Threading Not Working
+  DEBUG_HTML_TREE_FIX.md                                       | # Debug HTML Tree Rendering Fix - COMPLETE ✅
+  DEBUG_MODULE_APPSTATE_FIX.md                                 | # Debug Module AppState Fix - COMPLETE ✅
+  DEBUG_MODULE_COMPLETE.md                                     | # Debug Module - COMPLETE ✅
+  DEBUG_MODULE_REALTIME_COMPLETE.md                            | # Debug Module Real-Time Updates - COMPLETE ✅
+  DEBUG_MODULE_STYLING_FIXED.md                                | # Debug Module Styling - FIXED ✅
+  DEBUG_MODULE_UX_IMPROVEMENTS_COMPLETE.md                     | # Debug Module UX Improvements - COMPLETE ✅
+  DEBUG_PANEL_ENHANCEMENTS.md                                  | # Debug Panel Enhancements - Expand & Auto-Scroll Fix
+  DELETE_THREAD_MANAGER_ADDITIONAL.md                          | # 🚀 QUICK REFERENCE: Delete thread_manager_additional.js
+  DEPLOY_META_TOOLS_FIX.md                                     | # Deploy Meta-Tools Fix - Quick Checklist
+  DEPLOYMENT_BLUEPRINT_SYSTEM.md                               | # Deployment Blueprint System - Multi-Version Strategy
+  DEPLOYMENT_CHECKLIST.md                                      | # Supabase Fix - Deployment Checklist
+  DEPLOYMENT_CHECKLIST_CREDENTIAL_SECURITY.md                  | # 🚀 Credential Security Deployment Checklist
+  DEPLOYMENT_CHECKLIST_SYNERGY_FIX.md                          | # DEPLOYMENT CHECKLIST - Synergy Backend Fix
+  DEPLOYMENT_READY_SUMMARY.md                                  | # ✅ Markdown Text Extraction - Deployment Ready
+  DEPLOYMENT_STATUS_SUMMARY.md                                 | # Deployment Status Summary - November 16, 2025
+  DESIGN_ENGINEERING_AI_TOOLS_EXPLAINED.md                     | # 🤖 Design Engineering AI Tools - Complete Technical Guide
+  DIAGNOSE_MISSING_BUTTONS.md                                  | # 🔍 Diagnostic Guide - Missing Module Buttons
+  DIAGNOSIS_USER_MESSAGES_NOT_SAVED.md                         | # 🔍 Diagnosis: User Messages Not Saved to Database
+  DOCKER_BUILD_OPTIMIZATION_10GB_DISK.md                       | # Docker Build Optimization - 10GB Persistent Disk Strategy
+  DOCKER_VS_NATIVE_PYTHON.md                                   | # Docker vs Native Python on Render - Comparison
+  DOCUMENT_LIBRARY_SEARCH_IMPLEMENTATION_COMPLETE.md           | # Document Library Search Implementation - COMPLETE ✅
+  DOCUMENT_SERVICE_INTEGRATION_COMPLETE_V2.md                  | # Document Service Integration - COMPLETE ✅
+  DOCUMENTATION_INDEX.md                                       | # Documentation Index - AI Agents Project
+  DOCUMENTS_LIBRARY_SIDEBAR_DESIGN.md                          | # 📚 Documents Library Sidebar - Complete Design Specification
+  DRAG_DROP_FULL_CONTAINER_COMPLETE.md                         | # Drag & Drop: Full Container Drop Zones - COMPLETE ✅
+  DRAG_DROP_UX_ENHANCEMENTS_COMPLETE.md                        | # Drag & Drop UX Enhancements - COMPLETE ✅
+  DUAL_ARCHITECTURE_CLEANUP_PLAN.md                            | # 🚨 CRITICAL: Dual Module Architecture Analysis & Cleanup Plan
+  DUAL_STT_VISUAL_FLOW.md                                      | # 🎯 Dual-Mode STT Visual Flow Diagram
+  DUPLICATION_FLOW_DIAGRAM.md                                  | # Message Duplication Flow Diagram
+  EFFICIENT_LOADING_COMPLETE.md                                | # ✅ EFFICIENT LOADING SOLUTION - COMPLETE
+  EFFICIENT_LOADING_STRATEGY.md                                | # Efficient Loading Strategy - Why Load 50 Threads When You Only Need 4?
+  EMAIL_AI_CONTEXT_IMPLEMENTATION_COMPLETE.md                  | # Email AI Context Implementation - COMPLETE ✅
+  EMAIL_CONTEXT_DEPLOYMENT_CHECKLIST.md                        | # Email Context Implementation - Deployment Checklist
+  EMAIL_CONTEXT_QUICK_SUMMARY.md                               | # Email Context Implementation - Quick Summary
+  EMAIL_THREAD_INTEGRATION_COMPLETE_WORKFLOW.md                | # 📧 EMAIL-THREAD INTEGRATION: COMPLETE SYSTEM WORKFLOW
+  EMAIL_THREAD_TAGS_SYNERGY_PATTERN_ANALYSIS.md                | # Email Thread Tags - Apply Synergy Session Pattern Analysis
+  EMAIL_TOOLS_DEACTIVATION_STATUS.md                           | # 🚫 Email Tools Deactivation Status - December 2, 2025
+  ERROR_MONITORING_GUIDE.md                                    | # Error Monitoring Quick Reference Guide
+  EXECUTE_QUERY_LIBRARY_FIX_COMPLETE.md                        | # ✅ COMPLETED: execute_query_library Fix (Dec 23, 2025)
+  EXPORT_MANAGER_AND_NATURAL_LANGUAGE_COMPLETE.md              | # Export Manager & Natural Language Integration - COMPLETE
+  FILE_PROCESSING_ARCHITECTURE.md                              | # File Processing Architecture - Multi-Modal Content Blocks
+  FIX_3_COMPLETE_SUMMARY.md                                    | # ✅ FIX #3 COMPLETE - NO ROLLBACK NEEDED
+  FIXES_APPLIED_SUMMARY.md                                     | # Production Deployment Fixes Applied
+  FLASK_UI_ROUTES_ALREADY_CONFIGURED.md                        | # Flask UI Routes - Already Configured - December 6, 2025
+  FORCE_MODULE_INSPECTION_COMMANDS.md                          | # Force Module Inspection Commands
+  FORCE_REFRESH_TRANSCRIPTION.md                               | # 🔥 FORCE REFRESH - Clear Service Worker Cache
+  FRONTEND_BACKEND_ALIGNMENT_ANALYSIS.md                       | # 🔍 COMPREHENSIVE FRONTEND-BACKEND ALIGNMENT ANALYSIS
+  GLOBAL_CREDENTIALS_INJECTOR_COMPLETE.md                      | # 🎯 Global Credentials Injector - Quick Reference
+  GOOGLE_SHEETS_IMPLEMENTATION_COMPLETE.md                     | # Google Sheets Enhancement Implementation - COMPLETE ✅
+  GOOGLE_SHEETS_MARKDOWN_FORMATTER_DOCUMENTATION.md            | # Google Sheets Markdown Formatter - Custom Tool 📊
+  INHOUSE_KANBAN.md                                            | # 🏭 INHOUSE KANBAN - MASTER DOCUMENTATION
+  INHOUSE_PRINT.md                                             | # InHouse Print Integration - Complete Technical Documentation
+  INTELLIGENT_DISCOVERY_SKIP_DESIGN.md                         | # Intelligent Discovery Skip System - Design Document
+  INTERACTION_FRAMEWORK_GUIDE.md                               | # 🎯 Two-Way Interaction Framework - Integration Guide
+  INTERNAL_DOCUMENT_MODULE.md                                  | # Internal Document Module - Complete Documentation
+  INVOICE_ML_DASHBOARD_DESIGN.md                               | # Invoice ML Dashboard - Complete Design Specification
+  KAJABI_ENHANCED_INTEGRATION_COMPLETE.md                      | # 🚀 Kajabi Enhanced Integration - Complete Documentation
+  KANBAN_MODULE_VERIFICATION.md                                | # InHouse Kanban Module - Complete Verification
+  LANGCHAIN_MEMORY_VS_CHAT_HISTORY.md                          | # LangChain Memory vs Chat History - Complete Explanation
+  LAZY_LOADING_OPTIMIZATION_COMPLETE.md                        | # Lazy-Loading Optimization: AI_Agents → ValorAI Pattern
+  LEGACY_VB_QUOTES_TO_ORDERS_WORKFLOW.md                       | # 🔷 Legacy VB.NET Quotes System - Complete Workflow Analysis
+  LIBRARY_LOADING_FIX_COMPLETE.md                              | # Library Loading & Dev Mode Fix - Complete
+  LINKAGE_REALTIME_FIXES_COMPLETE.md                           | # Thread Linkage Realtime Fixes - COMPLETE ✅
+  LINKAGE_SYNC_STATUS_ANALYSIS.md                              | # Thread Linkage Sync Status - Dec 1, 2025
+  LOADING_OPTIMIZATION_PLAN.md                                 | # Loading Optimization Plan - Sequential Load Strategy
+  LOADING_SEQUENCE_DIAGRAM.md                                  | # 🔄 Loading Sequence Diagram - AI Agents Platform
+  LOCK_TOGGLE_IMPLEMENTATION_COMPLETE.md                       | # Lock/Unlock Toggle Button Implementation
+  MANAGER_CLASSES_IMPLEMENTATION_COMPLETE.md                   | # Manager Classes Implementation - Complete
+  MANUAL_TEST_THREAD_ISOLATION.md                              | # Manual Thread Isolation Test
+  MARKDOWN_DEFAULT_ARCHITECTURE.md                             | # Markdown-First Architecture - Complete Solution
+  MARKDOWN_EXTRACTION_VISUAL_EXAMPLES.md                       | # 📸 Markdown Text Extraction - Visual Examples
+  MARKDOWN_RENDERING_FIX.md                                    | # Markdown Rendering Fix - Code Block Hash Symbol Issue
+  MARKDOWN_V2_FIXES_VERIFICATION.md                            | # Markdown V2 Fixes - Verification Against User Issues
+  MASTER_CHECKLIST_COMPLETE.md                                 | # Prime Badge Double-Click Feature - Complete Master Checklist
+  MEMORY_CONTEXT_VISUAL_GUIDE.md                               | # 🧠 Memory Context - Visual Architecture Guide
+  MEMORY_SEMANTIC_SEARCH_SYSTEM_DESIGN.md                      | # Memory & Semantic Search System - Complete Architecture
+  MESSAGE_BUBBLE_RENDERING_ANALYSIS.md                         | # Message Bubble Rendering Analysis: AI Prime vs Agent Columns
+  MESSAGE_CENTRALIZATION_PLAN.md                               | # Message Centralization Plan
+  MESSAGE_CONTENT_FORMAT_FIX.md                                | # Message Content Format Fix - Complete Solution
+  MESSAGE_DUPLICATION_ROOT_CAUSE_ANALYSIS.md                   | # Message Duplication Root Cause Analysis
+  MESSAGE_FIX_VISUAL_GUIDE.md                                  | # MESSAGE SAVE/LOAD FIX - VISUAL GUIDE
+  MESSAGE_FORMAT_VISUAL_FLOW.md                                | # MESSAGE FORMAT VISUAL FLOW
+  MESSAGE_PAGINATION_SCROLL_COMPLETE.md                        | # Message Pagination with Infinite Scroll - COMPLETE ✅
+  MESSAGE_SAVE_FIX_COMPLETE.md                                 | # MESSAGE SAVE/LOAD FIX - COMPLETE
+  MESSAGE_VIEW_MODES_V2.md                                     | # Message View Modes V2 - 5 Display Options
+  MESSAGESTORE_MINIMAL_IMPLEMENTATION_COMPLETE.md              | # MessageStore Minimal Implementation - COMPLETE ✅
+  MESSAGING_SIDEBAR_DESIGN.md                                  | # 💬 Messaging Sidebar - Complete Design Specification
+  META_TOOLS_QUICK_FIX.md                                      | # META TOOLS - Quick Fix Reference Card
+  META_TOOLS_RENDER_FIX_DEPLOYMENT_GUIDE.md                    | # META-TOOLS FIX FOR RENDER PRODUCTION - January 21, 2026
+  META_TOOLS_USAGE_CLAUDE_AI.md                                | # Meta Tools Usage - For Claude AI / GitHub Copilot
+  MICROSOFT_PLATFORM_FILE_ATTACHMENTS.md                       | # 📧🔗 **MICROSOFT PLATFORM INTEGRATION + FILE ATTACHMENTS FOR ORDERS**
+  MICROSOFT_TOOLS_500_ERROR_FIX.md                             | # Microsoft Tools 500 Error Fix - November 16, 2025
+  ML_CUSTOMER_INTELLIGENCE_SYSTEM.md                           | # 🧠 ML-Enhanced Customer Intelligence System
+  ML_VS_OLD_COMPARISON.md                                      | # ML Models vs Old Approach - What Changed?
+  MODULE_ARCHITECTURE_PATTERNS.md                              | # Module Architecture Patterns Analysis
+  MODULE_DEPLOYMENT_QUICKSTART.md                              | # Module Deployment Configuration - Quick Start
+  MODULE_LOADING_V5_V6_REVERT_COMPLETE.md                      | # Module Loading Fix - V5/V6 Revert Complete ✅
+  MODULE_METADATA_STANDARD.md                                  | # Module Metadata Standard
+  MODULE_MIGRATION_LOG.md                                      | # Module Migration Tracking Log
+  MODULE_SYSTEM_ARCHITECTURE_COMPLETE.md                       | # Module System Architecture - Self-Registering Modules with Automatic Credentia
+  MODULE_SYSTEM_FOLDER_ARCHITECTURE.md                         | # Module System Folder Architecture - Technical Specification
+  MODULES.md                                                   | # Modules - Technical Documentation
+  MULTI_MODE_DEPLOYMENT_READY.md                               | # ✅ Multi-Mode File Processing - DEPLOYMENT READY
+  MULTI_PROFESSIONAL_VISUALIZATION_GUIDE.md                    | # 🎨 Multi-Professional Visualization Guide
+  MULTI_SESSION_ANALYSIS.md                                    | # Multi-Session User Analysis & WebRTC Requirements
+  NEXT_STEPS_TOOL_ENHANCEMENT.md                               | # Next Steps: Complete Tool Enhancement Strategy
+  NULL_REFERENCE_PATTERN_ANALYSIS.md                           | # Null Reference Pattern Analysis - Module DOM Access Issues
+  OAUTH_SESSION_STORAGE_FIX.md                                 | # OAuth Session Storage Fix - Complete Resolution
+  OPTIMIZATION_ANSWERS.md                                      | # ❓ Your Questions Answered - Loading Optimization Strategy
+  OPTIMIZED_LOADING_STRATEGY.md                                | # 🚀 Optimized Loading Strategy - AI Agents Platform
+  OUTLOOK_ATTACHMENT_AI_CONVERSION_GUIDE.md                    | # Outlook Attachment AI Conversion Guide
+  OUTLOOK_ATTACHMENT_ANTHROPIC_FIX.md                          | # Outlook Attachment Token Overflow Fix - Complete Solution
+  PERFECT_WORKFLOW_EXAMPLES.md                                 | # Perfect Workflow Examples - Reference Templates
+  PERFORMANCE_OPTIMIZATION_ANALYSIS.md                         | # Performance Optimization Analysis - AI Agent Project
+  PHONE_TOOLS_SETUP_GUIDE.md                                   | # Phone Communication Tools - Setup Guide
+  PLACEHOLDER_AND_WARNINGS_FIX_COMPLETE.md                     | # Placeholder Image & Console Warnings Fix - Complete
+  PLATFORM_CONNECTION_REQUIREMENTS.md                          | # 🔌 Platform Connection Requirements for AI Agents
+  PLATFORM_CREDENTIAL_SYSTEM.md                                | # Platform Credential Auto-Registration System
+  PLATFORM_CREDENTIALS_UI_COMPLETE.md                          | # Platform Credentials Management UI - Complete Documentation
+  PLATFORM_CREDENTIALS_UX_IMPROVEMENTS.md                      | # 🎨 Platform Credentials UI/UX Improvements
+  PLATFORM_FILTERING_AND_FORMATTING_COMPLETE.md                | # 🎯 Platform Filtering & Formatting Improvements - COMPLETE
+  PLATFORM_FILTERING_IMPACT.md                                 | # Platform Filtering Impact Analysis
+  PLATFORM_INVENTORY_SHORT_DESCRIPTION_TASK.md                 | # Platform Inventory - Short Description Addition Task
+  PLATFORM_KEYWORD_DETECTION_REFERENCE.md                      | # Platform Keyword Detection - Quick Reference
+  PLATFORM_LOADING_ANALYSIS_COMPARISON.md                      | # Platform Loading Sequence Comparison: AI_Agents vs ValorAI
+  PLATFORM_START_UP.md                                         | # 🔍 COMPREHENSIVE UI STARTUP SEQUENCE ANALYSIS & FIX GUIDE
+  POOL_EFFICIENCY_FIX_COMPLETE.md                              | # Connection Pool Efficiency Fix - COMPLETE
+  POSITIONING_FIX_VISUAL_EXPLANATION.md                        | # Visual Explanation - Prime Scroll Controls Positioning
+  POTENTIAL_TOKEN_OVERFLOW_ANALYSIS.md                         | # Potential Token Overflow Functions - Analysis Report
+  PRE_AUTH_BACKEND_CHECK_FIX.md                                | # Pre-Authentication Backend Connection Fix
+  PRE_COMMIT_DEMO.md                                           | # Pre-Commit Review Agent Demo
+  PRIME_BADGE_DOUBLE_CLICK_FEATURE.md                          | # Prime Badge Double-Click Feature ✅
+  PRIME_BADGE_VISUAL_GUIDE.md                                  | # Prime Badge Double-Click Feature - Visual Guide
+  PRIME_EXPANSION_DEBUG_COMMANDS.md                            | # Prime Chat Panel Expansion - Debug Console Commands
+  PRIME_LOADED_REMOVAL_COMPLETE.md                             | # PRIME-LOADED Removal Complete ✅
+  PRIME_LOADED_REMOVAL_PLAN.md                                 | # PRIME-LOADED Removal Analysis & Migration Plan
+  PRIME_THREAD_INFO_FIX_COMPLETE.md                            | # Prime Thread Info Fix - Complete
+  PRODUCTION_DEPLOYMENT_ISSUES_ANALYSIS.md                     | # Production Deployment Issues - Root Cause Analysis
+  PROFILE_401_DUPLICATE_CALL_FIX.md                            | # Profile 401 Error - Duplicate Call Fix
+  PROGRESSIVE_TOOL_LOADING_COMPARISON_ANALYSIS.md              | # Progressive Tool Loading: Comprehensive Multi-Framework Comparison Analysis
+  PROMPT_CATALOGUE.md                                          | # PROMPT CATALOGUE - Master Documentation
+  PROMPT_INJECTION_FLOW_ANALYSIS.md                            | # Prompt Injection Flow Analysis
+  PROMPT_LIBRARY_ENHANCEMENTS_COMPLETE.md                      | # Prompt Library Enhancements - COMPLETE
+  PROMPT_PERSISTENCE_AND_INPUT_EXPANSION_FIXES.md              | # CRITICAL FIXES - Prompt Persistence & Agent Input Expansion
+  QUANTITY_ENUM_REMOVAL_SUMMARY.md                             | ﻿# Quantity Enum Restrictions Removed - Summary
+  QUICK_DEBUG_PRIME_AND_UNLOAD.md                              | # Prime Chat Panel & Agent Column Unload - Quick Debug Commands
+  QUICK_DEPLOY_GUIDE.md                                        | # Cross-Device Sync - Quick Deployment Guide
+  QUICK_REFERENCE_CONTENT_BLOCKS.md                            | # Quick Reference Card - File Processing with Content Blocks
+  QUICK_REFERENCE_SESSION_CLEANUP.md                           | # 🚀 Quick Reference - Session Cleanup Complete
+  QUICK_TEST_INSTRUCTIONS.md                                   | # 🚀 Quick Test Instructions - Module Cache Fix
+  QUICK_VALIDATION_GUIDE.md                                    | # 🎯 QUICK VALIDATION GUIDE - Ready to Test
+  QUICKACTIONS_ARCHITECTURE_ANALYSIS.md                        | # QuickActions System Architecture Analysis
+  QUICKACTIONS_USER_GUIDE.md                                   | # QuickActions User Guide
+  QUICKACTIONS_WORKFLOWS.md                                    | # QuickActions Visual Workflows
+  QUOTE_CALCULATOR.md                                          | # QUOTE_CALCULATOR - InHouse Print Quote Calculation System
+  REAL_VINYL_STOCK_NO_MULTIPLIERS.md                           | # Real Vinyl Stock Analysis - NO MULTIPLIERS NEEDED
+  REALTIME_INTEGRATION_ANALYSIS.md                             | # Real-Time Integration Analysis Report
+  REALTIME_SYNC_ARCHITECTURE_VISUAL.md                         | # Real-Time Multi-Device Synchronization Architecture
+  REALTIME_SYNC_TEST_GUIDE.md                                  | # Real-time Message Sync - Quick Test Guide
+  REALTIME_SYSTEM_COMPLETE.md                                  | # Complete Realtime System Implementation
+  RENDER_API_URL_FIX_SOLUTION.md                               | # 🎯 RENDER API URL FIX - ROOT CAUSE FOUND!
+  RENDER_AUTH_ISSUE_DIAGNOSIS.md                               | # Render.com Authentication Issue - Diagnosis & Fix
+  RENDER_DATABASE_CONFIG_PATH_FIX.md                           | # Render.com Database Config Path Fix
+  RENDER_DEPLOYMENT_CONFIG.md                                  | # Render Deployment Configuration
+  RENDER_DEPLOYMENT_FIX.md                                     | # Render Deployment Fix - Thread Creation 400 Error
+  RENDER_DEPLOYMENT_FIXES.md                                   | # Render Deployment Fixes - November 24, 2025
+  RENDER_DEPLOYMENT_GUIDE.md                                   | # Render Deployment Guide - Supabase PostgreSQL Integration
+  RENDER_NEXT_STEPS.md                                         | # 🚀 NEXT STEP: Add Environment Variables to Render
+  RENDER_QUICK_FIX.md                                          | # 🚨 IMMEDIATE FIX - Supabase Connection on Render
+  RENDER_SUPABASE_IPV6_FIX.md                                  | # Render Supabase IPv6 Connection Fix
+  RENDER_TOKEN_OVERFLOW_FIX.md                                 | # Render Deployment Token Overflow Fix
+  RENDER_V10_DEPLOYMENT_COMPLETE.md                            | # Render v10 Deployment Creation - Complete
+  RENDER_WORKER_FIX_COMPLETE.md                                | # Render Worker Crash Fix - Complete
+  RESEARCH_AI_VISUALIZATION_GENERATION.md                      | # Research: AI Integration for Graph/Chart Visualization Generation
+  RESTART_SERVER_NOW.md                                        | # ⚠️ CRITICAL: RESTART FLASK SERVER NOW!
+  SAVE_LOAD_FLOW_COMPLETE_ANALYSIS.md                          | # Complete Save/Load Flow Analysis - November 21, 2025
+  SCHEDULER_COLUMN_FIX_COMPLETE.md                             | # Scheduler Column Fix - Complete
+  SCHEDULER_FIX_WORKER_DUPLICATION.md                          | # Scheduler Worker Duplication Fix
+  SEMANTIC_EMBEDDINGS_CACHE_GUIDE.md                           | # 🚀 Tool Embeddings - Smart Caching System
+  SESSION_CLEANUP_VISUAL_GUIDE.md                              | # 🎨 Session Files Cleanup - Visual Guide
+  SESSION_FILES_ANALYSIS_AND_ACTION_PLAN.md                    | # Session Files Analysis & Action Plan
+  SHOPIFY_CALCULATOR_JSON_FIRST_METHODOLOGY.md                 | # SHOPIFY CALCULATOR JSON-FIRST METHODOLOGY
+  SHOPIFY_INTEGRATION_V2_ACCURATE.md                           | # WooCommerce E-Commerce Integration - Accurate Technical Documentation
+  SHORT_DESCRIPTION_EXAMPLES_BY_PLATFORM.md                    | # Short Description Examples by Platform Type
+  SHORT_DESCRIPTION_PROGRESS_TRACKER.md                        | # Short Description Addition - Progress Tracker
+  SMART_BUILDER_COMPREHENSIVE_GUIDE.md                         | # 🎯 microsoft_excel_smart_sheet_builder - THE COMPLETE EXCEL TOOL
+  SMART_OAUTH_URL_DETECTION.md                                 | # Smart OAuth URL Detection - Complete Solution
+  SMART_SHEET_BUILDER_GUIDE.md                                 | # 🎯 SMART Sheet Builder - Build Excel from Scratch
+  SMOKE_TEST_EXECUTION_TRACE.md                                | # 🔍 Smoke Test & Execution Trace Report
+  SOCIAL_MEDIA_API_OPTIONS.md                                  | # SOCIAL MEDIA API OPTIONS FOR PROFILE VERIFICATION
+  SPIRAL_BOUND_FIELD_MAPPING.md                                | # Spiral Bound Books - Complete Field Mapping & Values
+  SPIRAL_BOUND_QUICK_GUIDE.md                                  | # Spiral Bound Books - Quick Validation Guide
+  SPIRAL_BOUND_VALIDATION_SUMMARY.md                           | # Spiral Bound Books Calculator - Validation Complete (Backend)
+  SPIRAL_BOUND_WEBSITE_VALIDATION_CHECKLIST.md                 | # Spiral Bound Books - Website Validation Checklist
+  SQLITE_REMOVAL_PLAN.md                                       | # SQLite Removal/Supabase Migration Plan
+  START_UP_CONSOLE_LOG.md                                      | 
+  STARTUP_FIX_OPTIONS_ANALYSIS.md                              | # OPTIONS ANALYSIS: Fixing the 50-Second Startup Issue
+  STARTUP_PERFORMANCE_ANALYSIS_COMPLETE.md                     | # AI Agents V10 - Startup Performance & Loading Sequence Analysis
+  STREAM_400_ERROR_ANALYSIS.md                                 | # Stream 400 Error - Root Cause Analysis
+  STREAMING_TRANSCRIPTION_ANALYSIS.md                          | # 🎤 Streaming Transcription Architecture Analysis
+  SUB_USER_MESSAGING_ARCHITECTURE.md                           | # Sub-User Messaging Architecture
+  SUPABASE_ARCHITECTURE_DIAGRAM.md                             | # 🏗️ Supabase Connection Architecture - Visual Guide
+  SUPABASE_AUTH_ENDPOINTS_ANALYSIS.md                          | # Supabase Auth Endpoints Analysis
+  SUPABASE_CLI_GUIDE.md                                        | # Supabase CLI Tools - Complete Usage Guide
+  SUPABASE_CLI_SETUP.md                                        | # Supabase CLI & Edge Functions Setup Guide
+  SUPABASE_COMPATIBILITY_FIX_COMPLETE.md                       | # Supabase Compatibility Fix - Complete
+  SUPABASE_CONFIG_FIX_COMPLETE.md                              | # Supabase Configuration Fix - November 17, 2025
+  SUPABASE_CONNECTION_FIX_COMPLETE.md                          | # Supabase Connection Fix - Complete ✅
+  SUPABASE_CONNECTION_OPTIMIZATION_COMPLETE.md                 | # Supabase Nano Tier Connection Pool Optimization - COMPLETE SOLUTION
+  SUPABASE_CONNECTION_POOL_COMPLETE.md                         | # Supabase Connection Pool Implementation - COMPLETE ✅
+  SUPABASE_CUSTOM_QUERY_TOOLS.md                               | # Supabase Custom Query & Search Tools
+  SUPABASE_DATABASE.md                                         | # Supabase Database Architecture
+  SUPABASE_DEPLOYMENT_CHECKLIST.md                             | # 🎯 Deployment Checklist - Supabase Connection Fix
+  SUPABASE_FIX_SUMMARY.md                                      | # Supabase Connection Fix - Summary
+  SUPABASE_IPV4_FIX_COMPLETE.md                                | # Supabase IPv4 Connection Fix - Complete
+  SUPABASE_MIGRATION_AGENT_ROUTES_V4.md                        | # Supabase Migration: agent_routes_v4.py
+  SUPABASE_MIGRATION_FINAL_STATUS.md                           | # Supabase Migration - Final Status Report
+  SUPABASE_ONLY_FIX_COMPLETE.md                                | # Supabase-Only Architecture Fix - Complete
+  SUPABASE_PLACEHOLDER_FIX.md                                  | # Supabase Database Placeholder Fix
+  SUPABASE_REALTIME_FIX.md                                     | # Supabase Realtime Crash Fix
+  SUPABASE_REALTIME_THREAD_ASSIGNMENTS.md                      | # Supabase Realtime for Thread Assignments
+  SUPABASE_SEARCH_INTEGRATION_COMPLETE.md                      | # Supabase Search System Integration - COMPLETE ✅
+  SYNERGY_BACKEND_FIX_URGENT.md                                | # URGENT: Synergy Backend Fix Required
+  SYNERGY_COLLABORATION.md                                     | # SYNERGY & COLLABORATION - Technical Documentation
+  SYNERGY_CONTEXT_ENHANCEMENT.md                               | # Synergy Context Enhancement - December 1, 2025
+  SYNERGY_DOCUMENT_PICKER_COMPLETE.md                          | # Synergy Document Picker Implementation - Complete
+  SYNERGY_DYNAMIC_URL_FIX.md                                   | # Synergy Dynamic URL Detection - December 10, 2025
+  SYNERGY_EXTERNAL_MODULE_COMPLETE.md                          | # Synergy External Sidebar Module - COMPLETE ✅
+  SYNERGY_EXTRACTION_COMPLETE.md                               | # SYNERGY CODE EXTRACTION COMPLETE
+  SYNERGY_FIX_INSTRUCTIONS.md                                  | # Synergy Dashboard Fix - Action Required 🔧
+  SYNERGY_FIXES_SUMMARY.md                                     | # 🎯 Synergy Backend Issues - Quick Summary (Nov 30, 2025)
+  SYNERGY_FLAT_SPACING_VISUAL_GUIDE.md                         | # SYNERGY FLAT SPACING - VISUAL COMPARISON
+  SYNERGY_INLINE_EDIT_FEATURE.md                               | # Synergy Inline Edit Feature - November 20, 2025
+  SYNERGY_INTERNAL_DOCS_GUIDE.md                               | # SYNERGY INTERNAL DOCS INTEGRATION GUIDE
+  SYNERGY_KANBAN_DRAG_DROP_COMPLETE.md                         | # Synergy Kanban Drag-and-Drop & Column Management - COMPLETE
+  SYNERGY_KANBAN_QUICK_GUIDE.md                                | # Synergy Kanban - Quick User Guide
+  SYNERGY_MILESTONE_CSS_MAPPING.md                             | # SYNERGY MILESTONE UI REDESIGN - CSS MAPPING PLAN
+  SYNERGY_MILESTONE_UPDATE_COMPLETE.md                         | # Synergy Milestone-Based Project Management - Complete Update
+  SYNERGY_POPUP_MODAL_FIX.md                                   | # Synergy Popup Modal Fix - November 25, 2025
+  SYNERGY_PRIORITY_COLUMN_FIX.md                               | # Synergy Priority Column Fix - November 20, 2025
+  SYNERGY_REALTIME_COLLABORATION_DESIGN.md                     | # Synergy Sessions Real-Time Collaboration System
+  SYNERGY_REALTIME_WEBSOCKET_COMPLETE.md                       | # Synergy Real-Time WebSocket Integration - Complete
+  SYNERGY_ROUTES_ANALYSIS.md                                   | # Synergy Routes Analysis - Inline Interaction System
+  SYNERGY_SCHEMA_REQUIREMENTS.md                               | # Synergy Schema Requirements - December 1, 2025
+  SYNERGY_SMART_TOOL_MILESTONE_UPDATE.md                       | # Synergy Smart Tool - Milestone Support Added
+  SYNERGY_TITLE_DESCRIPTION_ENHANCEMENT.md                     | # SYNERGY TITLE + DESCRIPTION ENHANCEMENT
+  SYNERGY_TITLE_FIELD_ANALYSIS.md                              | # Synergy Session Title Field Analysis - December 1, 2025
+  SYNERGY_TOOLTIP_AND_CLICK_FIXES.md                           | # Synergy Tooltip & Click Handler Fixes - December 3, 2025
+  SYNERGY_UI_DATABASE_SCHEMA_GAP_ANALYSIS.md                   | # 🔍 Synergy UI vs Database Schema - Complete Gap Analysis
+  SYNERGY_WIDTH_TOGGLE_FIXES_COMPLETE.md                       | # Synergy Width Toggle - All Fixes Implemented ✅
+  SYNTAX_ERROR_FIX_CACHE_CLEAR.md                              | # Syntax Error Fix - Browser Cache Clear Required
+  SYSTEM_PROMPT_413_ERROR_FIX_COMPLETE.md                      | # System Prompt 413 Error - FIXED ✅
+  TAG_SYSTEM_COMPLETE_FLOW_TRACE.md                            | # 🏷️ Tag System: Complete Flow Trace (All Tag Types)
+  TEAM_AUTHENTICATION_ARCHITECTURE.md                          | # Team Authentication Architecture - Complete Reference
+  TEAM_ID_PRODUCTION_ENHANCEMENTS_COMPLETE.md                  | # Team ID System - Production Enhancements Complete
+  TEAM_ID_THREAD_SHARING_ANALYSIS.md                           | ﻿
+  TEAM_ID_VIDEO_CHAT_INFRASTRUCTURE_GUIDE.md                   | # Team ID & Video Chat Infrastructure Guide
+  TEAM_ID_VISUAL_INTEGRATION_COMPLETE.md                       | # Team ID Visual Integration - Frontend Complete
+  TEAM_MESSAGING_WITH_SUB_USERS.md                             | # Team Messaging with Sub-Users
+  TEST_BADGE_DEBUG.md                                          | # Thread History Badge Debug Test
+  test_login_double_init_fix.md                                | # Login Double Initialization Fix - November 17, 2025
+  TEST_MULTIUSER_SYNC.md                                       | # Multi-User Sync Diagnostic Test
+  test_phantom_thread_fix.md                                   | # Quick Test: Phantom Thread Fix (Nov 22, 2025)
+  TEST_PRIME_REMOVAL.md                                        | # Quick Test Commands - Prime-Loaded Removal
+  TEST_QUOTES_BY_CATEGORY_NO_ANSWERS.md                        | # Test Quotes by Product Category - Questions Only
+  TEST_QUOTES_BY_CATEGORY_WITH_ANSWERS.md                      | # Test Quotes by Product Category - With Calculated Answers
+  TEST_QUOTES_CLIENT_EMAILS.md                                 | # Test Quote Requests - Client Email Format
+  TEST_SUITE_PATH_FIX.md                                       | # Test Suite Module Path Fix - December 1, 2025
+  TEST_SUITE_SUMMARY.md                                        | # Test Suite - Persistent Semantic Search ✅
+  test_synergy_drag_drop.md                                    | # Synergy Drag & Drop Debugging Guide
+  TEST_THINKING_BLOCK_FIX.md                                   | # Test Plan: Thinking Block Order Fix
+  test_with_browser.md                                         | # Test Device Lock with Browser
+  TESTING_INTELLIGENCE_LAYERS.md                               | # 🧪 Testing Intelligence Layers - Quick Start Guide
+  THINKING_BLOCKS_CURRENT_BEHAVIOR_ANALYSIS.md                 | # Thinking Block Handling Analysis - Current vs Recommended
+  THINKING_DOTS_REMOVAL_COMPLETE.md                            | # Thinking Dots Removal - Complete
+  THREAD_ASSIGNMENTS_CORRECTED.md                              | # Thread Assignments - CORRECTED Documentation
+  THREAD_CARD_EXPAND_BUTTON_FIX.md                             | # Thread Card Expand Button Fix
+  THREAD_CARD_EXPAND_COLLAPSE_DIRECT_ANSWERS.md                | # Thread Card Expand/Collapse - Direct Answers to Your Questions
+  THREAD_CARD_EXPANSION_VISUAL_GUIDE.md                        | # Thread Card Expansion - Visual Reference Guide
+  THREAD_CASCADE_ARCHITECTURE.md                               | # Thread Assignment Cascade Architecture
+  THREAD_COPY_CONVERSATION_COMPLETE.md                         | # Thread Copy Conversation Feature - Complete
+  THREAD_DELETE_AND_AGENT_ICON_ANALYSIS.md                     | # Thread Delete & Agent Icon Analysis
+  THREAD_EXPANSION_TEST_EXECUTION.md                           | # Thread Card Expansion Fixes - Test Execution Report
+  THREAD_INFO_CARD_FRAMEWORK_ANALYSIS.md                       | # Thread Info Card Integration Analysis - Complete Framework Flow
+  THREAD_INFO_CARDS_AND_TAGS_COMPLETE_ANALYSIS.md              | # Thread Info Cards & Tags - Complete System Analysis
+  THREAD_ISOLATION_ISSUES_EXPLAINED.md                         | # Thread Isolation Issues - Diagnosis & Fixes
+  THREAD_MESSAGE_LOADING_ANALYSIS.md                           | # Thread Message Loading Analysis
+  THREAD_METADATA_TEST_INSTRUCTIONS.md                         | # Thread Metadata Persistence - Manual Test Instructions
+  THREAD_ROUTES_SQLITE_FIX.md                                  | # Thread Routes SQLite Query Fix - November 17, 2025
+  THREAD_ROUTES_SQLITE_TO_SUPABASE_COMPLETE.md                 | # Thread Routes SQLite → Supabase Migration - Complete
+  THREAD_SYNERGY_DELETION_GUIDE.md                             | # Thread-Synergy Deletion Guide - Quick Reference
+  THREAD_SYSTEM.md                                             | # Thread System Architecture
+  THREAD_TAGS_USAGE_ANALYSIS.md                                | # Thread Tags Usage Analysis
+  TIPTAP_ADVANCED_EXTENSIONS_PLAN.md                           | # Tiptap Advanced Extensions - Implementation Plan
+  TOKEN_REDUCTION_EXAMPLES.md                                  | # Token Reduction Examples - Before vs After
+  TOOL_DISCOVERY.md                                            | # TOOL DISCOVERY - Technical Documentation
+  TOOL_EMBEDDINGS_PERSISTENCE_COMPLETE.md                      | # Tool Embeddings - Supabase Persistence Implementation
+  TOOL_ENHANCEMENT_INSTRUCTIONS.md                             | # Tool Enhancement Instructions - Intelligence Layers Integration
+  TOOL_LIBRARY_ARCHITECTURE_ANALYSIS.md                        | # Tool Library Architecture - Comprehensive Analysis
+  TOOL_RESULT_BUBBLES_TEST_PLAN.md                             | # Tool Result Bubbles Test Plan
+  TOOL_RESULT_VISUAL_COMPARISON.md                             | # Tool Result Bubbles - Visual Comparison
+  TOOL_RESULT_VISUAL_MOCKUP.md                                 | # Tool Result Visual Mockup - What You Want
+  TOOL_SCHEMA_QUALITY_ANALYSIS.md                              | # Tool Schema Quality Analysis
+  TOOL_USE_ERROR_FIX_PLAN.md                                   | # Tool Use / Tool Result Error Fix Plan
+  TOOL_USE_ID_MISMATCH_FIX_COMPLETE.md                         | # Tool Use ID Mismatch Fix - COMPLETE ✅
+  TRANSCRIPTION.md                                             | # TRANSCRIPTION.md
+  TRANSCRIPTION_UPLOAD_TAB_COMPLETE.md                         | # 🎤 Transcription System - Upload Tab & Database Storage Complete
+  TWORULE_ROBUSTNESS_FIXES_COMPLETE.md                         | # TwoRule Per-Bubble Processor - Robustness Fixes Complete
+  UI_STRUCTURE_AND_WORKFLOW_CARD_PLACEMENT.md                  | # UI Structure & Workflow Card Placement Guide
+  UNIFIED_CUSTOMER_INTELLIGENCE_DASHBOARD.md                   | # Unified Customer Intelligence Dashboard - Complete Specification
+  UNIVERSAL_FILE_HANDLER_COMPLETE.md                           | # 🎯 Universal File Handler - Complete Documentation
+  UNIVERSAL_SEARCH_ARCHITECTURE_ANALYSIS.md                    | # 🔍 Universal Search - Multi-Platform Multi-Database Architecture Analysis
+  UNIVERSAL_SEARCH_DEPLOYMENT_GUIDE.md                         | # 🔍 Universal Search System - Complete Deployment Guide
+  UPDATECURRENTTHREAD_ANALYSIS.md                              | # 🔍 updateCurrentThread() METHOD ANALYSIS
+  USER_FEEDBACK_REINFORCEMENT_LEARNING.md                      | # User Feedback & Reinforcement Learning System
+  USERAUTH_ERROR_FIX_COMPLETE.md                               | # UserAuth Error Fix - Complete ✅
+  V10_URL_REDIRECT_FIX_COMPLETE.md                             | # V10 URL Redirect Fix - Complete
+  V5_V6_MODULE_LOADING_COMPARISON.md                           | # V5/V6 vs Current Main Branch - Module Loading Comparison
+  V6_DEPLOYMENT_FIXES.md                                       | # V6 Branch - Deployment Fixes for Supabase Integration
+  VECTOR_DATABASE.md                                           | # Vector Database System Documentation
+  VERIFICATION_SYSTEM_WEAKNESSES_AND_IMPROVEMENTS.md           | # Verification System: Critical Analysis & Improvements
+  VERIFY_JSON_SAVING_NOW.md                                    | # VERIFY JSON SAVING - IMMEDIATE ACTION ITEMS
+  VETERINARY_ALERTS_TOOLS_README.md                            | # 🏥 Veterinary Alerts Management Tools
+  VETERINARY_TOOLS_OVERLAP_ANALYSIS.md                         | # 🔍 Veterinary Tools Overlap Analysis
+  VISUALIZATION_INTERACTIVITY_REQUIREMENTS.md                  | """
+  VISUALIZATION_STREAMING_FIXES_APRIL9_2026.md                 | # Visualization Streaming Engine Fixes — April 9, 2026
+  VSA_ALERTS_DATA_ALIGNMENT_FIX.md                             | # ✅ VSA Alerts Data Alignment Fix - COMPLETE
+  VSA_ALERTS_EXECUTIVE_SUMMARY.md                              | # 🚨 VSA Veterinary Alerts - Executive Summary
+  VSA_ALERTS_GAP_ANALYSIS_COMPLETE.md                          | # 🔍 Code Archeology Analysis - VSA Veterinary Alerts Module
+  VSA_ALERTS_PHASE0_IMPLEMENTATION_COMPLETE.md                 | # ✅ VSA Alerts Phase 0 Implementation - COMPLETE
+  VSA_PHONE_SYSTEM_TOOLS_REDESIGN.md                           | # 📞 VSA Phone System AI Tools - Prompt-Centric Redesign
+  VSA_PHONE_TOOLS_SMART_DEFAULTS.md                            | # 📞 VSA Phone Tools - Smart Defaults Design
+  VSA_PHONE_TOOLS_VARIABLE_DRIVEN_COMPLETE.md                  | # 📞 VSA Phone System Tools - Complete Variable-Driven Architecture
+  VSA_PLATFORM_GAP_ANALYSIS.md                                 | # VSA Platform Gap Analysis - SQL_Data_AI_UI_v5 vs AI_agents
+  VSA_vs_KANBAN_ARCHITECTURE_ANALYSIS.md                       | # 🔍 Code Archeology Analysis: VSA vs InHouse Kanban Display Issue
+  WEBSOCKET_CONNECTION_ERROR_FIX.md                            | # WebSocket Connection Error - Diagnostic & Fix
+  WEBSOCKET_DISCONNECT_FIX_COMPLETE.md                         | # WebSocket Disconnect Handler Fix - Complete
+  WEBSOCKET_PENDING_FIX_JUNE9_2026.md                          | # WebSocket Pending Connection Fix - June 9, 2026
+  WELCOME_TO_PRIME_FIX_COMPLETE.md                             | # "Welcome to Prime" Message Fix - Complete
+  WHAT_TO_EXPECT_IN_LOGS.md                                    | # What To Expect In Flask Logs - November 25, 2025
+  WHISPER_LOCAL_SETUP.md                                       | # Whisper Transcription - Local Model Setup
+  WITHCOMPLIMENTSSLIPS_ALIGNMENT_COMPLETE.md                   | # WithComplimentsSlips Calculator Alignment Complete ✅
+  WORKFLOW_LIBRARY_PANEL_UI_UPDATE.md                          | # Workflow Library Panel UI Updates
+  WORKFLOW_LOADING_CONFIRMATION_POPUP_COMPLETE.md              | # 🎯 Workflow Loading Confirmation Popup - Complete Documentation
+  WORKFLOW_LOADING_DIAGNOSIS_COMPLETE.md                       | # Workflow Loading Diagnosis - COMPLETE
+  WORKFLOW_SLUG_AI_EXAMPLES.md                                 | # Workflow Slug - AI Usage Examples
+  WORKFLOW_SLUG_SYSTEM_EXPLANATION.md                          | # Workflow Slug System - Complete Explanation
+  WORKFLOW_SLUG_VISUAL_GUIDE.md                                | # Workflow Slug - Visual UI Guide
+  WORKFLOW_TITLE_NULL_FIX_COMPLETE.md                          | # Workflow Title Null Error Fix - Complete Solution
+  WORKFLOW_UI_LOCATION_GUIDE.md                                | # Workflow UI - Where Everything Is Located
+  WORKSPACE_SEMANTIC_SEARCH_EXPLANATION.md                     | # 🔍 Workspace & Transcription Semantic Search - Complete Explanation
+  WRAPPER_VS_DIRECT_CALCULATOR_ANALYSIS.md                     | # Wrapper vs Direct Calculator Analysis
+  WRAPPER_VS_DIRECT_DIAGRAMS.md                                | ```mermaid
+  XERO_CONTACT_DATA_STRUCTURE.md                               | # Xero Contact Data Structure - Complete Field Reference
+  XERO_EXPORT_FOR_AI_FEATURE.md                                | # Xero Dashboard - Export for AI Feature
+  XERO_FIXES_COMPLETE.md                                       | # ✅ XERO FIXES COMPLETE - December 8, 2025
+  XERO_INTEGRATION_ANALYSIS_PHASE1.md                          | # Xero Module - System Integration Architect Analysis
+  XERO_ML_INTEGRATION_COMPLETE.md                              | # ✅ Xero ML Integration - Complete!
+  XERO_MODULE_COMPREHENSIVE_GAP_ANALYSIS.md                    | # 🔍 **XERO MODULE - COMPREHENSIVE GAP ANALYSIS**
+  XERO_MODULE_COMPREHENSIVE_UX_ANALYSIS.md                     | # Xero Module - Comprehensive UI/UX Analysis & Business Intelligence Enhancement
+  XERO_QUICK_PROMPTS_DESIGN.md                                 | # Xero Quick Prompts Design Document
+  XERO_QUICK_PROMPTS_STRATEGIC_SUMMARY.md                      | # Xero Quick Prompts - Strategic Analysis Framework
+  XERO_QUOTES_COMPREHENSIVE_ANALYSIS.md                        | # 🔷 Xero Quotes System - Comprehensive Analysis & Implementation Plan
+  XERO_REPORTS_COMPREHENSIVE_ANALYSIS.md                       | """
+  XERO_TABULATOR_ARCHITECTURE_ANALYSIS.md                      | # Xero Tabulator Architecture: Comprehensive Analysis
+  XERO_TOOLS_COMPLETE.md                                       | # Xero Tools - Complete Documentation
+  XERO_TOOLS_SCHEMA_COMPLETE.md                                | # ✅ Xero Contact + Quotes Tools - Complete Schema Registration
+  YOUR_QUESTIONS_ANSWERED_FILE_PROCESSING.md                   | # Your Questions Answered - File Processing & Multi-Tool Execution
