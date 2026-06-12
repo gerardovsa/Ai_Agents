@@ -140,6 +140,18 @@ Use the established categories in each destination — do not invent new sub-dir
 
 ---
 
+## Followups flagged from completed rows
+
+These items surfaced during completed rows but didn't fit any of the 49 original rows. They are tracked here so they don't get lost between cleanup rounds. Each is small enough to be picked up as a light followup; none blocks the main chain.
+
+| # | Source | Task | Scope | Notes |
+|---|---|---|---|---|
+| F1 | row 41 | `bulk_fix_schema_prefix.py` cleanup | code | Top-level one-shot maintenance script. Has `'AI_infrastructure/core/archived/session_database.py'` as a target file in its `FIXES` dict (line 113). **Not an import** (just a string), but the script itself is a row-40 candidate (one-shot fix script) and the archived-file mention is a smell. Will be resolved by row 40. |
+| F2 | row 41 | 3 "copy" duplicates in `AI_infrastructure/core/archived/` | code | `agent_worker copy.py`, `agent_worker copy 2.py`, `streaming_agent_worker copy.py` are exact-byte-or-near duplicates of the main worker files. Could be hard-deleted but per "never `rm`, always `git mv`" they'd need a future move to `archive/ai_infrastructure_core_archived_copies/`. Not urgent — the dir is frozen anyway. |
+| F3 | row 46 | `docs/icons/` + `docs/Fontawesome/` are misplaced frontend assets | code | `docs/icons/` (27 SVG/PNG icons) and `docs/Fontawesome/` (15MB font install) are frontend assets that don't belong in `docs/`. Likely should move to `UI/assets/icons/` and `UI/assets/fontawesome/` (or similar) once a `UI/assets/` dir is created. Flagged in row 46 chain-of-custody. |
+
+---
+
 ## Per-feature "trace and verify" output template
 
 For any `code-trace` row, the agent must produce this map in the report:
