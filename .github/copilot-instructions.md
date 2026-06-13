@@ -32,10 +32,11 @@ away from older summaries.
 | Sidebar / module catalog / role gating | [`.github/MODULE_VISIBILITY_ARCHITECTURE.md`](MODULE_VISIBILITY_ARCHITECTURE.md) |
 | SVG / CAD diagram generation | [`.github/SVG_CAD_GENERATION_RULES.md`](SVG_CAD_GENERATION_RULES.md) |
 
-> **Heads up:** the 6th `.md` in this directory,
-> `.github/AI_DOCUMENTATION_CONSOLIDATION_INSTRUCTIONS.md`, is **stale**
-> (last touched January 2026, pre-CLAUDE.md). It's scheduled to be
-> archived in the next cleanup round (F7). Don't follow its "consolidate
+> **Heads up:** a 6th file used to live in this directory
+> (`.github/AI_DOCUMENTATION_CONSOLIDATION_INSTRUCTIONS.md`), but it
+> was a January-2026 doc-consolidation plan that was archived on
+> June 12, 2026 (F7). All 14 of its consolidation-target root `.md`
+> files were already archived in row 51. Don't follow its "consolidate
 > into 22 master docs" instructions — CLAUDE.md §16 is the current doc
 > workflow.
 
