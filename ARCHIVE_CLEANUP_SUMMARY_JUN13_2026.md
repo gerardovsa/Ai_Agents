@@ -160,15 +160,27 @@ UI/
 
 ---
 
-## F2 followup (for next round)
+## F2 followup — investigation result: NO MOVE (premise was wrong)
 
-During the finalizer triple-check, **1 missed cp-bitrot file** was discovered:
+During the finalizer triple-check, an initial assessment was made that `AI_infrastructure/auth/user_auth copy 2.py` was a 4th cp-bitrot file F2 had missed. **Investigation on June 14, 2026 corrected that assumption:**
 
-| File | Status | Recommendation |
-|---|---|---|
-| `AI_infrastructure/auth/user_auth copy 2.py` | **NOT moved by F2** | Move to `archive/ai_infrastructure_core_archived_copies/` in a future row (the 3 in `core/archived/` were moved, this 1 in `auth/` was missed) |
+| Check | Finding |
+|---|---|
+| MD5 of `user_auth.py` vs `user_auth copy 2.py` | **DIFFERENT** (`3de7498c…` vs `e717ddcc…`; 3,876 bytes diff) → **NOT cp-bitrot** |
+| MD5 of `user_auth.py` vs `user_auth copy.py` | **DIFFERENT** (`3de7498c…` vs `c738cfac…`; 9,545 bytes diff) → **NOT cp-bitrot** |
+| `git log` for `user_auth.py` | **5 commits** since v11 cut, latest `2533b784 feat(platform): …` (actively developed) |
+| `git log` for both `copy.py` and `copy 2.py` | **1 commit each** = the initial v11 cut `b84fe34f feat(v11): Create InHouse Print focused branch` (Jan 2026) → **stale v11-cut snapshots**, not cp-bitrot |
+| Inbound refs to either copy in live code | **0** (grep across all .py/.md/.json/.yml/.ps1/.bat/.sh/.html/.js) |
+| 21 `* copy.py` files in the live tree | All match the CLAUDE.md §2 pattern: `flask_app copy.py`, `routes/* copy.py` — **"historical copies"** explicitly designated as leave-alone |
 
-`AI_infrastructure/auth/` was outside F2's scope (F2 was scoped to `AI_infrastructure/core/archived/` per the F2 row text). This followup is documented here for the next round.
+**Decision: DO NOT MOVE.** Moving these 2 would conflict with CLAUDE.md §2's explicit "historical copies; leave alone" directive. F2 was correctly scoped to `AI_infrastructure/core/archived/` (frozen dir, 3 cp-bitrot duplicates) — the `auth/` copies are a different category (historical copies of live files, explicitly preserved by §2).
+
+**Open design tension (flagged for future doc-staleness review, NOT this round):**
+- CLAUDE.md §2 says `* copy.py` files are "historical copies" → leave alone
+- F2 cleanup moved 3 cp-bitrot files from `core/archived/` to `archive/ai_infrastructure_core_archived_copies/`
+- The §2 "leave alone" stance is **in tension** with the F2 "move cp-bitrot" pattern
+- A future cleanup round could either: (a) update §2 to enumerate the in-tree `* copy.py` files and decide each one, or (b) move all 21 to a sub-archive (out of scope for this round)
+- This is a design decision for the user, not a no-brainer cleanup
 
 ---
 
@@ -264,11 +276,11 @@ A future agent reading this summary should understand:
 5. The stale Jan-2026 consolidation plan is archived (F7)
 6. The dev-only `work_timeline_tool/` is in `archive/` (F8)
 
-The next cleanup round should pick up the 40 TODO rows for live subsystems, starting with the F2 followup (`user_auth copy 2.py`).
+The next cleanup round should pick up the 40 TODO rows for live subsystems. **F2 followup resolved as "no move"** — the F2 followup premise (cp-bitrot) was incorrect; the 2 files in `auth/` are part of a 21-file historical-copies pattern that CLAUDE.md §2 explicitly preserves. The design tension is flagged in §"F2 followup" for a future doc-staleness review (user decision required).
 
 ---
 
 **Round complete:** June 14, 2026
 **Performed by:** Claude (finalizer session, branch `cleanup/root-md-cleanup`)
 **Prior round:** `ARCHIVE_CLEANUP_SUMMARY_NOV30.md` (3 files, 2 archive dirs)
-**Next round:** Future round per the 40 TODO rows + F2 followup (`user_auth copy 2.py`)
+**Next round:** Future round per the 40 TODO rows + the CLAUDE.md §2 vs F2 design tension (21 `* copy.py` files in live tree — keep all / selectively move / move all)
