@@ -385,12 +385,7 @@ cd G_Folder
 ### 1. Test Each UI
 
 **Stock AI Chat:**
-1. Navigate to http://localhost:5000/stock-management
-2. Click "Stock AI Chat" column
-3. Type message: "Show me all stocks"
-4. Verify response streams correctly
-5. Upload PDF invoice
-6. Verify file analysis works
+~~1. Navigate to http://localhost:5000/stock-management~~ (REMOVED 2026-06-15: in-house-print deprecation — see archive/inhouse_print_deprecation/DEPRECATION_NOTICE.md)
 
 **Data Agent Chat:**
 1. Navigate to http://localhost:5000/data-agent-chat

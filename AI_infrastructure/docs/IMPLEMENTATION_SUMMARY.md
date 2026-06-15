@@ -449,7 +449,7 @@ cd C:\Users\gpoli\GIT\In_House_SQL\G_Folder
 ```
 
 **Test each UI:**
-1.  Stock AI Chat → http://localhost:5000/stock-management
+1.  ~~Stock AI Chat → http://localhost:5000/stock-management~~ (REMOVED 2026-06-15: in-house-print deprecation — see archive/inhouse_print_deprecation/DEPRECATION_NOTICE.md)
 2.  Data Agent Chat → http://localhost:5000/data-agent-chat
 3.  Triple Agent → http://localhost:5000/
 4.  Single Viewer → http://localhost:5000/single-viewer
