@@ -392,6 +392,73 @@ def start_semantic_search_initialization():
     print("[STARTUP] Server will respond to health checks immediately\n")
 
 
+# ============================================================================
+# 🚀 BACKGROUND PGVECTOR BGE MODEL PRELOAD (Non-Blocking)
+# ============================================================================
+# The BAAI/bge-base-en-v1.5 embedding model (~440 MB on disk, 768-dim) is
+# downloaded on first call to pgvector_upload_document() / pgvector_query_vectors()
+# if it isn't already on /data.  On a fresh deploy with an empty persistent
+# disk that first call takes 30-60 s and can hit Render's request timeout,
+# surfacing as a 502 to the user (same pattern as the all-MiniLM-L6-v2
+# preload via initialize_semantic_search_async above, but for the
+# pgvector provider's embedding model).
+#
+# This preload runs in a daemon thread at startup so the first user upload
+# is instant.  Failures here are non-fatal: the model will still load on
+# first use, just with the original 30-60 s wait.
+#
+# Target cache dir matches pgvector_tools.py: /data/vdb_models on Render,
+# ~/.cache/vdb_models on local dev.  Subsequent deploys reuse the cached
+# snapshot — only the FIRST deploy on a fresh disk pays the download cost.
+_pgvector_bge_initialization_complete = False
+_pgvector_bge_initialization_error = None
+
+def initialize_pgvector_bge_model_async():
+    """Preload the pgvector BGE embedding model in a background thread."""
+    global _pgvector_bge_initialization_complete, _pgvector_bge_initialization_error
+
+    try:
+        print("\n" + "=" * 80)
+        print("[BACKGROUND] PRELOADING PGVECTOR BGE MODEL (BAAI/bge-base-en-v1.5, 768-dim)")
+        print("=" * 80)
+
+        from tools.implementations.pgvector import pgvector_tools
+
+        # force_local=True bypasses the org-vault credential lookup so a
+        # missing/invalid Voyage or OpenAI key can never cause this preload
+        # to 500.  Trivial 1-char input → embedding call is essentially
+        # instant; the cost is the one-time model load (~30-60 s on a fresh
+        # disk, <1 s on a warm cache).
+        vec = pgvector_tools._generate_embedding(".", user_id=1, force_local=True)
+        assert len(vec) == 768, f"Expected 768-dim vector from BGE, got {len(vec)}"
+
+        print(f"[BACKGROUND] [OK] BGE model ready — {len(vec)}-dim embeddings available")
+        print("=" * 80)
+        print("[BACKGROUND] ✅ PGVECTOR BGE MODEL READY — first upload will be instant")
+        print("=" * 80 + "\n")
+
+        _pgvector_bge_initialization_complete = True
+
+    except Exception as e:
+        print(f"[BACKGROUND] [ERROR] Failed to preload pgvector BGE model: {e}")
+        import traceback
+        print(traceback.format_exc())
+        print("=" * 80 + "\n")
+        _pgvector_bge_initialization_error = str(e)
+        # Non-fatal: the model will load on first use even if preload fails
+        # (the user just pays the 30-60 s download cost on first upload).
+
+def start_pgvector_bge_initialization():
+    """Start pgvector BGE model preload in background thread."""
+    thread = threading.Thread(
+        target=initialize_pgvector_bge_model_async,
+        daemon=True,
+        name="PgvectorBgePreload"
+    )
+    thread.start()
+    print("[STARTUP] 🚀 pgvector BGE model preload started in background\n")
+
+
 # Note: OAuth state tokens are stored in database (oauth_states table) instead of Flask sessions
 # This ensures cloud compatibility on Render (multi-instance, ephemeral filesystem)
 log_config(logger, "OAuth uses database-backed state storage (cloud-compatible)")
@@ -2658,6 +2725,12 @@ def health_check():
         'initialized': _semantic_search_initialization_complete,
         'error': _semantic_search_initialization_error
     }
+
+    # Check pgvector BGE model preload status (see initialize_pgvector_bge_model_async)
+    pgvector_bge_status = {
+        'initialized': _pgvector_bge_initialization_complete,
+        'error': _pgvector_bge_initialization_error
+    }
     
     response = jsonify({
         'status': 'healthy',
@@ -2666,6 +2739,7 @@ def health_check():
         'providers': ['anthropic', 'deepseek', 'openai'],
         'socketio': socketio_status,
         'semantic_search': semantic_search_status,
+        'pgvector_bge': pgvector_bge_status,
         'timestamp': datetime.now(UTC).isoformat() + 'Z',
         'environment': 'production' if IS_RENDER else 'development'
     })
@@ -4557,6 +4631,11 @@ if __name__ == '__main__':
     print("[STARTUP] Starting semantic search initialization in background...")
     print("[STARTUP] Server will respond to health checks immediately while embeddings load.\n")
     start_semantic_search_initialization()
+
+    # Preload the pgvector BGE embedding model on the persistent disk so
+    # the first user upload doesn't wait 30-60 s for the HuggingFace
+    # download.  Non-fatal on failure (see initialize_pgvector_bge_model_async).
+    start_pgvector_bge_initialization()
     
     if USE_SOCKETIO:
         # Use SocketIO server (supports WebSockets + HTTP)
