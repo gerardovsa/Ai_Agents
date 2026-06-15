@@ -218,10 +218,24 @@ ${lucideSetup}
     } catch (err) {
         // Surface any transpile/parse/runtime failure inside the sandbox so
         // a blank iframe is never silent — the user sees a red diagnostic
-        // instead of a white box.
+        // instead of a white box.  We build the innerHTML from short string
+        // fragments joined with `+` line continuations rather than one long
+        // single-quoted literal: a previous version packed an embedded \n\n
+        // escape into a 280-char single-quoted string, and a downstream
+        // re-emit of that source turned the escape into a real newline and
+        // broke Babel-standalone with an "Unterminated string constant" parse
+        // error.  Concatenation is unambiguous to every parser in the chain.
         const rootEl = document.getElementById('root');
         const msg = (err && err.message) ? err.message : String(err);
-        rootEl.innerHTML = '<pre style="color:#b91c1c;background:#fef2f2;padding:16px;border-radius:8px;white-space:pre-wrap;font-family:ui-monospace,monospace;font-size:13px;line-height:1.5;border:1px solid #fecaca;">⚠️ JSX execution error:\n\n' + msg + '</pre>';
+        const errorStyle = 'color:#b91c1c;background:#fef2f2;padding:16px;'
+            + 'border-radius:8px;white-space:pre-wrap;'
+            + 'font-family:ui-monospace,monospace;font-size:13px;'
+            + 'line-height:1.5;border:1px solid #fecaca;';
+        rootEl.innerHTML = '<pre style="' + errorStyle + '">'
+            + '⚠️ JSX execution error:'
+            + String.fromCharCode(10) + String.fromCharCode(10)
+            + msg
+            + '</pre>';
         window.parent.postMessage({ type: 'iframe-resize', id: '${chartId}', height: 400 }, '*');
         console.error('[REACT_RENDERER] iframe execution error:', err);
     }
