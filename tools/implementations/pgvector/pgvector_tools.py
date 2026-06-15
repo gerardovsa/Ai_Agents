@@ -619,7 +619,11 @@ def pgvector_upload_document(
         for i, chunk in enumerate(chunks):
             embedding = _generate_embedding(chunk, user_id, force_local=_force_local)
             vectors.append({
-                'id': f"{document_id}_chunk_{i}",
+                # Row PK is a real UUID — see migration 044 (`id UUID PRIMARY KEY`).
+                # The human-readable `document_id` (e.g. "doc_3c606f76") is stored
+                # in its own TEXT column; do not concatenate `_chunk_N` onto a
+                # non-UUID business key or the %s::uuid cast will reject it.
+                'id': str(uuid.uuid4()),
                 'values': embedding,
                 'metadata': {
                     'document_id':   document_id,
