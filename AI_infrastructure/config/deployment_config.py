@@ -43,13 +43,8 @@ RENDER_DISABLED_MODULES = [
     'design-engineering',
     'github',
     # 'inhouse-kanban',    # ← KEEP THIS ENABLED (the only external module visible on Render)
-    'inhouse-print',
     'parametric-cad',
-    'quote-calculator',
     'render-management',
-    'salesforce',
-    'shopify',
-    'stock-management',
     'veterinary_alerts',
     'voip-demo',
     'vsa-veterinary-alerts',

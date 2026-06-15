@@ -1,4 +1,4 @@
-﻿"""
+"""
 Module Plugin Loader - Auto-discovers and loads tools from UI/external/modules
 
 This loader enables plug-and-play architecture:
@@ -8,12 +8,9 @@ This loader enables plug-and-play architecture:
 
 Architecture:
     UI/external/modules/
-    ├── quote-calculator/
-    │   ├── schema/calculator_tools.json       ← Tool definitions (AI-readable)
-    │   └── implementations/calculator_wrapper.py  ← Tool implementations
-    └── stock-management/
-        ├── schema/stock_tools.json
-        └── implementations/stock_wrapper.py
+    └── <module-id>/
+        ├── schema/<module>_tools.json       ← Tool definitions (AI-readable)
+        └── implementations/<module>_wrapper.py  ← Tool implementations
 
 Usage:
     from tools.plugins.module_plugin_loader import ModulePluginLoader
@@ -97,7 +94,7 @@ class ModulePluginLoader:
         Load all tool schemas from a module's schema/ folder
         
         Args:
-            module_id: Module folder name (e.g. 'quote-calculator')
+            module_id: Module folder name (e.g. 'inhouse-kanban')
         
         Returns:
             List of tool schemas

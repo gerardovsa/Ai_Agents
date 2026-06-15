@@ -89,9 +89,9 @@ AI_agents/                                       (this repo root, package.json "
 │   ├── modules_internal/                        # Built-in sidebar modules: vector_database, communication-hub, messages,
 │   │                                           # agents, automation, notifications, internal-docs, components
 │   └── modules_external/                        # Plugin modules (see §4 Architecture — Module Plugin System)
-│       ├── shopify/, xero/, woocommerce/, auspost-shipping/, inhouse-print/, inhouse-kanban/,
-│       │   quote-calculator/, customer-reactivation/, database-visualizer/, github/, render-management/,
-│       │   local-filesystem/, dev-diagnostics/, stock-management/, cad-chat-renderer.js, ui-command-processor.js
+│       ├── shopify/, xero/, woocommerce/, auspost-shipping/, inhouse-kanban/,
+│       │   customer-reactivation/, database-visualizer/, github/, render-management/,
+│       │   local-filesystem/, dev-diagnostics/, cad-chat-renderer.js, ui-command-processor.js
 │       └── manifest.json                        # Static module loader (being replaced by DB-driven `initModulesFromOrg()`)
 │
 ├── tools/                                       # Tool implementations consumed by the registry
@@ -626,7 +626,7 @@ These are **real, repository-evidenced** risks — not generic advice.
 
 2. **WooCommerce module has unresolved 400 validation errors** — `woocommerce_v4_exemplar_status.md` is the open ticket. Only the WooCommerce module has completed the Module V4 pattern migration; 13 other modules are still pending it.
 
-3. **InHousePrint path resolution** — `UI/modules_external/inhouse-print/implementations/inhouse_wrapper.py` does explicit `sys.path` surgery. Do not refactor that block without re-running the calculator + SQL tools. The bypass of `ToolUseAgent` is intentional and load-bearing (see `INHOUSE_TOOLS_COMPLETE_FIX_JAN13_2026.md`).
+3. **In-house-print product surface deprecated (2026-06-15)** — The `inhouse-print`, `quote-calculator`, and `stock-management` modules have been moved to `archive/inhouse_print_deprecation/` on branch `cleanup/inhouse-print-deprecation`. The live tree no longer imports them; if a task requires the historical InHousePrint path-resolution code (e.g. the `sys.path` surgery in `inhouse_wrapper.py`), consult the archive copy rather than restoring the live module. The `inhouse-kanban` module remains live.
 
 4. **`g.rls_user_id` in pre-existing route files** — any route that still uses `request.args.get('user_id', 1)` or `user_id = 1` is a **security bug** (GAP-V1 pattern). When touching any route file, check that the auth decorator is in place. Use `git grep "user_id *= *1"` and `git grep "request.args.get('user_id')"` as quick audits.
 
@@ -658,7 +658,7 @@ These are **real, repository-evidenced** risks — not generic advice.
 - `requirements.txt` — edit by hand, but pin to exact versions when adding; the file is grouped by function with comments.
 - `AI_infrastructure/migrations/NNN_*.sql` after deploy — once a migration has run in any environment, do not edit it; write a new migration.
 - `UI/modules_external/manifest.json` — being replaced by DB-driven loading. Don't add new entries here.
-- `UI/modules_external/quote-calculator/backend/query_library.py` (~5,958 lines) — generated / data-heavy; edit only via its generator.
+- `archive/inhouse_print_deprecation/quote-calculator/backend/query_library.py` (~5,958 lines) — historical / data-heavy; only the archived copy remains. Do not resurrect into the live tree.
 - `AI_infrastructure/flask_app copy.py` and `AI_infrastructure/routes/* copy.py` — historical copies.
 - BGE model snapshot files at `/data/vdb_models/…` or `~/.cache/vdb_models/…` — managed by `sentence-transformers`.
 - `.env.master` — add new env-var **keys** to the template; never put real values.

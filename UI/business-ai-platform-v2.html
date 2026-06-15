@@ -2487,11 +2487,6 @@
             border-color: var(--accent-primary);
         }
 
-        /* Calculator Test Dashboard Button - Uses platform colors */
-        .sidebar-icon-btn[data-action="calculator-tests"] {
-            /* Uses default sidebar button styling */
-        }
-
         .sidebar-divider {
             width: 30px;
             height: 1px;
@@ -18706,10 +18701,6 @@
                 <i class="fas fa-search"></i>
             </button>
 
-            <!-- <button class="sidebar-icon-btn" data-tab="stock" title="Stock Management">
-                <i class="fas fa-boxes"></i>
-            </button> -->
-
             <button class="sidebar-icon-btn" id="transcription-sidebar-toggle" data-action="transcription-sidebar"
                 title="Transcript Processing">
                 <i class="fas fa-microphone"></i>
@@ -18746,11 +18737,6 @@
             </div>
 
             <div class="sidebar-divider"></div>
-
-            <button class="sidebar-icon-btn" data-action="calculator-tests" data-org-min-role="admin" title="Calculator Tests (Admin)"
-                onclick="openCalculatorDashboard()">
-                <i class="fas fa-calculator"></i>
-            </button>
 
             <button class="sidebar-icon-btn" data-action="settings" title="Settings"
                 onclick="window.openSettingsSidebar()">
@@ -19888,19 +19874,6 @@
                             </button>
                         </div>
                         <p style="color: var(--text-secondary);">Document management content coming soon...</p>
-                    </div>
-                </div>
-
-                <!-- ==================== STOCK TAB ==================== -->
-                <div class="tab-content" id="tab-stock">
-                    <h2 style="margin-bottom: var(--space-5); font-size: 28px;">
-                        <i class="fas fa-boxes"></i> Stock Management
-                    </h2>
-
-                    <div class="dashboard-card">
-                        <p style="color: var(--text-secondary);">
-                            Stock management content will be migrated from stock_management_updated.html
-                        </p>
                     </div>
                 </div>
 
@@ -31407,9 +31380,6 @@
             // Map: module_name → { action: string used in data-action, tabId (optional) }
             const ZONE2_MODULES = {
                 'inhouse_kanban':        { action: 'inhouse-kanban',         tabId: 'tab-inhouse-kanban' },
-                'inhouse_print':         { action: 'inhouse-print',          tabId: null },
-                'quote_calculator':      { action: 'calculator-tests',       tabId: null },
-                'stock_management':      { action: 'stock-management',       tabId: 'tab-stock' },
                 'xero':                  { action: 'xero-dashboard',         tabId: null },
                 'shopify':               { action: 'shopify-dashboard',      tabId: null },
                 'auspost_shipping':      { action: 'auspost',                tabId: null },
@@ -35224,43 +35194,6 @@ Thanks`;
 
             console.log('[CHAT INPUT] Container toggle initialized - click bar to expand');
         })();
-    </script>
-
-    <!-- ==================== CALCULATOR DASHBOARD ==================== -->
-    <script>
-        /**
-         * Open Calculator Test Dashboard in new window
-         * Tests all 35 quote calculators through Registry V3
-         */
-        function openCalculatorDashboard() {
-            console.log('[CALCULATOR] Opening test dashboard...');
-
-            // Open in new window with specific dimensions
-            const width = 1400;
-            const height = 900;
-            const left = (screen.width - width) / 2;
-            const top = (screen.height - height) / 2;
-
-            const dashboardWindow = window.open(
-                '/calculator_test_dashboard.html',
-                'CalculatorDashboard',
-                `width=${width},height=${height},left=${left},top=${top},resizable=yes,scrollbars=yes,toolbar=no,menubar=no,location=no,status=yes`
-            );
-
-            if (dashboardWindow) {
-                dashboardWindow.focus();
-                showToast('Calculator Dashboard opened in new window', 'success');
-                console.log('[CALCULATOR] Dashboard opened successfully');
-            } else {
-                showToast('Please allow popups to open Calculator Dashboard', 'warning');
-                console.warn('[CALCULATOR] Popup blocked - please allow popups');
-
-                // Fallback: open in new tab
-                window.open('/calculator_test_dashboard.html', '_blank');
-            }
-        }
-
-        console.log('[CALCULATOR] Dashboard launcher initialized');
     </script>
 
     <!-- Notification System - Load in exact order -->

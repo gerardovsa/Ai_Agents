@@ -607,9 +607,9 @@ app.register_blueprint(user_preferences_bp)                          # NEW: User
 app.register_blueprint(geolocation_bp)                               # NEW: Geolocation detection (2 endpoints: /api/geolocation/*)
 app.register_blueprint(thread_assignment_bp)                         # NEW: Thread assignments (7 endpoints: /api/thread-assignments/*)
 
-# Calculator Test Dashboard routes
-from routes.calculator_test_routes import calculator_test_bp
-app.register_blueprint(calculator_test_bp, url_prefix='/api/calculator-test')  # NEW: Calculator testing dashboard (5 endpoints: /api/calculator-test/*)
+# Calculator Test Dashboard routes (DISABLED 2026-06-15: inhouse-print deprecation)
+# from routes.calculator_test_routes import calculator_test_bp
+# app.register_blueprint(calculator_test_bp, url_prefix='/api/calculator-test')  # DISABLED: Calculator testing dashboard (5 endpoints: /api/calculator-test/*)
 
 # Vector Database Enhanced Routes
 try:
@@ -658,7 +658,6 @@ try:
     module_bp_count = load_module_blueprints(app)
     log_module(logger, f"Loaded {module_bp_count} module blueprints from UI/modules_external")
     log_route(logger, "Auto-discovered routes from: UI/modules_external/*/routes/*.py")
-    log_route(logger, "Stock Management: /api/stock-management/* (Blueprint auto-loaded)")
 except Exception as e:
     log_warning(logger, f"Module blueprints not loaded: {e} (Module blueprints are optional)")
 
@@ -3052,11 +3051,6 @@ FAVICON_DIR = Path(__file__).parent / 'static'
 # CRITICAL FIX DEC 16 2025: Define UI_DIR for module file serving
 UI_DIR = str(Path(__file__).parent.parent / 'UI')  # AI_agents/UI directory
 
-@app.route('/stock-management')
-def serve_stock_management():
-    """Serve Stock Management HTML UI"""
-    return send_from_directory(TEMPLATE_DIR, 'stock_management.html')
-
 @app.route('/single-agent-viewer')
 @app.route('/data-agent-chat')
 def serve_single_agent_viewer():
@@ -4215,7 +4209,6 @@ def clear_call_history():
 # STATIC FILES (Frontend)
 # ============================================================================
 # NOTE: Template serving moved to top of file (after health check)
-# - /stock-management → stock_management.html
 # - /single-agent-viewer → single_agent_viewer.html
 # - /triple-agent or / → triple_agent.html
 # - /static/<file> → static files

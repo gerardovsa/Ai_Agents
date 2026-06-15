@@ -454,9 +454,9 @@ class RegistryV3:
         
         Module structure:
             UI/external/modules/
-            +-- quote-calculator/
-                +-- schema/calculator_tools.json       <- Tool definitions
-                +-- implementations/calculator_wrapper.py  <- Tool implementations
+            +-- <module-id>/
+                +-- schema/<module>_tools.json       <- Tool definitions
+                +-- implementations/<module>_wrapper.py  <- Tool implementations
         """
         try:
             from tools.plugins.module_plugin_loader import load_module_plugins
