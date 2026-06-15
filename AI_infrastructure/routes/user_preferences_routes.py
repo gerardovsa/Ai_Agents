@@ -135,6 +135,14 @@ def get_or_create_preferences_table():
                 ai_thinking_enabled INTEGER DEFAULT 0,
                 ai_thinking_budget INTEGER DEFAULT 10000,
                 ai_streaming_enabled INTEGER DEFAULT 1,
+                -- Migration 053 (June 15, 2026) — fields the frontend has
+                -- been silently dropping because the schema was missing
+                -- the corresponding columns
+                theme                VARCHAR(20) DEFAULT 'dark',
+                enable_notifications INTEGER     DEFAULT 1,
+                enable_sounds        INTEGER     DEFAULT 1,
+                max_rounds           INTEGER     DEFAULT 20,
+                round_timeout        INTEGER     DEFAULT 30,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 FOREIGN KEY (user_id) REFERENCES users(id)
@@ -228,7 +236,7 @@ def get_preferences():
         cursor = conn.cursor()
         
         cursor.execute("""
-            SELECT 
+            SELECT
                 user_id,
                 communication_style,
                 detail_level,
@@ -254,13 +262,18 @@ def get_preferences():
                 ai_thinking_enabled,
                 ai_thinking_budget,
                 ai_streaming_enabled,
+                theme,
+                enable_notifications,
+                enable_sounds,
+                max_rounds,
+                round_timeout,
                 updated_at
             FROM ai_infrastructure.user_preferences
             WHERE user_id = %s
         """, (user_id,))
-        
+
         row = cursor.fetchone()
-        
+
         if not row:
             # ✅ Close BEFORE early return
             cursor.close()
@@ -309,6 +322,11 @@ def get_preferences():
                     'ai_thinking_enabled': 0,
                     'ai_thinking_budget': DEFAULT_AI_THINKING_BUDGET,
                     'ai_streaming_enabled': 1,
+                    'theme': 'dark',
+                    'enable_notifications': 1,
+                    'enable_sounds': 1,
+                    'max_rounds': 20,
+                    'round_timeout': 30,
                     'updated_at': None
                 }
             }), 200
@@ -388,6 +406,11 @@ def get_preferences():
                 'ai_thinking_enabled': row['ai_thinking_enabled'] or 0,
                 'ai_thinking_budget': row['ai_thinking_budget'] or DEFAULT_AI_THINKING_BUDGET,
                 'ai_streaming_enabled': row['ai_streaming_enabled'] if row['ai_streaming_enabled'] is not None else 1,
+                'theme': row['theme'] or 'dark',
+                'enable_notifications': row['enable_notifications'] if row['enable_notifications'] is not None else 1,
+                'enable_sounds': row['enable_sounds'] if row['enable_sounds'] is not None else 1,
+                'max_rounds': row['max_rounds'] if row['max_rounds'] is not None else 20,
+                'round_timeout': row['round_timeout'] if row['round_timeout'] is not None else 30,
                 'updated_at': row['updated_at']
             }
         }), 200
@@ -540,6 +563,27 @@ def save_preferences():
         ai_thinking_enabled = 1 if data.get('ai_thinking_enabled', False) else 0
         ai_thinking_budget = int(data.get('ai_thinking_budget', DEFAULT_AI_THINKING_BUDGET))
         ai_streaming_enabled = 1 if data.get('ai_streaming_enabled', True) else 0
+
+        # Frontend-only fields (Migration 053 — June 15, 2026).
+        # These were previously silently dropped because the schema had no
+        # columns. We now read them from the POST body, validate lightly,
+        # and persist them alongside the other preferences.
+        VALID_THEMES = ('dark', 'light', 'auto')
+        theme = data.get('theme', 'dark')
+        if theme not in VALID_THEMES:
+            theme = 'dark'
+        enable_notifications = 1 if data.get('enable_notifications', True) else 0
+        enable_sounds = 1 if data.get('enable_sounds', True) else 0
+        try:
+            max_rounds = int(data.get('max_rounds', 20))
+        except (TypeError, ValueError):
+            max_rounds = 20
+        max_rounds = max(1, min(max_rounds, 100))   # clamp 1..100
+        try:
+            round_timeout = int(data.get('round_timeout', 30))
+        except (TypeError, ValueError):
+            round_timeout = 30
+        round_timeout = max(5, min(round_timeout, 600))  # clamp 5..600 seconds
         
         # Auto-detect location from IP if not manually set
         if not use_manual_location:
@@ -587,14 +631,16 @@ def save_preferences():
                 UPDATE ai_infrastructure.user_preferences
                 SET communication_style = %s, detail_level = %s, auth_platform = %s, preferred_tools = %s, custom_preferences = %s, nickname = %s, detected_country = %s, detected_city = %s, detected_timezone = %s, detected_ip_address = %s, manual_location_override = %s, manual_timezone_override = %s, use_manual_location = %s, use_manual_timezone = %s, ai_memories = %s,
                     ai_model = %s, ai_temperature = %s, ai_top_p = %s, ai_max_tokens = %s, ai_thinking_enabled = %s, ai_thinking_budget = %s, ai_streaming_enabled = %s,
+                    theme = %s, enable_notifications = %s, enable_sounds = %s, max_rounds = %s, round_timeout = %s,
                     memory_updated_at = CURRENT_TIMESTAMP,
                     last_location_check = CURRENT_TIMESTAMP,
                     updated_at = CURRENT_TIMESTAMP
                 WHERE user_id = %s
-            """, (communication_style, detail_level, auth_platform, preferred_tools, custom_preferences, 
+            """, (communication_style, detail_level, auth_platform, preferred_tools, custom_preferences,
                   nickname, detected_country, detected_city, detected_timezone, detected_ip_address,
                   manual_location_override, manual_timezone_override, use_manual_location, use_manual_timezone,
-                  ai_memories, ai_model, ai_temperature, ai_top_p, ai_max_tokens, ai_thinking_enabled, ai_thinking_budget, ai_streaming_enabled, user_id))
+                  ai_memories, ai_model, ai_temperature, ai_top_p, ai_max_tokens, ai_thinking_enabled, ai_thinking_budget, ai_streaming_enabled,
+                  theme, enable_notifications, enable_sounds, max_rounds, round_timeout, user_id))
         else:
             # Insert new preferences
             cursor.execute("""
@@ -603,19 +649,21 @@ def save_preferences():
                  nickname, detected_country, detected_city, detected_timezone, detected_ip_address,
                  manual_location_override, manual_timezone_override, use_manual_location, use_manual_timezone,
                  ai_memories, ai_model, ai_temperature, ai_top_p, ai_max_tokens, ai_thinking_enabled, ai_thinking_budget, ai_streaming_enabled,
+                 theme, enable_notifications, enable_sounds, max_rounds, round_timeout,
                  memory_updated_at, last_location_check)
-                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
             """, (user_id, communication_style, detail_level, auth_platform, preferred_tools, custom_preferences,
                   nickname, detected_country, detected_city, detected_timezone, detected_ip_address,
                   manual_location_override, manual_timezone_override, use_manual_location, use_manual_timezone,
-                  ai_memories, ai_model, ai_temperature, ai_top_p, ai_max_tokens, ai_thinking_enabled, ai_thinking_budget, ai_streaming_enabled))
+                  ai_memories, ai_model, ai_temperature, ai_top_p, ai_max_tokens, ai_thinking_enabled, ai_thinking_budget, ai_streaming_enabled,
+                  theme, enable_notifications, enable_sounds, max_rounds, round_timeout))
         
         # Commit before retrieving (so we get updated data)
         conn.commit()
         
         # Retrieve updated preferences
         cursor.execute("""
-            SELECT 
+            SELECT
                 user_id,
                 communication_style,
                 detail_level,
@@ -634,6 +682,18 @@ def save_preferences():
                 last_location_check,
                 ai_memories,
                 memory_updated_at,
+                ai_model,
+                ai_temperature,
+                ai_top_p,
+                ai_max_tokens,
+                ai_thinking_enabled,
+                ai_thinking_budget,
+                ai_streaming_enabled,
+                theme,
+                enable_notifications,
+                enable_sounds,
+                max_rounds,
+                round_timeout,
                 updated_at
             FROM ai_infrastructure.user_preferences
             WHERE user_id = %s
@@ -688,6 +748,18 @@ def save_preferences():
                 'last_location_check': row['last_location_check'],
                 'ai_memories': row['ai_memories'] or '[]',
                 'memory_updated_at': row['memory_updated_at'],
+                'ai_model': row['ai_model'] or DEFAULT_AI_MODEL,
+                'ai_temperature': row['ai_temperature'] if row['ai_temperature'] is not None else DEFAULT_AI_TEMPERATURE,
+                'ai_top_p': row['ai_top_p'] if row['ai_top_p'] is not None else DEFAULT_AI_TOP_P,
+                'ai_max_tokens': row['ai_max_tokens'] or DEFAULT_AI_MAX_TOKENS,
+                'ai_thinking_enabled': row['ai_thinking_enabled'] or 0,
+                'ai_thinking_budget': row['ai_thinking_budget'] or DEFAULT_AI_THINKING_BUDGET,
+                'ai_streaming_enabled': row['ai_streaming_enabled'] if row['ai_streaming_enabled'] is not None else 1,
+                'theme': row['theme'] or 'dark',
+                'enable_notifications': row['enable_notifications'] if row['enable_notifications'] is not None else 1,
+                'enable_sounds': row['enable_sounds'] if row['enable_sounds'] is not None else 1,
+                'max_rounds': row['max_rounds'] if row['max_rounds'] is not None else 20,
+                'round_timeout': row['round_timeout'] if row['round_timeout'] is not None else 30,
                 'updated_at': row['updated_at']
             }
         }), 200
@@ -732,7 +804,7 @@ def get_user_preferences(user_id):
         cursor = conn.cursor()
         
         cursor.execute("""
-            SELECT 
+            SELECT
                 user_id,
                 communication_style,
                 detail_level,
@@ -751,16 +823,23 @@ def get_user_preferences(user_id):
                 last_location_check,
                 ai_model,
                 ai_temperature,
+                ai_top_p,
                 ai_max_tokens,
                 ai_thinking_enabled,
                 ai_thinking_budget,
+                ai_streaming_enabled,
+                theme,
+                enable_notifications,
+                enable_sounds,
+                max_rounds,
+                round_timeout,
                 updated_at
             FROM ai_infrastructure.user_preferences
             WHERE user_id = %s
         """, (user_id,))
-        
+
         row = cursor.fetchone()
-        
+
         if not row:
             # ✅ Close BEFORE early return
             cursor.close()
@@ -768,13 +847,13 @@ def get_user_preferences(user_id):
             conn.close()
             conn = None
             return None
-        
+
         # ✅ Close cursor BEFORE connection
         cursor.close()
         cursor = None
         conn.close()
         conn = None
-        
+
         return {
             'user_id': row['user_id'],
             'communication_style': row['communication_style'],
@@ -794,9 +873,16 @@ def get_user_preferences(user_id):
             'last_location_check': row['last_location_check'],
             'ai_model': row['ai_model'],
             'ai_temperature': row['ai_temperature'],
+            'ai_top_p': row['ai_top_p'],
             'ai_max_tokens': row['ai_max_tokens'],
             'ai_thinking_enabled': row['ai_thinking_enabled'],
             'ai_thinking_budget': row['ai_thinking_budget'],
+            'ai_streaming_enabled': row['ai_streaming_enabled'],
+            'theme': row['theme'],
+            'enable_notifications': row['enable_notifications'],
+            'enable_sounds': row['enable_sounds'],
+            'max_rounds': row['max_rounds'],
+            'round_timeout': row['round_timeout'],
             'updated_at': row['updated_at']
         }
     except Exception as e:

@@ -1592,7 +1592,10 @@ def update_user_preferences():
             'manual_location_override', 'manual_timezone_override',
             'use_manual_location', 'use_manual_timezone',
             'ai_model', 'ai_temperature', 'ai_top_p', 'ai_max_tokens',
-            'ai_thinking_enabled', 'ai_thinking_budget', 'ai_streaming_enabled'
+            'ai_thinking_enabled', 'ai_thinking_budget', 'ai_streaming_enabled',
+            # Migration 053 (June 15, 2026) — columns previously silently dropped
+            'theme', 'enable_notifications', 'enable_sounds',
+            'max_rounds', 'round_timeout'
         ]
         
         updates = []

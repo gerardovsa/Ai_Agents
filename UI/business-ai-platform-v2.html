@@ -21804,9 +21804,21 @@
                         <div class="settings-field">
                             <label>AI Model</label>
                             <select id="modelSelect" onchange="onModelChange()">
+                                <!--
+                                    (June 15, 2026) The `selected` attribute on Claude
+                                    Sonnet 4.6 was REMOVED. Hard-coding a `selected`
+                                    attribute caused the model dropdown to revert to
+                                    Sonnet 4.6 on every reload, even when the user's
+                                    saved DB value was different (e.g. MiniMax-M3).
+                                    The canonical loader in
+                                    `loadAndPopulatePreferences` now sets the value
+                                    from `/api/user/preferences`, and
+                                    `loadModelCatalog` does the same when the
+                                    dynamic catalog is available.
+                                -->
                                 <!-- ── Anthropic ─────────────────────────────────── -->
                                 <optgroup label="Anthropic">
-                                    <option value="claude-sonnet-4-6-20260213" selected>Claude Sonnet 4.6 ★ Recommended</option>
+                                    <option value="claude-sonnet-4-6-20260213">Claude Sonnet 4.6 ★ Recommended</option>
                                     <option value="claude-sonnet-4-5-20250929">Claude Sonnet 4.5</option>
                                     <option value="claude-haiku-4-5-20251001">Claude Haiku 4.5 (Fast)</option>
                                     <option value="claude-sonnet-4-20250514">Claude Sonnet 4</option>
@@ -21872,7 +21884,7 @@
                         </div>
 
                         <div class="settings-checkbox">
-                            <input type="checkbox" id="enableThinking" checked onchange="onThinkingToggle()">
+                            <input type="checkbox" id="enableThinking" onchange="onThinkingToggle()">
                             <label for="enableThinking">Enable Extended Thinking</label>
                         </div>
                         <small style="color: var(--text-muted); margin-top: 8px; display: block;">Improved
@@ -21916,7 +21928,7 @@
                         </div>
 
                         <div class="settings-checkbox">
-                            <input type="checkbox" id="enableStreaming" checked onchange="saveSettings()">
+                            <input type="checkbox" id="enableStreaming" onchange="saveSettings()">
                             <label for="enableStreaming">Enable Streaming Responses (Real-time output)</label>
                         </div>
                     </div>
@@ -22223,14 +22235,14 @@
                     </div>
                     <div class="settings-section-content">
                         <div class="settings-checkbox">
-                            <input type="checkbox" id="enableNotifications" checked onchange="saveSettings()">
+                            <input type="checkbox" id="enableNotifications" onchange="saveSettings()">
                             <label for="enableNotifications">Enable Browser Notifications</label>
                         </div>
                         <small style="color: var(--text-muted); margin-top: 4px; display: block;">Receive
                             notifications for task completions and important updates</small>
 
                         <div class="settings-checkbox" style="margin-top: var(--space-3);">
-                            <input type="checkbox" id="enableSounds" checked onchange="saveSettings()">
+                            <input type="checkbox" id="enableSounds" onchange="saveSettings()">
                             <label for="enableSounds">Enable Sound Notifications</label>
                         </div>
                         <small style="color: var(--text-muted); margin-top: 4px; display: block;">Play sounds
@@ -22279,7 +22291,7 @@
                                 </label>
                                 <label
                                     style="flex: 1; display: flex; align-items: center; justify-content: center; gap: 10px; padding: 12px; background: var(--bg-tertiary); border: 2px solid var(--border-default); border-radius: 8px; cursor: pointer; transition: all 0.2s;">
-                                    <input type="radio" name="theme" value="dark" checked onchange="saveSettings()"
+                                    <input type="radio" name="theme" value="dark" onchange="saveSettings()"
                                         style="cursor: pointer;">
                                     <i class="fas fa-moon" style="font-size: 18px;"></i>
                                     <span style="font-weight: 500;">Dark</span>
@@ -22670,7 +22682,7 @@
                                 </label>
                                 <label
                                     style="display: flex; align-items: center; gap: 10px; margin: 0; cursor: pointer; padding: 8px 14px; background: var(--bg-tertiary); border: 1.5px solid var(--border-default); border-radius: 8px; transition: all 0.2s;">
-                                    <input type="radio" name="detailLevel" value="standard" checked
+                                    <input type="radio" name="detailLevel" value="standard"
                                         onchange="saveSettings()" style="cursor: pointer; width: 16px; height: 16px;">
                                     <span style="font-size: 14px;">Standard</span>
                                 </label>
@@ -30856,7 +30868,19 @@
             },
 
             /**
-             * Load user preferences from database and populate all form fields
+             * CANONICAL loader for the Account Profile.
+             *
+             * Precedence rule (June 15, 2026):
+             *   1. Supabase DB (authoritative) — GET /api/user/preferences
+             *   2. localStorage.accountSettings (write-through cache, offline fallback)
+             *   3. Empty (do NOT use static HTML defaults — those caused the
+             *      "model dropdown reverts to Claude Sonnet 4.6" bug and 29
+             *      other field-load-order bugs)
+             *
+             * Replaces the old `loadAndPopulatePreferences` (which used
+             * /api/auth/preferences and was one of three competing loaders).
+             * The other two (`loadSectionData` and `loadModelCatalog`'s value
+             * branch) are now removed.
              */
             async loadAndPopulatePreferences() {
                 try {
@@ -30866,121 +30890,175 @@
                         return;
                     }
 
-                    console.log('[PREFERENCES] Fetching from /api/auth/preferences...');
-                    const response = await fetch(`${API_BASE_URL}/api/auth/preferences`, {
-                        headers: {
-                            'Authorization': `Bearer ${token}`,
-                            'Content-Type': 'application/json'
+                    console.log('[PREFERENCES] Fetching from /api/user/preferences (canonical)...');
+                    let prefs = {};
+                    let dbReachable = false;
+                    try {
+                        const response = await fetch(`${API_BASE_URL}/api/user/preferences`, {
+                            headers: {
+                                'Authorization': `Bearer ${token}`,
+                                'Content-Type': 'application/json'
+                            }
+                        });
+                        if (response.ok) {
+                            const data = await response.json();
+                            if (data.success && data.data) {
+                                prefs = data.data;
+                                dbReachable = true;
+                                console.log('[PREFERENCES] DB values received:', prefs);
+                            }
+                        } else {
+                            console.warn(`[PREFERENCES] /api/user/preferences returned HTTP ${response.status}; falling back to localStorage`);
                         }
-                    });
-
-                    if (!response.ok) {
-                        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                    } catch (networkErr) {
+                        console.warn('[PREFERENCES] Network error reaching DB; falling back to localStorage:', networkErr);
                     }
 
-                    const data = await response.json();
-                    console.log('[PREFERENCES] Data received:', data);
-
-                    if (data.success && data.preferences) {
-                        const prefs = data.preferences;
-
-                        // Populate all form fields
-                        this.setFieldValue('userNickname', prefs.nickname);
-                        this.setFieldValue('communicationStyle', prefs.communication_style);
-                        this.setRadioValue('detailLevel', prefs.detail_level);
-                        this.setFieldValue('authPlatform', prefs.auth_platform);
-
-                        // Location fields
-                        if (prefs.detected_country && prefs.detected_city) {
-                            this.setTextContent('detectedLocation', `${prefs.detected_city}, ${prefs.detected_country}`);
-                        }
-                        if (prefs.detected_timezone) {
-                            this.setTextContent('detectedTimezone', prefs.detected_timezone);
-                        }
-                        if (prefs.detected_ip_address) {
-                            this.setTextContent('detectedIP', prefs.detected_ip_address);
-                        }
-
-                        // Manual overrides
-                        this.setCheckboxValue('useManualLocation', prefs.use_manual_location);
-                        this.setFieldValue('manualLocation', prefs.manual_location_override);
-                        this.setCheckboxValue('useManualTimezone', prefs.use_manual_timezone);
-                        this.setFieldValue('manualTimezone', prefs.manual_timezone_override);
-
-                        // Mandatory instructions
-                        if (prefs.preferred_tools) {
-                            try {
-                                const tools = JSON.parse(prefs.preferred_tools);
-                                window.preferredTools = tools || [];
-                                if (typeof renderPreferredTools === 'function') {
-                                    renderPreferredTools();
-                                }
-                            } catch (e) {
-                                console.error('[PREFERENCES] Error parsing preferred_tools:', e);
-                            }
-                        }
-
-                        // Custom preferences
-                        if (prefs.custom_preferences) {
-                            try {
-                                const customPrefs = JSON.parse(prefs.custom_preferences);
-                                window.customPreferences = customPrefs || [];
-                                if (typeof renderCustomPreferences === 'function') {
-                                    renderCustomPreferences();
-                                }
-                            } catch (e) {
-                                console.error('[PREFERENCES] Error parsing custom_preferences:', e);
-                            }
-                        }
-
-                        console.log('[PREFERENCES] ? All fields populated successfully');
+                    // Write-through cache: refresh localStorage from DB so the
+                    // next page load (or a momentarily-offline page load) has
+                    // the authoritative values.
+                    if (dbReachable) {
+                        try { localStorage.setItem('accountSettings', JSON.stringify(prefs)); }
+                        catch (e) { console.warn('[PREFERENCES] localStorage write-through failed:', e); }
                     }
+
+                    // Read the localStorage cache as a fallback only if DB
+                    // did not return data for a given field.
+                    const localCache = (() => {
+                        try { return JSON.parse(localStorage.getItem('accountSettings') || '{}'); }
+                        catch (_) { return {}; }
+                    })();
+
+                    // Helpers
+                    const set = (id, key) => {
+                        const el = document.getElementById(id);
+                        if (!el) return;
+                        const v = prefs[key];
+                        if (v !== undefined && v !== null && v !== '') {
+                            el.value = v;
+                        } else if (localCache[key] !== undefined && localCache[key] !== null && localCache[key] !== '') {
+                            el.value = localCache[key];
+                        }
+                        // else: leave the field empty (no HTML default)
+                    };
+                    const setChecked = (id, key) => {
+                        const el = document.getElementById(id);
+                        if (!el) return;
+                        const v = prefs[key];
+                        if (v !== undefined && v !== null) {
+                            el.checked = !!v;
+                        } else if (localCache[key] !== undefined && localCache[key] !== null) {
+                            el.checked = !!localCache[key];
+                        }
+                    };
+                    const setRadio = (name, key) => {
+                        const v = prefs[key] !== undefined && prefs[key] !== null ? prefs[key] : localCache[key];
+                        if (v === undefined || v === null) return;
+                        const el = document.querySelector(`input[name="${name}"][value="${v}"]`);
+                        if (el) el.checked = true;
+                    };
+                    const setText = (id, text) => {
+                        const el = document.getElementById(id);
+                        if (el && text) el.textContent = text;
+                    };
+
+                    // ── AI Settings tab ─────────────────────────────────────
+                    // Note: modelSelect is set inside loadModelCatalog() AFTER
+                    // the catalog options are rebuilt, to avoid clobbering.
+                    set('temperature',    'ai_temperature');
+                    set('topP',           'ai_top_p');
+                    set('maxTokens',      'ai_max_tokens');
+                    set('thinkingBudgetSlider', 'ai_thinking_budget');
+                    setChecked('enableThinking',  'ai_thinking_enabled');
+                    setChecked('enableStreaming', 'ai_streaming_enabled');
+                    set('maxRounds',      'max_rounds');
+                    set('roundTimeout',   'round_timeout');
+
+                    // Sync the temperature / top_p / tokens display labels
+                    if (typeof updateSliderDisplays === 'function') updateSliderDisplays();
+
+                    // ── Personalization tab ─────────────────────────────────
+                    set('userNickname',       'nickname');
+                    set('communicationStyle', 'communication_style');
+                    setRadio('detailLevel',   'detail_level');
+                    set('authPlatform',       'auth_platform');
+
+                    // ── Location tab ────────────────────────────────────────
+                    if (prefs.detected_city && prefs.detected_country) {
+                        setText('detectedLocation', `${prefs.detected_city}, ${prefs.detected_country}`);
+                    } else if (localCache.detected_city && localCache.detected_country) {
+                        setText('detectedLocation', `${localCache.detected_city}, ${localCache.detected_country}`);
+                    }
+                    if (prefs.detected_timezone) setText('detectedTimezone', prefs.detected_timezone);
+                    else if (localCache.detected_timezone) setText('detectedTimezone', localCache.detected_timezone);
+                    if (prefs.detected_ip_address) setText('detectedIP', prefs.detected_ip_address);
+                    else if (localCache.detected_ip_address) setText('detectedIP', localCache.detected_ip_address);
+
+                    setChecked('useManualLocation', 'use_manual_location');
+                    set('manualLocation',  'manual_location_override');
+                    setChecked('useManualTimezone', 'use_manual_timezone');
+                    set('manualTimezone',  'manual_timezone_override');
+
+                    // ── Mandatory instructions (chip lists) ────────────────
+                    let preferredToolsArr = [];
+                    if (prefs.preferred_tools) {
+                        try { preferredToolsArr = JSON.parse(prefs.preferred_tools) || []; }
+                        catch (e) { preferredToolsArr = []; }
+                    } else if (localCache.preferred_tools) {
+                        try { preferredToolsArr = JSON.parse(localCache.preferred_tools) || []; }
+                        catch (e) { preferredToolsArr = []; }
+                    }
+                    window.preferredTools = preferredToolsArr;
+                    if (typeof renderPreferredTools === 'function') renderPreferredTools();
+
+                    let customPrefsArr = [];
+                    if (prefs.custom_preferences) {
+                        try {
+                            customPrefsArr = typeof prefs.custom_preferences === 'string'
+                                ? JSON.parse(prefs.custom_preferences)
+                                : prefs.custom_preferences;
+                            customPrefsArr = customPrefsArr || [];
+                        } catch (e) { customPrefsArr = []; }
+                    } else if (localCache.custom_preferences) {
+                        try { customPrefsArr = JSON.parse(localCache.custom_preferences) || []; }
+                        catch (e) { customPrefsArr = []; }
+                    }
+                    window.customPreferences = customPrefsArr;
+                    if (typeof renderCustomPreferences === 'function') renderCustomPreferences();
+
+                    // ── Memories ────────────────────────────────────────────
+                    let memoriesArr = [];
+                    if (prefs.ai_memories) {
+                        try { memoriesArr = JSON.parse(prefs.ai_memories) || []; }
+                        catch (e) { memoriesArr = []; }
+                    } else if (localCache.ai_memories) {
+                        try { memoriesArr = JSON.parse(localCache.ai_memories) || []; }
+                        catch (e) { memoriesArr = []; }
+                    }
+                    if (typeof loadAndRenderMemories === 'function') loadAndRenderMemories(memoriesArr);
+
+                    // ── Notifications modal ─────────────────────────────────
+                    setChecked('enableNotifications', 'enable_notifications');
+                    setChecked('enableSounds',        'enable_sounds');
+
+                    // ── Appearance modal ────────────────────────────────────
+                    setRadio('theme', 'theme');
+
+                    // ── Derived display ─────────────────────────────────────
+                    if (typeof updateCurrentTime === 'function') {
+                        updateCurrentTime(prefs.detected_timezone || localCache.detected_timezone);
+                    }
+                    // Update the model-behaviour info banner for the current
+                    // selection. Do NOT call onModelChange() — that would
+                    // call saveSettings() and re-POST.
+                    if (typeof updateModelHint === 'function') {
+                        const sel = document.getElementById('modelSelect');
+                        if (sel) updateModelHint(sel.value);
+                    }
+
+                    console.log(`[PREFERENCES] ✅ All fields populated (dbReachable=${dbReachable}, fields=${Object.keys(prefs).length})`);
                 } catch (error) {
                     console.error('[PREFERENCES] Failed to load:', error);
-                }
-            },
-
-            /**
-             * Helper: Set input/select field value
-             */
-            setFieldValue(fieldId, value) {
-                const field = document.getElementById(fieldId);
-                if (field && value !== null && value !== undefined) {
-                    field.value = value;
-                    console.log(`[PREFERENCES] Set ${fieldId} = ${value}`);
-                }
-            },
-
-            /**
-             * Helper: Set radio button value
-             */
-            setRadioValue(name, value) {
-                const radio = document.querySelector(`input[name="${name}"][value="${value}"]`);
-                if (radio) {
-                    radio.checked = true;
-                    console.log(`[PREFERENCES] Set radio ${name} = ${value}`);
-                }
-            },
-
-            /**
-             * Helper: Set checkbox value
-             */
-            setCheckboxValue(fieldId, value) {
-                const checkbox = document.getElementById(fieldId);
-                if (checkbox) {
-                    checkbox.checked = !!value;
-                    console.log(`[PREFERENCES] Set checkbox ${fieldId} = ${!!value}`);
-                }
-            },
-
-            /**
-             * Helper: Set text content
-             */
-            setTextContent(elemId, value) {
-                const elem = document.getElementById(elemId);
-                if (elem && value !== null && value !== undefined) {
-                    elem.textContent = value;
-                    console.log(`[PREFERENCES] Set text ${elemId} = ${value}`);
                 }
             },
 
@@ -32842,30 +32920,41 @@ Thanks`;
         }
 
         /**
-         * Called when the Extended Thinking checkbox changes.
-         * Anthropic's API requires temperature = 1.0 whenever thinking is enabled.
-         * This function enforces that constraint in the UI and then saves settings.
+         * Pure UI constraint — no save, no DOM mutation of the thinking
+         * checkbox itself. Anthropic's API requires temperature = 1.0
+         * whenever thinking is enabled. The loader calls this on initial
+         * load (to reflect the saved state in the UI), and the user-click
+         * handler onThinkingToggle() calls it too — but only the click
+         * handler calls saveSettings().
+         *
+         * This split is the fix for the "temperature silently resets to
+         * 1.0 on every reload" bug, which was caused by loadSectionData
+         * calling onThinkingToggle() during a load. (June 15, 2026)
          */
-        function onThinkingToggle() {
+        function applyThinkingConstraints() {
             const thinkingOn = document.getElementById('enableThinking')?.checked;
             const tempSlider = document.getElementById('temperature');
             const tempValue  = document.getElementById('tempValue');
             const lockedNote = document.getElementById('tempLockedNote');
 
             if (thinkingOn && tempSlider) {
-                // Lock temperature to 1.0 – required by Anthropic API when thinking is on
                 tempSlider.value    = '1.0';
                 tempSlider.disabled = true;
                 if (tempValue) tempValue.textContent = '1.0';
                 if (lockedNote) lockedNote.style.display = 'block';
-                console.log('[AI Settings] Extended Thinking enabled — temperature locked to 1.0 (API requirement)');
             } else if (tempSlider) {
-                // Restore slider when thinking is turned off
                 tempSlider.disabled = false;
                 if (lockedNote) lockedNote.style.display = 'none';
-                console.log('[AI Settings] Extended Thinking disabled — temperature slider unlocked');
             }
+        }
 
+        /**
+         * Called when the Extended Thinking checkbox changes (user click
+         * only — never from a load path). Enforces the temperature lock
+         * in the UI, then saves settings.
+         */
+        function onThinkingToggle() {
+            applyThinkingConstraints();
             saveSettings();
         }
 
@@ -33067,53 +33156,34 @@ Thanks`;
         }
 
         /**
-         * Toggle settings section collapsed/expanded state
+         * Toggle settings section collapsed/expanded state.
+         *
+         * (June 15, 2026) The previous version lazily invoked
+         * `loadSectionData(section)` on expand, which was one of three
+         * competing loaders and was removed. The canonical loader
+         * (`loadAndPopulatePreferences`) runs once on profile-tab open
+         * and populates every section; the section toggle is now
+         * pure UI state.
          */
         function toggleSettingsSection(headerElement) {
             const section = headerElement.closest('.settings-section');
             if (section) {
-                const wasCollapsed = section.classList.contains('collapsed');
                 section.classList.toggle('collapsed');
-                const isNowCollapsed = section.classList.contains('collapsed');
-
-                // If the section was collapsed and is now expanded, load data
-                if (wasCollapsed && !isNowCollapsed) {
-                    // Load data for this section asynchronously
-                    loadSectionData(section).catch(err => {
-                        console.error('[SETTINGS] Error loading section data:', err);
-                    });
-                }
             }
         }
 
         /**
-         * Initialize settings section headers: inject save button and actions container
+         * Initialize settings section headers: inject the collapse/expand
+         * toggle. The per-section save button was removed in June 2026 —
+         * every field auto-saves via the canonical saveSettings(), and the
+         * main "Save Changes" button at the bottom of the modal covers the
+         * flush-on-close path.
          */
         function initSettingsSectionHeaders() {
             document.querySelectorAll('.settings-section-header').forEach(header => {
-                // Ensure header has left/title and actions containers
+                // Ensure header has left/title containers
                 let titleEl = header.querySelector('.settings-section-title');
                 if (!titleEl) return;
-
-                // If actions container already exists, skip
-                if (header.querySelector('.settings-section-actions')) return;
-
-                const actions = document.createElement('div');
-                actions.className = 'settings-section-actions';
-                actions.style.display = 'flex';
-                actions.style.alignItems = 'center';
-                actions.style.gap = '8px';
-
-                // Create save button
-                const saveBtn = document.createElement('button');
-                saveBtn.type = 'button';
-                saveBtn.className = 'section-save-btn';
-                saveBtn.title = 'Save section';
-                saveBtn.innerHTML = '<i class="fas fa-save"></i>';
-                saveBtn.addEventListener('click', function (ev) {
-                    ev.stopPropagation();
-                    saveSettingsSection(this).catch(e => console.error('[SETTINGS] Save error:', e));
-                });
 
                 // Move existing toggle into actions if present
                 const toggle = header.querySelector('.settings-section-toggle');
@@ -33125,19 +33195,11 @@ Thanks`;
                     });
                 }
 
-                // Append elements to actions container: save then toggle (if exists)
-                actions.appendChild(saveBtn);
-                if (toggle) actions.appendChild(toggle);
-
-                // Append actions to header (right side)
-                header.appendChild(actions);
-
                 // Remove any inline onclick to avoid duplicate toggles
                 try { header.removeAttribute && header.removeAttribute('onclick'); } catch (e) { }
 
                 // Make header click toggle only when clicking header (not actions)
                 header.addEventListener('click', function (ev) {
-                    // If click came from actions or its children, ignore
                     if (ev.target.closest('.settings-section-actions')) return;
                     toggleSettingsSection(this);
                 });
@@ -33145,158 +33207,26 @@ Thanks`;
         }
 
         /**
-         * Load section data from backend and populate inputs inside the section
+         * (June 15, 2026) `loadSectionData` was removed.
+         *
+         * It was the third of three competing loaders
+         * (`loadAndPopulatePreferences`, `loadSectionData`, and the value
+         * branch of `loadModelCatalog`) and the source of two production
+         * bugs:
+         *   1. It called `onThinkingToggle()` while populating checkboxes,
+         *      which silently reset temperature to 1.0 on every reload.
+         *   2. It overwrote each section's input values with stale or
+         *      mismatched backend data AFTER the canonical loader had
+         *      already populated them, causing "I see my value, then it
+         *      disappears" flicker.
+         *
+         * The canonical loader (`loadAndPopulatePreferences`) now runs once
+         * on profile-tab open and covers every field. Section toggles are
+         * pure UI state. The stub below is kept only as a safety net in
+         * case a stray caller still invokes it; it does nothing.
          */
-        async function loadSectionData(section) {
-            if (!section) return;
-
-            const titleEl = section.querySelector('.settings-section-title');
-            const titleText = titleEl ? titleEl.textContent.trim().toLowerCase() : '';
-
-            // Special-case connections section
-            if (titleText.includes('connection') || titleText.includes('connections')) {
-                if (typeof loadConnections === 'function') return loadConnections();
-            }
-
-            // Special-case active sessions - load from backend
-            if (titleText.includes('active sessions')) {
-                if (typeof loadActiveSessions === 'function') return loadActiveSessions();
-            }
-
-            // Special-case AI Memories - load from backend
-            if (titleText.includes('memories')) {
-                if (typeof loadMemoriesFromBackend === 'function') return loadMemoriesFromBackend();
-            }
-
-            // Generic: fetch user preferences and populate inputs in this section
-            try {
-                const token = localStorage.getItem('authToken') || sessionStorage.getItem('authToken');
-                const headers = { 'Content-Type': 'application/json' };
-                if (token) headers['Authorization'] = `Bearer ${token}`;
-
-                const resp = await fetch(`${API_BASE_URL}/api/user/preferences`, { headers });
-                if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
-                const json = await resp.json();
-                const prefs = json.data || {};
-
-                console.log(`[SETTINGS] Backend data for '${titleText}':`, prefs);
-
-                // Section-specific field mappings
-                if (titleText.includes('personalization')) {
-                    // Personalization: nickname, communication_style, detail_level
-                    if (prefs.nickname) {
-                        const nicknameInput = section.querySelector('#nickname, input[name="nickname"]');
-                        if (nicknameInput) nicknameInput.value = prefs.nickname;
-                    }
-                    if (prefs.communication_style) {
-                        const styleSelect = section.querySelector('#communication_style, select[name="communication_style"]');
-                        if (styleSelect) styleSelect.value = prefs.communication_style;
-                    }
-                    if (prefs.detail_level) {
-                        const detailSelect = section.querySelector('#detail_level, select[name="detail_level"]');
-                        if (detailSelect) detailSelect.value = prefs.detail_level;
-                    }
-                }
-
-                if (titleText.includes('mandatory instructions')) {
-                    // Mandatory Instructions: preferred_tools textarea
-                    if (prefs.preferred_tools !== undefined) {
-                        const toolsTextarea = section.querySelector('#preferred_tools, textarea[name="preferred_tools"]');
-                        if (toolsTextarea) toolsTextarea.value = prefs.preferred_tools || '';
-                    }
-                }
-
-                if (titleText.includes('model options')) {
-                    // AI Model, Temperature, Top P
-                    // NOTE: actual element IDs are modelSelect / temperature / topP (no ai_ prefix)
-                    if (prefs.ai_model) {
-                        const modelSelect = section.querySelector('#modelSelect, #ai_model, select[name="ai_model"]');
-                        if (modelSelect) modelSelect.value = prefs.ai_model;
-                        // Refresh model-behaviour info note to match restored selection
-                        if (typeof onModelChange === 'function') onModelChange();
-                    }
-                    if (prefs.ai_temperature !== undefined) {
-                        const tempInput = section.querySelector('#temperature, #ai_temperature, input[name="ai_temperature"]');
-                        if (tempInput) {
-                            tempInput.value = prefs.ai_temperature;
-                            const display = document.getElementById('tempValue');
-                            if (display) display.textContent = prefs.ai_temperature;
-                        }
-                    }
-                    if (prefs.ai_top_p !== undefined) {
-                        const topPInput = section.querySelector('#topP, #ai_top_p, input[name="ai_top_p"]');
-                        if (topPInput) {
-                            topPInput.value = prefs.ai_top_p;
-                            const display = document.getElementById('toppValue');
-                            if (display) display.textContent = prefs.ai_top_p;
-                        }
-                    }
-                }
-
-                if (titleText.includes('token parameters')) {
-                    // Max tokens, thinking budget
-                    // NOTE: actual element IDs are maxTokens / thinkingBudgetSlider / enableThinking / enableStreaming
-                    if (prefs.ai_max_tokens) {
-                        const maxTokensInput = section.querySelector('#maxTokens, #ai_max_tokens, input[name="ai_max_tokens"]');
-                        if (maxTokensInput) {
-                            maxTokensInput.value = prefs.ai_max_tokens;
-                            const display = document.getElementById('tokensValue');
-                            if (display) display.textContent = prefs.ai_max_tokens;
-                        }
-                    }
-                    if (prefs.ai_thinking_budget !== undefined) {
-                        const thinkingBudgetInput = section.querySelector('#thinkingBudgetSlider, #ai_thinking_budget, input[name="ai_thinking_budget"]');
-                        if (thinkingBudgetInput) {
-                            thinkingBudgetInput.value = prefs.ai_thinking_budget;
-                            const display = document.getElementById('thinkingValue');
-                            if (display) display.textContent = prefs.ai_thinking_budget;
-                        }
-                    }
-                    // Checkboxes — actual IDs: enableThinking / enableStreaming
-                    if (prefs.ai_thinking_enabled !== undefined) {
-                        const thinkingCheckbox = section.querySelector('#enableThinking, #ai_thinking_enabled, input[name="ai_thinking_enabled"]');
-                        if (thinkingCheckbox) {
-                            thinkingCheckbox.checked = Boolean(prefs.ai_thinking_enabled);
-                            // Enforce temperature lock state to match restored thinking preference
-                            if (typeof onThinkingToggle === 'function') onThinkingToggle();
-                        }
-                    }
-                    if (prefs.ai_streaming_enabled !== undefined) {
-                        const streamingCheckbox = section.querySelector('#enableStreaming, #ai_streaming_enabled, input[name="ai_streaming_enabled"]');
-                        if (streamingCheckbox) streamingCheckbox.checked = Boolean(prefs.ai_streaming_enabled);
-                    }
-                }
-
-                // Generic fallback: populate ALL inputs by name/id
-                const inputs = section.querySelectorAll('input, select, textarea');
-                inputs.forEach(input => {
-                    const key = input.name || input.id;
-                    if (!key) return;
-                    const val = prefs[key];
-                    if (val === undefined || val === null) return;
-
-                    if (input.type === 'checkbox') {
-                        input.checked = Boolean(val);
-                    } else if (input.type === 'radio') {
-                        if (input.value == val) input.checked = true;
-                    } else {
-                        input.value = val;
-                    }
-                });
-
-                // For any custom JSON fields (textarea with data-json), stringify
-                section.querySelectorAll('textarea[data-json]').forEach(t => {
-                    const key = t.name || t.id;
-                    if (!key) return;
-                    const v = prefs[key];
-                    t.value = v ? JSON.stringify(v, null, 2) : '';
-                });
-
-                console.log(`[SETTINGS] ? Populated section '${titleText}' from backend`);
-            } catch (err) {
-                console.error('[SETTINGS] ? Failed to load preferences for section:', err);
-                // If fetch fails, leave existing UI values untouched
-            }
+        async function loadSectionData(/* section */) {
+            /* removed June 15, 2026 — see comment above */
         }
 
         // ====================================================================
@@ -33311,9 +33241,12 @@ Thanks`;
         // ====================================================================
 
         // Map UI element IDs (camelCase) → backend column names (snake_case).
-        // Used by both saveSettingsSection() and _collectSettingsFromUI() to
-        // keep the two code paths in lockstep.
+        // Used by saveSettingsSection() and as a parallel documentation
+        // reference for _collectSettingsFromUI(). The canonical list of
+        // what gets POSTed lives in _collectSettingsFromUI() — keep these
+        // two in lockstep.
         const UI_TO_BACKEND_KEY = {
+            // AI Settings
             'modelSelect':           'ai_model',
             'temperature':           'ai_temperature',
             'topP':                  'ai_top_p',
@@ -33323,12 +33256,23 @@ Thanks`;
             'enableStreaming':       'ai_streaming_enabled',
             'maxRounds':             'max_rounds',
             'roundTimeout':          'round_timeout',
+            // Personalization
             'userNickname':          'nickname',
             'communicationStyle':    'communication_style',
             'authPlatform':          'auth_platform',
+            // 'detailLevel' is a radio group by name; collector handles it
+            // Location
+            'useManualLocation':     'use_manual_location',
+            'manualLocation':        'manual_location_override',
+            'useManualTimezone':     'use_manual_timezone',
+            'manualTimezone':        'manual_timezone_override',
+            // Notifications
             'enableNotifications':   'enable_notifications',
-            'enableSounds':          'enable_sounds'
-            // 'detailLevel' is handled specially — it's a radio group by name
+            'enableSounds':          'enable_sounds',
+            // Appearance
+            // 'theme' is a radio group by name; collector handles it
+            // Chip lists + memories are collected by name from the chip-list
+            // containers in _collectSettingsFromUI().
         };
 
         // Debounce / inflight state for auto-save
@@ -33371,26 +33315,152 @@ Thanks`;
 
         // Collect every account-profile field from the DOM and return as
         // a flat object with backend column names as keys.
+        //
+        // Coverage (June 15, 2026 — comprehensive fix):
+        //   AI Settings    : ai_model, ai_temperature, ai_top_p, ai_max_tokens,
+        //                   ai_thinking_enabled, ai_thinking_budget,
+        //                   ai_streaming_enabled, max_rounds, round_timeout
+        //   Personalization: nickname, communication_style, detail_level,
+        //                   auth_platform
+        //   Location       : use_manual_location, manual_location_override,
+        //                   use_manual_timezone, manual_timezone_override
+        //   Notifications  : enable_notifications, enable_sounds
+        //   Appearance     : theme
+        //   Chip lists     : preferred_tools, custom_preferences, ai_memories
+        //
+        // DELIBERATELY NOT COLLECTED (they are server-derived, not user-editable):
+        //   detected_city, detected_country, detected_timezone,
+        //   detected_ip_address, detected_lat, detected_lon, updated_at
+        //
+        // The previous version omitted manual_location/timezone, the chip
+        // lists, theme, and the two notification flags — every save was
+        // silently resetting them to empty, which is why the user saw
+        // "I changed it, saved, reloaded, it's gone."
         function _collectSettingsFromUI() {
+            const grab = (id) => {
+                const el = document.getElementById(id);
+                return el ? el.value : '';
+            };
+            const grabInt = (id, def) => {
+                const el = document.getElementById(id);
+                if (!el) return def;
+                const n = parseInt(el.value, 10);
+                return Number.isFinite(n) ? n : def;
+            };
+            const grabFloat = (id, def) => {
+                const el = document.getElementById(id);
+                if (!el) return def;
+                const n = parseFloat(el.value);
+                return Number.isFinite(n) ? n : def;
+            };
+            const grabCheck = (id) => {
+                const el = document.getElementById(id);
+                return el && el.checked ? 1 : 0;
+            };
+            const grabRadio = (name) => {
+                const el = document.querySelector(`input[name="${name}"]:checked`);
+                return el ? el.value : '';
+            };
+            // Chip-list collector — reads the in-DOM chips rendered by
+            // renderPreferredTools() / renderCustomPreferences() /
+            // renderMemories(). Each chip is a <span class="chip" data-text="...">
+            // (or equivalent). We pick the text content and the data-text
+            // attribute (whichever is set) to handle both the simple chip
+            // widget and the prefixed/styled variants.
+            const grabChips = (containerId, attrName) => {
+                const root = document.getElementById(containerId);
+                if (!root) return [];
+                const chips = root.querySelectorAll('[data-chip-text], .chip');
+                return Array.from(chips).map(c => c.getAttribute(attrName) || c.getAttribute('data-chip-text') || c.textContent.trim()).filter(Boolean);
+            };
+
+            // ── AI Settings tab ─────────────────────────────────────
+            const ai_model = grab('modelSelect') || 'claude-sonnet-4-5-20250929';
+
+            // ── Personalization tab ─────────────────────────────────
+            const nickname            = grab('userNickname');
+            const communication_style = grab('communicationStyle') || 'professional';
+            const detail_level        = grabRadio('detailLevel') || 'standard';
+            const auth_platform       = grab('authPlatform') || 'auto';
+
+            // ── Location tab ─────────────────────────────────────────
+            const use_manual_location    = grabCheck('useManualLocation');
+            const manual_location_override = grab('manualLocation');
+            const use_manual_timezone    = grabCheck('useManualTimezone');
+            const manual_timezone_override = grab('manualTimezone');
+
+            // ── Notifications modal ──────────────────────────────────
+            const enable_notifications = grabCheck('enableNotifications');
+            const enable_sounds        = grabCheck('enableSounds');
+
+            // ── Appearance modal ─────────────────────────────────────
+            const theme = grabRadio('theme') || 'dark';
+
+            // ── Chip lists ───────────────────────────────────────────
+            // preferred_tools lives in the chip-list container
+            // (#preferredToolsContainer — defined in account_profile.js)
+            // plus a window-scoped array maintained by
+            // addPreferredTool()/removePreferredTool(). Both are merged so
+            // saving the same data the user sees is idempotent.
+            const chipPreferredTools = grabChips('preferredToolsContainer', 'data-text');
+            const preferred_tools = (() => {
+                const set = new Set(chipPreferredTools);
+                if (Array.isArray(window.preferredTools)) {
+                    window.preferredTools.forEach(t => set.add(t));
+                }
+                return Array.from(set);
+            })();
+
+            const chipCustomPrefs = grabChips('customPreferencesContainer', 'data-text');
+            const custom_preferences = (() => {
+                const set = new Set(chipCustomPrefs);
+                if (Array.isArray(window.customPreferences)) {
+                    window.customPreferences.forEach(t => set.add(t));
+                }
+                return Array.from(set);
+            })();
+
+            // ai_memories comes from the memory list rendered by
+            // renderMemories(); we collect by the data-memory-text attribute
+            // or the visible text of each item.
+            const memoryEls = document.querySelectorAll('#memoriesList [data-memory-text], #memoriesList .memory-item, #memoryList [data-memory-text], #memoryList .memory-item, #memoriesContainer .memory-card');
+            const ai_memories = Array.from(memoryEls).map(m => m.getAttribute('data-memory-text') || m.textContent.trim()).filter(Boolean);
+
             return {
-                // Personalization
-                nickname:            document.getElementById('userNickname')?.value || '',
-                communication_style: document.getElementById('communicationStyle')?.value || 'professional',
-                detail_level:        document.querySelector('input[name="detailLevel"]:checked')?.value || 'standard',
-                auth_platform:       document.getElementById('authPlatform')?.value || 'auto',
-
                 // AI Settings
-                ai_model:             document.getElementById('modelSelect')?.value || 'claude-sonnet-4-5-20250929',
-                ai_temperature:       parseFloat(document.getElementById('temperature')?.value || 1.0),
-                ai_top_p:             parseFloat(document.getElementById('topP')?.value || 1.0),
-                ai_max_tokens:        parseInt(document.getElementById('maxTokens')?.value || 16000),
-                ai_thinking_enabled:  document.getElementById('enableThinking')?.checked ? 1 : 0,
-                ai_thinking_budget:   parseInt(document.getElementById('thinkingBudgetSlider')?.value || 10000),
-                ai_streaming_enabled: document.getElementById('enableStreaming')?.checked ? 1 : 0,
+                ai_model,
+                ai_temperature:       grabFloat('temperature', 1.0),
+                ai_top_p:             grabFloat('topP', 1.0),
+                ai_max_tokens:        grabInt('maxTokens', 16000),
+                ai_thinking_enabled:  grabCheck('enableThinking'),
+                ai_thinking_budget:   grabInt('thinkingBudgetSlider', 10000),
+                ai_streaming_enabled: grabCheck('enableStreaming'),
+                max_rounds:           grabInt('maxRounds', 20),
+                round_timeout:        grabInt('roundTimeout', 30),
 
-                // Round Parameters
-                max_rounds:    parseInt(document.getElementById('maxRounds')?.value || 20),
-                round_timeout: parseInt(document.getElementById('roundTimeout')?.value || 30),
+                // Personalization
+                nickname,
+                communication_style,
+                detail_level,
+                auth_platform,
+
+                // Location
+                use_manual_location,
+                manual_location_override,
+                use_manual_timezone,
+                manual_timezone_override,
+
+                // Notifications
+                enable_notifications,
+                enable_sounds,
+
+                // Appearance
+                theme,
+
+                // Chip lists
+                preferred_tools,
+                custom_preferences,
+                ai_memories,
 
                 updated_at: new Date().toISOString()
             };
@@ -33440,73 +33510,56 @@ Thanks`;
         }
 
         /**
-         * Save section inputs to backend (sends partial preferences object).
-         * Translates UI element IDs to backend column names via UI_TO_BACKEND_KEY
-         * so that fields with id="modelSelect" are sent as "ai_model", etc.
+         * (June 15, 2026) `saveSettingsSection` was removed.
+         *
+         * It sent a *partial* preferences payload — just the fields in the
+         * section the user clicked — which clobbered the canonical row in
+         * user_preferences with NULL for every other field. That was the
+         * "I save one field, the rest of my settings reset" bug.
+         *
+         * The canonical `saveSettings()` is the only save path now: it
+         * collects every field and POSTs the full object, which the
+         * backend upserts verbatim. The stub below is kept only as a
+         * safety net in case a stray caller still invokes it; it does
+         * nothing.
          */
-        async function saveSettingsSection(button) {
-            const section = button.closest('.settings-section');
-            if (!section) return;
-
-            // Collect inputs from this section
-            const payload = {};
-            section.querySelectorAll('input, select, textarea').forEach(input => {
-                const rawKey = input.name || input.id;
-                if (!rawKey) return;
-                const key = UI_TO_BACKEND_KEY[rawKey] || rawKey;
-
-                if (input.type === 'checkbox') {
-                    payload[key] = input.checked;
-                } else if (input.type === 'radio') {
-                    if (input.checked) payload[key] = input.value;
-                } else if (input.tagName.toLowerCase() === 'textarea' && input.dataset.json !== undefined) {
-                    try { payload[key] = JSON.parse(input.value || '{}'); }
-                    catch (e) { payload[key] = input.value; }
-                } else {
-                    payload[key] = input.value;
-                }
-            });
-
-            // Show loading state on button
-            const origHTML = button.innerHTML;
-            button.disabled = true;
-            button.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
-
-            try {
-                const token = localStorage.getItem('authToken') || sessionStorage.getItem('authToken');
-                const headers = { 'Content-Type': 'application/json' };
-                if (token) headers['Authorization'] = `Bearer ${token}`;
-
-                const resp = await fetch(`${API_BASE_URL}/api/user/preferences`, {
-                    method: 'POST',
-                    headers,
-                    body: JSON.stringify(payload)
-                });
-
-                if (!resp.ok) {
-                    const text = await resp.text();
-                    throw new Error(`HTTP ${resp.status}: ${text}`);
-                }
-
-                // Success feedback
-                button.innerHTML = '<i class="fas fa-check"></i>';
-                setTimeout(() => { button.innerHTML = origHTML; button.disabled = false; }, 1200);
-                console.log('[SETTINGS] Section saved successfully');
-            } catch (err) {
-                console.error('[SETTINGS] Error saving section:', err);
-                button.innerHTML = origHTML;
-                button.disabled = false;
-                // Show brief visual error (shake)
-                button.classList.add('save-error');
-                setTimeout(() => button.classList.remove('save-error'), 900);
-                throw err;
-            }
+        async function saveSettingsSection(/* button */) {
+            /* removed June 15, 2026 — see comment above */
         }
 
         // Ensure initializer runs on page load
         window.addEventListener('load', function () {
             try { initSettingsSectionHeaders(); } catch (e) { console.error(e); }
         });
+
+        /**
+         * Render the user's memories list from an in-memory array.
+         *
+         * (June 15, 2026) The canonical loader
+         * (`loadAndPopulatePreferences`) reads the saved memories out of
+         * the backend response and passes them in. The actual render
+         * logic lives in `account_profile.js` (`renderMemories`); this
+         * shim is the bridge so the loader can call a single function
+         * and stay decoupled from the implementation file.
+         */
+        function loadAndRenderMemories(memoriesArr) {
+            try {
+                if (Array.isArray(memoriesArr)) {
+                    // Update the global count/badge the legacy renderer reads
+                    window._cachedMemories = memoriesArr;
+                    if (typeof renderMemories === 'function') {
+                        renderMemories(memoriesArr);
+                        return;
+                    }
+                }
+                // Fallback to the legacy async path if the array wasn't provided
+                if (typeof refreshMemories === 'function') {
+                    refreshMemories();
+                }
+            } catch (e) {
+                console.warn('[MEMORIES] loadAndRenderMemories failed:', e);
+            }
+        }
 
         // ==================== CONNECTIONS MANAGEMENT FUNCTIONS ====================
         /**
@@ -34144,13 +34197,50 @@ Thanks`;
             const sel = document.getElementById('modelSelect');
             if (!sel) return;
 
-            // Retrieve current saved value before rebuilding the list
-            const currentValue = sel.value || localStorage.getItem('accountSettings')
-                ? JSON.parse(localStorage.getItem('accountSettings') || '{}').ai_model
-                : null;
-
             const token = localStorage.getItem('authToken') || localStorage.getItem('auth_token') || '';
             if (!token) return; // Not logged in — static optgroups remain
+
+            // ── Resolve the saved value BEFORE rebuilding the <select>.
+            //
+            // Precedence (June 15, 2026 — comprehensive fix):
+            //   1. /api/user/preferences  (Supabase DB — authoritative)
+            //   2. localStorage.accountSettings.ai_model  (write-through cache)
+            //   3. sel.value  (whatever the static HTML has — usually empty
+            //                 after we strip the hard-coded "selected")
+            //   4. null      (caller falls back to the recommended model)
+            //
+            // The previous code had two layered defects:
+            //   (a) operator-precedence bug in the ternary — `a || b ? c : d`
+            //       parses as `(a || b) ? c : d`, so currentValue became the
+            //       boolean truthiness of (a||b), not the parsed JSON.
+            //   (b) it never read from the backend /api/user/preferences.
+            //   (c) the static HTML had a hard-coded `selected` on the
+            //       Claude Sonnet 4.6 <option>, so even when neither
+            //       localStorage nor the backend had a value, the dropdown
+            //       re-displayed Sonnet 4.6 on every load.
+            let currentValue = null;
+            try {
+                const r = await fetch('/api/user/preferences', {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                if (r.ok) {
+                    const j = await r.json();
+                    const ai_model = j && j.data && j.data.ai_model;
+                    if (typeof ai_model === 'string' && ai_model.length) {
+                        currentValue = ai_model;
+                    }
+                }
+            } catch (_) { /* fall through to localStorage */ }
+
+            if (!currentValue) {
+                try {
+                    const cached = JSON.parse(localStorage.getItem('accountSettings') || '{}');
+                    if (cached && typeof cached.ai_model === 'string' && cached.ai_model.length) {
+                        currentValue = cached.ai_model;
+                    }
+                } catch (_) { /* ignore */ }
+            }
+            if (!currentValue && sel.value) currentValue = sel.value;
 
             try {
                 if (!_modelCatalogCache) {
