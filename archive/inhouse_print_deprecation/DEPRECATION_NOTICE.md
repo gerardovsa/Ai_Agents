@@ -117,22 +117,67 @@ git mv archive/inhouse_print_deprecation/inhouse-print UI/modules_external/
 
 ## Deferred work (separate follow-up tasks)
 
-- [ ] **F15** — `AI_infrastructure/prompts/tool_usage_system_prompt.md` and its
-      20+ historical copy variants. The active prompt is loaded by
-      `AI_infrastructure/core/unified_ai_client.py` and advertises many
-      `inhouse_*` tool calls (`inhouse_calculator_guide()`, `inhouse_query_guide()`,
-      `inhouse_stock_guide()`, etc.) that no longer exist. After the
-      in-house-print archival, the AI will be told these tools are available
-      but will fail when called. Editing this 97KB prompt is a substantial
-      change requiring coordinated testing (prompt + AI client + tool registry).
-      **Recommended: dedicated cleanup round on a new branch** with a focused
-      sub-agent that:
-        1. Lists every `inhouse_*` tool the prompt advertises.
-        2. Cross-references each against `tools/registry_v3.py` and
-           `UI/modules_external/inhouse-kanban/` to see which still exist.
-        3. Edits the active prompt to remove dead tool names.
-        4. Optionally consolidates the 20+ "copy N.md" variants (per the
-           F1–F8 round's "many copies of the same file" finding).
+- [x] **F15 — RESOLVED on June 15, 2026** — active prompt audited and edited;
+      historical copies left alone by design.
+      **What was done (sub-agent on branch `cleanup/prompts-inhouse-tools-cleanup`):**
+        - **Active prompt edited:** `AI_infrastructure/prompts/tool_usage_system_prompt.md`
+          (now 99,922 bytes / 2,772 lines; +2,119 bytes / +15 lines vs. the
+          97,803-byte / 2,757-line baseline). Added a new
+          `## Tool registry status (2026-06-15)` header at the top (around
+          line 10–12) listing all 10 removed tool names + a one-paragraph
+          context block pointing at this DEPRECATION_NOTICE.md and tracker row
+          F15. **10 inhouse_* tool names struck through with the
+          `(REMOVED 2026-06-15)` marker** in all the example call sequences
+          and workflow diagrams throughout the file:
+          `inhouse_get_domain_guide`, `inhouse_calculator_guide`,
+          `inhouse_query_guide`, `inhouse_database_guide`, `inhouse_stock_guide`,
+          `inhouse_execute_sql`, `inhouse_query_stock_levels`,
+          `inhouse_get_calculator_requirements`, `inhouse_calculate_quote`,
+          `inhouse_get_query_library_catalog`. **0 renamed, 0 kept** (the
+          `inhouse-kanban` UI module does not expose any `inhouse_*` tool
+          calls to the AI agent — verified via `grep` against
+          `UI/modules_external/inhouse-kanban/`). All 31 `inhouse_*` matches
+          in the file are now either REMOVED markers, the new status header,
+          or the "Dead in this prompt" list — **0 unannotated leaks**.
+        - **Prompt reference intact:** `AI_infrastructure/core/unified_ai_client.py:263`
+          still points at the same file path
+          (`Path(__file__).parent.parent / 'prompts' / 'tool_usage_system_prompt.md'`).
+          No code changes were needed — only the file's content was edited.
+      **What was NOT done (intentional status quo):**
+        - The **20 historical copy variants** at
+          `AI_infrastructure/prompts/*.md` (14 numbered `copy N.md` + 1
+          `backup.md` + 1 `v4_COMPACT.md` + 1 `ARCHVIVE/` subdir with 3
+          more) were left **completely untouched**. These files are inert:
+          not loaded by `unified_ai_client.py` (which points only at the
+          active prompt), have 0 inbound references from any live code or
+          active doc. Moving 20 inert files to `archive/` is a separate,
+          smaller future task.
+      **Why the historical copies were left:** the user (in the F15 row's
+      recommendation matrix) accepted the status quo — the 26 files (1
+      active + 20 historicals + 5 nested under `ARCHVIVE/`) are inert,
+      not loaded, and have no inbound references. A dedicated archive
+      sweep would produce a clean win, but the per-feature decision for
+      F15 was to scope down to the active prompt only and accept the
+      historicals as a future, smaller cleanup task.
+      **Forward-pointer:** see the F15 (RESOLVED) row in
+      `ARCHIVE_CLEANUP_TRACKER.md` for the full chain-of-custody entry
+      (2026-06-15, branch `cleanup/prompts-inhouse-tools-cleanup`).
+      **Outstanding manual items (user action, not this agent):**
+        - **Strip the pre-existing UTF-8 BOM from the active prompt before
+          committing.** `head -c 3 | xxd` returns `efbbbf`. The BOM is
+          pre-existing (NOT introduced by the F15 Edit ops — they
+          preserve it). Per CLAUDE.md §6 line 20 + §15 line 4, the
+          project standard is UTF-8 no-BOM; run
+          `.\.vscode\fix-bom.ps1` (or `sed -i '1s/^\xEF\xBB\xBF//'
+          AI_infrastructure/prompts/tool_usage_system_prompt.md`)
+          before committing. The 20 historical copies are likely also
+          BOM-corrupted and would need the same treatment if/when
+          they're eventually archived.
+        - **Coordinated runtime test (optional but recommended):** smoke
+          test the AI agent on the parallel Render instance and confirm
+          that the model does not attempt to call any of the 10
+          struck-through tools (the prompt now explicitly says they're
+          dead, but verify in a real session).
 - [ ] **Future removal round** — after the user is satisfied with the archival,
       open a third branch (TBD name) that `git rm -r archive/inhouse_print_deprecation/`
       and re-applies the migrations 053/054 as HARD-delete (`DELETE FROM

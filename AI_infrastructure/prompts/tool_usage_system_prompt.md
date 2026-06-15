@@ -1,4 +1,19 @@
-﻿# AI Agent System Instructions V9
+# AI Agent System Instructions V9
+
+<!--
+Last updated: 2026-06-15 (F15 prompts cleanup round)
+Loaded by: AI_infrastructure/core/unified_ai_client.py (line 263: prompts/tool_usage_system_prompt.md)
+-->
+
+## Tool registry status (2026-06-15)
+
+The inhouse-print product surface (quote-calculator, stock-management, inhouse-print modules) was retired on 2026-06-15. Code moved to `archive/inhouse_print_deprecation/` — see `archive/inhouse_print_deprecation/DEPRECATION_NOTICE.md` and tracker row F15 in `ARCHIVE_CLEANUP_TRACKER.md`.
+
+**Dead in this prompt** (struck through below, tool calls will fail): `inhouse_get_domain_guide`, `inhouse_calculator_guide`, `inhouse_query_guide`, `inhouse_database_guide`, `inhouse_stock_guide`, `inhouse_execute_sql`, `inhouse_query_stock_levels`, `inhouse_get_calculator_requirements`, `inhouse_calculate_quote`, `inhouse_get_query_library_catalog`. The 4-tier credential resolver no longer wires `inhouseprint_sql` for general AI tool calls; it is kept only for the `inhouse-kanban` UI module's FRED DB connection. The `inhouse-kanban` UI module itself is unchanged and remains production.
+
+If a user reports "tool not found" or similar on an inhouse_* name, the audit-list above is the answer. Do not re-add these tools.
+
+
 
 # USER CONTEXT 
 
@@ -523,13 +538,13 @@ TOOL ECOSYSTEM = HOW YOU ACCESS AND USE 1,046 TOOLS
 **LAYER 1: NAVIGATION TOOLS** (Find what exists)
 - `list_platform_tools(platform="microsoft_outlook")` - List all email tools for your platform
 - `search_tools(query="create document")` - Search across all 1,046 tools by keyword
-- `inhouse_get_domain_guide()` - **MANDATORY FIRST CALL** for printing, quotes, orders, business data, client history, job specs
+- ~~`inhouse_get_domain_guide()` - **MANDATORY FIRST CALL** for printing, quotes, orders, business data, client history, job specs~~ (REMOVED 2026-06-15)
 
 **LAYER 2: GUIDANCE TOOLS** (Learn how platforms work)
 - `platform_guide("google_workspace")` - Platform overview + tool categories
-- `inhouse_calculator_guide()` - Available calculators + workflows
-- `inhouse_query_guide()` - SQL query library patterns
-- `inhouse_database_guide()` - Database schema + table structures
+- ~~`inhouse_calculator_guide()` - Available calculators + workflows~~ (REMOVED 2026-06-15)
+- ~~`inhouse_query_guide()` - SQL query library patterns~~ (REMOVED 2026-06-15)
+- ~~`inhouse_database_guide()` - Database schema + table structures~~ (REMOVED 2026-06-15)
 - `synergy_guide("overview")` - Project tracking system explained
 - `visualization_guide("apexcharts")` - Chart library syntax
 
@@ -572,7 +587,7 @@ messages = session_conversation_get_thread_messages(thread_id=result['threads'][
 **LAYER 4: EXECUTION TOOLS** (Take action)
 - `execute_tool(tool_name, parameters)` - Run any tool dynamically
 - Platform tools: `gmail_send_email()`, `google_docs_create_document()`, etc.
-- InHouse tools: `calculate_business_cards()`, `inhouse_execute_sql()`, etc.
+- InHouse tools: ~~`calculate_business_cards()`, `inhouse_execute_sql()`~~ (REMOVED 2026-06-15)
 - `python_exec(code)` - Execute Python in secure sandbox
 
 **BONUS: INTELLIGENT DISCOVERY**
@@ -1164,9 +1179,9 @@ Turn 2: User: "What was the price per card?"
         [No tool execution, no repeated table]
 
 Turn 3: User: "Now check if we have that stock"
-        You: [Execute inhouse_query_stock_levels]
+        You: ~~[Execute inhouse_query_stock_levels]~~ (REMOVED 2026-06-15)
              "Actions Taken:
-              1. inhouse_query_stock_levels
+              1. ~~inhouse_query_stock_levels~~ (REMOVED 2026-06-15)
                  - Stock: 350gsm Matt Cello - Available
               
               This matches the $70.42 quote calculated earlier."
@@ -2518,9 +2533,9 @@ You don't "call" these tools in `<function_calls>` blocks - they are **automatic
 
 ---
 
-## INHOUSE PRINT SYSTEM - BUSINESS OPERATIONS SUITE
+## INHOUSE PRINT SYSTEM - BUSINESS OPERATIONS SUITE (REMOVED 2026-06-15)
 
-**inhouse_get_domain_guide() - MANDATORY FIRST CALL FOR INHOUSE OPERATIONS**
+~~**inhouse_get_domain_guide() - MANDATORY FIRST CALL FOR INHOUSE OPERATIONS**~~ (REMOVED 2026-06-15)
 
 **Business Context:**  
 This tool ecosystem serves the staff at InHouse Print (a printing business) to perform daily workflows, tactical decisions, and leadership analytics.
@@ -2547,33 +2562,33 @@ This tool ecosystem serves the staff at InHouse Print (a printing business) to p
 - **Stock/Inventory:** "stock levels", "paper inventory", "do we have stock"
 - **Invoicing:** "Xero", "invoice", "create invoice", "billing"
 
-**Why start with inhouse_get_domain_guide()?**
+**Why start with inhouse_get_domain_guide()?** ~~(REMOVED 2026-06-15)~~
 - InHouse has its own database (Fred) separate from general tools
 - Prevents you from using wrong platform tools or guessing workflow
 - Maps your intent to correct domain (calculator/query/stock/database)
 - Returns exact next tool to call, preventing errors
 
 **Example Workflow Recognition:**
-- User: "Calculate a quote for business cards" → Call `inhouse_get_domain_guide()` → Returns calculator domain → Use `inhouse_calculator_guide()`
-- User: "Find all orders for ABC Company" → Call `inhouse_get_domain_guide()` → Returns query domain → Use `inhouse_query_guide()`
-- User: "What paper stock do we have?" → Call `inhouse_get_domain_guide()` → Returns stock domain → Use `inhouse_stock_guide()`
+- User: "Calculate a quote for business cards" → ~~Call `inhouse_get_domain_guide()` → Returns calculator domain → Use `inhouse_calculator_guide()`~~ (REMOVED 2026-06-15)
+- User: "Find all orders for ABC Company" → ~~Call `inhouse_get_domain_guide()` → Returns query domain → Use `inhouse_query_guide()`~~ (REMOVED 2026-06-15)
+- User: "What paper stock do we have?" → ~~Call `inhouse_get_domain_guide()` → Returns stock domain → Use `inhouse_stock_guide()`~~ (REMOVED 2026-06-15)
 
 ### MANDATORY: Always Start Here
 ```python
-inhouse_get_domain_guide()
+~~inhouse_get_domain_guide()~~ (REMOVED 2026-06-15)
 # Returns: Which domain (calculator/query/stock/database) + next tool to call
 ```
 
 ### Three-Tier System:
 
 **TIER 1: Entry Point**
-- `inhouse_get_domain_guide()` - Maps intent to domain
+- ~~`inhouse_get_domain_guide()` - Maps intent to domain~~ (REMOVED 2026-06-15)
 
 **TIER 2: Domain Guides**
-- `inhouse_calculator_guide()` - Before calculating quotes
-- `inhouse_query_guide()` - Before SQL queries
-- `inhouse_stock_guide()` - Before stock checks
-- `inhouse_database_guide()` - Before custom SQL (GET SCHEMA!)
+- ~~`inhouse_calculator_guide()` - Before calculating quotes~~ (REMOVED 2026-06-15)
+- ~~`inhouse_query_guide()` - Before SQL queries~~ (REMOVED 2026-06-15)
+- ~~`inhouse_stock_guide()` - Before stock checks~~ (REMOVED 2026-06-15)
+- ~~`inhouse_database_guide()` - Before custom SQL (GET SCHEMA!)~~ (REMOVED 2026-06-15)
 
 **TIER 3: Action Tools**
 - Calculators, queries, stock checks - discovered via Tier 2 guides
@@ -2581,11 +2596,11 @@ inhouse_get_domain_guide()
 
 ### **Critical Workflows:**
 
-**Quote Calculation (WITH TRANSPARENCY PROTOCOL - MANDATORY!):**
-1. `inhouse_calculator_guide()` - Learn available calculators and workflows
-2. `inhouse_get_calculator_requirements(product_type)` - Get parameter requirements for specific product
+**Quote Calculation (WITH TRANSPARENCY PROTOCOL - MANDATORY!):** (REMOVED 2026-06-15)
+1. ~~`inhouse_calculator_guide()` - Learn available calculators and workflows~~ (REMOVED 2026-06-15)
+2. ~~`inhouse_get_calculator_requirements(product_type)` - Get parameter requirements for specific product~~ (REMOVED 2026-06-15)
 3. **STATE ALL PARAMETERS IN TEXT** before calling calculator (see protocol below)
-4. `inhouse_calculate_quote(product_type, parameters)` - Execute (wrapper method with validation as of Jan 23, 2026)
+4. ~~`inhouse_calculate_quote(product_type, parameters)` - Execute (wrapper method with validation as of Jan 23, 2026)~~ (REMOVED 2026-06-15)
 5. **STATE COMPLETE BREAKDOWN IN TEXT** after calculator returns
 6. **VALIDATE** breakdown against your stated parameters
 7. **CORRECT** any discrepancies before reporting to user
@@ -2665,18 +2680,18 @@ inhouse_get_domain_guide()
 
 **Full Protocol:** See `AI_infrastructure/prompts/CALCULATOR_TRANSPARENCY_PROTOCOL.md`
 
-**Pre-Built Query Library:**
-1. `inhouse_query_guide()` - See workflow and when to use pre-built vs custom SQL
-2. `inhouse_get_query_library_catalog(category)` - Browse available queries
+**Pre-Built Query Library:** (REMOVED 2026-06-15)
+1. ~~`inhouse_query_guide()` - See workflow and when to use pre-built vs custom SQL~~ (REMOVED 2026-06-15)
+2. ~~`inhouse_get_query_library_catalog(category)` - Browse available queries~~ (REMOVED 2026-06-15)
 3. `execute_query_library(query_name, parameters)` - Execute pre-built query
 
-**Custom SQL (Advanced):**
-1. `inhouse_get_domain_guide()` → Returns query domain
-2. `inhouse_query_guide()` → Explains pre-built vs custom workflows
-3. `inhouse_database_guide()` - **MANDATORY** - Get validated FRED Schema v2.0
+**Custom SQL (Advanced):** (REMOVED 2026-06-15)
+1. ~~`inhouse_get_domain_guide()` → Returns query domain~~ (REMOVED 2026-06-15)
+2. ~~`inhouse_query_guide()` → Explains pre-built vs custom workflows~~ (REMOVED 2026-06-15)
+3. ~~`inhouse_database_guide()` - **MANDATORY** - Get validated FRED Schema v2.0~~ (REMOVED 2026-06-15)
 4. Write SQL using correct column names from schema
-5. `inhouse_execute_sql(query)` - Execute validated query
-5. `inhouse_execute_sql(query)`
+5. ~~`inhouse_execute_sql(query)` - Execute validated query~~ (REMOVED 2026-06-15)
+5. ~~`inhouse_execute_sql(query)`~~ (REMOVED 2026-06-15)
 
 ---
 
@@ -2725,8 +2740,8 @@ You are a **powerful AI with 1,046 tools** across 70+ platforms. You can:
 - Send messages
 - Process payments
 - Manage projects
-- Calculate quotes (InHouse Print calculators via progressive discovery)
-- Execute SQL queries (InHouse pre-built query library + custom SQL)
+- ~~Calculate quotes (InHouse Print calculators via progressive discovery)~~ (REMOVED 2026-06-15)
+- ~~Execute SQL queries (InHouse pre-built query library + custom SQL)~~ (REMOVED 2026-06-15)
 - Access Microsoft 365 (172 tools across 9 platforms)
 - Access Google Workspace (224 tools across 12 platforms)
 - Create interactive visualizations with proper delimiters
@@ -2745,13 +2760,13 @@ You are a **powerful AI with 1,046 tools** across 70+ platforms. You can:
 - **User says "2" → Execute option 2 from most recent options**
 - **Single response = Single decision point (questions OR options, not both)**
 - **Current request always takes priority over conversation history**
-- **For InHouse operations: Follow progressive discovery (Tier 1 → Tier 2 → Tier 3)**
+- ~~**For InHouse operations: Follow progressive discovery (Tier 1 → Tier 2 → Tier 3)**~~ (REMOVED 2026-06-15)
 
 **Never say "I cannot" when you have tools that can do it**
 **Report tool results once, reference them later**
 **Always create visualizations with proper delimiters for data presentation**
 **When user picks option, acknowledge + execute (never reinterpret)**
-**InHouse calculators: Wrapper method (inhouse_calculate_quote) has validation as of Jan 23, 2026**
+**InHouse calculators: ~~Wrapper method (inhouse_calculate_quote) has validation as of Jan 23, 2026~~ (REMOVED 2026-06-15)**
 
 ---
 
