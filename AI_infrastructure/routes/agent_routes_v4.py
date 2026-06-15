@@ -1477,23 +1477,44 @@ def stream_agent(agent_id):
     # ============================================
     # SERVER TOOLS (web_search with location)
     # ============================================
-    server_tools = [
-        {
-            "type": "web_search_20250305",
-            "name": "web_search",
-            "user_location": {
-                "type": "approximate",
-                "city": location_dict['city'],
-                "region": location_dict['region'],
-                "country": location_dict['country'],
-                "timezone": location_dict['timezone']
-            },
-            "max_uses": 5
-        }
-    ]
-    
+    # Provider-aware: Anthropic's server tools (web_search_20250305, web_fetch_20250910)
+    # are sent to api.anthropic.com. Non-Anthropic providers (MiniMax, OpenAI, DeepSeek)
+    # do NOT implement server tools and reject them with 400 — for those providers the
+    # Tavily client tools (tavily_search / tavily_extract / tavily_crawl / tavily_map /
+    # tavily_research / tavily_get_research) are already auto-discovered by the
+    # tool registry and live in the `tools` list built at line 1249.
+    server_tools = []
+    try:
+        from AI_infrastructure.shared.org_credentials_loader import get_provider_for_model
+        # user_prefs may not be loaded yet at this point in the flow; user_prefs is
+        # loaded at line 1256 just above the meta_tools selection. Fall back to
+        # 'anthropic' for safety (which preserves existing behaviour).
+        _pref_model = user_prefs.get('ai_model') if user_prefs else None
+        _ai_provider = get_provider_for_model(_pref_model) if _pref_model else 'anthropic'
+    except Exception:
+        _ai_provider = 'anthropic'
+
+    if _ai_provider == 'anthropic':
+        server_tools = [
+            {
+                "type": "web_search_20250305",
+                "name": "web_search",
+                "user_location": {
+                    "type": "approximate",
+                    "city": location_dict['city'],
+                    "region": location_dict['region'],
+                    "country": location_dict['country'],
+                    "timezone": location_dict['timezone']
+                },
+                "max_uses": 5
+            }
+        ]
+
     tools = tools + server_tools
-    print(f"[STREAM] 🔷 Total tools: {len(tools)} ({len(tools) - len(server_tools)} meta + {len(server_tools)} server)")
+    if server_tools:
+        print(f"[STREAM] 🔷 Total tools: {len(tools)} ({len(tools) - len(server_tools)} meta + {len(server_tools)} server) [provider={_ai_provider}]")
+    else:
+        print(f"[STREAM] 🔷 Total tools: {len(tools)} ({len(tools)} meta + 0 server) [provider={_ai_provider} — using client-side Tavily tools]")
     
     # ============================================
     # SYSTEM PROMPT WITH ALL INJECTIONS (Retained)
@@ -2955,16 +2976,36 @@ def get_tools():
                 "parameters": tool_info.get("input_schema", {})
             })
         
+        # The listing endpoint is provider-agnostic. We surface the Anthropic
+        # server tool for backward compatibility AND the 6 Tavily client tools
+        # (which are the equivalent for non-Anthropic providers). The registry
+        # already includes the Tavily tools in registry_tools; we add a small
+        # hint card here so the UI's "Web search capability" badge reflects
+        # both surfaces.
         server_tools = [{
             "name": "web_search",
-            "description": "Search the web for current information",
+            "description": "Anthropic server tool — search the web for current information (Anthropic provider only)",
             "category": "search",
             "platform": "anthropic",
             "source": "server_tool",
             "type": "web_search_20250305"
         }]
-        
-        all_tools = registry_tools + server_tools
+
+        # Tavily client tools — available for all providers (Anthropic, MiniMax,
+        # OpenAI, DeepSeek). For non-Anthropic providers these are the only
+        # web-access surface; for Anthropic they're an additional client-side
+        # alternative that the model can pick if it wants Tavily's specific
+        # search depth / extract behaviour.
+        tavily_client_tools = [
+            {"name": "tavily_search",       "platform": "tavily", "source": "registry_v3", "category": "search"},
+            {"name": "tavily_extract",      "platform": "tavily", "source": "registry_v3", "category": "search"},
+            {"name": "tavily_crawl",        "platform": "tavily", "source": "registry_v3", "category": "search"},
+            {"name": "tavily_map",          "platform": "tavily", "source": "registry_v3", "category": "search"},
+            {"name": "tavily_research",     "platform": "tavily", "source": "registry_v3", "category": "search"},
+            {"name": "tavily_get_research", "platform": "tavily", "source": "registry_v3", "category": "search"},
+        ]
+
+        all_tools = registry_tools + server_tools + tavily_client_tools
         
         platforms = {}
         for tool in all_tools:
@@ -2977,7 +3018,8 @@ def get_tools():
             "total_tools": len(all_tools),
             "sources": {
                 "registry_v3": len(registry_tools),
-                "server_tools": len(server_tools)
+                "server_tools": len(server_tools),
+                "tavily_client_tools": len(tavily_client_tools)
             },
             "capabilities": {
                 "extended_thinking": True,

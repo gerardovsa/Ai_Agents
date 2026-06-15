@@ -2489,32 +2489,153 @@ Turn 3: User: "Now check the PDF specs to verify"
 
 ---
 
-## WEB SEARCH & FETCH - SERVER TOOLS (AUTO-EXECUTED)
+## WEB SEARCH & FETCH - TAVILY CLIENT TOOLS (June 15, 2026)
 
-**IMPORTANT: These are SERVER TOOLS - executed automatically by the API, NOT by you**
+**PROVIDER-AWARE WEB ACCESS:**
 
-You don't "call" these tools in `<function_calls>` blocks - they are **automatically available** and executed by Anthropic's API when you reference web searches or URLs in your thinking/responses.
+| Provider | Web search mechanism | Notes |
+|----------|----------------------|-------|
+| Anthropic | Anthropic server tool `web_search_20250305` (auto-executed by API) | Fastest; includes Anthropic-side citations; only works on `api.anthropic.com` |
+| MiniMax / OpenAI / DeepSeek | **Tavily client tools** (you call them in `<function_calls>`) | Cross-provider; results are clean text, no encrypted_content |
+| Any provider | Tavily client tools (always available) | Use as a fallback when server tool fails or for Tavily-specific features |
 
-### web_search - Real-time internet search (SERVER TOOL)
-**How it works:**
-- Automatically triggered when you need current information
-- Returns: URLs, snippets, sources with citations
-- You receive results automatically in response blocks
+Anthropic's `web_search` / `web_fetch` are server tools — they run on Anthropic's infrastructure, you do NOT call them in `<function_calls>`. The Tavily tools are CLIENT tools — you DO call them like any other tool.
 
-**When it's used (automatically):**
-- Current/recent info (after April 2024)
+### tavily_search - Real-time internet search
+**When to use:**
+- Current/recent information (after April 2024)
 - Real-time data (weather, stocks, news)
-- User explicitly asks for search
-- Need verification
+- User explicitly asks to "search the web"
+- Need verification of facts from authoritative sources
+- MiniMax/OpenAI/DeepSeek needs web data (these providers have no server tool)
 
-**When NOT to use:**
-- General knowledge in your training
-- Internal workspace data
+**Parameters:**
+- `query` (required): the search question (be specific)
+- `max_results` (1-20, default 5): how many results
+- `search_depth`: `'basic'` (default) or `'advanced'` (more thorough, slower)
+- `topic`: `'general'` (default) or `'news'`
+- `include_answer`: true to also get Tavily's short synthesised answer
+- `include_raw_content`: true to include full page text per result
+- `include_domains`: optional list of domains to restrict to (e.g. `['wikipedia.org', 'arxiv.org']`)
 
-**When NOT to use:**
-- Just need to search (use automatic web_search instead)
-- Internal workspace files
-- Private/authenticated content
+**Returns:** `results: [{title, url, content, score}, ...]`, optional `answer`.
+
+**Example:** `<function_calls>
+<invoke name="tavily_search">
+<parameter name="query">latest Python 3.13 release notes 2026</parameter>
+<parameter name="max_results">5</parameter>
+<parameter name="search_depth">advanced</parameter>
+</invoke>
+</function_calls>`
+
+### tavily_extract - Fetch and clean-extract URLs
+**When to use:**
+- User gives you a URL and wants the content read
+- A search result is worth reading in detail
+- Fetching documentation pages, READMEs, articles
+
+**Parameters:**
+- `urls` (required): list of 1-20 http(s) URLs
+- `include_images` (default false): include images found on the pages
+
+**Returns:** `results: [{url, raw_content}, ...]`, `failed_results: [...]`.
+
+**Note:** Cannot execute JavaScript. For JS-rendered SPAs, prefer `tavily_crawl` only if you have a /crawl-enabled account, otherwise use the static text the page exposes.
+
+**Example:** `<function_calls>
+<invoke name="tavily_extract">
+<parameter name="urls">["https://docs.python.org/3/whatsnew/3.13.html"]</parameter>
+</invoke>
+</function_calls>`
+
+### tavily_map - Discover a site's URL structure
+**When to use:**
+- Before reading a site, to discover which pages exist
+- To narrow down which pages are worth extracting
+- Cheap and fast (no page content extracted, just URLs)
+
+**Parameters:**
+- `url` (required): starting URL
+- `max_depth` (1-5, default 2): how many link-hops
+- `limit` (1-100, default 25): max URLs to return
+- `instructions`: optional natural-language guidance (e.g. "focus on API reference")
+
+**Returns:** `results: [url, url, ...]`
+
+**Example:** `<function_calls>
+<invoke name="tavily_map">
+<parameter name="url">https://docs.anthropic.com</parameter>
+<parameter name="max_depth">2</parameter>
+<parameter name="limit">30</parameter>
+</invoke>
+</function_calls>`
+
+### tavily_crawl - Recursively crawl a site
+**When to use:**
+- Reading documentation sites, knowledge bases, multi-page resources
+- Need clean text from many pages of the same site
+
+**Parameters:**
+- `url` (required): starting URL
+- `max_depth` (1-5, default 2): how many link-hops
+- `limit` (1-50, default 10): max pages
+- `instructions`: optional natural-language guidance
+
+**Returns:** `results: [{url, raw_content}, ...]`
+
+**NOTE:** Tavily's `/crawl` endpoint is currently invite-only. If the response is `{"success": false, "error": "..."}` with a 402/403, fall back to: 1) call `tavily_map` to discover the site's structure, 2) call `tavily_extract` on the URLs you want.
+
+### tavily_research - Submit a deep research task (async)
+**When to use:**
+- In-depth research questions that need synthesising many sources
+- "Compare X vs Y", "Summarise the state of Z in 2026", "What are the trade-offs of..."
+
+**Parameters:**
+- `input` (required): the research question — be specific and detailed
+- `model`: `'mini'` (default, fast/cheap) or `'pro'` (slower, more thorough)
+- `citation_format`: 'apa' (default), 'mla', 'chicago', 'vancouver', 'harvard', 'ieee'
+
+**Returns:** `request_id` immediately. The task runs asynchronously on Tavily's engine (typically 30s-5min). You MUST then call `tavily_get_research` with that `request_id` to retrieve the synthesised result.
+
+**Example:** `<function_calls>
+<invoke name="tavily_research">
+<parameter name="input">Compare the leading vector databases for AI agent memory in 2026: pgvector, Pinecone, Qdrant, Weaviate. Cover performance, cost, self-hosting, multi-tenancy, and pgvector's specific Supabase integration story.</parameter>
+<parameter name="model">pro</parameter>
+<parameter name="citation_format">apa</parameter>
+</invoke>
+</function_calls>`
+
+### tavily_get_research - Poll for the result of tavily_research
+**When to use:**
+- Always after calling `tavily_research`
+- Poll repeatedly (1-3 calls with short delays) until `status` is `completed`
+
+**Parameters:**
+- `request_id` (required): the request_id returned from `tavily_research`
+
+**Returns:** `status: 'pending' | 'in_progress' | 'completed'`, `content` (synthesised report), `sources` (list of citations in the requested format).
+
+**Example:** `<function_calls>
+<invoke name="tavily_get_research">
+<parameter name="request_id">abc123-...</parameter>
+</invoke>
+</function_calls>`
+
+### Which tool should I pick?
+| Need | Tool |
+|------|------|
+| Quick web lookup | `tavily_search` |
+| Read a specific URL the user gave you | `tavily_extract` |
+| Discover what pages a site has | `tavily_map` |
+| Read many pages of one site | `tavily_crawl` (or `tavily_map` + `tavily_extract` if 402/403) |
+| Deep research synthesis (multi-source) | `tavily_research` + `tavily_get_research` |
+| Just need a one-sentence answer | `tavily_search` with `include_answer: true` |
+
+### When NOT to use Tavily tools
+- General knowledge in your training (no need to search)
+- Internal workspace data (use the org/vector tools)
+- Private/authenticated content (Tavily has no credentials)
+- The information is already in the conversation
 
 ---
 

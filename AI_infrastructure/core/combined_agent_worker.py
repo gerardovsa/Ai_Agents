@@ -3345,6 +3345,39 @@ def execute_streaming_request(
             # Continue without multimodal content
         
         # Stream response from Claude with USER'S AI PREFERENCES
+        # DEFENCE-IN-DEPTH (June 15, 2026): Anthropic server tools (web_search_20250305,
+        # web_fetch_20250910) are an Anthropic-only feature. MiniMax's gateway
+        # (https://api.minimax.io/anthropic) accepts the request shape but REJECTS
+        # the server tool blocks with 400 "function name or parameters is empty"
+        # (MiniMax error 2013). OpenAI and DeepSeek don't accept server tools at all.
+        # Strip server tools from `tools` for any non-Anthropic provider as a
+        # belt-and-suspenders safety net in case server tools leak in from an
+        # upstream caller (e.g. a future route refactor that forgets the gate).
+        # The Tavily client tools (tavily_search / tavily_extract / tavily_crawl /
+        # tavily_map / tavily_research / tavily_get_research) are the cross-provider
+        # equivalent and are auto-discovered by the registry into `tools`.
+        if ai_provider != 'anthropic' and tools:
+            _server_tool_types = {
+                "web_search_20250305", "web_search_20260209",
+                "web_fetch_20250910",  "web_fetch_20260209",
+                "code_execution_20250825",
+                "tool_search_tool_regex_20250305",
+                "tool_search_tool_bm25_20250305",
+            }
+            _stripped = 0
+            _kept = []
+            for _t in tools:
+                # server tools are dicts with a "type" key matching one of the
+                # Anthropic server-tool beta identifiers; client tools are dicts
+                # with a "name" key only.
+                if isinstance(_t, dict) and _t.get("type") in _server_tool_types:
+                    _stripped += 1
+                else:
+                    _kept.append(_t)
+            if _stripped:
+                tools = _kept
+                print(f"{log_prefix} [SERVER-TOOL-GUARD] Stripped {_stripped} Anthropic server tool(s) for provider '{ai_provider}' (would 400 on MiniMax)")
+
         stream_params = {
             'model': ai_model,
             'max_tokens': ai_max_tokens,
