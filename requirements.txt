@@ -43,6 +43,15 @@ RestrictedPython>=6.0
 # Environment
 python-dotenv==1.0.0
 
+# Error tracking & performance monitoring (Sentry)
+# Free tier: 5K errors/month, 10K transactions/month — covers staging
+# Sentry DSN is OPTIONAL — Sentry.init() is a no-op if SENTRY_DSN is unset
+sentry-sdk[flask]==2.10.0
+
+# Note: The background debug agent calls the Render REST API via `requests`
+# (already in requirements.txt). RENDER_API_KEY env var enables it; if unset
+# the agent falls back to log-only alerting.
+
 # Google APIs (loosened constraints to resolve dependency conflicts)
 google-auth>=2.23.0
 google-auth-oauthlib>=1.1.0
@@ -54,6 +63,7 @@ google-cloud-monitoring>=2.16.0
 # Database
 psycopg2-binary==2.9.9
 supabase>=2.0.0,<3.0  # Pin to avoid gotrue backtracking
+psutil==5.9.8  # Process/system monitoring (used by /api/admin/diagnostics for memory + disk snapshots)
 httpx>=0.23.0,<0.28.0  # openai==1.35.0 passes 'proxies' to httpx.Client; httpx 0.28+ removed that param
 sqlalchemy==2.0.23
 pyodbc>=5.0.0

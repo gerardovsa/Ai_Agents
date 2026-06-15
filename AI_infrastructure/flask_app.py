@@ -238,6 +238,7 @@ from routes.transcription_routes import transcription_bp  # NEW: Voice/audio tra
 from routes.device_lock_routes import device_lock_bp  # NEW: Device lock (multi-device session management)
 from routes.pool_monitor_routes import pool_monitor_bp  # NEW: Connection pool monitoring dashboard
 from routes.monitoring_routes import monitoring_bp  # NEW: Connection pool health monitoring (Supabase optimization)
+from routes.admin_diagnostics_routes import diagnostics_bp  # NEW: Deep diagnostics for AI agents / admins (3 endpoints)
 from routes.search_routes import search_bp  # NEW: Supabase full-text and semantic search (5 endpoints)
 from routes.task_sync_routes import task_sync_bp  # NEW: Universal Task Sync (Google Tasks, Microsoft To Do, Google Calendar)
 # from routes.quote_calculator_routes import quote_calc_bp  # DISABLED: In_House_SQL dependency
@@ -261,6 +262,46 @@ except Exception as e:
     log_error(logger, f"CRITICAL: Failed to create Flask app: {e}")
     logger.error(traceback.format_exc())
     raise
+
+
+# ============================================================================
+# 🐛 SENTRY ERROR TRACKING (Optional — no-op if SENTRY_DSN is unset)
+# ============================================================================
+# Sentry captures unhandled exceptions with full stack trace, request context,
+# and tags (route, status, user/org if available). It is OPTIONAL — if
+# SENTRY_DSN is not set, the integration is skipped and Flask continues
+# normally. The free tier covers ~5K errors/month which is enough for staging.
+#
+# Set in Render env: SENTRY_DSN=https://<key>@<org>.ingest.sentry.io/<project>
+_sentry_dsn = os.getenv('SENTRY_DSN', '').strip()
+if _sentry_dsn:
+    try:
+        import sentry_sdk
+        from sentry_sdk.integrations.flask import FlaskIntegration
+        sentry_sdk.init(
+            dsn=_sentry_dsn,
+            integrations=[FlaskIntegration()],
+            # Capture 100% of transactions for performance monitoring in dev;
+            # in production, lower this (e.g. 0.1 = 10%) to stay in free tier
+            traces_sample_rate=float(os.getenv('SENTRY_TRACES_SAMPLE_RATE', '0.1')),
+            # Send user PII (org_id, user_id from JWT) — required for the
+            # debug agent to group errors by org
+            send_default_pii=os.getenv('SENTRY_SEND_PII', 'true').lower() == 'true',
+            environment=os.getenv('SENTRY_ENVIRONMENT', os.getenv('ENVIRONMENT', 'production')),
+            release=os.getenv('RENDER_GIT_COMMIT', 'unknown'),
+            # Don't report /health or /api/health hits (Render polls every 30s)
+            before_send=lambda event, hint: None if (
+                event.get('request', {}).get('url', '').endswith(('/health', '/api/health'))
+            ) else event,
+        )
+        log_success(logger, f"[SENTRY] Initialized (env={os.getenv('ENVIRONMENT', 'production')}, release={os.getenv('RENDER_GIT_COMMIT', 'unknown')[:8]})")
+    except ImportError:
+        log_warning(logger, "[SENTRY] sentry-sdk not installed — skipping init")
+    except Exception as e:
+        log_error(logger, f"[SENTRY] init failed: {e}")
+        logger.error(traceback.format_exc())
+else:
+    log_config(logger, "[SENTRY] SENTRY_DSN not set — error tracking disabled")
 
 
 # ============================================================================
@@ -591,6 +632,7 @@ app.register_blueprint(transcription_bp)                             # NEW: Voic
 app.register_blueprint(vector_db_bp)                                 # NEW: Vector database management (5 endpoints: /api/vector-db/*)
 app.register_blueprint(pool_monitor_bp)                              # NEW: Connection pool monitoring (4 endpoints: /api/pool/*)
 app.register_blueprint(monitoring_bp)                                # NEW: Connection pool health monitoring (4 endpoints: /api/pool/stats, /api/pool/health)
+app.register_blueprint(diagnostics_bp)                              # NEW: Deep admin diagnostics (3 endpoints: /api/admin/diagnostics[/summary|/provider/<name>])
 app.register_blueprint(module_bp)                                    # NEW: Self-registering module system (8 endpoints: /api/modules/*)
 app.register_blueprint(task_sync_bp)                                 # NEW: Universal Task Sync (Google Tasks, Microsoft To Do, Calendar - /api/sync/*)
 # app.register_blueprint(quote_calc_bp)                                # DISABLED: In_House_SQL dependency
@@ -2663,7 +2705,7 @@ def health_check():
         'status': 'healthy',
         'app': 'new_flask_app',
         'infrastructure': 'AI_infrastructure',
-        'providers': ['anthropic', 'deepseek', 'openai'],
+        'providers': ['anthropic', 'deepseek', 'openai', 'MiniMax'],  # MiniMax added per migration 051 (June 11, 2026)
         'socketio': socketio_status,
         'semantic_search': semantic_search_status,
         'timestamp': datetime.now(UTC).isoformat() + 'Z',
