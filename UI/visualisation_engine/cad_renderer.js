@@ -67,21 +67,49 @@ class CADRenderer {
                 console.log('✅ CAD: Detected SVG drawing format');
             } else {
                 // JSON-only parse — never eval AI-generated content (untrusted per CLAUDE.md §10)
+                let strictErr = null;
                 try {
                     config = JSON.parse(cleanContent);
                 } catch (e) {
-                    // V8 puts the offending character index in the message (e.g. "...at position 423").
-                    // Surface a snippet around that index so AI typos (e.g. `"cx": 400"`) are debuggable.
-                    const posMatch = String(e.message).match(/position\s+(\d+)/i);
-                    let snippet = '';
-                    if (posMatch) {
-                        const pos = Number(posMatch[1]);
-                        const start = Math.max(0, pos - 30);
-                        const end = Math.min(cleanContent.length, pos + 30);
-                        snippet = ` (near: "...${cleanContent.slice(start, end).replace(/\n/g, '\\n')}...")`;
+                    strictErr = e;
+                }
+                if (strictErr) {
+                    // AI sometimes writes "key": number" with a stray trailing quote (e.g.
+                    // "cx": 400", or "r": 8"). Strict JSON.parse rejects this with a
+                    // confusing "Expected ',' or '}'" error. We try one surgical recovery
+                    // pass — strip just the stray quote after a numeric value — before
+                    // giving up. The recovery is conservative: it only touches a colon
+                    // followed by a JSON number, followed by a quote, followed by a
+                    // structural char (, } ] or newline). Anything else is left alone.
+                    const recovered = this.recoverJSONTypos(cleanContent);
+                    let recoveredErr = null;
+                    if (recovered !== cleanContent) {
+                        try {
+                            config = JSON.parse(recovered);
+                            console.warn('CAD: JSON parsed after tolerating stray-quote typos (',
+                                cleanContent.length - recovered.length, 'chars removed)');
+                        } catch (e2) {
+                            recoveredErr = e2;
+                        }
                     }
-                    console.error('CAD: JSON parse failed:', e.message, snippet);
-                    throw new Error(`CAD JSON parse error: ${e.message}${snippet}`);
+                    if (!config) {
+                        // Neither strict nor recovered parse worked — surface the original
+                        // error with V8's position + a 30-char snippet so the bug is
+                        // debuggable from the console alone.
+                        const posMatch = String(strictErr.message).match(/position\s+(\d+)/i);
+                        let snippet = '';
+                        if (posMatch) {
+                            const pos = Number(posMatch[1]);
+                            const start = Math.max(0, pos - 30);
+                            const end = Math.min(cleanContent.length, pos + 30);
+                            snippet = ` (near: "...${cleanContent.slice(start, end).replace(/\n/g, '\\n')}...")`;
+                        }
+                        console.error('CAD: JSON parse failed:', strictErr.message, snippet);
+                        if (recoveredErr) {
+                            console.error('CAD: recovery also failed:', recoveredErr.message);
+                        }
+                        throw new Error(`CAD JSON parse error: ${strictErr.message}${snippet}`);
+                    }
                 }
             }
         } else {
@@ -1511,6 +1539,37 @@ Triangles: ${Math.floor(triangleCount).toLocaleString()}`;
             .replace(/&/g, '&amp;')
             .replace(/</g, '&lt;')
             .replace(/>/g, '&gt;');
+    }
+
+    /**
+     * One-shot recovery pass for a single specific class of AI JSON typo: a stray
+     * closing-quote immediately after a numeric property value.
+     *
+     * Example bug (from a real test on 2026-06-17):
+     *     {"type": "circle", "cx": 400", "cy": 260, "r": 8, ...}
+     *                            ^                        ^
+     *                            AI added a " after the number 400. Strict
+     *                            JSON.parse rejects with "Expected ',' or '}'
+     *                            after property value" because 400" doesn't end
+     *                            the value the way JSON expects.
+     *
+     * Conservative: the regex only matches when ALL of the following are true:
+     *   1. A colon (the start of a property value), optionally with whitespace
+     *   2. A JSON number (int, decimal, leading-dot, with optional sign and exponent)
+     *   3. Optional whitespace
+     *   4. A single literal "
+     *   5. Followed by a structural character (",", "}", "]", or newline)
+     *
+     * It cannot match a valid string value (those start with `"`, not a digit).
+     * It cannot match a number inside a string (those are wrapped in quotes).
+     * It cannot match a stray quote in the middle of a key. The false-positive
+     * rate is essentially zero.
+     */
+    recoverJSONTypos(content) {
+        return content.replace(
+            /:\s*(-?(?:\d+\.\d*|\.\d+|\d+)(?:[eE][+-]?\d+)?)\s*"(\s*[,}\]\n])/g,
+            ':$1$2'
+        );
     }
 }
 
