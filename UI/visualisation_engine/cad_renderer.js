@@ -66,12 +66,22 @@ class CADRenderer {
                 config = { svg: cleanContent };
                 console.log('✅ CAD: Detected SVG drawing format');
             } else {
-                // Try JSON first (3D model config)
+                // JSON-only parse — never eval AI-generated content (untrusted per CLAUDE.md §10)
                 try {
                     config = JSON.parse(cleanContent);
                 } catch (e) {
-                    console.warn('CAD: JSON parse failed, trying JavaScript eval');
-                    config = (new Function('return ' + cleanContent))();
+                    // V8 puts the offending character index in the message (e.g. "...at position 423").
+                    // Surface a snippet around that index so AI typos (e.g. `"cx": 400"`) are debuggable.
+                    const posMatch = String(e.message).match(/position\s+(\d+)/i);
+                    let snippet = '';
+                    if (posMatch) {
+                        const pos = Number(posMatch[1]);
+                        const start = Math.max(0, pos - 30);
+                        const end = Math.min(cleanContent.length, pos + 30);
+                        snippet = ` (near: "...${cleanContent.slice(start, end).replace(/\n/g, '\\n')}...")`;
+                    }
+                    console.error('CAD: JSON parse failed:', e.message, snippet);
+                    throw new Error(`CAD JSON parse error: ${e.message}${snippet}`);
                 }
             }
         } else {
@@ -81,6 +91,15 @@ class CADRenderer {
         // If SVG, render as 2D drawing instead of 3D model (NO Three.js needed)
         if (isSVG) {
             return this.renderSVGDrawing(config.svg, contentArea, chartId);
+        }
+
+        // 2D technical drawing JSON: { viewBox, background?, elements: [{type, ...}] }
+        // Feature-detect on the schema shape so we don't collide with 3D-model configs
+        // (which use `geometry` / `model3D` instead of `elements`).
+        if (config && Array.isArray(config.elements) && typeof config.viewBox === 'string') {
+            console.log('✅ CAD: Detected 2D drawing JSON (viewBox + elements), rendering as SVG');
+            const svgMarkup = this.elementsToSVG(config);
+            return this.renderSVGDrawing(svgMarkup, contentArea, chartId);
         }
 
         // ONLY load Three.js if rendering 3D models (not for SVG)
@@ -1391,6 +1410,107 @@ Triangles: ${Math.floor(triangleCount).toLocaleString()}`;
         }
 
         return { container: svgContainer, svg: svgElement };
+    }
+
+    /**
+     * Convert 2D drawing JSON to SVG markup.
+     * Schema: { viewBox: "x y w h", background?: "#rrggbb", elements: [{type, ...props}] }
+     * Supported element types: rect, circle, ellipse, line, polygon, polyline, path, text
+     *
+     * The AI typically emits this shape because it reads more naturally than raw SVG.
+     * We normalise to real SVG so the existing renderSVGDrawing path (responsive sizing,
+     * metadata hiding, theme colours) keeps working.
+     */
+    elementsToSVG(config) {
+        const viewBox = (config && config.viewBox) ? String(config.viewBox) : '0 0 400 300';
+        const background = (config && typeof config.background === 'string') ? config.background : null;
+
+        const parts = [
+            `<svg xmlns="http://www.w3.org/2000/svg" viewBox="${this.escapeAttr(viewBox)}" preserveAspectRatio="xMidYMid meet">`
+        ];
+
+        // Optional full-viewBox background rect (so the drawing fills the canvas)
+        if (background && background !== 'transparent' && background !== 'none') {
+            const [vx, vy, vw, vh] = viewBox.split(/\s+/).map(Number);
+            if ([vx, vy, vw, vh].every(n => Number.isFinite(n))) {
+                parts.push(`<rect x="${vx}" y="${vy}" width="${vw}" height="${vh}" fill="${this.escapeAttr(background)}"/>`);
+            }
+        }
+
+        const elements = (config && Array.isArray(config.elements)) ? config.elements : [];
+        for (const el of elements) {
+            parts.push(this.elementToSVG(el));
+        }
+
+        parts.push('</svg>');
+        return parts.join('');
+    }
+
+    /**
+     * Convert a single element from the 2D drawing JSON to its SVG string.
+     */
+    elementToSVG(el) {
+        if (!el || typeof el !== 'object' || !el.type) {
+            return '<!-- CAD: skipped non-object or typeless element -->';
+        }
+
+        const type = String(el.type).toLowerCase();
+        switch (type) {
+            case 'rect':
+            case 'circle':
+            case 'ellipse':
+            case 'line':
+            case 'polygon':
+            case 'polyline':
+            case 'path':
+                return `<${type} ${this.buildAttrs(el)} />`;
+            case 'text':
+                // text content needs XML-escaping (not just attribute escaping)
+                return `<text ${this.buildAttrs(el)}>${this.escapeText(String(el.text ?? ''))}</text>`;
+            default:
+                return `<!-- CAD: unsupported element type "${this.escapeText(type)}" -->`;
+        }
+    }
+
+    /**
+     * Build the attribute string for an SVG element. Pass-through for the most
+     * common SVG attributes; normalises camelCase → kebab-case for the rest.
+     */
+    buildAttrs(el) {
+        // SVG attributes that already use kebab-case (the camelCase→kebab pass would mangle them).
+        const KEBAB_KEYS = new Set([
+            'stroke-width', 'stroke-dasharray', 'stroke-linecap', 'stroke-linejoin',
+            'stroke-opacity', 'fill-opacity', 'stop-color', 'stop-opacity',
+            'font-family', 'font-size', 'font-weight', 'text-anchor',
+            'dominant-baseline', 'alignment-baseline', 'clip-path', 'fill-rule',
+            'vector-effect', 'xmlns', 'xmlns:xlink', 'aria-label', 'role'
+        ]);
+
+        const parts = [];
+        for (const [key, value] of Object.entries(el)) {
+            if (key === 'type' || key === 'text') continue;
+            const attrName = KEBAB_KEYS.has(key)
+                ? key
+                : key.replace(/[A-Z]/g, m => '-' + m.toLowerCase());
+            parts.push(`${attrName}="${this.escapeAttr(String(value))}"`);
+        }
+        return parts.join(' ');
+    }
+
+    /** Escape a value for use as an SVG attribute (inside double-quotes). */
+    escapeAttr(s) {
+        return String(s)
+            .replace(/&/g, '&amp;')
+            .replace(/"/g, '&quot;')
+            .replace(/</g, '&lt;');
+    }
+
+    /** Escape a value for use as XML text content. */
+    escapeText(s) {
+        return String(s)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;');
     }
 }
 

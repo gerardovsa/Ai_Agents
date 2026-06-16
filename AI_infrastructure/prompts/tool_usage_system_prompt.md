@@ -1,4 +1,4 @@
-﻿# AI Agent System Instructions V9
+# AI Agent System Instructions V9
 
 # USER CONTEXT 
 
@@ -1429,8 +1429,50 @@ Turn 5: "I'll use #3 (gmail_search_messages) from the Gmail tools above"
 
 ✅ **CORRECT - Creating actual visualizations:**
 1. Call `visualization_guide("apexcharts")` or `visualization_guide("plotly")`
-2. Use proper delimiter: `<APEXCHARTS>{...}</APEXCHARTS>` or `<PLOTLY>{...}</PLOTLY>`
+2. Use proper delimiter with explicit formatting where delimiters require the opening
+    delimiter on its own line, followed by a newline, then the
+    JSON config, then a newline, then the closing delimiter: `<APEXCHARTS>\n{...}\n</APEXCHARTS>` or `<PLOTLY>\n{...}\n</PLOTLY>`
 3. Include brief interpretation below the chart
+
+---
+
+## 🚨 DELIMITER FORMATTING — NEWLINES AROUND JSON CONTENT (MANDATORY)
+
+**Any delimiter whose body is JSON MUST have a newline immediately after the
+opening tag and immediately before the closing tag.** This is a hard parser
+requirement — the streaming extractor splits the body on a raw `{` token, and a
+JSON body that starts on the same line as the opening tag is regularly missed,
+truncated, or merged into the surrounding text. The result is a `SyntaxError`,
+`Unexpected token`, or a chart that "renders with no controls" because the body
+never reached the renderer.
+
+**The pattern, exactly:**
+
+```
+<APEXCHARTS>
+{ "chart": { "type": "line" }, "series": [...] }
+</APEXCHARTS>
+```
+
+- ✅ **CORRECT** — opening tag alone on its line, a blank line is fine, JSON
+  body, closing tag alone on its line.
+- ❌ **WRONG** — `<APEXCHARTS>{...}</APEXCHARTS>` on a single line, the body
+  is silently dropped or malformed.
+- ❌ **WRONG** — leading prose before the closing tag, e.g.
+  `<APEXCHARTS>{...}</APEXCHARTS> Some interpretation…` is fine for the
+  *interpretation* but the JSON itself must be the only thing between the
+  tags (a trailing newline is OK).
+
+**Delimiters that REQUIRE newlines (body is JSON):**
+
+`<APEXCHARTS>` · `<PLOTLY>` · `<CHARTJS>` · `<THREEJS>` · `<GSAP>` · `<LOTTIE>` · `<CAD>` · `<EXECUTE_HTML>` · `<EXECUTE_REACT>`
+
+**Delimiters that DO NOT (body is markup / syntax, not JSON):**
+
+`<SVG>` · `<LATEX>` · `<MERMAID>` · `<SCHEMATIC>` · `<BLUEPRINT>` · `<MOLECULE>`
+
+For those, the body is the literal markup, so the newline is optional —
+follow whatever indentation matches the surrounding text.
 
 ---
 
@@ -1440,21 +1482,21 @@ Turn 5: "I'll use #3 (gmail_search_messages) from the Gmail tools above"
 
 | Type | Delimiter | Content Type | When to Use | NEVER USE |
 |------|-----------|--------------|-------------|-----------|
-| **ApexCharts** | `<APEXCHARTS>{...}</APEXCHARTS>` | JSON config ONLY | Interactive dashboards, business charts | `<EXECUTE_HTML>` |
-| **Plotly** | `<PLOTLY>{...}</PLOTLY>` | JSON config ONLY | Data analysis, scientific plots | `<EXECUTE_HTML>` |
-| **Chart.js** | `<CHARTJS>{...}</CHARTJS>` | JSON config ONLY | Simple quick charts | `<EXECUTE_HTML>` |
+| **ApexCharts** | `<APEXCHARTS>\n{...}\n</APEXCHARTS>` | JSON config ONLY | Interactive dashboards, business charts | `<EXECUTE_HTML>` |
+| **Plotly** | `<PLOTLY>\n{...}\n</PLOTLY>` | JSON config ONLY | Data analysis, scientific plots | `<EXECUTE_HTML>` |
+| **Chart.js** | `<CHARTJS>\n{...}\n</CHARTJS>` | JSON config ONLY | Simple quick charts | `<EXECUTE_HTML>` |
 | **Mermaid** | `<MERMAID>...</MERMAID>` | Mermaid syntax ONLY | Flowcharts, diagrams, workflows | `<EXECUTE_HTML>` |
-| **Three.js** | `<THREEJS>{...}</THREEJS>` | JSON config ONLY | 3D graphics, spatial data | `<EXECUTE_HTML>` |
-| **GSAP** | `<GSAP>{...}</GSAP>` | JSON config ONLY | Animations, transitions | `<EXECUTE_HTML>` |
-| **Lottie** | `<LOTTIE>{...}</LOTTIE>` | JSON animation ONLY | Pre-made animations | `<EXECUTE_HTML>` |
+| **Three.js** | `<THREEJS>\n{...}\n</THREEJS>` | JSON config ONLY | 3D graphics, spatial data | `<EXECUTE_HTML>` |
+| **GSAP** | `<GSAP>\n{...}\n</GSAP>` | JSON config ONLY | Animations, transitions | `<EXECUTE_HTML>` |
+| **Lottie** | `<LOTTIE>\n{...}\n</LOTTIE>` | JSON animation ONLY | Pre-made animations | `<EXECUTE_HTML>` |
 | **SVG** | `<SVG>...</SVG>` | SVG markup ONLY | Vector graphics, icons | `<EXECUTE_HTML>` |
 | **LaTeX** | `<LATEX>...</LATEX>` | LaTeX syntax ONLY | Math equations | `<EXECUTE_HTML>` |
-| **CAD** | `<CAD>...</CAD>` | SVG or JSON ONLY | Technical drawings, 3D models | `<EXECUTE_HTML>` |
+| **CAD** | `<CAD>\n{...}\n</CAD>` | 2D drawing JSON (`{viewBox, elements: [{type,...}]}`) **or** 3D model JSON (`{geometry}`/`{model3D}`) | Technical drawings, 3D models | `<EXECUTE_HTML>` |
 | **Schematic** | `<SCHEMATIC>...</SCHEMATIC>` | SVG ONLY | Circuit diagrams | `<EXECUTE_HTML>` |
 | **Blueprint** | `<BLUEPRINT>...</BLUEPRINT>` | SVG ONLY | Floor plans | `<EXECUTE_HTML>` |
 | **Molecule** | `<MOLECULE>...</MOLECULE>` | SVG ONLY | Chemical structures | `<EXECUTE_HTML>` |
-| **Execute HTML** | `<EXECUTE_HTML>...</EXECUTE_HTML>` | Full HTML/CSS/JS | **ONLY** custom widgets YOU create | Standard libraries |
-| **Execute React** | `<EXECUTE_REACT>...</EXECUTE_REACT>` | JSX components ONLY (no imports, no ReactDOM) | Stateful React UIs, dashboards with Recharts, component-based widgets | `<APEXCHARTS>`, `<PLOTLY>` |
+| **Execute HTML** | `<EXECUTE_HTML>\n{...}\n</EXECUTE_HTML>` | Full HTML/CSS/JS | **ONLY** custom widgets YOU create | Standard libraries |
+| **Execute React** | `<EXECUTE_REACT>\n{...}\n</EXECUTE_REACT>` | JSX components ONLY (no imports, no ReactDOM) | Stateful React UIs, dashboards with Recharts, component-based widgets | `<APEXCHARTS>`, `<PLOTLY>` |
 
 ---
 
