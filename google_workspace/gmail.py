@@ -674,19 +674,90 @@ def gmail_batch_modify(message_ids, add_label_ids=None, remove_label_ids=None, *
     """Modify multiple messages"""
     try:
         service = _get_gmail_service(**kwargs)
-        
+
         body = {'ids': message_ids}
         if add_label_ids:
             body['addLabelIds'] = add_label_ids
         if remove_label_ids:
             body['removeLabelIds'] = remove_label_ids
-        
+
         service.users().messages().batchModify(userId='me', body=body).execute()
-        
+
         return {'modified': len(message_ids), 'message_ids': message_ids}
-    
+
     except Exception as e:
         print(f"❌ Failed to batch modify: {e}")
+        raise
+
+
+def gmail_batch_get_metadata(message_ids, metadata_headers=None, **kwargs):
+    """
+    Fetch metadata for many messages in a SINGLE HTTP round-trip via BatchHttpRequest.
+
+    Gmail's REST API does not expose a `messages.batchGet` endpoint, but the
+    google-api-python-client supports batching at the HTTP transport layer: up
+    to ~100 inner API calls are packed into one multipart/mixed request and
+    parsed back into individual responses server-side. This is dramatically
+    faster than a ThreadPoolExecutor of N `messages.get` calls (1 round-trip
+    instead of N, plus no thread-safety issues on the shared Credentials
+    object) and stays well under Gmail's 250-units/sec per-user rate limit
+    because we still emit one inner `messages.get` per ID, just framed
+    together.
+
+    Args:
+        message_ids:        list of Gmail message IDs (max ~100 per call)
+        metadata_headers:   list of header names to return when format='metadata',
+                            e.g. ['From', 'Subject', 'Date', 'To']
+        **kwargs:           credential injection (_user_id, _injected_credentials)
+
+    Returns:
+        {
+            'messages':    [list of message payloads in the same order as input],
+            'missing_ids': [IDs that did not come back in the response],
+            'errors':      {request_id: error_string, ...}  # per-ID failures
+        }
+    """
+    if not message_ids:
+        return {'messages': [], 'missing_ids': [], 'errors': {}}
+
+    try:
+        service = _get_gmail_service(**kwargs)
+
+        # Default to the headers the Communication Hub list view actually uses
+        headers = metadata_headers or ['From', 'Subject', 'Date', 'To']
+
+        results = {}   # request_id -> response payload
+        errors = {}    # request_id -> error string
+
+        def _callback(request_id, response, exception):
+            if exception is not None:
+                errors[request_id] = str(exception)
+            else:
+                results[request_id] = response
+
+        batch = service.new_batch_http_request(callback=_callback)
+        for mid in message_ids:
+            batch.add(
+                service.users().messages().get(
+                    userId='me',
+                    id=mid,
+                    format='metadata',
+                    metadataHeaders=headers,
+                ),
+                request_id=mid,
+            )
+        # ONE HTTP request -> ONE multipart response -> N parsed payloads
+        batch.execute()
+
+        missing = [m for m in message_ids if m not in results]
+        return {
+            'messages': [results[m] for m in message_ids if m in results],
+            'missing_ids': missing,
+            'errors': errors,
+        }
+
+    except Exception as e:
+        print(f"❌ Failed to batch get metadata: {e}")
         raise
 
 

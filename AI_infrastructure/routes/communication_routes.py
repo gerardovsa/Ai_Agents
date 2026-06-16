@@ -54,8 +54,9 @@ from auth.user_auth import UserAuthManager
 from auth.user_auth import require_auth
 
 from google_workspace.gmail import (
-    gmail_list_messages, 
+    gmail_list_messages,
     gmail_get_message,  # Used to fetch full message details (already imported)
+    gmail_batch_get_metadata,  # ✅ Batched metadata fetch — 1 HTTP round-trip for N messages
     gmail_get_thread,  # ✅ FIX (Jan 19, 2026): Added for Gmail thread fetching
     gmail_get_attachment,  # NEW: Download Gmail attachments
     gmail_send_email,
@@ -204,7 +205,7 @@ def list_emails():
     else:
         user_id = request.args.get('user_id', 1, type=int)
     account = request.args.get('account', 'all')
-    limit = request.args.get('limit', 200, type=int)  # Increased from 50 to 200 for better thread coverage
+    limit = request.args.get('limit', 50, type=int)  # 50 keeps /emails under 1s even on throttled Gmail API
     skip = request.args.get('skip', 0, type=int)  # ✅ PAGINATION: Offset for fetching next batch
     thread_id = request.args.get('thread_id', None)  # ✅ NEW: Filter by specific thread
     
@@ -298,61 +299,82 @@ def list_emails():
                     '_user_id': user_id,
                     '_injected_credentials': True
                 }
-                
+
                 gmail_result = gmail_list_messages(**gmail_params)
-                
+
                 # gmail_list_messages returns {'messages': [], 'count': N, 'next_page_token': ...}
                 if 'messages' in gmail_result:
                     gmail_count = len(gmail_result.get('messages', []))
                     print(f"[Communication Hub] ✅ Got {gmail_count} Gmail message IDs")
-                    
-                    # ⚡ PARALLEL FETCH: Get all message details at once using ThreadPoolExecutor
-                    from concurrent.futures import ThreadPoolExecutor, as_completed
-                    import time
-                    
-                    def fetch_single_message(msg_summary, uid):
-                        """Fetch a single message metadata using database credentials"""
+
+                    msg_ids = [m['id'] for m in gmail_result.get('messages', [])]
+                    if msg_ids:
+                        # ⚡ SINGLE BATCHED HTTP CALL: fetch all metadata in one round-trip
+                        # (BatchHttpRequest packs up to 100 inner messages.get calls into one
+                        # multipart/mixed request — ~1s instead of 200+ N round-trips)
+                        import time
+                        start_time = time.time()
                         try:
-                            msg = gmail_get_message(
-                                message_id=msg_summary['id'],
-                                format='metadata',
-                                _user_id=uid,
-                                _injected_credentials=True
+                            batched = gmail_batch_get_metadata(
+                                msg_ids,
+                                metadata_headers=['From', 'Subject', 'Date', 'To'],
+                                _user_id=user_id,
+                                _injected_credentials=True,
                             )
-                            
-                            # Parse message headers
-                            headers = {h['name'].lower(): h['value'] for h in msg.get('payload', {}).get('headers', [])}
-                            
-                            return {
-                                'id': f"gmail_{msg['id']}",
-                                'provider': 'gmail',
-                                'from': headers.get('from', 'Unknown'),
-                                'to': headers.get('to', ''),
-                                'subject': headers.get('subject', 'No Subject'),
-                                'date': headers.get('date', ''),
-                                'is_read': 'UNREAD' not in msg.get('labelIds', []),
-                                'snippet': msg.get('snippet', ''),
-                                'has_attachments': any(p.get('filename') for p in msg.get('payload', {}).get('parts', [])),
-                                'thread_id': msg.get('threadId')
-                            }
-                        except Exception as msg_err:
-                            print(f"[Communication Hub] ⚠️  Failed to fetch message {msg_summary['id']}: {msg_err}")
-                            return None
-                    
-                    # Execute all fetches in parallel (max 10 workers to respect connection pool limits)
-                    start_time = time.time()
-                    with ThreadPoolExecutor(max_workers=10) as executor:
-                        # Submit all tasks at once with user_id
-                        future_to_msg = {executor.submit(fetch_single_message, msg, user_id): msg for msg in gmail_result.get('messages', [])}
-                        
-                        # Collect results as they complete
-                        for future in as_completed(future_to_msg):
-                            result = future.result()
-                            if result:
-                                emails.append(result)
-                    
-                    elapsed = time.time() - start_time
-                    print(f"[Communication Hub] ⚡ Fetched {len(emails)} emails in {elapsed:.2f}s (parallel)")
+                            for msg in batched.get('messages', []):
+                                hdrs = {h['name'].lower(): h['value'] for h in msg.get('payload', {}).get('headers', [])}
+                                emails.append({
+                                    'id': f"gmail_{msg['id']}",
+                                    'provider': 'gmail',
+                                    'from': hdrs.get('from', 'Unknown'),
+                                    'to': hdrs.get('to', ''),
+                                    'subject': hdrs.get('subject', 'No Subject'),
+                                    'date': hdrs.get('date', ''),
+                                    'is_read': 'UNREAD' not in msg.get('labelIds', []),
+                                    'snippet': msg.get('snippet', ''),
+                                    'has_attachments': any(p.get('filename') for p in msg.get('payload', {}).get('parts', [])),
+                                    'thread_id': msg.get('threadId'),
+                                })
+                            elapsed = time.time() - start_time
+                            print(f"[Communication Hub] ⚡ Fetched {len(emails)} Gmail emails in {elapsed:.2f}s (single batched HTTP call)")
+                            if batched.get('missing_ids'):
+                                print(f"[Communication Hub] ⚠️  {len(batched['missing_ids'])} message(s) missing from batch response: {batched['missing_ids'][:5]}{'...' if len(batched['missing_ids']) > 5 else ''}")
+                        except Exception as batch_err:
+                            # Fallback to per-message parallel fetch if BatchHttpRequest fails
+                            print(f"[Communication Hub] ⚠️  Batch get failed, falling back to parallel fetch: {batch_err}")
+                            from concurrent.futures import ThreadPoolExecutor, as_completed
+                            def fetch_single_message(msg_summary, uid):
+                                try:
+                                    msg = gmail_get_message(
+                                        message_id=msg_summary['id'],
+                                        format='metadata',
+                                        _user_id=uid,
+                                        _injected_credentials=True
+                                    )
+                                    headers = {h['name'].lower(): h['value'] for h in msg.get('payload', {}).get('headers', [])}
+                                    return {
+                                        'id': f"gmail_{msg['id']}",
+                                        'provider': 'gmail',
+                                        'from': headers.get('from', 'Unknown'),
+                                        'to': headers.get('to', ''),
+                                        'subject': headers.get('subject', 'No Subject'),
+                                        'date': headers.get('date', ''),
+                                        'is_read': 'UNREAD' not in msg.get('labelIds', []),
+                                        'snippet': msg.get('snippet', ''),
+                                        'has_attachments': any(p.get('filename') for p in msg.get('payload', {}).get('parts', [])),
+                                        'thread_id': msg.get('threadId')
+                                    }
+                                except Exception as msg_err:
+                                    print(f"[Communication Hub] ⚠️  Failed to fetch message {msg_summary['id']}: {msg_err}")
+                                    return None
+                            with ThreadPoolExecutor(max_workers=10) as executor:
+                                future_to_msg = {executor.submit(fetch_single_message, msg, user_id): msg for msg in msg_ids}
+                                for future in as_completed(future_to_msg):
+                                    result = future.result()
+                                    if result:
+                                        emails.append(result)
+                            elapsed = time.time() - start_time
+                            print(f"[Communication Hub] ⚡ Fetched {len(emails)} Gmail emails in {elapsed:.2f}s (parallel fallback)")
                 else:
                     print(f"[Communication Hub] ⚠️  Gmail returned unexpected format: {list(gmail_result.keys())}")
 
