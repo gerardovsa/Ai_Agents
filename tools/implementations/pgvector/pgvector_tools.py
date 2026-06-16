@@ -226,17 +226,28 @@ def _set_rls_context(org_id: int) -> str:
 def _run_in_org_context(org_id: int, sql: str, params=(), fetch_mode: str = 'none'):
     """
     Execute *sql* with the RLS org context set.
-    Uses a single transaction so SET LOCAL scope is respected.
+
+    IMPORTANT: SET + DML must run on the *same* connection.  ``execute_query``
+    pulls a connection from the pool, runs the statement, and returns the
+    connection to the pool — so two consecutive ``execute_query`` calls
+    almost always land on *different* connections, and a `SET` from the
+    first call is invisible to the second.  We therefore combine the SET,
+    the DML, and a trailing RESET into a single multi-statement SQL string
+    so all three run on one connection (and the RESET prevents the GUC
+    value from leaking to the next user of that pooled connection).
     """
     from AI_infrastructure.shared.database_utils import execute_query
 
-    # Supabase does not easily allow SET LOCAL in psycopg2 multi-statement calls.
-    # We set the config on the connection session-level instead — which is safe
-    # because each `execute_query` call uses a fresh pooled connection returned to
-    # the pool immediately after; there is no session leakage between requests.
-    set_sql = f"SET app.current_org_id = '{org_id}';"
-    execute_query(set_sql)
-    return execute_query(sql, params, fetch_mode=fetch_mode)
+    # All three statements share one connection (single execute_query call).
+    # `RESET` clears the GUC at the end so the next request that borrows
+    # this pooled connection doesn't inherit the wrong org context.
+    safe_org_id = int(org_id)
+    combined_sql = (
+        f"SET app.current_org_id = '{safe_org_id}'; "
+        f"{sql}; "
+        f"RESET app.current_org_id;"
+    )
+    return execute_query(combined_sql, params, fetch_mode=fetch_mode)
 
 
 # ============================================================================
@@ -311,7 +322,11 @@ def pgvector_query_vectors(
             params = (vec_literal, org_id, vec_literal, threshold, vec_literal, top_k)
 
         from AI_infrastructure.shared.database_utils import execute_query
-        rows = execute_query(sql, params, fetch_mode='all') or []
+        # RLS fix: same SET/RESET wrap as the upsert path — the SELECT policy
+        # (migration 044) filters by app.current_org_id, so the GUC must be
+        # set on the same connection that runs the SELECT, otherwise all
+        # rows are hidden and the user gets silently-empty results.
+        rows = _run_in_org_context(org_id, sql, params, fetch_mode='all') or []
 
         matches = [
             {
@@ -369,7 +384,17 @@ def pgvector_upsert_vectors(
             meta = v.get('metadata') or {}
             vec_literal = '[' + ','.join(str(x) for x in v['values']) + ']'
 
-            execute_query(
+            # RLS context fix:
+            #   The org_isolation_insert policy (migration 044) checks
+            #   `current_setting('app.current_org_id')` against the inserted
+            #   `org_id`.  We MUST set that GUC on the same connection that
+            #   receives the INSERT — `execute_query` is pooled, so we can't
+            #   use two separate calls.  `_run_in_org_context` wraps the
+            #   INSERT with SET ... ; <insert>; RESET ... ; so all three
+            #   statements share one connection and the GUC value is
+            #   cleaned up before the connection returns to the pool.
+            _run_in_org_context(
+                org_id,
                 """
                 INSERT INTO ai_infrastructure.org_vector_documents
                     (id, org_id, user_id, document_id, filename, chunk_index, total_chunks,
@@ -401,7 +426,8 @@ def pgvector_upsert_vectors(
                     meta.get('file_type'),
                     meta.get('file_size_bytes'),
                     meta.get('created_at'),
-                )
+                ),
+                fetch_mode=None,
             )
             count += 1
 
@@ -438,9 +464,14 @@ def pgvector_delete_vectors(
         from AI_infrastructure.shared.database_utils import execute_query
 
         if delete_all:
-            execute_query(
+            # RLS fix: SET app.current_org_id must be on the same connection
+            # as the DELETE — otherwise the org_isolation_delete USING clause
+            # silently matches zero rows and nothing is removed.
+            _run_in_org_context(
+                org_id,
                 "DELETE FROM ai_infrastructure.org_vector_documents WHERE org_id = %s",
-                (org_id,)
+                (org_id,),
+                fetch_mode=None,
             )
             print(f'[PGVECTOR] Deleted all vectors for org {org_id}')
             return {'success': True, 'deleted_count': -1, 'note': 'all org documents deleted'}
@@ -448,9 +479,11 @@ def pgvector_delete_vectors(
         if not document_id:
             raise PgvectorToolsError("document_id required (or set delete_all=True)")
 
-        execute_query(
+        _run_in_org_context(
+            org_id,
             "DELETE FROM ai_infrastructure.org_vector_documents WHERE org_id = %s AND document_id = %s",
-            (org_id, document_id)
+            (org_id, document_id),
+            fetch_mode=None,
         )
         print(f'[PGVECTOR] Deleted document {document_id} for org {org_id}')
         return {'success': True, 'deleted_count': 1, 'document_id': document_id}
@@ -475,7 +508,8 @@ def pgvector_list_documents(**kwargs) -> Dict[str, Any]:
         org_id = _get_org_id(user_id)
         from AI_infrastructure.shared.database_utils import execute_query
 
-        rows = execute_query(
+        rows = _run_in_org_context(
+            org_id,
             """
             SELECT
                 document_id,
@@ -528,7 +562,8 @@ def pgvector_describe_stats(**kwargs) -> Dict[str, Any]:
         org_id = _get_org_id(user_id)
         from AI_infrastructure.shared.database_utils import execute_query
 
-        row = execute_query(
+        row = _run_in_org_context(
+            org_id,
             """
             SELECT
                 COUNT(DISTINCT document_id) AS doc_count,
