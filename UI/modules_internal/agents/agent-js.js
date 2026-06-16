@@ -3108,11 +3108,24 @@ window._buildDeferredThreadUI = async function () {
     // Add the "Add Agent" bar
     createAddAgentBar();
 
-    // Setup drag/drop zones for agent columns
+    // Setup drag/drop zones for agent columns.
+    // RACE-FIX (Jun 15 2026): initMultiAgent is async and can take >100ms,
+    // so a fixed setTimeout could fire before the .agent-column elements
+    // exist in the DOM, leaving every initial column with no drop handlers.
+    // Poll for the columns (max ~3s) before giving up. setupAgentDropZones
+    // is idempotent — it skips columns already marked dropZoneConfigured=true.
     if (typeof ThreadManager !== 'undefined' && typeof ThreadManager.setupAgentDropZones === 'function') {
-        setTimeout(() => {
-            ThreadManager.setupAgentDropZones();
-        }, 100);
+        (function setupAgentDropZonesWhenReady(retries = 30, delay = 100) {
+            if (document.querySelectorAll('.agent-column').length > 0) {
+                ThreadManager.setupAgentDropZones();
+                return;
+            }
+            if (retries <= 0) {
+                console.warn('⚠️ [Drop Zone] No .agent-column found after retries — drop zones not configured');
+                return;
+            }
+            setTimeout(() => setupAgentDropZonesWhenReady(retries - 1, delay), delay);
+        })();
     }
 
     // Setup drag/drop zone for Prime chat container
