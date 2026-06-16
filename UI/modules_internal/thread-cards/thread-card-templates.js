@@ -228,7 +228,7 @@ window.ThreadCardTemplates = {
         // Thread History: Double-click loads into Prime
         // Prime/Agents: Double-click expands card (no reload action)
         const doubleClickTooltip = isThreadHistory
-            ? 'Double-click to load into AI Prime'
+            ? 'Double-click to load into AI Prime or drag to AI agent column'
             : 'Double-click to expand/collapse card';
 
         return `
