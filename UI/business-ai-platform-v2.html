@@ -25042,8 +25042,8 @@
             // SETUP WORKFLOW SLUG DROP ZONES (Added Jan 2025)
             setupWorkflowSlugDropZones();
 
-            // INITIALIZE THREAD CARD DRAGGING (Added Nov 21, 2025)
-            initializeThreadCardDragging();
+            // Thread card drag start/end is wired inline by ThreadCardTemplates.compactCard()
+            // (draggable="true" + ondragstart/ondragend) — no separate delegation needed here.
 
             // INITIALIZE WORKFLOW CARD DRAGGING (Added Nov 26, 2025)
             initializeWorkflowCardDragging();
@@ -25551,78 +25551,6 @@
             });
 
             console.log('[WORKFLOW-DROP] Workflow slug drop zones configured successfully');
-        }
-
-        // ==================== THREAD CARD DRAGGING INITIALIZATION (Added Nov 21, 2025) ====================
-        function initializeThreadCardDragging() {
-            console.log('[DRAG-THREAD-CARD] Initializing thread card dragging...');
-
-            // Use event delegation for dynamically loaded thread cards
-            document.addEventListener('mousedown', (e) => {
-                const threadCard = e.target.closest('.agent-thread-card');
-                if (!threadCard) return;
-
-                // Don't start drag if clicking on interactive elements
-                const isInteractive = e.target.closest('button, input, textarea, select, a, .thread-copy-menu, .thread-item-actions, .thread-id-badge, .thread-copy-btn');
-                if (isInteractive) {
-                    // Ensure card is not draggable when clicking buttons
-                    threadCard.removeAttribute('draggable');
-                    return;
-                }
-
-                // Make card draggable only when clicking on non-interactive areas
-                threadCard.setAttribute('draggable', 'true');
-            });
-
-            // Remove draggable on mouseup if drag didn't start
-            document.addEventListener('mouseup', (e) => {
-                const threadCard = e.target.closest('.agent-thread-card');
-                if (threadCard && !threadCard.classList.contains('dragging')) {
-                    // Remove draggable if we didn't start dragging
-                    setTimeout(() => {
-                        if (!threadCard.classList.contains('dragging')) {
-                            threadCard.removeAttribute('draggable');
-                        }
-                    }, 50);
-                }
-            });
-
-            // Handle drag start
-            document.addEventListener('dragstart', (e) => {
-                const threadCard = e.target.closest('.agent-thread-card');
-                if (!threadCard) return;
-
-                const threadId = threadCard.dataset.threadId;
-                const location = threadCard.dataset.location;
-
-                if (!threadId) {
-                    console.warn('[DRAG-THREAD-CARD] No threadId found on card');
-                    e.preventDefault();
-                    return;
-                }
-
-                // Set drag data
-                e.dataTransfer.effectAllowed = 'move';
-                e.dataTransfer.setData('application/x-thread-id', threadId);
-                e.dataTransfer.setData('application/x-source-location', location || 'unknown');
-
-                // Add visual feedback
-                threadCard.classList.add('dragging');
-                console.log(`[DRAG-THREAD-CARD] Started dragging thread ${threadId} from ${location}`);
-            });
-
-            // Handle drag end
-            document.addEventListener('dragend', (e) => {
-                const threadCard = e.target.closest('.agent-thread-card');
-                if (!threadCard) return;
-
-                // Remove draggable attribute and visual feedback
-                threadCard.removeAttribute('draggable');
-                threadCard.classList.remove('dragging');
-                console.log('[DRAG-THREAD-CARD] Drag ended');
-            });
-
-            console.log('[DRAG-THREAD-CARD] Thread card dragging initialized successfully');
         }
 
         // ==================== REAL-TIME TIME UPDATES (Added Nov 8, 2025) ====================
