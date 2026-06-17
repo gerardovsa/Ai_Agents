@@ -106,6 +106,11 @@ window.communicationHub = {
         // Email content cache (reduce redundant API calls)
         emailContentCache: {},
 
+        // Thread email cache (keyed by Gmail threadId, 2-minute TTL).
+        // Server-side /emails?thread_id=... is now also cached for 120s, but
+        // keeping a client-side mirror avoids the round-trip on every click.
+        threadCache: {},
+
         // Loading states
         loading: {
             emails: false,
@@ -3127,35 +3132,30 @@ window.communicationHub = {
             if (threadId) {
                 try {
                     this.log.info(`Fetching all emails in thread: ${threadId}...`);
-                    const response = await fetch(`/api/communication-hub/emails?limit=500&thread_id=${encodeURIComponent(threadId)}`);
+                    const threadEmails = (await this.fetchThreadEmails(threadId))
+                        .sort((a, b) => new Date(a.date) - new Date(b.date));  // OLDEST FIRST for AI context
 
-                    if (response.ok) {
-                        const threadData = await response.json();
-                        const threadEmails = (threadData.emails || [])
-                            .sort((a, b) => new Date(a.date) - new Date(b.date));  // OLDEST FIRST for AI context
+                    if (threadEmails.length > 0) {
+                        this.log.success(`Found ${threadEmails.length} emails in thread - fetching full content...`);
 
-                        if (threadEmails.length > 0) {
-                            this.log.success(`Found ${threadEmails.length} emails in thread - fetching full content...`);
+                        // Fetch full content for ALL thread emails
+                        const fullEmailPromises = threadEmails.map(email =>
+                            this.fetchEmailContent(email.id).catch(err => {
+                                this.log.warn(`Failed to fetch email ${email.id}:`, err);
+                                return email; // Fallback to metadata
+                            })
+                        );
 
-                            // Fetch full content for ALL thread emails
-                            const fullEmailPromises = threadEmails.map(email =>
-                                this.fetchEmailContent(email.id).catch(err => {
-                                    this.log.warn(`Failed to fetch email ${email.id}:`, err);
-                                    return email; // Fallback to metadata
-                                })
-                            );
+                        allThreadEmails = await Promise.all(fullEmailPromises);
+                        this.log.success(`Fetched full content for ${allThreadEmails.length} thread emails`);
 
-                            allThreadEmails = await Promise.all(fullEmailPromises);
-                            this.log.success(`Fetched full content for ${allThreadEmails.length} thread emails`);
-
-                            // ✅ CRITICAL: Log the email IDs to verify we got the right thread
-                            this.log.info(`Thread emails (${allThreadEmails.length}):`, allThreadEmails.map(e => ({
-                                id: e.id.substring(0, 20) + '...',
-                                from: e.from,
-                                date: e.date,
-                                subject: e.subject.substring(0, 30)
-                            })));
-                        }
+                        // ✅ CRITICAL: Log the email IDs to verify we got the right thread
+                        this.log.info(`Thread emails (${allThreadEmails.length}):`, allThreadEmails.map(e => ({
+                            id: e.id.substring(0, 20) + '...',
+                            from: e.from,
+                            date: e.date,
+                            subject: e.subject.substring(0, 30)
+                        })));
                     }
                 } catch (threadError) {
                     this.log.warn('Could not fetch thread emails:', threadError);
@@ -4024,14 +4024,8 @@ Draft questions for the customer listing all missing details required for accura
                 try {
                     // CRITICAL FIX: Fetch ALL emails in thread from backend (not just cached ones)
                     this.log.info(`Fetching all emails for thread: ${threadId}...`);
-                    const response = await fetch(`/api/communication-hub/emails?limit=500&thread_id=${encodeURIComponent(threadId)}`);
-
-                    if (!response.ok) {
-                        throw new Error(`Failed to fetch thread emails: ${response.status}`);
-                    }
-
-                    const threadData = await response.json();
-                    conversationEmails = (threadData.emails || [])
+                    const threadEmails = await this.fetchThreadEmails(threadId);
+                    conversationEmails = threadEmails
                         .sort((a, b) => new Date(b.date) - new Date(a.date));  // NEWEST FIRST
 
                     this.log.success(`Fetched ${conversationEmails.length} emails from thread via API`);
@@ -4915,6 +4909,51 @@ Draft questions for the customer listing all missing details required for accura
             }
             throw fetchError;
         }
+    },
+
+    /**
+     * Fetch all emails in a thread (with client-side caching).
+     * Mirrors fetchEmailContent's pattern: consult state.threadCache first,
+     * otherwise hit /api/communication-hub/emails?thread_id=... and cache for 2 min.
+     *
+     * @param {string} threadId - Gmail threadId / Outlook conversationId
+     * @returns {Promise<Array>} Array of email metadata objects
+     */
+    async fetchThreadEmails(threadId) {
+        if (!threadId) {
+            throw new Error('threadId is required');
+        }
+
+        // Cache hit
+        if (this.state.threadCache[threadId]) {
+            this.log.debug(`Using cached thread emails for: ${threadId}`);
+            return this.state.threadCache[threadId];
+        }
+
+        this.log.debug(`Fetching thread emails for: ${threadId}`);
+
+        const response = await fetch(
+            `/api/communication-hub/emails?limit=500&thread_id=${encodeURIComponent(threadId)}`
+        );
+
+        if (!response.ok) {
+            throw new Error(`Failed to fetch thread emails: ${response.status}`);
+        }
+
+        const threadData = await response.json();
+        const emails = threadData.emails || [];
+
+        // Store result and auto-expire after 2 minutes (thread membership is stable)
+        this.state.threadCache[threadId] = emails;
+        setTimeout(() => {
+            // Only delete if still the same reference (avoid clobbering a fresh fetch)
+            if (this.state.threadCache[threadId] === emails) {
+                delete this.state.threadCache[threadId];
+                this.log.debug(`Thread cache expired for: ${threadId}`);
+            }
+        }, 2 * 60 * 1000);
+
+        return emails;
     },
 
     /**

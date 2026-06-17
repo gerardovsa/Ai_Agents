@@ -106,6 +106,72 @@ communication_bp = Blueprint('communication', __name__, url_prefix='/api/communi
 auth_manager = UserAuthManager()
 
 
+# =============================================================================
+# In-memory response cache
+# =============================================================================
+# Per-user, per-resource TTL cache. Eliminates repeat 5–8s Gmail API round-trips
+# when the user re-opens the same email / thread / account list.
+#
+# Why not flask-caching? No new dep, no external service. gunicorn+gevent runs
+# one process, so an in-process dict is fine; even with multiple workers the
+# worst case is just "first hit per worker is slow".
+#
+# Keyed on (user_id, resource_id). Values are JSON-serializable dicts. Capped
+# at CACHE_MAX_ENTRIES with simple FIFO eviction to prevent unbounded growth.
+import time
+from threading import Lock
+
+_CACHE = {}            # key -> (expires_at_epoch_seconds, payload_dict)
+_CACHE_LOCK = Lock()
+CACHE_MAX_ENTRIES = 500
+
+# Per-route TTLs (seconds). Email content rarely changes; thread membership
+# can change when new messages arrive so we use a shorter TTL there.
+CACHE_TTL_ACCOUNTS = 300          # 5 min — OAuth status changes only on connect/disconnect
+CACHE_TTL_EMAIL = 300             # 5 min — Gmail message content is effectively immutable
+CACHE_TTL_THREAD = 120            # 2 min — new messages can join a thread
+CACHE_TTL_EMAIL_LIST = 30         # 30s — inbox changes frequently
+
+
+def _cache_get(key):
+    """Return cached payload if not expired, else None."""
+    with _CACHE_LOCK:
+        entry = _CACHE.get(key)
+        if not entry:
+            return None
+        expires_at, payload = entry
+        if expires_at < time.time():
+            _CACHE.pop(key, None)
+            return None
+        return payload
+
+
+def _cache_set(key, payload, ttl_seconds):
+    """Store payload with a TTL. Evicts oldest entries if over the cap."""
+    with _CACHE_LOCK:
+        # Evict expired entries first (cheap cleanup)
+        if len(_CACHE) >= CACHE_MAX_ENTRIES:
+            now = time.time()
+            for k, (exp, _) in list(_CACHE.items()):
+                if exp < now:
+                    _CACHE.pop(k, None)
+            # If still over cap, drop the oldest ~10% by expiry
+            if len(_CACHE) >= CACHE_MAX_ENTRIES:
+                by_expiry = sorted(_CACHE.items(), key=lambda kv: kv[1][0])
+                for k, _ in by_expiry[: CACHE_MAX_ENTRIES // 10]:
+                    _CACHE.pop(k, None)
+        _CACHE[key] = (time.time() + ttl_seconds, payload)
+
+
+def _invalidate_user_cache(user_id):
+    """Drop all cached entries for a user (e.g. after they delete an email)."""
+    with _CACHE_LOCK:
+        prefix = f"u:{user_id}:"
+        for k in list(_CACHE.keys()):
+            if k.startswith(prefix):
+                _CACHE.pop(k, None)
+
+
 @communication_bp.route('/accounts', methods=['GET'])
 @require_auth
 def get_accounts():
@@ -126,9 +192,17 @@ def get_accounts():
         user_id = request.args.get('user_id', 1, type=int)
 
     print(f"[Communication Hub] 📧 Getting accounts for user_id={user_id}")
-    
+
+    # ✅ Cache: OAuth status is stable; reuse for 5 min instead of hitting
+    # the credential vault + auth_manager on every email click.
+    cache_key = f"u:{user_id}:accounts"
+    cached = _cache_get(cache_key)
+    if cached is not None:
+        print(f"[Communication Hub] ⚡ Returning cached accounts for user {user_id}")
+        return jsonify(cached)
+
     accounts = []
-    
+
     # ✅ FIX: Check Google OAuth credentials FROM ai_infrastructure.oauth_tokens table
     try:
         google_creds = auth_manager.get_user_google_oauth_credentials(user_id)
@@ -173,13 +247,15 @@ def get_accounts():
             print(f"[Communication Hub] ❌ Error checking Outlook credentials: {e}")
     
     print(f"[Communication Hub] 📋 Returning {len(accounts)} account(s)")
-    
-    return jsonify({
+
+    payload = {
         'success': True,
         'accounts': accounts,
         'count': len(accounts),
         'user_id': user_id
-    })
+    }
+    _cache_set(cache_key, payload, CACHE_TTL_ACCOUNTS)
+    return jsonify(payload)
 
 
 @communication_bp.route('/emails', methods=['GET'])
@@ -211,7 +287,18 @@ def list_emails():
     
     print(f"[Communication Hub] 📬 Listing emails: user_id={user_id}, account={account}, limit={limit}, skip={skip}, thread_id={thread_id}")
     print(f"[Communication Hub] 🔍 DEBUG: thread_id type={type(thread_id)}, value='{thread_id}', bool={bool(thread_id)}")
-    
+
+    # ✅ Cache: thread fetches are the worst offender (8s+ on cold call because
+    # gmail_get_thread is one large API round-trip). Cache for 2 min — new
+    # messages can join a thread, so we don't keep it as long as single emails.
+    # Cache key includes provider, account filter, and pagination so we don't
+    # serve the wrong slice.
+    list_cache_key = f"u:{user_id}:emails:acct={account}:limit={limit}:skip={skip}:thread={thread_id or ''}"
+    cached = _cache_get(list_cache_key)
+    if cached is not None:
+        print(f"[Communication Hub] ⚡ Returning cached emails list (thread={thread_id}, limit={limit}, skip={skip})")
+        return jsonify(cached)
+
     # ✅ FIRST: Check which accounts user has connected (with circuit breaker protection)
     has_google = False
     has_microsoft = False
@@ -507,14 +594,18 @@ def list_emails():
     
     # Sort by date (newest first)
     emails.sort(key=lambda x: x.get('date', ''), reverse=True)
-    
+
     print(f"[Communication Hub] 📊 Returning {len(emails)} total email(s)")
-    
-    return jsonify({
+
+    payload = {
         'success': True,
         'emails': emails,
         'count': len(emails)
-    })
+    }
+    # Thread results get a longer TTL since thread membership is stable
+    # once a message is older than a couple of minutes.
+    _cache_set(list_cache_key, payload, CACHE_TTL_THREAD if thread_id else CACHE_TTL_EMAIL_LIST)
+    return jsonify(payload)
 
 
 @communication_bp.route('/emails/<email_id>', methods=['GET'])
@@ -522,13 +613,13 @@ def list_emails():
 def get_email(email_id):
     """
     Get full email content with body parsing
-    
+
     Args:
         email_id: Email ID in format 'provider_id' (e.g., 'gmail_12345')
-    
+
     Returns:
         JSON with full email content including body_text and body_html
-    
+
     ✅ NO DATABASE OPERATIONS - Safe (uses gmail/outlook wrappers)
     """
     user_data = getattr(request, 'user', None)
@@ -536,7 +627,16 @@ def get_email(email_id):
         user_id = user_data.get('user_id')
     else:
         user_id = request.args.get('user_id', 1, type=int)
-    
+
+    # ✅ Cache: Gmail message content is effectively immutable. Cache 5 min
+    # so re-opening the same email (or a refresh-on-the-same-row) is instant
+    # instead of a 5s Gmail API round-trip + body decode.
+    cache_key = f"u:{user_id}:email:{email_id}"
+    cached = _cache_get(cache_key)
+    if cached is not None:
+        print(f"[Communication Hub] ⚡ Returning cached email {email_id} for user {user_id}")
+        return jsonify(cached)
+
     try:
         # Parse provider and message ID with validation
         if '_' not in email_id:
@@ -645,7 +745,7 @@ def get_email(email_id):
                 for att in attachments_list:
                     print(f"  - {att['name']} ({att.get('size', 0)} bytes, {att.get('mimeType', 'unknown')})")
             
-            return jsonify({
+            payload = {
                 'success': True,
                 'email': {
                     'id': email_id,
@@ -660,7 +760,9 @@ def get_email(email_id):
                     'attachments': attachments_list,  # ✅ Parsed attachment metadata
                     'has_attachments': len(attachments_list) > 0
                 }
-            })
+            }
+            _cache_set(cache_key, payload, CACHE_TTL_EMAIL)
+            return jsonify(payload)
         
         elif provider == 'outlook':
             # Check if Outlook tools are available
@@ -744,7 +846,7 @@ def get_email(email_id):
                     for att in attachment_list:
                         print(f"  - {att['name']} ({att.get('size', 0)} bytes, {att.get('contentType', 'unknown')})")
                 
-                return jsonify({
+                payload = {
                     'success': True,
                     'email': {
                         'id': email_id,
@@ -759,7 +861,9 @@ def get_email(email_id):
                         'attachments': attachment_list,  # ✅ Parsed attachment metadata
                         'has_attachments': len(attachment_list) > 0
                     }
-                })
+                }
+                _cache_set(cache_key, payload, CACHE_TTL_EMAIL)
+                return jsonify(payload)
             else:
                 # Outlook API call failed
                 error_msg = result.get('error', 'Unknown error')
@@ -1033,6 +1137,8 @@ def mark_email_as_read(email_id):
                 _user_id=user_id,
                 _injected_credentials=True
             )
+            if result.get('success'):
+                _invalidate_user_cache(user_id)
             return jsonify(result)
         
         elif provider == 'outlook':
@@ -1079,6 +1185,9 @@ def mark_email_as_unread(email_id):
         
         if provider == 'gmail':
             # TODO: Implement gmail_mark_as_unread
+            # Invalidate cache eagerly so future clicks see the new state once
+            # the wrapper is implemented; harmless while the stub returns success.
+            _invalidate_user_cache(user_id)
             return jsonify({
                 'success': True,
                 'message': 'Gmail mark as unread not yet implemented'
@@ -1195,6 +1304,8 @@ def delete_email(email_id):
                 _user_id=user_id,
                 _injected_credentials=True
             )
+            if result.get('success'):
+                _invalidate_user_cache(user_id)
             return jsonify(result)
         
         elif provider == 'outlook':
