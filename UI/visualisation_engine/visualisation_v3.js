@@ -4412,6 +4412,11 @@ class VisualizationEngine {
             console.log('⚠️ VIZ-V3: Mermaid content area not in DOM before appendChild (proceeding with render)');
         }
 
+        // EW: Clean up any prior Mermaid divs (e.g., left over from a previous
+        // broken render attempt, or from the orchestrator-defer path). Each
+        // viz-content-area corresponds to one <MERMAID> block, so this is safe.
+        contentArea.querySelectorAll('.mermaid, .mermaid-deferred-placeholder').forEach(d => d.remove());
+
         contentArea.appendChild(mermaidDiv);
 
         try {
@@ -4592,6 +4597,13 @@ class VisualizationEngine {
         placeholder.textContent = '⏳ Preparing diagram…';
         contentArea.appendChild(placeholder);
 
+        // EW: Only require WIDTH — Mermaid measures width to compute radius/layout.
+        // The container's height is 0 until Mermaid populates it (chicken-and-egg).
+        const isWidthReady = (el) => {
+            const r = el.getBoundingClientRect();
+            return r.width > 1 && el.offsetParent !== null;
+        };
+
         let observer = null;
         let timeoutId = null;
         let triggered = false;
@@ -4617,20 +4629,26 @@ class VisualizationEngine {
         if (typeof ResizeObserver !== 'undefined') {
             observer = new ResizeObserver((entries) => {
                 for (const entry of entries) {
-                    const { width, height } = entry.contentRect;
-                    if (width > 1 && height > 1) {
+                    if (entry.contentRect.width > 1) {
                         tryRerender();
                         return;
                     }
                 }
             });
             observer.observe(contentArea);
+
+            // RITICAL: ResizeObserver only fires on CHANGES, not initial size.
+            // Probe immediately so we don't miss the case where the container
+            // became sized before/during our observe() call.
+            if (isWidthReady(contentArea)) {
+                tryRerender();
+                return;
+            }
         } else {
             // Fallback: poll with rAF for older browsers
             const poll = () => {
                 if (triggered) return;
-                const rect = contentArea.getBoundingClientRect();
-                if (rect.width > 1 && rect.height > 1) {
+                if (isWidthReady(contentArea)) {
                     tryRerender();
                 } else {
                     requestAnimationFrame(poll);
