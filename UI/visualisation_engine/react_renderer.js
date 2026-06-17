@@ -153,15 +153,36 @@ class ReactRenderer {
 
         // ── Strip ES module boilerplate — replaced by UMD globals ──────────────
         // Babel-standalone in <script type="text/babel"> (non-module) mode throws
-        // a SyntaxError on `export` keywords.  The AI commonly emits
-        // `export default Dashboard;` after defining the root component, which
-        // silently aborts the entire script and leaves the iframe blank.
-        // Remove both `import` and `export` forms so the user's code is plain
-        // script-mode JS that Babel-standalone can transpile and execute.
+        // a SyntaxError on `export` AND `import` keywords.  The AI commonly emits
+        //   import React from 'react';
+        //   import { useState } from 'react';
+        //   import './style.css';
+        //   import('dynamic')              // dynamic
+        //   export default Dashboard;
+        // any of which silently aborts the entire script and leaves the iframe
+        // blank with the cryptic error
+        //   "Failed to execute 'appendChild' on 'Node': Cannot use import
+        //    statement outside a module"
+        // Strip every import / export shape the AI is known to emit, plus the
+        // dynamic-import() and import.meta forms.  Plain function declarations
+        // and JSX are left untouched.
         const cleanedJSX = unwrappedJSX
-            .replace(/^[ \t]*import\s+[\s\S]*?from\s+['"][^'"]+['"]\s*;?[ \t]*$/gm, '')
+            // Static import statements — every form (with/without 'from',
+            // with/without semicolon, with/without trailing comma, side-effect,
+            // type-only, default, named, namespace, mixed).
+            .replace(/^[ \t]*import\s+(?:type\s+)?(?:[\s\S]*?from\s+)?['"][^'"]*['"][ \t]*;?[ \t]*$/gm, '')
+            // Dynamic import() — call expression, not a statement; strip any
+            // line that contains an import( ... ) call by removing just the
+            // call and leaving the rest of the line intact.
+            .replace(/\bimport\s*\([^)]*\)\s*;?/g, '')
+            // import.meta expressions — replace with `({})` so any reference
+            // becomes an empty object and won't break the rest of the code.
+            .replace(/\bimport\s*\.\s*meta\b/g, '({})')
+            // export default <expr>;
             .replace(/^[ \t]*export\s+default\s+[\s\S]*?;?[ \t]*$/gm, '')
+            // export const|let|var|function|class|async function
             .replace(/^[ \t]*export\s+(?:const|let|var|function|class|async\s+function)\s+[\s\S]*?$/gm, '')
+            // export { foo, bar };
             .replace(/^[ \t]*export\s*\{[\s\S]*?\}\s*;?[ \t]*$/gm, '')
             .trim();
 
