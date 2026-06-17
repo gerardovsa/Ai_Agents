@@ -264,6 +264,38 @@ except Exception as e:
 
 
 # ============================================================================
+# 🚑 EARLY /health ROUTE — Registered BEFORE heavy init so Render's 5-second
+#    healthCheckPath can succeed on cold start.
+#
+#    Why: ~2,450 lines of blueprint imports + DB calls + SocketIO binding +
+#    module scans execute between `app = Flask(__name__)` and the rich
+#    /health registration further down. Cold-start times blow past Render's
+#    5-second healthCheckPath timeout (render.yaml: healthCheckPath: /health)
+#    and Render cycles the instance.
+#
+#    This handler MUST stay dependency-free: no `socketio`, no globals that
+#    aren't defined yet, no DB calls. Just a static 200 JSON + CORS headers.
+#
+#    Rich diagnostics (SocketIO mode, semantic-search status, pgvector-BGE
+#    preload status) live at /api/health/detailed — see health_check() below.
+# ============================================================================
+@app.route('/health', methods=['GET', 'OPTIONS'])
+@app.route('/api/health', methods=['GET', 'OPTIONS'])
+def _render_health():
+    """Minimal /health endpoint — answers Render within 5 s during cold start."""
+    from flask import jsonify
+    response = jsonify({
+        'status': 'healthy',
+        'phase': 'starting_or_ready',
+        'note': 'minimal cold-start handler; see /api/health/detailed for full diagnostics'
+    })
+    response.headers.add('Access-Control-Allow-Origin', '*')
+    response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization,x-user-id,X-User-ID')
+    response.headers.add('Access-Control-Allow-Methods', 'GET,OPTIONS')
+    return response, 200
+
+
+# ============================================================================
 # 🚀 BACKGROUND SEMANTIC SEARCH INITIALIZATION (Non-Blocking)
 # ============================================================================
 _semantic_search_initialization_complete = False
@@ -2706,10 +2738,14 @@ def dev_presence_view():
 
         return html
 
-@app.route('/health', methods=['GET', 'OPTIONS'])
-@app.route('/api/health', methods=['GET', 'OPTIONS'])  # ✅ Also available at /api/health
+@app.route('/api/health/detailed', methods=['GET', 'OPTIONS'])  # ✅ Moved off /health (Render's 5s healthCheckPath) — use _render_health() for the bare /health answer
 def health_check():
-    """Enhanced health check endpoint with Socket.IO metrics and explicit CORS"""
+    """Enhanced health check endpoint with Socket.IO metrics and explicit CORS.
+
+    Moved from /health → /api/health/detailed so Render's healthCheckPath
+    can hit the minimal dependency-free /health handler (registered right
+    after `app = Flask(__name__)`) on cold start. This richer diagnostic
+    remains available at /api/health/detailed for ops debugging."""
     from datetime import datetime
     
     # Gather Socket.IO connection metrics
@@ -3111,6 +3147,21 @@ def favicon():
     # Cache favicon for 30 days (2592000 seconds) to prevent duplicate requests
     response.headers['Cache-Control'] = 'public, max-age=2592000, immutable'
     response.headers['ETag'] = '"favicon-v1"'  # Version hash for cache busting if needed later
+    return response
+
+# Serve SVG favicon with proper caching headers (mirrors /favicon.ico route)
+# ✅ ADDED JUNE 17: Without this route the catch-all /<path:filename> served the SVG
+# without cache headers, so the browser re-fetched it on every page load.
+@app.route('/favicon.svg')
+def favicon_svg():
+    """
+    Serve SVG favicon to prevent redundant fetches.
+    Browser caches for 30 days via Cache-Control: immutable.
+    Bump the ETag suffix to invalidate cache if the SVG artwork changes.
+    """
+    response = send_from_directory(UI_DIR, 'favicon.svg', mimetype='image/svg+xml')
+    response.headers['Cache-Control'] = 'public, max-age=2592000, immutable'
+    response.headers['ETag'] = '"favicon-svg-v1"'
     return response
 
 # Serve external module files (HTML, CSS, JS) - ADDED NOV 29
@@ -4434,6 +4485,15 @@ def set_rls_context_from_jwt():
     if (request.path.startswith('/socket.io/')
             or request.path.startswith('/static')
             or request.path.startswith('/UI')):
+        return
+
+    # ✅ Cold-start fix: skip JWT/DB lookup on Render's /health probe path.
+    # Without this, every health check triggers `execute_query(SELECT jwt_version ...)`
+    # which on cold-start (unwarmed pool + cross-region Supabase RTT) takes 2-3 s,
+    # blowing past Render's 5 s healthCheckPath timeout and cycling the instance.
+    # /health and /api/health/detailed don't need user/org context — they're public
+    # health endpoints with no RLS-gated rows.
+    if request.path in ('/health', '/api/health', '/api/health/detailed'):
         return
 
     auth_header = request.headers.get('Authorization', '')

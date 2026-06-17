@@ -4133,17 +4133,54 @@ Draft questions for the customer listing all missing details required for accura
             let contentHtml = '';
 
             if (conversationEmails.length > 1) {
-                // Fetch full content for ALL emails in thread (parallel)
+                // ✅ BATCH FETCH (June 17, 2026): replaced N+1 Promise.all fan-out with a single
+                // /emails?ids=... round-trip. Previously a 5-email thread issued 5 parallel
+                // /emails/<id> requests on first click (~5-14 s observed in dev-tools). Now it
+                // issues 1 batch request, hits the server-side 5-min cache on re-clicks, and
+                // returns 0 network calls when every thread member is already in the client cache.
                 this.log.info(`Fetching full content for ${conversationEmails.length} emails in thread...`);
-                const fullEmailPromises = conversationEmails.map(email =>
-                    this.fetchEmailContent(email.id).catch(err => {
-                        this.log.warn(`Failed to fetch email ${email.id}:`, err);
-                        return email; // Fallback to metadata if fetch fails
-                    })
-                );
+                const cachedNow = this.state.emailContentCache || {};
+                const uncachedIds = conversationEmails
+                    .map(e => e.id)
+                    .filter(id => id && !cachedNow[id]);
 
-                const fullThreadEmails = await Promise.all(fullEmailPromises);
-                this.log.success(`Fetched ${fullThreadEmails.length} full emails`);
+                let fullThreadEmails;
+                if (uncachedIds.length === 0) {
+                    // Everything is in client cache — no network call at all
+                    fullThreadEmails = conversationEmails.map(e => cachedNow[e.id]);
+                    this.log.success(`Thread fully cached (${fullThreadEmails.length} emails, 0 requests)`);
+                } else {
+                    try {
+                        const userId = (window.UserAuth && window.UserAuth.user &&
+                            window.UserAuth.user.id) || null;
+                        const params = { user_id: userId, ids: uncachedIds.join(',') };
+                        this.log.info(`Batch-fetching ${uncachedIds.length} uncached thread emails in 1 request`);
+                        const response = await this.api.get(`${this.state.apiBase}/emails`, { params });
+                        const batchEmails = (response && response.emails) ? response.emails : [];
+                        // Populate client cache with batch results so subsequent clicks skip network
+                        batchEmails.forEach(e => {
+                            if (e && e.id) {
+                                // Normalize: backend returns {id, provider, data:{...}}, but the
+                                // renderer expects the flat email shape. Lift `data` to top level.
+                                const flat = (e.data && typeof e.data === 'object') ? { ...e.data, id: e.id, provider: e.provider || e.data.provider } : e;
+                                cachedNow[flat.id] = flat;
+                            }
+                        });
+                        this.state.emailContentCache = cachedNow;
+                        fullThreadEmails = conversationEmails.map(e => cachedNow[e.id] || e);
+                        this.log.success(`Batch fetched ${batchEmails.length}/${uncachedIds.length} emails`);
+                    } catch (batchErr) {
+                        // Fallback: per-email fetch (slower but functional)
+                        this.log.warn(`Batch fetch failed, falling back to per-email: ${batchErr.message}`);
+                        const fullEmailPromises = conversationEmails.map(email =>
+                            this.fetchEmailContent(email.id).catch(err => {
+                                this.log.warn(`Failed to fetch email ${email.id}:`, err);
+                                return email;
+                            })
+                        );
+                        fullThreadEmails = await Promise.all(fullEmailPromises);
+                    }
+                }
 
                 // Conversation thread view - render each email normally, stacked vertically
                 contentHtml = `
@@ -4953,8 +4990,13 @@ Draft questions for the customer listing all missing details required for accura
                     // Failed to parse error JSON, use statusText
                 }
 
-                // Retry on 5xx errors or timeouts (not 404s)
-                if (response.status >= 500 && retryCount < 2) {
+                // Retry on transient 5xx errors, BUT skip 502/504 — those come from
+                // gunicorn timing out behind Render's nginx. Retrying a slow/dead
+                // worker just stacks 1s+2s+4s backoff on the user. 500/503 can be
+                // transient (uncaught exception shedding, deliberate backpressure)
+                // and are still worth one retry.
+                const isGunicornTimeout = response.status === 502 || response.status === 504;
+                if (response.status >= 500 && !isGunicornTimeout && retryCount < 2) {
                     const delay = Math.pow(2, retryCount) * 1000;  // 1s, 2s, 4s
                     this.log.warn(`Server error ${response.status}, retrying in ${delay}ms...`);
                     await new Promise(resolve => setTimeout(resolve, delay));
@@ -5237,13 +5279,11 @@ Draft questions for the customer listing all missing details required for accura
             return;
         }
 
-        // Fetch full email content
+        // Fetch full email content (route through fetchEmailContent so the 5-min
+        // client cache applies — second popup of the same email within 5 min is free)
         let fullEmail = emailData;
         try {
-            const response = await this.api.get(`${this.state.apiBase}/emails/${emailData.id}`);
-            if (response.success && response.email) {
-                fullEmail = response.email;
-            }
+            fullEmail = await this.fetchEmailContent(emailData.id);
         } catch (error) {
             this.log.error('Failed to fetch full email', error);
         }
@@ -5865,10 +5905,10 @@ Draft questions for the customer listing all missing details required for accura
             } else {
                 // Email not in state, need to fetch it
                 this.log.debug(`Email ${emailId} not in state, fetching...`);
-                const response = await this.api.get(`${this.state.apiBase}/emails/${emailId}`);
-
-                if (response.success && response.email) {
-                    await this.showEmailPreview(response.email);
+                // Route through fetchEmailContent so the 5-min client cache applies
+                const fullEmail = await this.fetchEmailContent(emailId);
+                if (fullEmail && fullEmail.id) {
+                    await this.showEmailPreview(fullEmail);
                 } else {
                     throw new Error('Email not found');
                 }

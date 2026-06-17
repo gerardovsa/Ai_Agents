@@ -288,6 +288,59 @@ def list_emails():
     page_token = request.args.get('page_token', None)
     thread_id = request.args.get('thread_id', None)  # ✅ NEW: Filter by specific thread
 
+    # ✅ BATCH FETCH (June 17, 2026): the JS showEmailPreview fan-out used to issue
+    # N parallel /emails/<id> round-trips on first click of a thread. Single
+    # /emails?ids=a,b,c,d replaces that with one request — Gmail/Outlook wrappers
+    # each hit their 5-min CACHE_TTL_EMAIL so the second visit is also free.
+    ids_param = request.args.get('ids', '').strip()
+    if ids_param:
+        requested_ids = [s.strip() for s in ids_param.split(',') if s.strip()]
+        # Sorted key so id-set permutations share a cache entry.
+        batch_cache_key = f"u:{user_id}:email_batch:{','.join(sorted(requested_ids))}"
+        cached_batch = _cache_get(batch_cache_key)
+        if cached_batch is not None:
+            print(f"[Communication Hub] ⚡ Returning cached batch ({len(requested_ids)} ids) for user {user_id}")
+            return jsonify(cached_batch)
+        batch_emails = []
+        for full_id in requested_ids:
+            if '_' not in full_id:
+                continue
+            provider, msg_id = full_id.split('_', 1)
+            if provider == 'gmail':
+                result = gmail_get_message(
+                    message_id=msg_id,
+                    _user_id=user_id,
+                    _injected_credentials=True,
+                )
+            elif provider == 'outlook':
+                if not OUTLOOK_AVAILABLE:
+                    continue
+                result = microsoft_outlook_get_message(
+                    message_id=msg_id,
+                    include_attachments=True,
+                    _user_id=user_id,
+                    _injected_credentials=True,
+                )
+            else:
+                continue
+            if result and result.get('success'):
+                # Same shape as get_email() so the client can drop batch results
+                # straight into state.emailContentCache.
+                batch_emails.append({
+                    'id': full_id,
+                    'provider': provider,
+                    'data': result.get('message') or result.get('email') or {},
+                })
+        batch_payload = {
+            'success': True,
+            'emails': batch_emails,
+            'count': len(batch_emails),
+            'requested': len(requested_ids),
+            'batch': True,
+        }
+        _cache_set(batch_cache_key, batch_payload, CACHE_TTL_EMAIL)
+        return jsonify(batch_payload)
+
     print(f"[Communication Hub] 📬 Listing emails: user_id={user_id}, account={account}, limit={limit}, page_token={'set' if page_token else 'first'}, thread_id={thread_id}")
     print(f"[Communication Hub] 🔍 DEBUG: thread_id type={type(thread_id)}, value='{thread_id}', bool={bool(thread_id)}")
 
