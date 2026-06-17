@@ -282,21 +282,24 @@ def list_emails():
         user_id = request.args.get('user_id', 1, type=int)
     account = request.args.get('account', 'all')
     limit = request.args.get('limit', 50, type=int)  # 50 keeps /emails under 1s even on throttled Gmail API
-    skip = request.args.get('skip', 0, type=int)  # ✅ PAGINATION: Offset for fetching next batch
+    # ✅ CURSOR PAGINATION (June 17, 2026): replaced the broken `skip` offset.
+    # Gmail uses `pageToken`; Microsoft Graph uses `@odata.nextLink` / `$skiptoken`.
+    # Each wrapper returns a `next_page_token` we thread through to the client.
+    page_token = request.args.get('page_token', None)
     thread_id = request.args.get('thread_id', None)  # ✅ NEW: Filter by specific thread
-    
-    print(f"[Communication Hub] 📬 Listing emails: user_id={user_id}, account={account}, limit={limit}, skip={skip}, thread_id={thread_id}")
+
+    print(f"[Communication Hub] 📬 Listing emails: user_id={user_id}, account={account}, limit={limit}, page_token={'set' if page_token else 'first'}, thread_id={thread_id}")
     print(f"[Communication Hub] 🔍 DEBUG: thread_id type={type(thread_id)}, value='{thread_id}', bool={bool(thread_id)}")
 
     # ✅ Cache: thread fetches are the worst offender (8s+ on cold call because
     # gmail_get_thread is one large API round-trip). Cache for 2 min — new
     # messages can join a thread, so we don't keep it as long as single emails.
-    # Cache key includes provider, account filter, and pagination so we don't
-    # serve the wrong slice.
-    list_cache_key = f"u:{user_id}:emails:acct={account}:limit={limit}:skip={skip}:thread={thread_id or ''}"
+    # Cache key includes provider, account filter, and page_token so we don't
+    # serve the wrong page.
+    list_cache_key = f"u:{user_id}:emails:acct={account}:limit={limit}:token={page_token or ''}:thread={thread_id or ''}"
     cached = _cache_get(list_cache_key)
     if cached is not None:
-        print(f"[Communication Hub] ⚡ Returning cached emails list (thread={thread_id}, limit={limit}, skip={skip})")
+        print(f"[Communication Hub] ⚡ Returning cached emails list (thread={thread_id}, limit={limit}, token={'set' if page_token else 'first'})")
         return jsonify(cached)
 
     # ✅ FIRST: Check which accounts user has connected (with circuit breaker protection)
@@ -336,7 +339,14 @@ def list_emails():
         has_microsoft = False
     
     emails = []
-    
+
+    # ✅ CURSOR PAGINATION: track the next-page token from each provider.
+    # Both providers are queried when account='all'; the response surfaces
+    # whichever token is still set (None when a provider is exhausted or
+    # not configured for this user).
+    gmail_next = None
+    outlook_next = None
+
     # ✅ Gmail: ONLY try if user has Google OAuth credentials
     if account in ['all', 'gmail'] and has_google:
         try:
@@ -382,12 +392,14 @@ def list_emails():
                 # No thread filter - list messages normally
                 gmail_params = {
                     'max_results': limit,
-                    'skip': skip,  # ✅ PAGINATION: Pass skip to Gmail wrapper
+                    'page_token': page_token,  # ✅ CURSOR PAGINATION: opaque Gmail pageToken (None on first page)
                     '_user_id': user_id,
                     '_injected_credentials': True
                 }
 
                 gmail_result = gmail_list_messages(**gmail_params)
+                # ✅ Capture cursor for the response so the client can fetch the next batch.
+                gmail_next = gmail_result.get('next_page_token') if isinstance(gmail_result, dict) else None
 
                 # gmail_list_messages returns {'messages': [], 'count': N, 'next_page_token': ...}
                 if 'messages' in gmail_result:
@@ -558,11 +570,13 @@ def list_emails():
                 # No thread filter - list messages normally
                 outlook_result = microsoft_outlook_list_messages(
                     max_results=limit,
-                    skip=skip,  # ✅ PAGINATION: Pass skip to Outlook wrapper
+                    page_token=page_token,  # ✅ CURSOR PAGINATION: Outlook @odata.nextLink or $skiptoken
                     _user_id=user_id,
                     _injected_credentials=True
                 )
-                
+                # ✅ Capture cursor for the response so the client can fetch the next batch.
+                outlook_next = outlook_result.get('next_page_token') if isinstance(outlook_result, dict) else None
+
                 if outlook_result.get('success'):
                     outlook_count = len(outlook_result.get('messages', []))
                     print(f"[Communication Hub] ✅ Got {outlook_count} Outlook message(s)")
@@ -597,10 +611,18 @@ def list_emails():
 
     print(f"[Communication Hub] 📊 Returning {len(emails)} total email(s)")
 
+    # ✅ CURSOR PAGINATION: surface whichever provider still has more messages.
+    # When account='all' and both providers were queried, the next click of
+    # "Load more" will pass the same token back and both providers will page
+    # forward together (preserving the date-desc merge done above).
+    next_page_token = gmail_next or outlook_next or None
+
     payload = {
         'success': True,
         'emails': emails,
-        'count': len(emails)
+        'count': len(emails),
+        'next_page_token': next_page_token,
+        'has_more': bool(next_page_token),
     }
     # Thread results get a longer TTL since thread membership is stable
     # once a message is older than a couple of minutes.

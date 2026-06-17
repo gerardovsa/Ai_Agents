@@ -98,7 +98,10 @@ window.communicationHub = {
         pageSize: 50,
         currentAccountFilter: 'all',
         currentEmailLimit: 20,  // Reduced for faster loading
-        currentEmailOffset: 0,  // ✅ PAGINATION: Track current position in email list
+        // ✅ CURSOR PAGINATION (June 17, 2026): replaced the broken offset.
+        // Server returns `next_page_token` (Gmail pageToken / Outlook @odata.nextLink)
+        // which the client passes back to fetch the next batch. Null = end of mailbox.
+        nextEmailPageToken: null,
 
         // Backend configuration
         apiBase: null,
@@ -524,6 +527,16 @@ window.communicationHub = {
                             
                             <!-- Table Container -->
                             <div id="email-table-container" style="display: none; flex: 1; min-height: 0;"></div>
+
+                            <!-- ✅ Load-More Row (June 17, 2026): replaces the broken Prev/Next paging.
+                                 Server cursor-paginates 50 at a time; this row shows the
+                                 "Load next 50" button (or "End of mailbox" when exhausted). -->
+                            <div id="email-load-more-row" class="email-load-more-row" style="display: none; padding: 10px 12px; text-align: center; border-top: 1px solid #30363d; background: #0d1117; flex-shrink: 0;">
+                                <button id="email-load-more-btn" class="btn-secondary" style="padding: 8px 18px; background: #161b22; border: 1px solid #3b82f6; color: #3b82f6; border-radius: 6px; cursor: pointer; font-size: 0.9em; display: inline-flex; align-items: center; gap: 6px; transition: all 0.2s;">
+                                    <i class="fas fa-arrow-down"></i> Load next 50
+                                </button>
+                                <span id="email-end-of-mailbox" style="display: none; color: #8b949e; font-size: 0.85em; margin-left: 12px;"></span>
+                            </div>
                         </div>
                     </div>
                     
@@ -630,15 +643,10 @@ window.communicationHub = {
                     </select>
                 </div>
                 
-                <!-- Pagination Controls -->
+                <!-- ✅ Pagination Info (June 17, 2026): Prev/Next removed.
+                     Load-more lives below the table; this span shows total count. -->
                 <div class="filter-group" style="display: flex; align-items: center; gap: 4px; border-left: 1px solid #30363d; padding-left: 12px;">
-                    <button id="email-prev-btn" class="btn-secondary" style="padding: 6px 12px; background: #0d1117; border: 1px solid #30363d; color: #8b949e; border-radius: 4px; cursor: pointer; font-size: 0.9em; display: flex; align-items: center; gap: 4px; transition: all 0.2s;" disabled>
-                        <i class="fas fa-chevron-left"></i> Prev
-                    </button>
-                    <span id="pagination-info" style="color: #8b949e; font-size: 0.85em; padding: 0 8px; white-space: nowrap;">1-20</span>
-                    <button id="email-next-btn" class="btn-secondary" style="padding: 6px 12px; background: #0d1117; border: 1px solid #30363d; color: #8b949e; border-radius: 4px; cursor: pointer; font-size: 0.9em; display: flex; align-items: center; gap: 4px; transition: all 0.2s;">
-                        Next <i class="fas fa-chevron-right"></i>
-                    </button>
+                    <span id="pagination-info" style="color: #8b949e; font-size: 0.85em; padding: 0 8px; white-space: nowrap;">—</span>
                 </div>
                 
                 <!-- Refresh Button -->
@@ -1118,35 +1126,18 @@ window.communicationHub = {
             if (emailLimit) {
                 this.dom.on(emailLimit, 'change', (e) => {
                     this.state.currentEmailLimit = parseInt(e.target.value);
-                    this.state.currentEmailOffset = 0;  // ✅ Reset to first page when limit changes
+                    // ✅ CURSOR PAGINATION: reset the load-more cursor when the
+                    // user changes the page size so the next loadEmails() starts fresh.
+                    this.state.nextEmailPageToken = null;
                     this.log.debug(`Email limit changed: ${e.target.value}`);
                 });
             }
-            
-            // Pagination buttons
-            const prevBtn = document.getElementById('email-prev-btn');
-            const nextBtn = document.getElementById('email-next-btn');
-            
-            if (prevBtn) {
-                const prevHandler = async () => {
-                    const limit = this.state.currentEmailLimit;
-                    this.state.currentEmailOffset = Math.max(0, this.state.currentEmailOffset - limit);
-                    this.log.info(`⬅️ Previous page: offset=${this.state.currentEmailOffset}`);
-                    await this.loadEmails();
-                    this.updatePaginationUI();
-                };
-                this.dom.on(prevBtn, 'click', prevHandler);
-            }
-            
-            if (nextBtn) {
-                const nextHandler = async () => {
-                    const limit = this.state.currentEmailLimit;
-                    this.state.currentEmailOffset += limit;
-                    this.log.info(`➡️ Next page: offset=${this.state.currentEmailOffset}`);
-                    await this.loadEmails();
-                    this.updatePaginationUI();
-                };
-                this.dom.on(nextBtn, 'click', nextHandler);
+
+            // ✅ Load-More button (June 17, 2026): replaces broken Prev/Next.
+            // Appends the next 50 server-side; does NOT re-render the table.
+            const loadMoreBtn = document.getElementById('email-load-more-btn');
+            if (loadMoreBtn) {
+                this.dom.on(loadMoreBtn, 'click', () => this.loadMoreEmails());
             }
         }
 
@@ -1440,15 +1431,19 @@ window.communicationHub = {
                 user_id: userId,
                 account: this.state.currentAccountFilter,
                 limit: this.state.currentEmailLimit,
-                skip: this.state.currentEmailOffset  // ✅ PAGINATION: Pass offset to backend
+                // ✅ CURSOR PAGINATION: first page when null; subsequent pages
+                // send the token returned by the previous response.
+                page_token: this.state.nextEmailPageToken || null,
             };
 
-            this.log.info(`Fetching emails: user_id=${params.user_id}, account=${params.account}, limit=${params.limit}, skip=${params.skip}`);
+            this.log.info(`Fetching emails: user_id=${params.user_id}, account=${params.account}, limit=${params.limit}, page_token=${params.page_token ? 'set' : 'first'}`);
             this.log.info(`API URL: ${this.state.apiBase}/emails`);
 
             const response = await this.api.get(`${this.state.apiBase}/emails`, { params });
 
             this.state.emails = response.emails || [];
+            // ✅ Capture the next-page cursor for the load-more button.
+            this.state.nextEmailPageToken = response.next_page_token || null;
 
             // NEW: Calculate conversation stats and create collapsed view
             const groupingStats = this.groupEmailsByThread(this.state.emails);
@@ -1491,50 +1486,136 @@ window.communicationHub = {
     },
     
     /**
-     * Update pagination UI (Previous/Next buttons, page info)
+     * Update pagination UI (Load more / End of mailbox)
+     *
+     * Replaces the old prev/next button logic. The page-info text shows the
+     * total loaded count; the load-more row shows the "Load next 50" button
+     * when a next-page token is available, or the "End of mailbox" message
+     * when the server returned the last page.
      */
     updatePaginationUI() {
-        const prevBtn = document.getElementById('email-prev-btn');
-        const nextBtn = document.getElementById('email-next-btn');
-        const paginationInfo = document.getElementById('pagination-info');
-        
-        const offset = this.state.currentEmailOffset;
-        const limit = this.state.currentEmailLimit;
-        const emailCount = this.state.emails.length;
-        
-        // Update page info text
-        if (paginationInfo) {
-            const start = offset + 1;
-            const end = offset + emailCount;
-            paginationInfo.textContent = `${start}-${end}`;
+        const info = document.getElementById('pagination-info');
+        const row  = document.getElementById('email-load-more-row');
+        const btn  = document.getElementById('email-load-more-btn');
+        const end  = document.getElementById('email-end-of-mailbox');
+        const n = this.state.emails.length;
+
+        if (info) {
+            info.textContent = n === 0 ? 'No emails' : `Showing 1–${n}`;
         }
-        
-        // Enable/disable Previous button
-        if (prevBtn) {
-            if (offset === 0) {
-                prevBtn.disabled = true;
-                prevBtn.style.opacity = '0.5';
-                prevBtn.style.cursor = 'not-allowed';
-            } else {
-                prevBtn.disabled = false;
-                prevBtn.style.opacity = '1';
-                prevBtn.style.cursor = 'pointer';
+
+        if (!row) return;
+
+        if (n === 0) {
+            row.style.display = 'none';
+            return;
+        }
+
+        row.style.display = 'block';
+
+        if (this.state.nextEmailPageToken) {
+            // More pages available — show the button, hide the end-of-mailbox text.
+            if (btn) {
+                btn.style.display = 'inline-flex';
+                btn.disabled = false;
+                btn.style.opacity = '1';
+                btn.style.cursor = 'pointer';
+                btn.innerHTML = '<i class="fas fa-arrow-down"></i> Load next 50';
+            }
+            if (end) end.style.display = 'none';
+        } else {
+            // Exhausted — hide the button, show the "End of mailbox — N emails" text.
+            if (btn) btn.style.display = 'none';
+            if (end) {
+                end.style.display = 'inline';
+                end.textContent = `End of mailbox — ${n} email${n === 1 ? '' : 's'}`;
             }
         }
-        
-        // Enable/disable Next button (disable if we got fewer emails than limit)
-        if (nextBtn) {
-            if (emailCount < limit) {
-                // Got fewer emails than requested = reached the end
-                nextBtn.disabled = true;
-                nextBtn.style.opacity = '0.5';
-                nextBtn.style.cursor = 'not-allowed';
-            } else {
-                nextBtn.disabled = false;
-                nextBtn.style.opacity = '1';
-                nextBtn.style.cursor = 'pointer';
+    },
+
+    /**
+     * Load more emails (append) — cursor pagination (June 17, 2026)
+     *
+     * Fetches the next 50 using the page_token saved on state. Appends new
+     * rows to the live Tabulator instance (does NOT recreate the table) and
+     * re-runs the collapsed-thread view over the union of old + new rows.
+     */
+    async loadMoreEmails() {
+        if (this.state.emailsLoading) {
+            this.log.debug('Load more already in progress — ignoring');
+            return;
+        }
+        if (!this.state.nextEmailPageToken) {
+            this.log.debug('No next-page token — mailbox exhausted');
+            return;
+        }
+
+        this.state.emailsLoading = true;
+        const btn = document.getElementById('email-load-more-btn');
+        if (btn) {
+            btn.disabled = true;
+            btn.style.opacity = '0.5';
+            btn.style.cursor = 'wait';
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Loading…';
+        }
+
+        try {
+            const userId = (window.UserAuth && window.UserAuth.user &&
+                (window.UserAuth.user.id || window.UserAuth.user.user_id)) || '1';
+
+            const params = {
+                user_id: userId,
+                account: this.state.currentAccountFilter,
+                limit: this.state.currentEmailLimit,
+                page_token: this.state.nextEmailPageToken,
+            };
+
+            this.log.info(`Loading more: page_token=${params.page_token ? 'set' : 'missing'}, limit=${params.limit}`);
+            const response = await this.api.get(`${this.state.apiBase}/emails`, { params });
+            const newEmails = response.emails || [];
+
+            // ✅ Append to live Tabulator instance — preserve selection, scroll, sort.
+            // Formatters re-render per-row (including the AI-Agent column badge).
+            if (this.state.tabulatorTable && newEmails.length > 0) {
+                this.state.tabulatorTable.addData(newEmails);
+            }
+            this.state.emails = this.state.emails.concat(newEmails);
+
+            // Recompute collapsed view over the union (new batch may fold into
+            // existing threads — this keeps one row per thread, latest per thread).
+            const groupingStats = this.groupEmailsByThread(this.state.emails);
+            this.state.collapsedEmails = this.createCollapsedView(groupingStats);
+
+            // Refresh AI-Agent column mappings for the new batch.
+            await this.loadEmailThreadMappings();
+
+            // Save the next cursor (null when the server returned the last page).
+            this.state.nextEmailPageToken = response.next_page_token || null;
+
+            this.log.success(`Loaded ${newEmails.length} more emails (total: ${this.state.emails.length})`);
+        } catch (error) {
+            this.log.error('Failed to load more emails', error);
+            if (btn) {
+                // Restore the button so the user can retry.
+                btn.innerHTML = '<i class="fas fa-exclamation-triangle"></i> Failed — click to retry';
+            }
+            // Re-enable on error so user can retry; don't reset emailsLoading yet.
+            this.state.emailsLoading = false;
+            if (btn) {
+                btn.disabled = false;
+                btn.style.opacity = '1';
+                btn.style.cursor = 'pointer';
+            }
+            return;
+        } finally {
+            this.state.emailsLoading = false;
+            if (btn && !this.state.nextEmailPageToken === false) {
+                // Successful load — leave updatePaginationUI to handle button state.
             }
         }
+
+        // Refresh the footer / load-more button visibility.
+        this.updatePaginationUI();
     },
 
     // 
@@ -1579,12 +1660,11 @@ window.communicationHub = {
             responsiveLayout: false,  // FIX: Disable responsive collapse (keep all columns visible)
             height: "100%",  // FIX: Enable virtual DOM scrolling with fixed header
 
-            // Pagination (WooCommerce pattern)
-            pagination: "local",
-            paginationSize: 25,
-            paginationSizeSelector: [10, 25, 50, 100],
-            paginationButtonCount: 5,
-            paginationCounter: "rows",
+            // ✅ CURSOR PAGINATION (June 17, 2026): removed Tabulator's local paging
+            // (pagination: "local", paginationSize: 25, etc.). The "page 1 / page 2"
+            // the user saw was Tabulator slicing the first 50 server rows in half.
+            // Now the table shows all loaded rows; new rows arrive via the
+            // "Load next 50" button which calls tabulator.addData() below.
 
             // User control (WooCommerce pattern)
             movableColumns: true,

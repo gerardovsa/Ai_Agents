@@ -251,36 +251,61 @@ class MicrosoftOutlookTools:
     def outlook_list_messages(self, folder: str = 'inbox', max_results: int = 50,
                              filter: str = None, search: str = None,
                              order_by: str = 'receivedDateTime desc',
-                             unread_only: bool = False, **kwargs) -> Dict:
-        """List messages from a folder"""
-        
+                             unread_only: bool = False,
+                             page_token: str = None, **kwargs) -> Dict:
+        """List messages from a folder
+
+        ✅ Cursor-based pagination via page_token:
+           - If page_token is a full https://... URL (Microsoft Graph @odata.nextLink),
+             call it as the endpoint directly (bypasses self.graph_api_base prefix).
+           - If page_token is a bare $skiptoken value, add it as $skiptoken query param.
+           - If page_token is None, fetch the first page.
+
+        Returns dict with `next_page_token` key (None when no more pages).
+        """
+
         # Ensure max_results is an integer (Claude sends strings)
         if isinstance(max_results, str):
             max_results = int(max_results)
-        
+
         params = {
             '$top': min(max_results, 500),
             '$orderby': order_by,
             '$select': 'id,subject,from,receivedDateTime,isRead,hasAttachments,importance,bodyPreview,conversationId'
         }
-        
+
         if filter:
             params['$filter'] = filter
         elif unread_only:
             params['$filter'] = 'isRead eq false'
-        
+
         if search:
             params['$search'] = f'"{search}"'
-        
+
         endpoint = f'/me/mailFolders/{folder}/messages' if folder else '/me/messages'
-        result = self._make_request('GET', endpoint, params=params, **kwargs)
-        
+
+        # ✅ Cursor pagination: three branches
+        if page_token and page_token.startswith('http'):
+            # Full nextLink URL — bypass the graph_api_base prefix that
+            # _make_request would otherwise prepend.
+            result = self._make_request('GET', page_token, **kwargs)
+        elif page_token:
+            # Bare $skiptoken value (or other continuation token)
+            params['$skiptoken'] = page_token
+            result = self._make_request('GET', endpoint, params=params, **kwargs)
+        else:
+            # First page
+            result = self._make_request('GET', endpoint, params=params, **kwargs)
+
         if result['success']:
-            messages = result['data'].get('value', [])
+            data = result.get('data') or {}
+            messages = data.get('value', [])
             return {
                 'success': True,
                 'count': len(messages),
-                'messages': messages
+                'messages': messages,
+                # None when @odata.nextLink is absent (end of mailbox).
+                'next_page_token': data.get('@odata.nextLink'),
             }
         return result
     

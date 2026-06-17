@@ -221,20 +221,24 @@ def gmail_send_draft(draft_id, **kwargs):
 
 # ==================== EMAIL READING ====================
 
-def gmail_list_messages(max_results=10, query=None, label_ids=None, **kwargs):
+def gmail_list_messages(max_results=10, query=None, label_ids=None, page_token=None, **kwargs):
     """List messages in mailbox
-    
+
     ✅ Supports credential injection via **kwargs
+    ✅ Supports cursor-based pagination via page_token (returned in next_page_token)
     """
     try:
         service = _get_gmail_service(**kwargs)
-        
+
         params = {'userId': 'me', 'maxResults': max_results}
         if query:
             params['q'] = query
         if label_ids:
             params['labelIds'] = label_ids
-        
+        if page_token:
+            # Gmail uses opaque pageToken (not numeric offset) for pagination.
+            params['pageToken'] = page_token
+
         result = service.users().messages().list(**params).execute()
         messages = result.get('messages', [])
         
