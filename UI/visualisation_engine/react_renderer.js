@@ -104,6 +104,39 @@ class ReactRenderer {
         const usesLucide   = /lucide|LucideIcon|import.*from.*['"](lucide|lucide-react)['"]|\b(ChevronRight|ChevronDown|Circle|Square|Triangle|Star|Heart|Home|User|Settings|Search|Bell|Mail|Check|X|Plus|Minus|Edit|Trash|Download|Upload|Eye|Lock|Unlock|ArrowRight|ArrowLeft|ArrowUp|ArrowDown)\b/.test(jsxContent);
         const usesTailwind = /className=["'`][^"'`]*(flex|grid|p-\d|m-\d|pt-|pb-|pl-|pr-|mt-|mb-|ml-|mr-|px-|py-|text-[a-z]|bg-[a-z]|border|rounded|shadow|w-\d|h-\d|gap-|space-|items-|justify-|font-|leading-|tracking-)[^"'`]*["'`]/.test(jsxContent);
 
+        // ── Unwrap JSON wrappers the AI sometimes emits ──────────────────────────
+        // The AI occasionally wraps its React code inside a JSON object literal
+        // instead of emitting raw JSX:
+        //
+        //   <EXECUTE_REACT>
+        //   { "code": "function App() { ... return (<div>...</div>); }" }
+        //   </EXECUTE_REACT>
+        //
+        // Babel-standalone cannot transpile an object literal as JSX, so this
+        // used to surface as a confusing "Missing semicolon" parse error.  Try
+        // to parse the content as JSON; if it succeeds and contains a string
+        // property in {code, react, component, jsx, source}, use that value as
+        // the actual code.  Otherwise pass through unchanged.
+        function unwrapJSON(content) {
+            const trimmed = content.trim();
+            if (!trimmed.startsWith('{')) return content;
+            try {
+                const parsed = JSON.parse(trimmed);
+                if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
+                    const candidateKeys = ['code', 'react', 'component', 'jsx', 'source', 'app'];
+                    for (const k of candidateKeys) {
+                        if (typeof parsed[k] === 'string' && parsed[k].trim().length > 0) {
+                            return parsed[k];
+                        }
+                    }
+                }
+            } catch (_) {
+                // Not valid JSON — leave unchanged
+            }
+            return content;
+        }
+        const unwrappedJSX = unwrapJSON(jsxContent);
+
         // ── Strip ES module boilerplate — replaced by UMD globals ──────────────
         // Babel-standalone in <script type="text/babel"> (non-module) mode throws
         // a SyntaxError on `export` keywords.  The AI commonly emits
@@ -111,7 +144,7 @@ class ReactRenderer {
         // silently aborts the entire script and leaves the iframe blank.
         // Remove both `import` and `export` forms so the user's code is plain
         // script-mode JS that Babel-standalone can transpile and execute.
-        const cleanedJSX = jsxContent
+        const cleanedJSX = unwrappedJSX
             .replace(/^[ \t]*import\s+[\s\S]*?from\s+['"][^'"]+['"]\s*;?[ \t]*$/gm, '')
             .replace(/^[ \t]*export\s+default\s+[\s\S]*?;?[ \t]*$/gm, '')
             .replace(/^[ \t]*export\s+(?:const|let|var|function|class|async\s+function)\s+[\s\S]*?$/gm, '')
