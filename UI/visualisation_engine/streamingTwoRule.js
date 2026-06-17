@@ -1197,6 +1197,46 @@ class TwoRuleStreamProcessor {
                 if (lastError) throw lastError;
             } else if (type === 'mermaid') {
                 if (engine.renderMermaidDirectly) {
+                    // EW: Mermaid measures the container at init time. If the
+                    // container is 0-px (deferred thread render, hidden tab,
+                    // collapsed panel) it emits a viewBox of "0 0 0 450" which
+                    // produces negative-radius pie slices and broken flowchart
+                    // label positioning. Defer via ResizeObserver until the
+                    // container has a real size, instead of forcing a render
+                    // we'll have to throw away.
+                    const ready = await this.ensureContainerReady(targetContainer, 200);
+                    if (!ready) {
+                        console.log('⏸️ TWO-RULE: Mermaid container not yet sized — deferring until layout');
+                        if (typeof ResizeObserver !== 'undefined') {
+                            let timeoutFallback = null;
+                            const ro = new ResizeObserver(async (entries) => {
+                                for (const entry of entries) {
+                                    const { width, height } = entry.contentRect;
+                                    if (width > 1 && height > 1) {
+                                        ro.disconnect();
+                                        if (timeoutFallback) clearTimeout(timeoutFallback);
+                                        try {
+                                            await engine.renderMermaidDirectly(item, targetContainer, chartId);
+                                        } catch (err) {
+                                            console.error('❌ TWO-RULE: Deferred Mermaid render failed:', err);
+                                        }
+                                        return;
+                                    }
+                                }
+                            });
+                            ro.observe(targetContainer);
+                            // Safety net: don't leave the observer forever
+                            timeoutFallback = setTimeout(() => {
+                                ro.disconnect();
+                                console.error('❌ TWO-RULE: Mermaid container never got a real size after 10s — giving up');
+                            }, 10000);
+                        } else {
+                            // No ResizeObserver (very old browser) — fall through
+                            // and let renderMermaidDirectly's own safety net handle it
+                            await engine.renderMermaidDirectly(item, targetContainer, chartId);
+                        }
+                        return;
+                    }
                     // Route Mermaid directly into the inner .viz-content-area
                     await engine.renderMermaidDirectly(item, targetContainer, chartId);
                 } else if (engine.renderVisualizationDirectly) {
@@ -1251,10 +1291,12 @@ class TwoRuleStreamProcessor {
         }
     }
 
-    // Wait for container to be attached and have non-zero size
+    // Wait for container to be attached and have non-zero size.
+    // Returns true if the container became visible within maxWaitMs, false on timeout.
+    // Existing callers that ignore the return value behave exactly as before.
     async ensureContainerReady(container, maxWaitMs = 500) {
         const start = performance.now();
-        
+
         // 🔥 FIX (Jan 21, 2026): Don't require DOM attachment
         // Container may not be in DOM during initial message rendering
         while (performance.now() - start < maxWaitMs) {
@@ -1262,13 +1304,15 @@ class TwoRuleStreamProcessor {
             if (document.contains(container)) {
                 const rect = container.getBoundingClientRect();
                 const visible = rect.width > 1 && rect.height > 1 && container.offsetParent !== null;
-                if (visible) return;
+                if (visible) return true;
             }
             // Otherwise wait a bit and check again
             await new Promise(r => setTimeout(r, 50));
         }
-        // Timeout reached - proceed anyway (container will be attached soon)
+        // Timeout reached - proceed anyway (container will be attached soon).
+        // The caller can use the boolean return to decide whether to defer.
         console.log('⏱️ TWO-RULE: ensureContainerReady timeout, proceeding with render');
+        return false;
     }
 
     /**

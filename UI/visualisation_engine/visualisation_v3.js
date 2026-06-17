@@ -4486,6 +4486,35 @@ class VisualizationEngine {
                 throw new Error('Mermaid returned empty SVG');
             }
 
+            // RITICAL: Defend against Mermaid running against a 0-px container.
+            // When that happens, Mermaid emits a viewBox of "0 0 0 450" (width=0),
+            // which causes <circle r="-39"> (pie) and "Could not find a suitable
+            // point for the given distance" (flowchart) on next render pass.
+            // We parse the SVG string in isolation so a broken diagram never reaches
+            // the live DOM; the user sees the deferred-render placeholder instead.
+            const parsedForCheck = new DOMParser().parseFromString(svg, 'image/svg+xml');
+            const parsedSvgEl = parsedForCheck.querySelector('svg');
+            let mermaidProducedValidViewBox = true;
+            if (parsedSvgEl) {
+                const vb = parsedSvgEl.getAttribute('viewBox') || '';
+                const m = vb.match(/^[\d.\-]+\s+[\d.\-]+\s+([\d.\-]+)\s+([\d.\-]+)/);
+                if (m) {
+                    const w = parseFloat(m[1]);
+                    const h = parseFloat(m[2]);
+                    if (!isFinite(w) || w <= 0 || !isFinite(h) || h <= 0) {
+                        mermaidProducedValidViewBox = false;
+                        console.warn(`⚠️ VIZ-V3: Mermaid produced broken viewBox "${vb}" — deferring render until container is sized`);
+                    }
+                }
+            }
+
+            if (!mermaidProducedValidViewBox) {
+                // Don't insert the broken SVG; schedule a re-render with a fresh chartId
+                // once the container has a measurable size.
+                this._scheduleMermaidRerender(item, contentArea, chartId);
+                return;
+            }
+
             mermaidDiv.innerHTML = svg;
 
             // OVERRIDE: Mermaid sets style="max-width: Xpx" based on the SVG's own
@@ -4546,6 +4575,76 @@ class VisualizationEngine {
             console.error(' Enhanced Mermaid rendering error:', error);
             this.showMermaidError(mermaidDiv, error, item.content);
         }
+    }
+
+    // 6.1.1b - EW: Schedule a Mermaid re-render once the container has a real size.
+    // Called when Mermaid was initialised against a 0-px container (deferred thread
+    // render, hidden tab, collapsed panel) and produced a broken viewBox. We avoid
+    // inserting the broken SVG into the live DOM by handling the deferral here
+    // instead. A ResizeObserver watches the contentArea; once it has measurable
+    // dimensions we re-run renderMermaidDirectly with a fresh chartId so Mermaid's
+    // internal cache doesn't return the previous (broken) result.
+    _scheduleMermaidRerender(item, contentArea, chartId) {
+        // Lightweight placeholder so the user knows the render is pending, not failed
+        const placeholder = document.createElement('div');
+        placeholder.className = 'mermaid-deferred-placeholder';
+        placeholder.style.cssText = 'padding: 24px; text-align: center; color: var(--text-muted, #6e7681); font-style: italic; font-size: 0.95em;';
+        placeholder.textContent = '⏳ Preparing diagram…';
+        contentArea.appendChild(placeholder);
+
+        let observer = null;
+        let timeoutId = null;
+        let triggered = false;
+
+        const cleanup = () => {
+            if (observer) { observer.disconnect(); observer = null; }
+            if (timeoutId) { clearTimeout(timeoutId); timeoutId = null; }
+            if (placeholder.parentNode) { placeholder.parentNode.removeChild(placeholder); }
+        };
+
+        const tryRerender = () => {
+            if (triggered) return;
+            triggered = true;
+            cleanup();
+            console.log('✅ VIZ-V3: Container now sized — retrying Mermaid render');
+            const newChartId = `${chartId}-retry-${Date.now()}`;
+            this.renderMermaidDirectly(item, contentArea, newChartId).catch(err => {
+                console.error('❌ VIZ-V3: Mermaid re-render failed:', err);
+            });
+        };
+
+        // ResizeObserver fires when the container gets a real size
+        if (typeof ResizeObserver !== 'undefined') {
+            observer = new ResizeObserver((entries) => {
+                for (const entry of entries) {
+                    const { width, height } = entry.contentRect;
+                    if (width > 1 && height > 1) {
+                        tryRerender();
+                        return;
+                    }
+                }
+            });
+            observer.observe(contentArea);
+        } else {
+            // Fallback: poll with rAF for older browsers
+            const poll = () => {
+                if (triggered) return;
+                const rect = contentArea.getBoundingClientRect();
+                if (rect.width > 1 && rect.height > 1) {
+                    tryRerender();
+                } else {
+                    requestAnimationFrame(poll);
+                }
+            };
+            requestAnimationFrame(poll);
+        }
+
+        // Safety net: give up after 8s so we never leave a placeholder forever
+        timeoutId = setTimeout(() => {
+            if (triggered) return;
+            console.error('❌ VIZ-V3: Container never got a real size after 8s — giving up on re-render');
+            cleanup();
+        }, 8000);
     }
 
     // 6.1.2
@@ -5917,17 +6016,27 @@ class VisualizationEngine {
 
             styleElement.textContent = (styleElement.textContent || '') + additionalStyles;
 
-            // RITICAL: Adjust SVG viewBox to accommodate titles positioned above subgraphs
-            const viewBox = svgElement.getAttribute('viewBox');
-            if (viewBox) {
-                const [x, y, width, height] = viewBox.split(' ').map(Number);
+            // RITICAL: Adjust SVG viewBox to accommodate titles positioned above subgraphs.
+            // Only run when there are actual subgraph titles to make room for — otherwise
+            // (pie / sequence / class / state / gantt / er / journey / gitGraph / plain
+            // flowcharts) this block would silently mangle the viewBox for no reason.
+            if (titleTexts.length > 0) {
+                const viewBox = svgElement.getAttribute('viewBox');
+                if (viewBox) {
+                    const [x, y, width, height] = viewBox.split(' ').map(Number);
 
-                // Expand viewBox upward and increase overall height to accommodate titles
-                const newY = y - 50; // Extend upward for titles
-                const newHeight = height + 100; // Add extra space for titles and spacing
+                    // Defend against broken upstream viewBox (e.g. Mermaid was initialised
+                    // against a 0-px container and produced `0 0 0 450`).
+                    const safeWidth  = isFinite(width)  && width  > 0 ? width  : (svgElement.clientWidth || 600);
+                    const safeHeight = isFinite(height) && height > 0 ? height : 450;
 
-                svgElement.setAttribute('viewBox', `${x} ${newY} ${width} ${newHeight}`);
-                console.log(`🔧 Adjusted SVG viewBox to accommodate subgraph titles: ${x} ${newY} ${width} ${newHeight}`);
+                    // Expand viewBox upward and increase overall height to accommodate titles
+                    const newY = y - 50; // Extend upward for titles
+                    const newHeight = safeHeight + 100; // Add extra space for titles and spacing
+
+                    svgElement.setAttribute('viewBox', `${x} ${newY} ${safeWidth} ${newHeight}`);
+                    console.log(`🔧 Adjusted SVG viewBox to accommodate subgraph titles: ${x} ${newY} ${safeWidth} ${newHeight}`);
+                }
             }
 
             console.log('ubgraph spacing styles applied successfully');
