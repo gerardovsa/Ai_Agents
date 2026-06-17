@@ -1197,82 +1197,16 @@ class TwoRuleStreamProcessor {
                 if (lastError) throw lastError;
             } else if (type === 'mermaid') {
                 if (engine.renderMermaidDirectly) {
-                    // EW: Mermaid measures the container at init time. If the
-                    // container is 0-px wide (deferred thread render, hidden tab,
-                    // collapsed panel) it emits a viewBox of "0 0 0 450" which
-                    // produces negative-radius pie slices and broken flowchart
-                    // label positioning. We only require WIDTH > 0 — Mermaid
-                    // doesn't read the container's height, and the container's
-                    // height is 0 until Mermaid populates it (chicken-and-egg).
-                    const isWidthReady = (el) => {
-                        const r = el.getBoundingClientRect();
-                        return r.width > 1 && el.offsetParent !== null;
-                    };
-
-                    // Brief wait for the container to acquire a width (50ms loop)
-                    let ready = false;
-                    const start = performance.now();
-                    while (performance.now() - start < 250) {
-                        if (isWidthReady(targetContainer)) { ready = true; break; }
-                        await new Promise(r => setTimeout(r, 50));
-                    }
-
-                    if (!ready) {
-                        console.log('⏸️ TWO-RULE: Mermaid container not yet sized — deferring until layout');
-
-                        // Helper: do the deferred render once, with cleanup
-                        const doDeferredRender = async () => {
-                            try {
-                                await engine.renderMermaidDirectly(item, targetContainer, chartId);
-                            } catch (err) {
-                                console.error('❌ TWO-RULE: Deferred Mermaid render failed:', err);
-                            }
-                        };
-
-                        if (typeof ResizeObserver !== 'undefined') {
-                            let timeoutFallback = null;
-                            const ro = new ResizeObserver((entries) => {
-                                for (const entry of entries) {
-                                    if (entry.contentRect.width > 1) {
-                                        ro.disconnect();
-                                        if (timeoutFallback) clearTimeout(timeoutFallback);
-                                        doDeferredRender();
-                                        return;
-                                    }
-                                }
-                            });
-                            ro.observe(targetContainer);
-
-                            // RITICAL: ResizeObserver only fires on CHANGES, not
-                            // initial observation. Probe the size immediately so
-                            // we don't miss the case where the container became
-                            // sized between our 250ms wait and the observe() call.
-                            if (isWidthReady(targetContainer)) {
-                                ro.disconnect();
-                                clearTimeout(timeoutFallback);
-                                await doDeferredRender();
-                                return;
-                            }
-
-                            // Safety net: don't leave the observer forever
-                            timeoutFallback = setTimeout(() => {
-                                ro.disconnect();
-                                console.error('❌ TWO-RULE: Mermaid container never got a real size after 10s — giving up');
-                            }, 10000);
-                        } else {
-                            // No ResizeObserver (very old browser) — poll with rAF
-                            const poll = async () => {
-                                if (isWidthReady(targetContainer)) {
-                                    await doDeferredRender();
-                                    return;
-                                }
-                                requestAnimationFrame(() => poll());
-                            };
-                            requestAnimationFrame(() => poll());
-                        }
-                        return;
-                    }
-                    // Route Mermaid directly into the inner .viz-content-area
+                    // EW: We previously tried to defer rendering until the
+                    // container had a measurable width (chicken-and-egg with
+                    // the height: auto viz-content-area), but the ResizeObserver
+                    // never fired in some chat layouts (containers that stay
+                    // 0-px due to offsetParent quirks, or genuine hidden tabs).
+                    // Instead, just call renderMermaidDirectly and let the
+                    // POST-render safety net inside it catch a broken viewBox —
+                    // it'll schedule a re-render via _scheduleMermaidRerender
+                    // once the container does get a real size. This is a
+                    // corrective (not predictive) guard, which is more robust.
                     await engine.renderMermaidDirectly(item, targetContainer, chartId);
                 } else if (engine.renderVisualizationDirectly) {
                     await engine.renderVisualizationDirectly(item, container, chartId);

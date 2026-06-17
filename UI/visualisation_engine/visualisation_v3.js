@@ -4599,9 +4599,12 @@ class VisualizationEngine {
 
         // EW: Only require WIDTH — Mermaid measures width to compute radius/layout.
         // The container's height is 0 until Mermaid populates it (chicken-and-egg).
+        // We deliberately do NOT check offsetParent: in some chat layouts (e.g. a
+        // position: fixed ancestor, or a <dialog>/modal) offsetParent is null even
+        // when the element IS visible and has a real width, which deadlocks us.
         const isWidthReady = (el) => {
             const r = el.getBoundingClientRect();
-            return r.width > 1 && el.offsetParent !== null;
+            return r.width > 1;
         };
 
         let observer = null;
@@ -4657,10 +4660,24 @@ class VisualizationEngine {
             requestAnimationFrame(poll);
         }
 
-        // Safety net: give up after 8s so we never leave a placeholder forever
+        // Safety net: give up after 8s so we never leave a placeholder forever.
+        // Log the last-seen size + a few visibility hints so we can tell from
+        // the console whether the container is genuinely 0-px (deep layout
+        // issue) or just hidden (display:none on an ancestor).
         timeoutId = setTimeout(() => {
             if (triggered) return;
-            console.error('❌ VIZ-V3: Container never got a real size after 8s — giving up on re-render');
+            const rect = contentArea.getBoundingClientRect();
+            const cs = window.getComputedStyle(contentArea);
+            const parent = contentArea.parentElement;
+            const parentCs = parent ? window.getComputedStyle(parent) : null;
+            console.error(
+                '❌ VIZ-V3: Container never got a real size after 8s — giving up on re-render',
+                {
+                    rect: { w: rect.width, h: rect.height },
+                    contentArea: { display: cs.display, visibility: cs.visibility, position: cs.position },
+                    parent: parent ? { display: parentCs.display, visibility: parentCs.visibility, position: parentCs.position, tag: parent.tagName } : null,
+                }
+            );
             cleanup();
         }, 8000);
     }
