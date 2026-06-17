@@ -113,13 +113,16 @@ class ReactRenderer {
         //   </EXECUTE_REACT>
         //
         // Babel-standalone cannot transpile an object literal as JSX, so this
-        // used to surface as a confusing "Missing semicolon" parse error.  Try
-        // to parse the content as JSON; if it succeeds and contains a string
-        // property in {code, react, component, jsx, source}, use that value as
-        // the actual code.  Otherwise pass through unchanged.
+        // used to surface as a confusing "Missing semicolon" parse error.
+        //
+        // Two layers of defense:
+        //   1. Try JSON.parse — handles well-formed {"code": "..."} cleanly
+        //   2. Regex fallback — handles slightly-malformed wrappers (trailing
+        //      comma, single quotes, unescaped newlines) that JSON.parse rejects
         function unwrapJSON(content) {
             const trimmed = content.trim();
             if (!trimmed.startsWith('{')) return content;
+            // Layer 1: strict JSON.parse
             try {
                 const parsed = JSON.parse(trimmed);
                 if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
@@ -130,8 +133,19 @@ class ReactRenderer {
                         }
                     }
                 }
-            } catch (_) {
-                // Not valid JSON — leave unchanged
+            } catch (_) { /* fall through to regex */ }
+            // Layer 2: regex extract — matches { "code": "..." } (greedy, handles
+            // embedded newlines and trailing characters that broke JSON.parse)
+            const regexMatch = trimmed.match(
+                /\{\s*["'](?:code|react|component|jsx|source|app)["']\s*:\s*"([\s\S]*?)"\s*\}\s*$/
+            );
+            if (regexMatch && regexMatch[1] && regexMatch[1].trim().length > 0) {
+                // Unescape common JSON string escapes
+                return regexMatch[1]
+                    .replace(/\\n/g, '\n')
+                    .replace(/\\t/g, '\t')
+                    .replace(/\\"/g, '"')
+                    .replace(/\\\\/g, '\\');
             }
             return content;
         }
