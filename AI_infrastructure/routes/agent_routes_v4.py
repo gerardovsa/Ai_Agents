@@ -2270,18 +2270,15 @@ Use tools in multiple rounds with interleaved thinking."""
             print(traceback.format_exc())
     
     def generate():
-        """Generator with flush and close signal to prevent incomplete chunked encoding"""
-        def flush_stream():
-            """Force flush SSE stream to prevent buffering"""
-            try:
-                sys.stdout.flush()
-            except:
-                pass
-        
+        """Generator with close signal to prevent incomplete chunked encoding"""
+        # NOTE (2026-07-03): The previous local `flush_stream()` helper called
+        # `sys.stdout.flush()`. That was a no-op for Flask `Response` generators
+        # (the wire is the WSGI server, not stdout), so the helper was deleted.
+        # Flask flushes each yielded chunk via chunked transfer encoding on its
+        # own; no manual flush is needed and no flush calls remain in this fn.
         try:
             did_broadcast_update = False
             yield stream_sse_event('start', {'session_id': thread_slug, 'agent_id': agent_id})
-            flush_stream()
             
             # ✅ FIX: If multimodal (has file blocks), pass full content via conversation history
             # and use empty user_prompt (execute_streaming_request skips adding user msg when falsy)
@@ -2339,8 +2336,7 @@ Use tools in multiple rounds with interleaved thinking."""
                     did_broadcast_update = True
 
                 yield stream_sse_event(event_type, event)
-                flush_stream()
-                
+
                 if event_type in ['complete', 'error']:
                     break
         
@@ -2348,13 +2344,11 @@ Use tools in multiple rounds with interleaved thinking."""
             import traceback
             print(f"[STREAM ERROR] {traceback.format_exc()}")
             yield stream_sse_event('error', {'error': str(e)})
-            flush_stream()
         
         finally:
             # CRITICAL: Always send close signal to prevent ERR_INCOMPLETE_CHUNKED_ENCODING
             print(f"[STREAM] Sending close signal for thread {thread_slug}")
             yield "event: close\ndata: {}\n\n"
-            flush_stream()
     
     # Add timeout protection and better error handling for SSE streams
     response = Response(generate(), mimetype='text/event-stream', headers={

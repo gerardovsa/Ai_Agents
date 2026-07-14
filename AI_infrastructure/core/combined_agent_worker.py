@@ -3866,8 +3866,8 @@ Proceed to the NEXT step now."""
                                 print(f"{log_prefix} ⚠️ Failed to save final assistant message")
                         except Exception as save_error:
                             print(f"{log_prefix} ❌ ERROR saving final message: {save_error}")
-                        import traceback
-                        traceback.print_exc()
+                            import traceback
+                            traceback.print_exc()
             
             # CRITICAL FIX (Nov 22, 2025): Send conversation_sync BEFORE complete event
             # This ensures frontend has authoritative history before finalizing

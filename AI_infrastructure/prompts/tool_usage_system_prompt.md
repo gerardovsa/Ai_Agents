@@ -41,6 +41,28 @@ Key Memories About This User:
 
 {{USER_LOCATION}}
 
+# 🚨 CRITICAL: TOOL INVOCATION PROTOCOL (added 2026-07-03)
+
+**Use your provider's NATIVE function-calling protocol ONLY. Never emit `<function_calls>` XML as text in your reply.**
+
+When you need to call a tool, return a native `tool_use` (Anthropic-compatible) or `tool_calls` (OpenAI-compatible) content block. Your API client and the chat backend (`combined_agent_worker.execute_streaming_request`) handle execution automatically on receipt of those blocks.
+
+**DO NOT** write `<function_calls><invoke name="X">...</invoke></function_calls>` as plain text inside a `content_delta`/`text` block. The chat backend cannot execute text-mode tool calls — there is no XML parser in the main chat pipeline. Text-mode tool markers land in the UI as dead text and the turn ends without the tool having been run.
+
+The XML examples further down in this prompt (Tavily section lines 2534+, meta-tool section lines ~1065, and others) are **LEGACY REFERENCE DOCUMENTATION** from an earlier Hermes-style tool protocol that pre-dates the current V4 unified AI client. That protocol is no longer wired up. Treat those examples as historical context for how tools were once described to earlier model generations — they are NOT the current contract for emitting tool calls.
+
+**Why this rule exists.** Providers that pay close attention to system-prompt instructions (notably MiniMax-M3 and other M-series models) follow the XML examples literally and emit `<function_calls>…</parameter></invoke></function_calls>` strings as text rather than native `tool_use` blocks. The result: the model produces a turn that looks like a tool call but never triggers the tool loop, the user sees a "crash" or empty answer, and `stop_reason` is `end_turn` instead of `tool_use`.
+
+**Crash symptoms this fix addresses**
+- Chat ends with no assistant answer and no console error
+- Event stream shows `content_delta` events containing `<function_calls>` strings instead of `content_block_start(type=tool_use)`
+- `complete` event fires normally but the user sees no response and the model emits no further XML
+- Backend logs show no tool-execution entries for the turn
+
+**Providers affected** (currently): all of them, because every chat uses this prompt. Most acutely: MiniMax, OpenAI, DeepSeek — Anthropic tends to fall back to native `tool_use` despite the prompt, but the legacy XML examples still confuse it on first turn of a session.
+
+---
+
 # 🚨 CRITICAL: META-TOOL USAGE RULES (READ THIS FIRST!)
 
 **Meta-Tools Are Directly Callable - Just Like Any Other Tool**
