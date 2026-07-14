@@ -4624,6 +4624,99 @@ def _prewarm_connection_pools():
 if os.environ.get('RENDER') == 'true' or __name__ == '__main__':
     _prewarm_connection_pools()
 
+    # ============================================================================
+    # CONNECTION LEAK DETECTOR STARTUP
+    #
+    # Why here (not under `if __name__ == '__main__':`):
+    #   gunicorn imports flask_app as a module, so its __name__ is
+    #   "AI_infrastructure.flask_app" — never "__main__". Placing the
+    #   detector start inside the __main__-only block silently skipped it
+    #   on Render, leaving `/api/pool-health` reporting `is_running: false`
+    #   and orphan connections accumulating in the pool.
+    #
+    # The detector auto-closes connections idle for > LEAK_DETECTOR_IDLE_TIMEOUT
+    # (default 30s) and exposes live metrics at GET /api/pool-health.
+    # ============================================================================
+    try:
+        from AI_infrastructure.shared.connection_leak_detector import start_leak_detector
+
+        # Capture detector config BEFORE starting so the log shows what we
+        # configured, not what defaults were applied.
+        _ld_interval = int(os.environ.get('LEAK_DETECTOR_INTERVAL', '60'))
+        _ld_idle_timeout = int(os.environ.get('LEAK_DETECTOR_IDLE_TIMEOUT', '30'))
+        _ld_auto_close = os.environ.get('LEAK_DETECTOR_AUTO_CLOSE', 'True').lower() == 'true'
+
+        run_mode = (
+            'gunicorn (RENDER)' if os.environ.get('RENDER') == 'true'
+            else 'direct (python flask_app.py)'
+        )
+
+        logger.info(
+            f'[LEAK_DETECTOR] Starting under {run_mode} | '
+            f'interval={_ld_interval}s, idle_timeout={_ld_idle_timeout}s, '
+            f'auto_close={_ld_auto_close}'
+        )
+
+        detector = start_leak_detector()
+
+        # Sanity check — verify the thread actually came up. If start()
+        # returned but _running is False, log loudly so this never silently
+        # regresses again.
+        if detector and getattr(detector, '_running', False):
+            _thread_name = detector._thread.name if detector._thread else '?'
+            _thread_daemon = detector._thread.daemon if detector._thread else '?'
+            logger.info(
+                f'[LEAK_DETECTOR] ✅ Running | thread={_thread_name} '
+                f'daemon={_thread_daemon}'
+            )
+        else:
+            logger.warning('[LEAK_DETECTOR] ⚠️ start() returned but detector._running is False')
+
+        # Baseline pool snapshot — capture state at boot so after-the-fact
+        # comparisons can answer "did the pool grow during a load?"
+        try:
+            from AI_infrastructure.shared.database_utils import get_all_pool_stats
+            _baseline = get_all_pool_stats() or {}
+            for _schema, _stats in sorted(_baseline.items()):
+                _acq = _stats.get('acquired') or _stats.get('connections_acquired', 0)
+                _ret = _stats.get('returned') or _stats.get('connections_returned', 0)
+                _max = _stats.get('maxconn') or _stats.get('max_connections', '?')
+                logger.info(
+                    f'[LEAK_DETECTOR] baseline pool[{_schema}] '
+                    f'acquired={_acq}, returned={_ret}, maxconn={_max}'
+                )
+        except Exception as _be:
+            logger.warning(f'[LEAK_DETECTOR] baseline pool snapshot failed (non-fatal): {_be}')
+
+        # Proactive cleanup of zombies from a previous crash / restart.
+        try:
+            _cleanup = detector.cleanup_pool() or {}
+            _cleaned = _cleanup.get('cleaned', 0)
+            _cerrors = _cleanup.get('errors', 0)
+            if _cleaned > 0:
+                logger.warning(f'[LEAK_DETECTOR] 🧹 Cleaned {_cleaned} zombie connection(s) on boot')
+            elif _cerrors > 0:
+                logger.warning(f'[LEAK_DETECTOR] cleanup_pool reported {_cerrors} error(s)')
+            else:
+                logger.info('[LEAK_DETECTOR] 🧹 No zombie connections found')
+        except Exception as _ce:
+            # cleanup_pool can raise if pools aren't initialized yet; log
+            # but do NOT treat as fatal — the detector itself is already
+            # running and will retry on its next tick.
+            logger.warning(f'[LEAK_DETECTOR] cleanup_pool() failed (non-fatal): {_ce}')
+
+        print("✅ Connection leak detector started (auto-close idle >30 sec)")
+        print("   Metrics: GET /api/pool-health")
+        print("   Force check: POST /api/pool-health/force-check")
+        print("   Live counts: idle_found, idle_closed, active_warned, errors\n")
+    except Exception as e:
+        # Log via both print() and logger so the message surfaces whether
+        # the operator is watching the Render dashboard stdout OR scraping
+        # captured log files.
+        _msg = f'⚠️  Failed to start leak detector: {e}'
+        print(_msg)
+        logger.error(f'[LEAK_DETECTOR] {_msg}', exc_info=True)
+
 # ============================================================================
 # RUN APP
 # ============================================================================
@@ -4650,26 +4743,11 @@ if __name__ == '__main__':
         print(f"   Log file: AI_infrastructure/logs/connection_monitor.log\n")
     except Exception as e:
         print(f"\n⚠️  Failed to start connection monitor: {e}\n")
-    
-    # 🔍 START CONNECTION LEAK DETECTOR (Auto-closes idle connections >30 sec)
-    try:
-        from AI_infrastructure.shared.connection_leak_detector import start_leak_detector
-        detector = start_leak_detector()
-        
-        # 🧹 PROACTIVE CLEANUP: Remove zombie connections from pool
-        print("🧹 Cleaning zombie connections from pool...")
-        cleanup_result = detector.cleanup_pool()
-        if cleanup_result['cleaned'] > 0:
-            print(f"   ⚠️  Cleaned {cleanup_result['cleaned']} zombie connections")
-        else:
-            print("   ✅ No zombie connections found")
-        
-        print("✅ Connection leak detector started (auto-close idle >30 sec)")
-        print("   Metrics: GET /api/pool-health")
-        print("   Force check: POST /api/pool-health/force-check\n")
-    except Exception as e:
-        print(f"⚠️  Failed to start leak detector: {e}\n")
-    
+
+    # NOTE: Connection leak detector starts earlier — see the
+    # `if RENDER or __main__:` block above. Starting it here would either
+    # duplicate work (locally) or never run at all (under gunicorn).
+
     # CRITICAL: Must use socketio.run() when WebSockets are enabled
     # Waitress does NOT support WebSockets - causes "Cannot obtain socket from WSGI environment" error
     USE_SOCKETIO = True  # Always use SocketIO server (supports WebSockets)
