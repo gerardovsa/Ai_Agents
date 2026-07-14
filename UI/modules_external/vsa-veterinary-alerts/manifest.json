@@ -1,0 +1,34 @@
+{
+    "id": "vsa_veterinary",
+    "name": "VSA Veterinary Alerts",
+    "version": "2.0.0",
+    "description": "VSA veterinary practice alert management — phone-call analysis, transcription status, and clinical notifications (V4 external module).",
+    "icon": "fas fa-stethoscope",
+    "type": "external",
+    "category": "vertical",
+    "main_script": "vsa-veterinary-alerts.js",
+    "js_file": "vsa-veterinary-alerts.js",
+    "styles": [
+        "vsa-veterinary-alerts.css"
+    ],
+    "show_in_sidebar": true,
+    "tab_id": "tab-vsa-veterinary-alerts",
+    "dependencies": [
+        "https://unpkg.com/tabulator-tables@5.5.0/dist/css/tabulator.min.css",
+        "https://unpkg.com/tabulator-tables@5.5.0/dist/js/tabulator.min.js",
+        "/css/tabulator-enhancements.css"
+    ],
+    "colors": {
+        "primary": "#2E7D32",
+        "secondary": "#1B5E20",
+        "hover": "#43A047"
+    },
+    "author": "InHouse Print",
+    "settings": {
+        "api_endpoint": "/api/vsa-alerts",
+        "supabase_url": "",
+        "supabase_anon_key": ""
+    },
+    "data_module": "vsa_veterinary",
+    "notes": "V4 external rewrite. External Supabase project (URL + anon key) intentionally stays in manifest.settings for now — migrate to org_credentials_loader via the existing supabase_vsa catalog row (migration 036) in a later iteration. The 21-stage call analysis pipeline lives in the external Supabase project and is not ported yet. See UI/modules_external/woocommerce/woocommerce-v4.js for the structural template this module mirrors."
+}
