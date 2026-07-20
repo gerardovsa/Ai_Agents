@@ -46,6 +46,10 @@ Mermaid 10.x is sensitive about its temporary staging element. When `mermaid.ren
 
 The container's own responsive sizing also matters: `.mermaid-container` uses `min-width: 0` and `box-sizing: border-box` so Mermaid can render correctly inside a narrow chat column without overflowing its parent.
 
+### Staging vs. visible width (added July 20, 2026)
+
+Mermaid's render pipeline decouples *layout width* from *visible width*. `mermaid.render()` measures the body-level staging element (`#d<id>`) for layout — node positions, edge routing, label placement — and the resulting SVG is then placed into the visible container with `useMaxWidth: true` scaling it to fit. The engine exploits this: it gives the **staging** element a `min-width: 700px` (via the `[id^="dmermaid"]` / `[id^="d-mermaid"]` CSS rule) so Mermaid's `calcLabelPosition` has enough horizontal room to find non-colliding offsets for edge labels in a narrow chat column, while the **visible** `.mermaid-container` stays narrow-friendly. If the staging canvas is too narrow, Mermaid emits `Could not find a suitable point for the given distance` (a constraint failure in `calcLabelPosition`); in that case the engine's catch block translates the error into a user-facing hint suggesting `LR` direction, shorter labels, or a wider panel. The rule is scoped to Mermaid staging ids only — Plotly, Apex and CAD use different id conventions and are unaffected.
+
 ---
 
 ## Architecture Pattern

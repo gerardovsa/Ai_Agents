@@ -1756,6 +1756,21 @@ class VisualizationEngine {
             display: none !important;
         }
 
+        /* Give Mermaid's body-level staging element enough room to lay out
+           against, independent of the visible container's width.  When the
+           visible .mermaid-container is narrow (chat column, deferred thread
+           render, collapsed sidebar), Mermaid's calcLabelPosition otherwise
+           fails with 'Could not find a suitable point for the given distance'
+           because every offset along the edge collides with squeezed node
+           boxes.  Staging width controls layout; useMaxWidth:true then scales
+           the resulting SVG to fit the (potentially narrower) visible
+           container.  Scoped to Mermaid staging ids only -- Plotly, Apex and
+           CAD use different id conventions and are unaffected. */
+        [id^="dmermaid"],
+        [id^="d-mermaid"] {
+            min-width: 700px;
+        }
+
         /* Ensure mermaid syntax errors stay inside the viz-content-area */
         .viz-content-area .mermaid-syntax-error,
         .viz-content-area .mermaid-error-msg {
@@ -4607,7 +4622,25 @@ class VisualizationEngine {
 
         } catch (error) {
             console.error(' Enhanced Mermaid rendering error:', error);
-            this.showMermaidError(mermaidDiv, error, item.content);
+
+            // Translate Mermaid 10's internal layout-routing failure into a
+            // user-actionable hint.  calcLabelPosition fires this when no
+            // offset along an edge is free of collisions -- typically because
+            // the staged layout canvas is too narrow for the diagram's edge
+            // labels.  showMermaidError renders error.message verbatim, so we
+            // wrap the original message with a hint that survives the UI.
+            let userFacingError = error;
+            const rawMessage = (error && error.message) ? error.message : '';
+            if (/suitable point for the given distance/i.test(rawMessage)) {
+                userFacingError = new Error(
+                    'Diagram layout could not fit in the available width. ' +
+                    'Try direction LR instead of TD, shorten node or edge ' +
+                    'labels, or render in a wider panel. ' +
+                    '(Mermaid: ' + rawMessage + ')'
+                );
+                userFacingError.stack = error.stack;
+            }
+            this.showMermaidError(mermaidDiv, userFacingError, item.content);
         }
     }
 

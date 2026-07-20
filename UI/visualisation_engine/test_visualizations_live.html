@@ -319,6 +319,7 @@
                 <button onclick="loadSample('gsap')" class="btn btn-secondary">GSAP Sample</button>
                 <button onclick="loadSample('mermaid')" class="btn btn-secondary">Mermaid Sample</button>
                 <button onclick="loadSample('mermaid-pie')" class="btn btn-secondary">Mermaid Pie Sample</button>
+                <button onclick="runMermaidNarrowRegression()" class="btn btn-secondary">Mermaid Narrow-VP Regression</button>
                 <button onclick="loadSample('multi')" class="btn btn-secondary"
                     style="background: var(--accent-primary); color: white;">
                     <i class="fas fa-layer-group"></i> Multi-Viz Sample
@@ -801,6 +802,92 @@
             }
 
             return results.every(Boolean);
+        }
+
+        // Narrow-viewport regression for the Mermaid layout-routing fix.
+        // Reproduces the production scenario where the visible container is
+        // narrow (chat column) but Mermaid's calcLabelPosition still needs a
+        // wider staging canvas to route edge labels.  With the [id^="dmermaid"]
+        // min-width:700px CSS rule, the diagram must render to a positive-viewBox
+        // SVG (no error overlay, no layout error) in a 400-px-wide container.
+        async function runMermaidNarrowRegression() {
+            const outputArea = document.getElementById('outputArea');
+            const previousMaxWidth = outputArea.style.maxWidth;
+            const previousBorder = outputArea.style.border;
+            const previousMargin = outputArea.style.margin;
+            clearOutput();
+            outputArea.style.maxWidth = '400px';
+            outputArea.style.margin = '0 auto';
+            outputArea.style.border = '2px dashed #f59e0b';
+            outputArea.style.padding = '8px';
+            logConsole('🔧 Mermaid narrow-viewport regression: output area clamped to 400px wide', 'info');
+
+            try {
+                const messageBubble = document.createElement('div');
+                messageBubble.className = 'message-bubble ai-message';
+
+                const messageHeader = document.createElement('div');
+                messageHeader.className = 'message-header';
+                messageHeader.innerHTML = `<i class="fas fa-robot"></i> Mermaid Narrow-VP`;
+
+                const messageContent = document.createElement('div');
+                messageContent.className = 'message-content';
+
+                const vizContainer = document.createElement('div');
+                vizContainer.className = 'viz-container';
+
+                const vizContentArea = document.createElement('div');
+                vizContentArea.className = 'viz-content-area';
+
+                vizContainer.appendChild(vizContentArea);
+                messageContent.appendChild(vizContainer);
+                messageBubble.appendChild(messageHeader);
+                messageBubble.appendChild(messageContent);
+                outputArea.appendChild(messageBubble);
+
+                // Exact graph TD source that previously failed with
+                // "Could not find a suitable point for the given distance"
+                // inside a narrow chat column.  Reproduction of production bug.
+                const source = `<MERMAID>
+graph TD
+    A[Start Project] --> B{Requirements Clear?}
+    B -->|Yes| C[Design Phase]
+    B -->|No| D[Gather Requirements]
+    D --> B
+    C --> E[Development]
+    E --> F[Testing]
+    F --> G{Tests Pass?}
+    G -->|Yes| H[Deploy]
+    G -->|No| E
+</MERMAID>`;
+
+                await renderVisualizationInline('MERMAID', source, vizContentArea);
+                await new Promise(resolve => setTimeout(resolve, 350));
+
+                // Assert 1: no error overlay (showMermaidError was NOT called)
+                const errorOverlay = vizContentArea.querySelector('strong');
+                const gotErrorOverlay = errorOverlay && /Diagram Syntax Error/i.test(errorOverlay.textContent || '');
+                if (gotErrorOverlay) {
+                    logConsole('❌ Mermaid narrow-VP: error overlay present (calcLabelPosition likely failed): "' +
+                        (errorOverlay.parentElement.parentElement.querySelector('p')?.textContent || '') +
+                        '"', 'error');
+                } else {
+                    logConsole('✅ Mermaid narrow-VP: no error overlay', 'success');
+                }
+
+                // Assert 2: positive-viewBox SVG (layout succeeded)
+                const ok = assertMermaidRendered(vizContentArea, 'Mermaid narrow-VP');
+                if (ok && !gotErrorOverlay) {
+                    logConsole('🎉 Mermaid narrow-viewport regression: PASS', 'success');
+                } else {
+                    logConsole('❌ Mermaid narrow-viewport regression: FAIL — see lines above', 'error');
+                }
+            } finally {
+                outputArea.style.maxWidth = previousMaxWidth;
+                outputArea.style.border = previousBorder;
+                outputArea.style.margin = previousMargin;
+                outputArea.style.padding = '';
+            }
         }
 
         // Render a single visualization (for single mode)
