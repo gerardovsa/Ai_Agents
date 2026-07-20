@@ -648,6 +648,10 @@ export const UtilityComposer = {
      * @returns {object} Composed utilities object
      */
     compose(dependencies = {}, moduleId = 'unknown') {
+        // Default parameters only apply for `undefined`, not `null`. Catalog rows
+        // whose `dependencies` column is absent get returned as null from the API,
+        // so coerce here to keep callers from having to defensively pass `|| {}`.
+        dependencies = dependencies || {};
         const composed = {};
 
         // Add requested utilities
