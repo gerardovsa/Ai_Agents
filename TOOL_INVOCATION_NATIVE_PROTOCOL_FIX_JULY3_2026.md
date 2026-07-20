@@ -1,8 +1,9 @@
 # Tool Invocation — Native Protocol Override
 
-**Date:** 2026-07-03
-**Branch:** `v11` (not yet committed; awaiting user test)
-**Scope:** Three files changed. See §11 *Implementation Log* for the full list.
+**Date:** 2026-07-03 (initial); **2026-07-20** (Fix E escalation, soft-override proved insufficient)
+**Branch:** `v11`
+**Status:** Fix A deployed (commit `92e114ef`, ancestor of `81a66608`, live on Render as of 2026-07-20 ~03:00 UTC). Fix E in progress (this commit).
+**Scope:** One prompt file changed across two sessions. See §11 *Implementation Log* for the full list.
 **Risk:** Low (documented below)
 
 ---
@@ -38,7 +39,59 @@ After verifying each gap against actual code:
 - **F2 (informational):** `meta_tools/` does NOT contain a `smart_tool_selector.py` file. The actual files are `smart_tool_instructor.py`, `platform_tools_lister.py`, `platform_guide_provider.py`, `workflow_instructor.py`. The reference in earlier analysis was a memory recall error. The functionality that *would* have lived in `smart_tool_selector.py` is partly in `unified_ai_client.py` itself (the per-provider tool-assembly sites in `_process_*`). Gap 2 as originally framed was therefore moot.
 - **F3 (informational):** `UI/business-ai-platform-v2.html` (the 1.5 MB SPA) has **zero** occurrences of `<function_calls>` as a literal token. The frontend does not embed its own XML-teaching text. The single backend prompt is the only place that needs the override. **Gap 5 was already closed.**
 
-### Files touched this session
+### Session 4 — Fix E escalation (2026-07-20)
+
+After deploying Fix A on 2026-07-03, MiniMax-M3 still emitted `<function_calls>` XML as text instead of native `tool_use` blocks on every chat that required a tool — confirmed by:
+- AI raw stream containing `'<function_calls>\n<invoke name="web_search">…'`
+- Render server log showing `stop_reason: end_turn`, `output_tokens: 65`, `blocks: 1 (0 thinking)`
+- This pattern was **not unique to Tavily** — the user reported failure on **Google Workspace / Gmail** tools as well (i.e. on every tool, not just web tools).
+
+#### Root cause (re-diagnosed)
+
+The Fix A override at the top of the prompt was **soft** — it labelled the XML examples as "legacy" but did not remove or replace them. MiniMax-M3 (and other M-series models) follow **lexical repetition over abstract instructions**, so the dozens of explicit `<function_calls>…</invoke></function_calls>` example blocks in the TAVILY section dominated the prompt and the model emitted XML even when its abstract instruction said otherwise.
+
+To verify the deploy was live (and not the source of the regression):
+- `git ls-remote gerardo v11` returned `81a66608` (latest remote HEAD).
+- `git merge-base --is-ancestor 92e114ef 81a66608` returned **YES** — Fix A's commit IS in `81a66608`'s history.
+- Working tree matched `HEAD`, no diffs.
+- Live prompt on Render produced the symptoms described above when the user's chat asked for a tool.
+
+Conclusion: **Fix A was deployed but was insufficient.** The override structure was correct, but its weight was smaller than the dominant XML teaching examples further down the prompt.
+
+#### Change set (Fix E)
+
+| ID | Edit | Where |
+|---|---|---|
+| E1 | Override at line 44 strengthened with a **concrete native JSON `tool_use` example** (using `tavily_search` with three parameters) so the override teaches the right shape by example as well as by instruction. | `AI_infrastructure/prompts/tool_usage_system_prompt.md:44-78` |
+| E2 | Override "Why this rule exists" updated to point at Fix E (proves the XML examples have been removed) and to identify MiniMax-M3's complete-tool-failure scope (Google Workspace, Gmail, Outlook, Tavily). | Same file, line 70 |
+| E3 | META-TOOL "IMMEDIATELY call the tool using `<function_calls>` tags" (line 1103 in new numbering) replaced with `IMMEDIATELY call the tool using a native \`tool_use\` content block (NOT \`<function_calls>\` XML — see the warning at the top of this prompt)`. | Same file, line 1103 |
+| E4 | TAVILY section header row updated from "(you call them in `<function_calls>`)" to "(you call them as native `tool_use` blocks)". | Same file, line 2579 |
+| E5 | TAVILY section paragraph updated to describe the native-tool_use contract instead of "<function_calls>". | Same file, line 2582 |
+| E6 | Five XML example blocks replaced with native `tool_use` JSON examples (one per tool): `tavily_search`, `tavily_extract`, `tavily_map`, `tavily_research`, `tavily_get_research`. Each example is a fenced `json` code block containing `{"type": "tool_use", "name": "...", "input": {...}}`. | Same file, lines 2603-2726 (5 blocks) |
+
+Net file size: roughly unchanged (XML blocks and JSON blocks are similar size). Net semantic change: the prompt now teaches the correct protocol by repeated example, not just by labelling incorrect examples as legacy.
+
+#### Why not also `_process_MiniMax`?
+
+`_process_MiniMax` (`AI_infrastructure/core/unified_ai_client.py:1072` per Finding F3 of Session 3) already explicitly excludes Anthropic server tools. `tavily_*` are **client tools**, not server tools, so the correct place to communicate "use them as native blocks" is the system prompt — which is Fix E.
+
+#### Why not a per-provider prompt loader?
+
+Considered and rejected for now. A per-provider loader would let MiniMax see a clean prompt without legacy XML, while Anthropic sees the existing prompt. Cost: ~6-8 hours of changes to `combined_agent_worker._get_tool_usage_instructions` (`AI_infrastructure/core/unified_ai_client.py:260-266`) and potential regression on Anthropic. Benefit: marginal over Fix E because the XML teaching examples are now gone from the shared prompt. Revisit only if MiniMax-M3 still emits XML after Fix E is deployed.
+
+#### Verification (to do post-deploy)
+
+1. User re-runs the failing test on Render: send a chat message to MiniMax-M3 that requests a tool (e.g. "search the web for X" or "send a Gmail about X").
+2. Expected new stream shape:
+   - `content_block_start(type=tool_use)` instead of `content_delta` containing `<function_calls>`.
+   - `stop_reason: tool_use` (not `end_turn`) on at least one round.
+   - Backend log shows tool execution entry.
+3. If still failing: tree of remaining possibilities:
+   - Provider-side prompt-injection stripping by MiniMax (we'd see our override text removed from incoming prompt).
+   - M3-specific quirk that requires per-provider prompt loading.
+   - Tool-shape issue: `_process_MiniMax` may be dropping tools or reshaping tool definitions in a way that confuses M3.
+
+### Files touched (both sessions combined)
 
 | Path | Edit type | Lines |
 |---|---|---|

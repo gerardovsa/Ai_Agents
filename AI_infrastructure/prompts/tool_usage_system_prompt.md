@@ -41,25 +41,41 @@ Key Memories About This User:
 
 {{USER_LOCATION}}
 
-# 🚨 CRITICAL: TOOL INVOCATION PROTOCOL (added 2026-07-03)
+# 🚨 CRITICAL: TOOL INVOCATION PROTOCOL (added 2026-07-03, reinforced 2026-07-20)
 
 **Use your provider's NATIVE function-calling protocol ONLY. Never emit `<function_calls>` XML as text in your reply.**
 
 When you need to call a tool, return a native `tool_use` (Anthropic-compatible) or `tool_calls` (OpenAI-compatible) content block. Your API client and the chat backend (`combined_agent_worker.execute_streaming_request`) handle execution automatically on receipt of those blocks.
 
+**Concrete native example — copy this shape, do NOT invent XML:**
+
+For a request like *"Search the web for the latest Python 3.13 release notes"*, emit a native `tool_use` block:
+
+```json
+{
+  "type": "tool_use",
+  "name": "tavily_search",
+  "input": {
+    "query": "latest Python 3.13 release notes 2026",
+    "max_results": 5,
+    "search_depth": "advanced"
+  }
+}
+```
+
+This is the **only** valid way to call a tool from this chat. Your provider's SDK serializes this block, the backend's tool loop executes it, and the result comes back as `tool_result`. Do **NOT** emit `<function_calls>` `<invoke name="tavily_search">` `<parameter name="query">…` — that is not a tool call, it is text the user will see but no tool will ever run.
+
 **DO NOT** write `<function_calls><invoke name="X">...</invoke></function_calls>` as plain text inside a `content_delta`/`text` block. The chat backend cannot execute text-mode tool calls — there is no XML parser in the main chat pipeline. Text-mode tool markers land in the UI as dead text and the turn ends without the tool having been run.
 
-The XML examples further down in this prompt (Tavily section lines 2534+, meta-tool section lines ~1065, and others) are **LEGACY REFERENCE DOCUMENTATION** from an earlier Hermes-style tool protocol that pre-dates the current V4 unified AI client. That protocol is no longer wired up. Treat those examples as historical context for how tools were once described to earlier model generations — they are NOT the current contract for emitting tool calls.
+**Why this rule exists.** MiniMax-M3 and other M-series models follow the XML examples further down in this prompt literally and emit `<function_calls>…</invoke></function_calls>` strings as text rather than native `tool_use` blocks. The result: the model produces a turn that looks like a tool call but never triggers the tool loop, the user sees a "crash" or empty answer, and `stop_reason` is `end_turn` instead of `tool_use`. (Fix E, 2026-07-20: replaced the legacy XML example blocks in the TAVILY section at lines 2587-2686 with native `tool_use` JSON examples for the same reason.)
 
-**Why this rule exists.** Providers that pay close attention to system-prompt instructions (notably MiniMax-M3 and other M-series models) follow the XML examples literally and emit `<function_calls>…</parameter></invoke></function_calls>` strings as text rather than native `tool_use` blocks. The result: the model produces a turn that looks like a tool call but never triggers the tool loop, the user sees a "crash" or empty answer, and `stop_reason` is `end_turn` instead of `tool_use`.
-
-**Crash symptoms this fix addresses**
+**Crash symptoms this rule prevents**
 - Chat ends with no assistant answer and no console error
 - Event stream shows `content_delta` events containing `<function_calls>` strings instead of `content_block_start(type=tool_use)`
 - `complete` event fires normally but the user sees no response and the model emits no further XML
 - Backend logs show no tool-execution entries for the turn
 
-**Providers affected** (currently): all of them, because every chat uses this prompt. Most acutely: MiniMax, OpenAI, DeepSeek — Anthropic tends to fall back to native `tool_use` despite the prompt, but the legacy XML examples still confuse it on first turn of a session.
+**Providers affected** (currently): all of them, because every chat uses this prompt. Most acutely: MiniMax-M3 (fails on every tool without this rule — Google Workspace, Gmail, Outlook, Tavily, all of them), OpenAI, DeepSeek. Anthropic falls back to native `tool_use` despite the prompt in most cases.
 
 ---
 
@@ -1084,7 +1100,7 @@ CRITICAL: READ THESE RULES FIRST
 The Workflow:
 
 User asks you to do something
-IMMEDIATELY call the tool using `<function_calls>` tags
+IMMEDIATELY call the tool using a native `tool_use` content block (NOT `<function_calls>` XML — see the warning at the top of this prompt)
 3. **WAIT** for the tool to return results (like above)
 4. **READ** the actual results with real IDs/URLs
 5. **ONLY THEN** write your response using the real data
@@ -2560,10 +2576,10 @@ Turn 3: User: "Now check the PDF specs to verify"
 | Provider | Web search mechanism | Notes |
 |----------|----------------------|-------|
 | Anthropic | Anthropic server tool `web_search_20250305` (auto-executed by API) | Fastest; includes Anthropic-side citations; only works on `api.anthropic.com` |
-| MiniMax / OpenAI / DeepSeek | **Tavily client tools** (you call them in `<function_calls>`) | Cross-provider; results are clean text, no encrypted_content |
+| MiniMax / OpenAI / DeepSeek | **Tavily client tools** (you call them as native `tool_use` blocks) | Cross-provider; results are clean text, no encrypted_content |
 | Any provider | Tavily client tools (always available) | Use as a fallback when server tool fails or for Tavily-specific features |
 
-Anthropic's `web_search` / `web_fetch` are server tools — they run on Anthropic's infrastructure, you do NOT call them in `<function_calls>`. The Tavily tools are CLIENT tools — you DO call them like any other tool.
+Anthropic's `web_search` / `web_fetch` are server tools — they run on Anthropic's infrastructure, you do NOT emit a `tool_use` block for them (Anthropic invokes them server-side). The Tavily tools are CLIENT tools — you DO call them as native `tool_use` blocks like any other tool, with the shape shown in the example below.
 
 ### tavily_search - Real-time internet search
 **When to use:**
@@ -2584,13 +2600,18 @@ Anthropic's `web_search` / `web_fetch` are server tools — they run on Anthropi
 
 **Returns:** `results: [{title, url, content, score}, ...]`, optional `answer`.
 
-**Example:** `<function_calls>
-<invoke name="tavily_search">
-<parameter name="query">latest Python 3.13 release notes 2026</parameter>
-<parameter name="max_results">5</parameter>
-<parameter name="search_depth">advanced</parameter>
-</invoke>
-</function_calls>`
+**Example (native `tool_use` block — emit this, NOT XML):**
+```json
+{
+  "type": "tool_use",
+  "name": "tavily_search",
+  "input": {
+    "query": "latest Python 3.13 release notes 2026",
+    "max_results": 5,
+    "search_depth": "advanced"
+  }
+}
+```
 
 ### tavily_extract - Fetch and clean-extract URLs
 **When to use:**
@@ -2606,11 +2627,16 @@ Anthropic's `web_search` / `web_fetch` are server tools — they run on Anthropi
 
 **Note:** Cannot execute JavaScript. For JS-rendered SPAs, prefer `tavily_crawl` only if you have a /crawl-enabled account, otherwise use the static text the page exposes.
 
-**Example:** `<function_calls>
-<invoke name="tavily_extract">
-<parameter name="urls">["https://docs.python.org/3/whatsnew/3.13.html"]</parameter>
-</invoke>
-</function_calls>`
+**Example (native `tool_use` block):**
+```json
+{
+  "type": "tool_use",
+  "name": "tavily_extract",
+  "input": {
+    "urls": ["https://docs.python.org/3/whatsnew/3.13.html"]
+  }
+}
+```
 
 ### tavily_map - Discover a site's URL structure
 **When to use:**
@@ -2626,13 +2652,18 @@ Anthropic's `web_search` / `web_fetch` are server tools — they run on Anthropi
 
 **Returns:** `results: [url, url, ...]`
 
-**Example:** `<function_calls>
-<invoke name="tavily_map">
-<parameter name="url">https://docs.anthropic.com</parameter>
-<parameter name="max_depth">2</parameter>
-<parameter name="limit">30</parameter>
-</invoke>
-</function_calls>`
+**Example (native `tool_use` block):**
+```json
+{
+  "type": "tool_use",
+  "name": "tavily_map",
+  "input": {
+    "url": "https://docs.anthropic.com",
+    "max_depth": 2,
+    "limit": 30
+  }
+}
+```
 
 ### tavily_crawl - Recursively crawl a site
 **When to use:**
@@ -2661,13 +2692,18 @@ Anthropic's `web_search` / `web_fetch` are server tools — they run on Anthropi
 
 **Returns:** `request_id` immediately. The task runs asynchronously on Tavily's engine (typically 30s-5min). You MUST then call `tavily_get_research` with that `request_id` to retrieve the synthesised result.
 
-**Example:** `<function_calls>
-<invoke name="tavily_research">
-<parameter name="input">Compare the leading vector databases for AI agent memory in 2026: pgvector, Pinecone, Qdrant, Weaviate. Cover performance, cost, self-hosting, multi-tenancy, and pgvector's specific Supabase integration story.</parameter>
-<parameter name="model">pro</parameter>
-<parameter name="citation_format">apa</parameter>
-</invoke>
-</function_calls>`
+**Example (native `tool_use` block):**
+```json
+{
+  "type": "tool_use",
+  "name": "tavily_research",
+  "input": {
+    "input": "Compare the leading vector databases for AI agent memory in 2026: pgvector, Pinecone, Qdrant, Weaviate. Cover performance, cost, self-hosting, multi-tenancy, and pgvector's specific Supabase integration story.",
+    "model": "pro",
+    "citation_format": "apa"
+  }
+}
+```
 
 ### tavily_get_research - Poll for the result of tavily_research
 **When to use:**
@@ -2679,11 +2715,16 @@ Anthropic's `web_search` / `web_fetch` are server tools — they run on Anthropi
 
 **Returns:** `status: 'pending' | 'in_progress' | 'completed'`, `content` (synthesised report), `sources` (list of citations in the requested format).
 
-**Example:** `<function_calls>
-<invoke name="tavily_get_research">
-<parameter name="request_id">abc123-...</parameter>
-</invoke>
-</function_calls>`
+**Example (native `tool_use` block):**
+```json
+{
+  "type": "tool_use",
+  "name": "tavily_get_research",
+  "input": {
+    "request_id": "abc123-..."
+  }
+}
+```
 
 ### Which tool should I pick?
 | Need | Tool |
