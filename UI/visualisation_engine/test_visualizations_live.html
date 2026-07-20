@@ -318,6 +318,7 @@
                 <button onclick="loadSample('threejs')" class="btn btn-secondary">Three.js Sample</button>
                 <button onclick="loadSample('gsap')" class="btn btn-secondary">GSAP Sample</button>
                 <button onclick="loadSample('mermaid')" class="btn btn-secondary">Mermaid Sample</button>
+                <button onclick="loadSample('mermaid-pie')" class="btn btn-secondary">Mermaid Pie Sample</button>
                 <button onclick="loadSample('multi')" class="btn btn-secondary"
                     style="background: var(--accent-primary); color: white;">
                     <i class="fas fa-layer-group"></i> Multi-Viz Sample
@@ -669,6 +670,14 @@
                         // Render using visualization engine
                         await renderVisualizationInline(section.vizType, section.content, vizContentArea);
 
+                        // Run Mermaid regression assertions if applicable
+                        if (section.vizType === 'MERMAID') {
+                            // Allow the post-render setTimeout(100ms) inside the
+                            // engine to settle before we sample the DOM.
+                            await new Promise(resolve => setTimeout(resolve, 250));
+                            assertMermaidRendered(vizContentArea, `${section.vizType}#${vizCounter}`);
+                        }
+
                         // Small delay between visualizations to let DOM update
                         await new Promise(resolve => setTimeout(resolve, 100));
                     }
@@ -735,6 +744,65 @@
             }
         }
 
+        // Regression assertion: validate a freshly-rendered Mermaid diagram
+        // against the post-fix invariants.  Returns true if all checks pass.
+        //   1. The viz-content-area contains an <svg>.
+        //   2. The SVG's parsed viewBox width and height are finite and positive
+        //      (defends against the historic "0 0 0 450" broken viewBox).
+        //   3. No <circle> has a negative radius (defends against pie geometry
+        //      that broke when Mermaid measured a 0-px container).
+        //   4. The Mermaid wrapper id does not contain multiple '-retry-'
+        //      segments (defends against the unbounded retry storm).
+        function assertMermaidRendered(vizContentArea, label) {
+            const results = [];
+            const fail = (msg) => { logConsole(`❌ Mermaid assertion (${label}): ${msg}`, 'error'); results.push(false); };
+            const pass = (msg) => { logConsole(`✅ Mermaid assertion (${label}): ${msg}`, 'success'); results.push(true); };
+
+            const svg = vizContentArea.querySelector('svg');
+            if (!svg) { fail('no <svg> element found in viz-content-area'); return false; }
+            pass('svg element present');
+
+            const vb = svg.getAttribute('viewBox') || '';
+            const m = vb.match(/^[\d.\-]+\s+[\d.\-]+\s+([\d.\-]+)\s+([\d.\-]+)/);
+            if (!m) {
+                fail(`viewBox is missing or unparseable: "${vb}"`);
+            } else {
+                const w = parseFloat(m[1]);
+                const h = parseFloat(m[2]);
+                if (!isFinite(w) || w <= 0 || !isFinite(h) || h <= 0) {
+                    fail(`viewBox width/height not positive: "${vb}" (w=${w}, h=${h})`);
+                } else {
+                    pass(`viewBox is positive: "${vb}" (w=${w}, h=${h})`);
+                }
+            }
+
+            let badCircles = 0;
+            svg.querySelectorAll('circle').forEach((c) => {
+                const rAttr = c.getAttribute('r');
+                if (rAttr !== null && parseFloat(rAttr) < 0) badCircles++;
+            });
+            if (badCircles > 0) {
+                fail(`${badCircles} circle(s) have a negative radius`);
+            } else {
+                pass('no negative-radius circles (pie geometry intact)');
+            }
+
+            const mermaidDiv = vizContentArea.querySelector('.mermaid');
+            if (mermaidDiv) {
+                const id = mermaidDiv.id || '';
+                const retryCount = (id.match(/-retry-/g) || []).length;
+                if (retryCount > 1) {
+                    fail(`mermaid wrapper id has ${retryCount} '-retry-' segments (retry storm): "${id}"`);
+                } else {
+                    pass(`mermaid wrapper id is bounded: "${id}" (retry-segments=${retryCount})`);
+                }
+            } else {
+                pass('no .mermaid wrapper found (assertion 4 skipped)');
+            }
+
+            return results.every(Boolean);
+        }
+
         // Render a single visualization (for single mode)
         async function renderSingleVisualization(vizType, rawInput, outputArea, index) {
             // Create AI message bubble (exact replica of chat)
@@ -762,6 +830,14 @@
 
             // Render visualization inline
             await renderVisualizationInline(vizType, rawInput, vizContentArea);
+
+            // Run Mermaid regression assertions if applicable
+            if (vizType === 'MERMAID') {
+                // Allow the post-render setTimeout(100ms) inside the engine to
+                // settle so applySimplifiedMermaidPostProcessing has finished.
+                await new Promise(resolve => setTimeout(resolve, 250));
+                assertMermaidRendered(vizContentArea, vizType);
+            }
         }
 
         // Clear output
@@ -928,14 +1004,31 @@
                 },
                 mermaid: {
                     type: 'MERMAID',
+                    // Regression: graph LR was the original first-render failure
+                    // before the Mermaid staging-node fix.  Keep this sample as
+                    // graph LR (not TD) so the bug is exercised every time.
                     config: `<MERMAID>
-graph TD
+graph LR
     A[Start] --> B{Is it working?}
     B -->|Yes| C[Great!]
     B -->|No| D[Debug]
     D --> E[Fix bugs]
     E --> B
     C --> F[Deploy]
+</MERMAID>`
+                },
+                'mermaid-pie': {
+                    type: 'MERMAID',
+                    // Regression: pie charts produced negative-radius circles
+                    // when Mermaid rendered against a 0-px container.  This
+                    // sample is the exact pie syntax the user reported broken.
+                    config: `<MERMAID>
+pie title Distribution of effort
+    "Implementation" : 42
+    "Testing" : 18
+    "Documentation" : 12
+    "Meetings" : 8
+    "Other" : 20
 </MERMAID>`
                 },
                 multi: {

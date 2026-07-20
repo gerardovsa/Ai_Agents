@@ -1,7 +1,8 @@
 # Visualization System Architecture Documentation
 
-**Date:** November 15, 2025  
-**Purpose:** Complete guide to understanding how streamingTwoRule.js and visualisation_copy.js work together  
+**Date:** November 15, 2025
+**Last updated:** July 20, 2026
+**Purpose:** Complete guide to understanding how streamingTwoRule.js and visualisation_v3.js work together
 **Use Case:** Integrating visualization rendering into Tiptap document containers
 
 ---
@@ -26,15 +27,24 @@ The visualization system consists of **two complementary files** that work toget
 **Role:** Content Parser & Stream Controller  
 **Responsibility:** Parse incoming AI content streams, classify content as markdown or visualization, manage rendering lifecycle
 
-### visualisation_copy.js (404 KB, 9,641 lines)
-**Role:** Visualization Rendering Engine  
+### visualisation_v3.js (~441 KB, 10,398 lines)
+**Role:** Visualization Rendering Engine
 **Responsibility:** Actually render visualizations (Mermaid, Plotly, etc.) with proper styling, export, and interactive features
 
 ### Relationship
 ```
-AI Stream → streamingTwoRule.js → visualisation_copy.js → Rendered Output
+AI Stream → streamingTwoRule.js → visualisation_v3.js → Rendered Output
            (Parser/Controller)      (Rendering Engine)
 ```
+
+### Mermaid Render Lifecycle (added July 20, 2026)
+
+Mermaid 10.x is sensitive about its temporary staging element. When `mermaid.render(id, source)` is called, the library creates a body-level element with `id="d" + id` and measures it to compute the SVG geometry. Two invariants must be preserved:
+
+1. **Do not hide, strip, or remove any node whose id starts with `dmermaid` while a render is in flight.** Hiding or removing it mid-render causes Mermaid to compute a `viewBox="0 0 0 H"` (zero width), which cascades into `<circle r="-N">` in pie charts and `Could not find a suitable point for the given distance` in flowcharts. The engine's `_installMermaidStyleGuard()` therefore does NOT match `#d?mermaid…` selectors and does NOT remove `dmermaid*` nodes from a `MutationObserver`; Mermaid owns the staging-node lifecycle and cleans it up after `render()` settles.
+2. **Retry attempts are bounded.** If the container starts at 0-px wide (deferred thread, hidden tab, collapsed panel), the engine parses the SVG and rejects any viewBox whose width or height is non-positive. It then schedules a re-render with a fresh chart id, but caps retries at `MAX_MERMAID_RETRIES = 2`. Retry chart ids are always `<originalBase>-retry-<N>` (never timestamped, never chained off a previous retry id) so the id space stays bounded. If the final attempt still has a broken viewBox, the engine surfaces a real error via `showMermaidError()` instead of looping.
+
+The container's own responsive sizing also matters: `.mermaid-container` uses `min-width: 0` and `box-sizing: border-box` so Mermaid can render correctly inside a narrow chat column without overflowing its parent.
 
 ---
 
@@ -136,7 +146,7 @@ cleanMarkdownHTML(html)                   // Legacy HTML cleaning
 
 ---
 
-### visualisation_copy.js
+### visualisation_v3.js
 
 #### Primary Classes
 
@@ -252,7 +262,7 @@ processor.forceFlush();
 - Routes visual packages to visualization engine
 
 #### 5. Visualization Rendering
-**visualisation_copy.js:**
+**visualisation_v3.js:**
 - Receives visualization request with type, content, container
 - Applies font preferences
 - Renders using appropriate library (Mermaid/Plotly)
@@ -267,7 +277,7 @@ processor.forceFlush();
 To render AI-generated content (markdown + visualizations) inside a Tiptap editor, you need to:
 1. Extract content from Tiptap editor
 2. Process through streamingTwoRule.js
-3. Render visualizations via visualisation_copy.js
+3. Render visualizations via visualisation_v3.js
 4. Insert results back into Tiptap
 
 ### Integration Pattern
@@ -557,7 +567,7 @@ getStats(): {
 
 ---
 
-### visualisation_copy.js API
+### visualisation_v3.js API
 
 #### VisualizationEngine
 
@@ -963,7 +973,7 @@ console.log('Has visualization node:', !!editor.schema.nodes.visualization);
 ## Related Documentation
 
 - `streamingTwoRule.js` - Two-Rule streaming processor source
-- `visualisation_copy.js` - Visualization engine source
+- `visualisation_v3.js` - Visualization engine source (an older snapshot remains at `visualisation_copy.js` for reference; do not edit it)
 - Tiptap Documentation: https://tiptap.dev/
 - Mermaid Documentation: https://mermaid.js.org/
 - Plotly Documentation: https://plotly.com/javascript/

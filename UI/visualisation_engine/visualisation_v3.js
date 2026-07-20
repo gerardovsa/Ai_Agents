@@ -948,12 +948,11 @@ class VisualizationEngine {
                     changed = true;
                 }
 
-                // Remove #dmermaid-* error nodes injected outside containers
-                const errorNodePattern = /(?:^|\})\s*#d?mermaid[^{]*\{[^}]*\}/gm;
-                if (errorNodePattern.test(css)) {
-                    css = css.replace(errorNodePattern, '');
-                    changed = true;
-                }
+                // NOTE: We deliberately do NOT strip `#d?mermaid…` rules from
+                // Mermaid's injected styles.  Mermaid 10.x uses those selectors
+                // for its render output, and stripping them silently breaks
+                // rendering.  Error styling is handled via the .mermaid-error-*
+                // class selectors below (and via showMermaidError), not by ID.
 
                 if (changed) styleEl.textContent = css;
             } catch (e) {
@@ -961,19 +960,19 @@ class VisualizationEngine {
             }
         };
 
-        // Watch for dynamically injected <style> tags from mermaid
+        // Watch for dynamically injected <style> tags from mermaid.
+        // NOTE: We deliberately do NOT remove nodes whose IDs start with
+        // "dmermaid" / "d-mermaid".  Mermaid's `mermaid.render()` creates a
+        // temporary staging element on the body with id `d${renderId}` to
+        // measure layout while it builds the SVG.  If that element is removed
+        // or hidden mid-render, Mermaid produces a `0 0 0 H` viewBox, which
+        // cascades into broken pies, broken flowcharts, and an unbounded retry
+        // storm.  Let Mermaid own its own staging node lifecycle.
         const observer = new MutationObserver((mutations) => {
             mutations.forEach((mutation) => {
                 mutation.addedNodes.forEach((node) => {
                     if (node.tagName === 'STYLE') {
                         sanitizeMermaidStyle(node);
-                    }
-                    // Also clean up orphaned mermaid error nodes in body
-                    if (node.nodeType === 1 && node.tagName !== 'SCRIPT' && node.tagName !== 'STYLE') {
-                        const id = node.id || '';
-                        if (id.startsWith('dmermaid') || id.startsWith('d-mermaid')) {
-                            node.remove();
-                        }
                     }
                 });
             });
@@ -1383,13 +1382,14 @@ class VisualizationEngine {
             justify-content: center;
             width: 100%;
             max-width: 100%;
-            min-width: 600px; /* NHANCED: Minimum width for Mermaid diagrams */
+            min-width: 0; /* RESPONSIVE: let the container fit narrow chat viewports */
+            box-sizing: border-box;
         }
 
         /* EW: Expanded Mermaid containers for complex diagrams */
         .mermaid-container.mermaid-expanded {
             max-width: 95vw !important;
-            min-width: 800px !important;
+            min-width: 0 !important;
             overflow-x: auto;
             overflow-y: visible;
         }
@@ -1747,9 +1747,9 @@ class VisualizationEngine {
             box-shadow: none !important;
         }
 
-        /* Override mermaid's injected error styles that apply globally */
-        #dmermaid,
-        [id^="dmermaid"],
+        /* Hide Mermaid runtime error classes.  We deliberately do NOT hide nodes
+           whose IDs start with 'dmermaid' -- those are Mermaid own staging
+           elements that must remain visible while mermaid.render measures them. */
         .mermaid-error-icon,
         .error-icon,
         .error-text {
@@ -4373,10 +4373,22 @@ class VisualizationEngine {
 
     // 6.1.1
     // 6.1.1 - ENHANCED: Mermaid rendering with enhanced height management + compatibility
-    async renderMermaidDirectly(item, contentArea, chartId) {
+    async renderMermaidDirectly(item, contentArea, chartId, retryContext = null) {
+        // Cap on the number of times we will defer-and-retry a Mermaid render
+        // when the container is initially 0-px wide.  The initial call counts
+        // as attempt 0, so up to MAX_MERMAID_RETRIES additional retries are
+        // permitted before we surface an error to the user.
+        const MAX_MERMAID_RETRIES = 2;
+
         if (!window.mermaid) {
             throw new Error('Mermaid library not loaded');
         }
+
+        // Bounded retry: preserve the original chartId as baseId and track the
+        // current attempt number.  Retries use <base>-retry-N (never timestamped)
+        // so the chain is bounded and debuggable.
+        const baseId = retryContext ? retryContext.baseId : chartId;
+        const attempt = retryContext ? retryContext.attempt : 0;
 
         // RITICAL: DOM validation before any DOM manipulation
         if (!contentArea) {
@@ -4405,6 +4417,7 @@ class VisualizationEngine {
             overflow: auto;
             padding: 20px;
             margin: 20px 0;
+            box-sizing: border-box;
         `;
 
         // RITICAL: Triple-check DOM validity right before manipulation
@@ -4514,9 +4527,25 @@ class VisualizationEngine {
             }
 
             if (!mermaidProducedValidViewBox) {
-                // Don't insert the broken SVG; schedule a re-render with a fresh chartId
-                // once the container has a measurable size.
-                this._scheduleMermaidRerender(item, contentArea, chartId);
+                // Don't insert the broken SVG.  If we still have retries left,
+                // schedule a bounded re-render once the container has a real
+                // size.  Otherwise, surface the failure to the user via the
+                // existing error path instead of looping forever.
+                if (attempt < MAX_MERMAID_RETRIES) {
+                    this._scheduleMermaidRerender(item, contentArea, baseId, attempt + 1, MAX_MERMAID_RETRIES);
+                } else {
+                    console.error(
+                        `❌ VIZ-V3: Mermaid produced a broken viewBox after ${attempt + 1} attempt(s); giving up.`
+                    );
+                    this.showMermaidError(
+                        mermaidDiv,
+                        new Error(
+                            `Mermaid could not produce a valid SVG after ${attempt + 1} attempts. ` +
+                            `The container may be 0-px wide or hidden.`
+                        ),
+                        item.content
+                    );
+                }
                 return;
             }
 
@@ -4589,7 +4618,11 @@ class VisualizationEngine {
     // instead. A ResizeObserver watches the contentArea; once it has measurable
     // dimensions we re-run renderMermaidDirectly with a fresh chartId so Mermaid's
     // internal cache doesn't return the previous (broken) result.
-    _scheduleMermaidRerender(item, contentArea, chartId) {
+    //
+    // Bounded: the retry chartId is <baseId>-retry-<N> (never timestamped), and
+    // renderMermaidDirectly is responsible for surfacing an error once the
+    // per-render attempt budget is exhausted.
+    _scheduleMermaidRerender(item, contentArea, baseId, nextAttempt, maxRetries) {
         // Lightweight placeholder so the user knows the render is pending, not failed
         const placeholder = document.createElement('div');
         placeholder.className = 'mermaid-deferred-placeholder';
@@ -4621,9 +4654,14 @@ class VisualizationEngine {
             if (triggered) return;
             triggered = true;
             cleanup();
-            console.log('✅ VIZ-V3: Container now sized — retrying Mermaid render');
-            const newChartId = `${chartId}-retry-${Date.now()}`;
-            this.renderMermaidDirectly(item, contentArea, newChartId).catch(err => {
+            // Stable, bounded retry id: never timestamped, never chained off a
+            // previous retry id.  Always <originalBase>-retry-<attemptNumber>.
+            const retryChartId = `${baseId}-retry-${nextAttempt}`;
+            console.log(`✅ VIZ-V3: Container now sized — retrying Mermaid render (attempt ${nextAttempt}/${maxRetries})`);
+            this.renderMermaidDirectly(item, contentArea, retryChartId, {
+                baseId,
+                attempt: nextAttempt
+            }).catch(err => {
                 console.error('❌ VIZ-V3: Mermaid re-render failed:', err);
             });
         };
@@ -4663,7 +4701,8 @@ class VisualizationEngine {
         // Safety net: give up after 8s so we never leave a placeholder forever.
         // Log the last-seen size + a few visibility hints so we can tell from
         // the console whether the container is genuinely 0-px (deep layout
-        // issue) or just hidden (display:none on an ancestor).
+        // issue) or just hidden (display:none on an ancestor).  Also render a
+        // visible error inline so the user is not left staring at a blank area.
         timeoutId = setTimeout(() => {
             if (triggered) return;
             const rect = contentArea.getBoundingClientRect();
@@ -4679,6 +4718,11 @@ class VisualizationEngine {
                 }
             );
             cleanup();
+            const errorDiv = document.createElement('div');
+            errorDiv.className = 'mermaid-render-timeout';
+            errorDiv.style.cssText = 'padding: 16px; color: var(--accent-red, #ef4444); font-size: 13px; text-align: center; border: 1px dashed rgba(239, 68, 68, 0.4); border-radius: 6px; background: rgba(239, 68, 68, 0.08);';
+            errorDiv.textContent = '⚠️ Diagram could not be rendered (container never reached a measurable size).';
+            contentArea.appendChild(errorDiv);
         }, 8000);
     }
 
@@ -8168,14 +8212,18 @@ ${svgData}`;
     }
 
     /**
-     * Remove any error elements that Mermaid v10 injects directly into the body
-     * or outside of viz-containers (e.g. #dmermaid, .mermaid-error-icon, etc.)
+     * Remove orphan Mermaid elements that escape their container.
+     * NOTE: We deliberately do NOT remove nodes whose IDs start with
+     * 'dmermaid' -- those are Mermaid's own render staging elements and
+     * are normally cleaned up by Mermaid after `render()` settles.  Removing
+     * them mid-flight produces the broken viewBox / retry storm.
      */
     _cleanupMermaidGlobalErrors() {
         try {
-            // Mermaid v10 injects error nodes with id starting with 'd' + chartId
+            // Only target truly orphaned .mermaid containers (outside viz wrappers).
+            // Mermaid's d-renderId staging nodes are excluded by design.
             const orphanedErrorNodes = document.querySelectorAll(
-                'body > [id^="dmermaid"], body > .mermaid:not(.viz-container .mermaid)'
+                'body > .mermaid:not(.viz-container .mermaid)'
             );
             orphanedErrorNodes.forEach(el => el.remove());
 
