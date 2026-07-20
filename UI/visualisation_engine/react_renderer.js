@@ -171,6 +171,12 @@ class ReactRenderer {
             // with/without semicolon, with/without trailing comma, side-effect,
             // type-only, default, named, namespace, mixed).
             .replace(/^[ \t]*import\s+(?:type\s+)?(?:[\s\S]*?from\s+)?['"][^'"]*['"][ \t]*;?[ \t]*$/gm, '')
+            // Catch-all for any import statement at line start that the
+            // line-anchored regex above missed (incomplete `from`, malformed
+            // specifier, multi-line import that didn't terminate cleanly).
+            // Matches anything that *starts* with `import` and consumes up to
+            // the next semicolon OR end-of-line, whichever comes first.
+            .replace(/^[ \t]*import\b[\s\S]*?(?:;|$)/gm, (m) => m.endsWith(';') ? '' : m.replace(/[\s\S]*$/, ''))
             // Dynamic import() — call expression, not a statement; strip any
             // line that contains an import( ... ) call by removing just the
             // call and leaving the rest of the line intact.
@@ -178,13 +184,35 @@ class ReactRenderer {
             // import.meta expressions — replace with `({})` so any reference
             // becomes an empty object and won't break the rest of the code.
             .replace(/\bimport\s*\.\s*meta\b/g, '({})')
+            // Inline import statements anywhere in the code (not just
+            // line-start): `const X = require('...')` style is harmless,
+            // but `import` keyword followed by anything from a string is not.
+            .replace(/\bimport\s+(?:type\s+)?\{[^}]*\}\s+from\s+['"][^'"]+['"]\s*;?/g, '')
+            .replace(/\bimport\s+(?:type\s+)?[A-Za-z_$][\w$]*(?:\s*,\s*\{[^}]*\})?\s+from\s+['"][^'"]+['"]\s*;?/g, '')
+            .replace(/\bimport\s+\*\s+as\s+[A-Za-z_$][\w$]*\s+from\s+['"][^'"]+['"]\s*;?/g, '')
+            .replace(/\bimport\s+['"][^'"]+['"]\s*;?/g, '')
             // export default <expr>;
             .replace(/^[ \t]*export\s+default\s+[\s\S]*?;?[ \t]*$/gm, '')
             // export const|let|var|function|class|async function
             .replace(/^[ \t]*export\s+(?:const|let|var|function|class|async\s+function)\s+[\s\S]*?$/gm, '')
             // export { foo, bar };
             .replace(/^[ \t]*export\s*\{[\s\S]*?\}\s*;?[ \t]*$/gm, '')
+            // Catch-all for any export statement at line start (mirrors the
+            // import catch-all above).
+            .replace(/^[ \t]*export\b[\s\S]*?(?:;|$)/gm, (m) => m.endsWith(';') ? '' : m.replace(/[\s\S]*$/, ''))
             .trim();
+
+        // ── Pre-flight guard: refuse to send Babel code that still contains ─────
+        // ES module keywords. Babel-standalone ONLY transforms JSX — it does
+        // NOT strip `import`/`export` keywords. Any surviving keyword triggers
+        // the browser's "Cannot use import statement outside a module" parse
+        // error in `transformScriptTags.ts:114`, which leaves the iframe blank.
+        // Refuse to render and surface a visible error instead.
+        const survivingImport = /(?:^|\n|;)\s*(?:import|export)\b/.test(cleanedJSX);
+        if (survivingImport) {
+            console.warn('[REACT_RENDERER] surviving import/export after stripping — first occurrence:',
+                cleanedJSX.match(/(?:^|\n|;)\s*(?:import|export)\b[^\n;]*/)?.[0]);
+        }
 
         // ── CDN script tags ─────────────────────────────────────────────────────
         const rechartsScript = usesRecharts
@@ -257,6 +285,22 @@ ${lucideScript}
   <div id="root"></div>
 
   <script type="text/babel" data-presets="react">
+    // Pre-execute diagnostic.  Post a snapshot of the cleaned JSX and any
+    // leftover ES-module keywords to the parent BEFORE Babel runs.  This lets
+    // the parent console show exactly what reached Babel so a parse failure
+    // (the white-box symptom) can be diagnosed without inspecting the iframe
+    // body, which is blocked by the allow-scripts sandbox (no allow-same-origin).
+    try {
+        window.parent.postMessage({
+            type: 'react-render-diagnostic',
+            id: '${chartId}',
+            jsxLength: ${JSON.stringify(cleanedJSX.length)},
+            hasImport: /\\bimport\\b/.test(${JSON.stringify(cleanedJSX)}),
+            hasExport: /\\bexport\\b/.test(${JSON.stringify(cleanedJSX)}),
+            jsxPreview: ${JSON.stringify(cleanedJSX.slice(0, 200))}
+        }, '*');
+    } catch (_) { /* diagnostic-only — never block render */ }
+
     // ── React hooks as top-level destructures ──────────────────────────────────
     const {
         useState, useEffect, useCallback, useMemo, useRef,
