@@ -1338,6 +1338,7 @@ Work through the phases in sequence. Each phase builds on the previous. Complete
 | `AI_infrastructure/migrations/025_synergy_sessions_multitenancy.sql` | — | ✅ run — Synergy multi-tenancy: org FK, visibility, session_members, RLS |
 | `AI_infrastructure/migrations/039_user_module_access.sql` | — | per-user module restrictions (`user_module_access` table, 3 new API endpoints) |
 | `AI_infrastructure/migrations/046_personal_org_and_synergy_defaults.sql` | — | Personal org support: `is_personal_org`, `default_member_role`, `create_personal_org()` |
+| `AI_infrastructure/migrations/054_fix_personal_org_conflict_target_and_backfill.sql` | — | ✅ run — Repairs the helper's conflict target to unique `slug`; atomically completes the personal-org backfill |
 | `AI_infrastructure/migrations/050_add_minimax_provider.sql` | — | ✅ run — Seeds `platform_catalog` (MiniMax) + 9 models in `ai_model_catalog` (M3/M2.7/M2.5/M2.1/M2/M2-her) |
 | `AI_infrastructure/migrations/051_ai_provider_allow_minimax.sql` | — | ✅ run — Widens `chk_organisations_ai_provider` CHECK constraint to include `MiniMax` (closed silent-failure gap) |
 | `AI_infrastructure/shared/rls_session_manager.py` | — | Sets PostgreSQL RLS session vars on every connection |
@@ -1380,6 +1381,12 @@ ALTER TABLE ai_infrastructure.organisations
 | `default_member_role` | VARCHAR(50) | `member` | Role assigned to invited members unless overridden |
 
 ### `create_personal_org()` SQL Function
+
+> **Current production contract — July 20, 2026:** Migration 054 preserves the
+> three-argument `create_personal_org(INT, TEXT, TEXT)` signature used by
+> `register_user()`, serializes calls by locking the user row, and upserts only
+> on the unique `organisations.slug`. The simplified historical excerpt below
+> predates that correction and must not be used as executable migration SQL.
 
 ```sql
 CREATE OR REPLACE FUNCTION ai_infrastructure.create_personal_org(p_user_id INT)
@@ -1751,10 +1758,11 @@ All backend endpoints (GET, PUT, DELETE, POST test) branch on this prefix. Backe
 
 ## Changelog & TODO
 
-### Last Updated: June 11, 2026
+### Last Updated: July 20, 2026
 
 #### Recent Changes
 
+- ✅ **July 20** — Applied missing migration 046 to production after `/api/org/info` failed on absent `organisations.is_personal_org`. Corrective migration 054 then replaced the invalid `ON CONFLICT (name)` helper with a guarded unique-slug implementation, atomically assigned all 11 eligible solo users to personal organisations, and enabled 55 core-module grants. User 12 remained owner of the existing shared organisation; the exact endpoint query now returns `is_personal_org = false` for that org.
 - ✅ **June 11** — **MiniMax M-series** integrated as the **fourth AI provider** (after Anthropic, OpenAI, DeepSeek). Migration 050 seeds `platform_catalog` (MiniMax, sort_order 14, `fas fa-bolt` / `#FF6A00`) and 9 models in `ai_model_catalog` (M3 — 1M context, vision + thinking; M2.7 / M2.5 / M2.1 / M2 — 204K context; M2-her — 64K role-play). Migration 051 widens `chk_organisations_ai_provider` CHECK constraint from 3 to 4 providers (closed a silent-failure gap — Python accepted MiniMax but DB rejected). `org_credentials_loader.py` adds `'MiniMax': 'MINIMAX_API_KEY'`; diagnostic INFO logging with masked key preview promoted for ALL providers (was DEBUG); case-insensitive env-var fallback loop added. UI: `isNonAnthropic` regex updated, MiniMax added to `AI_MODELS_BY_PROVIDER`, `platformMeta`, `PROVIDER_LABELS`, `providerOrder`, `inferProviderFromModel()`, and the org AI Provider dropdown. New diagnostic endpoint `GET /api/org/credential-source?platform=<name>` returns resolved tier and masked key. `connection_routes.py` adds MiniMax to `ORG_PLATFORMS` (admin/owner → Tier 2 org vault). `.env.example` documents `MINIMAX_API_KEY`, `MINIMAX_BASE_URL`, `MINIMAX_KEYS`. **GAP-L5 (DeepSeek env-var only) is now FULLY RESOLVED** for DeepSeek, OpenAI, AND MiniMax — all four AI providers go through the 4-tier resolver identically.
 - ✅ **June 2** — Platform Connections UI fully audited and aligned with 4-tier credential model. 8 bugs fixed (CONN-BUG-1–8): legacy route removed, Tier 2 org credentials surfaced in UI, DOM ID mismatch fixed, edit mode routing fixed (POST→PUT), editPlatformConnection cache-based (no DOM scraping), `org_` prefix handling in test/PUT/DELETE, sub-user parent-org fallback, disconnect button gated for non-admin users. See **Platform Connections UI System** section.
 - ✅ **May 28** — Archived `ORGANISATION_CREDENTIALS_ARCHITECTURE_UPDATED_APRIL30_2026.md` (renamed `_ARCHIVED_...`); unique content (Vault flow, BUG-1–6, Migration 039) merged into this file

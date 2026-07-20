@@ -418,6 +418,14 @@ END;
 $$;
 ```
 
+> **Production correction — July 20, 2026:** The historical migration-046
+> draft above uses `ON CONFLICT (name)`, but `organisations.name` is not unique;
+> only `organisations.slug` is unique. Production therefore rejected every
+> helper call and the migration's per-user exception handler skipped the
+> backfill. Migration 054 replaces the helper with a guarded
+> `ON CONFLICT (slug)` implementation and completes the backfill atomically.
+> Do not copy the migration-046 conflict clause into new code.
+
 **Acceptance criteria:**
 - `SELECT column_name FROM information_schema.columns WHERE table_schema='ai_infrastructure' AND table_name='organisations' AND column_name='is_personal_org'` → 1 row
 - `SELECT COUNT(*) FROM ai_infrastructure.users WHERE organisation_id IS NULL AND is_sub_user IS NOT TRUE` → 0
@@ -874,6 +882,7 @@ body: JSON.stringify({
 |------|------|--------|-------|
 | May 6, 2026 | All | ⬜ NOT STARTED | Document created, all steps designed |
 | May 2026 | Step 1 — Migration 046 | ✅ COMPLETE | `AI_infrastructure/migrations/046_personal_org_and_synergy_defaults.sql` created. Adds `is_personal_org`, `default_member_role`, `create_personal_org()` SQL function, backfill block. |
+| July 20, 2026 | Migration 054 correction | ✅ COMPLETE | Replaced the invalid `ON CONFLICT (name)` helper with guarded `ON CONFLICT (slug)`, backfilled 11 eligible solo users, and verified 11 personal orgs with 55 core-module grants. |
 | May 2026 | Step 2 — `register_user()` | ✅ COMPLETE | `AI_infrastructure/auth/user_auth.py` — calls `create_personal_org()` after INSERT, sets `organisation_id` + `org_role` in return dict. |
 | May 2026 | Step 3 — `get_org_info()` | ✅ COMPLETE | `AI_infrastructure/routes/organisation_credentials_routes.py` — exposes `is_personal_org` in `/api/org/info` response. |
 | May 2026 | Step 4 — `_updateIdentityPanel` | ✅ COMPLETE | `UI/business-ai-platform-v2.html` — fixed `data.org` → `data.organisation` bug; caches `window._orgIsPersonal` + `window._orgInfo`. |
@@ -944,6 +953,7 @@ All implementations appended to `tools/implementations/synergy.py` (before the d
 |------|------|--------|-------|
 | May 6, 2026 | All | ⬜ NOT STARTED | Document created, all steps designed |
 | May 6, 2026 | Step 1 — Migration 046 | ✅ COMPLETE | `AI_infrastructure/migrations/046_personal_org_and_synergy_defaults.sql` created. Adds `is_personal_org`, `default_member_role`, `create_personal_org()` SQL function, backfill block. |
+| July 20, 2026 | Migration 054 correction | ✅ COMPLETE | Replaced the invalid `ON CONFLICT (name)` helper with guarded `ON CONFLICT (slug)`, backfilled 11 eligible solo users, and verified 11 personal orgs with 55 core-module grants. |
 | May 6, 2026 | Step 2 — `register_user()` | ✅ COMPLETE | `AI_infrastructure/auth/user_auth.py` — calls `create_personal_org()` after INSERT, sets `organisation_id` + `org_role` in return dict. |
 | May 6, 2026 | Step 3 — `get_org_info()` | ✅ COMPLETE | `AI_infrastructure/routes/organisation_credentials_routes.py` — exposes `is_personal_org` in `/api/org/info` response. |
 | May 6, 2026 | Step 4 — `_updateIdentityPanel` | ✅ COMPLETE | `UI/business-ai-platform-v2.html` — fixed `data.org` → `data.organisation` bug; caches `window._orgIsPersonal` + `window._orgInfo`. |
