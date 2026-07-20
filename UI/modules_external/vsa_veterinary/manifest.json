@@ -12,8 +12,8 @@
         "vsa-veterinary-alerts.css"
     ],
     "show_in_sidebar": true,
-    "tab_id": "tab-vsa-veterinary-alerts",
-    "main_tab_id": "tab-vsa-veterinary-alerts",
+    "tab_id": "vsa-veterinary-alerts",
+    "main_tab_id": "vsa-veterinary-alerts",
     "dependencies": [
         "https://unpkg.com/tabulator-tables@5.5.0/dist/css/tabulator.min.css",
         "https://unpkg.com/tabulator-tables@5.5.0/dist/js/tabulator.min.js",
