@@ -43,6 +43,30 @@
  *     Supabase query (server-side, so the anon key never reaches the browser).
  *
  * LAST MODIFIED: 2026-07-14 — Initial V4 external module creation
+ *
+ * VISIBILITY (per .github/MODULE_VISIBILITY_ARCHITECTURE.md, 4-Layer Model):
+ *   Layer 1 — Org toggle:           ai_infrastructure.org_module_access
+ *                                    Admin toggles in Org Settings > Modules.
+ *                                    Wired by initModulesFromOrg() at SPA line ~31435
+ *                                    which calls enabledSet.has('vsa_veterinary') to
+ *                                    gate the Zone 2 sidebar button (built from
+ *                                    ZONE2_MODULES at line ~31463, my entry added at ~31477).
+ *   Layer 2 — Role gate:            NOT set on VSA (consistent with other Zone 2 modules).
+ *                                    Add data-org-min-role="manager" to the VSA button
+ *                                    creation if a stricter gate is needed.
+ *   Layer 3 — Sub-user inheritance: Parent org's enabled modules are inherited.
+ *                                    Sub-users with viewer role get read-only access.
+ *   Layer 4 — Required platforms:   Catalog row (migration 037) declares
+ *                                    required_platforms = ARRAY['supabase_vsa'].
+ *                                    No UI gate yet — module loads but data fetches
+ *                                    will 401/404 until org vault has the credential.
+ *                                    Future: add a "Configuration Required" gate here.
+ *
+ *   PLAN TIER:  min_plan_tier = 'enterprise' (migration 037).
+ *               Server-side /api/org/modules filters by plan tier.
+ *
+ *   SIDEBAR COLOR: #10B981 — sourced from ai_infrastructure.module_catalog.icon_color.
+ *                  Must match the GREEN constant below for visual consistency.
  */
 
 import { ModuleAPI } from '/shared/js/module-api.js';
@@ -59,7 +83,10 @@ import {
 // Constants
 // ─────────────────────────────────────────────────────────────────────────────
 
-const GREEN = '#2E7D32';
+// Must match ai_infrastructure.module_catalog.icon_color for 'vsa_veterinary'
+// (migration 037). The sidebar button color is sourced from the DB catalog row
+// at runtime — keeping this constant aligned ensures in-module accents match.
+const GREEN = '#10B981';
 
 const SUB_TABS = [
     { id: 'dashboard',     label: 'Dashboard' },
