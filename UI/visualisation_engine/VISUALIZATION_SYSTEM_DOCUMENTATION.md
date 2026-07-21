@@ -1,7 +1,7 @@
 # Visualization System Architecture Documentation
 
 **Date:** November 15, 2025
-**Last updated:** July 20, 2026
+**Last updated:** July 21, 2026
 **Purpose:** Complete guide to understanding how streamingTwoRule.js and visualisation_v3.js work together
 **Use Case:** Integrating visualization rendering into Tiptap document containers
 
@@ -49,6 +49,12 @@ The container's own responsive sizing also matters: `.mermaid-container` uses `m
 ### Staging vs. visible width (added July 20, 2026)
 
 Mermaid's render pipeline decouples *layout width* from *visible width*. `mermaid.render()` measures the body-level staging element (`#d<id>`) for layout — node positions, edge routing, label placement — and the resulting SVG is then placed into the visible container with `useMaxWidth: true` scaling it to fit. The engine exploits this: it gives the **staging** element a `min-width: 700px` (via the `[id^="dmermaid"]` / `[id^="d-mermaid"]` CSS rule) so Mermaid's `calcLabelPosition` has enough horizontal room to find non-colliding offsets for edge labels in a narrow chat column, while the **visible** `.mermaid-container` stays narrow-friendly. If the staging canvas is too narrow, Mermaid emits `Could not find a suitable point for the given distance` (a constraint failure in `calcLabelPosition`); in that case the engine's catch block translates the error into a user-facing hint suggesting `LR` direction, shorter labels, or a wider panel. The rule is scoped to Mermaid staging ids only — Plotly, Apex and CAD use different id conventions and are unaffected.
+
+### Pie-specific `useMaxWidth: false` (added July 21, 2026)
+
+Mermaid pie layout is computed from data (slice angles + label widths via d3-shape), not from the container width. The default `useMaxWidth: true` then *rescales* that data-driven bounding box to whatever container width Mermaid measures — and when that measurement comes back as 0-px (deferred thread, hidden tab, narrow initial layout) the rescale collapses the width to 0, producing `viewBox="0 0 0 <H>"` which the engine's viewBox validator correctly rejects as broken. Even after the engine's bounded retry waits for the visible container to size up via `ResizeObserver`, the staging element is still measured as 0-px wide on the retry and the same broken viewBox recurs.
+
+The engine therefore configures `pie: { useMaxWidth: false }` in `mermaid.initialize()`. This tells Mermaid to skip the rescale step and emit the natural, always-positive bounding box for pies specifically. The visible `.mermaid-container` already has `overflow: auto`, so any horizontal overflow shows up as a scroll bar — matching the engine's existing scroll behaviour for CAD drawings and the user's requested behaviour for rigid diagram types. The override is scoped to `pie` only; flowcharts, sequence diagrams, gantt charts and other diagram types keep `useMaxWidth: true` so they continue to scale to fit the chat column.
 
 ---
 

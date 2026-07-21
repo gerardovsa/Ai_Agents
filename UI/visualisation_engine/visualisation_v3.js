@@ -4474,6 +4474,23 @@ class VisualizationEngine {
                     lineHeight: 1.3           // REDUCED: Line height multiplier (was 1.6)
                 },
 
+                // EW: Render pies at their natural size instead of scaling to the
+                // measured container width. Mermaid's pie layout computes its
+                // bounding box from slice angles + label widths (data-driven, not
+                // container-driven), but with the default useMaxWidth: true Mermaid
+                // then rescales that BB to match whatever container width it
+                // measures. When the staging div is measured as 0-px wide the
+                // rescale collapses width to 0 and the resulting SVG emits
+                // viewBox="0 0 0 <H>" — which the validator below correctly
+                // rejects as broken. useMaxWidth:false lets Mermaid skip the
+                // rescale and emit the natural, always-positive BB. The visible
+                // .mermaid-container already has overflow:auto so any overflow
+                // shows up as a horizontal scroll bar (matches the user's
+                // requested behaviour for rigid diagram types).
+                pie: {
+                    useMaxWidth: false
+                },
+
                 themeVariables: {
                     primaryColor: isDark ? '#404040' : '#f0f0f0',
                     primaryTextColor: isDark ? '#e6edf3' : '#24292f',

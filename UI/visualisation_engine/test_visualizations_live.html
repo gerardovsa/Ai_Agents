@@ -320,6 +320,7 @@
                 <button onclick="loadSample('mermaid')" class="btn btn-secondary">Mermaid Sample</button>
                 <button onclick="loadSample('mermaid-pie')" class="btn btn-secondary">Mermaid Pie Sample</button>
                 <button onclick="runMermaidNarrowRegression()" class="btn btn-secondary">Mermaid Narrow-VP Regression</button>
+                <button onclick="runMermaidPieRegression()" class="btn btn-secondary">Mermaid Pie Regression</button>
                 <button onclick="loadSample('multi')" class="btn btn-secondary"
                     style="background: var(--accent-primary); color: white;">
                     <i class="fas fa-layer-group"></i> Multi-Viz Sample
@@ -881,6 +882,102 @@ graph TD
                     logConsole('🎉 Mermaid narrow-viewport regression: PASS', 'success');
                 } else {
                     logConsole('❌ Mermaid narrow-viewport regression: FAIL — see lines above', 'error');
+                }
+            } finally {
+                outputArea.style.maxWidth = previousMaxWidth;
+                outputArea.style.border = previousBorder;
+                outputArea.style.margin = previousMargin;
+                outputArea.style.padding = '';
+            }
+        }
+
+        // Narrow-viewport regression for Mermaid pie charts.  Reproduces the
+        // production scenario where a pie is rendered inside a narrow chat
+        // column.  Before the pie.useMaxWidth:false fix, Mermaid would scale
+        // the pie to the measured container width, and when that measurement
+        // came back as 0 px the resulting SVG had viewBox="0 0 0 <H>" — the
+        // validator rejected it as broken and the user saw the generic
+        // "Mermaid could not produce a valid SVG after 3 attempts" error.
+        // With pie.useMaxWidth:false Mermaid emits its natural, always-positive
+        // bounding box, so this regression must render a complete pie with
+        // visible slices and a positive viewBox inside a 400-px container.
+        async function runMermaidPieRegression() {
+            const outputArea = document.getElementById('outputArea');
+            const previousMaxWidth = outputArea.style.maxWidth;
+            const previousBorder = outputArea.style.border;
+            const previousMargin = outputArea.style.margin;
+            clearOutput();
+            outputArea.style.maxWidth = '400px';
+            outputArea.style.margin = '0 auto';
+            outputArea.style.border = '2px dashed #f59e0b';
+            outputArea.style.padding = '8px';
+            logConsole('🥧 Mermaid pie regression: output area clamped to 400px wide', 'info');
+
+            try {
+                const messageBubble = document.createElement('div');
+                messageBubble.className = 'message-bubble ai-message';
+
+                const messageHeader = document.createElement('div');
+                messageHeader.className = 'message-header';
+                messageHeader.innerHTML = `<i class="fas fa-robot"></i> Mermaid Pie Narrow-VP`;
+
+                const messageContent = document.createElement('div');
+                messageContent.className = 'message-content';
+
+                const vizContainer = document.createElement('div');
+                vizContainer.className = 'viz-container';
+
+                const vizContentArea = document.createElement('div');
+                vizContentArea.className = 'viz-content-area';
+
+                vizContainer.appendChild(vizContentArea);
+                messageContent.appendChild(vizContainer);
+                messageBubble.appendChild(messageHeader);
+                messageBubble.appendChild(messageContent);
+                outputArea.appendChild(messageBubble);
+
+                // Same source the user reported broken in production.  Five
+                // slices — enough to exercise the radial label layout.
+                const source = `<MERMAID>
+pie title Distribution of effort
+    "Implementation" : 42
+    "Testing" : 18
+    "Documentation" : 12
+    "Meetings" : 8
+    "Other" : 20
+</MERMAID>`;
+
+                await renderVisualizationInline('MERMAID', source, vizContentArea);
+                await new Promise(resolve => setTimeout(resolve, 350));
+
+                // Assert 1: no error overlay (showMermaidError was NOT called)
+                const errorOverlay = vizContentArea.querySelector('strong');
+                const gotErrorOverlay = errorOverlay && /Diagram Syntax Error/i.test(errorOverlay.textContent || '');
+                if (gotErrorOverlay) {
+                    logConsole('❌ Mermaid pie narrow-VP: error overlay present (pie render failed): "' +
+                        (errorOverlay.parentElement.parentElement.querySelector('p')?.textContent || '') +
+                        '"', 'error');
+                } else {
+                    logConsole('✅ Mermaid pie narrow-VP: no error overlay', 'success');
+                }
+
+                // Assert 2: at least one <path> slice is visible (a real pie
+                // body, not an empty placeholder).
+                const svg = vizContentArea.querySelector('svg');
+                const pathCount = svg ? svg.querySelectorAll('path').length : 0;
+                if (pathCount > 0) {
+                    logConsole(`✅ Mermaid pie narrow-VP: ${pathCount} <path> element(s) present (slices visible)`, 'success');
+                } else {
+                    logConsole('❌ Mermaid pie narrow-VP: no <path> elements found — pie body empty', 'error');
+                }
+
+                // Assert 3: shared Mermaid invariants (positive viewBox, no
+                // negative-radius circles, bounded retry-id).
+                const ok = assertMermaidRendered(vizContentArea, 'Mermaid pie narrow-VP');
+                if (ok && !gotErrorOverlay && pathCount > 0) {
+                    logConsole('🎉 Mermaid pie narrow-viewport regression: PASS', 'success');
+                } else {
+                    logConsole('❌ Mermaid pie narrow-viewport regression: FAIL — see lines above', 'error');
                 }
             } finally {
                 outputArea.style.maxWidth = previousMaxWidth;
