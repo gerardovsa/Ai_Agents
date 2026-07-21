@@ -242,15 +242,52 @@ class ReactRenderer {
         names.forEach(function (n) { window[n] = r[n]; });
     })();` : '';
 
-        const lucideSetup = usesLucide ? `
-    // Lucide — expose individual icon components as window globals.
+        // ── Auto-hoist every PascalCase identifier the user references ────────
+        // Walk the cleaned source and find every <Ident> JSX tag and every
+        // bare Ident in the source. Any that exist on window.lucide or
+        // window.Recharts get hoisted to global scope so the user code can
+        // reference them with no import / no manual list.
+        const identifierRe = /<([A-Z][A-Za-z0-9_$]*)\b|\b([A-Z][A-Za-z0-9_$]*)\s*\(/g;
+        const referenced = new Set();
+        let m;
+        const probeSrc = cleanedJSX;
+        while ((m = identifierRe.exec(probeSrc)) !== null) {
+            const ident = m[1] || m[2];
+            if (ident && ident !== 'App' && ident !== 'Component' && ident !== 'Dashboard') {
+                referenced.add(ident);
+            }
+        }
+
+        const identifierHoist = `
     (function () {
+        var sources = [window.lucide || {}, window.Recharts || {}];
+        var hoisted = [];
+        Array.from(${JSON.stringify(Array.from(referenced))}).forEach(function (name) {
+            for (var i = 0; i < sources.length; i++) {
+                var v = sources[i][name];
+                if (v && (typeof v === 'function' || typeof v === 'object')) {
+                    window[name] = v;
+                    hoisted.push(name);
+                    return;
+                }
+            }
+        });
+        if (hoisted.length) {
+            console.log('[REACT_RENDERER] hoisted identifiers from lucide/Recharts:',
+                hoisted.join(', '));
+        }
+        // Some lucide icons live on the namespace as PascalCase keys we
+        // already copied above. If we still have unresolved PascalCase
+        // identifiers that DO exist on lucide under a PascalCase key, copy
+        // them now too (handles the case where the icon's exported name
+        // matches the JSX tag exactly).
         var L = window.lucide || {};
         Object.keys(L).forEach(function (k) {
-            if (typeof L[k] === 'object' || typeof L[k] === 'function') window[k] = L[k];
+            if (typeof L[k] === 'function' || typeof L[k] === 'object') {
+                window[k] = L[k];
+            }
         });
-        if (typeof L.createIcons === 'function') window.createIcons = L.createIcons;
-    })();` : '';
+    })();`;
 
         // ── postMessage auto-resize ─────────────────────────────────────────────
         const resizeScript = `
@@ -342,6 +379,7 @@ ${lucideScript}
         window.Fragment = React.Fragment;
 ${rechartsSetup}
 ${lucideSetup}
+${identifierHoist}
 
         var rawSource = ${JSON.stringify(cleanedJSX)};
         var out;
@@ -417,8 +455,58 @@ ${lucideSetup}
                 null;
 
             if (rootComponent) {
+                // ErrorBoundary (class-based) — wraps the user component so
+                // render-time ReferenceErrors (e.g. 'TrendingUp is not
+                // defined') surface as a visible red box inside the iframe
+                // instead of a silent white box. React's built-in error
+                // handling replaces the tree with null on uncaught errors,
+                // which is what was causing the white iframe symptom.
+                // We extend React.Component via prototype assignment
+                // because Babel-standalone does not reliably transpile
+                // ES2015 class fields in all configs.
+                function BoundaryClass() {}
+                BoundaryClass.prototype = Object.create(window.React.Component.prototype);
+                BoundaryClass.prototype.constructor = BoundaryClass;
+                BoundaryClass.prototype.render = function () {
+                    if (this.state && this.state.err) {
+                        var msg = (this.state.err && this.state.err.message)
+                            ? this.state.err.message : String(this.state.err);
+                        return window.React.createElement('pre', {
+                            style: {
+                                color: '#b91c1c',
+                                background: '#fef2f2',
+                                padding: '16px',
+                                borderRadius: '8px',
+                                whiteSpace: 'pre-wrap',
+                                fontFamily: 'ui-monospace,monospace',
+                                fontSize: '13px',
+                                lineHeight: '1.5',
+                                border: '1px solid #fecaca',
+                                margin: '16px'
+                            }
+                        }, '⚠ Render error:' + String.fromCharCode(10)
+                            + String.fromCharCode(10) + msg);
+                    }
+                    return window.React.createElement(rootComponent, null);
+                };
+                BoundaryClass.getDerivedStateFromError = function (err) {
+                    return { err: err };
+                };
+                BoundaryClass.prototype.componentDidCatch = function (err, info) {
+                    try {
+                        console.error('[REACT_RENDERER] component caught:', err, info);
+                        window.parent.postMessage({
+                            type: 'react-render-error',
+                            id: '${chartId}',
+                            message: (err && err.message) ? err.message : String(err),
+                            stack: (err && err.stack) ? err.stack : ''
+                        }, '*');
+                        window.parent.postMessage({ type: 'iframe-resize', id: '${chartId}', height: 400 }, '*');
+                    } catch (_) {}
+                };
+
                 ReactDOM.createRoot(rootEl).render(
-                    React.createElement(rootComponent)
+                    React.createElement(BoundaryClass, null)
                 );
             } else {
                 rootEl.innerHTML = '<p style="color:red;padding:16px">'
