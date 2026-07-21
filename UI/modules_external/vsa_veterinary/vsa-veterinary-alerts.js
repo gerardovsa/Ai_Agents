@@ -13,10 +13,14 @@
  *
  * TAB: #tab-vsa-veterinary-alerts
  *
- * SUB-TABS (this iteration — stubs only, data wiring deferred):
+ * SUB-TABS (this iteration):
  *   dashboard      → KPI cards (open alerts, follow-ups, calls today, avg risk)
- *   calls          → Tabulator table of phone calls (placeholder, awaiting
- *                    a /api/vsa-alerts/calls backend route)
+ *                    LIVE: sourced from GET /api/vsa-supabase-proxy/dashboard,
+ *                    which queries the external Supabase project's
+ *                    call_manager_alerts + veterinary_calls tables server-side.
+ *   calls          → Tabulator table of phone calls (LIVE)
+ *                    sourced from GET /api/vsa-supabase-proxy/calls with
+ *                    limit/offset pagination, joined with alert severity.
  *   cloud-folders  → Connect Google Drive / OneDrive folder sync (placeholder,
  *                    wired up in a later iteration — platform already has
  *                    /api/cloud-folder-sync)
@@ -25,24 +29,29 @@
  *                    and is not ported yet)
  *
  * SECURITY / SECRETS:
- *   - NO direct Supabase calls from the browser in this iteration.
- *   - NO hardcoded API keys. All data fetches go through this.api (ModuleAPI),
- *     which auto-injects the JWT from localStorage and surfaces 401s via the
- *     'module:auth-expired' window event.
- *   - The external Supabase URL + anon key live in manifest.settings (per user's
- *     explicit decision for this iteration). They are *declared but not yet
- *     consumed* by this module. Migrate to organisation_platform_credentials
- *     via the existing supabase_vsa catalog row (migration 036) in a later round.
+ *   - NO direct Supabase calls from the browser. ALL data fetches go through
+ *     this.api (ModuleAPI), which auto-injects the JWT from localStorage and
+ *     surfaces 401s via the 'module:auth-expired' window event.
+ *   - NO hardcoded API keys. The external Supabase URL + service-role key now
+ *     live in ai_infrastructure.organisation_platform_credentials (the
+ *     'supabase_vsa' row), resolved server-side per request by the new
+ *     vsa_supabase_proxy_routes blueprint.
+ *   - manifest.settings no longer carries the Supabase URL/key (removed on
+ *     migration to the vault).
+ *   - If the vault has no row for the user's org, the proxy returns a
+ *     503 with a "Configuration Required" message. The module renders a
+ *     guided empty-state instead of failing silently.
  *
  * MIGRATION NOTES:
- *   - Supabase URL+key: move from manifest.settings into the org vault.
+ *   - All credentials now sourced via resolve_credentials('supabase_vsa', user_id=g.rls_user_id)
+ *     in vsa_supabase_proxy_routes._get_vsa_supabase_creds(). First-hits are
+ *     user / sub-user / org vault (org-vault is where they belong);
+ *     env-var fallback is intentionally NOT wired (CLAUDE.md §13 risk #13
+ *     forbids new os.getenv() callers for platform keys).
  *   - The 21-stage analysis pipeline: port from the external Supabase project
- *     into a backend service under AI_infrastructure/services/vsa/.
- *   - Real data for the Calls tab: add a new GET /api/vsa-alerts/calls endpoint
- *     in AI_infrastructure/routes/vsa_alerts_routes.py that proxies the external
- *     Supabase query (server-side, so the anon key never reaches the browser).
+ *     into a backend service under AI_infrastructure/services/vsa/ (separate ticket).
  *
- * LAST MODIFIED: 2026-07-14 — Initial V4 external module creation
+ * LAST MODIFIED: 2026-07-22 — Wired Dashboard + Calls tabs to /api/vsa-supabase-proxy/* (vault-resolved, server-side)
  *
  * VISIBILITY (per .github/MODULE_VISIBILITY_ARCHITECTURE.md, 4-Layer Model):
  *   Layer 1 — Org toggle:           ai_infrastructure.org_module_access
@@ -238,25 +247,19 @@ export default {
         const panel = this.container.querySelector('#vsav4-content-dashboard');
         if (!panel) return;
 
-        // Guard: only render once. Re-clicking the active tab is a no-op.
-        if (panel.dataset.rendered === 'true') return;
-        panel.dataset.rendered = 'true';
+        // Guard: only render the skeleton once. Re-clicking the active tab is a no-op.
+        if (panel.dataset.rendered !== 'true') {
+            panel.dataset.rendered = 'true';
+            panel.innerHTML = '';
 
-        panel.innerHTML = '';
-        panel.appendChild(createLoadingSpinner('Loading dashboard...'));
-
-        try {
-            // TODO: replace placeholder data with a real /api/vsa-alerts/dashboard-summary
-            // endpoint that aggregates counts from the external Supabase project.
-            // For now, render zeroed KPI cards so the layout is verifiable.
-            const kpis = createKpiGrid([
+            const kpiGrid = createKpiGrid([
                 createKpiCard({
                     id: 'vsav4-kpi-open-alerts',
                     icon: 'fas fa-exclamation-triangle',
                     label: 'Open alerts',
                     value: '—',
                     variant: 'warning',
-                    trend: 'awaiting backend',
+                    trend: '—',
                     trendDir: 'neutral',
                 }),
                 createKpiCard({
@@ -265,7 +268,7 @@ export default {
                     label: 'Follow-ups due',
                     value: '—',
                     variant: 'info',
-                    trend: 'awaiting backend',
+                    trend: '—',
                     trendDir: 'neutral',
                 }),
                 createKpiCard({
@@ -274,7 +277,7 @@ export default {
                     label: 'Calls today',
                     value: '—',
                     variant: 'success',
-                    trend: 'awaiting backend',
+                    trend: '—',
                     trendDir: 'neutral',
                 }),
                 createKpiCard({
@@ -283,22 +286,93 @@ export default {
                     label: 'Avg risk score',
                     value: '—',
                     variant: 'error',
-                    trend: 'awaiting backend',
+                    trend: '—',
                     trendDir: 'neutral',
                 }),
             ]);
 
-            panel.innerHTML = '';
-            panel.appendChild(kpis);
+            panel.appendChild(kpiGrid);
+        }
 
-            // Defer the placeholder update so users see the cards populate.
-            // Real values will arrive via /api/vsa-alerts/dashboard-summary.
-            this.notify('Dashboard loaded (placeholder data)', 'info');
+        // Always re-fetch on tab activation (data can change between visits)
+        panel.querySelectorAll('.vsav4-kpi-card, [id^="vsav4-kpi-"]').forEach(() => {/* preserve skeleton */});
+
+        try {
+            // Server-side fetch via the org-vault-resolved proxy. /api/vsa-supabase-proxy/dashboard
+            // reads the user's external-Supabase URL+service-role-key out of
+            // ai_infrastructure.organisation_platform_credentials (via
+            // resolve_credentials('supabase_vsa', user_id=g.rls_user_id)) and
+            // aggregates counts from call_manager_alerts and veterinary_calls.
+            const resp = await this.api.get('/api/vsa-supabase-proxy/dashboard');
+
+            if (!resp || resp.success === false) {
+                // 503 path: vault has no row for this org, or proxy errored.
+                const message = (resp && (resp.error || resp.message)) || 'Dashboard unavailable';
+                this._showConfigState(panel, message);
+                return;
+            }
+
+            const k = (resp.kpis) || {};
+            if (typeof k.open_alerts !== 'undefined') {
+                updateKpiCard('vsav4-kpi-open-alerts', {
+                    value: String(k.open_alerts),
+                    trend: k.open_alerts_trend || `${k.open_alerts_total ?? ''} total`,
+                });
+            }
+            if (typeof k.follow_ups_due !== 'undefined') {
+                updateKpiCard('vsav4-kpi-follow-ups', {
+                    value: String(k.follow_ups_due),
+                    trend: k.follow_ups_trend || '',
+                });
+            }
+            if (typeof k.calls_today !== 'undefined') {
+                updateKpiCard('vsav4-kpi-calls-today', {
+                    value: String(k.calls_today),
+                    trend: k.calls_today_trend || `${k.calls_week ?? ''} this week`,
+                });
+            }
+            if (typeof k.avg_risk !== 'undefined') {
+                updateKpiCard('vsav4-kpi-avg-risk', {
+                    value: (k.avg_risk === null || k.avg_risk === undefined)
+                        ? '—'
+                        : (typeof k.avg_risk === 'number' ? k.avg_risk.toFixed(1) : String(k.avg_risk)),
+                    trend: k.avg_risk_trend || '',
+                });
+            }
+
+            this.notify('Dashboard loaded', 'success');
         } catch (err) {
             this.log.error('Dashboard load failed:', err);
-            panel.innerHTML = '';
-            panel.appendChild(createErrorMessage(`Failed to load dashboard: ${err.message}`));
+            const msg = (err && err.message) || String(err);
+            // 503 from the proxy = "vault has no supabase_vsa row for this org".
+            // Surface as a configuration-state message, not a hard error.
+            if (msg.includes('503') || msg.toLowerCase().includes('configuration')) {
+                this._showConfigState(panel, msg);
+            } else {
+                panel.innerHTML = '';
+                panel.appendChild(createErrorMessage(`Failed to load dashboard: ${msg}`));
+            }
         }
+    },
+
+    /**
+     * Render a uniform "Configuration Required" empty-state.
+     * Triggered when the server-side proxy reports the org vault has no
+     * supabase_vsa row (HTTP 503). The admin needs to seed the credential
+     * via POST /api/vsa-supabase-proxy/seed-vault (admin-only).
+     */
+    _showConfigState(panel, message) {
+        panel.innerHTML = '';
+        const node = createEmptyState({
+            icon: 'fas fa-key',
+            heading: 'VSA Supabase credentials not configured',
+            subtext: message || 'Ask an org admin to POST the URL + service-role key to /api/vsa-supabase-proxy/seed-vault. Once the vault row exists, refresh this tab.',
+            action: {
+                label: 'Reload',
+                onClick: () => { panel.dataset.rendered = ''; this._loadDashboard(); },
+            },
+        });
+        panel.appendChild(node);
     },
 
     // ─────────────────────────────────────────────────────────────────────────
@@ -309,31 +383,57 @@ export default {
         const panel = this.container.querySelector('#vsav4-content-calls');
         if (!panel) return;
 
+        // Always re-fetch — Destroy the old Tabulator first so we don't leak listeners.
+        this._destroyCallsTable();
         panel.innerHTML = '';
         panel.appendChild(createLoadingSpinner('Loading calls...'));
 
         try {
-            // TODO: wire up to a real /api/vsa-alerts/calls endpoint that
-            // proxies the external Supabase query server-side.
-            // For this iteration, render an empty Tabulator so the layout
-            // is verifiable end-to-end.
-            const data = [];
+            // Server-side fetch via the org-vault-resolved proxy.
+            // /api/vsa-supabase-proxy/calls proxies the external Supabase query,
+            // enriches each row with alert severity via a secondary
+            // call_manager_alerts fetch, and returns up to 50 rows by default.
+            const resp = await this.api.get('/api/vsa-supabase-proxy/calls', {
+                limit: 50,
+                offset: 0,
+            });
+
+            if (!resp || resp.success === false) {
+                const message = (resp && (resp.error || resp.message)) || 'Calls unavailable';
+                panel.innerHTML = '';
+                // 503 from the proxy = no vault row yet.
+                if (resp && resp.status === 503 || (message && /configuration/i.test(message))) {
+                    this._showConfigState(panel, message);
+                } else {
+                    panel.appendChild(createErrorMessage(`Failed to load calls: ${message}`));
+                }
+                return;
+            }
+
+            const calls = Array.isArray(resp.calls) ? resp.calls : [];
+            const total = typeof resp.total === 'number' ? resp.total : calls.length;
 
             panel.innerHTML = '';
-            if (data.length === 0) {
+            if (calls.length === 0) {
                 panel.appendChild(createEmptyState({
                     icon: 'fas fa-phone-slash',
                     heading: 'No calls yet',
-                    subtext: 'Calls will appear here once cloud-folder ingestion is connected.',
+                    subtext: `External Supabase returned 0 calls${total ? ` (${total} total)` : ''}. Transcripts will appear here once ingestion is connected.`,
                 }));
             } else {
-                this._renderCallsTable(data, panel);
+                this._renderCallsTable(calls, panel);
+                this.notify(`${calls.length} calls loaded${total > calls.length ? ` of ${total}` : ''}`, 'success');
             }
-            this.notify('Calls panel loaded', 'success');
         } catch (err) {
             this.log.error('Calls load failed:', err);
+            const msg = (err && err.message) || String(err);
             panel.innerHTML = '';
-            panel.appendChild(createErrorMessage(`Failed to load calls: ${err.message}`));
+            // 503 from the proxy = "vault has no supabase_vsa row for this org".
+            if (msg.includes('503') || msg.toLowerCase().includes('configuration')) {
+                this._showConfigState(panel, msg);
+            } else {
+                panel.appendChild(createErrorMessage(`Failed to load calls: ${msg}`));
+            }
         }
     },
 

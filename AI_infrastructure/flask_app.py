@@ -176,6 +176,7 @@ log_debug("Importing oauth_routes...")
 from routes.oauth_routes import oauth_bp  # NEW: OAuth workspace integration (Google Workspace + M365)
 log_debug("Importing vsa_alerts_routes...")
 from routes.vsa_alerts_routes import vsa_alerts_bp  # NEW: VSA Veterinary Alerts (transcript + coaching generation)
+from routes.vsa_supabase_proxy_routes import vsa_supabase_proxy_bp  # NEW: VSA Supabase vault-backed proxy (server-side fetch from the external Supabase project via org credentials; 4 endpoints: dashboard, calls list, call detail, admin seed)
 log_debug("Importing google_auth_routes_V2_FIXED...")
 from routes.google_auth_routes_V2_FIXED import google_auth_bp  # NEW: Google OAuth V2
 log_debug("Importing microsoft_auth_routes_V2_FIXED...")
@@ -640,6 +641,7 @@ app.register_blueprint(oauth_bp)                                     # NEW: OAut
 app.register_blueprint(google_auth_bp)                               # NEW: Google OAuth V2 (/api/auth/google/*)
 app.register_blueprint(microsoft_auth_bp)                            # NEW: Microsoft OAuth V2 (/api/auth/microsoft/*)
 app.register_blueprint(vsa_alerts_bp)                                # NEW: VSA Veterinary Alerts (/api/vsa-alerts/*)
+app.register_blueprint(vsa_supabase_proxy_bp)                          # NEW: VSA Supabase vault-backed proxy (/api/vsa-supabase-proxy/*) — fetches external Supabase data server-side using the org-vault stored service-role key
 app.register_blueprint(account_linking_bp)                           # NEW: Account linking (/api/account/*)
 app.register_blueprint(kanban_bp)                                    # NEW: Kanban board + AI agent bridge (8 endpoints)
 app.register_blueprint(database_visualizer_bp)                       # ✅ ENABLED (Migrated to Supabase 2025-12-07)

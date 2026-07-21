@@ -26,10 +26,8 @@
     },
     "author": "InHouse Print",
     "settings": {
-        "api_endpoint": "/api/vsa-alerts",
-        "supabase_url": "",
-        "supabase_anon_key": ""
+        "api_endpoint": "/api/vsa-alerts"
     },
     "data_module": "vsa_veterinary",
-    "notes": "V4 external rewrite. External Supabase project (URL + anon key) intentionally stays in manifest.settings for now — migrate to org_credentials_loader via the existing supabase_vsa catalog row (migration 036) in a later iteration. The 21-stage call analysis pipeline lives in the external Supabase project and is not ported yet. See UI/modules_external/woocommerce/woocommerce-v4.js for the structural template this module mirrors."
+    "notes": "V4 external rewrite (live). Supabase URL + service-role key are NO LONGER in the manifest — they are stored per-org in ai_infrastructure.organisation_platform_credentials (the 'supabase_vsa' row from migration 036) and resolved server-side by AI_infrastructure/routes/vsa_supabase_proxy_routes.py via resolve_credentials('supabase_vsa', user_id=g.rls_user_id). All browser fetches go through that vault-backed proxy (/api/vsa-supabase-proxy/dashboard, /api/vsa-supabase-proxy/calls). Admin-only seeding via POST /api/vsa-supabase-proxy/seed-vault writes the vault row. The 21-stage call analysis pipeline still lives in the external Supabase project and is not ported yet. See UI/modules_external/woocommerce/woocommerce-v4.js for the structural template this module mirrors."
 }
