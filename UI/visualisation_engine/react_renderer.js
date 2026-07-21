@@ -226,24 +226,31 @@ class ReactRenderer {
 
         // ── Global destructures for common libraries ────────────────────────────
         const rechartsSetup = usesRecharts ? `
-    // Recharts — expose all chart components as globals
-    const {
-        BarChart, Bar, LineChart, Line, PieChart, Pie, Cell,
-        AreaChart, Area, ScatterChart, Scatter, XAxis, YAxis, ZAxis,
-        CartesianGrid, Tooltip, Legend, ResponsiveContainer,
-        RadarChart, Radar, PolarAngleAxis, PolarRadiusAxis, PolarGrid,
-        ComposedChart, RadialBarChart, RadialBar, Treemap, FunnelChart, Funnel,
-        LabelList, ReferenceLine, ReferenceArea, ReferenceDot,
-        Brush, ErrorBar, Label
-    } = window.Recharts || {};` : '';
+    // Recharts — expose all chart components as window globals so user code
+    // can use <BarChart .../> without an explicit prefix.
+    (function () {
+        var r = window.Recharts || {};
+        var names = [
+            'BarChart','Bar','LineChart','Line','PieChart','Pie','Cell',
+            'AreaChart','Area','ScatterChart','Scatter','XAxis','YAxis','ZAxis',
+            'CartesianGrid','Tooltip','Legend','ResponsiveContainer',
+            'RadarChart','Radar','PolarAngleAxis','PolarRadiusAxis','PolarGrid',
+            'ComposedChart','RadialBarChart','RadialBar','Treemap','FunnelChart','Funnel',
+            'LabelList','ReferenceLine','ReferenceArea','ReferenceDot',
+            'Brush','ErrorBar','Label'
+        ];
+        names.forEach(function (n) { window[n] = r[n]; });
+    })();` : '';
 
         const lucideSetup = usesLucide ? `
-    // Lucide — expose all icons as globals via createIcons or direct access
-    const LucideIcons = window.lucide || {};
-    // Common icons as individual globals for convenience
-    const { createIcons } = window.lucide || {};
-    // Make individual icon components available (works with Babel JSX transform)
-    Object.keys(LucideIcons).forEach(k => { if (typeof LucideIcons[k] === 'object') window[k] = LucideIcons[k]; });` : '';
+    // Lucide — expose individual icon components as window globals.
+    (function () {
+        var L = window.lucide || {};
+        Object.keys(L).forEach(function (k) {
+            if (typeof L[k] === 'object' || typeof L[k] === 'function') window[k] = L[k];
+        });
+        if (typeof L.createIcons === 'function') window.createIcons = L.createIcons;
+    })();` : '';
 
         // ── postMessage auto-resize ─────────────────────────────────────────────
         const resizeScript = `
@@ -284,73 +291,158 @@ ${lucideScript}
 <body>
   <div id="root"></div>
 
-  <script type="text/babel" data-presets="react">
-    // Pre-execute diagnostic.  Post a snapshot of the cleaned JSX and any
-    // leftover ES-module keywords to the parent BEFORE Babel runs.  This lets
-    // the parent console show exactly what reached Babel so a parse failure
-    // (the white-box symptom) can be diagnosed without inspecting the iframe
-    // body, which is blocked by the allow-scripts sandbox (no allow-same-origin).
-    try {
-        window.parent.postMessage({
-            type: 'react-render-diagnostic',
-            id: '${chartId}',
-            jsxLength: ${JSON.stringify(cleanedJSX.length)},
-            hasImport: /\\bimport\\b/.test(${JSON.stringify(cleanedJSX)}),
-            hasExport: /\\bexport\\b/.test(${JSON.stringify(cleanedJSX)}),
-            jsxPreview: ${JSON.stringify(cleanedJSX.slice(0, 200))}
-        }, '*');
-    } catch (_) { /* diagnostic-only — never block render */ }
+  <script>
+    // ========================================================================
+    // React renderer run-engine.
+    //
+    // We do NOT use <script type="text/babel"> here. Babel's
+    // transformScriptTags only transpiles JSX — it does NOT strip ES module
+    // 'import'/'export' keywords, and any surviving keyword triggers the
+    // cryptic browser error
+    //   "Failed to execute 'appendChild' on 'Node': Cannot use import
+    //    statement outside a module"
+    // which leaves the iframe blank with no useful diagnostic.
+    //
+    // Instead we drive Babel.transform() ourselves with an inline plugin
+    // that walks the AST and removes every Import*Declaration and
+    // Export*Declaration node. AST traversal is bulletproof — it catches
+    // every shape regex on source-text can miss (e.g. 'import side.css',
+    // 'import default as Foo from somewhere', multi-line with comments,
+    // 'import.meta', dynamic 'import(...)', 'export * from somewhere').
+    // We then append the transformed code as a classic <script>, so
+    // top-level 'function App()' declarations are hoisted onto window and
+    // auto-mount can find them.
+    //
+    // Every failure mode (parse, runtime, missing root) paints a red
+    // diagnostic inside the iframe so the white-box symptom is gone for
+    // good.
+    // ========================================================================
+    (function () {
+        // ── Pre-execute diagnostic for the parent console ──────────────────
+        try {
+            window.parent.postMessage({
+                type: 'react-render-diagnostic',
+                id: '${chartId}',
+                jsxLength: ${JSON.stringify(cleanedJSX.length)},
+                jsxPreview: ${JSON.stringify(cleanedJSX.slice(0, 300))}
+            }, '*');
+        } catch (_) {}
 
-    // ── React hooks as top-level destructures ──────────────────────────────────
-    const {
-        useState, useEffect, useCallback, useMemo, useRef,
-        useContext, createContext, useReducer, useLayoutEffect,
-        forwardRef, memo, Fragment
-    } = React;
+        // ── React + hooks on window so user code can use identifiers ───────
+        // without an explicit React. prefix.
+        window.React = React;
+        window.ReactDOM = ReactDOM;
+        [
+            'useState','useEffect','useCallback','useMemo','useRef',
+            'useContext','createContext','useReducer','useLayoutEffect',
+            'forwardRef','memo'
+        ].forEach(function (k) {
+            if (typeof React[k] === 'function') window[k] = React[k];
+        });
+        window.Fragment = React.Fragment;
 ${rechartsSetup}
 ${lucideSetup}
 
-    // ── AI-generated component code ────────────────────────────────────────────
-    ${cleanedJSX}
-
-    // ── Auto-mount: find the root component and render it ─────────────────────
-    try {
-        const rootEl = document.getElementById('root');
-        const rootComponent =
-            typeof App       !== 'undefined' ? App       :
-            typeof Component !== 'undefined' ? Component :
-            typeof Dashboard !== 'undefined' ? Dashboard :
-            null;
-
-        if (rootComponent) {
-            ReactDOM.createRoot(rootEl).render(React.createElement(rootComponent));
-        } else {
-            rootEl.innerHTML = '<p style="color:red;padding:16px">⚠️ No <code>App</code>, <code>Component</code>, or <code>Dashboard</code> function found. Define one as your root component.</p>';
+        var rawSource = ${JSON.stringify(cleanedJSX)};
+        var out;
+        try {
+            out = Babel.transform(rawSource, {
+                presets: [['react', { runtime: 'classic' }]],
+                plugins: [
+                    function stripModules() {
+                        return {
+                            visitor: {
+                                ImportDeclaration:        function (p) { p.remove(); },
+                                ExportNamedDeclaration:   function (p) { p.remove(); },
+                                ExportDefaultDeclaration: function (p) { p.remove(); },
+                                ExportAllDeclaration:     function (p) { p.remove(); }
+                            }
+                        };
+                    }
+                ]
+            }).code;
+        } catch (transformErr) {
+            var tmsg = (transformErr && transformErr.message)
+                ? transformErr.message : String(transformErr);
+            var styleA = 'color:#b91c1c;background:#fef2f2;padding:16px;'
+                + 'border-radius:8px;white-space:pre-wrap;'
+                + 'font-family:ui-monospace,monospace;font-size:13px;'
+                + 'line-height:1.5;border:1px solid #fecaca;';
+            document.getElementById('root').innerHTML =
+                '<pre style="' + styleA + '">'
+                + '⚠ Babel transform failed:'
+                + String.fromCharCode(10) + String.fromCharCode(10)
+                + tmsg
+                + String.fromCharCode(10) + String.fromCharCode(10)
+                + 'Source preview:'
+                + String.fromCharCode(10)
+                + rawSource.slice(0, 800)
+                + '</pre>';
+            window.parent.postMessage({ type: 'iframe-resize', id: '${chartId}', height: 400 }, '*');
+            console.error('[REACT_RENDERER] Babel transform error:', transformErr);
+            return;
         }
-    } catch (err) {
-        // Surface any transpile/parse/runtime failure inside the sandbox so
-        // a blank iframe is never silent — the user sees a red diagnostic
-        // instead of a white box.  We build the innerHTML from short string
-        // fragments joined with `+` line continuations rather than one long
-        // single-quoted literal: a previous version packed an embedded \n\n
-        // escape into a 280-char single-quoted string, and a downstream
-        // re-emit of that source turned the escape into a real newline and
-        // broke Babel-standalone with an "Unterminated string constant" parse
-        // error.  Concatenation is unambiguous to every parser in the chain.
-        const rootEl = document.getElementById('root');
-        const msg = (err && err.message) ? err.message : String(err);
-        const errorStyle = 'color:#b91c1c;background:#fef2f2;padding:16px;'
-            + 'border-radius:8px;white-space:pre-wrap;'
-            + 'font-family:ui-monospace,monospace;font-size:13px;'
-            + 'line-height:1.5;border:1px solid #fecaca;';
-        rootEl.innerHTML = '<pre style="' + errorStyle + '">'
-            + '⚠️ JSX execution error:'
-            + String.fromCharCode(10) + String.fromCharCode(10)
-            + msg
-            + '</pre>';
-        window.parent.postMessage({ type: 'iframe-resize', id: '${chartId}', height: 400 }, '*');
-        console.error('[REACT_RENDERER] iframe execution error:', err);
-    }
+
+        // Run the transformed code in a fresh classic <script> so top-level
+        // 'function App()' declarations land on window for auto-mount.
+        try {
+            var s = document.createElement('script');
+            s.textContent = out;
+            document.body.appendChild(s);
+        } catch (runErr) {
+            var rmsg = (runErr && runErr.message)
+                ? runErr.message : String(runErr);
+            var styleB = 'color:#b91c1c;background:#fef2f2;padding:16px;'
+                + 'border-radius:8px;white-space:pre-wrap;'
+                + 'font-family:ui-monospace,monospace;font-size:13px;'
+                + 'line-height:1.5;border:1px solid #fecaca;';
+            document.getElementById('root').innerHTML =
+                '<pre style="' + styleB + '">'
+                + '⚠ JSX execution error:'
+                + String.fromCharCode(10) + String.fromCharCode(10)
+                + rmsg
+                + '</pre>';
+            window.parent.postMessage({ type: 'iframe-resize', id: '${chartId}', height: 400 }, '*');
+            console.error('[REACT_RENDERER] iframe execution error:', runErr);
+            return;
+        }
+
+        // ── Auto-mount: find the root component and render it ───────────────
+        try {
+            var rootEl = document.getElementById('root');
+            var rootComponent =
+                typeof window.App       !== 'undefined' ? window.App       :
+                typeof window.Component !== 'undefined' ? window.Component :
+                typeof window.Dashboard !== 'undefined' ? window.Dashboard :
+                null;
+
+            if (rootComponent) {
+                ReactDOM.createRoot(rootEl).render(
+                    React.createElement(rootComponent)
+                );
+            } else {
+                rootEl.innerHTML = '<p style="color:red;padding:16px">'
+                    + '⚠ No <code>App</code>, <code>Component</code>, '
+                    + 'or <code>Dashboard</code> function found. Define one '
+                    + 'as your root component.</p>';
+            }
+        } catch (mountErr) {
+            var mmsg = (mountErr && mountErr.message)
+                ? mountErr.message : String(mountErr);
+            var styleC = 'color:#b91c1c;background:#fef2f2;padding:16px;'
+                + 'border-radius:8px;white-space:pre-wrap;'
+                + 'font-family:ui-monospace,monospace;font-size:13px;'
+                + 'line-height:1.5;border:1px solid #fecaca;';
+            document.getElementById('root').innerHTML =
+                '<pre style="' + styleC + '">'
+                + '⚠ Render error:'
+                + String.fromCharCode(10) + String.fromCharCode(10)
+                + mmsg
+                + '</pre>';
+            window.parent.postMessage({ type: 'iframe-resize', id: '${chartId}', height: 400 }, '*');
+            console.error('[REACT_RENDERER] render error:', mountErr);
+        }
+    })();
   <\/script>
 
   <script>${resizeScript}<\/script>
