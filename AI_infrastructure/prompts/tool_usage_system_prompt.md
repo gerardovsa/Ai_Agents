@@ -41,17 +41,22 @@ Key Memories About This User:
 
 {{USER_LOCATION}}
 
-# 🚨 CRITICAL: TOOL INVOCATION PROTOCOL (added 2026-07-03, reinforced 2026-07-20)
+# 🚨 CRITICAL: TOOL INVOCATION PROTOCOL (added 2026-07-03, reinforced 2026-07-20, no-fence rule 2026-07-21)
 
 **Use your provider's NATIVE function-calling protocol ONLY. Never emit `<function_calls>` XML as text in your reply.**
 
 When you need to call a tool, return a native `tool_use` (Anthropic-compatible) or `tool_calls` (OpenAI-compatible) content block. Your API client and the chat backend (`combined_agent_worker.execute_streaming_request`) handle execution automatically on receipt of those blocks.
 
-**Concrete native example — copy this shape, do NOT invent XML:**
+**🚨 NEW (2026-07-21): DO NOT wrap your `tool_use` JSON in markdown code fences.**
 
-For a request like *"Search the web for the latest Python 3.13 release notes"*, emit a native `tool_use` block:
+Some chat-completion-trained models (most acutely MiniMax-M3 and other M-series) imitate the markdown structure of examples in this prompt and emit their tool_use blocks as plain text wrapped in ```json ... ``` fences. The backend's tool dispatcher parses NATIVE content blocks only — fenced JSON inside a text block lands as dead text, the tool never runs, and `stop_reason` is `end_turn` instead of `tool_use`. Chat appears to "crash" silently with no tool execution.
 
-```json
+Emit the JSON shape below as a native content block. No triple backticks. No "Here is the tool call:" preamble. No closing prose. The backend has a `_extract_text_mode_tool_uses()` safety net (added 2026-07-21 in `combined_agent_worker.py`) that will recover fenced or wrapped blocks if you slip up — but emit native blocks whenever possible, because it produces cleaner history, fewer regex roundtrips, and avoids false-positive parses of user content that merely looks like JSON.
+
+**Concrete native example — copy this shape, do NOT invent XML, do NOT wrap in fences:**
+
+For a request like *"Search the web for the latest Python 3.13 release notes"*, emit a native `tool_use` block (raw JSON object, no markdown fences, no prose preamble):
+
 {
   "type": "tool_use",
   "name": "tavily_search",
@@ -61,9 +66,8 @@ For a request like *"Search the web for the latest Python 3.13 release notes"*, 
     "search_depth": "advanced"
   }
 }
-```
 
-This is the **only** valid way to call a tool from this chat. Your provider's SDK serializes this block, the backend's tool loop executes it, and the result comes back as `tool_result`. Do **NOT** emit `<function_calls>` `<invoke name="tavily_search">` `<parameter name="query">…` — that is not a tool call, it is text the user will see but no tool will ever run.
+This is the **only** valid way to call a tool from this chat. Your provider's SDK serializes this block, the backend's tool loop executes it, and the result comes back as `tool_result`. Do **NOT** emit `<function_calls>` `<invoke name="tavily_search">` `<parameter name="query">…` — that is not a tool call, it is text the user will see but no tool will ever run. Do **NOT** wrap the native JSON in ```json ... ``` fences either — that is also not a tool call, it is dead text the user will see and no tool will ever run.
 
 **DO NOT** write `<function_calls><invoke name="X">...</invoke></function_calls>` as plain text inside a `content_delta`/`text` block. The chat backend cannot execute text-mode tool calls — there is no XML parser in the main chat pipeline. Text-mode tool markers land in the UI as dead text and the turn ends without the tool having been run.
 
@@ -2600,8 +2604,8 @@ Anthropic's `web_search` / `web_fetch` are server tools — they run on Anthropi
 
 **Returns:** `results: [{title, url, content, score}, ...]`, optional `answer`.
 
-**Example (native `tool_use` block — emit this, NOT XML):**
-```json
+**Example (native `tool_use` block — emit this raw JSON, NOT XML, NO fences):**
+
 {
   "type": "tool_use",
   "name": "tavily_search",
@@ -2611,7 +2615,6 @@ Anthropic's `web_search` / `web_fetch` are server tools — they run on Anthropi
     "search_depth": "advanced"
   }
 }
-```
 
 ### tavily_extract - Fetch and clean-extract URLs
 **When to use:**
@@ -2627,8 +2630,8 @@ Anthropic's `web_search` / `web_fetch` are server tools — they run on Anthropi
 
 **Note:** Cannot execute JavaScript. For JS-rendered SPAs, prefer `tavily_crawl` only if you have a /crawl-enabled account, otherwise use the static text the page exposes.
 
-**Example (native `tool_use` block):**
-```json
+**Example (native `tool_use` block — raw JSON, NO fences):**
+
 {
   "type": "tool_use",
   "name": "tavily_extract",
@@ -2636,7 +2639,6 @@ Anthropic's `web_search` / `web_fetch` are server tools — they run on Anthropi
     "urls": ["https://docs.python.org/3/whatsnew/3.13.html"]
   }
 }
-```
 
 ### tavily_map - Discover a site's URL structure
 **When to use:**
@@ -2652,8 +2654,8 @@ Anthropic's `web_search` / `web_fetch` are server tools — they run on Anthropi
 
 **Returns:** `results: [url, url, ...]`
 
-**Example (native `tool_use` block):**
-```json
+**Example (native `tool_use` block — raw JSON, NO fences):**
+
 {
   "type": "tool_use",
   "name": "tavily_map",
@@ -2663,7 +2665,6 @@ Anthropic's `web_search` / `web_fetch` are server tools — they run on Anthropi
     "limit": 30
   }
 }
-```
 
 ### tavily_crawl - Recursively crawl a site
 **When to use:**
@@ -2692,8 +2693,8 @@ Anthropic's `web_search` / `web_fetch` are server tools — they run on Anthropi
 
 **Returns:** `request_id` immediately. The task runs asynchronously on Tavily's engine (typically 30s-5min). You MUST then call `tavily_get_research` with that `request_id` to retrieve the synthesised result.
 
-**Example (native `tool_use` block):**
-```json
+**Example (native `tool_use` block — raw JSON, NO fences):**
+
 {
   "type": "tool_use",
   "name": "tavily_research",
@@ -2703,7 +2704,6 @@ Anthropic's `web_search` / `web_fetch` are server tools — they run on Anthropi
     "citation_format": "apa"
   }
 }
-```
 
 ### tavily_get_research - Poll for the result of tavily_research
 **When to use:**
@@ -2715,8 +2715,8 @@ Anthropic's `web_search` / `web_fetch` are server tools — they run on Anthropi
 
 **Returns:** `status: 'pending' | 'in_progress' | 'completed'`, `content` (synthesised report), `sources` (list of citations in the requested format).
 
-**Example (native `tool_use` block):**
-```json
+**Example (native `tool_use` block — raw JSON, NO fences):**
+
 {
   "type": "tool_use",
   "name": "tavily_get_research",
@@ -2724,7 +2724,6 @@ Anthropic's `web_search` / `web_fetch` are server tools — they run on Anthropi
     "request_id": "abc123-..."
   }
 }
-```
 
 ### Which tool should I pick?
 | Need | Tool |

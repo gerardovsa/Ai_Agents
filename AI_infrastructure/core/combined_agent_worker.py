@@ -25,6 +25,8 @@ import json
 import sys
 import os
 import logging
+import re
+import uuid
 from datetime import datetime
 from typing import List, Dict, Any, Optional, Generator
 from queue import Queue
@@ -2689,6 +2691,93 @@ You can use tools to help the user complete tasks."""
         raise
 
 
+# =========================================================================
+# TEXT-MODE TOOL_USE EXTRACTOR (Fix E.6, 2026-07-21)
+# =========================================================================
+# MiniMax-M3 (and other chat-completion-trained models) emit correct native
+# tool_use JSON shapes but wrap them in ```json ... ``` markdown fences inside
+# a text content block. Anthropic's SDK does not produce a tool_use content
+# block for these — the JSON is treated as plain text. Without this extractor
+# the chat ends with stop_reason='end_turn' and no tool execution.
+#
+# Strategy: scan the assistant's accumulated text for { "type": "tool_use", ... }
+# JSON objects (with or without surrounding ```json fences), parse them, and
+# synthesise native tool_use blocks. The dispatch loop then executes them just
+# like a real native tool_use.
+#
+# Safety: extracted tool name is dispatched through the same registry path as
+# native tool_use — schema validation and credential gating apply. Identical
+# (name, input) pairs within one response are deduped. Parse failures are
+# silently skipped (no exception, no log spam).
+# =========================================================================
+
+def _extract_text_mode_tool_uses(text: str) -> List[Dict[str, Any]]:
+    """Recover tool_use JSON objects embedded in assistant text.
+
+    Handles three forms:
+      1. ```json { "type": "tool_use", ... } ``` (markdown-fenced JSON)
+      2. ```{ "type": "tool_use", ... } ``` (markdown-fenced, no language tag)
+      3. { "type": "tool_use", ... }  (raw, possibly multiline)
+
+    Returns a list of synthetic tool_use dicts ready to feed into the dispatcher:
+      [{'id': 'text_mode_<hex>', 'name': ..., 'input': ...}, ...]
+
+    Skips JSON that fails to parse or doesn't match the tool_use schema.
+    Deduplicates identical (name, input) pairs within the same text.
+    """
+    if not text:
+        return []
+
+    found: List[Dict[str, Any]] = []
+    decoder = json.JSONDecoder()
+    seen: set = set()
+
+    # Find every position where "type":"tool_use" appears and try to parse the
+    # surrounding balanced JSON object. json.JSONDecoder.raw_decode handles
+    # nested braces correctly — no manual depth tracking needed.
+    for marker in re.finditer(r'"type"\s*:\s*"tool_use"', text):
+        # Walk back to find the opening brace of this JSON object.
+        start = text.rfind('{', 0, marker.start())
+        if start < 0:
+            continue
+        try:
+            obj, _end = decoder.raw_decode(text, start)
+        except json.JSONDecodeError:
+            continue
+
+        # Validate shape: must be {type:'tool_use', name:str, input:dict}
+        if not isinstance(obj, dict):
+            continue
+        if obj.get('type') != 'tool_use':
+            continue
+        name = obj.get('name')
+        if not isinstance(name, str) or not name:
+            continue
+        input_obj = obj.get('input', {})
+        if not isinstance(input_obj, dict):
+            input_obj = {}
+
+        # Dedupe by (name, normalised input) — prevents double-execution when
+        # the model emits the same call twice in a row.
+        try:
+            input_sig = json.dumps(input_obj, sort_keys=True, default=str)
+        except (TypeError, ValueError):
+            input_sig = repr(input_obj)
+        key = (name, input_sig)
+        if key in seen:
+            continue
+        seen.add(key)
+
+        found.append({
+            'id': f'toolu_textmode_{uuid.uuid4().hex[:20]}',
+            'name': name,
+            'input': input_obj,
+            '_source': 'text_mode_extractor',
+        })
+
+    return found
+
+
 def execute_streaming_request(
     session_id: str,
     user_prompt: str,
@@ -3602,6 +3691,53 @@ def execute_streaming_request(
         print(f"{log_prefix} blocks:        {len(serialized_content)} ({thinking_count} thinking)")
         print(f"{log_prefix} ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
         
+        # =========================================================================
+        # E.6 FIX (2026-07-21): TEXT-MODE TOOL_USE EXTRACTOR (safety net)
+        # MiniMax-M3 and other chat-completion-trained models emit correct native
+        # tool_use JSON shapes but wrap them in ```json ... ``` markdown fences
+        # inside a text content block. Anthropic's SDK does not produce a tool_use
+        # content block for these — the JSON is treated as plain text. Without
+        # this extractor the chat ends with stop_reason='end_turn' and no tool
+        # execution, which the user sees as a silent "crash".
+        #
+        # Trigger condition: no native tool_use was parsed AND stop_reason is
+        # 'end_turn' (the model thinks it's done but left a fenced tool call in
+        # its text). If we find one or more tool_use JSON objects, we synthesise
+        # native tool_use blocks and override stop_reason to 'tool_use' so the
+        # dispatch loop below recognises this as a tool turn and executes.
+        # =========================================================================
+        if not tool_uses and stop_reason == 'end_turn':
+            _tm_text = ''
+            for _b in all_content_blocks:
+                if hasattr(_b, 'type') and _b.type == 'text':
+                    _tm_text += _b.text
+
+            if _tm_text:
+                _recovered = _extract_text_mode_tool_uses(_tm_text)
+                if _recovered:
+                    print(f"{log_prefix} 🔧 [TEXT-MODE-EXTRACTOR] Recovered {len(_recovered)} tool_use(s) from text content (M3 fence-strip)")
+                    for _rec in _recovered:
+                        _rec_id = _rec['id']
+                        _rec_name = _rec['name']
+                        _rec_input = _rec['input']
+                        tool_uses.append({'id': _rec_id, 'name': _rec_name, 'input': _rec_input})
+                        serialized_content.append({
+                            'type': 'tool_use',
+                            'id': _rec_id,
+                            'name': _rec_name,
+                            'input': _rec_input,
+                        })
+                        yield {
+                            'type': 'tool_input_complete',
+                            'tool_name': _rec_name,
+                            'tool_id': _rec_id,
+                            'tool_input': _rec_input,
+                        }
+                    # Override stop_reason so dispatch loop below executes the tools
+                    # (Anthropic's tool dispatch only fires on stop_reason=='tool_use')
+                    stop_reason = 'tool_use'
+                    print(f"{log_prefix} 🔧 [TEXT-MODE-EXTRACTOR] stop_reason overridden end_turn → tool_use")
+
         # Add assistant response to history (with ALL blocks including thinking)
         # CRITICAL (Jan 19, 2026): Add source tracking for debugging duplicate message issues
         assistant_message = {
