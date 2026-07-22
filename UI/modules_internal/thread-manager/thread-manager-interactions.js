@@ -953,34 +953,11 @@ Object.assign(window.ThreadManager, {
         const locationName = location === 'unassigned' ? 'Unassigned' :
             (location.startsWith('agent-') ? `Agent ${location.split('-')[1]}` : location);
 
-        // Calculate modal position if button element provided
+        // Anchored modals are measured after insertion so placement uses their actual height.
         let positionStyle = '';
         let overlayClass = '';
         if (buttonElement) {
-            const rect = buttonElement.getBoundingClientRect();
-            const modalWidth = 450;
-            const modalHeight = 500;
-
-            // Try to position to the right of button first
-            let top = Math.max(10, rect.top);  // Keep at least 10px from top
-            let left = rect.right + 12;  // Position to right with 12px gap
-
-            // If modal would go off-screen to the right, position to the left
-            if (left + modalWidth > window.innerWidth - 20) {
-                left = rect.left - modalWidth - 12;
-            }
-
-            // If still off-screen, use center positioning
-            if (left < 10) {
-                left = (window.innerWidth - modalWidth) / 2;
-            }
-
-            // Adjust top if modal would go below viewport
-            if (top + modalHeight > window.innerHeight - 20) {
-                top = Math.max(10, window.innerHeight - modalHeight - 20);
-            }
-
-            positionStyle = `style="top: ${top}px; left: ${left}px; position: fixed;"`;
+            positionStyle = 'style="visibility: hidden; position: fixed;"';
             overlayClass = 'positioned';
         }
 
@@ -1067,8 +1044,50 @@ Object.assign(window.ThreadManager, {
 
         document.body.insertAdjacentHTML('beforeend', modalHTML);
 
-        // Make modal draggable
         const modal = document.querySelector('.new-chat-modal');
+
+        // Position anchored modals above the trigger whenever the viewport allows it.
+        if (buttonElement) {
+            const triggerRect = buttonElement.getBoundingClientRect();
+            const modalRect = modal.getBoundingClientRect();
+            const viewportMargin = 10;
+            const triggerGap = 12;
+            const maxTop = Math.max(
+                viewportMargin,
+                window.innerHeight - modalRect.height - viewportMargin
+            );
+            const maxLeft = Math.max(
+                viewportMargin,
+                window.innerWidth - modalRect.width - viewportMargin
+            );
+
+            let top;
+            const topPosition = triggerRect.top - modalRect.height - triggerGap;
+            const bottomPosition = triggerRect.bottom + triggerGap;
+
+            if (topPosition >= viewportMargin) {
+                top = topPosition;
+            } else if (bottomPosition + modalRect.height <= window.innerHeight - viewportMargin) {
+                top = bottomPosition;
+            } else {
+                top = Math.min(
+                    Math.max(topPosition, viewportMargin),
+                    maxTop
+                );
+            }
+
+            const left = Math.min(
+                Math.max(triggerRect.left, viewportMargin),
+                maxLeft
+            );
+
+            modal.style.top = `${top}px`;
+            modal.style.left = `${left}px`;
+            modal.style.position = 'fixed';
+            modal.style.visibility = 'visible';
+        }
+
+        // Make modal draggable
         const modalHeader = modal.querySelector('.modal-header');
         let isDragging = false;
         let currentX, currentY, initialX, initialY;
