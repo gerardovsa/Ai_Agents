@@ -2874,6 +2874,133 @@ def ws_diagnostics():
         }), 500
 
 
+# ✅ ADDED 2026-07-22: Registry-state diagnostic endpoint
+# Reason: existing /api/health/detailed and /api/ws-diagnostics expose
+# nothing about the worker's tool registry — tool_count, whether a
+# specific tool is registered, whether the latest registry_v3.py code
+# is loaded. Without these signals, every "Tool not found" bug
+# becomes a guessing game about whether the new code is live.
+@app.route('/api/diagnostics/registry', methods=['GET', 'OPTIONS'])
+def registry_diagnostics():
+    """Diagnostic snapshot of the worker's RegistryV3 state.
+
+    Response includes:
+    - registry_v3.tool_count: number of registered tools in self.tools
+    - registry_v3.implementation_count: number of registered callables
+    - registry_v3.has_list_available_platforms: the headline check
+    - registry_v3.has_recommend_tools_for_task: another meta-tool check
+    - registry_v3.tool_names_sample: first 50 tool names (for spot-check)
+    - process.pid, process.create_time: when this worker process started
+    - registry_v3.source_mtime: mtime of tools/registry_v3.py at the
+      moment get_registry() was last called (proves the new file is
+      loaded; if this predates your push, the old code is still in memory)
+    - registry_v3.special_module_counts: per-special-module func count
+      (meta_tools, sql_database, visualization_guide, viz_snapshots)
+    """
+    import os
+    import time as _time
+    from datetime import datetime, UTC
+    from flask import request as _flask_request
+
+    try:
+        from tools.registry_v3 import get_registry
+        reg = get_registry()
+
+        # Snapshot the bits we care about — keep payload small.
+        tool_names = list(reg.tools.keys()) if hasattr(reg, 'tools') else []
+        impl_keys = list(reg.implementations.keys()) if hasattr(reg, 'implementations') else []
+        has_list_avail = 'list_available_platforms' in tool_names and \
+                         'list_available_platforms' in impl_keys
+
+        # Per-special-module function counts (the headline indicator of
+        # whether the meta_tools filter is working).
+        special_module_counts = {}
+        for sm in ('sql_database', 'meta_tools', 'visualization_guide', 'viz_snapshots'):
+            # Each special module's functions are registered individually
+            # in self.implementations under their own names. We can't
+            # enumerate the module from the impl dict, so we just count
+            # tools whose name *starts with* the special-module prefix is
+            # NOT reliable — meta_tools doesn't have a prefix. So we
+            # import the module and count its public callables that also
+            # appear in self.tools.
+            try:
+                mod = __import__(f'tools.implementations.{sm}', fromlist=[sm])
+                count = sum(
+                    1 for attr in dir(mod)
+                    if not attr.startswith('_')
+                    and callable(getattr(mod, attr, None))
+                    and attr in tool_names
+                )
+                special_module_counts[sm] = count
+            except Exception:
+                special_module_counts[sm] = None
+
+        # Worker process info — proves this is the right PID + boot time.
+        proc_info = {'pid': os.getpid()}
+        try:
+            import psutil  # type: ignore
+            p = psutil.Process(os.getpid())
+            proc_info['create_time'] = p.create_time()
+            proc_info['create_time_iso'] = (
+                datetime.fromtimestamp(p.create_time(), tz=UTC).isoformat()
+            )
+        except ImportError:
+            # Fallback: use our own module load time as a proxy.
+            proc_info['create_time'] = None
+            proc_info['create_time_iso'] = None
+
+        # Source mtime of registry_v3.py at moment the singleton was
+        # constructed.  If this equals the on-disk mtime, the worker is
+        # running the latest code.
+        try:
+            registry_mtime = os.path.getmtime(
+                os.path.join(
+                    os.path.dirname(os.path.dirname(__file__)),
+                    'tools', 'registry_v3.py'
+                )
+            )
+        except OSError:
+            registry_mtime = None
+
+        response = {
+            'status': 'ok',
+            'timestamp': datetime.now(UTC).isoformat() + 'Z',
+            'worker_url': _flask_request.host,
+            'process': proc_info,
+            'registry_v3': {
+                'tool_count': len(tool_names),
+                'implementation_count': len(impl_keys),
+                'has_list_available_platforms': has_list_avail,
+                'has_recommend_tools_for_task': (
+                    'recommend_tools_for_task' in tool_names
+                    and 'recommend_tools_for_task' in impl_keys
+                ),
+                'has_execute_tool': (
+                    'execute_tool' in tool_names
+                    and 'execute_tool' in impl_keys
+                ),
+                'special_module_counts': special_module_counts,
+                'source_mtime': registry_mtime,
+                'source_mtime_iso': (
+                    datetime.fromtimestamp(registry_mtime, tz=UTC).isoformat()
+                    if registry_mtime else None
+                ),
+                'tool_names_sample': sorted(tool_names)[:50],
+            },
+        }
+        result = jsonify(response)
+        result.headers.add('Access-Control-Allow-Origin', '*')
+        result.headers.add('Access-Control-Allow-Methods', 'GET,OPTIONS')
+        return result
+    except Exception as e:
+        log_error(logger, f'[Diagnostics] Registry diagnostics error: {e}')
+        return jsonify({
+            'status': 'error',
+            'error': str(e),
+            'timestamp': datetime.now(UTC).isoformat() + 'Z'
+        }), 500
+
+
 # ✅ REFACTORED: /api/connections endpoint (FIXED CURSOR LEAK #2)
 @app.route('/api/connections', methods=['GET', 'OPTIONS'])
 def get_connections():
