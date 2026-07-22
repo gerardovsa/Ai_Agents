@@ -1,7 +1,7 @@
 # Visualization System Architecture Documentation
 
 **Date:** November 15, 2025
-**Last updated:** July 22, 2026 (Plotly axis/grid colour-strengthening update)
+**Last updated:** July 22, 2026 (Pie title/legend overlap fix)
 **Purpose:** Complete guide to understanding how streamingTwoRule.js and visualisation_v3.js work together
 **Use Case:** Integrating visualization rendering into Tiptap document containers
 
@@ -95,6 +95,39 @@ Implementation lives in `visualisation_v3.js`:
 ```
 
 The `:has()` selector keeps the buffer scoped to pies only — other Mermaid types are unaffected. Mermaid's default pie viewBox is 450×450; `max-height: 520px` leaves 70 px of breathing room for the labels.
+
+### Pie title/legend overlap fix (added July 22, 2026)
+
+The pie label buffer above was not enough: in narrow chat columns (≤500 px) the title (`<g class="pieTitle">`, y ≈ 20 in viewBox units) and the legend rect (`<g class="legend">`, y ≈ 400) ended up overlapping the central pie (`<g class="pieGroup" transform="translate(225, 225)">`). Root cause: Mermaid 10.6.1's pie layout positions title, pie center, and legend assuming an SVG ≥ 450 px wide. When the JS-set `svgEl.style.width = '100%'` (see `visualisation_v3.js:4685`) shrinks the SVG to the chat column width, Mermaid's algorithm has insufficient room and elements collide into the central pie area.
+
+**Fix shape:** force `min-width: 700px !important` on the pie SVG itself, so Mermaid always gets the width its layout expects. The parent `.mermaid` container gets `overflow-x: auto` so the wider pie SVG scrolls horizontally inside narrow chat columns; `overflow-y: visible` lets it grow vertically without being clipped at the chat bubble edge. `height: auto` preserves the viewBox 1:1 aspect ratio; the previous `max-height: 520px` cap was removed because it distorted the aspect ratio and forced `preserveAspectRatio="xMidYMid meet"` to shrink the pie content.
+
+Why `!important`: the JS at `visualisation_v3.js:4684-4685` sets `svgEl.style.maxWidth = '100%'` and `svgEl.style.width = '100%'` as inline styles. Inline styles beat external CSS unless `!important` is used in the external rule. Without `!important`, our pie-specific `min-width` would be silently overridden by the JS for all charts including pies.
+
+```css
+.mermaid svg[id^="pie-"],
+.mermaid svg[class*="pie"] {
+    padding: 8px 8px 24px 8px;
+    min-width: 700px !important;
+    height: auto;
+    max-height: none;
+}
+.viz-content-area > .mermaid:has(svg[id^="pie-"]),
+.viz-content-area > .mermaid:has(svg[class*="pie"]) {
+    min-height: 520px;
+    overflow-x: auto;
+    overflow-y: visible;
+}
+```
+
+Behaviour:
+
+| Chat column width | Pie SVG width | Notes |
+|---|---|---|
+| ≤ 700 px | 700 px | SVG overflows parent horizontally; `overflow-x: auto` shows a horizontal scrollbar |
+| 700–∞ px | 100% of container | SVG grows with container (e.g., fullscreen) |
+
+The `pie: { useMaxWidth: false }` option was considered (and rejected on Jul 21 — see the staging-fix section above). `useMaxWidth` only governs post-render CSS scaling, not Mermaid's internal layout calculations; the `min-width: 700px !important` CSS-only approach addresses the root cause without changing the Mermaid config.
 
 Full historical record: see `VISUALIZATION_CANVAS_BG_AND_FULLSCREEN_FIX_JULY22_2026.md` at the repo root.
 
