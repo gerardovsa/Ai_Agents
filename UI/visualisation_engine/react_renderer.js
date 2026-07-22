@@ -390,7 +390,7 @@ ${tailwindLink}
   <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"><\/script>
 ${rechartsScript}
   <!-- Babel Standalone: transpiles JSX at runtime inside the sandboxed iframe -->
-  <script src="https://unpkg.com/@babel/standalone@7.26.4/babel.min.js"><\/script>
+  <script src="https://unpkg.com/@babel/standalone@7.25.6/babel.min.js"><\/script>
 ${lucideScript}
   <style>
     html, body { margin: 0; padding: 0; width: 100%; overflow-x: hidden; }
