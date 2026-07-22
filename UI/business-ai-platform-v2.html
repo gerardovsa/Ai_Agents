@@ -10819,14 +10819,32 @@
                (predecessor always-white canvas fix). */
         .mermaid svg[id^="pie-"],
         .mermaid svg[class*="pie"] {
-            padding: 8px 8px 24px 8px;
-            min-width: 700px !important;
-            height: auto;
-            max-height: none;
+            padding: 8px 8px 32px 8px;
+            /* EW (Jul 22 2026): Force explicit width AND height (not just
+               min-width) so the SVG cannot collapse to a smaller size.
+               The previous min-width-only rule let the SVG height track
+               its own viewBox aspect ratio, which produced a tall+thin
+               container when Mermaid's natural viewBox was tall, and
+               pushed the title and legend down INTO the pie's drawn
+               area. With explicit width:760 height:760 (square, large
+               enough for a 14-15-slice pie with title + legend) and
+               preserveAspectRatio="xMidYMid meet" (Mermaid's default),
+               the pie+labels composition scales uniformly to fill the
+               square — the title sits above the pie, the legend sits
+               below, with no overlap. min-/max- also !important so
+               any inline style.width = '100%' from
+               renderMermaidDirectly (visualisation_v3.js:5196) cannot
+               override the size. */
+            width: 760px !important;
+            height: 760px !important;
+            min-width: 760px !important;
+            min-height: 760px !important;
+            max-width: none !important;
+            max-height: none !important;
         }
         .viz-content-area > .mermaid:has(svg[id^="pie-"]),
         .viz-content-area > .mermaid:has(svg[class*="pie"]) {
-            min-height: 520px;
+            min-height: 800px;
             overflow-x: auto;
             overflow-y: visible;
         }
@@ -10854,6 +10872,35 @@
              - VISUALIZATION_RECT_TIGHTENING_FIX_JULY22_2026.md */
         .viz-container .mermaid svg {
             background-color: #ffffff !important;
+        }
+
+        /* EW (Jul 22 2026): Override .ai-message-content strong/em colour
+           inside Mermaid foreignObject. The chat markdown rule at L10685
+           sets `color: var(--text-primary)` on every <strong> inside
+           .ai-message-content (designed for chat markdown bold). When
+           Mermaid renders a flowchart node label like `<b>bold</b>`,
+           processNodeLabel (visualisation_v3.js:5563) rewrites it to
+           `<strong class="mermaid-bold">bold</strong>` inside the SVG's
+           foreignObject — and the chat bubble's dark-mode --text-primary
+           (white-ish) cascades into the foreignObject, making bold text
+           invisible on the now-white canvas. The fullscreen clone lives
+           outside .ai-message-content so this rule never applied there,
+           which is why bold was black in fullscreen and white in chat.
+
+           Scope: .viz-container .mermaid foreignObject only — chat
+           markdown bold outside Mermaid still uses --text-primary as
+           intended. Force a constant dark colour (matching the chart's
+           always-white canvas). !important beats the .ai-message-content
+           strong rule on specificity and on cascade order. */
+        .viz-container .mermaid foreignObject strong,
+        .viz-container .mermaid foreignObject b,
+        .viz-container .mermaid foreignObject .mermaid-bold {
+            color: #24292f !important;
+        }
+        .viz-container .mermaid foreignObject em,
+        .viz-container .mermaid foreignObject i,
+        .viz-container .mermaid foreignObject .mermaid-italic {
+            color: #24292f !important;
         }
 
         /* EW (Jul 22 2026): Git graph commit message width. Mermaid

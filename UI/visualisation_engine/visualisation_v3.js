@@ -5585,6 +5585,21 @@ svg{max-width:100%;height:auto;display:block;margin:0 auto;}</style>
                     return `__BULLET_${bulletLines.length - 1}__`;
                 });
 
+                // EW (Jul 22 2026): Normalize any <br> / <br/> self-closing tags
+                // already in the source. The original conversion below only
+                // handled literal \n — any <br/> written by the AI or user
+                // (e.g. stadium and subroutine labels like
+                // `(["Line 1<br/>Line 2"])`) was passed through unchanged,
+                // and Mermaid 10.6.1's HTML-label parser would silently
+                // drop or join these on certain shape paths, producing
+                // "Line 1Line 2" without line breaks. By normalizing all
+                // <br> variants to <br class="mermaid-br"/> here, both
+                // existing tags and newlines converge on the same
+                // well-formed marker that Mermaid reliably renders. The
+                // .mermaid-br class also makes the bullet-spacing CSS
+                // rule at L121 work uniformly.
+                processedLabel = processedLabel.replace(/<br\s*\/?\s*>/gi, '<br class="mermaid-br"/>');
+
                 // Convert line breaks - normalize first, then convert once
                 processedLabel = processedLabel
                     .replace(/\\n/g, '\n')  // Normalize escaped newlines

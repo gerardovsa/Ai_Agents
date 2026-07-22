@@ -1,7 +1,7 @@
 # Visualization System Architecture Documentation
 
 **Date:** November 15, 2025
-**Last updated:** July 22, 2026 (Always-white SVG canvas in chat + Git graph commit width; Rect tightening for pie/git graph/gantt; Pie title/legend overlap fix)
+**Last updated:** July 22, 2026 (Pie overlap (explicit dims) + Bold-in-chat (foreignObject override) + `<br/>` normalisation in `processNodeLabel`; Always-white SVG canvas in chat + Git graph commit width; Rect tightening for pie/git graph/gantt; Pie title/legend overlap fix; Fullscreen single-fit + ResizeObserver; Plotly axis/grid colour-strengthening)
 **Purpose:** Complete guide to understanding how streamingTwoRule.js and visualisation_v3.js work together
 **Use Case:** Integrating visualization rendering into Tiptap document containers
 
@@ -234,6 +234,64 @@ Behaviour table after this fix:
 | Dark | **white canvas, dark text** (was: dark canvas, invisible text) | **white canvas, dark text, no mid-word wrapping** (was: dark canvas + clipped text) | **white canvas** (was: dark canvas) | unchanged |
 
 Full historical record: see `VISUALIZATION_MERMAID_CHAT_BG_AND_GITGRAPH_WRAPPING_FIX_JULY22_2026.md` at the repo root.
+
+### Pie explicit dims + Bold-in-chat foreignObject override + `<br/>` normalisation (added July 22, 2026)
+
+Three follow-on issues surfaced once the always-white canvas + git-graph commit width fix landed:
+
+1. **Pie title and legend still overlapped the pie** after the previous `min-width: 700px !important` rule. The root cause was that with `min-width` but no `width` / `height`, the SVG's height tracked its own viewBox aspect ratio. In some chat columns that produced a tall-narrow render that pushed Mermaid's title (`<g class="pieTitle">`) and legend rect (`<g class="legend">`) INTO the pie's drawn area. The fix in `business-ai-platform-v2.html` (replacing the previous pie rule around L10820) uses explicit `width` AND `height` (both 760 px, square) with `!important` on every size-related property so the SVG cannot collapse to viewBox-driven sizing:
+
+   ```css
+   .mermaid svg[id^="pie-"],
+   .mermaid svg[class*="pie"] {
+       padding: 8px 8px 32px 8px;
+       width: 760px !important;
+       height: 760px !important;
+       min-width: 760px !important;
+       min-height: 760px !important;
+       max-width: none !important;
+       max-height: none !important;
+   }
+   .viz-content-area > .mermaid:has(svg[id^="pie-"]),
+   .viz-content-area > .mermaid:has(svg[class*="pie"]) {
+       min-height: 800px;
+       overflow-x: auto;
+       overflow-y: visible;
+   }
+   ```
+
+   Square 760×760 matches Mermaid's natural pie viewBox aspect ratio, so `preserveAspectRatio="xMidYMid meet"` scales content uniformly to fill the box with no letterboxing — title sits above the pie, legend sits below, geometric overlap impossible. The `min-` and `max-` `!important` overrides are required because `renderMermaidDirectly` at `visualisation_v3.js:5196` sets `svgEl.style.width = '100%'` inline; without `!important` the inline style wins.
+
+2. **Bold text rendered white in chat bubbles but black in fullscreen.** Root cause: the chat-markdown CSS at `business-ai-platform-v2.html:10685` sets `color: var(--text-primary)` on every `<strong>` inside `.ai-message-content`. In dark mode `--text-primary` resolves to a white-ish colour. Mermaid's `processNodeLabel` rewrites `<b>bold</b>` to `<strong class="mermaid-bold">bold</strong>` inside the SVG's `<foreignObject>`, which lives inside `.ai-message-content` (chat-bubble DOM path: `.ai-message-content > .viz-container > .viz-content-area > .mermaid > svg > foreignObject`). So the chat markdown rule cascades INTO the foreignObject and overwrites Mermaid's explicit dark colour. The fullscreen clone escapes the cascade because `openMermaidFullscreen` uses `cloneNode(true)` and mounts the clone at the document body root, OUTSIDE `.ai-message-content`. The fix (added to `business-ai-platform-v2.html` right after the always-white canvas rule, around L10859) overrides the cascade with a more-specific selector and `!important`:
+
+   ```css
+   .viz-container .mermaid foreignObject strong,
+   .viz-container .mermaid foreignObject b,
+   .viz-container .mermaid foreignObject .mermaid-bold {
+       color: #24292f !important;
+   }
+   .viz-container .mermaid foreignObject em,
+   .viz-container .mermaid foreignObject i,
+   .viz-container .mermaid foreignObject .mermaid-italic {
+       color: #24292f !important;
+   }
+   ```
+
+   `#24292f` matches `themeVariables.textColor` from `mermaid.initialize()` at `visualisation_v3.js:5097` — forces bold/italic inside chart labels to the SAME dark colour as the chart's other text. Scoped to `.viz-container .mermaid foreignObject` so chat markdown OUTSIDE Mermaid still uses `var(--text-primary)` as designed.
+
+3. **`<br/>` line breaks silently failed in stadium (A3) and subroutine (A6) shapes** while working correctly in rectangle (A1=A2), diamond (A4), and cylinder (A5). Root cause: `processNodeLabel` in `visualisation_v3.js:5500-5651` had bold handling that recognised BOTH `**...**` markdown AND pre-existing `<b>...</b>`/`<strong>...</strong>` tags, but its line-break handling only recognised literal `\n` (after `\\n` escape). It did NOT recognise `<br/>` or `<br>` self-closing tags. Mermaid 10.6.1's HTML-label parser takes different code paths for stadium and subroutine shapes vs. the other shapes, and those paths require the `<br class="mermaid-br"/>` annotated form to render the break — bare `<br/>` is silently joined to adjacent text. The fix (in `processNodeLabel` TEP 4, around L5580) adds a normalisation step BEFORE the existing `\n` conversion:
+
+   ```js
+   // EW (Jul 22 2026): Normalize any <br> / <br/> self-closing tags
+   // already in the source.
+   processedLabel = processedLabel.replace(/<br\s*\/?\s*>/gi, '<br class="mermaid-br"/>');
+   ```
+
+   The regex `/<br\s*\/?\s*>/gi` matches `<br>`, `<br/>`, `<br />`, `<BR>`, `<Br/>` — every realistic variant. The `.mermaid-br` class is idempotent (the regex is a no-op on already-normalised tags), so broadening the scope is safe. After this normalisation, all shape parsers receive the same well-formed `<br class="mermaid-br"/>` marker, so line breaks render consistently across all 6 shape types.
+
+Each fix is isolated to a single file: pie sizing is one CSS rule, the foreignObject override is a new CSS block, the `<br>` normalisation is one regex in `processNodeLabel`. No backend change, no migration, no API change, no env-var change. The fixes also interoperate safely: the always-white canvas (previous fix) + the explicit pie dimensions (fix 1) + the foreignObject colour override (fix 2) compose into a deterministic "white canvas, dark text everywhere" presentation regardless of UI theme, and the `<br>` normalisation (fix 3) affects only line-break rendering — it doesn't change colours, dimensions, or layout.
+
+Full historical record: see `VISUALIZATION_FOLLOWON_PIE_BOLD_BR_FIX_JULY22_2026.md` at the repo root.
 
 ### Fullscreen single-fit + ResizeObserver (added July 22, 2026)
 
