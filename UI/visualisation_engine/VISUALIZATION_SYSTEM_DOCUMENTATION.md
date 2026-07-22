@@ -1,7 +1,7 @@
 # Visualization System Architecture Documentation
 
 **Date:** November 15, 2025
-**Last updated:** July 22, 2026
+**Last updated:** July 22, 2026 (Plotly axis/grid colour-strengthening update)
 **Purpose:** Complete guide to understanding how streamingTwoRule.js and visualisation_v3.js work together
 **Use Case:** Integrating visualization rendering into Tiptap document containers
 
@@ -72,7 +72,7 @@ Why:
 
 Implementation lives in `visualisation_v3.js`:
 
-- `applyEnhancedPlotlyTheme` (chat-area Plotly path): `bgColor = '#ffffff'`, `textColor = '#24292f'`, `gridColor = '#e1e4e8'` — no `isDark` branching.
+- `applyEnhancedPlotlyTheme` (chat-area Plotly path): `bgColor = '#ffffff'`, `textColor = '#24292f'`, `gridColor = '#94a3b8'`, `axisLineColor = '#7c8694'`, `zeroLineColor = '#cbd5e1'` — no `isDark` branching.
 - `toggle3DView` (dedicated/calculator Plotly path): same constants — no `isDark` branching.
 - `updateTheme` + `updateChartTheme` (theme-toggle retroactive recolor): same constants — no `isDark` branching.
 - All 5 `mermaid.initialize()` call sites (chat-area renderer, popup/fullscreen renderer, direction-toggle renderer, `applyMermaidColorTheme`, `applyMermaidFontSize`, `updateChartTheme` mermaid re-init): `theme: 'base'` + always-light `themeVariables` (`primaryColor: '#f0f0f0'`, `nodeBkg: '#f0f0f0'`, `textColor: '#24292f'`, `nodeTextColor: '#24292f'`, `backgroundColor: '#ffffff'`, `lineColor: '#656d76'`).
@@ -131,6 +131,32 @@ The observer is stored on the class instance (`this._fullscreenResizeObserver`) 
 The companion `reRenderFullscreenIfOpen` (theme-toggle / colour-theme / font-size re-render path) also switched from `setTimeout(() => fitButton.click(), 100)` to `requestAnimationFrame(() => requestAnimationFrame(() => fitButton.click()))` — double-rAF is enough (~32 ms at 60 fps) for the SVG insertion + style flush to settle before the click, replacing the magic 100 ms number.
 
 Full historical record: see `VISUALIZATION_CANVAS_BG_AND_FULLSCREEN_FIX_JULY22_2026.md` at the repo root.
+
+### Plotly axis/grid colour-strengthening (added July 22, 2026)
+
+After the always-white canvas shipped, the user reported that **3D scatter plot axes, plot lines, and the background grid were all invisible** — the same complaint appeared for box plots. Investigation surfaced four layered causes documented as a single fix in `VISUALIZATION_PLOTLY_AXIS_GRID_VISIBILITY_FIX_JULY22_2026.md` (repo root):
+
+1. **`gridColor = '#e1e4e8'` was too pale** (~1.18:1 contrast on white, essentially invisible). Replaced with `#94a3b8` (Tailwind slate-400, ~2.85:1). Also introduced two new constants: `axisLineColor = '#7c8694'` (~4.25:1, used for axis lines and ticks — darker than grid for visual separation) and `zeroLineColor = '#cbd5e1'` (~1.7:1, soft accent for the zero reference line).
+
+2. **`baseLayout` had no 2D `xaxis`/`yaxis` properties** — only polar/3D/geo/ternary branches themed their axes; the Cartesian branch (bar/line/scatter/**box**/histogram/area) fell through to Plotly's `'#eee'` template default. Added `xaxis` and `yaxis` defaults at the top of `baseLayout`. The spread order in the per-chart-type branches is `...baseLayout, ...plotlyData.layout`, so AI-supplied axis properties still win when present — our defaults only fill the gap when the AI omits them.
+
+3. **`toggle3DView` synthesised scene had no per-axis colours** — only `{title: '...'}`. Added full per-axis `gridcolor`/`linecolor`/`tickcolor`/`zerolinecolor`/`zerolinewidth: 2` plus `scene.bgcolor` to match the AI-3D path.
+
+4. **`updateTheme` and `updateChartTheme` did not push `scene.*` relayout paths** — even when the user toggled UI theme on an existing 3D chart, the scene axes were stuck at their original values. Added a trace-type sniff (same `'scatter3d' | 'surface' | 'mesh3d' | ...` set used by `applyEnhancedPlotlyTheme`'s `chartTypes.has('3d')`) so 3D charts get the scene relayout and 2D charts don't get invalid paths pushed.
+
+**Conceptual trap that caused cause 4:** in Plotly, 2D axes use `layout.xaxis.*` / `layout.yaxis.*` paths, but 3D scene axes use `scene.xaxis.*` / `scene.yaxis.*` / `scene.zaxis.*` — they do NOT inherit from 2D. Setting `xaxis.gridcolor` does NOT change `scene.xaxis.gridcolor`. This is what hid the scene axes when only the 2D relayout paths fired.
+
+**Why darker is better than subtler:** the previous `#e1e4e8` was right for soft UI borders but wrong for chart axes — axis lines and gridlines have to be *perceived* by a user scanning a dense chart, so ~3:1+ contrast reads as crisp on white without being harsh. The new slate-400 / slate-500 gradient (grid → line) also gives Plotly's "axis vs grid" distinction that the old monochrome grey collapsed.
+
+Impact summary:
+
+- 2D box / bar / line / scatter / area / histogram: axes/grid/tick/zero-line now clearly visible on white canvas.
+- 3D scatter (AI minimal-defaults path): scene axes/grid/tick/zero-line/zeroline clearly visible.
+- 3D surface (synthesised by `toggle3DView`): same — was totally default before, now matches the AI path.
+- 3D charts after theme toggle: scene axes now re-themed by relayout (previously stuck).
+- Dark mode UI: unchanged for plotly charts — the chart canvas is still forced white, dark text/grid/lines always render correctly regardless of UI theme.
+
+Full historical record: see `VISUALIZATION_PLOTLY_AXIS_GRID_VISIBILITY_FIX_JULY22_2026.md` at the repo root.
 
 ---
 

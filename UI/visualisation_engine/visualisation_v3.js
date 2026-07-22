@@ -3096,9 +3096,16 @@ class VisualizationEngine {
         // and Plotly's paper_bgcolor export (downloadImage/toImage) yields
         // an opaque white PNG that matches Mermaid's hard-coded-white PNG
         // export. See VISUALIZATION_CANVAS_BG_AND_FULLSCREEN_FIX_JULY22_2026.md.
+        //
+        // gridColor chosen as a mid-tone slate (#94a3b8, ~2.8:1 on white)
+        // rather than the previous GitHub-border-default #e1e4e8 (~1.2:1,
+        // essentially invisible) — user reported invisible 3D axes and grid
+        // on the new white canvas. See VISUALIZATION_PLOTLY_AXIS_GRID_VISIBILITY_FIX_JULY22_2026.md.
         const bgColor = '#ffffff';
         const textColor = '#24292f';
-        const gridColor = '#e1e4e8';
+        const gridColor = '#94a3b8';
+        const axisLineColor = '#7c8694';
+        const zeroLineColor = '#cbd5e1';
 
         plotlyData.layout = plotlyData.layout || {};
 
@@ -3157,6 +3164,29 @@ class VisualizationEngine {
             },
             paper_bgcolor: bgColor,
             plot_bgcolor: bgColor,
+            // EW (Jul 22 2026): Apply 2D axis colours at baseLayout so every
+            // Cartesian chart (bar/line/scatter/box/histogram/area) gets
+            // themed axes -- previously the Cartesian branch at L~3340 had
+            // no explicit xaxis/yaxis, so AI charts that didn't specify
+            // gridcolor/linecolor fell through to Plotly's invisible '#eee'
+            // template default. Plotly spreads *baseLayout first then
+            // AI layout last, so per-AI colour overrides still win.
+            xaxis: {
+                gridcolor: gridColor,
+                linecolor: axisLineColor,
+                tickcolor: axisLineColor,
+                zerolinecolor: zeroLineColor,
+                zerolinewidth: 1,
+                tickfont: { color: textColor }
+            },
+            yaxis: {
+                gridcolor: gridColor,
+                linecolor: axisLineColor,
+                tickcolor: axisLineColor,
+                zerolinecolor: zeroLineColor,
+                zerolinewidth: 1,
+                tickfont: { color: textColor }
+            },
             legend: safeLegend,
             title: {
                 ...plotlyData.layout.title,
@@ -3235,24 +3265,40 @@ class VisualizationEngine {
                         center: { x: 0, y: 0, z: 0 },
                         up: { x: 0, y: 0, z: 1 }
                     },
+                    // EW (Jul 22 2026): Use darker axisLineColor for the
+                    // axis line on each 3D wall (Plotly draws 3D axes as
+                    // lines on the wall edges -- distinct from the grid
+                    // colour). Use gridColor (mid-slate) for the wall grid
+                    // and zeroLineColor for the bold zero reference line.
+                    // AI's scene.xaxis/yaxis/zaxis still merged last via the
+                    // spread, so per-AI overrides still win.
                     xaxis: {
                         gridcolor: gridColor,
-                        linecolor: gridColor,
-                        tickcolor: gridColor,
+                        linecolor: axisLineColor,
+                        tickcolor: axisLineColor,
+                        zerolinecolor: zeroLineColor,
+                        zerolinewidth: 2,
+                        showgrid: true,
                         tickfont: { color: textColor, size: 10 },
                         ...plotlyData.layout.scene?.xaxis
                     },
                     yaxis: {
                         gridcolor: gridColor,
-                        linecolor: gridColor,
-                        tickcolor: gridColor,
+                        linecolor: axisLineColor,
+                        tickcolor: axisLineColor,
+                        zerolinecolor: zeroLineColor,
+                        zerolinewidth: 2,
+                        showgrid: true,
                         tickfont: { color: textColor, size: 10 },
                         ...plotlyData.layout.scene?.yaxis
                     },
                     zaxis: {
                         gridcolor: gridColor,
-                        linecolor: gridColor,
-                        tickcolor: gridColor,
+                        linecolor: axisLineColor,
+                        tickcolor: axisLineColor,
+                        zerolinecolor: zeroLineColor,
+                        zerolinewidth: 2,
+                        showgrid: true,
                         tickfont: { color: textColor, size: 10 },
                         ...plotlyData.layout.scene?.zaxis
                     }
@@ -4270,17 +4316,52 @@ class VisualizationEngine {
 
             // EW (Jul 22 2026): Always-white chart canvas (matching the
             // applyEnhancedPlotlyTheme path). See VISUALIZATION_CANVAS_BG_AND_FULLSCREEN_FIX_JULY22_2026.md.
+            //
+            // Also apply per-axis grid/line/tick colours inline -- this
+            // synthesised 3D scene was previously shipped with only
+            // {title: ...} per axis, leaving grid/line/tick at Plotly's
+            // template defaults (which read as white-on-white on our
+            // forced white canvas). See VISUALIZATION_PLOTLY_AXIS_GRID_VISIBILITY_FIX_JULY22_2026.md.
             const bgColor = '#ffffff';
             const textColor = '#24292f';
+            const gridColor = '#94a3b8';
+            const axisLineColor = '#7c8694';
+            const zeroLineColor = '#cbd5e1';
 
             const layout3D = {
                 title: 'Interactive 3D Surface',
                 scene: {
-                    xaxis: { title: 'X Axis (units)' },
-                    yaxis: { title: 'Y Axis (units)' },
-                    zaxis: { title: 'Z Axis (units)' }
+                    bgcolor: bgColor,
+                    xaxis: {
+                        title: 'X Axis (units)',
+                        gridcolor: gridColor,
+                        linecolor: axisLineColor,
+                        tickcolor: axisLineColor,
+                        zerolinecolor: zeroLineColor,
+                        zerolinewidth: 2,
+                        tickfont: { color: textColor }
+                    },
+                    yaxis: {
+                        title: 'Y Axis (units)',
+                        gridcolor: gridColor,
+                        linecolor: axisLineColor,
+                        tickcolor: axisLineColor,
+                        zerolinecolor: zeroLineColor,
+                        zerolinewidth: 2,
+                        tickfont: { color: textColor }
+                    },
+                    zaxis: {
+                        title: 'Z Axis (units)',
+                        gridcolor: gridColor,
+                        linecolor: axisLineColor,
+                        tickcolor: axisLineColor,
+                        zerolinecolor: zeroLineColor,
+                        zerolinewidth: 2,
+                        tickfont: { color: textColor }
+                    }
                 },
                 paper_bgcolor: bgColor,
+                plot_bgcolor: bgColor,
                 font: { color: textColor },
                 margin: { l: 0, r: 0, b: 0, t: 40, pad: 0 }
             };
@@ -9423,9 +9504,15 @@ ${svgData}`;
                         // EW (Jul 22 2026): Always-white chart canvas (theme
                         // toggle no longer repaints the canvas). See
                         // VISUALIZATION_CANVAS_BG_AND_FULLSCREEN_FIX_JULY22_2026.md.
+                        //
+                        // gridColor darkened from '#e1e4e8' to '#94a3b8' so
+                        // lines are clearly visible on the forced white canvas.
+                        // See VISUALIZATION_PLOTLY_AXIS_GRID_VISIBILITY_FIX_JULY22_2026.md.
                         const bgColor = '#ffffff';
                         const textColor = '#24292f';
-                        const gridColor = '#e1e4e8';
+                        const gridColor = '#94a3b8';
+                        const axisLineColor = '#7c8694';
+                        const zeroLineColor = '#cbd5e1';
 
                         console.log(`🔄 Updating Plotly chart ${chartId} legend background to: ${bgColor}`);
 
@@ -9438,12 +9525,37 @@ ${svgData}`;
                             'legend.bordercolor': gridColor,
                             'legend.font.color': textColor,
                             'xaxis.gridcolor': gridColor,
-                            'xaxis.linecolor': gridColor,
+                            'xaxis.linecolor': axisLineColor,
+                            'xaxis.tickcolor': axisLineColor,
+                            'xaxis.zerolinecolor': zeroLineColor,
                             'xaxis.tickfont.color': textColor,
                             'yaxis.gridcolor': gridColor,
-                            'yaxis.linecolor': gridColor,
+                            'yaxis.linecolor': axisLineColor,
+                            'yaxis.tickcolor': axisLineColor,
+                            'yaxis.zerolinecolor': zeroLineColor,
                             'yaxis.tickfont.color': textColor
                         };
+
+                        // EW (Jul 22 2026): If this chart is 3D, also
+                        // relayout scene.* axes. (Without this, toggling
+                        // theme on a 3D chart leaves scene axes stuck at
+                        // the original Plotly defaults.) The trace-type
+                        // sniff mirrors applyEnhancedPlotlyTheme's
+                        // chartTypes-detection block.
+                        const is3D = Array.isArray(element.data) && element.data.some(trace => {
+                            const t = (trace?.type || 'scatter').toLowerCase();
+                            return ['scatter3d', 'surface', 'mesh3d', 'cone', 'streamtube', 'volume', 'isosurface'].includes(t);
+                        });
+                        if (is3D) {
+                            updateObj['scene.bgcolor'] = bgColor;
+                            ['xaxis', 'yaxis', 'zaxis'].forEach(axisKey => {
+                                updateObj[`scene.${axisKey}.gridcolor`] = gridColor;
+                                updateObj[`scene.${axisKey}.linecolor`] = axisLineColor;
+                                updateObj[`scene.${axisKey}.tickcolor`] = axisLineColor;
+                                updateObj[`scene.${axisKey}.zerolinecolor`] = zeroLineColor;
+                                updateObj[`scene.${axisKey}.tickfont.color`] = textColor;
+                            });
+                        }
 
                         Plotly.relayout(chartId, updateObj);
                         console.log('lotly chart updated with new legend background');
@@ -9463,9 +9575,15 @@ ${svgData}`;
         if (!element) return;
         // EW (Jul 22 2026): Always-white chart canvas. See
         // VISUALIZATION_CANVAS_BG_AND_FULLSCREEN_FIX_JULY22_2026.md.
+        //
+        // gridColor darkened from '#e1e4e8' to '#94a3b8' so lines read
+        // clearly on the forced white canvas. See
+        // VISUALIZATION_PLOTLY_AXIS_GRID_VISIBILITY_FIX_JULY22_2026.md.
         const bgColor = '#ffffff';
         const textColor = '#24292f';
-        const gridColor = '#e1e4e8';
+        const gridColor = '#94a3b8';
+        const axisLineColor = '#7c8694';
+        const zeroLineColor = '#cbd5e1';
 
         try {
             switch (chart.type) {
@@ -9480,14 +9598,16 @@ ${svgData}`;
                             },
                             xaxis: {
                                 gridcolor: gridColor,
-                                linecolor: gridColor,
-                                tickcolor: gridColor,
+                                linecolor: axisLineColor,
+                                tickcolor: axisLineColor,
+                                zerolinecolor: zeroLineColor,
                                 tickfont: { color: textColor }
                             },
                             yaxis: {
                                 gridcolor: gridColor,
-                                linecolor: gridColor,
-                                tickcolor: gridColor,
+                                linecolor: axisLineColor,
+                                tickcolor: axisLineColor,
+                                zerolinecolor: zeroLineColor,
                                 tickfont: { color: textColor }
                             },
                             legend: {
@@ -9496,6 +9616,38 @@ ${svgData}`;
                                 font: { color: textColor }
                             }
                         };
+                        // EW (Jul 22 2026): For 3D charts, also relayout
+                        // the scene.* axes. Mirror of the updateTheme
+                        // change so single-chart refresh hits 3D too.
+                        if (Array.isArray(element.data) && element.data.some(trace => {
+                            const t = (trace?.type || 'scatter').toLowerCase();
+                            return ['scatter3d', 'surface', 'mesh3d', 'cone', 'streamtube', 'volume', 'isosurface'].includes(t);
+                        })) {
+                            newLayout.scene = {
+                                bgcolor: bgColor,
+                                xaxis: {
+                                    gridcolor: gridColor,
+                                    linecolor: axisLineColor,
+                                    tickcolor: axisLineColor,
+                                    zerolinecolor: zeroLineColor,
+                                    tickfont: { color: textColor }
+                                },
+                                yaxis: {
+                                    gridcolor: gridColor,
+                                    linecolor: axisLineColor,
+                                    tickcolor: axisLineColor,
+                                    zerolinecolor: zeroLineColor,
+                                    tickfont: { color: textColor }
+                                },
+                                zaxis: {
+                                    gridcolor: gridColor,
+                                    linecolor: axisLineColor,
+                                    tickcolor: axisLineColor,
+                                    zerolinecolor: zeroLineColor,
+                                    tickfont: { color: textColor }
+                                }
+                            };
+                        }
                         Plotly.relayout(chartId, newLayout);
                     }
                     break;
