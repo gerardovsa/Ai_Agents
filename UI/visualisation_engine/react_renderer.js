@@ -43,7 +43,8 @@ class ReactRenderer {
             iframe.id = chartId;
 
             // No allow-same-origin — keeps iframe JS isolated from parent page
-            iframe.sandbox = 'allow-scripts allow-forms allow-modals allow-pointer-lock';
+            // allow-downloads lets the child use <a download> as a CSV/PDF fallback
+            iframe.sandbox = 'allow-scripts allow-forms allow-modals allow-pointer-lock allow-downloads';
 
             // Clipboard API requires explicit Permissions Policy grant
             iframe.allow = 'clipboard-write';
@@ -610,6 +611,86 @@ ${identifierHoist}
 </html>`;
     }
 }
+
+// =============================================================================
+// __REACT_RENDERER__ EXPORT HOOK (added 2026-07-22 for Tier-1 toolbar)
+// -----------------------------------------------------------------------------
+// Exposes a minimal postMessage API that the parent SPA (visualisation_v3.js
+// addIframeTier1Toolbar) can call to request an SVG/data export from inside
+// the sandboxed iframe. Opt-in: child code that does nothing special will
+// still respond to `iframe-export-svg` via a `document.querySelector('svg')`
+// fallback. Children that want full control register an override via
+// `window.__EXPORT_HANDLER__.svg()` (returns serialized SVG string) and/or
+// assign `window.__EXPORT_DATA__ = { series, labels, ... }` for CSV export.
+//
+// PostMessage protocol (added alongside the existing `iframe-resize`):
+//   parent → child : { type: 'iframe-export-svg',  id: <chartId> }
+//   parent → child : { type: 'iframe-export-data', id: <chartId> }
+//   child  → parent: { type: 'iframe-svg',  id: <chartId>, svg: <string|null> }
+//   child  → parent: { type: 'iframe-data', id: <chartId>, payload: <obj> }
+//
+// This hook is ADDITIVE — the existing `iframe-resize` listener in render()
+// is untouched.
+// =============================================================================
+(function installReactRendererExportHook() {
+    if (window.__REACT_RENDERER__) return; // idempotent guard
+
+    window.__REACT_RENDERER__ = {
+        // The chart id is set per-render by the caller of buildReactSrcdoc().
+        // The toolbar reads it off the wrapper iframe element before posting.
+        chartId: null,
+        sendSvg: function (svgString) {
+            window.parent.postMessage(
+                { type: 'iframe-svg', id: this.chartId, svg: svgString },
+                '*'
+            );
+        },
+        sendData: function (payload) {
+            window.parent.postMessage(
+                { type: 'iframe-data', id: this.chartId, payload: payload },
+                '*'
+            );
+        },
+        // Children can register a custom export handler. If absent, the
+        // default SVG export falls back to document.querySelector('svg').
+        registerExport: function (handlers) {
+            window.__EXPORT_HANDLER__ = handlers;
+        }
+    };
+
+    window.addEventListener('message', function (e) {
+        if (!e.data || typeof e.data !== 'object') return;
+        var id = window.__REACT_RENDERER__.chartId;
+        if (!id) return;
+        if (e.data.id !== id) return; // not for this iframe
+
+        if (e.data.type === 'iframe-export-svg') {
+            var svg = null;
+            try {
+                if (window.__EXPORT_HANDLER__ && typeof window.__EXPORT_HANDLER__.svg === 'function') {
+                    svg = window.__EXPORT_HANDLER__.svg();
+                } else {
+                    var root = document.querySelector('svg');
+                    if (root) {
+                        svg = new XMLSerializer().serializeToString(root);
+                    }
+                }
+            } catch (err) {
+                svg = null;
+                console.error('[__REACT_RENDERER__] SVG export failed:', err);
+            }
+            window.__REACT_RENDERER__.sendSvg(svg);
+        } else if (e.data.type === 'iframe-export-data') {
+            var payload;
+            try {
+                payload = window.__EXPORT_DATA__ || { error: 'no __EXPORT_DATA__ set' };
+            } catch (err) {
+                payload = { error: String(err) };
+            }
+            window.__REACT_RENDERER__.sendData(payload);
+        }
+    });
+})();
 
 // Register globally for use by the visualization engine
 window.ReactRenderer = ReactRenderer;

@@ -694,6 +694,12 @@ app.register_blueprint(pool_monitor_bp)                              # NEW: Conn
 app.register_blueprint(monitoring_bp)                                # NEW: Connection pool health monitoring (4 endpoints: /api/pool/stats, /api/pool/health)
 app.register_blueprint(module_bp)                                    # NEW: Self-registering module system (8 endpoints: /api/modules/*)
 app.register_blueprint(task_sync_bp)                                 # NEW: Universal Task Sync (Google Tasks, Microsoft To Do, Calendar - /api/sync/*)
+try:
+    from routes.viz_snapshots_routes import viz_snapshots_bp
+    app.register_blueprint(viz_snapshots_bp)                         # NEW: Persistent visualizations library (11 endpoints: /api/viz/snapshots/*)
+    log_success(logger, "Viz snapshots routes registered (11 endpoints: /api/viz/snapshots/*)")
+except Exception as e:
+    log_error(logger, f"Failed to register viz_snapshots routes: {e}")
 # app.register_blueprint(quote_calc_bp)                                # DISABLED: In_House_SQL dependency
 
 # Organisation credentials & team management

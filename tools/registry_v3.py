@@ -412,7 +412,7 @@ class RegistryV3:
         # overwrite makes sibling functions unreachable via get_tool_function
         # Case 2 (which skips callable entries). Per-function registration
         # avoids the module-vs-function collision entirely.
-        special_modules = ["sql_database", "meta_tools", "visualization_guide"]
+        special_modules = ["sql_database", "meta_tools", "visualization_guide", "viz_snapshots"]
         for module_name in special_modules:
             if module_name in impl_files:
                 try:

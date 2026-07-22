@@ -2173,9 +2173,13 @@ class VisualizationEngine {
         bar.innerHTML = `
             <button class="viz-action-btn" title="Open in side panel">&#x229F;</button>
             <button class="viz-action-btn" title="Open as floating window">&#x229E;</button>
+            <button class="viz-action-btn viz-tier1-trigger" title="Export, save, and more (Tier 1)">&#x22EE;</button>
         `;
 
-        const [panelBtn, floatBtn] = bar.querySelectorAll('.viz-action-btn');
+        const btns = bar.querySelectorAll('.viz-action-btn');
+        const panelBtn = btns[0];
+        const floatBtn = btns[1];
+        const kebabBtn = btns[2];
 
         panelBtn.addEventListener('click', () => {
             if (window.vizPopupManager) {
@@ -2188,7 +2192,515 @@ class VisualizationEngine {
             }
         });
 
+        // Tier-1 toolbar (PNG / PDF / CSV / Copy / Fullscreen / Save)
+        // Derive the iframe from contentArea; the wrapper owns the lifecycle.
+        const iframe = contentArea?.querySelector?.('iframe') || null;
+        if (kebabBtn && iframe) {
+            this.addIframeTier1Toolbar(container, contentArea, chartId, iframe, kebabBtn);
+        }
+
         container.appendChild(bar);
+    }
+
+    /**
+     * Tier-1 toolbar — kebab popover with PNG / PDF / CSV / Copy / Fullscreen / Save.
+     *
+     * Communication:
+     *   parent -> child : { type: 'iframe-export-svg', id: chartId }
+     *   parent -> child : { type: 'iframe-export-data', id: chartId }
+     *   child  -> parent: { type: 'iframe-svg', id: chartId, svg: string|null }
+     *   child  -> parent: { type: 'iframe-data', id: chartId, payload: object|null }
+     *
+     * The renderer-side hook (window.__REACT_RENDERER__) is installed by
+     * react_renderer.js; it serialises the first <svg> by default and reads
+     * window.__EXPORT_DATA__ when present.
+     *
+     * No emoji in source literals (CLAUDE.md §5) — FontAwesome classes only.
+     */
+    addIframeTier1Toolbar(container, contentArea, chartId, iframe, kebabBtn) {
+        if (!container || !iframe || kebabBtn.dataset.tier1Wired === '1') return;
+        kebabBtn.dataset.tier1Wired = '1';
+
+        // Build popover (appended to <body> so absolute positioning is reliable).
+        const popover = document.createElement('div');
+        popover.className = 'viz-tier1-popover';
+        popover.setAttribute('role', 'menu');
+        popover.style.cssText = [
+            'position: absolute',
+            'z-index: 9999',
+            'display: none',
+            'min-width: 200px',
+            'padding: 6px',
+            'background: var(--bg-secondary, #1e1e2e)',
+            'border: 1px solid var(--border-color, #333)',
+            'border-radius: 8px',
+            'box-shadow: 0 8px 24px rgba(0,0,0,0.35)',
+            'color: var(--text-primary, #e6e6e6)',
+            'font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+            'font-size: 13px',
+        ].join(';');
+
+        // 6 actions — FontAwesome classes only (no emoji in source literals).
+        const actions = [
+            { id: 'png',        label: 'Export PNG',        iconClass: 'fas fa-image'      },
+            { id: 'pdf',        label: 'Export PDF',        iconClass: 'fas fa-file-pdf'   },
+            { id: 'csv',        label: 'Export CSV',        iconClass: 'fas fa-file-csv'   },
+            { id: 'copy',       label: 'Copy image',        iconClass: 'fas fa-copy'       },
+            { id: 'fullscreen', label: 'Fullscreen',        iconClass: 'fas fa-expand'     },
+            { id: 'save',       label: 'Save to library',   iconClass: 'fas fa-bookmark'   },
+        ];
+
+        popover.innerHTML = actions.map(a => `
+            <button class="viz-tier1-action" data-action="${a.id}" role="menuitem"
+                    style="display:flex;align-items:center;gap:8px;width:100%;
+                           padding:8px 10px;border:0;background:transparent;
+                           color:inherit;text-align:left;cursor:pointer;
+                           border-radius:6px;font:inherit;">
+                <i class="${a.iconClass}" style="width:16px;display:inline-block;
+                   text-align:center;flex:0 0 16px;"></i>
+                <span>${a.label}</span>
+            </button>
+        `).join('');
+
+        // Hover style for popover buttons (one-shot, idempotent).
+        if (!document.getElementById('viz-tier1-popover-styles')) {
+            const style = document.createElement('style');
+            style.id = 'viz-tier1-popover-styles';
+            style.textContent = `
+                .viz-tier1-popover .viz-tier1-action:hover { background: rgba(88,166,255,0.12); }
+                .viz-tier1-popover .viz-tier1-action:focus  { outline: 2px solid rgba(88,166,255,0.5); outline-offset: -2px; }
+                .viz-tier1-trigger[aria-expanded="true"]    { background: rgba(88,166,255,0.18); }
+            `;
+            document.head.appendChild(style);
+        }
+
+        document.body.appendChild(popover);
+
+        const closePopover = () => {
+            popover.style.display = 'none';
+            kebabBtn.setAttribute('aria-expanded', 'false');
+        };
+
+        const openPopover = () => {
+            // Anchor to kebab button's bounding rect.
+            const rect = kebabBtn.getBoundingClientRect();
+            const popW = 208; // approx; allow a bit of width for the labels
+            const popH = actions.length * 36 + 12;
+            let top = rect.bottom + 6 + window.scrollY;
+            let left = rect.right - popW + window.scrollX;
+            // Keep on-screen
+            const maxLeft = window.scrollX + window.innerWidth - popW - 8;
+            if (left > maxLeft) left = maxLeft;
+            if (left < window.scrollX + 8) left = window.scrollX + 8;
+            const maxTop = window.scrollY + window.innerHeight - popH - 8;
+            if (top > maxTop) top = rect.top - popH - 6 + window.scrollY;
+            popover.style.top = `${Math.max(8, top)}px`;
+            popover.style.left = `${Math.max(8, left)}px`;
+            popover.style.display = 'block';
+            kebabBtn.setAttribute('aria-expanded', 'true');
+        };
+
+        kebabBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            if (popover.style.display === 'block') {
+                closePopover();
+            } else {
+                openPopover();
+            }
+        });
+
+        // Close on outside click / Escape.
+        const onDocClick = (ev) => {
+            if (popover.style.display !== 'block') return;
+            if (popover.contains(ev.target) || kebabBtn.contains(ev.target)) return;
+            closePopover();
+        };
+        const onKey = (ev) => {
+            if (ev.key === 'Escape' && popover.style.display === 'block') {
+                closePopover();
+                kebabBtn.focus();
+            }
+        };
+        document.addEventListener('click', onDocClick);
+        document.addEventListener('keydown', onKey);
+
+        // Click handlers (delegated).
+        popover.addEventListener('click', async (ev) => {
+            const btn = ev.target.closest('.viz-tier1-action');
+            if (!btn) return;
+            const action = btn.dataset.action;
+            closePopover();
+            try {
+                await this._runTier1Action(action, {
+                    container, contentArea, chartId, iframe,
+                });
+            } catch (err) {
+                console.error('[viz-tier1] action failed:', action, err);
+                this._tier1Toast(`Action "${action}" failed: ${err?.message || err}`, 'error');
+            }
+        });
+
+        // Track lifecycle so we can clean up if the container is removed.
+        container.addEventListener('DOMNodeRemoved', () => {
+            document.removeEventListener('click', onDocClick);
+            document.removeEventListener('keydown', onKey);
+            if (popover.parentNode) popover.parentNode.removeChild(popover);
+        });
+    }
+
+    /**
+     * Dispatch a single Tier-1 action. All actions are async; errors surface
+     * via showToast. Keep this method small — split out the heavy helpers
+     * below so each is reviewable on its own.
+     */
+    async _runTier1Action(action, ctx) {
+        const { chartId, iframe, container } = ctx;
+        switch (action) {
+            case 'png':        return this._tier1ExportPng(iframe, chartId, container);
+            case 'pdf':        return this._tier1ExportPdf(iframe, chartId);
+            case 'csv':        return this._tier1ExportCsv(iframe, chartId);
+            case 'copy':       return this._tier1CopyImage(iframe, chartId, container);
+            case 'fullscreen': return this._tier1Fullscreen(iframe);
+            case 'save':       return this._tier1Save(iframe, chartId, container);
+            default:           throw new Error(`Unknown action: ${action}`);
+        }
+    }
+
+    /**
+     * Resolve an iframe-export-* request and resolve with the matching
+     * child->parent reply. Each request gets a unique nonce so multiple
+     * in-flight exports can co-exist.
+     */
+    _tier1Request(iframe, chartId, type, timeoutMs = 5000) {
+        return new Promise((resolve, reject) => {
+            const nonce = `${chartId}:${type}:${Date.now()}:${Math.random().toString(36).slice(2, 8)}`;
+            const onMessage = (ev) => {
+                if (!ev.data || typeof ev.data !== 'object') return;
+                if (ev.source !== iframe.contentWindow) return;
+                const replyType = type === 'iframe-export-svg' ? 'iframe-svg' : 'iframe-data';
+                if (ev.data.type !== replyType) return;
+                if (ev.data.id !== chartId) return;
+                window.removeEventListener('message', onMessage);
+                clearTimeout(timer);
+                resolve(ev.data);
+            };
+            const timer = setTimeout(() => {
+                window.removeEventListener('message', onMessage);
+                reject(new Error(`Timeout waiting for ${type} reply from chart ${chartId}`));
+            }, timeoutMs);
+            window.addEventListener('message', onMessage);
+            try {
+                iframe.contentWindow.postMessage({ type, id: chartId, nonce }, '*');
+            } catch (err) {
+                window.removeEventListener('message', onMessage);
+                clearTimeout(timer);
+                reject(err);
+            }
+        });
+    }
+
+    /**
+     * Rasterise an SVG string on a parent-side canvas and return a PNG Blob.
+     * Falls back to JPEG if the canvas becomes tainted (foreignObject images).
+     */
+    async _tier1SvgToBlob(svgString) {
+        if (!svgString) throw new Error('Empty SVG payload from chart');
+        // Parse the SVG to honour viewBox / width / height if present.
+        const parser = new DOMParser();
+        const doc = parser.parseFromString(svgString, 'image/svg+xml');
+        const svg = doc.documentElement;
+        const w = parseFloat(svg.getAttribute('width')) || 1200;
+        const h = parseFloat(svg.getAttribute('height')) || 800;
+        const blobIn = new Blob([svgString], { type: 'image/svg+xml;charset=utf-8' });
+        const url = URL.createObjectURL(blobIn);
+        try {
+            const img = await new Promise((resolve, reject) => {
+                const i = new Image();
+                i.onload = () => resolve(i);
+                i.onerror = () => reject(new Error('SVG image failed to load'));
+                i.src = url;
+            });
+            const canvas = document.createElement('canvas');
+            // 2x for crisper exports.
+            const scale = Math.min(2, Math.max(1, window.devicePixelRatio || 1));
+            canvas.width = Math.round(w * scale);
+            canvas.height = Math.round(h * scale);
+            const ctx = canvas.getContext('2d');
+            ctx.fillStyle = getComputedStyle(document.body).backgroundColor || '#ffffff';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+            return await new Promise((resolve) => {
+                canvas.toBlob((b) => resolve(b), 'image/png');
+            });
+        } finally {
+            URL.revokeObjectURL(url);
+        }
+    }
+
+    _tier1Toast(message, type = 'info') {
+        try {
+            if (typeof window.showToast === 'function') {
+                window.showToast(message, type);
+                return;
+            }
+        } catch (_) { /* fall through */ }
+        console.log(`[viz-tier1] (${type}) ${message}`);
+    }
+
+    async _tier1ExportPng(iframe, chartId, container) {
+        const reply = await this._tier1Request(iframe, chartId, 'iframe-export-svg');
+        const blob = await this._tier1SvgToBlob(reply.svg);
+        if (!blob) throw new Error('Canvas rasterisation returned empty blob');
+        this._tier1TriggerDownload(blob, `viz-${chartId}.png`);
+        // Side-effect: persist as thumbnail if this iframe has a saved snapshot.
+        const snapshotId = container?.dataset?.vizSnapshotId || container?.getAttribute?.('data-viz-snapshot-id');
+        if (snapshotId) {
+            this._tier1UploadThumbnail(snapshotId, blob).catch((err) => {
+                console.warn('[viz-tier1] thumbnail upload failed:', err);
+            });
+        }
+        this._tier1Toast(`Exported ${chartId}.png`, 'success');
+    }
+
+    async _tier1UploadThumbnail(snapshotId, pngBlob) {
+        const token = localStorage.getItem('authToken') || sessionStorage.getItem('authToken') || '';
+        const reader = new FileReader();
+        const dataUrl = await new Promise((resolve, reject) => {
+            reader.onload = () => resolve(reader.result);
+            reader.onerror = () => reject(reader.error);
+            reader.readAsDataURL(pngBlob);
+        });
+        const base64 = String(dataUrl).split(',', 2)[1] || '';
+        const resp = await fetch(`/api/viz/snapshots/${encodeURIComponent(snapshotId)}/thumbnail`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': token ? `Bearer ${token}` : '',
+            },
+            body: JSON.stringify({ png_base64: base64 }),
+        });
+        if (!resp.ok) {
+            const text = await resp.text().catch(() => '');
+            throw new Error(`HTTP ${resp.status}: ${text.slice(0, 120)}`);
+        }
+        return resp.json().catch(() => ({}));
+    }
+
+    async _tier1ExportPdf(iframe, chartId) {
+        const reply = await this._tier1Request(iframe, chartId, 'iframe-export-svg');
+        // V1: open print dialog with the SVG embedded in an HTML wrapper.
+        // V2 may swap to jsPDF for true file output (see hand-off doc).
+        const html = `<!doctype html><html><head><meta charset="utf-8"><title>viz-${chartId}</title>
+<style>html,body{margin:0;padding:24px;background:#fff;color:#111;
+font-family:-apple-system,BlinkMacSystemFont,sans-serif;}
+svg{max-width:100%;height:auto;display:block;margin:0 auto;}</style>
+</head><body>${reply.svg || '<p>(no SVG returned)</p>'}
+<script>window.addEventListener('load',()=>{setTimeout(()=>{window.print();},200);});</script>
+</body></html>`;
+        const blob = new Blob([html], { type: 'text/html' });
+        const url = URL.createObjectURL(blob);
+        const w = window.open(url, '_blank', 'noopener,noreferrer');
+        if (!w) {
+            // Popup blocked — fall back to a same-tab data URL the user can
+            // right-click -> Print on.
+            window.location.href = url;
+            this._tier1Toast('Popup blocked — opening in same tab. Use Print.', 'info');
+        } else {
+            this._tier1Toast('Opening print dialog…', 'success');
+        }
+        // Revoke later (give the new window time to load).
+        setTimeout(() => URL.revokeObjectURL(url), 60000);
+    }
+
+    async _tier1ExportCsv(iframe, chartId) {
+        const reply = await this._tier1Request(iframe, chartId, 'iframe-export-data');
+        const payload = reply.payload || {};
+        if (payload.error) {
+            throw new Error(`Chart did not expose data: ${payload.error}`);
+        }
+        const csv = this._tier1BuildCsv(payload);
+        const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
+        this._tier1TriggerDownload(blob, `viz-${chartId}.csv`);
+        this._tier1Toast(`Exported ${chartId}.csv`, 'success');
+    }
+
+    _tier1BuildCsv(payload) {
+        // Accept either a flat rows array or {labels, series} shape.
+        if (Array.isArray(payload.rows)) {
+            return payload.rows.map((r) => Array.isArray(r) ? r.join(',') : JSON.stringify(r)).join('\n');
+        }
+        const labels = Array.isArray(payload.labels) ? payload.labels : [];
+        const series = Array.isArray(payload.series) ? payload.series : [];
+        const header = ['label', ...series.map((s) => s?.name || 'series')];
+        const lines = [header.join(',')];
+        labels.forEach((lbl, i) => {
+            const row = [lbl, ...series.map((s) => {
+                const v = Array.isArray(s?.data) ? s.data[i] : (s?.data?.[i] ?? '');
+                return typeof v === 'number' ? v : JSON.stringify(v ?? '');
+            })];
+            lines.push(row.join(','));
+        });
+        return lines.join('\n');
+    }
+
+    async _tier1CopyImage(iframe, chartId, container) {
+        if (!navigator.clipboard || typeof navigator.clipboard.write !== 'function') {
+            throw new Error('Clipboard image write not supported in this browser');
+        }
+        const reply = await this._tier1Request(iframe, chartId, 'iframe-export-svg');
+        const blob = await this._tier1SvgToBlob(reply.svg);
+        if (!blob) throw new Error('Canvas rasterisation returned empty blob');
+        await navigator.clipboard.write([
+            new ClipboardItem({ 'image/png': blob }),
+        ]);
+        this._tier1Toast('Image copied to clipboard', 'success');
+        // Same side-effect as PNG export.
+        const snapshotId = container?.dataset?.vizSnapshotId || container?.getAttribute?.('data-viz-snapshot-id');
+        if (snapshotId) {
+            this._tier1UploadThumbnail(snapshotId, blob).catch((err) => {
+                console.warn('[viz-tier1] thumbnail upload failed:', err);
+            });
+        }
+    }
+
+    async _tier1Fullscreen(iframe) {
+        if (typeof iframe.requestFullscreen === 'function') {
+            await iframe.requestFullscreen();
+            return;
+        }
+        // WebKit/legacy fallbacks
+        if (typeof iframe.webkitRequestFullscreen === 'function') {
+            iframe.webkitRequestFullscreen();
+            return;
+        }
+        throw new Error('Fullscreen API not available in this browser');
+    }
+
+    async _tier1Save(iframe, chartId, container) {
+        // 1. Prompt for title + tags.
+        const existing = container?.dataset?.vizSnapshotId
+            || container?.getAttribute?.('data-viz-snapshot-id')
+            || '';
+        const defaultTitle = container?.dataset?.vizTitle || `Visualization ${chartId}`;
+        const title = (window.prompt('Save visualization — title?', defaultTitle) || '').trim();
+        if (!title) return;
+        const tagsRaw = (window.prompt('Tags (comma-separated, optional)', '') || '').trim();
+        const tags = tagsRaw ? tagsRaw.split(',').map((t) => t.trim()).filter(Boolean) : [];
+
+        // 2. Extract JSX from iframe.srcdoc.
+        const srcdoc = iframe.getAttribute('src') === 'about:blank' ? '' : (iframe.srcdoc || '');
+        const jsx_source = this._tier1ExtractJsx(srcdoc);
+        if (!jsx_source) {
+            throw new Error('Could not extract JSX from iframe. Re-render the chart and try again.');
+        }
+        const css_source = this._tier1ExtractCss(srcdoc);
+
+        // 3. Heuristics for what the chart uses.
+        const uses_lucide = /lucide/i.test(srcdoc);
+        const uses_recharts = /recharts/i.test(srcdoc);
+        const uses_tailwind = /tailwind/i.test(srcdoc);
+
+        // 4. POST or PATCH depending on existing id.
+        const token = localStorage.getItem('authToken') || sessionStorage.getItem('authToken') || '';
+        const headers = {
+            'Content-Type': 'application/json',
+            'Authorization': token ? `Bearer ${token}` : '',
+        };
+        if (existing) {
+            const resp = await fetch(`/api/viz/snapshots/${encodeURIComponent(existing)}`, {
+                method: 'PATCH',
+                headers,
+                body: JSON.stringify({ title, tags, css_source }),
+            });
+            if (!resp.ok) {
+                const t = await resp.text().catch(() => '');
+                throw new Error(`Update failed (${resp.status}): ${t.slice(0, 160)}`);
+            }
+            this._tier1Toast(`Updated "${title}"`, 'success');
+            return;
+        }
+        const resp = await fetch('/api/viz/snapshots/', {
+            method: 'POST',
+            headers,
+            body: JSON.stringify({
+                title,
+                jsx_source,
+                css_source,
+                tags,
+                uses_lucide,
+                uses_recharts,
+                uses_tailwind,
+            }),
+        });
+        if (!resp.ok) {
+            const t = await resp.text().catch(() => '');
+            throw new Error(`Create failed (${resp.status}): ${t.slice(0, 160)}`);
+        }
+        const body = await resp.json().catch(() => ({}));
+        const newId = body?.id || body?.snapshot?.id;
+        if (newId && container) {
+            container.setAttribute('data-viz-snapshot-id', newId);
+            container.dataset.vizSnapshotId = newId;
+            container.dataset.vizTitle = title;
+        }
+        this._tier1Toast(`Saved "${title}" to library`, 'success');
+    }
+
+    /**
+     * Strip react_renderer.js's HTML wrapper down to the user-authored JSX.
+     * Looks for a <script type="text/babel"> block that contains the App
+     * component, then returns the body between the first top-level `function App`
+     * / `const App =` / `class App` and the matching closing brace (best-effort).
+     */
+    _tier1ExtractJsx(srcdoc) {
+        if (!srcdoc) return '';
+        const babelMatch = srcdoc.match(/<script[^>]*type=["']text\/babel["'][^>]*>([\s\S]*?)<\/script>/i);
+        if (!babelMatch) return '';
+        const body = babelMatch[1];
+        // Find the start of App definition; stop at the ReactDOM.createRoot
+        // call which is the renderer wrapper's own code.
+        const startPatterns = [
+            /\bfunction\s+App\s*\(/,
+            /\bconst\s+App\s*=/,
+            /\bclass\s+App\s+/,
+            /\bfunction\s+Chart\s*\(/,
+            /\bconst\s+Chart\s*=/,
+        ];
+        let startIdx = -1;
+        for (const p of startPatterns) {
+            const m = body.search(p);
+            if (m !== -1) { startIdx = m; break; }
+        }
+        if (startIdx === -1) return body.trim();
+        // Cut at ReactDOM.createRoot or ReactDOM.render (renderer marker).
+        const endMatch = body.slice(startIdx).match(/ReactDOM\.(createRoot|render)\s*\(/);
+        const endIdx = endMatch ? startIdx + endMatch.index : -1;
+        const trimmed = endIdx > startIdx ? body.slice(startIdx, endIdx).trim() : body.slice(startIdx).trim();
+        return trimmed;
+    }
+
+    /**
+     * Optional <style> block inside the srcdoc — used as css_source on the
+     * saved snapshot so re-mounts render identically.
+     */
+    _tier1ExtractCss(srcdoc) {
+        if (!srcdoc) return '';
+        const m = srcdoc.match(/<style[^>]*>([\s\S]*?)<\/style>/i);
+        return m ? m[1].trim() : '';
+    }
+
+    _tier1TriggerDownload(blob, filename) {
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = filename;
+        a.style.display = 'none';
+        document.body.appendChild(a);
+        a.click();
+        setTimeout(() => {
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }, 0);
     }
 
     attachResizeHandle(contentArea) {

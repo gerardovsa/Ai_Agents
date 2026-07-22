@@ -1600,6 +1600,43 @@
         })();
     </script>
 
+    <!-- ==================== VISUALIZATIONS GALLERY BOOTSTRAP ==================== -->
+    <!-- ES module: loaded on-demand when user first clicks the analytics sidebar button.
+         Binds to the existing tab-analytics stub (formerly "Analytics content coming
+         soon...") and replaces it with the saved-viz gallery from
+         modules_internal/visualizations/visualizations-module.js. -->
+    <script type="module">
+        (function() {
+            let _loaded = false;
+            let _module = null;
+
+            async function bootVizGallery() {
+                if (_loaded) {
+                    if (_module) await _module.onDashboardLoad(null);
+                    return;
+                }
+                _loaded = true;
+                try {
+                    const mod = await import('./modules_internal/visualizations/visualizations-module.js');
+                    _module = mod.default || mod;
+                    await _module.onDashboardLoad(null);
+                } catch (err) {
+                    console.error('[VIZ-GALLERY] Failed to load module:', err);
+                    const el = document.getElementById('tab-analytics');
+                    if (el) el.innerHTML = `<div style="padding:40px;text-align:center;color:var(--accent-error);"><i class="fas fa-exclamation-triangle" style="font-size:48px;"></i><br><br>Failed to load Visualizations module.<br><small style="color:var(--text-secondary);">${err.message}</small></div>`;
+                }
+            }
+
+            document.addEventListener('DOMContentLoaded', function() {
+                document.addEventListener('click', function(e) {
+                    const btn = e.target.closest('[data-tab="analytics"]');
+                    if (btn) bootVizGallery();
+                });
+                window.bootVisualizationsGallery = bootVizGallery;
+            });
+        })();
+    </script>
+
     <style>
         /* ==================== ROOT VARIABLES ==================== */
         :root {
@@ -18824,7 +18861,7 @@
                 <span style="position:absolute;top:2px;right:2px;font-size:7px;background:#7f54b3;color:#fff;padding:1px 4px;border-radius:4px;font-weight:700;line-height:1.4;">V4</span>
             </button>
 
-            <button class="sidebar-icon-btn" data-tab="analytics" title="Analytics & Reports">
+            <button class="sidebar-icon-btn" data-tab="analytics" data-module="visualizations" title="My Visualizations">
                 <i class="fas fa-chart-line"></i>
             </button>
 

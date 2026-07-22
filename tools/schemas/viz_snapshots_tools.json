@@ -1,0 +1,569 @@
+{
+  "platform": "viz_snapshots",
+  "description": "AI tool wrappers for the My Visualizations library. Persist, search, annotate, and link React visualizations; read the originating chat thread; manage Synergy Kanban links. Backed by /api/viz/snapshots/* routes (see AI_infrastructure/routes/viz_snapshots_routes.py).",
+  "tools": [
+    {
+      "name": "viz_create",
+      "short_description": "Save an AI-rendered React visualization to the user's library",
+      "description": "Persist a freshly-built React visualization (or any react/jsx source) into the 'My Visualizations' library. The snapshot is RLS-scoped to the calling user's org and tagged with the calling user as owner. Use this whenever the LLM has just rendered a dashboard/chart the user might want to revisit.\n\nThe backend stores jsx_source (verbatim), optional css_source, a list of feature flags (uses_lucide / uses_recharts / uses_tailwind) that drive the gallery badge column, and a string-array of tags. On insert the row is also stamped with org_id and owner_user_id from the JWT context, so the caller does NOT supply those.\n\nResponse includes the new id (UUID) and share_token (16-byte hex); both are stable and safe to display back to the user. The created_at / updated_at timestamps are returned ISO-8601.\n\nUSE CASES:\n1. The user asks to save the dashboard the AI just rendered.\n2. The user wants to bookmark a chart under a custom title before navigating away.\n3. An agent is curating a multi-step analysis and wants each step's chart saved with a sequence number in the tags.\n\nWHEN NOT TO USE:\n- Reading or searching existing snapshots → use viz_search.\n- Editing metadata of an existing snapshot → use viz_update.\n- Linking to a Synergy session → call viz_link_synergy afterwards (or chain in same turn).\n\nWORKFLOW:\n1. AI finishes rendering a React viz (chart, table, dashboard).\n2. AI strips its own wrapper boilerplate so jsx_source is just the user's component code.\n3. AI calls viz_create(title=..., jsx_source=..., tags=[...], thread_id=current_thread_id, assistant_message_id=current_message_id).\n4. Backend returns id + share_token.\n5. AI confirms to user: 'Saved as [title] (id ...).'\n\nBEST PRACTICES:\n- Always pass thread_id and assistant_message_id so the snapshot can be navigated back to its conversation.\n- Use lowercase, hyphen-friendly tags (e.g. 'q3-forecast', 'finance').\n- If the JSX is large (>50KB), prefer viz_save (alias of create) so the title can double as a dedupe key for future upserts.\n- Always confirm to the user before saving if jsx_source contains user PII — the snapshot is org-visible unless is_public is later set.\n\nERROR HANDLING:\n- title or jsx_source missing → 400 with 'title and jsx_source are required'.\n- org_id missing on JWT → 401.\n- jsx_source > 256KB → 413 (consider external storage; not yet supported).\n\nRELATED TOOLS:\n- viz_update — patch title / tags / css / visibility after creation.\n- viz_search — list snapshots with filters.\n- viz_link_synergy — attach to a Synergy Kanban session after creation.",
+      "platform": "viz_snapshots",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": "string",
+            "description": "Human-readable title for the saved viz. Shown in the gallery header. Required."
+          },
+          "jsx_source": {
+            "type": "string",
+            "description": "The complete JSX/React source for the visualization. Required. The renderer will re-mount this verbatim when the user re-opens the snapshot."
+          },
+          "css_source": {
+            "type": "string",
+            "description": "Optional CSS to inject alongside the JSX (Tailwind classes should already be in the JSX; this is for custom styles)."
+          },
+          "uses_lucide": {
+            "type": "boolean",
+            "description": "Set true if the JSX imports lucide-react icons. Drives the gallery badge column.",
+            "default": false
+          },
+          "uses_recharts": {
+            "type": "boolean",
+            "description": "Set true if the JSX imports recharts components.",
+            "default": false
+          },
+          "uses_tailwind": {
+            "type": "boolean",
+            "description": "Set true if the JSX relies on Tailwind utility classes (set globally so the gallery can warn if Tailwind is not loaded).",
+            "default": false
+          },
+          "tags": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Lowercase, hyphen-friendly tag list for gallery filtering. Example: ['finance', 'q3-forecast']."
+          },
+          "thread_id": {
+            "type": "integer",
+            "description": "Optional sessions.threads.id this viz was rendered in. Makes the gallery tile show 'Open chat'."
+          },
+          "assistant_message_id": {
+            "type": "integer",
+            "description": "Optional sessions.messages.id of the assistant message that produced the viz. Used by the gallery to deep-link back."
+          },
+          "synergy_session_id": {
+            "type": "string",
+            "description": "Optional synergy_sessions.synergy_sessions.session_id to atomically link at creation time (otherwise call viz_link_synergy afterwards)."
+          }
+        },
+        "required": [
+          "title",
+          "jsx_source"
+        ]
+      },
+      "returns": {
+        "type": "object",
+        "description": "{success, id, share_token, created_at, updated_at}"
+      },
+      "examples": [
+        {
+          "description": "Simple - Save the chart we just built",
+          "parameters": {
+            "title": "Q3 Revenue by Region",
+            "jsx_source": "function App(){const data=[{region:'NA',rev:120000},{region:'EU',rev:98000}];return <BarChart width={400} height={240} data={data}><XAxis dataKey='region'/><YAxis/><Bar dataKey='rev' fill='#58a6ff'/></BarChart>;} return <App/>;",
+            "uses_recharts": true,
+            "tags": [
+              "finance",
+              "q3",
+              "revenue"
+            ]
+          }
+        },
+        {
+          "description": "Full - Save with provenance",
+          "parameters": {
+            "title": "Pipeline by Stage",
+            "jsx_source": "function App(){return <div className='p-4'><h1>Pipeline</h1>...</div>;} return <App/>;",
+            "css_source": "h1 { color: #58a6ff; }",
+            "uses_lucide": true,
+            "uses_tailwind": true,
+            "tags": [
+              "sales",
+              "pipeline"
+            ],
+            "thread_id": 4781,
+            "assistant_message_id": 28934
+          }
+        }
+      ]
+    },
+    {
+      "name": "viz_update",
+      "short_description": "Patch metadata on a saved visualization",
+      "description": "Update mutable fields on an existing snapshot: title, tags, is_public, css_source, or synergy_session_id. Only the owner may update; ownership is enforced server-side by checking owner_user_id against the JWT.\n\nThe jsx_source itself is not editable here — to change the rendered code, save a new snapshot and link it. (Future enhancement: a 'fork' tool.)\n\nUSE CASES:\n1. User renames a saved viz.\n2. User adds tags after seeing the gallery.\n3. User toggles a viz to org-public so teammates can see it.\n4. User re-links a viz to a different Synergy session.\n\nWHEN NOT TO USE:\n- Changing the JSX itself → create a new snapshot with viz_create.\n- Updating render_count → use the internal bump endpoint (called by the gallery on remount).\n\nWORKFLOW:\n1. User says `rename this to Pipeline Q4 and tag it sales`.\n2. AI calls viz_get(snapshot_id) to confirm ownership.\n3. AI calls viz_update(snapshot_id, title=`Pipeline Q4`, tags=[`sales`,`q4`,`pipeline`]).\n\nBEST PRACTICES:\n- Always confirm ownership before attempting — non-owner updates are 403.\n- Use this sparingly; prefer viz_create for new work.\n\nERROR HANDLING:\n- snapshot_id not found or wrong owner → 404 / 403.\n- Empty body → 400 'no fields to update'.\n\nRELATED TOOLS:\n- viz_create — create a new snapshot.\n- viz_link_synergy / viz_unlink_synergy — manage Synergy links without editing this snapshot's other fields.",
+      "platform": "viz_snapshots",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "snapshot_id": {
+            "type": "string",
+            "description": "UUID of the snapshot to patch."
+          },
+          "title": {
+            "type": "string"
+          },
+          "tags": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "is_public": {
+            "type": "boolean"
+          },
+          "css_source": {
+            "type": "string"
+          },
+          "synergy_session_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "snapshot_id"
+        ]
+      },
+      "returns": {
+        "type": "object",
+        "description": "{success, snapshot_id, updated_at}"
+      },
+      "examples": [
+        {
+          "description": "Rename and re-tag",
+          "parameters": {
+            "snapshot_id": "8e3a1f4d-7b9c-4e2a-9c3b-1f2e3d4c5b6a",
+            "title": "Pipeline Q4",
+            "tags": [
+              "sales",
+              "q4",
+              "pipeline"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "viz_save",
+      "short_description": "Create-or-update a snapshot by title (idempotent)",
+      "description": "Convenience alias that creates a new snapshot if snapshot_id is omitted, or updates the title of an existing one if snapshot_id is supplied. Use this when the user says 'save this' without caring about whether it already exists — if a snapshot with the same title already exists in the user's library, the backend will update it; otherwise it will insert.\n\nNOTE: V1 implementation always performs an insert when snapshot_id is absent (the gallery dedupes by title client-side and surfaces the right id to the user). The title-dedupe behaviour is a planned V2 enhancement.\n\nUSE CASES:\n- Quick 'save this as <name>' without first asking the AI to look up an existing id.\n- Toolbar Save button: always call viz_save so the click is safe to repeat.\n\nWHEN NOT TO USE:\n- Updating many fields at once → prefer viz_create + viz_update.\n- The user wants to link to Synergy → follow up with viz_link_synergy.\n\nRELATED TOOLS:\n- viz_create / viz_update — explicit create or update.\n- viz_link_synergy — link to Synergy session.",
+      "platform": "viz_snapshots",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": "string"
+          },
+          "jsx_source": {
+            "type": "string"
+          },
+          "snapshot_id": {
+            "type": "string",
+            "description": "If supplied, the title is updated on this existing snapshot instead of inserting."
+          },
+          "tags": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "css_source": {
+            "type": "string"
+          },
+          "uses_lucide": {
+            "type": "boolean"
+          },
+          "uses_recharts": {
+            "type": "boolean"
+          },
+          "uses_tailwind": {
+            "type": "boolean"
+          },
+          "thread_id": {
+            "type": "integer"
+          },
+          "assistant_message_id": {
+            "type": "integer"
+          },
+          "synergy_session_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "title",
+          "jsx_source"
+        ]
+      },
+      "returns": {
+        "type": "object",
+        "description": "{success, id, action: 'created'|'updated', title}"
+      }
+    },
+    {
+      "name": "viz_search",
+      "short_description": "List or search saved visualizations for the calling user/org",
+      "description": "Browse the visualization library. Returns a JSON array of summaries (NO jsx_source, NO thumbnail_png — those are heavy). Default scope is the calling user's own snapshots; pass synergy_session_id to filter to a single Kanban session, or pass is_public=true via a separate viz_get call to view public snapshots.\n\nFilters can be combined:\n  * q — case-insensitive ILIKE on title.\n  * tag — exact match against the tags array.\n  * mine=true — explicit; default already true.\n  * synergy_session_id — TEXT not UUID; the synergy session_id is a slug.\n  * limit / offset — pagination (default 20 / 0).\n\nUSE CASES:\n1. User asks 'show my saved dashboards'.\n2. User asks 'find my finance charts'.\n3. AI wants to check if a similar viz already exists before creating a duplicate.\n4. AI wants to enumerate snapshots linked to a Synergy session before unlinking one.\n\nWHEN NOT TO USE:\n- Need the actual JSX → call viz_get on the chosen snapshot.\n- Need notes on a snapshot → call viz_list_notes.\n\nWORKFLOW:\n1. AI calls viz_search(q='pipeline') to find candidates.\n2. AI surfaces 3-5 results to the user.\n3. User picks one; AI calls viz_get(snapshot_id) for the full payload.\n\nBEST PRACTICES:\n- Always paginate; do not ask for >50 results in one call.\n- Combine q + tag for precision (e.g. q='forecast' tag='finance').\n- For Synergy linkage: viz_search(synergy_session_id='quarterly-review') returns the linked viz array.\n\nERROR HANDLING:\n- Empty result set → return success:true with items:[].\n- Invalid limit (>100) → 400.\n\nRELATED TOOLS:\n- viz_get — fetch full payload for one snapshot.\n- viz_delete — soft-delete a snapshot.\n- viz_link_synergy — link one of the returned snapshots.",
+      "platform": "viz_snapshots",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "q": {
+            "type": "string",
+            "description": "Case-insensitive title substring filter."
+          },
+          "tag": {
+            "type": "string",
+            "description": "Exact tag match (single tag)."
+          },
+          "mine": {
+            "type": "boolean",
+            "description": "If true (default), only return snapshots owned by the caller. If false, return all org-visible snapshots.",
+            "default": true
+          },
+          "synergy_session_id": {
+            "type": "string",
+            "description": "Filter to snapshots linked to this Synergy session_id (TEXT slug)."
+          },
+          "limit": {
+            "type": "integer",
+            "default": 20,
+            "maximum": 100
+          },
+          "offset": {
+            "type": "integer",
+            "default": 0
+          }
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "{success, items: [...], count, limit, offset, has_more}"
+      },
+      "examples": [
+        {
+          "description": "My charts tagged finance",
+          "parameters": {
+            "tag": "finance",
+            "limit": 20
+          }
+        },
+        {
+          "description": "Search by title fragment",
+          "parameters": {
+            "q": "forecast"
+          }
+        },
+        {
+          "description": "Snapshots linked to a Synergy session",
+          "parameters": {
+            "synergy_session_id": "quarterly-review-2026"
+          }
+        }
+      ]
+    },
+    {
+      "name": "viz_get",
+      "short_description": "Fetch the full payload of one saved visualization",
+      "description": "Returns a single snapshot by id. Includes jsx_source, css_source, and a base64-encoded thumbnail_png (if previously uploaded). Ownership / org-visibility check is enforced: non-owners see a redacted row (title + tags + summary only, NO jsx_source and NO thumbnail_png) unless the snapshot is_public=true.\n\nUSE CASES:\n1. AI needs to re-render a snapshot (loads jsx_source into a fresh iframe).\n2. AI needs to copy/clone a snapshot's JSX.\n3. Gallery tile click triggers a viz_get to populate the modal.\n\nWHEN NOT TO USE:\n- Listing multiple snapshots → use viz_search.\n- Need conversation provenance → call viz_get_thread afterwards.\n\nBEST PRACTICES:\n- Cache viz_get results per snapshot_id for the session — the JSX is immutable until the user creates a new snapshot.\n\nERROR HANDLING:\n- snapshot_id not found → 404.\n- Not owner and not public → 403 (returns redacted summary).\n\nRELATED TOOLS:\n- viz_search — find the snapshot id first.\n- viz_read_thread — get conversation context for the snapshot.",
+      "platform": "viz_snapshots",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "snapshot_id": {
+            "type": "string",
+            "description": "UUID of the snapshot to fetch."
+          },
+          "include_payload": {
+            "type": "boolean",
+            "description": "Force-include jsx_source even for non-owners (requires admin role; defaults to false).",
+            "default": false
+          }
+        },
+        "required": [
+          "snapshot_id"
+        ]
+      },
+      "returns": {
+        "type": "object",
+        "description": "{success, snapshot: {id, title, jsx_source?, css_source?, tags, uses_lucide, uses_recharts, uses_tailwind, is_public, synergy_session_id, owner_user_id, thread_id, assistant_message_id, thumbnail_png?, created_at, updated_at}}"
+      }
+    },
+    {
+      "name": "viz_delete",
+      "short_description": "Soft-delete a saved visualization (owner only)",
+      "description": "Marks a snapshot is_active=false. The row is hidden from viz_search by default but is preserved for audit / undelete (re-activate via viz_update setting is_active implicitly through a future endpoint — V1 only supports soft-delete, no undelete).\n\nOwnership enforced server-side: only the original owner can soft-delete.\n\nUSE CASES:\n1. User says 'delete that chart'.\n2. Cleaning up a test snapshot during development.\n\nWHEN NOT TO USE:\n- Hard delete → not supported in V1 (preserves audit trail).\n- Undelete → not supported in V1.\n\nWORKFLOW:\n1. AI calls viz_search to confirm the snapshot id and ownership.\n2. AI confirms with user: 'Delete \"<title>\"?' (soft-delete).\n3. AI calls viz_delete(snapshot_id).\n\nERROR HANDLING:\n- Not owner → 403.\n- Already deleted → still returns success:true (idempotent).\n\nRELATED TOOLS:\n- viz_update — for metadata edits instead of deletion.",
+      "platform": "viz_snapshots",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "snapshot_id": {
+            "type": "string",
+            "description": "UUID of the snapshot to delete."
+          }
+        },
+        "required": [
+          "snapshot_id"
+        ]
+      },
+      "returns": {
+        "type": "object",
+        "description": "{success, snapshot_id, deleted_at}"
+      }
+    },
+    {
+      "name": "viz_get_thread",
+      "short_description": "Get the thread context (title + last few messages) for a saved viz",
+      "description": "Given a snapshot_id, return the originating thread's metadata (title, slug, id) plus the last 4-6 messages as a short context block. Use this when an AI agent wants to 'remember' what the user was asking for when the viz was built — useful for handoff between agents.\n\nInternally this calls viz_get to discover the thread_id, then calls /api/threads/<thread_id>/load for thread metadata and /api/threads/messages/get?thread_id=...&limit=6 for the recent messages.\n\nUSE CASES:\n1. AI starts a fresh session and reads: 'What was this chart about?' — viz_get_thread gives the 6 most recent messages so it can answer.\n2. Hand-off doc: a new agent reads the previous agent's handoff note (via viz_list_notes) AND the originating thread to understand the full context.\n\nWHEN NOT TO USE:\n- Need full thread transcript → use viz_read_thread.\n- Snapshot has no thread_id (saved outside a chat) → returns success:true with thread:null.\n\nBEST PRACTICES:\n- Use limit=4-6 messages; full transcripts belong in viz_read_thread.\n- Truncate individual message content to 400 chars to keep the response compact.\n\nRELATED TOOLS:\n- viz_read_thread — full transcript.\n- viz_list_notes — AI handoff notes from previous agents.",
+      "platform": "viz_snapshots",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "snapshot_id": {
+            "type": "string",
+            "description": "UUID of the snapshot whose thread context is requested."
+          },
+          "message_limit": {
+            "type": "integer",
+            "description": "Number of recent messages to include (default 6, max 20).",
+            "default": 6,
+            "maximum": 20
+          }
+        },
+        "required": [
+          "snapshot_id"
+        ]
+      },
+      "returns": {
+        "type": "object",
+        "description": "{success, snapshot_id, thread: {id, title, slug}|null, messages: [{role, content_preview, created_at}]}"
+      }
+    },
+    {
+      "name": "viz_read_thread",
+      "short_description": "Read the full message transcript of the thread that produced a saved viz",
+      "description": "Returns the raw conversation (role + content + tool_calls) of the thread that produced the snapshot. Use this for deep handoff context — e.g. when a new agent needs to understand the full requirements the user gave the previous agent.\n\nUnlike viz_get_thread, this returns the full message bodies (truncated to a configurable max_chars per message to keep payloads sane).\n\nUSE CASES:\n1. 'Read what I told the previous AI about this chart.'\n2. Agent A builds a forecast, agent B (next session) needs to verify the assumptions.\n3. Building a 'data lineage' view: viz → thread → notes → Synergy.\n\nWHEN NOT TO USE:\n- Just need a summary → use viz_get_thread.\n- Need only AI-authored handoff notes → use viz_list_notes.\n\nBEST PRACTICES:\n- Default max_chars=2000 per message; raise to 8000 only when really needed.\n- Strip tool_calls metadata unless the next agent needs to reproduce the tool sequence.\n\nRELATED TOOLS:\n- viz_get_thread — short summary only.\n- viz_list_notes — AI-authored notes on the snapshot itself.",
+      "platform": "viz_snapshots",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "snapshot_id": {
+            "type": "string",
+            "description": "UUID of the snapshot whose thread transcript is requested."
+          },
+          "max_messages": {
+            "type": "integer",
+            "description": "Maximum messages to return (default 50).",
+            "default": 50,
+            "maximum": 200
+          },
+          "max_chars_per_message": {
+            "type": "integer",
+            "description": "Truncate each message body to this many characters (default 2000).",
+            "default": 2000
+          },
+          "include_tool_calls": {
+            "type": "boolean",
+            "description": "Include tool_calls metadata in the response. Default false to keep payload small.",
+            "default": false
+          }
+        },
+        "required": [
+          "snapshot_id"
+        ]
+      },
+      "returns": {
+        "type": "object",
+        "description": "{success, snapshot_id, thread_id, messages: [{id, role, content, tool_calls?, created_at}], truncated: bool}"
+      }
+    },
+    {
+      "name": "viz_add_note",
+      "short_description": "Add a note to a saved viz (human or AI authored)",
+      "description": "Attach a free-form note to a snapshot. Notes have 4 kinds:\n  * 'comment' — general remark (default).\n  * 'todo' — flagged for follow-up; gallery shows a yellow dot.\n  * 'handoff' — written by an AI agent to the NEXT AI agent that touches this viz.\n  * 'data_update' — the underlying data has changed; re-render needed.\n\nAnd 2 author_kinds:\n  * 'human' (default) — written by a user via the gallery UI.\n  * 'ai' — written by an AI agent (must supply author_agent_id, e.g. 'prime' or 'alpha-3').\n\nUSE CASES:\n1. AI finishes a viz and adds a handoff note: 'This chart assumes Q3 data as of 2026-07-15. Re-fetch before re-rendering.'\n2. User clicks the '+' next to a gallery tile and types a todo.\n3. AI detects stale data and posts a data_update note so the user knows to re-render.\n\nWHEN NOT TO USE:\n- Notes are append-only; to 'edit' a note, add a follow-up note with a 'supersedes' reference in metadata.\n\nBEST PRACTICES:\n- Keep handoff notes short and structured: assumptions, sources, caveats.\n- Set metadata for machine-readable keys, e.g. {\"re_fetch_endpoint\": \"/api/orders?since=...\"}.\n\nERROR HANDLING:\n- Invalid note_kind or author_kind → 400.\n- Not org-visible → 403.\n\nRELATED TOOLS:\n- viz_list_notes — read all notes on a snapshot (do this first in a new agent session).\n- viz_read_thread — read the originating conversation.",
+      "platform": "viz_snapshots",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "snapshot_id": {
+            "type": "string",
+            "description": "UUID of the snapshot to attach the note to."
+          },
+          "note": {
+            "type": "string",
+            "description": "The note body. Plain text; newlines preserved."
+          },
+          "note_kind": {
+            "type": "string",
+            "enum": [
+              "comment",
+              "todo",
+              "handoff",
+              "data_update"
+            ],
+            "default": "comment"
+          },
+          "author_kind": {
+            "type": "string",
+            "enum": [
+              "human",
+              "ai"
+            ],
+            "default": "human"
+          },
+          "author_agent_id": {
+            "type": "string",
+            "description": "Required when author_kind='ai'. The agent identifier (e.g. 'prime', 'alpha-1')."
+          },
+          "metadata": {
+            "type": "object",
+            "description": "Arbitrary JSON metadata. Use for machine-readable keys (endpoints, version pins, etc.).",
+            "additionalProperties": true
+          }
+        },
+        "required": [
+          "snapshot_id",
+          "note"
+        ]
+      },
+      "returns": {
+        "type": "object",
+        "description": "{success, note_id, snapshot_id, created_at}"
+      },
+      "examples": [
+        {
+          "description": "AI handoff to next agent",
+          "parameters": {
+            "snapshot_id": "8e3a1f4d-7b9c-4e2a-9c3b-1f2e3d4c5b6a",
+            "note": "This chart uses Q3 data as of 2026-07-15. Before re-rendering, call /api/orders?since=2026-10-01 to refresh.",
+            "note_kind": "handoff",
+            "author_kind": "ai",
+            "author_agent_id": "prime",
+            "metadata": {
+              "re_fetch_endpoint": "/api/orders?since=2026-10-01",
+              "data_version": "2026-07-15"
+            }
+          }
+        },
+        {
+          "description": "User todo",
+          "parameters": {
+            "snapshot_id": "8e3a1f4d-7b9c-4e2a-9c3b-1f2e3d4c5b6a",
+            "note": "Update with Nov numbers before QBR.",
+            "note_kind": "todo"
+          }
+        }
+      ]
+    },
+    {
+      "name": "viz_list_notes",
+      "short_description": "List all notes on a saved viz (read prior agent notes before engaging)",
+      "description": "Returns all notes for a snapshot ordered by created_at ASC (oldest first — matches the natural reading order for handoff). The response is paginated; the default limit covers most snapshots entirely.\n\nUSE CASES:\n1. AI starts a new session on a snapshot — read prior handoff notes BEFORE re-rendering.\n2. Gallery UI: render the notes side-panel when a tile is clicked.\n3. Audit: list every AI-authored note for compliance review.\n\nWHEN NOT TO USE:\n- Originating conversation → use viz_read_thread.\n- Just metadata → use viz_get.\n\nBEST PRACTICES:\n- Always call this first when re-engaging a snapshot — agents often leave important caveats in handoff notes.\n- Filter to author_kind='ai' mentally to surface what previous agents thought.\n\nRELATED TOOLS:\n- viz_add_note — append a note.\n- viz_read_thread — originating chat transcript.",
+      "platform": "viz_snapshots",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "snapshot_id": {
+            "type": "string",
+            "description": "UUID of the snapshot."
+          },
+          "limit": {
+            "type": "integer",
+            "default": 50,
+            "maximum": 200
+          },
+          "offset": {
+            "type": "integer",
+            "default": 0
+          },
+          "author_kind_filter": {
+            "type": "string",
+            "enum": [
+              "human",
+              "ai"
+            ],
+            "description": "Optional: only return notes of this author_kind."
+          },
+          "note_kind_filter": {
+            "type": "string",
+            "enum": [
+              "comment",
+              "todo",
+              "handoff",
+              "data_update"
+            ],
+            "description": "Optional: only return notes of this note_kind."
+          }
+        },
+        "required": [
+          "snapshot_id"
+        ]
+      },
+      "returns": {
+        "type": "object",
+        "description": "{success, snapshot_id, items: [{id, author_kind, author_agent_id?, note, note_kind, metadata, created_at}], count, has_more}"
+      }
+    },
+    {
+      "name": "viz_link_synergy",
+      "short_description": "Attach a saved viz to a Synergy Kanban session (two-sided, atomic)",
+      "description": "Link a snapshot to a Synergy Kanban session. The backend runs a single PL/pgSQL helper (sessions.link_viz_to_synergy) that updates BOTH sides atomically:\n  * sessions.viz_snapshots.synergy_session_id is set to the new value.\n  * synergy_sessions.synergy_sessions.linked_viz_snapshots is appended with {snapshot_id, linked_at}.\n\nThis is a transactional operation — there is no partial-failure mode where one side updates and the other doesn't.\n\nUSE CASES:\n1. AI attaches the 'Q3 Forecast' chart to the 'Quarterly Review' Synergy board so reviewers see it as a reference card.\n2. AI re-links a snapshot from one Synergy session to another.\n\nWHEN NOT TO USE:\n- To detach → use viz_unlink_synergy (inverse).\n- To create a snapshot AND link it in one step → use viz_create with synergy_session_id or viz_save.\n\nBEST PRACTICES:\n- Confirm with the user which Synergy session to link to (the session_id is a slug, not a display name).\n- A snapshot can only be linked to ONE Synergy session at a time; re-linking replaces the previous link.\n\nERROR HANDLING:\n- Synergy session_id not found → 404 (the helper returns success:false in its JSONB).\n- Viz not visible to caller → 403.\n\nRELATED TOOLS:\n- viz_unlink_synergy — detach.\n- viz_search(synergy_session_id=...) — list current links.",
+      "platform": "viz_snapshots",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "snapshot_id": {
+            "type": "string",
+            "description": "UUID of the snapshot to link."
+          },
+          "synergy_session_id": {
+            "type": "string",
+            "description": "Synergy session_id (TEXT slug) to attach to. Obtained from the Synergy UI or viz_search."
+          },
+          "label": {
+            "type": "string",
+            "description": "Optional display label for the linked card in Synergy (e.g. 'Q3 forecast chart')."
+          }
+        },
+        "required": [
+          "snapshot_id",
+          "synergy_session_id"
+        ]
+      },
+      "returns": {
+        "type": "object",
+        "description": "{success, snapshot_id, synergy_session_id, linked_at}"
+      }
+    },
+    {
+      "name": "viz_unlink_synergy",
+      "short_description": "Detach a saved viz from its Synergy Kanban session",
+      "description": "Inverse of viz_link_synergy. Runs the PL/pgSQL helper sessions.unlink_viz_from_synergy which clears viz_snapshots.synergy_session_id AND removes the snapshot's entry from synergy_sessions.synergy_sessions.linked_viz_snapshots — atomically.\n\nIf the snapshot is not currently linked, the helper returns success:true with note='already_unlinked' (idempotent).\n\nUSE CASES:\n1. User moves a chart off a Synergy board.\n2. AI re-organizes: detach from old Synergy, re-attach via viz_link_synergy.\n\nWHEN NOT TO USE:\n- To re-link → call viz_link_synergy (no need to unlink first).\n\nRELATED TOOLS:\n- viz_link_synergy — link.\n- viz_search(synergy_session_id=...) — list snapshots on a board.",
+      "platform": "viz_snapshots",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "snapshot_id": {
+            "type": "string",
+            "description": "UUID of the snapshot to detach."
+          }
+        },
+        "required": [
+          "snapshot_id"
+        ]
+      },
+      "returns": {
+        "type": "object",
+        "description": "{success, snapshot_id, synergy_session_id|null}"
+      }
+    }
+  ]
+}
