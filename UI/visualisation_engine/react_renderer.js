@@ -228,7 +228,7 @@ class ReactRenderer {
         // REACT_RENDERER_LUCIDE_TROUBLESHOOTING_2026-07-22.md for full
         // rationale.
         const lucideScript = `
-  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"><\/script>`;
+  <script src="https://unpkg.com/lucide@0.469.0/dist/umd/lucide.js"><\/script>`;
         // NOTE: cdn.tailwindcss.com serves a JavaScript file (not CSS), so it must
         // be loaded with <script>, not <link rel="stylesheet">.
         const tailwindLink = usesTailwind
@@ -390,7 +390,7 @@ ${tailwindLink}
   <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"><\/script>
 ${rechartsScript}
   <!-- Babel Standalone: transpiles JSX at runtime inside the sandboxed iframe -->
-  <script src="https://unpkg.com/@babel/standalone/babel.min.js"><\/script>
+  <script src="https://unpkg.com/@babel/standalone@7.26.4/babel.min.js"><\/script>
 ${lucideScript}
   <style>
     html, body { margin: 0; padding: 0; width: 100%; overflow-x: hidden; }
