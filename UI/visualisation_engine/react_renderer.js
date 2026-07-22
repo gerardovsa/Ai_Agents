@@ -217,8 +217,17 @@ class ReactRenderer {
         // ── CDN script tags ─────────────────────────────────────────────────────
         const rechartsScript = usesRecharts
             ? `  <script src="https://unpkg.com/prop-types@15/prop-types.min.js"><\/script>\n  <script src="https://unpkg.com/recharts@2/umd/Recharts.js"><\/script>` : '';
-        const lucideScript = usesLucide
-            ? `  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"><\/script>` : '';
+        // Always inject the lucide UMD. The detection regex above is brittle
+        // (only ~30 hand-picked icons) and the AI emits PascalCase JSX tags
+        // without explicit `import` statements, so by the time we know an
+        // icon is needed, the hoist block has already run. The ~615 KB
+        // payload is cached by the browser; subsequent React viz loads are
+        // O(ms). Strategy: always inject, always lift, always wrap as a
+        // functional React component. See
+        // REACT_RENDERER_LUCIDE_TROUBLESHOOTING_2026-07-22.md for full
+        // rationale.
+        const lucideScript = `
+  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"><\/script>`;
         // NOTE: cdn.tailwindcss.com serves a JavaScript file (not CSS), so it must
         // be loaded with <script>, not <link rel="stylesheet">.
         const tailwindLink = usesTailwind
