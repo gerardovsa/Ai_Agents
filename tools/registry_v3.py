@@ -13,6 +13,7 @@ FIXED: Microsoft tools class instance extraction - detects and uses global insta
 """
 import json
 import importlib
+import os
 import sys
 import time
 import threading
@@ -217,7 +218,11 @@ class RegistryV3:
                                     logger.debug(f"  [SCHEMA] Overrode platform {old_platform} -> {schema_platform} for {tool_name}")
                             
                             self.tools[tool_name] = tool
-                            logger.debug(f"  [SCHEMA] Loaded: {tool_name}")
+                            # FIX (July 2026): INFO level so every loaded schema is visible
+                            # in production logs. Previously debug-level, which made
+                            # "Tool not found" root-cause analysis blind — we couldn't
+                            # tell whether a tool was loaded into self.tools or not.
+                            logger.info(f"  [SCHEMA] Loaded: {tool_name}")
             except FileNotFoundError:
                 logger.debug(f"Schema file not found (skipped): {schema_file.name}")
             except json.JSONDecodeError as e:
@@ -1036,14 +1041,53 @@ def tool_executor():
 
 
 # Singleton instance for module-level access
+#
+# FIX (July 2026): _registry_instance is a Python module-level global, which
+# lives for the lifetime of the worker process. On Render's single-worker
+# gevent setup (see /api/ws-diagnostics → workers: "1 (single-worker mode)"),
+# the singleton is built ONCE at import time and never rebuilt — even after a
+# fresh deploy pulls new code into the container. The result was "Tool not
+# found" errors that persisted for hours after a fix was pushed, because the
+# dispatch layer kept reading from the pre-fix singleton.
+#
+# The mtime guard below is deterministic, not fuzzy: it stat()s this very
+# file and compares the mtime to what we recorded when the singleton was
+# built. If the file on disk has been modified since (i.e. a fresh deploy
+# landed), we rebuild. Cost is one stat() per `get_registry()` call, which
+# is negligible (kernel-cached, sub-microsecond on warm paths).
 _registry_instance = None
+_registry_mtime_at_creation: Optional[float] = None
 
 
 def get_registry() -> RegistryV3:
-    """Get or create the singleton registry instance"""
-    global _registry_instance
-    if _registry_instance is None:
+    """Get or create the singleton registry instance.
+
+    Self-healing: rebuilds automatically when tools/registry_v3.py has been
+    modified since the singleton was created (i.e. after a fresh deploy
+    pulls new code into the running worker process).
+    """
+    global _registry_instance, _registry_mtime_at_creation
+    needs_rebuild = _registry_instance is None
+    if not needs_rebuild:
+        try:
+            current_mtime = os.path.getmtime(__file__)
+            if _registry_mtime_at_creation != current_mtime:
+                logger.info(
+                    f"[REGISTRY_V3] Detected file change "
+                    f"(mtime {current_mtime} != recorded "
+                    f"{_registry_mtime_at_creation}); rebuilding singleton"
+                )
+                needs_rebuild = True
+        except OSError as e:
+            # If we can't stat the file (very rare), keep the existing
+            # singleton rather than crashing on every request.
+            logger.debug(f"[REGISTRY_V3] mtime check failed: {e}; reusing singleton")
+    if needs_rebuild:
         _registry_instance = RegistryV3()
+        try:
+            _registry_mtime_at_creation = os.path.getmtime(__file__)
+        except OSError:
+            _registry_mtime_at_creation = None
     return _registry_instance
 
 
