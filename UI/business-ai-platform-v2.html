@@ -10753,6 +10753,30 @@
             display: block !important;
         }
 
+        /* EW (Jul 22 2026): Pie chart label buffer. Mermaid 10.6.1 emits
+           pie labels outside the pie with leader lines; in narrow chat
+           columns the SVG can be CSS-scaled down so the labels sit close
+           to the slice edges. Give the SVG vertical room so labels are
+           not clipped at the bottom of the chat container, and give the
+           pie+labels composition horizontal room so leader lines have
+           somewhere to go. Mermaid's default pie viewBox is 450x450; 520
+           leaves 70 px of breathing room. Scoped via :has() so only pies
+           get the buffer (other Mermaid types are unaffected).
+
+           Cross-references:
+             - VISUALIZATION_SYSTEM_DOCUMENTATION.md, section "Always-white
+               canvas + pie label buffer (added July 22, 2026)".
+             - VISUALIZATION_CANVAS_BG_AND_FULLSCREEN_FIX_JULY22_2026.md. */
+        .mermaid svg[id^="pie-"],
+        .mermaid svg[class*="pie"] {
+            padding: 8px 8px 24px 8px;
+            max-height: 520px;
+        }
+        .viz-content-area > .mermaid:has(svg[id^="pie-"]),
+        .viz-content-area > .mermaid:has(svg[class*="pie"]) {
+            min-height: 520px;
+        }
+
         /* Hide orphan .mermaid containers that escaped a viz-container. */
         body > .mermaid:not(.viz-container .mermaid) {
             display: none !important;

@@ -3089,10 +3089,16 @@ class VisualizationEngine {
             return;
         }
 
-        const isDark = this.options.theme === 'dark';
-        const bgColor = 'rgba(0,0,0,0)'; /* 🎨 TRANSPARENT: Works in both light and dark mode */
-        const textColor = isDark ? '#ffffff' : '#24292f'; /* 🎨 WHITE TEXT in dark mode */
-        const gridColor = isDark ? 'rgba(255,255,255,0.15)' : '#e1e4e8'; /* 🎨 WHITE GRIDLINES (15% opacity) in dark mode */
+        // EW (Jul 22 2026): Always-white chart canvas. The AI picks axis/grid/
+        // text colours that may read fine against one UI theme but disappear
+        // against the other. A constant white canvas means every AI-picked
+        // colour combination is legible regardless of light/dark UI mode,
+        // and Plotly's paper_bgcolor export (downloadImage/toImage) yields
+        // an opaque white PNG that matches Mermaid's hard-coded-white PNG
+        // export. See VISUALIZATION_CANVAS_BG_AND_FULLSCREEN_FIX_JULY22_2026.md.
+        const bgColor = '#ffffff';
+        const textColor = '#24292f';
+        const gridColor = '#e1e4e8';
 
         plotlyData.layout = plotlyData.layout || {};
 
@@ -4262,10 +4268,10 @@ class VisualizationEngine {
                 }
             }];
 
-            // Get theme colors
-            const isDark = this.options.theme === 'dark';
-            const bgColor = isDark ? '#0d1117' : '#ffffff';
-            const textColor = isDark ? '#e6edf3' : '#24292f';
+            // EW (Jul 22 2026): Always-white chart canvas (matching the
+            // applyEnhancedPlotlyTheme path). See VISUALIZATION_CANVAS_BG_AND_FULLSCREEN_FIX_JULY22_2026.md.
+            const bgColor = '#ffffff';
+            const textColor = '#24292f';
 
             const layout3D = {
                 title: 'Interactive 3D Surface',
@@ -4466,12 +4472,13 @@ class VisualizationEngine {
         contentArea.appendChild(mermaidDiv);
 
         try {
-            const isDark = this.options.theme === 'dark';
-
-            // NHANCED: Comprehensive Mermaid configuration with enhanced settings
+            // EW (Jul 22 2026): Always-white chart canvas. Drop all isDark
+            // branching so chart text/fills read against the constant white
+            // canvas regardless of UI theme. See
+            // VISUALIZATION_CANVAS_BG_AND_FULLSCREEN_FIX_JULY22_2026.md.
             mermaid.initialize({
                 startOnLoad: false,
-                theme: isDark ? 'dark' : 'base',
+                theme: 'base',
                 securityLevel: 'loose',
                 htmlLabels: true,
                 maxTextSize: 50000,
@@ -4493,15 +4500,15 @@ class VisualizationEngine {
                 },
 
                 themeVariables: {
-                    primaryColor: isDark ? '#404040' : '#f0f0f0',
-                    primaryTextColor: isDark ? '#e6edf3' : '#24292f',
-                    primaryBorderColor: isDark ? '#666666' : '#cccccc',
-                    lineColor: isDark ? '#7d8590' : '#656d76',
-                    backgroundColor: isDark ? '#0d1117' : '#ffffff',
-                    textColor: isDark ? '#e6edf3' : '#24292f',
-                    nodeTextColor: isDark ? '#e6edf3' : '#24292f',
-                    nodeBkg: isDark ? '#404040' : '#f0f0f0',
-                    nodeBorder: isDark ? '#666666' : '#cccccc',
+                    primaryColor: '#f0f0f0',
+                    primaryTextColor: '#24292f',
+                    primaryBorderColor: '#cccccc',
+                    lineColor: '#656d76',
+                    backgroundColor: '#ffffff',
+                    textColor: '#24292f',
+                    nodeTextColor: '#24292f',
+                    nodeBkg: '#f0f0f0',
+                    nodeBorder: '#cccccc',
 
                     // Padding variables
                     nodePadding: '8px',       // REDUCED: was 20px
@@ -4602,7 +4609,7 @@ class VisualizationEngine {
             // nhanced: Dynamic height calculation based on actual content
             const svgElement = mermaidDiv.querySelector('svg');
             if (svgElement) {
-                this.applySimplifiedMermaidPostProcessing(svgElement, isDark);
+                this.applySimplifiedMermaidPostProcessing(svgElement);
 
                 // nhanced: Dynamic height adjustment for wide diagrams
                 setTimeout(() => {
@@ -4799,15 +4806,16 @@ class VisualizationEngine {
         container.appendChild(mermaidDiv);
 
         try {
-            const isDark = this.options.theme === 'dark';
-
             // NHANCED: Initialize with default color theme
             const defaultTheme = this.getMermaidColorThemes().default;
 
-            // NHANCED: Comprehensive Mermaid configuration for better node sizing
+            // EW (Jul 22 2026): Always-white chart canvas. Drop all isDark
+            // branching so chart text/fills read against the constant white
+            // canvas regardless of UI theme. See
+            // VISUALIZATION_CANVAS_BG_AND_FULLSCREEN_FIX_JULY22_2026.md.
             mermaid.initialize({
                 startOnLoad: false,
-                theme: isDark ? 'dark' : 'base',
+                theme: 'base',
                 securityLevel: 'loose',
                 htmlLabels: true,
                 maxTextSize: 50000,
@@ -4831,17 +4839,17 @@ class VisualizationEngine {
 
                 // NHANCED: Better theme variables
                 themeVariables: {
-                    primaryColor: isDark ? '#404040' : '#f0f0f0',
-                    primaryTextColor: isDark ? '#e6edf3' : '#24292f',
-                    primaryBorderColor: isDark ? '#666666' : '#cccccc',
-                    lineColor: isDark ? '#7d8590' : '#656d76',
-                    backgroundColor: isDark ? '#0d1117' : '#ffffff',
+                    primaryColor: '#f0f0f0',
+                    primaryTextColor: '#24292f',
+                    primaryBorderColor: '#cccccc',
+                    lineColor: '#656d76',
+                    backgroundColor: '#ffffff',
 
                     // Text and node sizing variables (keep conservative defaults)
-                    textColor: isDark ? '#e6edf3' : '#24292f',
-                    nodeTextColor: isDark ? '#e6edf3' : '#24292f',
-                    nodeBkg: isDark ? '#404040' : '#f0f0f0',
-                    nodeBorder: isDark ? '#666666' : '#cccccc',
+                    textColor: '#24292f',
+                    nodeTextColor: '#24292f',
+                    nodeBkg: '#f0f0f0',
+                    nodeBorder: '#cccccc',
 
                     // Padding and spacing variables
                     nodePadding: '15px',
@@ -5457,7 +5465,7 @@ class VisualizationEngine {
     }
 
     // 6.1.4 - ENHANCED: Enhanced post-processing with intelligent node sizing
-    applySimplifiedMermaidPostProcessing(svgElement, isDark) {
+    applySimplifiedMermaidPostProcessing(svgElement) {
         console.log('🎨 Applying enhanced post-processing...');
 
         // Ensure bullet labels render tightly without stray manual line breaks
@@ -5488,9 +5496,13 @@ class VisualizationEngine {
         }
 
         // NHANCED: Better text styling that preserves dynamic sizing
+        // EW (Jul 22 2026): Canvas is always white, so text fill is always
+        // dark (was: isDark ? '#e6edf3' : '#24292f'). The isDark parameter
+        // has been removed; callers that still pass it harmlessly ignore.
+        // See VISUALIZATION_CANVAS_BG_AND_FULLSCREEN_FIX_JULY22_2026.md.
         const textElements = svgElement.querySelectorAll('text, tspan');
         textElements.forEach(text => {
-            text.setAttribute('fill', isDark ? '#e6edf3' : '#24292f');
+            text.setAttribute('fill', '#24292f');
             text.setAttribute('font-weight', '500');
             text.setAttribute('font-family', '"Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif');
             // RITICAL: Don't override font-size - let Mermaid handle it naturally
@@ -6431,12 +6443,14 @@ class VisualizationEngine {
             }
 
             // Re-render
-            const isDark = this.options.theme === 'dark';
+            // EW (Jul 22 2026): Always-white canvas — force theme 'base' so
+            // Mermaid renders with the light palette regardless of UI theme.
+            // See VISUALIZATION_CANVAS_BG_AND_FULLSCREEN_FIX_JULY22_2026.md.
             const fontSize = parseInt(container.getAttribute('data-font-size') || '14');
 
             mermaid.initialize({
                 startOnLoad: false,
-                theme: isDark ? 'dark' : 'base',
+                theme: 'base',
                 securityLevel: 'loose',
                 htmlLabels: true,
                 fontSize: fontSize,
@@ -6462,7 +6476,7 @@ class VisualizationEngine {
                     console.log('🔧 Applying consistent post-processing for direction change...');
 
                     // TEP 1: Apply intelligent node sizing
-                    this.applySimplifiedMermaidPostProcessing(svgElement, isDark);
+                    this.applySimplifiedMermaidPostProcessing(svgElement);
 
                     // TEP 2: Apply current theme colors
                     const currentTheme = container.getAttribute('data-color-theme') || 'default';
@@ -6628,23 +6642,27 @@ class VisualizationEngine {
         try {
             const colorThemes = this.getMermaidColorThemes();
             const selectedTheme = colorThemes[themeName] || colorThemes.default;
-            const isDark = this.options.theme === 'dark';
 
             console.log(`🎨 Applying ${selectedTheme.name} theme to Mermaid diagram`);
 
             // FIXED: Proper Mermaid theme configuration with enhanced text contrast
+            // EW (Jul 22 2026): Drop isDark branching — canvas is always white,
+            // so we always pass light-mode values for the canvas-bound variables.
+            // The many #ffffff text forces further down are load-bearing (white
+            // text on palette-colored nodes) and remain unchanged.
+            // See VISUALIZATION_CANVAS_BG_AND_FULLSCREEN_FIX_JULY22_2026.md.
             const themeConfig = {
                 startOnLoad: false,
-                theme: isDark ? 'dark' : 'base',
+                theme: 'base',
                 themeVariables: {
                     // Core theme
                     primaryColor: selectedTheme.colors.fillType0,
                     primaryTextColor: '#ffffff',  // Force white text for maximum contrast
                     primaryBorderColor: '#333333',
-                    lineColor: isDark ? '#7d8590' : '#656d76',
+                    lineColor: '#656d76',
 
                     // Background colors
-                    backgroundColor: isDark ? '#0d1117' : '#ffffff',
+                    backgroundColor: '#ffffff',
                     mainBkg: selectedTheme.colors.fillType0,
                     secondBkg: selectedTheme.colors.fillType1,
                     tertiaryColor: selectedTheme.colors.fillType2,
@@ -6693,7 +6711,7 @@ class VisualizationEngine {
                     // ADDITIONAL flowchart colors
                     defaultLinkColor: '#666666',
                     titleColor: '#ffffff',
-                    edgeLabelBackground: isDark ? '#21262d' : '#ffffff',
+                    edgeLabelBackground: '#ffffff',
 
                     // SECTION colors for sequence diagrams
                     sectionBkgColor: selectedTheme.colors.fillType0,
@@ -6751,7 +6769,7 @@ class VisualizationEngine {
                     console.log('🔧 Applying consistent post-processing for theme change...');
 
                     // STEP 1: Apply intelligent node sizing (same as initial render)
-                    this.applySimplifiedMermaidPostProcessing(svgElement, isDark);
+                    this.applySimplifiedMermaidPostProcessing(svgElement);
 
                     // STEP 2: Apply theme-specific colors AFTER sizing
                     this.applyMermaidThemeColors(svgElement, selectedTheme, container);
@@ -6855,21 +6873,25 @@ class VisualizationEngine {
             const currentTheme = container.getAttribute('data-color-theme') || 'default';
             const colorThemes = this.getMermaidColorThemes();
             const selectedTheme = colorThemes[currentTheme] || colorThemes.default;
-            const isDark = this.options.theme === 'dark';
 
             // Enhanced theme configuration with custom font size
+            // EW (Jul 22 2026): Drop isDark branching — canvas is always white,
+            // so we always pass light-mode values for the canvas-bound variables.
+            // The #ffffff text forces below are load-bearing (white text on
+            // palette-colored nodes). See
+            // VISUALIZATION_CANVAS_BG_AND_FULLSCREEN_FIX_JULY22_2026.md.
             const themeConfig = {
                 startOnLoad: false,
-                theme: isDark ? 'dark' : 'base',
+                theme: 'base',
                 themeVariables: {
                     // Enhanced text colors for better contrast
                     primaryColor: selectedTheme.colors.fillType0,
                     primaryTextColor: '#ffffff',
                     primaryBorderColor: '#333333',
-                    lineColor: isDark ? '#7d8590' : '#656d76',
+                    lineColor: '#656d76',
 
                     // Background and node colors
-                    backgroundColor: isDark ? '#0d1117' : '#ffffff',
+                    backgroundColor: '#ffffff',
                     mainBkg: selectedTheme.colors.fillType0,
                     secondBkg: selectedTheme.colors.fillType1,
 
@@ -6939,7 +6961,7 @@ class VisualizationEngine {
                     console.log(`🔧 Applying consistent post-processing for font size ${fontSize}px...`);
 
                     // STEP 1: Apply intelligent node sizing with new font size
-                    this.applySimplifiedMermaidPostProcessing(svgElement, isDark);
+                    this.applySimplifiedMermaidPostProcessing(svgElement);
 
                     // STEP 2: Apply current theme colors AFTER sizing
                     this.applyMermaidThemeColors(svgElement, selectedTheme, container);
@@ -9385,10 +9407,12 @@ ${svgData}`;
                 if (chart.type === 'plotly' && window.Plotly) {
                     const element = document.getElementById(chartId);
                     if (element && element.data && element.layout) {
-                        const isDark = newTheme === 'dark';
-                        const bgColor = isDark ? '#0d1117' : '#ffffff';
-                        const textColor = isDark ? '#e6edf3' : '#24292f';
-                        const gridColor = isDark ? '#30363d' : '#e1e4e8';
+                        // EW (Jul 22 2026): Always-white chart canvas (theme
+                        // toggle no longer repaints the canvas). See
+                        // VISUALIZATION_CANVAS_BG_AND_FULLSCREEN_FIX_JULY22_2026.md.
+                        const bgColor = '#ffffff';
+                        const textColor = '#24292f';
+                        const gridColor = '#e1e4e8';
 
                         console.log(`🔄 Updating Plotly chart ${chartId} legend background to: ${bgColor}`);
 
@@ -9424,10 +9448,11 @@ ${svgData}`;
     updateChartTheme(chartId, chart) {
         const element = document.getElementById(chartId);
         if (!element) return;
-        const isDark = this.options.theme === 'dark';
-        const bgColor = isDark ? '#0d1117' : '#ffffff';
-        const textColor = isDark ? '#e6edf3' : '#24292f';
-        const gridColor = isDark ? '#30363d' : '#e1e4e8';
+        // EW (Jul 22 2026): Always-white chart canvas. See
+        // VISUALIZATION_CANVAS_BG_AND_FULLSCREEN_FIX_JULY22_2026.md.
+        const bgColor = '#ffffff';
+        const textColor = '#24292f';
+        const gridColor = '#e1e4e8';
 
         try {
             switch (chart.type) {
@@ -9463,11 +9488,15 @@ ${svgData}`;
                     break;
 
                 case 'mermaid':
-                    // Re-render mermaid diagram with new theme
+                    // Re-render mermaid diagram with new theme.
+                    // EW (Jul 22 2026): Always use 'base' (the canvas is
+                    // always white; 'dark' would invert Mermaid's internal
+                    // palette and produce invisible text). See
+                    // VISUALIZATION_CANVAS_BG_AND_FULLSCREEN_FIX_JULY22_2026.md.
                     if (window.mermaid && chart.item?.content) {
                         mermaid.initialize({
                             startOnLoad: false,
-                            theme: isDark ? 'dark' : 'default'
+                            theme: 'base'
                         });
 
                         mermaid.render(`mermaid-${chartId}-${Date.now()}`, chart.item.content)
@@ -10196,11 +10225,14 @@ ${svgData}`;
         fullscreenSvgContainer.appendChild(clonedSvg);
 
         // Trigger a re-fit to ensure proper sizing
+        // EW (Jul 22 2026): Double-rAF instead of setTimeout(100). Two frames
+        // (~32ms at 60fps) is enough for the SVG insertion + style flush to
+        // settle before we click #fit-screen, matching the single-fit pattern
+        // in initFullscreenControls. The previous 100ms timeout was a magic
+        // number that occasionally raced against slower style flushes.
         const fitButton = fullscreenOverlay.querySelector('#fit-screen');
         if (fitButton) {
-            setTimeout(() => {
-                fitButton.click();
-            }, 100);
+            requestAnimationFrame(() => requestAnimationFrame(() => fitButton.click()));
         }
 
         console.log('ullscreen view re-rendered successfully');
@@ -10324,6 +10356,19 @@ ${svgData}`;
                 document.removeEventListener('mousemove', onMouseMove);
                 document.removeEventListener('mouseup', onMouseUp);
                 document.removeEventListener('keydown', handleKeyDown);
+                // EW (Jul 22 2026): Disconnect the fullscreen ResizeObserver
+                // (added in initFullscreenControls) so it doesn't leak
+                // across open/close cycles. Without this, every fullscreen
+                // open leaves an observer alive that pins the closed overlay
+                // element in memory.
+                if (this._fullscreenResizeObserver) {
+                    this._fullscreenResizeObserver.disconnect();
+                    this._fullscreenResizeObserver = null;
+                }
+                if (this._fullscreenResizeRaf) {
+                    cancelAnimationFrame(this._fullscreenResizeRaf);
+                    this._fullscreenResizeRaf = null;
+                }
             } catch (_) { }
             overlay.remove();
         };
@@ -10390,10 +10435,33 @@ ${svgData}`;
             }
         });
 
-        // Initial fit to screen with multiple attempts for best results
-        setTimeout(fitToScreen, 100);  // Quick first attempt
-        setTimeout(fitToScreen, 500);  // Second attempt after rendering
-        setTimeout(fitToScreen, 1000); // Final attempt after everything settles
+        // EW (Jul 22 2026): Single-fit, ResizeObserver-driven. The previous
+        // 3-setTimeout chain produced a visible race in the console log
+        // (4.458 -> 0.803 -> 4.458) because the viewport was transiently
+        // narrower mid-CSS-layout during the middle fit, and there was no
+        // live resize listener so a window resize required a manual click
+        // on #fit-screen. Now: wait one frame for layout, fit exactly once,
+        // then keep fitting on real size changes only.
+        const initialFit = () => {
+            const r = viewport.getBoundingClientRect();
+            if (r.width <= 0 || r.height <= 0) {
+                requestAnimationFrame(initialFit);  // viewport still settling
+                return;
+            }
+            fitToScreen();
+        };
+        requestAnimationFrame(initialFit);
+
+        // Live resize support — the overlay previously had no resize listener.
+        if (typeof ResizeObserver !== 'undefined') {
+            const ro = new ResizeObserver(() => {
+                if (this._fullscreenResizeRaf) cancelAnimationFrame(this._fullscreenResizeRaf);
+                this._fullscreenResizeRaf = requestAnimationFrame(fitToScreen);
+            });
+            ro.observe(viewport);
+            // Store on instance for cleanup on close
+            this._fullscreenResizeObserver = ro;
+        }
     }
 }
 

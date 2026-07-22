@@ -60,6 +60,78 @@ The historical SPA-level rule `body > [id^="dmermaid"] { display: none !importan
 
 The fix is in `business-ai-platform-v2.html` (around L10730) and replaces `display: none` with `position: fixed; visibility: hidden; top: -10000px; left: -10000px; min-width: 700px; display: block; pointer-events: none;`. The element stays in the layout tree so Mermaid can read its bounding rect, but is never visible to the user. The orphan-`.mermaid`-container selector (`body > .mermaid:not(.viz-container .mermaid)`) is retained as-is — that one matches genuine orphans, not staging nodes. `pie: { useMaxWidth: false }` was tried (Jul 21) and reverted (Jul 22) because `useMaxWidth` only governs post-render CSS scaling, not the viewBox itself — it cannot rescue a 0-wide staging element.
 
+### Always-white canvas + pie label buffer (added July 22, 2026)
+
+Every chart canvas (Mermaid `themeVariables.backgroundColor`, Plotly `paper_bgcolor`) is forced to **`#ffffff`** regardless of UI theme. The UI theme still controls the surrounding chrome — chat-bubble backgrounds, sidebar, etc. — but the chart canvas itself is constant white.
+
+Why:
+
+- **AI-generated chart colours** (axis, grid, title, line) often pick dark colours that read fine against a white canvas in light mode but vanish against a dark canvas in dark mode. A constant white canvas means every AI-picked colour combination is legible regardless of light/dark UI mode.
+- **Plotly export consistency.** `Plotly.downloadImage` / `Plotly.toImage` honours `paper_bgcolor`; with a transparent chat-area bg the downloaded PNG had alpha-channel transparency, and with a dark-canvas dedicated path the export was a dark-mode PNG. A white `paper_bgcolor` always yields an opaque white PNG that matches Mermaid's hard-coded-white PNG export.
+- **One mental model for "what colour will my chart sit on"** — there is only one: white.
+
+Implementation lives in `visualisation_v3.js`:
+
+- `applyEnhancedPlotlyTheme` (chat-area Plotly path): `bgColor = '#ffffff'`, `textColor = '#24292f'`, `gridColor = '#e1e4e8'` — no `isDark` branching.
+- `toggle3DView` (dedicated/calculator Plotly path): same constants — no `isDark` branching.
+- `updateTheme` + `updateChartTheme` (theme-toggle retroactive recolor): same constants — no `isDark` branching.
+- All 5 `mermaid.initialize()` call sites (chat-area renderer, popup/fullscreen renderer, direction-toggle renderer, `applyMermaidColorTheme`, `applyMermaidFontSize`, `updateChartTheme` mermaid re-init): `theme: 'base'` + always-light `themeVariables` (`primaryColor: '#f0f0f0'`, `nodeBkg: '#f0f0f0'`, `textColor: '#24292f'`, `nodeTextColor: '#24292f'`, `backgroundColor: '#ffffff'`, `lineColor: '#656d76'`).
+- `applySimplifiedMermaidPostProcessing`: `text.setAttribute('fill', '#24292f')` always (was: `isDark ? '#e6edf3' : '#24292f'`). The `isDark` parameter has been removed from the function signature; existing callers that still pass it harmlessly ignore.
+
+**Why the `applyMermaidColorTheme` and `applyMermaidFontSize` blocks retain their `primaryTextColor: '#ffffff'`, `textColor: '#ffffff'`, etc.:** those functions are the *themed* entry points where the user explicitly picks a colour palette (forest/neutral/dark via `getMermaidColorThemes()`). The palette paints the node fills in saturated colours, and the `#ffffff` text forces give white text maximum contrast against those fills. They are load-bearing for the themed-coloured-nodes design and are NOT removed — only `theme`, `backgroundColor`, `lineColor`, `edgeLabelBackground` are flipped to light-mode constants.
+
+**Companion fix — pie chart label buffer:** Mermaid 10.6.1 emits pie labels outside the pie with leader lines; in narrow chat columns the SVG can be CSS-scaled down so the labels sit close to the slice edges. The fix is in `business-ai-platform-v2.html` (right after the staging CSS, around L10760):
+
+```css
+.mermaid svg[id^="pie-"],
+.mermaid svg[class*="pie"] {
+    padding: 8px 8px 24px 8px;
+    max-height: 520px;
+}
+.viz-content-area > .mermaid:has(svg[id^="pie-"]),
+.viz-content-area > .mermaid:has(svg[class*="pie"]) {
+    min-height: 520px;
+}
+```
+
+The `:has()` selector keeps the buffer scoped to pies only — other Mermaid types are unaffected. Mermaid's default pie viewBox is 450×450; `max-height: 520px` leaves 70 px of breathing room for the labels.
+
+Full historical record: see `VISUALIZATION_CANVAS_BG_AND_FULLSCREEN_FIX_JULY22_2026.md` at the repo root.
+
+### Fullscreen single-fit + ResizeObserver (added July 22, 2026)
+
+The fullscreen view in `initFullscreenControls` (`visualisation_v3.js`) previously fired three `setTimeout(fitToScreen, 100/500/1000)` after first opening, producing a visible race in the console (the user's log: 4.458 → 0.803 → 4.458 — the middle fit landed while the viewport was transiently narrower mid-CSS-layout, and then a third fit corrected it). There was also no resize listener on the fullscreen overlay, so a window resize after open required the user to manually click `#fit-screen`.
+
+The fix replaces the three-setTimeout chain with:
+
+```js
+const initialFit = () => {
+    const r = viewport.getBoundingClientRect();
+    if (r.width <= 0 || r.height <= 0) {
+        requestAnimationFrame(initialFit);  // viewport still settling
+        return;
+    }
+    fitToScreen();
+};
+requestAnimationFrame(initialFit);
+
+// Live resize support
+if (typeof ResizeObserver !== 'undefined') {
+    const ro = new ResizeObserver(() => {
+        if (this._fullscreenResizeRaf) cancelAnimationFrame(this._fullscreenResizeRaf);
+        this._fullscreenResizeRaf = requestAnimationFrame(fitToScreen);
+    });
+    ro.observe(viewport);
+    this._fullscreenResizeObserver = ro;
+}
+```
+
+The observer is stored on the class instance (`this._fullscreenResizeObserver`) so `closeFullscreen` can disconnect it cleanly — without that disconnect, every fullscreen open would leak an observer that pins the closed overlay in memory.
+
+The companion `reRenderFullscreenIfOpen` (theme-toggle / colour-theme / font-size re-render path) also switched from `setTimeout(() => fitButton.click(), 100)` to `requestAnimationFrame(() => requestAnimationFrame(() => fitButton.click()))` — double-rAF is enough (~32 ms at 60 fps) for the SVG insertion + style flush to settle before the click, replacing the magic 100 ms number.
+
+Full historical record: see `VISUALIZATION_CANVAS_BG_AND_FULLSCREEN_FIX_JULY22_2026.md` at the repo root.
+
 ---
 
 ## Architecture Pattern
