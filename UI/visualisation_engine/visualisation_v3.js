@@ -5855,7 +5855,10 @@ class VisualizationEngine {
 
                 // nhanced: Enhanced styling
                 if (!isLabelContainerRect) {
-                    rect.setAttribute('stroke', isDark ? '#666666' : '#cccccc');
+                    // EW (Jul 22 2026): canvas is always white, so use light-mode
+                    // stroke (medium grey reads on white; the previous dark-mode
+                    // '#666666' would be invisible on a white node fill).
+                    rect.setAttribute('stroke', '#cccccc');
                     rect.setAttribute('stroke-width', '1.2');
                 }
 
@@ -5871,18 +5874,21 @@ class VisualizationEngine {
                 // nhanced: Expand circles slightly for better text fit
                 circle.setAttribute('r', (radius * 1.2).toString());
             }
-            circle.setAttribute('stroke', isDark ? '#666666' : '#cccccc');
+            // EW (Jul 22 2026): always-light stroke (see rect stroke note above)
+            circle.setAttribute('stroke', '#cccccc');
             circle.setAttribute('stroke-width', '1.5');
         });
 
         const polygons = svgElement.querySelectorAll('polygon');
         polygons.forEach(polygon => {
-            polygon.setAttribute('stroke', isDark ? '#666666' : '#cccccc');
+            // EW (Jul 22 2026): always-light stroke (see rect stroke note above)
+            polygon.setAttribute('stroke', '#cccccc');
             polygon.setAttribute('stroke-width', '1.5');
         });
 
         // EW: Enhanced subgraph spacing and styling
-        this.applySubgraphSpacingStyles(svgElement, isDark);
+        // EW (Jul 22 2026): drop isDark arg — canvas is always white
+        this.applySubgraphSpacingStyles(svgElement);
 
         // INAL GUARD: Sanitize any negative/NaN dimensions from upstream quirks
         svgElement.querySelectorAll('rect').forEach(r => {
@@ -5896,7 +5902,10 @@ class VisualizationEngine {
     }
 
     // EW: Apply specific styling fixes for subgraph spacing
-    applySubgraphSpacingStyles(svgElement, isDark) {
+    // EW (Jul 22 2026): drop isDark parameter — canvas is always white,
+    // so all subgraph styling uses light-mode constants (subtle dark tint
+    // for backgrounds, dark text, white halos for title contrast).
+    applySubgraphSpacingStyles(svgElement) {
         console.log('🎨 Applying subgraph spacing styles...');
         console.log('🔍 SVG element structure:', svgElement.outerHTML.substring(0, 500));
 
@@ -5942,9 +5951,9 @@ class VisualizationEngine {
                     // Find and enhance child rectangles (subgraph backgrounds)
                     const rects = element.querySelectorAll('rect');
                     rects.forEach(rect => {
-                        // Style subgraph background
-                        rect.setAttribute('fill', isDark ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.03)');
-                        rect.setAttribute('stroke', isDark ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.15)');
+                        // Style subgraph background — always light-mode values
+                        rect.setAttribute('fill', 'rgba(0,0,0,0.03)');
+                        rect.setAttribute('stroke', 'rgba(0,0,0,0.15)');
                         rect.setAttribute('stroke-width', '1');
                         rect.setAttribute('rx', '6');
                         rect.setAttribute('ry', '6');
@@ -5964,9 +5973,9 @@ class VisualizationEngine {
                     });
 
                 } else if (element.tagName === 'rect') {
-                    // Handle direct rectangle elements
-                    element.setAttribute('fill', isDark ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.03)');
-                    element.setAttribute('stroke', isDark ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.15)');
+                    // Handle direct rectangle elements — always light-mode values
+                    element.setAttribute('fill', 'rgba(0,0,0,0.03)');
+                    element.setAttribute('stroke', 'rgba(0,0,0,0.15)');
                     element.setAttribute('stroke-width', '1');
                     element.setAttribute('rx', '6');
                     element.setAttribute('ry', '6');
@@ -6085,7 +6094,8 @@ class VisualizationEngine {
                 // nhance title styling
                 text.setAttribute('font-weight', 'bold');
                 text.setAttribute('font-size', '14');
-                text.setAttribute('fill', isDark ? '#e6edf3' : '#24292f');
+                // EW (Jul 22 2026): always dark text on white canvas
+                text.setAttribute('fill', '#24292f');
 
                 // dd a subtle background to make titles more visible
                 try {
@@ -6101,8 +6111,9 @@ class VisualizationEngine {
                     bgRect.setAttribute('y', (textBBox.y - 2).toString());
                     bgRect.setAttribute('width', (textBBox.width + 10).toString());
                     bgRect.setAttribute('height', (textBBox.height + 4).toString());
-                    bgRect.setAttribute('fill', isDark ? 'rgba(0,0,0,0.7)' : 'rgba(255,255,255,0.9)');
-                    bgRect.setAttribute('stroke', isDark ? 'rgba(255,255,255,0.2)' : 'rgba(0,0,0,0.2)');
+                    // EW (Jul 22 2026): always white halo on dark text for contrast
+                    bgRect.setAttribute('fill', 'rgba(255,255,255,0.9)');
+                    bgRect.setAttribute('stroke', 'rgba(0,0,0,0.2)');
                     bgRect.setAttribute('stroke-width', '1');
                     bgRect.setAttribute('rx', '4');
                     bgRect.setAttribute('ry', '4');
@@ -6131,8 +6142,9 @@ class VisualizationEngine {
                 .cluster rect { 
                     padding: 25px 15px !important; 
                     margin-bottom: 15px !important;
-                    fill: ${isDark ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.03)'} !important;
-                    stroke: ${isDark ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.15)'} !important;
+                    /* EW (Jul 22 2026): always-light cluster rect styling */
+                    fill: rgba(0,0,0,0.03) !important;
+                    stroke: rgba(0,0,0,0.15) !important;
                 }
                 text[font-weight="bold"] { 
                     margin-bottom: 20px !important;
@@ -6149,7 +6161,8 @@ class VisualizationEngine {
                 /* Ensure subgraph titles are always visible and on top */
                 g.cluster text[text-anchor="middle"] {
                     paint-order: stroke markers fill !important;
-                    stroke: ${isDark ? '#0d1117' : '#ffffff'} !important;
+                    /* EW (Jul 22 2026): always-white halo for text contrast */
+                    stroke: #ffffff !important;
                     stroke-width: 3 !important;
                     stroke-linejoin: round !important;
                     font-weight: bold !important;
@@ -7474,8 +7487,8 @@ class VisualizationEngine {
             const clonedSvg = renderedSvg.cloneNode(true);
 
             // Apply post-processing to SVG export (this was the missing piece!)
-            const isDark = document.documentElement.classList.contains('dark');
-            this.applySimplifiedMermaidPostProcessing(clonedSvg, isDark);
+            // EW (Jul 22 2026): drop isDark arg — canvas is always white now
+            this.applySimplifiedMermaidPostProcessing(clonedSvg);
             // Note: Hardening helpers remain disabled; we only add a minimal CSS snippet later
             //       to normalize bullet BRs for export without changing live chat rendering.
             console.log('🎨 Applied UI post-processing to SVG export');
@@ -7688,8 +7701,8 @@ ${svgData}`;
             clonedSvg.style.transform = '';
 
             // Apply post-processing to match working SVG export
-            const isDark = document.documentElement.classList.contains('dark');
-            this.applySimplifiedMermaidPostProcessing(clonedSvg, isDark);
+            // EW (Jul 22 2026): drop isDark arg — canvas is always white now
+            this.applySimplifiedMermaidPostProcessing(clonedSvg);
             // Note: Other export hardening helpers remain disabled; we inject only minimal
             //       CSS later to normalize bullet BRs specifically for export.
             console.log('🎨 Applied UI post-processing to clean SVG clone');
