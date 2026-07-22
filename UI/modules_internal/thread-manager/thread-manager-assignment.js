@@ -92,8 +92,13 @@ Object.assign(window.ThreadManager, {
      * 
      * Flow: assignThread() → UPDATE DATABASE → _cascadeThreadAssignment() → UPDATE UI
      */
-    async assignThread(threadId, location) {
-        console.log(`🔄 [Assignment] START: ${threadId} → ${location}`);
+    async assignThread(threadId, location, options = {}) {
+        // options.swap: boolean — when true, the displaced thread is routed to
+        // the source thread's previous location instead of 'unassigned'.
+        // (Backend enforces; if source has no previous_location or it is
+        // 'unassigned', the swap collapses to unassign automatically.)
+        const swap = options.swap === true;
+        console.log(`🔄 [Assignment] START: ${threadId} → ${location}${swap ? ' [swap mode]' : ''}`);
 
         // ✅ FIX: Check for duplicate assignment within 1 second
         if (AssignmentQueue.isRecentDuplicate(threadId, location)) {
@@ -138,14 +143,16 @@ Object.assign(window.ThreadManager, {
             const apiUrl = window.API_BASE_URL || 'http://localhost:5001';
 
             // ✅ FIX: Register assignment start to prevent duplicates (wrapping fetch in promise)
+            const assignmentBody = JSON.stringify({
+                session_id: threadId,
+                location: location || 'unassigned',
+                user_id: userId,
+                swap: swap
+            });
             const assignmentPromise = fetch(`${apiUrl}/api/thread-assignments/assign`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    session_id: threadId,
-                    location: location || 'unassigned',
-                    user_id: userId
-                })
+                body: assignmentBody
             });
 
             AssignmentQueue.register(threadId, location, assignmentPromise);
@@ -166,11 +173,7 @@ Object.assign(window.ThreadManager, {
                         retryResponse = await fetch(`${window.API_BASE_URL || 'http://localhost:5001'}/api/thread-assignments/assign`, {
                             method: 'POST',
                             headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({
-                                session_id: threadId,
-                                location: location || 'unassigned',
-                                user_id: (UserAuth.user && (UserAuth.user.id || UserAuth.user.user_id)) || 1
-                            })
+                            body: assignmentBody
                         });
                         if (retryResponse.ok) {
                             response = retryResponse;
@@ -198,12 +201,21 @@ Object.assign(window.ThreadManager, {
             const updateData = await response.json();
             console.log(`✅ [Assignment] API updated:`, updateData);
 
+            // Merge the API response into our local assignment payload so the
+            // CASCADE step receives everything the backend decided — including
+            // previous_location, displaced_thread, and displaced_new_location
+            // (the latter only present when swap=true).
+            const apiAssignment = updateData?.assignment || {};
             const data = {
                 success: true,
                 assignment: {
                     session_id: threadId,
                     location: location || 'unassigned',
-                    user_id: userId
+                    user_id: userId,
+                    previous_location: apiAssignment.previous_location ?? null,
+                    displaced_thread: apiAssignment.displaced_thread ?? null,
+                    displaced_new_location: apiAssignment.displaced_new_location ?? null,
+                    swap: swap
                 }
             };
 
@@ -248,9 +260,8 @@ Object.assign(window.ThreadManager, {
 
         // 🔔 NEW: Add notification for thread assignment
         if (typeof NotificationCenter !== 'undefined' && NotificationCenter.add) {
-            const locationName = newLocation === 'unassigned' ? 'Unassigned' :
-                newLocation === 'prime' ? 'Prime (Active)' :
-                    newLocation.startsWith('agent-') ? this.getAgentName(newLocation.replace('agent-', '')) : newLocation;
+            // Use the human-friendly display name (e.g. "Agent-3 Charlie" instead of "agent-3")
+            const locationName = this.formatLocationName ? this.formatLocationName(newLocation) : newLocation;
 
             NotificationCenter.add({
                 type: 'THREAD_ASSIGNED',
@@ -282,14 +293,27 @@ Object.assign(window.ThreadManager, {
         }
 
         // STEP 3: Handle DISPLACED thread (if any)
+        // The backend now reports where the displaced thread was sent to via
+        // assignment.displaced_new_location. Default to 'unassigned' if absent
+        // (legacy responses or local-only fallback path).
         if (assignment.displaced_thread) {
-            console.log(`🔄 [CASCADE] Handling displaced thread: ${assignment.displaced_thread}`);
+            const displacedNewLocation = assignment.displaced_new_location || 'unassigned';
+            console.log(`🔄 [CASCADE] Handling displaced thread: ${assignment.displaced_thread} → ${displacedNewLocation}`);
             const displacedThread = this.threads.find(t => t.id === assignment.displaced_thread);
             if (displacedThread) {
-                displacedThread.location = 'unassigned';
-                displacedThread.agent = null;
+                displacedThread.location = displacedNewLocation;
+                displacedThread.agent = displacedNewLocation.startsWith('agent-') ? displacedNewLocation : null;
                 displacedThread.updated = new Date().toISOString();
+                // Clear UI from the source target column (where the displaced
+                // thread USED to be rendered).
                 await this._clearLocationUI(newLocation, assignment.displaced_thread);
+
+                // Surface a toast so the user knows the displaced thread moved.
+                if (typeof showNotification === 'function') {
+                    const displacedTitle = this.formatThreadTitle ? this.formatThreadTitle(displacedThread) : `"${displacedThread.title || 'Untitled'}"`;
+                    const destName = this.formatLocationName ? this.formatLocationName(displacedNewLocation) : displacedNewLocation;
+                    showNotification(`${displacedTitle} moved to ${destName}`, 'info', 2500);
+                }
             }
         }
 

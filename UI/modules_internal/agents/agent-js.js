@@ -3135,22 +3135,13 @@ window._buildDeferredThreadUI = async function () {
         }, 100);
     }
 
-    // Setup threads catalogue as "dead zone" - drops here are ignored (no action)
+    // Setup threads catalogue as a real drop zone (only active when the
+    // sidebar is open). The dead-zone fallback above has been removed so
+    // users can drag an in-flight thread (prime or agent-N) back to the
+    // catalogue to unassign it. setupCatalogueDropZone is idempotent.
     setTimeout(() => {
-        const threadMenu = document.getElementById('thread-menu');
-        if (threadMenu) {
-            threadMenu.addEventListener('drop', (e) => {
-                e.stopPropagation();
-                e.preventDefault();
-                console.log('🛑 [Drop] Dropped in threads catalogue - no action (dead zone)');
-                // Clear all drag-over states
-                document.querySelectorAll('.drag-over').forEach(el => el.classList.remove('drag-over'));
-            });
-            threadMenu.addEventListener('dragover', (e) => {
-                e.preventDefault();
-                e.dataTransfer.dropEffect = 'none'; // Show "not allowed" cursor
-            });
-            console.log('✅ [Drop Zone] Threads catalogue configured as dead zone (drops ignored)');
+        if (typeof ThreadManager !== 'undefined' && typeof ThreadManager.setupCatalogueDropZone === 'function') {
+            ThreadManager.setupCatalogueDropZone();
         }
     }, 150);
 

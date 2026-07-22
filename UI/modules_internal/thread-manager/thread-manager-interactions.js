@@ -680,6 +680,104 @@ Object.assign(window.ThreadManager, {
             return;
         }
 
+        // === OCCUPANCY CHECK: If the target is a single-thread location (prime or
+        // agent-N) and another thread is already there, prompt the user before
+        // displacing it. Without this check, drops silently overwrite the existing
+        // assignment — surprising and hard to recover from. ===
+        const targetIsOccupiable = targetLocation === 'prime' || targetLocation.startsWith('agent-');
+        if (targetIsOccupiable) {
+            const existingThread = this.threads.find(
+                t => t.location === targetLocation && t.id !== threadId
+            );
+            const sourceThread = this.threads.find(t => t.id === threadId);
+
+            if (existingThread && sourceThread) {
+                console.log(`⚠️ [Drop] Target ${targetLocation} occupied by ${existingThread.id} - showing confirmation`);
+
+                const choice = await new Promise((resolve) => {
+                    this.showAssignmentConfirmation({
+                        sourceThread,
+                        sourceLocation,
+                        targetLocation,
+                        existingThread,
+                        onChoose: resolve
+                    });
+                });
+
+                if (choice.action === 'cancel') {
+                    console.log('🚫 [Drop] User cancelled the swap/unassign dialog');
+                    return;
+                }
+
+                if (targetLocation === 'prime') {
+                    // Prime flow: existing local-render path doesn't write to DB.
+                    // We must explicitly move the existing prime thread out of the
+                    // way so a refresh doesn't put it back. The new thread is then
+                    // loaded locally via loadThreadInPrime.
+                    if (choice.action === 'unassign_existing') {
+                        await this.assignThread(existingThread.id, null);
+                        await this.loadThreadsFromBackend();
+                    } else if (choice.action === 'swap') {
+                        // Swap for prime: move existing prime → where source came from
+                        // (source may have come from unassigned; if so, swap collapses
+                        // to unassign-existing because previous_location is 'unassigned').
+                        const swapTarget = sourceLocation || 'unassigned';
+                        await this.assignThread(existingThread.id, swapTarget);
+                        await this.loadThreadsFromBackend();
+                    }
+                    await this.loadThreadInPrime(threadId);
+                    if (typeof this.renderThreadInfoContainer === 'function') {
+                        this.renderThreadInfoContainer('prime', threadId, true);
+                    }
+                    this.closeThreadMenu();
+                    if (typeof showNotification === 'function') {
+                        const t = this.threads.find(x => x.id === threadId);
+                        showNotification(
+                            `Thread ${this.formatThreadTitle(t)} loaded in Prime`,
+                            'success'
+                        );
+                    }
+                    return;
+                }
+
+                // agent-N flow: use assignThread with the swap flag so the backend
+                // routes the displaced thread to the correct destination.
+                const swap = choice.action === 'swap';
+                await this.assignThread(threadId, targetLocation, { swap });
+
+                // Refresh from DB to get the canonical post-assignment state
+                await this.loadThreadsFromBackend();
+
+                const refreshedThread = this.threads.find(t => t.id === threadId);
+                if (!refreshedThread) {
+                    console.error(`❌ [Drop] Thread ${threadId} not found after reload`);
+                    return;
+                }
+
+                // Load the thread into the agent's chat panel
+                const agentId = parseInt(targetLocation.replace('agent-', ''));
+                if (MultiAgent.loadThreadIntoAgent) {
+                    await MultiAgent.loadThreadIntoAgent(agentId, refreshedThread);
+                }
+
+                // Re-render the agent's thread info card
+                const threadInfoContainer = document.getElementById(`thread-info-${agentId}`);
+                if (threadInfoContainer && typeof this.renderThreadInfoContainer === 'function') {
+                    threadInfoContainer.innerHTML = this.renderThreadInfoContainer(targetLocation, threadId, true);
+                }
+
+                if (typeof showNotification === 'function') {
+                    const agentDisplay = this.formatLocationName(targetLocation);
+                    const action = swap ? 'Swapped with' : 'Replaced existing thread at';
+                    showNotification(
+                        `${action} ${agentDisplay}`,
+                        'success'
+                    );
+                }
+                return;
+            }
+        }
+
         if (targetLocation === 'unassigned' || targetLocation === 'prime') {
             console.log(`🎯 [Drop] Loading thread ${threadId} in Prime`);
 
@@ -802,8 +900,146 @@ Object.assign(window.ThreadManager, {
     },
 
     /**
+     * Get a human-friendly agent display name in the format "Agent-N NATO".
+     * Distinct from MultiAgent.getAgentName (which returns "NATO-N") so both
+     * formats remain available — column headers keep NATO-first; toasts and
+     * the swap modal use Agent-first per the product spec.
+     *
+     * @param {number|string} agentId
+     * @returns {string} e.g. "Agent-3 Charlie"
+     */
+    getAgentDisplayName(agentId) {
+        const id = parseInt(agentId, 10);
+        if (!id || id < 1 || id > 26) return `Agent ${agentId}`;
+        const natoNames = ['Alpha', 'Bravo', 'Charlie', 'Delta', 'Echo', 'Foxtrot',
+            'Golf', 'Hotel', 'India', 'Juliet', 'Kilo', 'Lima', 'Mike', 'November',
+            'Oscar', 'Papa', 'Quebec', 'Romeo', 'Sierra', 'Tango', 'Uniform',
+            'Victor', 'Whiskey', 'X-ray', 'Yankee', 'Zulu'];
+        const nato = natoNames[id - 1] || `Agent`;
+        return `Agent-${id} ${nato}`;
+    },
+
+    /**
+     * Format a DB location string for human display. Used by toasts and
+     * the swap modal so users never see raw values like "agent-3".
+     *
+     * @param {string} location - DB value (unassigned | prime | agent-N | thread-history | synergy)
+     * @returns {string} human display string
+     */
+    formatLocationName(location) {
+        if (!location) return 'Unassigned';
+        if (location === 'unassigned') return 'Catalogue';
+        if (location === 'thread-history') return 'Catalogue';
+        if (location === 'prime') return 'Prime';
+        if (location === 'synergy') return 'Synergy';
+        if (location.startsWith('agent-')) {
+            const id = parseInt(location.replace('agent-', ''), 10);
+            return this.getAgentDisplayName(id);
+        }
+        return location;
+    },
+
+    /**
+     * Format a thread title for display, with truncation for safety.
+     *
+     * @param {object} thread
+     * @param {number} maxLen
+     * @returns {string}
+     */
+    formatThreadTitle(thread, maxLen = 40) {
+        const title = thread?.title || 'Untitled';
+        if (title.length <= maxLen) return `"${title}"`;
+        return `"${title.slice(0, maxLen - 1)}…"`;
+    },
+
+    /**
+     * Show a confirmation modal when a thread drop would displace another
+     * thread. Three branches:
+     *   - source = prime | agent-N AND target occupied: Swap | Unassign existing | Cancel
+     *   - source = unassigned (catalogue) AND target occupied: Unassign existing | Cancel
+     *     (swap collapses to unassign because source has no real previous location)
+     *   - source = unassigned AND target empty: handled silently by caller
+     *
+     * @param {object} params
+     * @param {object} params.sourceThread     - Thread being dragged
+     * @param {string} params.sourceLocation   - DB location of the source thread
+     * @param {string} params.targetLocation   - DB location being dropped onto
+     * @param {object} params.existingThread   - Thread currently at the target location
+     * @param {function} params.onChoose       - ({ action: 'swap' | 'unassign_existing' | 'cancel' }) => void
+     */
+    showAssignmentConfirmation({ sourceThread, sourceLocation, targetLocation, existingThread, onChoose }) {
+        const sourceTitle = this.formatThreadTitle(sourceThread);
+        const existingTitle = this.formatThreadTitle(existingThread);
+        const targetDisplay = this.formatLocationName(targetLocation);
+        const isFromCatalogue = sourceLocation === 'unassigned' || sourceLocation === 'thread-history';
+
+        // Build modal content
+        const overlay = document.createElement('div');
+        overlay.className = 'thread-confirm-overlay';
+        overlay.innerHTML = `
+            <div class="thread-confirm-modal">
+                <div class="thread-confirm-header">
+                    <i class="fas fa-exchange-alt"></i>
+                    <h3>${isFromCatalogue ? 'Replace thread at this location?' : 'Swap or unassign?'}</h3>
+                </div>
+                <div class="thread-confirm-body">
+                    ${isFromCatalogue
+                        ? `<p><strong>${targetDisplay}</strong> already has ${existingTitle} loaded.</p>
+                           <p>Assigning ${sourceTitle} here will move ${existingTitle} to the Thread Catalogue.</p>`
+                        : `<p><strong>${targetDisplay}</strong> already has ${existingTitle} loaded.</p>
+                           <p>You can <em>swap</em> ${sourceTitle} with ${existingTitle}, or move ${existingTitle} to the Thread Catalogue and assign ${sourceTitle} here.</p>`
+                    }
+                </div>
+                <div class="thread-confirm-actions">
+                    <button class="thread-confirm-btn thread-confirm-cancel" data-action="cancel">
+                        Cancel
+                    </button>
+                    <button class="thread-confirm-btn thread-confirm-unassign" data-action="unassign_existing">
+                        <i class="fas fa-folder-open"></i>
+                        Move existing to catalogue
+                    </button>
+                    ${isFromCatalogue ? '' : `
+                    <button class="thread-confirm-btn thread-confirm-swap" data-action="swap">
+                        <i class="fas fa-exchange-alt"></i>
+                        Swap
+                    </button>
+                    `}
+                </div>
+            </div>
+        `;
+        document.body.appendChild(overlay);
+
+        // Wire buttons
+        overlay.addEventListener('click', (e) => {
+            if (e.target === overlay) {
+                overlay.remove();
+                onChoose({ action: 'cancel' });
+                return;
+            }
+            const action = e.target.closest('[data-action]')?.dataset.action;
+            if (!action) return;
+            overlay.remove();
+            onChoose({ action });
+        });
+
+        // Escape to cancel
+        const onKey = (e) => {
+            if (e.key === 'Escape') {
+                overlay.remove();
+                document.removeEventListener('keydown', onKey);
+                onChoose({ action: 'cancel' });
+            }
+        };
+        document.addEventListener('keydown', onKey);
+    },
+
+    /**
      * Setup drop zones for agent columns
      * Call this after creating new agent columns dynamically
+     *
+     * Uses dragenter/dragleave depth-counter pattern to avoid the flicker that
+     * the previous dragover-adds-class approach suffered from when crossing
+     * child elements (which fire their own dragenter/leave events).
      */
     setupAgentDropZones() {
         console.log('[ThreadManager] Setting up agent drop zones...');
@@ -815,24 +1051,31 @@ Object.assign(window.ThreadManager, {
             }
 
             const agentId = parseInt(agentColumn.dataset.agentId);
+            let dragDepth = 0;  // Counter for nested dragenter/dragleave events
+
+            agentColumn.addEventListener('dragenter', (e) => {
+                e.preventDefault();
+                if (dragDepth++ === 0) {
+                    agentColumn.classList.add('drag-over');
+                }
+            });
 
             agentColumn.addEventListener('dragover', (e) => {
                 e.preventDefault();
                 e.stopPropagation();
                 e.dataTransfer.dropEffect = 'move';
-                agentColumn.classList.add('drag-over');
             });
 
-            agentColumn.addEventListener('dragleave', (e) => {
-                // Only remove highlight if actually leaving container (not entering child element)
-                // relatedTarget is where the mouse is going
-                if (!agentColumn.contains(e.relatedTarget)) {
+            agentColumn.addEventListener('dragleave', () => {
+                if (--dragDepth <= 0) {
+                    dragDepth = 0;
                     agentColumn.classList.remove('drag-over');
                 }
             });
 
             agentColumn.addEventListener('drop', async (e) => {
                 e.preventDefault();
+                dragDepth = 0;
                 agentColumn.classList.remove('drag-over');
 
                 const threadId = e.dataTransfer.getData('application/x-thread-id');
@@ -864,11 +1107,15 @@ Object.assign(window.ThreadManager, {
     /**
      * Setup drop zone for Prime chat container
      * Call this when ThreadManager initializes
+     *
+     * Uses the same dragenter depth-counter pattern as agent columns, but with
+     * a subtle outline class (`prime-drag-over`) so the user sees the drop
+     * target without obscuring the chat header content.
      */
     setupPrimeDropZone() {
         console.log('[ThreadManager] Setting up Prime drop zone...');
 
-        // Use the entire ai-chat-panel as drop zone (no visual overlay)
+        // Use the entire ai-chat-panel as drop zone
         const primeContainer = document.getElementById('ai-chat-panel');
         if (!primeContainer) {
             console.error('❌ [ThreadManager] Prime chat panel not found');
@@ -881,15 +1128,32 @@ Object.assign(window.ThreadManager, {
             return;
         }
 
+        let dragDepth = 0;  // Counter for nested dragenter/dragleave events
+
+        primeContainer.addEventListener('dragenter', (e) => {
+            e.preventDefault();
+            if (dragDepth++ === 0) {
+                primeContainer.classList.add('prime-drag-over');
+            }
+        });
+
         primeContainer.addEventListener('dragover', (e) => {
             e.preventDefault();
             e.stopPropagation();
             e.dataTransfer.dropEffect = 'move';
-            // NO visual drag-over class - just allow the drop
+        });
+
+        primeContainer.addEventListener('dragleave', () => {
+            if (--dragDepth <= 0) {
+                dragDepth = 0;
+                primeContainer.classList.remove('prime-drag-over');
+            }
         });
 
         primeContainer.addEventListener('drop', async (e) => {
             e.preventDefault();
+            dragDepth = 0;
+            primeContainer.classList.remove('prime-drag-over');
 
             const threadId = e.dataTransfer.getData('application/x-thread-id');
             if (!threadId) return;
@@ -901,7 +1165,99 @@ Object.assign(window.ThreadManager, {
         });
 
         primeContainer.dataset.dropZoneConfigured = 'true';
-        console.log('✅ [Drop Zone] Prime configured (entire panel is drop area, no visual overlay)');
+        console.log('✅ [Drop Zone] Prime configured (entire panel is drop area)');
+    },
+
+    /**
+     * Setup drop zone for the Thread Catalogue sidebar (#thread-menu).
+     *
+     * Only enabled when the catalogue has the `.active` class — when the
+     * sidebar is collapsed/hidden, the drop zone is bypassed entirely so a
+     * stray drag onto the (invisible) panel doesn't silently move a thread.
+     *
+     * On drop, the source thread is moved to `unassigned` (i.e. added to the
+     * catalogue) via assignThread(threadId, null).
+     */
+    setupCatalogueDropZone() {
+        console.log('[ThreadManager] Setting up Catalogue drop zone...');
+
+        const catalogue = document.getElementById('thread-menu');
+        if (!catalogue) {
+            console.error('❌ [ThreadManager] Thread catalogue sidebar not found');
+            return;
+        }
+
+        // Skip if already configured
+        if (catalogue.dataset.dropZoneConfigured === 'true') {
+            console.log('⚠️ [ThreadManager] Catalogue drop zone already configured');
+            return;
+        }
+
+        let dragDepth = 0;  // Counter for nested dragenter/dragleave events
+
+        catalogue.addEventListener('dragenter', (e) => {
+            e.preventDefault();
+            // Disabled when the catalogue sidebar is not currently visible
+            if (!catalogue.classList.contains('active')) return;
+            if (dragDepth++ === 0) {
+                catalogue.classList.add('drag-over');
+            }
+        });
+
+        catalogue.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            // Drop effect only matters when sidebar is visible
+            if (!catalogue.classList.contains('active')) return;
+            e.dataTransfer.dropEffect = 'move';
+        });
+
+        catalogue.addEventListener('dragleave', () => {
+            if (--dragDepth <= 0) {
+                dragDepth = 0;
+                catalogue.classList.remove('drag-over');
+            }
+        });
+
+        catalogue.addEventListener('drop', async (e) => {
+            e.preventDefault();
+            dragDepth = 0;
+            catalogue.classList.remove('drag-over');
+
+            // Guard: if sidebar is not active, ignore the drop
+            if (!catalogue.classList.contains('active')) {
+                console.log('🚫 [Drop] Catalogue sidebar not active - drop ignored');
+                return;
+            }
+
+            const threadId = e.dataTransfer.getData('application/x-thread-id');
+            const sourceLocation = e.dataTransfer.getData('application/x-source-location');
+            if (!threadId) return;
+
+            // Already in catalogue? No-op
+            if (sourceLocation === 'unassigned' || sourceLocation === 'thread-history') {
+                console.log('🔄 [Drop] Thread already in catalogue - no change needed');
+                if (typeof showNotification === 'function') {
+                    showNotification('Thread already in catalogue', 'info');
+                }
+                return;
+            }
+
+            console.log(`📍 [Drop] Thread ${threadId} dropped on Thread Catalogue (from ${sourceLocation})`);
+
+            const thread = this.threads.find(t => t.id === threadId);
+            const threadTitle = thread?.title || 'Untitled';
+
+            // Move to unassigned (catalogue). assignThread(null) handles the
+            // null-location -> 'unassigned' mapping on the frontend side.
+            await this.assignThread(threadId, null);
+
+            if (typeof showNotification === 'function') {
+                showNotification(`Thread "${threadTitle}" moved to catalogue`, 'success');
+            }
+        });
+
+        catalogue.dataset.dropZoneConfigured = 'true';
+        console.log('✅ [Drop Zone] Thread Catalogue configured (active-only)');
     },
 
     /**

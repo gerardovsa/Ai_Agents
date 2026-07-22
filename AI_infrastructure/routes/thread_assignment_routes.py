@@ -56,28 +56,34 @@ def get_db_connection():
     return get_database_connection('sessions')
 
 
-def enforce_thread_assignment_rules(user_id, session_id, location):
+def enforce_thread_assignment_rules(user_id, session_id, location, swap=False):
     """
     Enforce thread assignment rules in database - FIXED CONNECTION LEAK
-    
+
     RULES:
     1. Thread can only be in ONE location (Prime OR one agent)
     2. Agent can only have ONE thread
     3. Most recent assignment wins - old assignments are removed
-    
+
     Args:
         user_id: User ID
         session_id: Thread ID to assign
         location: Target location (agent-1, agent-2, etc. or 'unassigned')
-    
+        swap: When True, if a displaced thread is produced, route it to the
+              source thread's previous_location instead of 'unassigned'. If
+              previous_location is missing or is itself 'unassigned', the swap
+              collapses to the standard unassign behaviour.
+
     Returns:
         dict: {
-            'previous_location': where thread was before,
-            'displaced_thread': thread that was kicked out of target location
+            'previous_location': where thread was before (or None),
+            'displaced_thread': thread that was kicked out of target location (or None),
+            'displaced_new_location': where displaced thread ended up (or None)
         }
     """
     previous_location = None
     displaced_thread = None
+    displaced_new_location = None
     result_data = None
     
     # ✅ FIX: Use context manager for ALL database operations
@@ -152,7 +158,8 @@ def enforce_thread_assignment_rules(user_id, session_id, location):
             # ✅ Set result and return (context manager handles cleanup)
             result_data = {
                 'previous_location': previous_location,
-                'displaced_thread': None
+                'displaced_thread': None,
+                'displaced_new_location': None
             }
         else:
             # RULE 2: Agent can only have ONE thread - remove existing thread from target location
@@ -160,47 +167,58 @@ def enforce_thread_assignment_rules(user_id, session_id, location):
                 displaced_thread = assignments[location]
                 del assignments[location]
                 logger.info(f"🔄 [RULE 2] Displaced thread {displaced_thread} from {location} (agent can only have one thread)")
-            
+
             # RULE 3: Assign thread to new location (most recent assignment wins)
             assignments[location] = session_id
             logger.info(f"✅ [RULE 3] Assigned thread {session_id} to {location} (most recent assignment)")
-            
+
             # Save back to database (LEGACY metadata - keep for backward compatibility)
             metadata['thread_assignments'] = assignments
-            
+
             sql, params = convert_sql_placeholders("""
-                UPDATE ai_infrastructure.users 
+                UPDATE ai_infrastructure.users
                 SET metadata = %s, last_active = CURRENT_TIMESTAMP
                 WHERE id = %s
             """, (json.dumps(metadata), user_id))
             cursor.execute(sql, params)
-            
+
             # CRITICAL: Also update sessions.threads.location (NEW SINGLE SOURCE OF TRUTH)
             sql, params = convert_sql_placeholders("""
-                UPDATE sessions.threads 
+                UPDATE sessions.threads
                 SET location = %s, updated_at = CURRENT_TIMESTAMP
                 WHERE thread_slug = %s::text AND user_id = %s
             """, (location, str(session_id), user_id))
             cursor.execute(sql, params)
             conn.commit()
-            
-            # If thread was displaced, move it to unassigned
+
+            # If a thread was displaced, decide where it goes:
+            #   swap=True AND previous_location exists AND != 'unassigned'  → route to previous_location
+            #   otherwise                                                     → route to 'unassigned'
             if displaced_thread:
+                if swap and previous_location and previous_location != 'unassigned':
+                    displaced_new_location = previous_location
+                    logger.info(f"🔄 [SWAP] Moving displaced thread {displaced_thread} to {displaced_new_location} (swap mode)")
+                else:
+                    displaced_new_location = 'unassigned'
+                    if swap:
+                        logger.info(f"🔄 [SWAP→UNASSIGN] Swap requested but previous_location invalid ({previous_location}); falling back to unassign")
+
                 sql, params = convert_sql_placeholders("""
-                    UPDATE sessions.threads 
-                    SET location = 'unassigned', updated_at = CURRENT_TIMESTAMP
+                    UPDATE sessions.threads
+                    SET location = %s, updated_at = CURRENT_TIMESTAMP
                     WHERE thread_slug = %s::text AND user_id = %s
-                """, (str(displaced_thread), user_id))
+                """, (displaced_new_location, str(displaced_thread), user_id))
                 cursor.execute(sql, params)
                 conn.commit()
-                logger.info(f"🔄 Moved displaced thread {displaced_thread} to Unassigned in sessions.threads")
-            
+                logger.info(f"🔄 Moved displaced thread {displaced_thread} → {displaced_new_location} in sessions.threads")
+
             logger.info(f"✅ Updated sessions.threads.location for thread {session_id} → {location}")
-            
+
             # Set result - context manager will handle connection cleanup
             result_data = {
                 'previous_location': previous_location,
-                'displaced_thread': displaced_thread
+                'displaced_thread': displaced_thread,
+                'displaced_new_location': displaced_new_location
             }
         
         # ✅ CRITICAL: Close cursor to prevent connection leak
@@ -425,25 +443,27 @@ def assign_thread():
         user_id = data.get('user_id', 1)
         session_id = data.get('session_id')
         location = data.get('location', 'unassigned')
-        
+        swap = bool(data.get('swap', False))
+
         if not session_id:
             return jsonify({
                 'success': False,
                 'error': 'session_id required'
             }), 400
-        
-        logger.info(f"📌 [ASSIGN] Thread {session_id} → {location} (user {user_id})")
-        
+
+        logger.info(f"📌 [ASSIGN] Thread {session_id} → {location} (user {user_id}) swap={swap}")
+
         # Enforce rules and get what changed (uses context manager internally)
-        result = enforce_thread_assignment_rules(user_id, session_id, location)
-        
+        result = enforce_thread_assignment_rules(user_id, session_id, location, swap=swap)
+
         return jsonify({
             'success': True,
             'assignment': {
                 'session_id': session_id,
                 'location': location,
                 'previous_location': result['previous_location'],
-                'displaced_thread': result['displaced_thread']
+                'displaced_thread': result['displaced_thread'],
+                'displaced_new_location': result['displaced_new_location']
             }
         })
         
@@ -493,19 +513,21 @@ def assign_thread_by_id(thread_id):
         user_id = data.get('user_id', 1)
         location = data.get('location', 'unassigned')
         agent_name = data.get('agent_name', location)
-        
-        logger.info(f"📌 [ASSIGN] Thread {thread_id} → {location} ({agent_name}) [user {user_id}]")
-        
+        swap = bool(data.get('swap', False))
+
+        logger.info(f"📌 [ASSIGN] Thread {thread_id} → {location} ({agent_name}) [user {user_id}] swap={swap}")
+
         # Enforce rules and get what changed (uses context manager internally)
-        result = enforce_thread_assignment_rules(user_id, thread_id, location)
-        
+        result = enforce_thread_assignment_rules(user_id, thread_id, location, swap=swap)
+
         return jsonify({
             'success': True,
             'assignment': {
                 'session_id': thread_id,
                 'location': location,
                 'previous_location': result['previous_location'],
-                'displaced_thread': result['displaced_thread']
+                'displaced_thread': result['displaced_thread'],
+                'displaced_new_location': result['displaced_new_location']
             }
         })
         
