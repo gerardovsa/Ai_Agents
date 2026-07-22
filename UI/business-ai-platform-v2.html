@@ -10727,8 +10727,26 @@
             box-shadow: inherit;
         }
 
-        /* Hide any mermaid syntax error elements injected outside viz-containers */
-        body > [id^="dmermaid"],
+        /* EW (Jul 22 2026): Mermaid 10.x creates a body-level staging element
+           with id `d{renderId}` while `mermaid.render()` measures layout.
+           The previous rule `display:none` collapsed that staging div to 0x0,
+           causing pies to emit viewBox="0 0 0 450" and flowcharts to throw
+           'Could not find a suitable point for the given distance' from
+           calcLabelPosition.  The staging div MUST remain in the layout tree
+           with a measurable width.  Keep it off-screen but measurable so it
+           is never visible to the user but Mermaid can still read its
+           bounding rect. */
+        body > [id^="dmermaid"] {
+            position: fixed !important;
+            top: -10000px !important;
+            left: -10000px !important;
+            visibility: hidden !important;
+            pointer-events: none !important;
+            min-width: 700px !important;
+            display: block !important;
+        }
+
+        /* Hide orphan .mermaid containers that escaped a viz-container. */
         body > .mermaid:not(.viz-container .mermaid) {
             display: none !important;
         }
