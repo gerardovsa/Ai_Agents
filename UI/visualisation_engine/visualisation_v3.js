@@ -5552,6 +5552,23 @@ class VisualizationEngine {
         // Ensure bullet labels render tightly without stray manual line breaks
         stripBreaksAroundBullets(svgElement);
 
+        // EW (Jul 22 2026): Chart-type detection. The rect inflation
+        // heuristic below (60px height floor at L5764 + lineCount*30 floor
+        // at L5762 + width-scaling horizontalPadding at L5754) is designed
+        // for flowchart nodes, where foreignObject labels need generous
+        // padding inside the node rect. But it inflates pie legend rects,
+        // git graph commit rects, and gantt task rects to ~60-100px tall
+        // — far larger than the text they contain. The user reported this
+        // as "the boxes around the text are much larger than the text"
+        // across pie legend, git graph branches/commits, and gantt tasks.
+        // Detect non-flowchart diagrams and skip the inflation while
+        // preserving stroke styling. See
+        // VISUALIZATION_RECT_TIGHTENING_FIX_JULY22_2026.md.
+        const isPieChart = !!svgElement.querySelector('g.pieGroup');
+        const isGitGraph = !!svgElement.querySelector('g.commit, g.branch, [class*="commit-"]');
+        const isGantt = !!svgElement.querySelector('g.section, g.task, [class*="section-"], [class*="task-"]');
+        const skipRectInflation = isPieChart || isGitGraph || isGantt;
+
         try {
             // Clamp overly large HTML label fonts in narrow, non-fullscreen containers
             const container = svgElement.closest('.viz-container');
@@ -5599,6 +5616,22 @@ class VisualizationEngine {
                 // Allow label-container rects to expand height to avoid clipping, but avoid heavy styling/width changes
                 const cls = (rect.getAttribute('class') || '').toLowerCase();
                 const isLabelContainerRect = cls.includes('label-container');
+
+                // EW (Jul 22 2026): Skip aggressive rect inflation for
+                // non-flowchart diagrams (pie, git graph, gantt). Mermaid
+                // already sizes these rects correctly; the 60px floor +
+                // width-scaling padding over-shoots by 3-5x, producing
+                // huge gray boxes around short labels. Apply minimal
+                // stroke styling (preserves the always-white canvas fix)
+                // and return early to skip the size/position mutation.
+                if (skipRectInflation) {
+                    if (!isLabelContainerRect) {
+                        rect.setAttribute('stroke', '#cccccc');
+                        rect.setAttribute('stroke-width', '1');
+                    }
+                    return;
+                }
+
                 // nhanced: Find associated text content for this rect
                 const rectX = parseFloat(rect.getAttribute('x') || 0);
                 const rectY = parseFloat(rect.getAttribute('y') || 0);

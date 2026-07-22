@@ -1,7 +1,7 @@
 # Visualization System Architecture Documentation
 
 **Date:** November 15, 2025
-**Last updated:** July 22, 2026 (Pie title/legend overlap fix)
+**Last updated:** July 22, 2026 (Rect tightening for pie/git graph/gantt; Pie title/legend overlap fix)
 **Purpose:** Complete guide to understanding how streamingTwoRule.js and visualisation_v3.js work together
 **Use Case:** Integrating visualization rendering into Tiptap document containers
 
@@ -130,6 +130,63 @@ Behaviour:
 The `pie: { useMaxWidth: false }` option was considered (and rejected on Jul 21 — see the staging-fix section above). `useMaxWidth` only governs post-render CSS scaling, not Mermaid's internal layout calculations; the `min-width: 700px !important` CSS-only approach addresses the root cause without changing the Mermaid config.
 
 Full historical record: see `VISUALIZATION_CANVAS_BG_AND_FULLSCREEN_FIX_JULY22_2026.md` at the repo root.
+
+### Rect tightening for pie / git graph / gantt (added July 22, 2026)
+
+After the pie title/legend overlap fix above, the user reported that **the boxes around the text are still much larger than the text** — visible across:
+
+- **Pie charts** — each legend row sits inside a huge gray rectangle (the legend item rect inflated to ~60-100 px tall for a single line of label text).
+- **Git graphs** — branch labels (`main`, `develop`, `feature/auth`, `bugfix/fix-typo`) and commit message boxes have oversized gray backgrounds extending well past the text.
+- **Gantt charts** — task labels (`Schema Analysis`, `User Confirmation`, etc.) sit in white rectangles that are 80-100 px tall instead of hugging the 18 px text inside.
+
+Root cause: `applySimplifiedMermaidPostProcessing` in `visualisation_v3.js` (~L5549) inflates **every `<rect>` ≥ 10 px** in any Mermaid SVG via a `Math.max(...)` heuristic that includes a hard `60` floor and a width-scaling horizontal padding term. That heuristic is correct for **flowchart nodes** (where `foreignObject` labels need generous padding inside the node rect), but it's catastrophic for pie legend rects, git graph commit rects, and gantt task rects — Mermaid already sizes those correctly and they have no foreignObject label to pad around.
+
+Specifically the offending terms (file `visualisation_v3.js`, in `applySimplifiedMermaidPostProcessing`):
+
+- L5754 — `horizontalPadding = basePadding * Math.max(1, width / 120)` — pads wider rects even more.
+- L5762 — `lineCount * 30 + basePadding` — single-line text becomes 40 px tall.
+- L5764 — `60` absolute minimum floor — every rect is forced to ≥ 60 px tall regardless of content.
+- L5843 + L5921 — `minRectH = 50` for label-container compaction (flowchart-only — not affected by the new skip).
+
+For a legend item rect 80 × 14 px containing the text "Product A", the heuristic gives `max(14+10, 14+15, 1*30+10, 1*14*1.4+10, 60) = 60`, then adds width-scaling horizontal padding (`80*10/120 ≈ 7` px), then shifts the rect's `x` left by `horizontalPadding/2`. Result: an 80 × 60 px gray rectangle with the label text floating in the middle — the exact bug in the user's image.
+
+**Fix shape — chart-type detection at the top of `applySimplifiedMermaidPostProcessing`.** Sniff the SVG's group classes to determine the chart type, then `return` early inside the rect `forEach` for non-flowchart diagrams so the size inflation is skipped while stroke styling still applies (preserving the always-white canvas fix).
+
+```js
+// EW (Jul 22 2026): Chart-type detection
+const isPieChart = !!svgElement.querySelector('g.pieGroup');
+const isGitGraph = !!svgElement.querySelector('g.commit, g.branch, [class*="commit-"]');
+const isGantt = !!svgElement.querySelector('g.section, g.task, [class*="section-"], [class*="task-"]');
+const skipRectInflation = isPieChart || isGitGraph || isGantt;
+
+// ... inside the rects.forEach, after isLabelContainerRect check:
+if (skipRectInflation) {
+    if (!isLabelContainerRect) {
+        rect.setAttribute('stroke', '#cccccc');
+        rect.setAttribute('stroke-width', '1');
+    }
+    return; // skip size/position mutation, move to next rect
+}
+```
+
+Why this is safe:
+
+- **Flowchart nodes** (`g.node` with `g.label` foreignObject) still get the full inflation pass — those rects legitimately need the padding to avoid clipping their foreignObject labels. None of the sniffed chart-type selectors (`pieGroup`, `commit`, `branch`, `section`, `task`) match flowchart classes, so the skip is precise.
+- **`applySubgraphSpacingStyles`** at L5972 (separate pass for `g.cluster` / `g.subgraph` backgrounds) is unaffected by the skip — its selectors don't match pie/git graph/gantt elements, and gantt's `<g class="section">` is not in the targeted selector list, so the section-background rectangles keep their existing light-mode fills.
+- **Circle / polygon / sanitize passes** at L5950-5980 still run as before — they don't depend on the rect-inflation logic.
+- **Stroke styling is preserved** for the skipped diagrams (light gray `#cccccc` on white canvas), so the always-white canvas fix is not regressed.
+
+Behaviour table after the fix:
+
+| Diagram type | Rect inflation | Stroke styling | Subgraph spacing |
+|---|---|---|---|
+| Flowchart | ON (unchanged) | ON (unchanged) | ON (unchanged) |
+| Pie | SKIPPED | ON (`#cccccc`, 1 px) | unaffected (no `.cluster`/`.subgraph` matches) |
+| Git graph | SKIPPED | ON | unaffected |
+| Gantt | SKIPPED | ON | unaffected (`g.section` not in selectors) |
+| Sequence diagram | unchanged (not in skip list — uses plain text actor labels, no foreignObject, no inflation regression observed) | unchanged | unaffected |
+
+Full historical record: see `VISUALIZATION_RECT_TIGHTENING_FIX_JULY22_2026.md` at the repo root.
 
 ### Fullscreen single-fit + ResizeObserver (added July 22, 2026)
 
