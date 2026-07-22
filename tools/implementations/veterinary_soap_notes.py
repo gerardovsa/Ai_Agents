@@ -35,25 +35,48 @@ import re
 from typing import Dict, Any, List, Optional
 from datetime import datetime
 
+# FIX (July 2026): Split the assemblyai/openai import from the
+# `from config import get_api_key_enhanced` lookup. The two were bundled in
+# a single try/except ImportError block, so when get_api_key_enhanced was
+# missing from config.py, both libraries were wrongly reported as
+# "not available — install with pip install …", even though they ARE
+# installed in requirements.txt. Now: library imports stand on their own;
+# the optional config-helper lookup falls back gracefully when absent.
 try:
     import assemblyai as aai
-    from config import get_api_key_enhanced
-    api_key = get_api_key_enhanced('ASSEMBLYAI_API_KEY')
-    if api_key and hasattr(aai, 'settings'):
-        aai.settings.api_key = api_key
 except ImportError:
     aai = None
     print("AssemblyAI not available - install with: pip install assemblyai")
 
 try:
     import openai
-    from config import get_api_key_enhanced
-    openai_key = get_api_key_enhanced('OPENAI_API_KEY')
-    if openai_key:
-        openai.api_key = openai_key
 except ImportError:
     openai = None
     print("OpenAI not available - install with: pip install openai")
+
+# Best-effort API-key resolution from config.py. Missing helper is non-fatal —
+# callers can still pass keys explicitly via env or per-org vault.
+try:
+    from config import get_api_key_enhanced  # noqa: F401
+    _has_get_api_key_enhanced = True
+except ImportError:
+    _has_get_api_key_enhanced = False
+
+if _has_get_api_key_enhanced:
+    if aai is not None:
+        try:
+            api_key = get_api_key_enhanced('ASSEMBLYAI_API_KEY')
+            if api_key and hasattr(aai, 'settings'):
+                aai.settings.api_key = api_key
+        except Exception:  # noqa: BLE001
+            pass
+    if openai is not None:
+        try:
+            openai_key = get_api_key_enhanced('OPENAI_API_KEY')
+            if openai_key:
+                openai.api_key = openai_key
+        except Exception:  # noqa: BLE001
+            pass
 
 
 class VeterinarySOAPError(Exception):
