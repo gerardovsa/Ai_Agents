@@ -389,9 +389,9 @@ ${tailwindLink}
   <script src="https://unpkg.com/react@18/umd/react.production.min.js"><\/script>
   <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"><\/script>
 ${rechartsScript}
-${lucideScript}
   <!-- Babel Standalone: transpiles JSX at runtime inside the sandboxed iframe -->
   <script src="https://unpkg.com/@babel/standalone/babel.min.js"><\/script>
+${lucideScript}
   <style>
     html, body { margin: 0; padding: 0; width: 100%; overflow-x: hidden; }
     body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
