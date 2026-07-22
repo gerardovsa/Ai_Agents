@@ -37,6 +37,11 @@ RUN apt-get update && \
     nodejs \
     npm \
     poppler-utils \
+    # FIX (July 2026): libgl1 + libglib2.0-0 provide libGL.so.1 needed by
+    # cadquery. Without these, cadquery.py fails to import at startup with
+    # "libGL.so.1: cannot open shared object file: No such file or directory".
+    libgl1 \
+    libglib2.0-0 \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 

@@ -458,19 +458,7 @@ ${identifierHoist}
         var out;
         try {
             out = Babel.transform(rawSource, {
-                presets: [['react', { runtime: 'classic' }]],
-                plugins: [
-                    function stripModules() {
-                        return {
-                            visitor: {
-                                ImportDeclaration:        function (p) { p.remove(); },
-                                ExportNamedDeclaration:   function (p) { p.remove(); },
-                                ExportDefaultDeclaration: function (p) { p.remove(); },
-                                ExportAllDeclaration:     function (p) { p.remove(); }
-                            }
-                        };
-                    }
-                ]
+                presets: [['react', { runtime: 'classic' }]]
             }).code;
         } catch (transformErr) {
             var tmsg = (transformErr && transformErr.message)
