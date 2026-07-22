@@ -53,6 +53,7 @@ import json
 import logging
 import os
 import sys
+from datetime import datetime, timedelta, timezone
 from typing import Optional, Dict, Any, List
 
 import requests
@@ -169,16 +170,26 @@ def _supabase_rest_get(creds: Dict[str, str], table: str, select: str,
     """
     Issue a GET against the external Supabase PostgREST endpoint.
 
-    `filters` is a dict of column->value for .eq() equality predicates.
+    `filters` is a dict of {param_name: param_value}. Each value MUST be
+    the full PostgREST right-hand side, including its operator, e.g.
+        'eq.<value>'        -> =eq.<value>      (equality)
+        'in.(a,b,c)'        -> =in.(a,b,c)      (set membership)
+        'gte.<value>'       -> =gte.<value>     (range)
+        'not.is.null'       -> =not.is.null     (negated null check)
+        'or=(col1.gte.X,col2.lt.Y)'  -> =or=(...)  (logical OR)
+        'and=(...)'         -> =and=(...)       (logical AND)
+    For columns needing the equality operator, the caller passes
+    'eq.<value>' explicitly. The helper does NOT auto-prepend 'eq.' -
+    doing so corrupts every non-trivial filter (the bug that originally
+    produced 502s on the dashboard endpoint).
     `order` is a PostgREST order clause like 'key_call_date.desc.nullslast'.
     Returns the parsed JSON response or raises requests.RequestException.
     """
     url = f"{creds['url']}/rest/v1/{table}?select={select}"
     if filters:
         for col, val in filters.items():
-            # PostgREST expects .eq.<col>=<value> appended to the query string.
-            # Use 'eq' as the operator (the default for .eq()).
-            url += f"&{col}=eq.{requests.utils.quote(str(val), safe='')}"
+            # Caller is responsible for the operator prefix; we append verbatim.
+            url += f"&{col}={val}"
     if order:
         url += f"&order={order}"
     if limit is not None:
@@ -227,6 +238,79 @@ def _audit_log(credential_id: Optional[int], action: str, platform: str,
         logger.warning("[VSA_PROXY] audit log write failed (non-fatal): %s", exc)
 
 
+def _get_allowed_hospital_codes(org_id: Optional[int]) -> List[str]:
+    """
+    Return the list of VSA hospital codes the calling org is allowed to
+    see, sourced from ai_infrastructure.vsa_org_hospitals.
+
+    An empty list means "this org is not provisioned for VSA yet" - the
+    caller should treat that as 'show nothing' rather than falling back
+    to the full dataset. This is a hard privacy guarantee: a misconfigured
+    row in vsa_org_hospitals cannot leak data; the absence of a row
+    returns no data.
+    """
+    if not org_id:
+        return []
+    try:
+        rows = execute_query(
+            """
+            SELECT hospital_code
+            FROM ai_infrastructure.vsa_org_hospitals
+            WHERE organisation_id = %s AND is_active = TRUE
+            ORDER BY hospital_code
+            """,
+            (org_id,),
+            fetch_mode='all',
+        )
+        return [r['hospital_code'] for r in rows or []]
+    except Exception as exc:
+        logger.warning("[VSA_PROXY] hospital_codes lookup failed: %s", exc)
+        return []
+
+
+def _get_allowed_call_ids(creds: Dict[str, str], hospital_codes: List[str],
+                          limit: int = 2000) -> List[str]:
+    """
+    Fetch the call_ids whose key_hospital_code is in `hospital_codes`.
+
+    Used to scope downstream queries against tables (call_manager_alerts,
+    call_followup_actions) that don't carry a key_hospital_code column
+    and are joined by call_id only.
+
+    Capped at `limit` to keep the PostgREST `in.(...)` URL under safe
+    length. If an org has more than `limit` calls, the cap is the
+    trade-off; document and revisit if a tenant hits it.
+    """
+    if not hospital_codes:
+        return []
+    try:
+        # PostgREST in.(csv) syntax. Quote each code to be safe.
+        codes_csv = ','.join(f'"{c}"' for c in hospital_codes)
+        url = (
+            f"{creds['url']}/rest/v1/veterinary_calls"
+            f"?select=call_id"
+            f"&key_hospital_code=in.({requests.utils.quote(codes_csv, safe=',')})"
+            f"&limit={limit}"
+        )
+        resp = requests.get(
+            url,
+            headers={
+                'apikey': creds['key'],
+                'Authorization': f"Bearer {creds['key']}",
+                'Accept': 'application/json',
+            },
+            timeout=15,
+        )
+        resp.raise_for_status()
+        return [r['call_id'] for r in resp.json() if r.get('call_id')]
+    except requests.RequestException as exc:
+        logger.warning("[VSA_PROXY] allowed_call_ids lookup failed: %s", exc)
+        return []
+    except Exception as exc:
+        logger.exception("[VSA_PROXY] allowed_call_ids unexpected failure")
+        return []
+
+
 # ---------------------------------------------------------------------------
 # GET /api/vsa-supabase-proxy/dashboard
 # ---------------------------------------------------------------------------
@@ -259,24 +343,67 @@ def dashboard():
             ),
         }), 503
 
+    # --- Tenant scoping: pull allowed hospital codes for the caller's org ---
+    org_id = getattr(g, 'rls_organisation_id', None)
+    allowed_codes = _get_allowed_hospital_codes(org_id)
+    if not allowed_codes:
+        # Org is not provisioned for VSA yet -> return zero-KPI payload.
+        # This is the privacy-safe default: absence of a row in
+        # vsa_org_hospitals means "see nothing".
+        return jsonify({
+            'open_alerts': 0,
+            'calls_today': 0,
+            'calls_this_week': 0,
+            'followups_pending': 0,
+            'avg_risk': None,
+            'source': creds['source'],
+            'scope': 'no_hospitals_provisioned',
+        })
+
+    # Fetch the call_ids belonging to the allowed hospital codes. Used
+    # to scope cross-table queries (call_manager_alerts, call_followup_actions)
+    # which don't carry a hospital_code column.
+    allowed_call_ids = _get_allowed_call_ids(creds, allowed_codes, limit=2000)
+
+    # Compute today / 7-days-ago in Python. PostgREST has no `today` reserved
+    # literal and the equivalent `now()::date` only works inside an `and=(...)`
+    # parenthesised expression; computing the dates here is simpler and matches
+    # the key_call_date column type (text/ISO date, not a timestamp).
+    now_utc = datetime.now(timezone.utc)
+    today_iso = now_utc.date().isoformat()
+    week_start_iso = (now_utc - timedelta(days=7)).date().isoformat()
+
     try:
         # --- Open alerts: rows with ANY priority in 1..2 (1 = most urgent) ---
-        # PostgREST lets us OR multiple predicates with the `or` filter.
-        open_alerts_rows = _supabase_rest_get(
-            creds, 'call_manager_alerts',
-            select='call_id',
-            filters={
-                'or': '(alert_1_priority.lte.2),(alert_2_priority.lte.2),(alert_3_priority.lte.2)',
-            },
-            limit=500,  # safe cap; counts only
-        )
-        open_alerts = len(open_alerts_rows)
+        # Scoped by call_id since call_manager_alerts has no hospital_code.
+        if allowed_call_ids:
+            ids_csv = ','.join(allowed_call_ids)
+            open_alerts_rows = _supabase_rest_get(
+                creds, 'call_manager_alerts',
+                select='call_id',
+                filters={
+                    'call_id': f'in.({requests.utils.quote(ids_csv, safe=",")})',
+                    'or': '(alert_1_priority.lte.2,alert_2_priority.lte.2,'
+                          'alert_3_priority.lte.2)',
+                },
+                limit=500,
+            )
+            open_alerts = len(open_alerts_rows)
+        else:
+            open_alerts = 0
 
-        # --- Calls today / this week (date filter, since key_call_date is date type) ---
+        # --- Calls today / this week (direct veterinary_calls queries) ---
+        # Scope by hospital_code at the source.
+        codes_csv = ','.join(f'"{c}"' for c in allowed_codes)
+        codes_csv_quoted = requests.utils.quote(codes_csv, safe=',')
+
         calls_today_rows = _supabase_rest_get(
             creds, 'veterinary_calls',
             select='call_id',
-            filters={'key_call_date': 'eq.today'},  # PostgREST reserved literal
+            filters={
+                'key_call_date': f'eq.{today_iso}',
+                'key_hospital_code': f'in.({codes_csv_quoted})',
+            },
             limit=500,
         )
         calls_today = len(calls_today_rows)
@@ -285,38 +412,49 @@ def dashboard():
             creds, 'veterinary_calls',
             select='call_id',
             filters={
-                'and': '(key_call_date.gte.(now()::date - interval \'7 days\')),'
-                       '(key_call_date.lte.now()::date)',
+                'key_hospital_code': f'in.({codes_csv_quoted})',
+                'and': f'(key_call_date.gte.{week_start_iso},'
+                       f'key_call_date.lte.{today_iso})',
             },
             limit=500,
         )
         calls_this_week = len(calls_week_rows)
 
         # --- Follow-ups pending: any fol_1_time / fol_2_time / fol_3_time is non-null ---
-        followups_rows = _supabase_rest_get(
-            creds, 'call_followup_actions',
-            select='call_id',
-            filters={
-                'or': '(fol_1_time.not.is.null),(fol_2_time.not.is.null),'
-                      '(fol_3_time.not.is.null)',
-            },
-            limit=500,
-        )
-        followups_pending = len(followups_rows)
+        if allowed_call_ids:
+            followups_rows = _supabase_rest_get(
+                creds, 'call_followup_actions',
+                select='call_id',
+                filters={
+                    'call_id': f'in.({requests.utils.quote(ids_csv, safe=",")})',
+                    'or': '(fol_1_time.not.is.null,fol_2_time.not.is.null,'
+                          'fol_3_time.not.is.null)',
+                },
+                limit=500,
+            )
+            followups_pending = len(followups_rows)
+        else:
+            followups_pending = 0
 
         # --- Average risk: mean of alert_1_priority across analysed calls ---
-        priority_rows = _supabase_rest_get(
-            creds, 'call_manager_alerts',
-            select='alert_1_priority',
-            filters={'alert_1_priority': 'not.is.null'},
-            limit=500,
-        )
-        if priority_rows:
-            avg_risk = round(
-                sum(float(r['alert_1_priority']) for r in priority_rows)
-                / len(priority_rows),
-                2,
+        if allowed_call_ids:
+            priority_rows = _supabase_rest_get(
+                creds, 'call_manager_alerts',
+                select='alert_1_priority',
+                filters={
+                    'call_id': f'in.({requests.utils.quote(ids_csv, safe=",")})',
+                    'alert_1_priority': 'not.is.null',
+                },
+                limit=500,
             )
+            if priority_rows:
+                avg_risk = round(
+                    sum(float(r['alert_1_priority']) for r in priority_rows)
+                    / len(priority_rows),
+                    2,
+                )
+            else:
+                avg_risk = None
         else:
             avg_risk = None
 
@@ -340,6 +478,11 @@ def dashboard():
         'followups_pending': followups_pending,
         'avg_risk': avg_risk,
         'source': creds['source'],
+        'scope': {
+            'organisation_id': org_id,
+            'hospital_codes': allowed_codes,
+            'allowed_call_ids_count': len(allowed_call_ids),
+        },
     })
 
 
@@ -384,6 +527,19 @@ def list_calls():
     if not creds:
         return jsonify({'error': 'supabase_vsa_not_configured'}), 503
 
+    # --- Tenant scoping: pull allowed hospital codes for the caller's org ---
+    org_id = getattr(g, 'rls_organisation_id', None)
+    allowed_codes = _get_allowed_hospital_codes(org_id)
+    if not allowed_codes:
+        # Org not provisioned -> return empty page rather than leaking rows.
+        return jsonify({
+            'rows': [],
+            'total': 0,
+            'limit': int(request.args.get('limit', DEFAULT_PAGE_SIZE) or DEFAULT_PAGE_SIZE),
+            'offset': int(request.args.get('offset', 0) or 0),
+            'scope': 'no_hospitals_provisioned',
+        })
+
     try:
         limit = min(int(request.args.get('limit', DEFAULT_PAGE_SIZE)), MAX_PAGE_SIZE)
         offset = max(int(request.args.get('offset', 0)), 0)
@@ -401,6 +557,10 @@ def list_calls():
             'key_transcript_status'
 
     url = f"{creds['url']}/rest/v1/{table}"
+    # Tenant scoping: restrict to rows whose key_hospital_code is one of
+    # the codes provisioned for this org in vsa_org_hospitals.
+    codes_csv = ','.join(f'"{c}"' for c in allowed_codes)
+    url += f"&key_hospital_code=in.({requests.utils.quote(codes_csv, safe=',')})"
     url += f"&order=key_call_date.desc.nullslast"
     url += f"&limit={limit}&offset={offset}"
 
@@ -468,6 +628,10 @@ def list_calls():
         'total': total,
         'limit': limit,
         'offset': offset,
+        'scope': {
+            'organisation_id': org_id,
+            'hospital_codes': allowed_codes,
+        },
     })
 
 
@@ -496,7 +660,7 @@ def call_detail(call_id: str):
         call_rows = _supabase_rest_get(
             creds, 'veterinary_calls',
             select='*',
-            filters={'call_id': call_id},
+            filters={'call_id': f'eq.{call_id}'},
             limit=1,
         )
         if not call_rows:
@@ -511,7 +675,7 @@ def call_detail(call_id: str):
                     'alert_3_code,alert_3_priority,alert_3_severity,'
                     'manager_summary,manager_alerts_tags,'
                     'ai_coaching_support,ai_coaching_generated_date'),
-            filters={'call_id': call_id},
+            filters={'call_id': f'eq.{call_id}'},
             limit=1,
         )
         alerts = alerts_rows[0] if alerts_rows else {}
@@ -527,7 +691,7 @@ def call_detail(call_id: str):
                 rows = _supabase_rest_get(
                     creds, tbl,
                     select='call_id',
-                    filters={'call_id': call_id},
+                    filters={'call_id': f'eq.{call_id}'},
                     limit=1,
                 )
                 if rows:
@@ -631,28 +795,34 @@ def seed_vault():
         credentials_blob['anon_key'] = anon_key
 
     try:
-        # Upsert: one active row per (org, platform). The catalog schema
-        # already has UNIQUE(organisation_id, platform) via the index
-        # created in add_organisations_and_org_credentials.sql - verify
-        # this exists at deploy time.
+        # Upsert: one active row per (org, platform, display_name). The
+        # catalog schema uses UNIQUE NULLS NOT DISTINCT
+        # (organisation_id, platform, display_name) - that is the actual
+        # constraint we match on. A previous version of this endpoint
+        # attempted ON CONFLICT (organisation_id, platform) which the
+        # Postgres planner refused because no constraint covers exactly
+        # those two columns. See migration 058 for the audit trail.
         execute_query(
             """
             INSERT INTO ai_infrastructure.organisation_platform_credentials
                 (organisation_id, platform, display_name, environment,
                  credential_value, credentials, is_active, visible_to_role,
-                 reveal_requires_role, notes, last_used_at)
+                 reveal_requires_role, notes, last_used_at, created_by_user_id)
             VALUES (%s, %s, %s, 'production', NULL, %s::jsonb, TRUE,
-                    'admin', 'admin', 'Seeded via VSA V4 admin endpoint.', NOW())
-            ON CONFLICT (organisation_id, platform) DO UPDATE SET
+                    'admin', 'admin', %s, NOW(), %s)
+            ON CONFLICT (organisation_id, platform, display_name) DO UPDATE SET
                 credentials = EXCLUDED.credentials,
-                display_name = EXCLUDED.display_name,
-                is_active = TRUE,
-                notes = EXCLUDED.notes,
-                updated_at = NOW()
+                environment  = EXCLUDED.environment,
+                is_active    = TRUE,
+                notes        = EXCLUDED.notes,
+                updated_at   = NOW(),
+                created_by_user_id = EXCLUDED.created_by_user_id
             RETURNING id
             """,
             (org_id, 'supabase_vsa', display_name,
-             json.dumps(credentials_blob)),
+             json.dumps(credentials_blob),
+             f"Seeded via VSA V4 admin endpoint by user_id={user_id}",
+             user_id),
             fetch_mode='value',
         )
     except Exception as exc:
@@ -661,9 +831,8 @@ def seed_vault():
             'error': 'vault_write_failed',
             'message': str(exc),
             'hint': (
-                'If this is a UNIQUE violation, add the '
-                'UNIQUE(organisation_id, platform) index. See '
-                'AI_infrastructure/migrations/add_organisations_and_org_credentials.sql'
+                'Verify UNIQUE NULLS NOT DISTINCT (organisation_id, platform, '
+                'display_name) exists on ai_infrastructure.organisation_platform_credentials.'
             ),
         }), 500
 
@@ -672,10 +841,11 @@ def seed_vault():
         row_id = execute_query(
             """
             SELECT id FROM ai_infrastructure.organisation_platform_credentials
-            WHERE organisation_id = %s AND platform = %s AND is_active = TRUE
+            WHERE organisation_id = %s AND platform = %s AND display_name = %s
+              AND is_active = TRUE
             ORDER BY updated_at DESC LIMIT 1
             """,
-            (org_id, 'supabase_vsa'),
+            (org_id, 'supabase_vsa', display_name),
             fetch_mode='value',
         )
     except Exception:
