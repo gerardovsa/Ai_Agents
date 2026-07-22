@@ -79,13 +79,22 @@ class RegistryV3:
         
         # Try to load from cache first (50x faster on cache hit)
         cache_hit = self._load_from_cache()
-        
+
+        # CRITICAL FIX (July 2026): ALWAYS reload schemas from disk, even on
+        # cache hit. The Redis cache holds a JSON snapshot of `self.tools`
+        # from a previous startup (up to 1 hour old). If the cache predates
+        # the current on-disk schema files (e.g. after a deploy that adds new
+        # tools), `self.tools` will be stale. The implementation loader below
+        # filters special_modules registrations with `attr_name in self.tools`
+        # — a stale cache causes silent skip of every meta_tools / sql_database
+        # function, producing "Tool not found" errors at dispatch. Correctness
+        # over the ~2 second cold-start speedup.
+        self._load_schemas()
+
         if not cache_hit:
-            # Cache miss - load all components normally
-            self._load_schemas()
-            # Save to cache for next time (1-hour TTL)
+            # Save refreshed schemas to cache for next time (1-hour TTL)
             self._save_to_cache()
-        
+
         # ALWAYS load implementations and plugins regardless of cache hit.
         # The cache only stores JSON-serializable schemas (self.tools dict).
         # Python callables (self.implementations) cannot be cached in Redis
@@ -393,8 +402,17 @@ class RegistryV3:
         
         logger.info(f"[REGISTRY_V3] Loading from tools/implementations/ ({len(impl_files)} modules)")
         
-        # Load SQL database and meta_tools with individual function registration (high priority)
-        special_modules = ["sql_database", "meta_tools"]
+        # Load SQL database, meta_tools, and visualization_guide with individual
+        # function registration (high priority). These modules expose multiple
+        # distinct tool functions at the module level (e.g. visualization_guide
+        # has visualization_guide + list_visualization_types + compare_visualizations).
+        # The general loader below stores each module as a SINGLE key, which
+        # works fine until the plugin loader overwrites the module reference
+        # with one of its function values (see _load_module_plugins). That
+        # overwrite makes sibling functions unreachable via get_tool_function
+        # Case 2 (which skips callable entries). Per-function registration
+        # avoids the module-vs-function collision entirely.
+        special_modules = ["sql_database", "meta_tools", "visualization_guide"]
         for module_name in special_modules:
             if module_name in impl_files:
                 try:
