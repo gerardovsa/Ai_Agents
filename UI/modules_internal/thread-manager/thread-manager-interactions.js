@@ -947,7 +947,7 @@ Object.assign(window.ThreadManager, {
     /**
      * Show new chat modal
      */
-    async showNewChatModal(location = 'unassigned', buttonElement = null) {
+    async showNewChatModal(location = 'unassigned', buttonElement = null, preferBelow = false) {
         console.log(`➕ [Interactions] Opening new chat modal for ${location}`);
 
         const locationName = location === 'unassigned' ? 'Unassigned' :
@@ -1064,10 +1064,23 @@ Object.assign(window.ThreadManager, {
             let top;
             const topPosition = triggerRect.top - modalRect.height - triggerGap;
             const bottomPosition = triggerRect.bottom + triggerGap;
+            const fitsBelow = bottomPosition + modalRect.height <= window.innerHeight - viewportMargin;
+            const fitsAbove = topPosition >= viewportMargin;
 
-            if (topPosition >= viewportMargin) {
+            if (preferBelow) {
+                if (fitsBelow) {
+                    top = bottomPosition;
+                } else if (fitsAbove) {
+                    top = topPosition;
+                } else {
+                    top = Math.min(
+                        Math.max(topPosition, viewportMargin),
+                        maxTop
+                    );
+                }
+            } else if (fitsAbove) {
                 top = topPosition;
-            } else if (bottomPosition + modalRect.height <= window.innerHeight - viewportMargin) {
+            } else if (fitsBelow) {
                 top = bottomPosition;
             } else {
                 top = Math.min(

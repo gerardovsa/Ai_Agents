@@ -1864,7 +1864,7 @@ const MultiAgent = {
                                 </div>
                             </div>
                             <div style="display: flex; gap: 12px; margin-top: 24px; justify-content: center;">
-                                <button class="btn btn-primary" onclick="event.stopPropagation(); ThreadManager.showNewChatModal('agent-${agentId}')" style="display: flex; align-items: center; gap: 8px; font-size: 14px;">
+                                <button class="btn btn-primary" onclick="event.stopPropagation(); ThreadManager.showNewChatModal('agent-${agentId}', event.currentTarget, true)" style="display: flex; align-items: center; gap: 8px; font-size: 14px;">
                                     <i class="fas fa-plus" style="font-size: 12px;"></i>
                                     Start New Chat
                                 </button>
@@ -2495,7 +2495,7 @@ const MultiAgent = {
                                     </div>
                                 </div>
                                 <div style="display: flex; gap: 12px; margin-top: 24px; justify-content: center;">
-                                    <button class="btn btn-primary" onclick="event.stopPropagation(); ThreadManager.showNewChatModal('agent-${agentId}')" style="display: flex; align-items: center; gap: 8px; font-size: 14px;">
+                                    <button class="btn btn-primary" onclick="event.stopPropagation(); ThreadManager.showNewChatModal('agent-${agentId}', event.currentTarget, true)" style="display: flex; align-items: center; gap: 8px; font-size: 14px;">
                                         <i class="fas fa-plus" style="font-size: 12px;"></i>
                                         Start New Chat
                                     </button>

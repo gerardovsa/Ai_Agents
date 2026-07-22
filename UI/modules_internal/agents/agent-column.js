@@ -1477,7 +1477,8 @@ const AgentColumn = (function () {
         }
 
         if (typeof ThreadManager !== 'undefined' && typeof ThreadManager.showNewChatModal === 'function') {
-            ThreadManager.showNewChatModal(`agent-${agentId}`, buttonElement);
+            // Empty-state entry point: prefer rendering below the button when the viewport allows it.
+            ThreadManager.showNewChatModal(`agent-${agentId}`, buttonElement, true);
         } else {
             console.warn('[AgentColumn] ThreadManager not available');
         }
