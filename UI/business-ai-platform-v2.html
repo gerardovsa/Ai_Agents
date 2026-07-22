@@ -10735,7 +10735,14 @@
            calcLabelPosition.  The staging div MUST remain in the layout tree
            with a measurable width.  Keep it off-screen but measurable so it
            is never visible to the user but Mermaid can still read its
-           bounding rect. */
+           bounding rect.
+
+           Cross-references (DO NOT REVERT to display:none):
+             - VISUALIZATION_SYSTEM_DOCUMENTATION.md, section "Off-screen-but-
+               measurable staging CSS (added July 22, 2026)".
+             - VISUALIZATION_MERMAID_RENDERING_FIX_JULY22_2026.md, root.
+             - VISUALIZATION_STREAMING_FIXES_APRIL9_2026.md (precedent for the
+               dated fix-log format). */
         body > [id^="dmermaid"] {
             position: fixed !important;
             top: -10000px !important;

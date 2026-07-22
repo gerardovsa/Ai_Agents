@@ -891,6 +891,24 @@ class VisualizationEngine {
         await this.waitForLibrary('mermaid');
 
         if (window.mermaid) {
+            // ========================================================================
+            // EW (Jul 22 2026): Mermaid 10.x staging-element invariant.
+            //
+            // `mermaid.render(id, source)` creates a body-level element with id
+            // `d{id}` and measures its `getBoundingClientRect()` to compute
+            // layout (node positions, edge routing, pie radius, label offsets).
+            // The SPA-level rule in business-ai-platform-v2.html keeps that
+            // element OFF-SCREEN-BUT-MEASURABLE (position:fixed, top:-10000px,
+            // min-width:700px). DO NOT remove that rule from the SPA CSS or
+            // pies will emit `viewBox="0 0 0 450"` and flowcharts will throw
+            // `Could not find a suitable point for the given distance` from
+            // `calcLabelPosition`.
+            //
+            // See:
+            //   - business-ai-platform-v2.html L~10730 (the staging CSS rule)
+            //   - VISUALIZATION_SYSTEM_DOCUMENTATION.md "Mermaid Render Lifecycle"
+            //   - VISUALIZATION_MERMAID_RENDERING_FIX_JULY22_2026.md (root)
+            // ========================================================================
             // NHANCED: More comprehensive Mermaid configuration
             mermaid.initialize({
                 startOnLoad: false,
