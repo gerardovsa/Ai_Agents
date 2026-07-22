@@ -1,7 +1,7 @@
 # Visualization System Architecture Documentation
 
 **Date:** November 15, 2025
-**Last updated:** July 22, 2026 (Rect tightening for pie/git graph/gantt; Pie title/legend overlap fix)
+**Last updated:** July 22, 2026 (Always-white SVG canvas in chat + Git graph commit width; Rect tightening for pie/git graph/gantt; Pie title/legend overlap fix)
 **Purpose:** Complete guide to understanding how streamingTwoRule.js and visualisation_v3.js work together
 **Use Case:** Integrating visualization rendering into Tiptap document containers
 
@@ -187,6 +187,53 @@ Behaviour table after the fix:
 | Sequence diagram | unchanged (not in skip list — uses plain text actor labels, no foreignObject, no inflation regression observed) | unchanged | unaffected |
 
 Full historical record: see `VISUALIZATION_RECT_TIGHTENING_FIX_JULY22_2026.md` at the repo root.
+
+### Always-white SVG canvas in chat + Git graph commit width (added July 22, 2026)
+
+Two follow-on issues surfaced once the rect-tightening fix landed:
+
+1. **Chat-bubble Mermaid SVGs were still on a dark background in dark mode.** The always-white canvas fix in `VISUALIZATION_CANVAS_BG_AND_FULLSCREEN_FIX_JULY22_2026.md` set `mermaid.themeVariables.backgroundColor = '#ffffff'` AND the Plotly `paper_bgcolor`/`plot_bgcolor`, but it did NOT paint the outer `<svg>` element itself. Mermaid's SVG has no default CSS background, so the parent container's background bleeds through — in dark mode that means dark text on a dark chat-bubble background, making the chart text invisible. Fullscreen avoided the issue because `.mermaid-fullscreen-content` at `visualisation_v3.js:1495` explicitly sets `background: white`. The chat path had no equivalent.
+
+   **Fix** — CSS-only, scoped to `.viz-container .mermaid svg` (the same scope as the existing `.viz-container .mermaid` rule at `business-ai-platform-v2.html:10761-10765`, so stray Mermaid divs outside a viz-container are not affected):
+   ```css
+   .viz-container .mermaid svg {
+       background-color: #ffffff !important;
+   }
+   ```
+   `!important` is required because some render paths set inline `style` attributes on the SVG element.
+
+2. **Git graph commit messages wrapped mid-word in narrow chat columns.** Mermaid 10.6.1 sizes commit-message `<foreignObject>` widths based on the chat column width at render time. In a narrow chat column the foreignObjects ended up too narrow for the commit messages, causing text to wrap mid-word (e.g. "Initial commit" → "Initial comm" / "it"). The chart-type detection added above correctly skips the rect-inflation pass for git graphs, but the foreignObject width is set by Mermaid itself and survives any post-processing — so we widen the SVG container instead. This mirrors the pie-fix pattern (`min-width: 700px` for pies, `min-width: 800px` here because git-graph branch labels and commit messages tend to be longer than pie legend entries).
+
+   **Fix** — CSS-only, scoped to Mermaid diagrams that contain git-graph inner groups (`g.commit`, `g.branch`). The `:has()` selector matches Mermaid's inner group classes without guessing the SVG's own class name (which has shifted between camelCase, kebab-case, and lowercase across Mermaid releases):
+   ```css
+   .mermaid:has(svg g.commit) svg,
+   .mermaid:has(svg g.branch) svg {
+       padding: 8px 8px 24px 8px;
+       min-width: 800px !important;
+       height: auto;
+       max-height: none;
+   }
+   .viz-content-area > .mermaid:has(svg g.commit),
+   .viz-content-area > .mermaid:has(svg g.branch) {
+       overflow-x: auto;
+       overflow-y: visible;
+   }
+   ```
+
+Why both fixes are pure CSS:
+
+- The SVG element's `background-color` is presentation-only — no Mermaid-internal state, no render-side effect, no JS coordination needed.
+- The `min-width` rule widens the SVG so Mermaid's *next* render computes wider foreignObjects (Mermaid measures the SVG's container width before laying out the diagram). Existing renders that already wrapped mid-word stay wrapped, but a chat reload or diagram regeneration picks up the new width immediately.
+- No backend change, no migration, no env-var, no API change. Pure CSS additions to `business-ai-platform-v2.html`.
+
+Behaviour table after this fix:
+
+| UI theme | Chat-bubble pie | Chat-bubble git graph | Chat-bubble flowchart | Fullscreen |
+|---|---|---|---|---|
+| Light | white canvas, dark text (unchanged) | white canvas, dark text, no mid-word wrapping | unchanged | unchanged (already white via `.mermaid-fullscreen-content`) |
+| Dark | **white canvas, dark text** (was: dark canvas, invisible text) | **white canvas, dark text, no mid-word wrapping** (was: dark canvas + clipped text) | **white canvas** (was: dark canvas) | unchanged |
+
+Full historical record: see `VISUALIZATION_MERMAID_CHAT_BG_AND_GITGRAPH_WRAPPING_FIX_JULY22_2026.md` at the repo root.
 
 ### Fullscreen single-fit + ResizeObserver (added July 22, 2026)
 

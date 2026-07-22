@@ -10831,6 +10831,69 @@
             overflow-y: visible;
         }
 
+        /* EW (Jul 22 2026): Always-white SVG canvas for all Mermaid diagrams
+           rendered inside a viz-container. The predecessor canvas-bg fix
+           (VISUALIZATION_CANVAS_BG_AND_FULLSCREEN_FIX_JULY22_2026.md) set
+           mermaid.themeVariables.backgroundColor AND the Plotly
+           paper_bgcolor/plot_bgcolor, but did NOT paint the outer SVG
+           element itself. The <svg> tag has no default CSS background, so
+           the parent container's background bleeds through. In dark mode
+           that means dark text on a dark chat-bubble background, making
+           the chart text invisible. Fullscreen avoided the issue because
+           .mermaid-fullscreen-content explicitly sets background:white
+           (visualisation_v3.js:1495). This rule closes the gap.
+
+           Scope: .viz-container .mermaid svg only — orphan .mermaid divs
+           outside a viz-container are not affected (they are usually
+           error states, staging elements, or hand-coded examples).
+
+           Cross-references:
+             - VISUALIZATION_CANVAS_BG_AND_FULLSCREEN_FIX_JULY22_2026.md
+               (predecessor, fixed Mermaid internal + Plotly paper bg)
+             - VISUALIZATION_PIE_TITLE_LEGEND_OVERLAP_FIX_JULY22_2026.md
+             - VISUALIZATION_RECT_TIGHTENING_FIX_JULY22_2026.md */
+        .viz-container .mermaid svg {
+            background-color: #ffffff !important;
+        }
+
+        /* EW (Jul 22 2026): Git graph commit message width. Mermaid
+           10.6.1 sizes commit-message <foreignObject> widths based on
+           the chat column width at render time. In a narrow chat column
+           the foreignObjects end up too narrow for the commit messages,
+           causing text to wrap mid-word (e.g. "Initial commit" →
+           "Initial comm" / "it"). The chart-type detection added in
+           commit 5b54cd37 now correctly skips the rect-inflation pass
+           for git graphs, but the foreignObject width is set by Mermaid
+           itself and survives any post-processing — so we widen the SVG
+           container instead.
+
+           min-width:800px (wider than the pie's 700px because branch
+           labels and commit messages tend to be longer than legend
+           entries). :has(g.commit) and :has(g.branch) match Mermaid's
+           inner group classes without guessing the SVG's own class
+           name (which has shifted between camelCase, kebab-case, and
+           lowercase across Mermaid releases).
+
+           Cross-references:
+             - VISUALIZATION_RECT_TIGHTENING_FIX_JULY22_2026.md (skip
+               rect inflation for non-flowchart diagrams — preserves
+               Mermaid's native foreignObject sizing here)
+             - VISUALIZATION_PIE_TITLE_LEGEND_OVERLAP_FIX_JULY22_2026.md
+               (precedent for the SVG-min-width + parent-overflow-x
+               pattern that this rule mirrors) */
+        .mermaid:has(svg g.commit) svg,
+        .mermaid:has(svg g.branch) svg {
+            padding: 8px 8px 24px 8px;
+            min-width: 800px !important;
+            height: auto;
+            max-height: none;
+        }
+        .viz-content-area > .mermaid:has(svg g.commit),
+        .viz-content-area > .mermaid:has(svg g.branch) {
+            overflow-x: auto;
+            overflow-y: visible;
+        }
+
         /* Hide orphan .mermaid containers that escaped a viz-container. */
         body > .mermaid:not(.viz-container .mermaid) {
             display: none !important;
