@@ -244,9 +244,14 @@ class ReactRenderer {
 
         // ── Auto-hoist every PascalCase identifier the user references ────────
         // Walk the cleaned source and find every <Ident> JSX tag and every
-        // bare Ident in the source. Any that exist on window.lucide or
-        // window.Recharts get hoisted to global scope so the user code can
-        // reference them with no import / no manual list.
+        // bare Ident(...) call. Resolve each against window.lucide and
+        // window.Recharts. A matching lucide value is an icon-DESCRIPTOR
+        // array (e.g. [['path', {d:'...'}], ['rect', {...}]]) — the lucide
+        // UMD bundle does NOT export React components, so a raw hoist
+        // would crash React.createElement with "Element type is invalid".
+        // We wrap every array-valued export in a tiny forwardRef-style
+        // functional component that renders the SVG; function/class
+        // values (e.g. Recharts components) are hoisted as-is.
         const identifierRe = /<([A-Z][A-Za-z0-9_$]*)\b|\b([A-Z][A-Za-z0-9_$]*)\s*\(/g;
         const referenced = new Set();
         let m;
@@ -260,33 +265,92 @@ class ReactRenderer {
 
         const identifierHoist = `
     (function () {
+        var React = window.React;
         var sources = [window.lucide || {}, window.Recharts || {}];
         var hoisted = [];
+
+        // Wrap a lucide icon-descriptor array as a real React component.
+        // The descriptor is an array of [tagName, attrs] tuples. We render
+        // them as children of an <svg> that accepts className, size, and
+        // color props (the common AI-emitted usage patterns).
+        function makeIconComponent(name, descriptor) {
+            var Icon = function (props) {
+                var p = props || {};
+                var size = (p.size != null) ? p.size : 24;
+                var stroke = p.color || 'currentColor';
+                var svgAttrs = {
+                    xmlns: 'http://www.w3.org/2000/svg',
+                    width: size,
+                    height: size,
+                    viewBox: '0 0 24 24',
+                    fill: 'none',
+                    stroke: stroke,
+                    strokeWidth: 2,
+                    strokeLinecap: 'round',
+                    strokeLinejoin: 'round',
+                    className: p.className || '',
+                    style: p.style || null,
+                    'aria-hidden': p['aria-label'] ? null : true,
+                    'aria-label': p['aria-label'] || null,
+                    role: p['aria-label'] ? 'img' : null
+                };
+                var svgChildren = descriptor.map(function (child, i) {
+                    var tag = child[0];
+                    var attrs = Object.assign({}, child[1] || {});
+                    // Forward common React props into SVG children
+                    if (p.fill != null && attrs.fill === undefined) attrs.fill = p.fill;
+                    if (p.strokeWidth != null && attrs.strokeWidth === undefined) attrs.strokeWidth = p.strokeWidth;
+                    if (p.color != null && attrs.stroke === undefined) attrs.stroke = p.color;
+                    return React.createElement(tag, Object.assign({ key: 'l' + i }, attrs));
+                });
+                return React.createElement.apply(null, ['svg', svgAttrs].concat(svgChildren));
+            };
+            Icon.displayName = name;
+            return Icon;
+        }
+
+        // Hoist the specifically-detected identifiers first (cheap, only
+        // references actually used in this code).
         Array.from(${JSON.stringify(Array.from(referenced))}).forEach(function (name) {
             for (var i = 0; i < sources.length; i++) {
-                var v = sources[i][name];
-                if (v && (typeof v === 'function' || typeof v === 'object')) {
+                var src = sources[i];
+                if (!src) continue;
+                var v = src[name];
+                if (v == null) continue;
+                if (Array.isArray(v)) {
+                    // lucide icon descriptor — wrap it
+                    window[name] = makeIconComponent(name, v);
+                } else if (typeof v === 'function' || typeof v === 'object') {
+                    // Recharts component or already-wrapped thing
                     window[name] = v;
-                    hoisted.push(name);
-                    return;
+                } else {
+                    continue;
                 }
+                hoisted.push(name);
+                return;
             }
         });
+
+        // Then lift EVERY PascalCase key from lucide onto window so that
+        // any icon the AI might reference (even ones we didn't pre-scan)
+        // resolves to a renderable component rather than a ReferenceError.
+        try {
+            var L = window.lucide || {};
+            Object.keys(L).forEach(function (k) {
+                if (k === 'createElement' || k === 'createIcons' || k === 'icons' || k === 'default') return;
+                var v = L[k];
+                if (Array.isArray(v)) {
+                    window[k] = makeIconComponent(k, v);
+                } else if (typeof v === 'function' || typeof v === 'object') {
+                    window[k] = v;
+                }
+            });
+        } catch (_) { /* lucide not loaded — skip */ }
+
         if (hoisted.length) {
             console.log('[REACT_RENDERER] hoisted identifiers from lucide/Recharts:',
                 hoisted.join(', '));
         }
-        // Some lucide icons live on the namespace as PascalCase keys we
-        // already copied above. If we still have unresolved PascalCase
-        // identifiers that DO exist on lucide under a PascalCase key, copy
-        // them now too (handles the case where the icon's exported name
-        // matches the JSX tag exactly).
-        var L = window.lucide || {};
-        Object.keys(L).forEach(function (k) {
-            if (typeof L[k] === 'function' || typeof L[k] === 'object') {
-                window[k] = L[k];
-            }
-        });
     })();`;
 
         // ── postMessage auto-resize ─────────────────────────────────────────────
