@@ -378,7 +378,6 @@ ${lucideScript}
         });
         window.Fragment = React.Fragment;
 ${rechartsSetup}
-${lucideSetup}
 ${identifierHoist}
 
         var rawSource = ${JSON.stringify(cleanedJSX)};
