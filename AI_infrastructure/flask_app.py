@@ -2962,11 +2962,116 @@ def registry_diagnostics():
         except OSError:
             registry_mtime = None
 
+        # ✅ ADDED 2026-07-23: Per-schema load status
+        # Reason: Render's worker loaded 83 tools but the 3 older special
+        # modules (meta_tools, sql_database, visualization_guide) reported 0.
+        # Locally all 4 specials load fine. The asymmetry points at a
+        # Render-specific schema-load failure that the registry silently
+        # swallows via the `continue` in _load_schemas. We capture every
+        # schema file's load outcome + error message here so the next
+        # regression is one curl away from diagnosis.
+        import json as _json
+        import locale as _locale
+        import sys as _sys
+
+        schemas_dir = os.path.join(
+            os.path.dirname(os.path.dirname(__file__)), 'tools', 'schemas'
+        )
+        schema_status = {
+            'schemas_dir': schemas_dir,
+            'schemas_dir_exists': os.path.isdir(schemas_dir),
+            'files_total': 0,
+            'files_loaded': 0,
+            'files_failed': 0,
+            'failures': [],          # [{file, error_type, error_msg}]
+            'loaded_sample': [],     # first 10 successfully loaded filenames
+            'special_modules': {},   # {meta_tools.json: ok/fail, ...}
+        }
+        # We name the special-module schemas explicitly because glob order is
+        # filesystem-dependent and we want a stable answer.
+        _SPECIAL_FILES = {
+            'meta_tools': 'meta_tools.json',
+            'sql_database': 'sql_database_tools.json',
+            'visualization_guide': 'visualization_guide_tools.json',
+            'viz_snapshots': 'viz_snapshots_tools.json',
+        }
+
+        if os.path.isdir(schemas_dir):
+            try:
+                schema_files = sorted(
+                    f for f in os.listdir(schemas_dir) if f.endswith('.json')
+                )
+                schema_status['files_total'] = len(schema_files)
+                for fname in schema_files:
+                    fpath = os.path.join(schemas_dir, fname)
+                    try:
+                        with open(fpath, 'r', encoding='utf-8', errors='replace') as _f:
+                            _data = _json.load(_f)
+                        if not isinstance(_data, dict):
+                            raise ValueError(
+                                f'schema is {type(_data).__name__}, expected dict'
+                            )
+                        if 'tools' not in _data:
+                            raise ValueError('schema has no "tools" array')
+                        n_tools = len(_data['tools'])
+                        schema_status['files_loaded'] += 1
+                        if len(schema_status['loaded_sample']) < 10:
+                            schema_status['loaded_sample'].append(fname)
+                        # Stamp special-module result
+                        for _sm, _sm_file in _SPECIAL_FILES.items():
+                            if fname == _sm_file:
+                                schema_status['special_modules'][_sm] = {
+                                    'file': fname,
+                                    'ok': True,
+                                    'tool_count': n_tools,
+                                }
+                    except Exception as _e:
+                        schema_status['files_failed'] += 1
+                        schema_status['failures'].append({
+                            'file': fname,
+                            'error_type': type(_e).__name__,
+                            'error_msg': str(_e)[:500],
+                        })
+                        for _sm, _sm_file in _SPECIAL_FILES.items():
+                            if fname == _sm_file:
+                                schema_status['special_modules'][_sm] = {
+                                    'file': fname,
+                                    'ok': False,
+                                    'error_type': type(_e).__name__,
+                                    'error_msg': str(_e)[:500],
+                                }
+            except Exception as _e:
+                schema_status['listdir_error'] = f'{type(_e).__name__}: {_e}'
+
+        # Mark any special module that wasn't even seen in the directory.
+        for _sm, _sm_file in _SPECIAL_FILES.items():
+            if _sm not in schema_status['special_modules']:
+                schema_status['special_modules'][_sm] = {
+                    'file': _sm_file,
+                    'ok': False,
+                    'error_type': 'FileNotFound',
+                    'error_msg': f'{_sm_file} not present in {schemas_dir}',
+                }
+
         response = {
             'status': 'ok',
             'timestamp': datetime.now(UTC).isoformat() + 'Z',
             'worker_url': _flask_request.host,
             'process': proc_info,
+            'runtime': {
+                'python_version': _sys.version.split()[0],
+                'python_implementation': _sys.implementation.name,
+                'platform': _sys.platform,
+                'locale_preferred_encoding': (
+                    _locale.getpreferredencoding(False)
+                ),
+                'cwd': os.getcwd(),
+                'supabase_db_url_pooler_set': bool(
+                    os.environ.get('SUPABASE_DB_URL_POOLER')
+                ),
+                'render_env': os.environ.get('RENDER'),
+                'environment': os.environ.get('ENVIRONMENT'),
+            },
             'registry_v3': {
                 'tool_count': len(tool_names),
                 'implementation_count': len(impl_keys),
@@ -2986,6 +3091,7 @@ def registry_diagnostics():
                     if registry_mtime else None
                 ),
                 'tool_names_sample': sorted(tool_names)[:50],
+                'schema_load_status': schema_status,
             },
         }
         result = jsonify(response)
