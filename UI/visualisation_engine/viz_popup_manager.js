@@ -420,6 +420,17 @@ class VizPopupManager {
                     // Keep body in sync so corner-drag baseline stays accurate
                     bodyEl.style.height = targetH + 'px';
                 }
+            } else if (ev.data?.type === 'react-render-snapshot' && ev.data.id === originalId) {
+                // Happy-path diagnostic (added 2026-07-23). Captures the
+                // iframe's full runtime state RIGHT BEFORE auto-mount so we
+                // can diagnose "Babel succeeded, no errors, blank iframe"
+                // without opening DevTools inside each child iframe.
+                try {
+                    window.__renderSnapshots__ = window.__renderSnapshots__ || {};
+                    window.__renderSnapshots__[ev.data.id] = ev.data.snap;
+                    window.__lastRenderSnapshotId = ev.data.id;
+                    console.log('[REACT_RENDERER_PARENT_DIAG] snapshot for', ev.data.id, JSON.stringify(ev.data.snap, null, 2));
+                } catch (_) {}
             }
         });
     }

@@ -115,6 +115,18 @@ ${resizeScript}
                 if (event.data && event.data.type === 'iframe-resize' && event.data.id === chartId) {
                     const newHeight = Math.min(Math.max(event.data.height + 24, 200), 900);
                     iframe.style.height = `${newHeight}px`;
+                } else if (event.data && event.data.type === 'react-render-snapshot' && event.data.id === chartId) {
+                    // Happy-path diagnostic (added 2026-07-23). If React's
+                    // renderer posts its post-exec state (transform OK, no
+                    // thrown error), capture it on the parent window so the
+                    // root cause of a blank-iframe can be diagnosed from one
+                    // console instead of having to open DevTools on each child.
+                    try {
+                        window.__renderSnapshots__ = window.__renderSnapshots__ || {};
+                        window.__renderSnapshots__[event.data.id] = event.data.snap;
+                        window.__lastRenderSnapshotId = event.data.id;
+                        console.log('[REACT_RENDERER_PARENT_DIAG] snapshot for', event.data.id, JSON.stringify(event.data.snap, null, 2));
+                    } catch (_) {}
                 }
             };
             window.addEventListener('message', onMessage);

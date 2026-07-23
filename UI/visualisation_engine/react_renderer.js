@@ -572,6 +572,71 @@ ${identifierHoist}
             return;
         }
 
+        // ── POST-EXECUTION SNAPSHOT (added 2026-07-23) ──────────────────────
+        // The class of bug we're hunting right now is "Babel.transform
+        // succeeded, no console.error, but the iframe is blank". That's a
+        // happy-path failure that the existing catch blocks can't see
+        // because nothing throws. Capture the full runtime state at the
+        // handoff to auto-mount so the parent console can show where things
+        // silently went wrong (missing root component, Tailwind absent,
+        // Recharts/hooks not on window, etc.).
+        try {
+            var rootElSnap = document.getElementById('root');
+            var tailwindEl = document.querySelector('script[src*="tailwindcss"]');
+            var tailwindRuntimeStyle = document.querySelector('style[data-tailwind], style#__tw_style__');
+            var snap = {
+                rawSourceLen:   typeof rawSource === 'string' ? rawSource.length : null,
+                outLen:         typeof out       === 'string' ? out.length       : null,
+                hasReact:       typeof window.React,
+                hasReactDOM:    typeof window.ReactDOM,
+                hasReactCpt:    typeof window.Component,
+                hasReactMemo:   typeof window.memo,
+                hasFragment:    typeof window.Fragment,
+                hasUseState:    typeof window.useState,
+                hasUseEffect:   typeof window.useEffect,
+                hasUseMemo:     typeof window.useMemo,
+                hasUseCallback: typeof window.useCallback,
+                hasUseRef:      typeof window.useRef,
+                hasRecharts:    typeof window.Recharts,
+                hasLucide:      typeof window.lucide,
+                hasApp:         typeof window.App,
+                hasComponent:   typeof window.Component,
+                hasDashboard:   typeof window.Dashboard,
+                hasBarChart:    typeof window.BarChart,
+                hasLineChart:   typeof window.LineChart,
+                hasPieChart:    typeof window.PieChart,
+                hasScatter:     typeof window.ScatterChart,
+                hasResponsive:  typeof window.ResponsiveContainer,
+                hasBriefcase:   typeof window.Briefcase,
+                hasDollarSign:  typeof window.DollarSign,
+                hasTarget:      typeof window.Target,
+                hasUsers:       typeof window.Users,
+                hasWallet:      typeof window.Wallet,
+                hasCreditCard:  typeof window.CreditCard,
+                tailwindLoaded: !!tailwindEl,
+                tailwindStyleInjected: !!tailwindRuntimeStyle,
+                rootElExists:   !!rootElSnap,
+                rootElChildren: rootElSnap ? rootElSnap.childElementCount : -1,
+                bodyChildren:   document.body.childElementCount,
+                docTitle:       document.title,
+                fencesSummary:  __babelFences.map(function (f) {
+                    return f.label.split(' — ')[0] + '=' + (f.ok ? 'OK' : 'FAIL');
+                }).join(', ')
+            };
+            console.log('[REACT_RENDERER_DIAG] post-exec snapshot:', JSON.stringify(snap, null, 2));
+            try {
+                window.parent.__lastExecSnap   = snap;
+                window.parent.__lastExecSnapId = '${chartId}';
+            } catch (_) {}
+            try {
+                window.parent.postMessage({
+                    type: 'react-render-snapshot',
+                    id:   '${chartId}',
+                    snap: snap
+                }, '*');
+            } catch (_) {}
+        } catch (_) { /* snapshot is best-effort, never throws */ }
+
         // ── Auto-mount: find the root component and render it ───────────────
         try {
             var rootEl = document.getElementById('root');
