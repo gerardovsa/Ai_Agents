@@ -714,6 +714,7 @@ ${identifierHoist}
             var snap = {
                 rawSourceLen:      typeof rawSource === 'string' ? rawSource.length : null,
                 rawSourceFirst4k:  typeof rawSource === 'string' ? rawSource.slice(0, 4000) : null,
+                rawSourceTail4k:   typeof rawSource === 'string' ? rawSource.slice(Math.max(0, rawSource.length - 4000)) : null,
                 outLen:            typeof out       === 'string' ? out.length       : null,
                 hasReact:       typeof window.React,
                 hasReactDOM:    typeof window.ReactDOM,
