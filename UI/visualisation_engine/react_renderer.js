@@ -283,6 +283,26 @@ class ReactRenderer {
             // Catch-all for any export statement at line start (mirrors the
             // import catch-all above).
             .replace(/^[ \t]*export\b[\s\S]*?(?:;|$)/gm, (m) => m.endsWith(';') ? '' : m.replace(/[\s\S]*$/, ''))
+            // ── Convert short-circuit `{flag && JSX}` to ternary `{flag ? JSX : null}` ──
+            // Recharts's per-axis registry walks children with React.Children.forEach.
+            // Short-circuit booleans (false from `flag && JSX` when flag is false)
+            // are filtered out correctly, BUT when ComposedChart combines multiple
+            // children that share a yAxisId (Area+Bar on left, Line on right), the
+            // initial mount computes the scale's domain BEFORE all children have
+            // registered. The unrendered child leaves its slot undefined; the next
+            // pass calls `.has()` on the undefined slot and crashes with
+            //   TypeError: t.has is not a function  (Recharts.js On.o.domain)
+            // Converting to the ternary form produces a stable React element of
+            // type `null` when flag is false instead of a primitive boolean, which
+            // Recharts handles cleanly across remounts. Toggle behaviour is
+            // preserved — the JSX renders when flag is truthy and renders nothing
+            // (a null child) when flag is falsy. The regex matches a balanced
+            // outer paren group around the JSX; it is intentionally conservative
+            // and only triggers when the right-hand side starts with `<` (a JSX
+            // element). See REACT_RENDERER_LUCIDE_TROUBLESHOOTING_2026-07-22.md §3
+            // for the investigation that led to this transform.
+            .replace(/\{\s*([A-Za-z_$][\w$]*(?:\.[A-Za-z_$][\w$]*)*)\s*&&\s*(\(<[\s\S]+?\)\s*)\}/g,
+                (_, flag, jsx) => `{${flag} ? ${jsx} : null}`)
             .trim();
 
         // ── Pre-flight guard: refuse to send Babel code that still contains ─────
