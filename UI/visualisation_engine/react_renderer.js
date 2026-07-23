@@ -473,12 +473,24 @@ ${identifierHoist}
                 + String.fromCharCode(10) + String.fromCharCode(10)
                 + tmsg
                 + String.fromCharCode(10) + String.fromCharCode(10)
-                + 'Source preview:'
+                + 'Source preview (first 800 chars):'
                 + String.fromCharCode(10)
                 + rawSource.slice(0, 800)
                 + '</pre>';
             window.parent.postMessage({ type: 'iframe-resize', id: '${chartId}', height: 400 }, '*');
             console.error('[REACT_RENDERER] Babel transform error:', transformErr);
+            // ── DIAGNOSTIC: expose full failing source to parent for offline ───
+            // analysis. Set by the renderer at the moment Babel throws so a
+            // console-only investigation (no DevTools DOM inspection needed)
+            // can recover the exact JSX payload that triggered the bug.
+            try {
+                window.parent.__lastBadJsx     = rawSource;
+                window.parent.__lastBadLen     = rawSource.length;
+                window.parent.__lastBadMsg     = tmsg;
+                window.parent.__lastBadFrameId = '${chartId}';
+                console.error('[REACT_RENDERER_DIAG] Captured failing JSX on window.parent.__lastBadJsx — length:',
+                    rawSource.length, 'preview:', rawSource.slice(0, 200));
+            } catch (_) { /* parent unreachable (srcdoc sandbox) */ }
             return;
         }
 
