@@ -19,6 +19,70 @@
  * Clipboard: allow="clipboard-write" so copy buttons work inside components.
  */
 
+// ============================================================================
+// PAGE-LEVEL DIAGNOSTIC SINK (added 2026-07-23)
+// -----------------------------------------------------------------------------
+// Registers a single window-level 'message' listener that captures every
+// react-render-* postMessage from any React iframe that the engine creates.
+// Each iframe's render() also installs its OWN scoped listener (for resize),
+// but the parent-side toolbar / query tooling reads the diagnostic snapshot
+// from these globals:
+//
+//   window.__renderSnapshots__[id]   — full runtime state immediately after
+//                                       the transform runs but before mount
+//   window.__renderFences__[id]      — F0…F3 Babel fences
+//   window.__renderErrors__[id]      — componentDidCatch runtime errors
+//   window.__lastRenderSnapshotId    — convenience pointer
+//
+// This makes the renderer self-contained: a hard-refresh + a diagnostic
+// console probe is all that's needed to diagnose blank-iframe cases, no
+// matter which caller (streamingTwoRule, vizPopupManager, sidebar viz, …)
+// created the iframe.
+// ============================================================================
+(function installReactRendererDiagSink() {
+    if (window.__REACT_RENDERER_DIAG_INSTALLED__) return;
+    window.__REACT_RENDERER_DIAG_INSTALLED__ = true;
+
+    window.__renderSnapshots__ = window.__renderSnapshots__ || {};
+    window.__renderFences__    = window.__renderFences__    || {};
+    window.__renderErrors__    = window.__renderErrors__    || {};
+
+    window.addEventListener('message', function (event) {
+        const data = event.data;
+        if (!data || typeof data !== 'object' || !data.type) return;
+        switch (data.type) {
+            case 'react-render-snapshot':
+                if (!data.id) return;
+                window.__renderSnapshots__[data.id] = data.snap;
+                window.__lastRenderSnapshotId = data.id;
+                try {
+                    console.log('[REACT_RENDERER_PARENT_DIAG] snapshot for',
+                        data.id, JSON.stringify(data.snap, null, 2));
+                } catch (_) {}
+                break;
+            case 'react-render-fences':
+                if (!data.id) return;
+                window.__renderFences__[data.id] = data.fences;
+                window.__lastRenderFencesId = data.id;
+                try {
+                    console.log('[REACT_RENDERER_PARENT_DIAG] fences for',
+                        data.id, JSON.stringify(data.fences, null, 2));
+                } catch (_) {}
+                break;
+            case 'react-render-error':
+                if (!data.id) return;
+                window.__renderErrors__[data.id] = data;
+                window.__lastRenderErrorId = data.id;
+                try {
+                    console.error('[REACT_RENDERER_PARENT_DIAG] runtime error for',
+                        data.id, data.message);
+                    if (data.stack) console.error('  stackHead:', data.stack.split('\n').slice(0, 4).join('\n           '));
+                } catch (_) {}
+                break;
+        }
+    });
+})();
+
 class ReactRenderer {
     constructor(visualizationEngine) {
         this.vizEngine = visualizationEngine;
@@ -71,6 +135,24 @@ class ReactRenderer {
                 ) {
                     const newHeight = Math.min(Math.max(event.data.height + 24, 200), 900);
                     iframe.style.height = `${newHeight}px`;
+                } else if (
+                    event.data &&
+                    event.data.type === 'react-render-snapshot' &&
+                    event.data.id === chartId
+                ) {
+                    // Happy-path diagnostic (added 2026-07-23). The renderer
+                    // posts its full runtime state from inside the iframe
+                    // immediately after the transformed script executes but
+                    // BEFORE auto-mount. Capture it on the parent so the
+                    // "blank iframe, no console errors" class of bug can be
+                    // diagnosed from one DevTools console instead of having
+                    // to attach to each sandboxed child iframe.
+                    try {
+                        window.__renderSnapshots__ = window.__renderSnapshots__ || {};
+                        window.__renderSnapshots__[event.data.id] = event.data.snap;
+                        window.__lastRenderSnapshotId = event.data.id;
+                        console.log('[REACT_RENDERER_PARENT_DIAG] snapshot for', event.data.id, JSON.stringify(event.data.snap, null, 2));
+                    } catch (_) {}
                 }
             };
             window.addEventListener('message', onMessage);
