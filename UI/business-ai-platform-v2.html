@@ -18503,23 +18503,24 @@
         }
 
         /* ==================== NEW CHAT MODAL STYLES ==================== */
-        /* Modal overlay - transparent backdrop so user can see UI behind */
+        /* Modal overlay - centred with blurred backdrop so the modal stays in place
+           on any viewport (mobile, desktop, short windows). The modal itself
+           uses max-width: 90% / max-height: 90vh so it fits even tiny screens. */
         .modal-overlay {
             position: fixed;
             top: 0;
             left: 0;
             right: 0;
             bottom: 0;
-            background: transparent;
-            /* No backdrop blur - user can see through */
+            background: rgba(0, 0, 0, 0.6);
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
             z-index: 10000;
             display: flex;
-            align-items: flex-start;
+            align-items: center;
             justify-content: center;
-            padding-top: 20px;
+            padding: 20px;
             animation: fadeIn 0.2s ease;
-            pointer-events: none;
-            /* Allow clicks through to UI behind */
         }
 
         @keyframes fadeIn {
@@ -18532,7 +18533,8 @@
             }
         }
 
-        /* Modal container - positioned near the trigger and clamped to the viewport */
+        /* Modal container - centred by the overlay flex parent, sized so it
+           fits any viewport via max-width / max-height below. */
         .new-chat-modal {
             width: 450px;
             background: var(--bg-secondary);
@@ -18584,18 +18586,6 @@
                 opacity: 0;
                 transform: translateX(100px);
             }
-        }
-
-        /* When positioned near button */
-        .modal-overlay.positioned {
-            align-items: flex-start;
-            justify-content: flex-start;
-            padding: 0;
-        }
-
-        .modal-overlay.positioned .new-chat-modal {
-            position: absolute;
-            /* Position set dynamically via JS */
         }
 
         /* Modal header - draggable */
@@ -21085,14 +21075,13 @@
                     <!-- Row 2: Thread title and info -->
                     <div id="prime-thread-info" style="display: none;">
                         <!-- Thread info card injected by ThreadManager.renderThreadInfoContainer('prime', threadId) -->
-                        <!-- Hidden by default when no thread loaded - will be shown when thread loads or selector shown -->
-                        <div class="no-thread-message clickable" id="prime-no-thread"
-                            onclick="AgentColumn.showPrimeThreadSelector()" style="cursor: pointer !important;">
-                            <i class="fas fa-inbox"></i>
-                            <span>Click to select a thread</span>
-                            <i class="fas fa-chevron-down" style="margin-left: auto; font-size: 10px;"></i>
-                        </div>
-                        <div class="thread-selector-dropdown" id="thread-selector-prime" style="display: none;"></div>
+                        <!-- Hidden by default when no thread loaded. When JS shows this
+                             container without a thread, an empty <div class="thread-info-wrapper">
+                             is injected (matching agent empty state) so the drop-zone
+                             hover highlight stays visible. The "Click to select a thread"
+                             dropdown trigger is opened on explicit user action via
+                             AgentColumn.showPrimeThreadSelector(), never as the default. -->
+                        <div class="thread-info-wrapper"></div>
                     </div>
 
                     <!-- Thread presence: viewer badges (populated by ThreadPresence.js) -->

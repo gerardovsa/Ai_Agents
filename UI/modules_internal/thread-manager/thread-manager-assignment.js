@@ -246,6 +246,11 @@ Object.assign(window.ThreadManager, {
     async _cascadeThreadAssignment(threadId, newLocation, assignment) {
         console.log(`🔄 [CASCADE] Starting UI updates for thread ${threadId}`);
 
+        // 🔧 FIX (Jul 23, 2026): Catalogue drops pass `newLocation === null`, but
+        // lines below call `.startsWith('agent-')` on it directly. Normalize once
+        // up front: null/undefined → 'unassigned' so all downstream code is safe.
+        const safeLocation = newLocation || 'unassigned';
+
         const thread = this.threads.find(t => t.id === threadId);
         if (!thread) {
             console.warn(`[CASCADE] Thread not found: ${threadId}`);
@@ -253,15 +258,15 @@ Object.assign(window.ThreadManager, {
         }
 
         // STEP 1: Update thread object FIRST (before clearing UI)
-        thread.location = newLocation;
-        thread.agent = newLocation === 'unassigned' ? null : newLocation;
+        thread.location = safeLocation;
+        thread.agent = safeLocation === 'unassigned' ? null : safeLocation;
         thread.updated = new Date().toISOString();
-        console.log(`✅ [CASCADE] Updated thread object: location=${newLocation}`);
+        console.log(`✅ [CASCADE] Updated thread object: location=${safeLocation}`);
 
         // 🔔 NEW: Add notification for thread assignment
         if (typeof NotificationCenter !== 'undefined' && NotificationCenter.add) {
             // Use the human-friendly display name (e.g. "Agent-3 Charlie" instead of "agent-3")
-            const locationName = this.formatLocationName ? this.formatLocationName(newLocation) : newLocation;
+            const locationName = this.formatLocationName ? this.formatLocationName(safeLocation) : safeLocation;
 
             NotificationCenter.add({
                 type: 'THREAD_ASSIGNED',
@@ -269,17 +274,17 @@ Object.assign(window.ThreadManager, {
                 metadata: {
                     threadId: threadId,
                     threadName: thread.title || 'Untitled',
-                    location: newLocation,
-                    agentId: newLocation.startsWith('agent-') ? parseInt(newLocation.replace('agent-', '')) : null
+                    location: safeLocation,
+                    agentId: safeLocation.startsWith('agent-') ? parseInt(safeLocation.replace('agent-', '')) : null
                 },
                 action: {
-                    type: newLocation.startsWith('agent-') ? 'navigate_to_agent' : 'open_thread',
-                    target: newLocation.startsWith('agent-') ?
-                        { agentId: parseInt(newLocation.replace('agent-', '')) } :
+                    type: safeLocation.startsWith('agent-') ? 'navigate_to_agent' : 'open_thread',
+                    target: safeLocation.startsWith('agent-') ?
+                        { agentId: parseInt(safeLocation.replace('agent-', '')) } :
                         { threadId: threadId }
                 }
             });
-            console.log(`[CASCADE] 🔔 Notification added for thread assignment: ${threadId} → ${newLocation}`);
+            console.log(`[CASCADE] 🔔 Notification added for thread assignment: ${threadId} → ${safeLocation}`);
         }
 
         // STEP 2: Clear OLD location UI (only if location ACTUALLY CHANGED)

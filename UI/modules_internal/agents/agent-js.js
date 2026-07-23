@@ -2668,6 +2668,56 @@ const MultiAgent = {
     }
 };
 
+/**
+ * ✅ FIX (Jul 23, 2026): Drop-zone init reliability.
+ *
+ * Bug: setup calls at the END of `_buildDeferredThreadUI` (lines 3105-3140)
+ * only ran on the happy path. If `_buildDeferredThreadUI` threw early — e.g.
+ * at line 2866 when a container is missing — the throw was silently caught by
+ * `.catch` at 2767 and the drop-zone setup never ran. Result: drag-and-drop
+ * silently disabled until the user manually re-ran setup from the console.
+ *
+ * Fix: register a listener for `multiagent-threads-loaded` (dispatched at
+ * line 3093) at module load time. The listener is outside the throw-prone
+ * function, so it fires regardless of subsequent failures. The `.catch` at
+ * 2767 also calls this helper as a final fallback in case the throw happens
+ * BEFORE the event is dispatched. All three ThreadManager.setup* functions
+ * are idempotent — they short-circuit on `dataset.dropZoneConfigured`.
+ */
+function setupAllDropZones(reason = 'event') {
+    if (typeof ThreadManager === 'undefined') {
+        console.warn(`[Drop Zone] ThreadManager not defined (${reason}) — skipping`);
+        return;
+    }
+    console.log(`[Drop Zone] Configuring all drop zones (${reason})...`);
+    try {
+        if (typeof ThreadManager.setupAgentDropZones === 'function') {
+            ThreadManager.setupAgentDropZones();
+        }
+        if (typeof ThreadManager.setupPrimeDropZone === 'function') {
+            ThreadManager.setupPrimeDropZone();
+        }
+        if (typeof ThreadManager.setupCatalogueDropZone === 'function') {
+            ThreadManager.setupCatalogueDropZone();
+        }
+        console.log(`[Drop Zone] All drop zones configured (${reason})`);
+    } catch (err) {
+        console.error(`[Drop Zone] Setup failed (${reason}):`, err);
+    }
+}
+
+// Register the listener ONCE at module load — before any throw risk.
+// Listener fires synchronously when initMultiAgent dispatches the event at line 3093.
+window.addEventListener('multiagent-threads-loaded', () => setupAllDropZones('event'));
+
+// Belt-and-braces: also re-run setup after a short delay once the DOM settles,
+// in case the event was somehow missed (e.g. listener registered after dispatch).
+if (document.readyState === 'complete') {
+    setTimeout(() => setupAllDropZones('document-ready'), 500);
+} else {
+    window.addEventListener('load', () => setTimeout(() => setupAllDropZones('window-load'), 500));
+}
+
 async function initMultiAgent() {
     console.log('🚀 [Multi-Agent] Initializing NATO AI Columns...');
 
@@ -2763,9 +2813,13 @@ async function initMultiAgent() {
                     MultiAgent.updateDashboardStats();
                 }
                 if (typeof window._buildDeferredThreadUI === 'function') {
-                    window._buildDeferredThreadUI().catch(err =>
-                        console.warn('⚠️ [initMultiAgent] _buildDeferredThreadUI error (non-fatal):', err.message)
-                    );
+                    window._buildDeferredThreadUI().catch(err => {
+                        console.warn('⚠️ [initMultiAgent] _buildDeferredThreadUI error (non-fatal):', err.message);
+                        // FIX (Jul 23, 2026): fallback if throw happened BEFORE
+                        // the multiagent-threads-loaded event dispatch — the
+                        // module-load listener will not have fired.
+                        setupAllDropZones('buildDeferredThreadUI-failed');
+                    });
                 }
             })
             .catch(err => console.error('❌ [initMultiAgent] Thread loading failed:', err));

@@ -3659,3 +3659,129 @@ textarea.form-control {
     align-items: center;
     gap: 12px;
 }
+
+/* ==================== THREAD ASSIGNMENT CONFIRMATION MODAL ==================== */
+/* FIX (Jul 23, 2026): These classes are produced by
+ * ThreadManager.showAssignmentConfirmation() (thread-manager-interactions.js
+ * ~line 970) when a drop targets an occupied slot. The DOM was being created
+ * but no CSS existed for these classes, so the modal rendered as a static
+ * invisible div. Mirrors the .message-popup-overlay / .message-popup-modal
+ * pattern (business-ai-platform-v2.html ~line 10290). */
+
+.thread-confirm-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.7);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 10002;
+    animation: fadeIn 0.2s ease;
+}
+
+.thread-confirm-overlay.active {
+    display: flex;
+}
+
+.thread-confirm-modal {
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-default);
+    border-radius: 12px;
+    max-width: 480px;
+    width: 92%;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+    animation: slideInUp 0.25s ease;
+    overflow: hidden;
+}
+
+.thread-confirm-header {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2, 8px);
+    padding: var(--space-4, 16px);
+    border-bottom: 1px solid var(--border-default);
+    font-weight: 600;
+    font-size: 16px;
+    color: var(--text-primary);
+}
+
+.thread-confirm-header i {
+    color: var(--accent-primary, #58a6ff);
+    font-size: 18px;
+}
+
+.thread-confirm-body {
+    padding: var(--space-5, 20px);
+    color: var(--text-secondary);
+    font-size: 14px;
+    line-height: 1.6;
+}
+
+.thread-confirm-body strong {
+    color: var(--text-primary);
+    font-weight: 600;
+}
+
+.thread-confirm-actions {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: var(--space-2, 8px);
+    padding: var(--space-3, 12px) var(--space-4, 16px);
+    border-top: 1px solid var(--border-default);
+    background: var(--bg-tertiary, rgba(0, 0, 0, 0.1));
+}
+
+.thread-confirm-btn {
+    padding: 8px 16px;
+    border: 1px solid var(--border-default);
+    border-radius: 6px;
+    background: var(--bg-tertiary);
+    color: var(--text-primary);
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    transition: all 0.15s ease;
+}
+
+.thread-confirm-btn:hover {
+    background: var(--bg-hover);
+    border-color: var(--accent-primary, #58a6ff);
+    transform: translateY(-1px);
+}
+
+.thread-confirm-swap {
+    background: var(--accent-primary, #58a6ff);
+    border-color: var(--accent-primary, #58a6ff);
+    color: #ffffff;
+}
+
+.thread-confirm-swap:hover {
+    background: #1c5fa8;
+    border-color: #1c5fa8;
+    color: #ffffff;
+}
+
+.thread-confirm-unassign {
+    background: rgba(239, 68, 68, 0.1);
+    border-color: rgba(239, 68, 68, 0.5);
+    color: #ef4444;
+}
+
+.thread-confirm-unassign:hover {
+    background: #ef4444;
+    border-color: #ef4444;
+    color: #ffffff;
+}
+
+.thread-confirm-cancel {
+    background: transparent;
+}

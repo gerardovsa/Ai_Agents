@@ -1459,23 +1459,17 @@ const AgentColumn = (function () {
     }
 
     /**
-     * Start new thread (delegates to ThreadManager)
+     * Start new thread (delegates to ThreadManager).
      * @param {number} agentId - Agent ID
-     * @param {Event} event - Optional click event to get button position
+     * @param {Event} event - Click event (kept so the inline onclick handler keeps working; no longer used for positioning).
      */
     function newThread(agentId, event = null) {
-        // Don't toggle menu - just open the new chat modal directly
-        // toggleMenu(agentId); // REMOVED - was causing menu to open unintentionally
-
-        // Get button element for positioning
-        let buttonElement = null;
-        if (event && event.target) {
-            buttonElement = event.target.closest('button');
-        }
+        // Don't toggle menu - just open the new chat modal directly.
+        // (Modal is now always centred, so we don't need the button position.)
+        void event;
 
         if (typeof ThreadManager !== 'undefined' && typeof ThreadManager.showNewChatModal === 'function') {
-            // Empty-state entry point: prefer rendering below the button when the viewport allows it.
-            ThreadManager.showNewChatModal(`agent-${agentId}`, buttonElement, true);
+            ThreadManager.showNewChatModal(`agent-${agentId}`);
         } else {
             console.warn('[AgentColumn] ThreadManager not available');
         }
@@ -1747,28 +1741,16 @@ const AgentColumn = (function () {
         if (primeContainer) {
             const hasThread = primeContainer.querySelector('.thread-info-card:not(.empty)');
             if (!hasThread) {
-                // Prime with no thread: Show thread selector (not welcome message)
-                // Check if there's an existing thread selector
-                const hasSelector = primeContainer.querySelector('.no-thread-message');
-                if (!hasSelector) {
-                    // Show thread selector using ThreadCardTemplates.noThreadMessage()
-                    if (typeof ThreadCardTemplates !== 'undefined') {
-                        // Use noThreadMessage() for Prime (same as agents)
-                        primeContainer.innerHTML = ThreadCardTemplates.noThreadMessage('Prime', 'fa-star', null);
-                    } else {
-                        // Fallback to thread selector (no inline onclick - event delegation handles it)
-                        primeContainer.innerHTML = `
-                            <div class="thread-info-wrapper">
-                                <div class="no-thread-message clickable" id="prime-no-thread" style="cursor: pointer !important;">
-                                    <i class="fas fa-inbox"></i>
-                                    <span>Click to select a thread</span>
-                                    <i class="fas fa-chevron-down" style="margin-left: auto; font-size: 10px;"></i>
-                                </div>
-                                <div class="thread-selector-dropdown" id="thread-selector-prime" style="display: none;"></div>
-                            </div>
-                        `;
-                    }
-                }
+                // FIX (Jul 23, 2026): Match agent empty state — empty wrapper only,
+                // NOT the clickable "Click to select a thread" dropdown trigger.
+                // The dropdown is opened on explicit user action via
+                // AgentColumn.showPrimeThreadSelector() / PrimeThreadSelector, never
+                // shown as the default empty state. This keeps Prime's drop-zone
+                // visually clean so the drag-over highlight is unmistakable.
+                primeContainer.innerHTML = `
+                    <div class="thread-info-wrapper">
+                    </div>
+                `;
             }
         }
 
