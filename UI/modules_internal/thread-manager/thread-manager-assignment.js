@@ -322,6 +322,56 @@ Object.assign(window.ThreadManager, {
             }
         }
 
+        // STEP 3b (Jul 23, 2026): Bug 8 — Load the displaced thread into ITS
+        // new location. Previously, the cascade updated the DB state and
+        // re-rendered the thread-info card for the source thread at the swap
+        // TARGET, but never called the chat-load function for the displaced
+        // thread at the swap SOURCE. Result: after Prime→Agent or Agent→Agent
+        // swaps, the source column had the right DB assignment but an empty
+        // chat panel and no thread-info card. handleDrop's post-assignment
+        // block only loads the target's newly-arrived thread.
+        //
+        // We restrict to dest === 'prime' for the Prime case. If the backend
+        // collapsed the swap to 'unassigned' (source had no real previous
+        // location), we deliberately do NOT load — the displaced thread is
+        // back in the catalogue, not at Prime.
+        if (assignment.displaced_thread && assignment.displaced_new_location) {
+            const dispId = assignment.displaced_thread;
+            const dispDest = assignment.displaced_new_location;
+            const dispThread = this.threads.find(t => t.id === dispId);
+            if (dispThread) {
+                try {
+                    if (dispDest === 'prime') {
+                        if (typeof this.loadThreadInPrime === 'function') {
+                            await this.loadThreadInPrime(dispId);
+                            console.log(`[CASCADE] Loaded displaced thread ${dispId} into Prime`);
+                        } else {
+                            console.warn(`[CASCADE] loadThreadInPrime not available — displaced thread ${dispId} not loaded`);
+                        }
+                    } else if (typeof dispDest === 'string' && dispDest.startsWith('agent-')) {
+                        const destAgentId = parseInt(dispDest.replace('agent-', ''), 10);
+                        if (typeof window !== 'undefined' &&
+                            typeof window.MultiAgent !== 'undefined' &&
+                            typeof window.MultiAgent.loadThreadIntoAgent === 'function') {
+                            await window.MultiAgent.loadThreadIntoAgent(destAgentId, dispThread);
+                            console.log(`[CASCADE] Loaded displaced thread ${dispId} into ${dispDest}`);
+                        } else {
+                            console.warn(`[CASCADE] MultiAgent.loadThreadIntoAgent not available — displaced thread ${dispId} not loaded into ${dispDest}`);
+                        }
+                    } else {
+                        // dispDest === 'unassigned' or anything else — thread is
+                        // back in the catalogue, no chat load needed.
+                        console.log(`[CASCADE] Displaced thread ${dispId} destination is ${dispDest} — no chat load`);
+                    }
+                } catch (e) {
+                    // Don't fail the whole cascade if a chat-load throws; log
+                    // and continue. The DB is the source of truth and the
+                    // thread info will still be correct.
+                    console.warn(`[CASCADE] Could not load displaced thread ${dispId} into ${dispDest}:`, e);
+                }
+            }
+        }
+
         // STEP 4: Update thread-info container in NEW location
         if (newLocation && newLocation.startsWith('agent-')) {
             const agentId = newLocation.replace('agent-', '');

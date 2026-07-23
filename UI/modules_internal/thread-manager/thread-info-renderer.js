@@ -31,15 +31,23 @@
      */
     function renderThreadInfoContainer(location, threadId, includeButtons = true) {
         // If no thread loaded, show empty state
-        // FIX (Jul 23, 2026): Prime (location === 'unassigned') no longer renders
-        // the clickable "No thread loaded" dropdown trigger. Prime's empty state
-        // is just the bare drop-target wrapper so the drag-over highlight is
-        // unambiguous. Agent columns keep their clickable selector so a manual
+        // FIX (Jul 23, 2026, 2nd pass): Prime (location === 'unassigned') no
+        // longer renders the clickable "No thread loaded" dropdown trigger
+        // (per user direction). It now renders a non-clickable drop-target
+        // hint so the user has a persistent visual cue that the panel
+        // accepts drops, even when no drag is in progress. The wrapper is
+        // still the actual drop target for handleDragOver's drag-over
+        // highlight. Agent columns keep their clickable selector so manual
         // load via dropdown still works for agent slots.
         if (!threadId) {
             if (location === 'unassigned') {
                 return `
-                    <div class="thread-info-wrapper"></div>
+                    <div class="thread-info-wrapper prime-empty-state">
+                        <div class="prime-drop-hint" aria-hidden="true">
+                            <i class="fas fa-hand-pointer"></i>
+                            <span>Drop a thread here</span>
+                        </div>
+                    </div>
                 `;
             }
             return `

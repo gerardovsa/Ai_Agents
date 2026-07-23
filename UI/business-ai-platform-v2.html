@@ -12707,6 +12707,70 @@
             opacity: 0.8;
         }
 
+        /* FIX (Jul 23, 2026): Bug 9 — the empty-state content (the clickable
+           "No thread loaded" pill with chevron) was forcing the agent column
+           to render wider than its flex-basis, producing a horizontal
+           scrollbar in the empty state. Root cause: the wrapper inherits
+           `min-width: auto` from the flex parent, so any child wider than
+           the column pushes the column out. Set min-width: 0 on the wrapper,
+           cap the pill at 100% with box-sizing, and hide horizontal overflow
+           on the wrapper as a defence-in-depth measure. */
+        .thread-info-wrapper {
+            min-width: 0;
+            max-width: 100%;
+            overflow-x: hidden;
+        }
+
+        .thread-info-wrapper .no-thread-message,
+        .thread-info-wrapper .agent-no-thread {
+            max-width: 100%;
+            min-width: 0;
+            box-sizing: border-box;
+            flex-wrap: wrap;
+        }
+
+        /* FIX (Jul 23, 2026): Bug 10 — Prime's empty state now renders a
+           non-clickable drop-target hint. Style the hint to match the
+           dashed-border empty state used by agent columns but in a
+           lower-emphasis palette so it doesn't compete with active content.
+           The wrapper remains the actual drop target for handleDragOver's
+           drag-over highlight. */
+        .thread-info-wrapper.prime-empty-state {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 60px;
+            padding: 12px;
+        }
+
+        .thread-info-wrapper.prime-empty-state .prime-drop-hint {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 14px;
+            color: var(--text-tertiary, #6e7681);
+            font-size: 12px;
+            background: var(--bg-secondary, #0d1117);
+            border: 1px dashed var(--border-default, #30363d);
+            border-radius: 6px;
+            opacity: 0.75;
+            transition: opacity 0.2s ease, border-color 0.2s ease;
+            max-width: 100%;
+            min-width: 0;
+            box-sizing: border-box;
+        }
+
+        .thread-info-wrapper.prime-empty-state .prime-drop-hint i {
+            opacity: 0.6;
+        }
+
+        .thread-info-wrapper.prime-empty-state.drag-over .prime-drop-hint,
+        .ai-chat-panel.drag-over ~ * .thread-info-wrapper.prime-empty-state .prime-drop-hint {
+            opacity: 1;
+            border-color: var(--accent-primary, #58a6ff);
+            border-style: solid;
+        }
+
         /* Thread Selector Dropdown */
         .thread-selector-dropdown {
             position: absolute;
