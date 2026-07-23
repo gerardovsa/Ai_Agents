@@ -712,8 +712,9 @@ ${identifierHoist}
             var tailwindEl = document.querySelector('script[src*="tailwindcss"]');
             var tailwindRuntimeStyle = document.querySelector('style[data-tailwind], style#__tw_style__');
             var snap = {
-                rawSourceLen:   typeof rawSource === 'string' ? rawSource.length : null,
-                outLen:         typeof out       === 'string' ? out.length       : null,
+                rawSourceLen:      typeof rawSource === 'string' ? rawSource.length : null,
+                rawSourceFirst4k:  typeof rawSource === 'string' ? rawSource.slice(0, 4000) : null,
+                outLen:            typeof out       === 'string' ? out.length       : null,
                 hasReact:       typeof window.React,
                 hasReactDOM:    typeof window.ReactDOM,
                 hasReactCpt:    typeof window.Component,
@@ -814,11 +815,23 @@ ${identifierHoist}
                 BoundaryClass.prototype.componentDidCatch = function (err, info) {
                     try {
                         console.error('[REACT_RENDERER] component caught:', err, info);
+                        // Capture the source that caused this runtime error so the
+                        // parent console can inspect it without rerunning the
+                        // chart. Mirrors the __lastBadJsx pattern for Babel
+                        // failures (see line ~649) so the diagnostic can pick up
+                        // either path with the same DevTools query.
+                        try {
+                            window.parent.__lastFailingSource     = (typeof rawSource === 'string') ? rawSource.slice(0, 4000) : null;
+                            window.parent.__lastFailingSourceLen  = (typeof rawSource === 'string') ? rawSource.length      : null;
+                            window.parent.__lastFailingSourceId   = '${chartId}';
+                        } catch (_) {}
                         window.parent.postMessage({
                             type: 'react-render-error',
                             id: '${chartId}',
                             message: (err && err.message) ? err.message : String(err),
-                            stack: (err && err.stack) ? err.stack : ''
+                            stack: (err && err.stack) ? err.stack : '',
+                            rawSource: (typeof rawSource === 'string') ? rawSource.slice(0, 4000) : null,
+                            rawSourceLen: (typeof rawSource === 'string') ? rawSource.length : null
                         }, '*');
                         window.parent.postMessage({ type: 'iframe-resize', id: '${chartId}', height: 400 }, '*');
                     } catch (_) {}
