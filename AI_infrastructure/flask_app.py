@@ -43,6 +43,14 @@ for path in [str(ai_agents_root), str(ai_infrastructure_path)]:
     if path not in sys.path:
         sys.path.insert(0, path)
 
+# ✅ PREWARM GATE (July 24, 2026): Optional is referenced by the
+# PrewarmPending / PrewarmFailed sentinels + get_prewarm_error() helper
+# defined near line ~480 (after the background prewarm thread spawn).
+# Import it here so the annotations resolve at module load — these
+# helpers are evaluated at function-definition time (no `from __future__
+# import annotations` in this file), so the import must precede the def.
+from typing import Optional  # noqa: E402,F401
+
 # Import startup-timing helper FIRST so its _BOOT_T0 anchor captures every
 # subsequent millisecond of import time (including the logging setup below).
 # See AI_infrastructure/shared/startup_timing.py for the public API.
@@ -437,25 +445,33 @@ def initialize_semantic_search_async():
             registry._load_implementations()
             registry._load_module_plugins()
         
-        # Initialize persistent semantic search (loads from Supabase or regenerates)
-        print("[BACKGROUND] Loading embeddings from Supabase (or regenerating if needed)...")
+        # ✅ DEPLOY-TIME PREWARM (July 24, 2026):
+        # Tag every log line with [DEPLOY_PREWARM] so the user can grep
+        # `grep -c "DEPLOY_PREWARM" render.log` and confirm the prewarm
+        # actually ran as part of the deploy (not lazily on first chat).
+        # The previous tag was [BACKGROUND] — easy to miss.
+        print("=" * 80)
+        print("[DEPLOY_PREWARM] STEP 1/3 — Loading tool registry from disk cache (or fresh rebuild)")
+        print("=" * 80)
         semantic_search = get_semantic_search(registry)
-        
+
         if semantic_search and semantic_search.available:
             source = "Supabase" if semantic_search.db_available else "Generated (Database unavailable)"
-            print(f"[BACKGROUND] [OK] Loaded {len(semantic_search.tool_embeddings)} embeddings from {source}")
-            print(f"[BACKGROUND] Version Hash: {semantic_search.version_hash[:16]}...")
+            print(f"[DEPLOY_PREWARM] STEP 2/3 — Loaded {len(semantic_search.tool_embeddings)} tool embeddings from {source}")
+            print(f"[DEPLOY_PREWARM] STEP 2/3 — Version hash: {semantic_search.version_hash[:16]}...")
             print("=" * 80)
-            print("[BACKGROUND] ✅ SEMANTIC SEARCH READY - Embeddings loaded and cached!")
+            print(f"[DEPLOY_PREWARM] STEP 3/3 — ✅ DONE. Chat endpoint will be unblocked.")
+            print(f"[DEPLOY_PREWARM] STEP 3/3 — Total tools indexed: {len(semantic_search.tool_embeddings)}")
             print("=" * 80 + "\n")
         else:
-            print("[BACKGROUND] [WARNING] Semantic search not available (sentence-transformers not installed)")
+            print(f"[DEPLOY_PREWARM] STEP 2/3 — ⚠️  Semantic search NOT available (sentence-transformers not installed or HF download failed)")
+            print(f"[DEPLOY_PREWARM] STEP 3/3 — ⚠️  Chat endpoint will still respond but tool-selection will fall back to keyword matching")
             print("=" * 80 + "\n")
-        
+
         _semantic_search_initialization_complete = True
             
     except Exception as e:
-        print(f"[BACKGROUND] [ERROR] Failed to initialize semantic search: {e}")
+        print(f"[DEPLOY_PREWARM] ❌ FAILED: {e}")
         import traceback
         print(traceback.format_exc())
         print("=" * 80 + "\n")
@@ -469,8 +485,54 @@ def start_semantic_search_initialization():
         name="SemanticSearchInit"
     )
     thread.start()
-    print("[STARTUP] 🚀 Semantic search initialization started in background")
-    print("[STARTUP] Server will respond to health checks immediately\n")
+    print("[DEPLOY_PREWARM] 🚀 Started in background thread — server will accept requests immediately")
+    print("[DEPLOY_PREWARM] 🚀 Chat endpoints will return 503 with Retry-After until this thread completes")
+    print("[DEPLOY_PREWARM] 🚀 Follow progress by `grep \"DEPLOY_PREWARM\" render.log`\n")
+
+
+# ============================================================================
+# 🚦 PREWARM GATE (sentinel + wait helper)
+# ============================================================================
+# Chat endpoints call get_semantic_search() (agent_routes_v4.py:77). That
+# function previously raced against this background thread by acquiring
+# _semantic_search_lock and waiting on it. From the user's perspective that
+# looked like a hung request: spinner spins for 30-60 s, then a 502.
+#
+# The gate below makes the contract explicit:
+#   - If prewarm completed → proceed normally (returns the cached instance).
+#   - If prewarm failed    → raise PrewarmFailed so the chat endpoint can
+#                           return a 503 with the actual error.
+#   - If prewarm pending   → raise PrewarmPending so the chat endpoint can
+#                           return 503 + Retry-After: 5 (the user retries
+#                           and gets a fast response once prewarm lands).
+#
+# This converts the deploy's hidden 30-60 s pause into a *visible* contract:
+# the user gets a clear "deploy is still warming up, retry in 5 s" message
+# instead of a hung spinner, and the prewarm runs as part of gunicorn
+# boot (not as part of their first chat request).
+# ============================================================================
+class PrewarmPending(Exception):
+    """Raised by get_semantic_search() when the deploy-time prewarm hasn't finished yet."""
+    def __init__(self, retry_after_seconds: int = 5):
+        self.retry_after_seconds = retry_after_seconds
+        super().__init__(f"Deploy prewarm still running; retry after {retry_after_seconds}s")
+
+
+class PrewarmFailed(Exception):
+    """Raised by get_semantic_search() when the deploy-time prewarm raised an exception."""
+    def __init__(self, reason: str):
+        self.reason = reason
+        super().__init__(f"Deploy prewarm failed: {reason}")
+
+
+def is_prewarm_complete() -> bool:
+    """Cheap read of the global prewarm flag without importing anything heavy."""
+    return _semantic_search_initialization_complete
+
+
+def get_prewarm_error() -> Optional[str]:
+    """Returns the prewarm error string if the prewarm failed, else None."""
+    return _semantic_search_initialization_error
 
 
 # ============================================================================
@@ -2870,9 +2932,32 @@ def health_check():
     }
     
     # Check semantic search initialization status
+    # ✅ DEPLOY-TIME PREWARM (July 24, 2026): Add a derived `state` field
+    # so a single curl tells the user whether the chat endpoint is currently
+    # usable. Possible values: "ready" / "warming_up" / "failed". Plus the
+    # prewarm_started_at wall-clock so the user can see how long the
+    # prewarm has been running (or whether it never started).
+    if _semantic_search_initialization_complete:
+        prewarm_state = "ready" if not _semantic_search_initialization_error else "failed"
+    elif _semantic_search_initialization_error:
+        prewarm_state = "failed"
+    else:
+        prewarm_state = "warming_up"
     semantic_search_status = {
         'initialized': _semantic_search_initialization_complete,
-        'error': _semantic_search_initialization_error
+        'state': prewarm_state,  # ready | warming_up | failed
+        'error': _semantic_search_initialization_error,
+        'chat_endpoint_gated': not _semantic_search_initialization_complete,
+        'note': (
+            "Tool embeddings prewarm completed at deploy time. Chat "
+            "endpoint is unblocked." if prewarm_state == "ready" else
+            "Tool embeddings prewarm is still running as part of this "
+            "deploy. Chat endpoint will return 503 + Retry-After until "
+            "complete. Grep render.log for [DEPLOY_PREWARM] for progress." if prewarm_state == "warming_up" else
+            "Tool embeddings prewarm FAILED at deploy time. Chat endpoint "
+            "will return 503 with the error. Check render.log for "
+            "[DEPLOY_PREWARM] ❌ lines."
+        ),
     }
 
     # Check pgvector BGE model preload status (see initialize_pgvector_bge_model_async)
@@ -5133,12 +5218,47 @@ if __name__ == '__main__':
     print(f"Auto-reload: {not is_production}")
     print("=" * 80 + "\n")
     
-    # 🚀 BACKGROUND SEMANTIC SEARCH INITIALIZATION (Non-Blocking)
-    # Start in background thread to prevent health check timeouts
-    # Uses Supabase persistence - loads instantly if cache exists, regenerates if tools changed
-    print("[STARTUP] Starting semantic search initialization in background...")
-    print("[STARTUP] Server will respond to health checks immediately while embeddings load.\n")
-    start_semantic_search_initialization()
+    # 🚀 SEMANTIC SEARCH INITIALIZATION (Deploy-time vs background fallback)
+    # -------------------------------------------------------------------------
+    # If startup.sh ran AI_infrastructure/scripts/deploy_prewarm.py BEFORE
+    # `exec gunicorn`, a marker file /data/.prewarm_complete exists. In that
+    # case the HuggingFace model is already in /data/vdb_models/ AND the tool
+    # embeddings are already cached in Supabase — workers load them on first
+    # chat in <2s. We SKIP the background thread (the user's clock is no
+    # longer paying for the prewarm cost).
+    #
+    # If the marker is absent (local dev, deploy script failed), fall back
+    # to the background-thread prewarm + the 503+Retry-After gate in
+    # agent_routes_v4.py get_semantic_search().
+    _PREWARM_MARKER_PATH = '/data/.prewarm_complete'
+
+    def _deploy_prewarm_already_ran() -> bool:
+        """Return True if startup.sh's deploy_prewarm.py completed successfully."""
+        try:
+            if os.path.isfile(_PREWARM_MARKER_PATH):
+                print(f"[DEPLOY_PREWARM] ✓ Marker file detected: {_PREWARM_MARKER_PATH}")
+                print("[DEPLOY_PREWARM]   Deploy-time prewarm already completed.")
+                print("[DEPLOY_PREWARM]   Skipping background-thread prewarm; workers will")
+                print("[DEPLOY_PREWARM]   load embeddings from cache on first chat (<2s).")
+                return True
+        except Exception as marker_err:
+            print(f"[DEPLOY_PREWARM] Marker detection error (non-fatal): {marker_err}")
+        return False
+
+    if _deploy_prewarm_already_ran():
+        # Trust the marker — the persistent_semantic_search singleton will
+        # load instantly from /data/vdb_models/ + Supabase on first call.
+        _semantic_search_initialization_complete = True
+        _semantic_search_initialization_error = None
+        print("[DEPLOY_PREWARM] ✓ Background prewarm thread SKIPPED.\n")
+    else:
+        # No marker (dev mode or deploy-time prewarm failed). Start the
+        # background-thread prewarm; the chat endpoint will return 503 with
+        # Retry-After until it completes.
+        print("[STARTUP] No deploy-prewarm marker found — starting background-thread prewarm...")
+        print("[STARTUP] Server will respond to health checks immediately while embeddings load.")
+        print("[STARTUP] Chat endpoint will 503+Retry-After until prewarm completes.\n")
+        start_semantic_search_initialization()
 
     # Preload the pgvector BGE embedding model on the persistent disk so
     # the first user upload doesn't wait 30-60 s for the HuggingFace

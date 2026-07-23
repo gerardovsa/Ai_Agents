@@ -77,20 +77,52 @@ _semantic_search_lock = None
 def get_semantic_search(registry):
     """
     Get or create cached PersistentSemanticToolSearch instance.
-    
+
     This ensures embeddings are loaded ONCE at server startup from Supabase,
     not regenerated on every message or new thread.
-    
+
+    ✅ DEPLOY-TIME GATE (July 24, 2026):
+    The flask_app.py background thread `initialize_semantic_search_async`
+    runs at gunicorn boot and populates `_semantic_search_cache`. Before
+    this gate, a chat request that arrived during the 30-60 s prewarm
+    would acquire `_semantic_search_lock` and silently wait — appearing as
+    a hung spinner to the user. Now the function returns early with a
+    sentinel exception so the chat endpoint can return a 503 + Retry-After
+    instead of a hung request. The prewarm itself is unaffected.
+
     Returns:
-        PersistentSemanticToolSearch instance or None if unavailable
+        PersistentSemanticToolSearch instance, OR raises PrewarmPending /
+        PrewarmFailed (imported from flask_app) so callers can 503 cleanly.
     """
     global _semantic_search_cache, _semantic_search_lock
-    
+
+    # ✅ DEPLOY-TIME GATE: If the background prewarm hasn't finished yet,
+    # tell the caller "retry shortly" instead of silently waiting on the
+    # lock. The prewarm thread will release the cache the moment it
+    # completes, so the user's next retry (5 s later) gets a fast response.
+    # Import lazily to avoid a circular-import at module-load time
+    # (flask_app imports this module at line 369).
+    from flask_app import (
+        is_prewarm_complete,
+        get_prewarm_error,
+        PrewarmPending,
+        PrewarmFailed,
+    )
+    if not is_prewarm_complete():
+        err = get_prewarm_error()
+        if err:
+            # Prewarm raised and gave up — don't try to silently rebuild
+            # (that's what caused the user's "re-embedding on every chat"
+            # complaint). Surface the real error.
+            raise PrewarmFailed(err)
+        # Prewarm is still running — tell the caller to retry.
+        raise PrewarmPending(retry_after_seconds=5)
+
     # Thread-safe initialization
     if _semantic_search_lock is None:
         import threading
         _semantic_search_lock = threading.Lock()
-    
+
     with _semantic_search_lock:
         if _semantic_search_cache is None:
             try:
@@ -104,7 +136,7 @@ def get_semantic_search(registry):
                 import traceback
                 traceback.print_exc()
                 _semantic_search_cache = None
-        
+
         return _semantic_search_cache
 
 
@@ -1391,6 +1423,36 @@ def stream_agent(agent_id):
             print(f"[STREAM] ⚠️  Semantic search not available")
     
     except Exception as e:
+        # ✅ DEPLOY-TIME GATE (July 24, 2026): If the prewarm is still
+        # running (or failed), the user gets a clear 503 + Retry-After
+        # instead of a hung spinner or a silent fallback. See
+        # flask_app.py:initialize_semantic_search_async for the prewarm
+        # thread that runs at gunicorn boot. The prewarm itself is
+        # unaffected — it just populates _semantic_search_cache and
+        # flips _semantic_search_initialization_complete = True.
+        # Imported lazily to keep agent_routes_v4 import-time cheap.
+        from flask_app import PrewarmPending, PrewarmFailed
+        if isinstance(e, PrewarmPending):
+            print(f"[STREAM] 🚦 Prewarm still running — returning 503 Retry-After {e.retry_after_seconds}s")
+            resp = jsonify({
+                "status": "warming_up",
+                "error": "Deploy-time prewarm still running",
+                "detail": "Tool embeddings are being loaded as part of this deploy. Retry in a few seconds.",
+                "retry_after_seconds": e.retry_after_seconds,
+            })
+            resp.status_code = 503
+            resp.headers["Retry-After"] = str(e.retry_after_seconds)
+            return resp
+        if isinstance(e, PrewarmFailed):
+            print(f"[STREAM] ❌ Prewarm failed — returning 503: {e.reason}")
+            resp = jsonify({
+                "status": "prewarm_failed",
+                "error": "Deploy-time prewarm failed",
+                "detail": e.reason,
+            })
+            resp.status_code = 503
+            resp.headers["Retry-After"] = "30"
+            return resp
         print(f"[STREAM] ⚠️  Semantic pre-search failed: {e}")
         # Continue without suggestions - not a critical failure
     communication_style = user_prefs.get('communication_style', 'professional') if user_prefs else 'professional'

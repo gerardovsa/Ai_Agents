@@ -91,7 +91,22 @@ class PersistentSemanticToolSearch:
             # because the tool_embedding_cache table is `vector(384)` —
             # switching models would invalidate the Supabase cache and force
             # a full re-embed of every tool.
-            _model_name = 'all-MiniLM-L6-v2'
+            #
+            # FIX (July 23, 2026): Use fully-qualified model id
+            # `sentence-transformers/all-MiniLM-L6-v2` instead of the bare
+            # short name. The hub stores downloaded models at
+            # `models--sentence-transformers--all-MiniLM-L6-v2/snapshots/...`,
+            # not `models--all-MiniLM-L6-v2/...`. The original lookup built
+            # `models--all-MiniLM-L6-v2/snapshots` (from `_safe_name =
+            # _model_name.replace('/', '--')`) and never matched the real
+            # cache directory, so every init fell through to
+            # `SentenceTransformer(_model_name, cache_folder=...)` — which
+            # means a fresh HuggingFace download on EVERY chat request,
+            # not just on cold start. Symptom: 30-60 s embedding download
+            # before every model reply. Mirrors the working pattern in
+            # tools/implementations/pgvector/pgvector_tools.py:116 which
+            # already uses `BAAI/bge-base-en-v1.5` (fully-qualified).
+            _model_name = 'sentence-transformers/all-MiniLM-L6-v2'
             # /data is the Render persistent disk (~10 GB). Falls back to
             # ~/.cache on local dev so unit tests don't require /data to
             # be mounted.
@@ -99,6 +114,9 @@ class PersistentSemanticToolSearch:
                 os.path.expanduser('~'), '.cache', 'vdb_models'
             )
             # huggingface_hub stores: models--<safe_name>/snapshots/<hash>/
+            # With the fully-qualified name, `_safe_name` becomes
+            # `sentence-transformers--all-MiniLM-L6-v2` — matching the real
+            # cache directory left by either prior download path.
             _safe_name = _model_name.replace('/', '--')
             _hub_dir = os.path.join(_cache_dir, f'models--{_safe_name}')
             _snap_dir = os.path.join(_hub_dir, 'snapshots')
@@ -109,6 +127,11 @@ class PersistentSemanticToolSearch:
                     if os.path.isfile(os.path.join(_candidate, 'config.json')):
                         _local_path = _candidate
                         break
+            # Legacy fallback: an instance that previously downloaded via the
+            # bare short name still has a working cache under the *correct*
+            # directory (because SentenceTransformer auto-prefixed the
+            # `sentence-transformers/` namespace before storing). Nothing
+            # to migrate here — the path above now matches.
             if _local_path:
                 print(
                     f'[SEMANTIC_SEARCH] Loading local embedding model from '
