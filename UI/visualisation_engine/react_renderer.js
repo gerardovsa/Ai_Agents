@@ -536,7 +536,7 @@ ${lucideScript}
         //      write throws SecurityError cross-origin)
         //   2) postMessage 'react-render-fences'  (cross-origin safe)
         var __babelFences = [];
-        (function __babelFence(label) {
+        function __babelFence(label) {
             try {
                 Babel.transform('function T(){return <div/>;}', {
                     presets: [['react', { runtime: 'classic' }]]
@@ -550,7 +550,8 @@ ${lucideScript}
                     stackHead: ((e.stack || '').split(String.fromCharCode(10)).slice(0, 3).join(' | '))
                 });
             }
-        })('F0 — Babel initial state (no setup yet)');
+        }
+        __babelFence('F0 — Babel initial state (no setup yet)');
 
         // ── React + hooks on window so user code can use identifiers ───────
         // without an explicit React. prefix.
