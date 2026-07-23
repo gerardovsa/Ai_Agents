@@ -217,7 +217,7 @@ class ReactRenderer {
 
         // ── CDN script tags ─────────────────────────────────────────────────────
         const rechartsScript = usesRecharts
-            ? `  <script src="https://unpkg.com/prop-types@15/prop-types.min.js"><\/script>\n  <script src="https://unpkg.com/recharts@2/umd/Recharts.js"><\/script>` : '';
+            ? `  <script src="visualisation_engine/libs/prop-types.js"><\/script>\n  <script src="visualisation_engine/libs/Recharts.js"><\/script>` : '';
         // Always inject the lucide UMD. The detection regex above is brittle
         // (only ~30 hand-picked icons) and the AI emits PascalCase JSX tags
         // without explicit `import` statements, so by the time we know an
@@ -385,12 +385,12 @@ class ReactRenderer {
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
 ${tailwindLink}
-  <!-- React 18 UMD -->
-  <script src="https://unpkg.com/react@18/umd/react.production.min.js"><\/script>
-  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"><\/script>
+  <!-- React 18 UMD (self-hosted: see UI/visualisation_engine/libs/) -->
+  <script src="visualisation_engine/libs/react.production.min.js"><\/script>
+  <script src="visualisation_engine/libs/react-dom.production.min.js"><\/script>
 ${rechartsScript}
-  <!-- Babel Standalone: transpiles JSX at runtime inside the sandboxed iframe -->
-  <script src="https://unpkg.com/@babel/standalone@7.24.7/babel.min.js"><\/script>
+  <!-- Babel Standalone: transpiles JSX at runtime inside the sandboxed iframe (self-hosted) -->
+  <script src="visualisation_engine/libs/babel.min.js"><\/script>
 ${lucideScript}
   <style>
     html, body { margin: 0; padding: 0; width: 100%; overflow-x: hidden; }
