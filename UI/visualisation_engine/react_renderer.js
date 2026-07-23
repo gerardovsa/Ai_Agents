@@ -570,8 +570,16 @@ ${lucideScript}
 ${rechartsSetup}
         __babelFence('F2 — after Recharts globals on window');
 
-${identifierHoist}
-        __babelFence('F3 — after identifier hoist (lucide/Recharts PascalCase)');
+        // NOTE: the identifierHoist IIFE is intentionally NOT injected here.
+        // The 2026-07-23 fence diagnostic proved that running it before
+        // Babel.transform corrupts Babel's internal plugin cache
+        // (makeWeakCache throws "TypeError: e.get is not a function" the
+        // next time Babel.transform is called). The hoist only needs to run
+        // before the transformed source is EXECUTED, not before it is
+        // TRANSFORMED — Babel's syntax pass doesn't care whether
+        // window.BarChart is set yet. The IIFE is therefore injected later,
+        // between the transform-success and the classic-<script> append.
+        __babelFence('F3 — before actual transform (final Babel sanity check)');
 
         // Surface fence results to parent for offline inspection. The
         // postMessage is the cross-origin-safe channel; the direct property
@@ -629,6 +637,22 @@ ${identifierHoist}
                     JSON.stringify(__babelFences, null, 2));
             } catch (_) { /* parent unreachable (srcdoc sandbox) */ }
             return;
+        }
+
+        // ── Identifier hoist (moved here from before F3 on 2026-07-23) ───────
+        // The IIFE lifts every PascalCase identifier the user references
+        // (BarChart, Briefcase, etc.) onto window so the transformed source
+        // can call them without an explicit prefix. It MUST run AFTER
+        // Babel.transform — running it before corrupted Babel's
+        // makeWeakCache plugin cache (the F3 fence caught this as
+        // "TypeError: e.get is not a function" at babel.min.js:1:925003).
+        // Babel's syntax pass doesn't need window.BarChart, but the
+        // executed code does — hence the placement between the transform
+        // success and the classic-<script> append.
+        try {
+${identifierHoist}
+        } catch (hoistErr) {
+            console.warn('[REACT_RENDERER] identifier hoist failed (best-effort):', hoistErr);
         }
 
         // Run the transformed code in a fresh classic <script> so top-level
