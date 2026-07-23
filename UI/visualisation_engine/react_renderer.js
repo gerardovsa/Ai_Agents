@@ -619,8 +619,43 @@ ${rechartsSetup}
         var rawSource = ${JSON.stringify(cleanedJSX)};
         var out;
         try {
+            // ----- Babel plugin: rewrite {cond && <JSX/>} -> {cond ? <JSX/> : null}
+            // Recharts builds its per-axis registry via React.Children.toArray()
+            // at first mount. toArray() treats the literal false (the result of
+            // 'cond && <X/>' when cond is falsy) by inserting a placeholder text
+            // child, whereas null (the result of 'cond ? <X/> : null') is
+            // dropped entirely. Recharts caches scale slots keyed on those child
+            // positions; a false child causes the next render to call .has() on
+            // an undefined slot, throwing 't.has is not a function' from a
+            // Recharts Map subclass during domain merging.
+            //
+            // The 2026-07-23 fence+tail diagnostic captured the exact failing
+            // pattern: <ComposedChart> with {showX && (<Component yAxisId="..."/>)}
+            // children that all share/duplicate axis IDs destabilise the
+            // registry on first mount. This transform makes the JSX idiomatic
+            // for Recharts without changing what the AI authored.
+            function logicalToConditionalPlugin(api) {
+                var t = api.types;
+                return {
+                    visitor: {
+                        LogicalExpression: function (path) {
+                            var node = path.node;
+                            if (node.operator !== '&&') return;
+                            var right = node.right;
+                            var isParen = t.isParenthesizedExpression(right);
+                            var inner = isParen ? right.expression : right;
+                            if (!(t.isJSXElement(inner) || t.isJSXFragment(inner))) return;
+                            path.replaceWith(
+                                t.conditionalExpression(node.left, inner, t.nullLiteral())
+                            );
+                        }
+                    }
+                };
+            }
+
             out = Babel.transform(rawSource, {
-                presets: [['react', { runtime: 'classic' }]]
+                presets: [['react', { runtime: 'classic' }]],
+                plugins: [logicalToConditionalPlugin]
             }).code;
         } catch (transformErr) {
             var tmsg = (transformErr && transformErr.message)
