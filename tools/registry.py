@@ -19,21 +19,52 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 # System uses environment variables from .env.master instead
 CONFIG_AVAILABLE = False
 
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+# FIX (July 23, 2026): Honour the Render-disabled-platform set so
+# we don't eagerly import heavy implementations (Pinecone client init,
+# cadquery, slack_sdk, twilio, resend, etc.) that have been explicitly
+# disabled for the current deployment. Mirrors tools/registry_v3.py.
+# Without this guard, the legacy registry pinned every disabled .py
+# into sys.modules at boot — eating worker memory and causing gunicorn
+# to recycle the worker mid-stream (HTTP 502 on /api/agent/stream/*).
+#
+# Same disable set as tools/registry_v3.py:_RENDER_DISABLED_PLATFORMS.
+# Keep both in sync.
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+_RENDER_DISABLED_PLATFORMS = frozenset({
+    'adobe_indesign', 'cloudconvert', 'cloudflare', 'github',
+    'inhouse_database', 'inhouse_query', 'inhouse_query_library',
+    'ngrok', 'render',
+    'resend', 'resend_email',   # resend_email.py is the actual file stem
+    'twilio', 'twilio_veterinary',
+    'xero_quotes', 'xero_quotes_smart',
+})
+
+# Schema files whose JSON contents describe a standalone (no-platform)
+# implementation set we explicitly opted out of.
+_DISABLED_SCHEMA_FILENAMES = frozenset({
+    'phone_communication_tools.json',
+    'universal_file_tools.json',
+    'workspace_search_tools.json',
+})
+
 
 class ToolRegistry:
     """
     Central registry for all platform tools.
     Handles tool discovery, validation, and execution.
     """
-    
+
     def __init__(self):
         self.tools_dir = Path(__file__).parent
         self.schemas_dir = self.tools_dir / "schemas"
         self.implementations_dir = self.tools_dir / "implementations"
-        
+
         self.tools = {}
         self.implementations = {}
-        
+
+        # Silent when on a deployment target that filters platforms,
+        # to keep the boot log uncluttered alongside registry_v3's log line.
         print("[INIT] Initializing Tool Registry...")
         self._load_schemas()
         self._load_implementations()
@@ -44,39 +75,67 @@ class ToolRegistry:
         if not self.schemas_dir.exists():
             print(f"⚠️ Schemas directory not found: {self.schemas_dir}")
             return
-        
+
         for schema_file in self.schemas_dir.glob("*_tools.json"):
+            # FIX (July 23, 2026): skip schema files for platforms that
+            # are explicitly disabled on the current deployment target.
             try:
+                stem = schema_file.stem
+                if schema_file.name in _DISABLED_SCHEMA_FILENAMES:
+                    # No platform key in the file to match on — opt out by name.
+                    continue
+                # Heuristic: any schema file with a "platform" key matching
+                # a disabled platform is skipped. Some files ship tools from
+                # multiple platforms; tools are filtered in the inner loop.
                 with open(schema_file, 'r', encoding='utf-8') as f:
                     platform_tools = json.load(f)
-                    
+
                 for tool in platform_tools.get('tools', []):
                     tool_name = tool.get('name')
-                    if tool_name:
+                    tool_platform = tool.get('platform')
+                    if tool_name and tool_platform not in _RENDER_DISABLED_PLATFORMS:
                         self.tools[tool_name] = tool
-                        print(f"  [SCHEMA] Loaded: {tool_name}")
             except Exception as e:
                 print(f"[ERROR] Failed to load schema {schema_file}: {e}")
-    
+
     def _load_implementations(self):
-        """Dynamically import all tool implementations"""
+        """Dynamically import all tool implementations.
+
+        FIX (July 23, 2026): Skip imports whose module name appears in
+        _RENDER_DISABLED_PLATFORMS. The legacy behavior force-executed
+        every .py in tools/implementations/ which pinned heavyweight
+        SDK clients (pinecone, cadquery, slack_sdk, twilio, github, ...)
+        into sys.modules permanently — that memory pressure is what was
+        killing workers mid-SSE stream and producing 502s on Render.
+        """
         if not self.implementations_dir.exists():
             print(f"⚠️ Implementations directory not found: {self.implementations_dir}")
             return
-        
+
         for impl_file in self.implementations_dir.glob("*.py"):
             if impl_file.name == "__init__.py":
                 continue
-            
+
+            module_name = impl_file.stem
+
+            # Skip disabled-platform implementations entirely — do NOT
+            # exec_module() the file. The corresponding schema's tools
+            # remain registered but are not dispatched (matches the
+            # intent of registry_v3's lazy proxy approach).
+            if module_name in _RENDER_DISABLED_PLATFORMS:
+                self.implementations[module_name] = None  # placeholder
+                print(f"  [IMPL] Skipped (disabled): {module_name}")
+                continue
+
             try:
-                module_name = impl_file.stem
                 # Dynamic import
                 import importlib.util
                 spec = importlib.util.spec_from_file_location(module_name, impl_file)
                 module = importlib.util.module_from_spec(spec)
                 spec.loader.exec_module(module)
-                
+
                 self.implementations[module_name] = module
+                # Only the non-disabled set is reported as [IMPL] Loaded.
                 print(f"  [IMPL] Loaded: {module_name}")
             except Exception as e:
                 print(f"[ERROR] Failed to load implementation {impl_file}: {e}")
