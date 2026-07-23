@@ -1861,7 +1861,7 @@ const MultiAgent = {
                                 </div>
                             </div>
                             <div style="display: flex; gap: 12px; margin-top: 12px; justify-content: center;">
-                                <button class="btn btn-primary" onclick="event.stopPropagation(); ThreadManager.showNewChatModal('agent-${agentId}', event.currentTarget, true)" style="display: flex; align-items: center; gap: 8px; font-size: 14px;">
+                                <button class="btn btn-primary" onclick="event.stopPropagation(); ThreadManager.showNewChatModal('agent-${agentId}')" style="display: flex; align-items: center; gap: 8px; font-size: 14px;">
                                     <i class="fas fa-plus" style="font-size: 12px;"></i>
                                     Start New Chat
                                 </button>
@@ -2489,7 +2489,7 @@ const MultiAgent = {
                                     </div>
                                 </div>
                                 <div style="display: flex; gap: 12px; margin-top: 12px; justify-content: center;">
-                                    <button class="btn btn-primary" onclick="event.stopPropagation(); ThreadManager.showNewChatModal('agent-${agentId}', event.currentTarget, true)" style="display: flex; align-items: center; gap: 8px; font-size: 14px;">
+                                    <button class="btn btn-primary" onclick="event.stopPropagation(); ThreadManager.showNewChatModal('agent-${agentId}')" style="display: flex; align-items: center; gap: 8px; font-size: 14px;">
                                         <i class="fas fa-plus" style="font-size: 12px;"></i>
                                         Start New Chat
                                     </button>
@@ -4874,10 +4874,57 @@ async function sendAgentMessage(agentId) {
             console.log(`[Agent ${agentId}] Adding X-Socket-ID header:`, window.SynergyRealtime.socket.id);
         }
 
-        const streamResponse = await fetch(streamUrl, { 
-            signal: MultiAgent.agentStreamControllers[agentId].signal,
-            headers: headers
-        });
+        // ✅ ROBUSTNESS FIX (2026-07-23): Retry the SSE stream handshake on
+        // transient 502/503/504. Render's edge can reap an idle upstream
+        // connection (or recycle a worker mid-deploy) which manifests as a
+        // 502 Bad Gateway on the *next* SSE request. We retry up to 2 times
+        // with a 3 s backoff before surfacing the error to the user. Honors
+        // the AbortController signal — if the user hits Stop, we bail out
+        // immediately without further retries.
+        const _STREAM_RETRY_STATUSES = new Set([502, 503, 504]);
+        const _STREAM_MAX_RETRIES = 2;
+        const _STREAM_BACKOFF_MS = 3000;
+        let streamResponse = null;
+        let _streamLastErr = null;
+        for (let _attempt = 0; _attempt <= _STREAM_MAX_RETRIES; _attempt++) {
+            try {
+                if (MultiAgent.agentStreamControllers[agentId].signal.aborted) {
+                    throw new DOMException('Aborted', 'AbortError');
+                }
+                streamResponse = await fetch(streamUrl, {
+                    signal: MultiAgent.agentStreamControllers[agentId].signal,
+                    headers: headers
+                });
+                if (streamResponse.ok || !_STREAM_RETRY_STATUSES.has(streamResponse.status)) {
+                    break; // Success or non-retryable status
+                }
+                _streamLastErr = new Error(`Stream error! status: ${streamResponse.status}`);
+                console.warn(`[Agent ${agentId}] Stream returned ${streamResponse.status} (attempt ${_attempt + 1}/${_STREAM_MAX_RETRIES + 1}) — retrying in ${_STREAM_BACKOFF_MS}ms`);
+                streamResponse = null;
+            } catch (_fetchErr) {
+                if (_fetchErr && (_fetchErr.name === 'AbortError' || _fetchErr.name === 'DOMException')) {
+                    throw _fetchErr; // user stopped — don't retry
+                }
+                _streamLastErr = _fetchErr;
+                console.warn(`[Agent ${agentId}] Stream fetch threw (attempt ${_attempt + 1}/${_STREAM_MAX_RETRIES + 1}):`, _fetchErr);
+            }
+            if (_attempt < _STREAM_MAX_RETRIES) {
+                await new Promise((resolve) => {
+                    const _timer = setTimeout(resolve, _STREAM_BACKOFF_MS);
+                    MultiAgent.agentStreamControllers[agentId].signal.addEventListener('abort', () => {
+                        clearTimeout(_timer);
+                        resolve();
+                    }, { once: true });
+                });
+                if (MultiAgent.agentStreamControllers[agentId].signal.aborted) {
+                    throw new DOMException('Aborted', 'AbortError');
+                }
+            }
+        }
+
+        if (!streamResponse) {
+            throw _streamLastErr || new Error('Stream error: failed after retries');
+        }
 
         if (!streamResponse.ok) {
             throw new Error(`Stream error! status: ${streamResponse.status}`);

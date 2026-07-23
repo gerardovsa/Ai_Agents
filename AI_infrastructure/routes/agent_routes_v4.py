@@ -643,8 +643,15 @@ def validate_request_credentials(request_data: Dict[str, Any]) -> tuple[Optional
 
 from flask import Blueprint, request, Response, current_app, g, jsonify, session
 import threading
+import queue as _queue
 from queue import Empty
 import json
+
+# Heartbeat interval (seconds) for SSE streams. Render's edge load-balancer
+# reaps upstream connections that look idle (typically ~60s). Emitting an
+# SSE comment line on this cadence keeps the connection "active" without
+# changing the visible event stream (browsers ignore ':' comment lines).
+_SSE_HEARTBEAT_INTERVAL_S = 15.0
 
 # Import infrastructure
 from core.agent_state_manager import agent_state_manager
@@ -2270,18 +2277,28 @@ Use tools in multiple rounds with interleaved thinking."""
             print(traceback.format_exc())
     
     def generate():
-        """Generator with close signal to prevent incomplete chunked encoding"""
+        """Generator with close signal to prevent incomplete chunked encoding."""
         # NOTE (2026-07-03): The previous local `flush_stream()` helper called
         # `sys.stdout.flush()`. That was a no-op for Flask `Response` generators
         # (the wire is the WSGI server, not stdout), so the helper was deleted.
         # Flask flushes each yielded chunk via chunked transfer encoding on its
         # own; no manual flush is needed and no flush calls remain in this fn.
+        #
+        # NOTE (2026-07-23): Heartbeat bridge added. AI generators can sit idle
+        # for 30-90s during long thinking steps. Render's edge load-balancer
+        # reaps upstream connections that look idle (~60s default). We bridge
+        # the AI generator to a queue.Queue fed by a real OS thread, and let
+        # the consumer do `queue.get(timeout=_SSE_HEARTBEAT_INTERVAL_S)` so it
+        # can emit an SSE comment line on timeout. Browsers ignore ':' comments
+        # per the SSE spec; Render sees bytes flowing and keeps the upstream
+        # connection alive.
         try:
             did_broadcast_update = False
             yield stream_sse_event('start', {'session_id': thread_slug, 'agent_id': agent_id})
-            
-            # ✅ FIX: If multimodal (has file blocks), pass full content via conversation history
-            # and use empty user_prompt (execute_streaming_request skips adding user msg when falsy)
+
+            # If multimodal (has file blocks), pass full content via conversation
+            # history and use empty user_prompt (execute_streaming_request skips
+            # adding user msg when falsy).
             if last_message_content is not None:
                 exec_user_prompt = ''
                 exec_conversation = list(conversation_without_current) + [
@@ -2292,63 +2309,113 @@ Use tools in multiple rounds with interleaved thinking."""
                 exec_user_prompt = last_message
                 exec_conversation = conversation_without_current
 
-            for event in execute_streaming_request(
-                session_id=thread_slug,
-                user_prompt=exec_user_prompt,
-                conversation_history=exec_conversation,
-                system_prompt=system_prompt,
-                tools=tools,
-                user_id=user_id,
-                thread_id=thread_slug,  # Pass thread_id for database saves
-                ai_model=ai_model,
-                ai_provider=ai_provider,
-                ai_temperature=ai_temperature,
-                ai_max_tokens=ai_max_tokens,
-                ai_thinking_enabled=ai_thinking_enabled,
-                ai_thinking_budget=ai_thinking_budget
-            ):
-                event_type = event.get('type', 'unknown')
+            # ---- Heartbeat bridge: queue.Queue + OS thread ----
+            # The AI generator is a sync generator; blocking on `next()` inside
+            # our generator means we cannot yield heartbeats during long thinking
+            # steps. We move it onto a real OS thread that pushes events into a
+            # queue.Queue, and let our generator do `queue.get(timeout=...)` so
+            # we can emit ': heartbeat' on idle. Stop sentinel is None.
+            _event_queue = _queue.Queue(maxsize=64)
+            _bridge_error = {}
 
-                # When the backend finishes persisting the authoritative conversation, notify
-                # other browser sessions so they can refresh their agent columns.
-                if event_type == 'conversation_sync':
-                    # ✅ FIX: Add user_id to payload for frontend filtering
-                    _broadcast_agent_thread_updated({
-                        'agent_id': agent_id,
-                        'thread_slug': thread_slug,
-                        'user_id': user_id,  # ✅ Added for team member identification
-                        'message_count': event.get('message_count'),
-                        'timestamp': int(datetime.now(UTC).timestamp() * 1000)
-                    })
-                    did_broadcast_update = True
+            def _ai_bridge():
+                try:
+                    for _evt in execute_streaming_request(
+                        session_id=thread_slug,
+                        user_prompt=exec_user_prompt,
+                        conversation_history=exec_conversation,
+                        system_prompt=system_prompt,
+                        tools=tools,
+                        user_id=user_id,
+                        thread_id=thread_slug,
+                        ai_model=ai_model,
+                        ai_provider=ai_provider,
+                        ai_temperature=ai_temperature,
+                        ai_max_tokens=ai_max_tokens,
+                        ai_thinking_enabled=ai_thinking_enabled,
+                        ai_thinking_budget=ai_thinking_budget
+                    ):
+                        _event_queue.put(_evt)
+                except Exception as _bridge_exc:
+                    _bridge_error['exc'] = _bridge_exc
+                    import traceback as _tb
+                    _bridge_error['tb'] = _tb.format_exc()
+                finally:
+                    _event_queue.put(None)  # stop sentinel
 
-                # Fallback: if the worker never emitted conversation_sync but does emit complete,
-                # still notify other sessions that this thread changed.
-                if event_type == 'complete' and not did_broadcast_update:
-                    # ✅ FIX: Add user_id to payload for frontend filtering
-                    _broadcast_agent_thread_updated({
-                        'agent_id': agent_id,
-                        'thread_slug': thread_slug,
-                        'user_id': user_id,  # ✅ Added for team member identification
-                        'message_count': event.get('message_count'),
-                        'timestamp': int(datetime.now(UTC).timestamp() * 1000)
-                    })
-                    did_broadcast_update = True
+            _bridge_thread = threading.Thread(
+                target=_ai_bridge,
+                name=f"sse-bridge-{thread_slug}",
+                daemon=True,
+            )
+            _bridge_thread.start()
 
-                yield stream_sse_event(event_type, event)
+            try:
+                while True:
+                    try:
+                        event = _event_queue.get(timeout=_SSE_HEARTBEAT_INTERVAL_S)
+                    except Empty:
+                        # No AI event within the heartbeat window — emit an SSE
+                        # comment line so Render's edge sees bytes flowing.
+                        yield ": heartbeat\n\n"
+                        continue
 
-                if event_type in ['complete', 'error']:
-                    break
-        
+                    if event is None:
+                        if _bridge_error:
+                            print(f"[STREAM] Bridge thread raised: {_bridge_error.get('tb', '')}")
+                            raise _bridge_error['exc']
+                        break
+
+                    event_type = event.get('type', 'unknown')
+
+                    if event_type == 'conversation_sync':
+                        _broadcast_agent_thread_updated({
+                            'agent_id': agent_id,
+                            'thread_slug': thread_slug,
+                            'user_id': user_id,
+                            'message_count': event.get('message_count'),
+                            'timestamp': int(datetime.now(UTC).timestamp() * 1000)
+                        })
+                        did_broadcast_update = True
+
+                    if event_type == 'complete' and not did_broadcast_update:
+                        _broadcast_agent_thread_updated({
+                            'agent_id': agent_id,
+                            'thread_slug': thread_slug,
+                            'user_id': user_id,
+                            'message_count': event.get('message_count'),
+                            'timestamp': int(datetime.now(UTC).timestamp() * 1000)
+                        })
+                        did_broadcast_update = True
+
+                    yield stream_sse_event(event_type, event)
+
+                    if event_type in ['complete', 'error']:
+                        break
+            finally:
+                # Bridge thread is daemon — it dies with the worker even if
+                # still draining the AI generator. No need to join.
+                pass
+
+        except (BrokenPipeError, ConnectionResetError, GeneratorExit) as _client_gone:
+            # Client disconnected mid-stream (browser tab closed, edge reaped,
+            # network drop). Expected during deploys / idle tab timeouts.
+            print(f"[STREAM] Client disconnected for thread {thread_slug}: {type(_client_gone).__name__}")
+
         except Exception as e:
             import traceback
             print(f"[STREAM ERROR] {traceback.format_exc()}")
-            yield stream_sse_event('error', {'error': str(e)})
-        
+            try:
+                yield stream_sse_event('error', {'error': str(e)})
+            except Exception:
+                pass  # Client already gone; can't deliver error frame.
+
         finally:
-            # CRITICAL: Always send close signal to prevent ERR_INCOMPLETE_CHUNKED_ENCODING
             print(f"[STREAM] Sending close signal for thread {thread_slug}")
-            yield "event: close\ndata: {}\n\n"
+            try:
+                yield "event: close\ndata: {}\n\n"
+            except (BrokenPipeError, ConnectionResetError, GeneratorExit):
+                pass  # Client gone before close frame could be written — fine.
     
     # Add timeout protection and better error handling for SSE streams
     response = Response(generate(), mimetype='text/event-stream', headers={
