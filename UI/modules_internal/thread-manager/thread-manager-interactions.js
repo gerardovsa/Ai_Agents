@@ -974,8 +974,11 @@ Object.assign(window.ThreadManager, {
         const isFromCatalogue = sourceLocation === 'unassigned' || sourceLocation === 'thread-history';
 
         // Build modal content
+        // FIX (Jul 23, 2026): Add 'active' class so CSS `display: flex` applies.
+        // The overlay defaults to `display: none` and only becomes visible when
+        // `.active` is present (matches the .message-popup-overlay pattern).
         const overlay = document.createElement('div');
-        overlay.className = 'thread-confirm-overlay';
+        overlay.className = 'thread-confirm-overlay active';
         overlay.innerHTML = `
             <div class="thread-confirm-modal">
                 <div class="thread-confirm-header">
@@ -1301,25 +1304,33 @@ Object.assign(window.ThreadManager, {
     },
 
     /**
-     * Show new chat modal
+     * Show new chat modal.
+     *
+     * Always opens centered with a blurred backdrop. The overlay is a flex
+     * container, so CSS handles centering and viewport scaling — the modal
+     * fits any window size via max-width / max-height on .new-chat-modal.
+     *
+     * Earlier revisions anchored near the trigger button and clipped on
+     * short viewports; this is the simpler, more robust path now that the
+     * UI is targeting mobile layouts.
      */
-    async showNewChatModal(location = 'unassigned', buttonElement = null, preferBelow = false) {
+    async showNewChatModal(location = 'unassigned') {
         console.log(`➕ [Interactions] Opening new chat modal for ${location}`);
 
+        // Use the agent NATO label (e.g. "Yankee-25") when the location is a
+        // per-agent slot so the title matches what the empty-state heading
+        // already shows. Falls back to the raw "Agent N" form if MultiAgent
+        // isn't loaded.
         const locationName = location === 'unassigned' ? 'Unassigned' :
-            (location.startsWith('agent-') ? `Agent ${location.split('-')[1]}` : location);
-
-        // Anchored modals are measured after insertion so placement uses their actual height.
-        let positionStyle = '';
-        let overlayClass = '';
-        if (buttonElement) {
-            positionStyle = 'style="visibility: hidden; position: fixed;"';
-            overlayClass = 'positioned';
-        }
+            (location.startsWith('agent-')
+                ? (typeof MultiAgent !== 'undefined' && typeof MultiAgent.getAgentName === 'function'
+                    ? MultiAgent.getAgentName(parseInt(location.split('-')[1], 10))
+                    : `Agent ${location.split('-')[1]}`)
+                : location);
 
         const modalHTML = `
-            <div class="modal-overlay ${overlayClass}" id="newChatModalOverlay" onclick="if(event.target.id === 'newChatModalOverlay') { const modal = document.getElementById('newChatModalOverlay'); if (modal) modal.remove(); }">
-                <div class="new-chat-modal" ${positionStyle} onclick="event.stopPropagation()">
+            <div class="modal-overlay" id="newChatModalOverlay" onclick="if(event.target.id === 'newChatModalOverlay') { const modal = document.getElementById('newChatModalOverlay'); if (modal) modal.remove(); }">
+                <div class="new-chat-modal" onclick="event.stopPropagation()">
                     <div class="modal-header">
                         <h3><i class="fas fa-plus-circle"></i> Start New Chat in ${locationName}</h3>
                         <button class="modal-close" onclick="const modal = document.getElementById('newChatModalOverlay'); if (modal) modal.remove();">
@@ -1400,91 +1411,10 @@ Object.assign(window.ThreadManager, {
 
         document.body.insertAdjacentHTML('beforeend', modalHTML);
 
-        const modal = document.querySelector('.new-chat-modal');
-
-        // Position anchored modals above the trigger whenever the viewport allows it.
-        if (buttonElement) {
-            const triggerRect = buttonElement.getBoundingClientRect();
-            const modalRect = modal.getBoundingClientRect();
-            const viewportMargin = 10;
-            const triggerGap = 12;
-            const maxTop = Math.max(
-                viewportMargin,
-                window.innerHeight - modalRect.height - viewportMargin
-            );
-            const maxLeft = Math.max(
-                viewportMargin,
-                window.innerWidth - modalRect.width - viewportMargin
-            );
-
-            let top;
-            const topPosition = triggerRect.top - modalRect.height - triggerGap;
-            const bottomPosition = triggerRect.bottom + triggerGap;
-            const fitsBelow = bottomPosition + modalRect.height <= window.innerHeight - viewportMargin;
-            const fitsAbove = topPosition >= viewportMargin;
-
-            if (preferBelow) {
-                if (fitsBelow) {
-                    top = bottomPosition;
-                } else if (fitsAbove) {
-                    top = topPosition;
-                } else {
-                    top = Math.min(
-                        Math.max(topPosition, viewportMargin),
-                        maxTop
-                    );
-                }
-            } else if (fitsAbove) {
-                top = topPosition;
-            } else if (fitsBelow) {
-                top = bottomPosition;
-            } else {
-                top = Math.min(
-                    Math.max(topPosition, viewportMargin),
-                    maxTop
-                );
-            }
-
-            const left = Math.min(
-                Math.max(triggerRect.left, viewportMargin),
-                maxLeft
-            );
-
-            modal.style.top = `${top}px`;
-            modal.style.left = `${left}px`;
-            modal.style.position = 'fixed';
-            modal.style.visibility = 'visible';
-        }
-
-        // Make modal draggable
-        const modalHeader = modal.querySelector('.modal-header');
-        let isDragging = false;
-        let currentX, currentY, initialX, initialY;
-
-        modalHeader.addEventListener('mousedown', (e) => {
-            isDragging = true;
-            initialX = e.clientX - (parseInt(modal.style.left) || 0);
-            initialY = e.clientY - (parseInt(modal.style.top) || 0);
-            modalHeader.style.cursor = 'grabbing';
-        });
-
-        document.addEventListener('mousemove', (e) => {
-            if (isDragging) {
-                e.preventDefault();
-                currentX = e.clientX - initialX;
-                currentY = e.clientY - initialY;
-                modal.style.left = `${currentX}px`;
-                modal.style.top = `${currentY}px`;
-                modal.style.position = 'fixed';
-            }
-        });
-
-        document.addEventListener('mouseup', () => {
-            if (isDragging) {
-                isDragging = false;
-                modalHeader.style.cursor = 'move';
-            }
-        });
+        // The overlay is a flex container with align-items: center and
+        // justify-content: center, so the modal lands dead-center on every
+        // viewport. .new-chat-modal's max-width / max-height CSS handles
+        // short windows automatically.
 
         // Setup platform tag button interactions with resource selection
         const platformTagBtns = document.querySelectorAll('.platform-tag-btn');

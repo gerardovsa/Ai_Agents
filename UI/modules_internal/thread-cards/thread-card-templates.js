@@ -79,7 +79,13 @@ window.ThreadCardTemplates = {
     /**
      * No Thread Message - Agents/Synergy panels (no thread assigned)
      * Simple message showing agent icon and name
-     * 
+     *
+     * FIX (Jul 23, 2026): Removed the Prime clickable-dropdown branch. Prime's
+     * empty state now returns the same bare thread-info-wrapper that agent
+     * columns use as their drop target — the welcome panel below handles the
+     * "Click to select a thread" affordance. This keeps Prime's drop-zone hover
+     * highlight unambiguous and matches the agent empty-state pattern.
+     *
      * @param {string} agentName - Agent display name (e.g., "Agent-1", "Synergy")
      * @param {string} agentIcon - FontAwesome icon class (e.g., "fa-robot", "fa-users")
      * @returns {string} HTML string for no-thread message
@@ -90,7 +96,7 @@ window.ThreadCardTemplates = {
             return `
                 <div class="thread-info-wrapper">
                     <div class="no-thread-message clickable" onclick="AgentColumn.showThreadSelector(${agentId})">
-                        <i class="fas fa-inbox"></i> 
+                        <i class="fas fa-inbox"></i>
                         <span>Click to select a thread</span>
                         <i class="fas fa-chevron-down" style="margin-left: auto; font-size: 10px;"></i>
                     </div>
@@ -98,17 +104,11 @@ window.ThreadCardTemplates = {
                 </div>
             `;
         } else if (agentName === 'Prime') {
-            // For Prime: clickable selector dropdown (same as agents but with 'unassigned' identifier)
-            // CRITICAL: No inline onclick - event delegation with stopPropagation handles clicks
+            // FIX (Jul 23, 2026): Prime no longer renders the clickable
+            // "Click to select a thread" dropdown trigger. The bare wrapper is
+            // the drop target; the welcome panel below provides manual entry.
             return `
-                <div class="thread-info-wrapper">
-                    <div class="no-thread-message clickable" id="prime-no-thread" style="cursor: pointer !important;">
-                        <i class="fas fa-inbox"></i>
-                        <span>Click to select a thread</span>
-                        <i class="fas fa-chevron-down" style="margin-left: auto; font-size: 10px;"></i>
-                    </div>
-                    <div class="thread-selector-dropdown" id="thread-selector-prime" style="display: none;"></div>
-                </div>
+                <div class="thread-info-wrapper"></div>
             `;
         } else {
             // For Synergy: static empty state message (Synergy doesn't load individual threads)
@@ -232,14 +232,15 @@ window.ThreadCardTemplates = {
             : 'Double-click to expand/collapse card';
 
         return `
-            <div class="ai-chat-header-info agent-thread-card" 
-                 data-thread-id="${thread.id}" 
+            <div class="ai-chat-header-info agent-thread-card"
+                 data-thread-id="${thread.id}"
                  data-location="${location}"
+                 data-current-location="${currentLocation || location}"
                  draggable="true"
                  ondragstart="ThreadManager.handleDragStart(event)"
                  ondragend="ThreadManager.handleDragEnd(event)"
                  ondblclick="ThreadManager.handleThreadDoubleClick('${thread.id}', '${location}')"
-                 style="cursor: pointer;" 
+                 style="cursor: pointer;"
                  title="${doubleClickTooltip}">
                 
                 <!-- Row 1: Title + Agent Badge + Chevron -->

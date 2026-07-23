@@ -1572,137 +1572,10 @@ const AgentColumn = (function () {
     });
 
     /**
-     * Show Prime thread selector dropdown
-     */
-    async function showPrimeThreadSelector() {
-        const dropdown = document.getElementById('thread-selector-prime');
-        if (!dropdown) {
-            console.warn('Prime dropdown not found');
-            return;
-        }
-
-        // Close any other open dropdowns
-        document.querySelectorAll('.thread-selector-dropdown').forEach(d => {
-            if (d.id !== 'thread-selector-prime') {
-                d.style.display = 'none';
-            }
-        });
-
-        // Toggle dropdown
-        const isVisible = dropdown.style.display === 'block';
-        dropdown.style.display = isVisible ? 'none' : 'block';
-
-        if (!isVisible) {
-            // Ensure threads are loaded first
-            if (typeof ThreadManager !== 'undefined') {
-                if (!ThreadManager.threads || ThreadManager.threads.length === 0) {
-                    console.log('🔄 [AgentColumn] Threads not loaded for Prime, loading now...');
-                    dropdown.innerHTML = '<div class="thread-selector-loading"><i class="fas fa-spinner fa-spin"></i> Loading threads...</div>';
-                    await ThreadManager.loadThreadsForUser();
-                }
-            }
-
-            // Load threads from ThreadManager
-            if (typeof ThreadManager !== 'undefined' && ThreadManager.threads) {
-                const threads = ThreadManager.threads.filter(t => !t.location || t.location === 'prime');
-
-                if (threads.length === 0) {
-                    dropdown.innerHTML = `
-                        <div class="thread-selector-empty">
-                            <i class="fas fa-inbox"></i>
-                            <p>No available threads</p>
-                            <button class="btn-create-thread" onclick="ThreadManager.showNewChatModal('prime'); AgentColumn.hidePrimeThreadSelector();">
-                                <i class="fas fa-plus"></i> Create New Thread
-                            </button>
-                        </div>
-                    `;
-                } else {
-                    const threadItems = threads.map(thread => {
-                        const date = new Date(thread.updated || thread.created);
-                        const timeStr = date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
-                        const dateStr = date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-                        const slug = thread.id.substring(0, 8);
-
-                        return `
-                            <div class="thread-selector-item" onclick="AgentColumn.loadThreadIntoPrime('${thread.id}')">
-                                <div class="thread-item-header">
-                                    <div class="thread-item-content">
-                                        <div class="thread-item-title">
-                                            <span>${thread.title || 'Untitled Thread'}</span>
-                                            <div class="thread-item-agent-badge main" style="background: #238636; cursor: pointer;" ondblclick="event.stopPropagation(); AgentColumn.loadThreadIntoPrime('${thread.id}'); return false;" title="Double-click to load into Prime Chat">
-                                                <i class="fas fa-star"></i>
-                                                <span>Prime</span>
-                                            </div>
-                                        </div>
-                                        <div class="thread-item-meta">
-                                            <span><i class="fas fa-message"></i> ${thread.message_count || 0} messages</span>
-                                            <span><i class="fas fa-calendar"></i> ${dateStr}</span>
-                                            <span><i class="fas fa-clock"></i> ${timeStr}</span>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="thread-item-badges">
-                                    <div class="thread-item-id">
-                                        <i class="fas fa-hashtag"></i>
-                                        <span>${slug}</span>
-                                    </div>
-                                </div>
-                            </div>
-                        `;
-                    }).join('');
-
-                    dropdown.innerHTML = `
-                        <div class="thread-selector-header">
-                            <span>Select a Thread</span>
-                            <button class="btn-close-dropdown" onclick="AgentColumn.hidePrimeThreadSelector()">
-                                <i class="fas fa-times"></i>
-                            </button>
-                        </div>
-                        <div class="thread-selector-list">
-                            ${threadItems}
-                        </div>
-                        <div class="thread-selector-footer">
-                            <button class="btn-create-thread" onclick="ThreadManager.showNewChatModal('prime'); AgentColumn.hidePrimeThreadSelector();">
-                                <i class="fas fa-plus"></i> Create New Thread
-                            </button>
-                        </div>
-                    `;
-                }
-            }
-        }
-
-        // Close dropdown when clicking outside
-        // CRITICAL: setTimeout prevents same click that opened from closing it
-        setTimeout(() => {
-            const closeDropdown = (e) => {
-                if (!e.target.closest('#thread-selector-prime') &&
-                    !e.target.closest('#prime-no-thread')) {
-                    dropdown.style.display = 'none';
-                    document.removeEventListener('click', closeDropdown);
-                    console.log(`🔷 [AgentColumn] Prime dropdown closed (clicked outside)`);
-                }
-            };
-            document.addEventListener('click', closeDropdown);
-        }, 300); // Increased from 200ms to 300ms
-    }
-
-    /**
-     * Hide Prime thread selector dropdown
-     */
-    function hidePrimeThreadSelector() {
-        const dropdown = document.getElementById('thread-selector-prime');
-        if (dropdown) {
-            dropdown.style.display = 'none';
-        }
-    }
-
-    /**
      * Load a thread into Prime
      */
     async function loadThreadIntoPrime(threadId) {
         try {
-            hidePrimeThreadSelector();
-
             // Find the thread object
             if (typeof ThreadManager !== 'undefined' && ThreadManager.threads) {
                 const thread = ThreadManager.threads.find(t => t.id === threadId);
@@ -1716,6 +1589,15 @@ const AgentColumn = (function () {
             console.error(`Error loading thread into Prime:`, error);
         }
     }
+
+    /**
+     * FIX (Jul 23, 2026): Removed `showPrimeThreadSelector` and
+     * `hidePrimeThreadSelector`. The Prime "Click to select a thread"
+     * dropdown trigger is gone from the empty state, so nothing opens the
+     * Prime thread selector anymore. If a future caller needs to invoke the
+     * Prime selector programmatically, reintroduce it with a single
+     * dropdown element and an explicit entry point (e.g. a toolbar button).
+     */
 
     /**
      * Refresh all existing agent columns AND Prime to update no-thread-message with clickable version
@@ -2362,8 +2244,6 @@ const AgentColumn = (function () {
         showThreadSelector,
         hideThreadSelector,
         loadThreadIntoAgent,
-        showPrimeThreadSelector,
-        hidePrimeThreadSelector,
         loadThreadIntoPrime,
         refreshAllAgentThreadInfos,
         renderLoadingState,
@@ -2449,19 +2329,17 @@ if (typeof document !== 'undefined') {
     }, 1000);
 
     // Event delegation for clickable no-thread-message (backup for onclick)
+    // FIX (Jul 23, 2026): Removed the `prime-no-thread` branch — the Prime
+    // clickable dropdown trigger no longer exists, so clicks on Prime's empty
+    // wrapper are no-ops. Agent empty-state clicks still open their selector.
     document.addEventListener('click', (e) => {
         const noThreadMsg = e.target.closest('.no-thread-message.clickable');
         if (noThreadMsg) {
             // CRITICAL: Stop propagation to prevent dropdown from closing immediately
             e.stopPropagation();
 
-            // Check if it's Prime
-            if (noThreadMsg.id === 'prime-no-thread') {
-                AgentColumn.showPrimeThreadSelector();
-                return;
-            }
-
-            // Extract agent ID from parent thread-info div
+            // Extract agent ID from parent thread-info div (Prime is unreachable
+            // here because Prime no longer renders a clickable no-thread-message)
             const threadInfoDiv = noThreadMsg.closest('[id^="thread-info-"]');
             if (threadInfoDiv) {
                 const agentId = parseInt(threadInfoDiv.id.replace('thread-info-', ''));

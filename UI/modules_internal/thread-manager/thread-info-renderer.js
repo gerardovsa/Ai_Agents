@@ -31,11 +31,21 @@
      */
     function renderThreadInfoContainer(location, threadId, includeButtons = true) {
         // If no thread loaded, show empty state
+        // FIX (Jul 23, 2026): Prime (location === 'unassigned') no longer renders
+        // the clickable "No thread loaded" dropdown trigger. Prime's empty state
+        // is just the bare drop-target wrapper so the drag-over highlight is
+        // unambiguous. Agent columns keep their clickable selector so a manual
+        // load via dropdown still works for agent slots.
         if (!threadId) {
+            if (location === 'unassigned') {
+                return `
+                    <div class="thread-info-wrapper"></div>
+                `;
+            }
             return `
                 <div class="thread-info-wrapper">
-                    <div class="no-thread-message clickable" 
-                         id="${location === 'unassigned' ? 'prime-no-thread' : ''}">
+                    <div class="no-thread-message clickable"
+                         onclick="AgentColumn.showThreadSelector(${location.replace('agent-', '')})">
                         <i class="fas fa-comment-slash" style="opacity: 0.5; margin-right: 8px;"></i>
                         <span>No thread loaded</span>
                         <i class="fas fa-chevron-down" style="margin-left: 8px; font-size: 0.9em;"></i>
