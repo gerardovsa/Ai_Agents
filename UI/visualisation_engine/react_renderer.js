@@ -827,6 +827,89 @@ ${identifierHoist}
                     if (this.state && this.state.err) {
                         var msg = (this.state.err && this.state.err.message)
                             ? this.state.err.message : String(this.state.err);
+
+                        // Graceful fallback: detect the known Recharts internal
+                        // bug 't.has is not a function' thrown when the source
+                        // uses <ComposedChart> with multiple YAxes. This is a
+                        // real Recharts bug (verified by greping the deployed
+                        // bundle at offsets 121494 / 122031 / 122831 on
+                        // 2026-07-24) — Recharts' class vn / class On
+                        // internal Map extension dereferences a missing
+                        // _intern slot during domain merging. Show the user a
+                        // yellow hint panel explaining the workaround instead
+                        // of the raw red stack trace.
+                        var isRechartsComposedBug =
+                            (typeof msg === 'string')
+                            && (msg.indexOf('t.has is not a function') !== -1)
+                            && (typeof rawSource === 'string')
+                            && (rawSource.indexOf('ComposedChart') !== -1);
+
+                        if (isRechartsComposedBug) {
+                            return window.React.createElement('div', {
+                                style: {
+                                    color: '#92400e',
+                                    background: '#fffbeb',
+                                    padding: '20px',
+                                    borderRadius: '10px',
+                                    border: '1px solid #fde68a',
+                                    margin: '16px',
+                                    fontFamily: 'system-ui,-apple-system,Segoe UI,sans-serif',
+                                    lineHeight: '1.5'
+                                }
+                            }, [
+                                window.React.createElement('div', {
+                                    key: 'h',
+                                    style: { fontSize: '15px', fontWeight: 600, marginBottom: '12px' }
+                                }, '⚠ ComposedChart with multiple YAxes hit a Recharts internal bug'),
+                                window.React.createElement('div', {
+                                    key: 'p1',
+                                    style: { fontSize: '13px', marginBottom: '10px' }
+                                }, 'The chart pattern using <ComposedChart> with dual YAxes plus Area/Bar/Line children triggered t.has is not a function inside Recharts domain merging (verified on Recharts.js:2:121494).'),
+                                window.React.createElement('div', {
+                                    key: 'p2',
+                                    style: { fontSize: '13px', marginBottom: '6px', fontWeight: 600 }
+                                }, 'Workaround'),
+                                window.React.createElement('div', {
+                                    key: 'p3',
+                                    style: { fontSize: '13px', marginBottom: '6px' }
+                                }, 'Ask for the dashboard as separate single-axis charts, e.g.'),
+                                window.React.createElement('pre', {
+                                    key: 'p4',
+                                    style: {
+                                        background: '#fef3c7',
+                                        padding: '10px',
+                                        borderRadius: '6px',
+                                        fontSize: '12px',
+                                        fontFamily: 'ui-monospace,monospace',
+                                        margin: '8px 0 12px 0',
+                                        whiteSpace: 'pre-wrap'
+                                    }
+                                }, '"Build 3 side-by-side charts: revenue as a LineChart (single YAxis, left), users as a BarChart (single YAxis, middle), conversion as a LineChart (single YAxis, right)."'),
+                                window.React.createElement('div', {
+                                    key: 'p5',
+                                    style: { fontSize: '12px', color: '#78350f' }
+                                }, 'Single-axis LineChart / BarChart / PieChart already render correctly here. Only ComposedChart-with-multiple-YAxes is blocked.'),
+                                window.React.createElement('details', {
+                                    key: 'p6',
+                                    style: { fontSize: '11px', marginTop: '10px', color: '#78350f' }
+                                }, [
+                                    window.React.createElement('summary', { key: 's' }, 'Show raw error'),
+                                    window.React.createElement('pre', {
+                                        key: 'e',
+                                        style: {
+                                            background: '#fff7ed',
+                                            padding: '8px',
+                                            borderRadius: '4px',
+                                            marginTop: '6px',
+                                            whiteSpace: 'pre-wrap',
+                                            fontFamily: 'ui-monospace,monospace',
+                                            fontSize: '11px'
+                                        }
+                                    }, msg)
+                                ])
+                            ]);
+                        }
+
                         return window.React.createElement('pre', {
                             style: {
                                 color: '#b91c1c',
