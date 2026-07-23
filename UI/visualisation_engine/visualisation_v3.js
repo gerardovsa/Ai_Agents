@@ -5497,6 +5497,19 @@ svg{max-width:100%;height:auto;display:block;margin:0 auto;}</style>
 
     // NHANCED: 6.1.3 Comprehensive HTML transformation like ALTERNATIVE file
     // 6.1.2 - FIXED: Universal Mermaid content transformation (no conflicts)
+    //
+    // Mermaid 10.6.1 asymmetric-shape syntax reference (EW, Jul 23 2026):
+    //   A[/Lean right/]                -> lean_right
+    //   A[\Lean left\]                 -> lean_left
+    //   A{Odd Shape}                   -> rect_left_inv_arrow
+    //   A[/Trapezoid one\]             -> trapezoid
+    //   A[\Trapezoid alt/]             -> inv_trapezoid
+    // `A>Asymmetric Right"]` is INVALID in 10.6.1 — `>` is not a
+    // recognised shape delimiter. Do not auto-correct malformed input
+    // because the intended shape cannot be inferred safely; let Mermaid
+    // surface its normal syntax error. See VISUALIZATION_MERMAID_BOLD_
+    // SHAPE_SIZING_FIX_JULY23_2026.md at the repo root for the full
+    // investigation and verified DOM-shape selectors.
     transformMermaidContentToHTML(content) {
         if (!content || typeof content !== 'string') return content;
 
@@ -5555,13 +5568,24 @@ svg{max-width:100%;height:auto;display:block;margin:0 auto;}</style>
                     .replace(/^\s*[-]\s+(?!>)(.+)$/gm, '<span class="mermaid-bullet">• $1</span>')
                     .replace(/^\s*\d+\.\s+(.+)$/gm, '<span class="mermaid-bullet">1. $1</span>');
 
-                // TEP 3: Process formatting (bold, italic, code)
-                if (!processedLabel.includes('<strong') && !processedLabel.includes('<b>')) {
-                    processedLabel = processedLabel.replace(/\*\*(.*?)\*\*/g, '<strong class="mermaid-bold">$1</strong>');
+                // TEP 3: Process bold. EW (Jul 23 2026): preserve native
+                // <b>/<strong> tags as-is when the user already wrote them.
+                // The browser HTML parser closes <b> and <strong> correctly
+                // before any following <br/>, so injecting a "mermaid-bold"
+                // class adds no styling value (the foreignObject CSS at
+                // business-ai-platform-v2.html L10878-L10888 already
+                // targets bare `strong` and `b`) and may desynchronise
+                // Mermaid's downstream label-tokenisation pass — bold
+                // appeared to "leak" past a <br/> into the next line in
+                // the Jul 23 investigation. Only markdown **bold** is
+                // converted, to plain <strong>; native tags stay native.
+                if (!/<(?:strong|b)\b/i.test(processedLabel)) {
+                    processedLabel = processedLabel.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
                 }
-                processedLabel = processedLabel
-                    .replace(/<(strong|b)(?![^>]*class\s*=\s*["\'][^"\']*mermaid[^"\']*["\'])[^>]*>(.*?)<\/(strong|b)>/gi,
-                        '<strong class="mermaid-bold">$2</strong>');
+                // Track whether the label now contains any bold markup so
+                // the <br> normalisation below can emit plain <br/> tags
+                // (no class) when bold is present.
+                const hasBoldMarkup = /<(?:strong|b)\b/i.test(processedLabel);
 
                 if (!processedLabel.includes('<em') && !processedLabel.includes('<i>')) {
                     processedLabel = processedLabel.replace(/(?<!\*)\*([^*]+?)\*(?!\*)/g, '<em class="mermaid-italic">$1</em>');
@@ -5598,12 +5622,23 @@ svg{max-width:100%;height:auto;display:block;margin:0 auto;}</style>
                 // well-formed marker that Mermaid reliably renders. The
                 // .mermaid-br class also makes the bullet-spacing CSS
                 // rule at L121 work uniformly.
-                processedLabel = processedLabel.replace(/<br\s*\/?\s*>/gi, '<br class="mermaid-br"/>');
+                //
+                // EW (Jul 23 2026): when bold markup is present in the
+                // label, emit plain <br/> tags instead of class-bearing
+                // ones. Mixing class-bearing <br> with bold markup caused
+                // Mermaid's label-tokenisation pass to drop or merge
+                // lines after bold spans (the user reported
+                // `text<b>bold</b><br/>plain` losing the line break and
+                // showing "plain" as bold). Plain <br/> avoids the
+                // class injection while still letting Mermaid's HTML
+                // parser handle the line break.
+                processedLabel = processedLabel.replace(/<br\s*\/?\s*>/gi,
+                    hasBoldMarkup ? '<br/>' : '<br class="mermaid-br"/>');
 
                 // Convert line breaks - normalize first, then convert once
                 processedLabel = processedLabel
                     .replace(/\\n/g, '\n')  // Normalize escaped newlines
-                    .replace(/\n/g, '<br class="mermaid-br"/>');  // Convert ONCE
+                    .replace(/\n/g, hasBoldMarkup ? '<br/>' : '<br class="mermaid-br"/>');  // Convert ONCE
 
                 // Restore bullet lines
                 processedLabel = processedLabel.replace(/__BULLET_(\d+)__/g, (match, index) => {

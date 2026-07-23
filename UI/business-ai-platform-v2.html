@@ -10849,6 +10849,66 @@
             overflow-y: visible;
         }
 
+        /* EW (Jul 23 2026): Mermaid flowchart node-shape sizing for shapes
+           that use curved or angled geometry (stadium, cylinder, hexagon).
+           Plain rectangles and rounded rectangles keep their natural
+           sizing.
+
+           DOM selectors (verified against Mermaid 10.6.1):
+             Stadium:    <rect class="label-container" rx="..." ry="...">
+             Cylinder:   <path class="label-container" d="...">
+             Hexagon:    <polygon class="label-container" points="...">
+
+           Stadium is identified by rx+ry attributes on the rect. Plain
+           rounded rectangles also use rx/ry; the 560x300 size is within
+           rounded rectangle's natural range too, so no regression is
+           expected. If a future test shows a regression on plain
+           rounded rectangles, narrow the selector with
+           g.node > rect.label-container[rx][ry]:not(.basic).
+
+           Both width AND height are forced (not just min-*) to prevent
+           the SVG from collapsing to a smaller size via
+           preserveAspectRatio scaling — same principle as the pie fix
+           at L10820-L10850 above. !important overrides the inline
+           style.width = '100%' set by renderMermaidDirectly at
+           visualisation_v3.js:5196.
+
+           Cross-reference:
+             VISUALIZATION_MERMAID_BOLD_SHAPE_SIZING_FIX_JULY23_2026.md */
+        .mermaid svg:has(rect.label-container[rx][ry]),
+        .mermaid svg:has(path.label-container),
+        .mermaid svg:has(polygon.label-container) {
+            max-width: none !important;
+            max-height: none !important;
+        }
+        .mermaid svg:has(rect.label-container[rx][ry]) {
+            padding: 8px 8px 16px 8px;
+            width: 560px !important;
+            height: 300px !important;
+            min-width: 560px !important;
+            min-height: 300px !important;
+        }
+        .mermaid svg:has(path.label-container) {
+            padding: 8px 8px 24px 8px;       /* cylinder needs more bottom room */
+            width: 600px !important;
+            height: 360px !important;
+            min-width: 600px !important;
+            min-height: 360px !important;
+        }
+        .mermaid svg:has(polygon.label-container) {
+            padding: 8px 8px 16px 8px;
+            width: 580px !important;
+            height: 320px !important;
+            min-width: 580px !important;
+            min-height: 320px !important;
+        }
+        .viz-content-area > .mermaid:has(svg:has(rect.label-container[rx][ry])),
+        .viz-content-area > .mermaid:has(svg:has(path.label-container)),
+        .viz-content-area > .mermaid:has(svg:has(polygon.label-container)) {
+            overflow-x: auto;
+            overflow-y: visible;
+        }
+
         /* EW (Jul 22 2026): Always-white SVG canvas for all Mermaid diagrams
            rendered inside a viz-container. The predecessor canvas-bg fix
            (VISUALIZATION_CANVAS_BG_AND_FULLSCREEN_FIX_JULY22_2026.md) set

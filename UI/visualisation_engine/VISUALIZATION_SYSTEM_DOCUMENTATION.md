@@ -1,7 +1,7 @@
 # Visualization System Architecture Documentation
 
 **Date:** November 15, 2025
-**Last updated:** July 22, 2026 (Pie overlap (explicit dims) + Bold-in-chat (foreignObject override) + `<br/>` normalisation in `processNodeLabel`; Always-white SVG canvas in chat + Git graph commit width; Rect tightening for pie/git graph/gantt; Pie title/legend overlap fix; Fullscreen single-fit + ResizeObserver; Plotly axis/grid colour-strengthening)
+**Last updated:** July 23, 2026 (Pie overlap (explicit dims) + Bold-in-chat (foreignObject override) + `<br/>` normalisation in `processNodeLabel`; Always-white SVG canvas in chat + Git graph commit width; Rect tightening for pie/git graph/gantt; Pie title/legend overlap fix; Fullscreen single-fit + ResizeObserver; Plotly axis/grid colour-strengthening; Native bold/`<br/>` label preservation + Stadium/Cylinder/Hexagon SVG sizing + Mermaid asymmetric-shape syntax guidance)
 **Purpose:** Complete guide to understanding how streamingTwoRule.js and visualisation_v3.js work together
 **Use Case:** Integrating visualization rendering into Tiptap document containers
 
@@ -292,6 +292,54 @@ Three follow-on issues surfaced once the always-white canvas + git-graph commit 
 Each fix is isolated to a single file: pie sizing is one CSS rule, the foreignObject override is a new CSS block, the `<br>` normalisation is one regex in `processNodeLabel`. No backend change, no migration, no API change, no env-var change. The fixes also interoperate safely: the always-white canvas (previous fix) + the explicit pie dimensions (fix 1) + the foreignObject colour override (fix 2) compose into a deterministic "white canvas, dark text everywhere" presentation regardless of UI theme, and the `<br>` normalisation (fix 3) affects only line-break rendering — it doesn't change colours, dimensions, or layout.
 
 Full historical record: see `VISUALIZATION_FOLLOWON_PIE_BOLD_BR_FIX_JULY22_2026.md` at the repo root.
+
+### Native bold/`<br/>` label preservation + Node-shape sizing + Asymmetric-syntax doc (added July 23, 2026)
+
+Three follow-on issues surfaced during continued testing of the always-white canvas + foreignObject bold-colour fix. Each is documented in `VISUALIZATION_MERMAID_BOLD_SHAPE_SIZING_FIX_JULY23_2026.md` at the repo root with full investigation detail. Brief summaries:
+
+1. **Bold appeared to "leak" past a `<br/>` into the next line in rectangle-shaped nodes.** Working: `<b>bold</b><br/>plain` (bold correctly resets). Failing: `text<b>bold</b><br/>plain` (bold persists into "plain"); `line1<br/><b>bold</b>line2<br/>line3` (lines 1 and 2 merge). Investigation found no Mermaid-side bold state machine — Mermaid 10.6.1 inserts labels via `.html(...)` into a `<foreignObject><div>` and lets the browser's HTML parser tokenise them. The regression was caused by our own Jul-22 normalisation: `processNodeLabel` rewrote every `<strong>` to `<strong class="mermaid-bold">` and every `<br>` to `<br class="mermaid-br"/>`. The class-bearing tags interacted badly with Mermaid's downstream label-tokenisation pass, which walks the innerHTML after `.html(...)` and may treat `<br>` as a line separator while tolerating bold markup as plain text content. Fix in `processNodeLabel` (visualisation_v3.js:5571-5588) preserves native `<b>`/`<strong>` tags as-is, and emits plain `<br/>` (no class) when bold markup is present:
+
+   ```js
+   // TEP 3: Process bold. EW (Jul 23 2026): preserve native
+   // <b>/<strong> tags as-is when the user already wrote them.
+   if (!/<(?:strong|b)\b/i.test(processedLabel)) {
+       processedLabel = processedLabel.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+   }
+   const hasBoldMarkup = /<(?:strong|b)\b/i.test(processedLabel);
+   ```
+
+   ```js
+   // TEP 4: <br> normalisation — conditional on hasBoldMarkup
+   processedLabel = processedLabel.replace(/<br\s*\/?\s*>/gi,
+       hasBoldMarkup ? '<br/>' : '<br class="mermaid-br"/>');
+   processedLabel = processedLabel
+       .replace(/\\n/g, '\n')
+       .replace(/\n/g, hasBoldMarkup ? '<br/>' : '<br class="mermaid-br"/>');
+   ```
+
+   Non-bold labels keep the `.mermaid-br` class so the bullet-spacing cleanup at TEP 5 still works. The foreignObject colour override (previous subsection) targets bare `strong` AND `.mermaid-bold` so both code paths remain styled correctly.
+
+2. **Stadium, cylinder, and hexagon shapes had CRITICAL text clipping/overflow in multi-line labels.** Plain rectangles and rounded rectangles had only minor cosmetic padding issues. The root cause is that Mermaid 10.6.1's default `<svg>` sizing uses natural-aspect-ratio scaling via `preserveAspectRatio="xMidYMid meet"`, which can produce containers too small for curved or angled shapes that have wider/taller label areas than rectangles. Fix in `business-ai-platform-v2.html` (inserted after the pie rule at L10850, before the always-white canvas rule) uses per-shape `:has()` selectors to force explicit width AND height — same principle as the pie fix at L10820-L10850:
+
+   ```css
+   .mermaid svg:has(rect.label-container[rx][ry]),     /* stadium (and rounded rect) */
+   .mermaid svg:has(path.label-container),              /* cylinder */
+   .mermaid svg:has(polygon.label-container) {           /* hexagon */
+       max-width: none !important;
+       max-height: none !important;
+   }
+   .mermaid svg:has(rect.label-container[rx][ry]) { width: 560px; height: 300px; ... }
+   .mermaid svg:has(path.label-container) { width: 600px; height: 360px; ... }
+   .mermaid svg:has(polygon.label-container) { width: 580px; height: 320px; ... }
+   ```
+
+   DOM selectors verified against Mermaid 10.6.1's emitted SVG. `!important` overrides the inline `style.width = '100%'` set by `renderMermaidDirectly` at visualisation_v3.js:5196. Plain rounded rectangles share the `rect[rx][ry]` selector with stadium; the 560×300 size is within rounded rectangle's natural range so no regression is expected. If mixed-shape SVGs (one stadium + one cylinder in the same diagram) produce source-order surprises, consolidate all three shapes to a single shared dimension.
+
+3. **`A>Asymmetric Right"]` does not render.** Root cause: `>` is NOT a recognised Mermaid 10.6.1 shape delimiter. The closest equivalents are `A[/Asymmetric Right/]` (lean_right), `A[\Asymmetric Left\]` (lean_left), `A{Odd Shape}` (rect_left_inv_arrow), `A[/Trapezoid one\]` (trapezoid), and `A[\Trapezoid alt/]` (inv_trapezoid). Auto-correcting malformed input would be unsafe because we cannot infer the user's intended shape, so the fix is documentation only. A source-level reference comment was added above `transformMermaidContentToHTML(content)` at `visualisation_v3.js:5500` so future contributors do not re-discover this gap or attempt a runtime repair.
+
+Each fix is isolated to a single file or comment block. The bold fix is one TEP step in `processNodeLabel`; the shape sizing is one CSS block; the asymmetric doc is a comment. No backend change, no migration, no API change, no env-var change. The fixes interoperate safely with the prior Jul-22 work: the always-white canvas + foreignObject colour override still apply uniformly across all shape types, the pie sizing rule is unaffected (its selectors are shape-specific), and the bullet-spacing cleanup at TEP 5 still works because non-bold labels still get the `.mermaid-br` class.
+
+Full historical record: see `VISUALIZATION_MERMAID_BOLD_SHAPE_SIZING_FIX_JULY23_2026.md` at the repo root.
 
 ### Fullscreen single-fit + ResizeObserver (added July 22, 2026)
 
