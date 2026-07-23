@@ -1,0 +1,685 @@
+{
+    "platform": "inhouse_query_library",
+    "platform_description": "InHouse Print Query Library - 60 pre-built optimized SQL queries for business intelligence (virtual tool bridge for semantic search discovery)",
+    "bridge_type": "query_library_virtual_tools",
+    "execution_method": "Use inhouse_get_query_library_catalog() to browse, then inhouse_execute_query() to execute",
+    "note": "These are NOT actual executable tools - they are query metadata exposed for semantic search discovery. When AI finds a query here, it should call inhouse_get_query_library_catalog(category) to get the actual query, then execute it via inhouse_execute_query().",
+    "tools": [
+        {
+            "name": "query_sales_trend_by_month",
+            "short_description": "Monthly sales trends - revenue, order count, avg order value over time (1-36 months)",
+            "description": "Sales & Revenue: Monthly sales trends showing revenue, order count, and average order value over time. Identifies sales trends, seasonality, growth patterns.",
+            "category": "Sales & Revenue",
+            "query_id": "sales_trend_by_month",
+            "parameters": [
+                "months"
+            ],
+            "is_virtual_tool": true
+        },
+        {
+            "name": "query_monthly_revenue_trend",
+            "short_description": "Monthly revenue with order counts, job tickets, avg values (validated, 24 months default)",
+            "description": "Sales & Revenue: Monthly revenue trend with order counts and average values. Business performance tracking, seasonality analysis.",
+            "category": "Sales & Revenue",
+            "query_id": "monthly_revenue_trend",
+            "parameters": [
+                "months"
+            ],
+            "validated": true,
+            "is_virtual_tool": true
+        },
+        {
+            "name": "query_revenue_by_product_type",
+            "short_description": "Revenue breakdown by product - business cards, flyers, books (product performance)",
+            "description": "Sales & Revenue: Revenue breakdown by product type (business cards, flyers, books, etc.). Product performance analysis, identifying top products.",
+            "category": "Sales & Revenue",
+            "query_id": "revenue_by_product_type",
+            "parameters": [
+                "months",
+                "min_revenue"
+            ],
+            "is_virtual_tool": true
+        },
+        {
+            "name": "query_revenue_by_customer",
+            "short_description": "Top customers by revenue - order count, avg order value (customer profitability)",
+            "description": "Sales & Revenue: Top customers by revenue with order count and average order value. Customer profitability, account management, retention focus.",
+            "category": "Sales & Revenue",
+            "query_id": "revenue_by_customer",
+            "parameters": [
+                "months",
+                "top_n"
+            ],
+            "is_virtual_tool": true
+        },
+        {
+            "name": "query_customer_lifetime_value",
+            "short_description": "Customer lifetime value - total spend, order history, high-value identification",
+            "description": "Customer Analytics: Customer lifetime value analysis with total spend and order history. High-value customer identification, account prioritization.",
+            "category": "Customer Analytics",
+            "query_id": "customer_lifetime_value",
+            "parameters": [
+                "min_orders",
+                "top_n"
+            ],
+            "is_virtual_tool": true
+        },
+        {
+            "name": "query_customer_retention_cohort",
+            "short_description": "Customer cohort retention rates by first order month (loyalty patterns)",
+            "description": "Customer Analytics: Customer cohort analysis showing retention rates by first order month. Understanding customer loyalty, retention patterns.",
+            "category": "Customer Analytics",
+            "query_id": "customer_retention_cohort",
+            "parameters": [
+                "cohort_months"
+            ],
+            "is_virtual_tool": true
+        },
+        {
+            "name": "query_top_customers_detailed",
+            "short_description": "Detailed top customer analysis - products, frequency, last order (account management)",
+            "description": "Customer Analytics: Detailed analysis of top customers with product preferences and order patterns. Account management, personalized service.",
+            "category": "Customer Analytics",
+            "query_id": "top_customers_detailed",
+            "parameters": [
+                "months",
+                "top_n"
+            ],
+            "is_virtual_tool": true
+        },
+        {
+            "name": "query_customer_order_frequency",
+            "short_description": "Customer segmentation by order frequency - one-time, occasional, regular, frequent",
+            "description": "Customer Analytics: Customer segmentation by order frequency (one-time, occasional, regular, frequent). Customer segmentation, marketing strategy.",
+            "category": "Customer Analytics",
+            "query_id": "customer_order_frequency",
+            "parameters": [
+                "months"
+            ],
+            "is_virtual_tool": true
+        },
+        {
+            "name": "query_customer_product_preferences",
+            "short_description": "Customer product preferences - what each customer orders most (validated, personalized quotes)",
+            "description": "Customer Analytics: What products each customer orders most frequently. Personalized quoting, cross-sell recommendations.",
+            "category": "Customer Analytics",
+            "query_id": "customer_product_preferences",
+            "parameters": [
+                "customer_name",
+                "months"
+            ],
+            "validated": true,
+            "is_virtual_tool": true
+        },
+        {
+            "name": "query_customer_reorder_prediction",
+            "short_description": "Predict customers due for reorder - proactive outreach, retention campaigns (validated)",
+            "description": "Customer Behavior: Predict customers due for reorder based on historical patterns. Proactive customer outreach, retention campaigns, sales follow-up.",
+            "category": "Customer Analytics",
+            "query_id": "customer_reorder_prediction",
+            "parameters": [
+                "days_overdue"
+            ],
+            "validated": true,
+            "is_virtual_tool": true
+        },
+        {
+            "name": "query_customer_reorder_prediction_business",
+            "short_description": "Commercial business customers overdue for reorders - printing, signage, marketing (validated)",
+            "description": "Customer Analytics: Identifies commercial business customers (printing, signage, marketing) overdue for reorders. Weekly sales outreach, monthly campaigns.",
+            "category": "Customer Analytics",
+            "query_id": "customer_reorder_prediction_business",
+            "parameters": [
+                "top_n",
+                "min_orders",
+                "min_days_since",
+                "max_years_back"
+            ],
+            "validated": true,
+            "is_virtual_tool": true
+        },
+        {
+            "name": "query_customer_reorder_prediction_publishing",
+            "short_description": "Book publishing customers overdue for reprints - authors, publishers (validated)",
+            "description": "Customer Analytics: Identifies book publishing customers (authors, publishers) overdue for book reprints. Quarterly reprint campaigns, seasonal pre-campaigns.",
+            "category": "Customer Analytics",
+            "query_id": "customer_reorder_prediction_publishing",
+            "parameters": [
+                "top_n",
+                "min_orders",
+                "min_days_since",
+                "max_years_back"
+            ],
+            "validated": true,
+            "is_virtual_tool": true
+        },
+        {
+            "name": "query_product_turnaround_benchmarks",
+            "short_description": "Product turnaround time benchmarks by type - set realistic deadlines (validated)",
+            "description": "Product Analysis: Average turnaround times by product type for realistic deadline setting. Deadline estimation, capacity planning.",
+            "category": "Product Analysis",
+            "query_id": "product_turnaround_benchmarks",
+            "parameters": [
+                "months"
+            ],
+            "validated": true,
+            "is_virtual_tool": true
+        },
+        {
+            "name": "query_product_popularity_trends",
+            "short_description": "Product popularity trends over time - demand forecasting, inventory planning",
+            "description": "Product Analysis: Product popularity trends showing order counts and revenue over time. Demand forecasting, inventory planning.",
+            "category": "Product Analysis",
+            "query_id": "product_popularity_trends",
+            "parameters": [
+                "months"
+            ],
+            "is_virtual_tool": true
+        },
+        {
+            "name": "query_finishing_options_popularity",
+            "short_description": "Finishing options popularity - cellophane, binding, folding analysis",
+            "description": "Product Analysis: Analysis of finishing options (cellophane, binding, folding) popularity. Service offering optimization, pricing finishing options.",
+            "category": "Product Analysis",
+            "query_id": "finishing_options_popularity",
+            "parameters": [
+                "months"
+            ],
+            "is_virtual_tool": true
+        },
+        {
+            "name": "query_binding_finishing_analysis",
+            "short_description": "Binding types & finishing options with pricing impact (validated)",
+            "description": "Product Analysis: Analysis of binding types and finishing options with pricing impact. Finishing option recommendations, pricing strategy.",
+            "category": "Product Analysis",
+            "query_id": "binding_finishing_analysis",
+            "parameters": [
+                "months"
+            ],
+            "validated": true,
+            "is_virtual_tool": true
+        },
+        {
+            "name": "query_product_specification_analysis",
+            "short_description": "Common product specifications - paper, size, binding combinations",
+            "description": "Product Analysis: Analysis of common product specifications by product type. Calculator validation, default value optimization.",
+            "category": "Product Analysis",
+            "query_id": "product_specification_analysis",
+            "parameters": [
+                "product_type",
+                "months"
+            ],
+            "is_virtual_tool": true
+        },
+        {
+            "name": "query_popular_product_specs",
+            "short_description": "Most popular product specs - paper GSM, sizes, binding by product type (validated)",
+            "description": "Operational Optimization: Most popular product specifications by product type. Calculator default optimization, quote accuracy.",
+            "category": "Product Analysis",
+            "query_id": "popular_product_specs",
+            "parameters": [
+                "product_type",
+                "months"
+            ],
+            "validated": true,
+            "is_virtual_tool": true
+        },
+        {
+            "name": "query_daily_order_volume",
+            "short_description": "Daily order volume patterns by day of week - staffing optimization",
+            "description": "Operational Metrics: Daily order volume with day-of-week patterns. Staffing optimization, workload planning.",
+            "category": "Operational Metrics",
+            "query_id": "daily_order_volume",
+            "parameters": [
+                "weeks"
+            ],
+            "is_virtual_tool": true
+        },
+        {
+            "name": "query_day_of_week_patterns",
+            "short_description": "Order intake patterns by day of week - 6 months (validated, staffing optimization)",
+            "description": "Operational Metrics: Order intake patterns by day of week (last 6 months). Staffing optimization, capacity planning.",
+            "category": "Operational Metrics",
+            "query_id": "day_of_week_patterns",
+            "parameters": [
+                "weeks"
+            ],
+            "validated": true,
+            "is_virtual_tool": true
+        },
+        {
+            "name": "query_order_turnaround_analysis",
+            "short_description": "Order turnaround time analysis - on-time vs late, avg days",
+            "description": "Operational Metrics: Order turnaround time analysis showing average completion times. Process improvement, SLA monitoring.",
+            "category": "Operational Metrics",
+            "query_id": "order_turnaround_analysis",
+            "parameters": [
+                "months"
+            ],
+            "is_virtual_tool": true
+        },
+        {
+            "name": "query_order_volume_by_type",
+            "short_description": "Order volume breakdown by product type - business mix analysis",
+            "description": "Operational Metrics: Order volume breakdown by product type. Business mix analysis, capacity planning.",
+            "category": "Operational Metrics",
+            "query_id": "order_volume_by_type",
+            "parameters": [
+                "months"
+            ],
+            "is_virtual_tool": true
+        },
+        {
+            "name": "query_current_production_status",
+            "short_description": "Real-time production status - active jobs by stage, WIP counts (validated)",
+            "description": "Operational Flow: Real-time production status showing active jobs by stage with WIP counts. Real-time production monitoring, bottleneck detection.",
+            "category": "Operational Flow",
+            "query_id": "current_production_status",
+            "parameters": [
+                "days_back"
+            ],
+            "validated": true,
+            "is_virtual_tool": true
+        },
+        {
+            "name": "query_production_priority_queue",
+            "short_description": "Production priority queue - urgent jobs, due dates, rush orders",
+            "description": "Operational Flow: Production priority queue showing urgent jobs and rush orders. Daily production planning, task prioritization.",
+            "category": "Operational Flow",
+            "query_id": "production_priority_queue",
+            "parameters": [
+                "days_ahead"
+            ],
+            "is_virtual_tool": true
+        },
+        {
+            "name": "query_bottleneck_detection",
+            "short_description": "Production bottleneck identification - WIP limit violations (validated)",
+            "description": "Operational Flow: Identifies production bottlenecks with WIP limit violations. Capacity planning, workflow optimization.",
+            "category": "Operational Flow",
+            "query_id": "bottleneck_detection",
+            "parameters": [
+                "wip_threshold"
+            ],
+            "validated": true,
+            "is_virtual_tool": true
+        },
+        {
+            "name": "query_stage_capacity_analysis",
+            "short_description": "Production stage capacity analysis - throughput, utilization rates",
+            "description": "Operational Flow: Production stage capacity analysis showing throughput and utilization. Capacity planning, resource allocation.",
+            "category": "Operational Flow",
+            "query_id": "stage_capacity_analysis",
+            "parameters": [
+                "days"
+            ],
+            "is_virtual_tool": true
+        },
+        {
+            "name": "query_daily_capacity_forecast",
+            "short_description": "7-day capacity forecast - jobs due vs historical capacity (validated)",
+            "description": "Operational Flow: 7-day capacity forecast showing jobs due vs historical capacity. Weekly planning, intake management.",
+            "category": "Operational Flow",
+            "query_id": "daily_capacity_forecast",
+            "parameters": [
+                "days_ahead"
+            ],
+            "validated": true,
+            "is_virtual_tool": true
+        },
+        {
+            "name": "query_jobs_in_each_stage",
+            "short_description": "Jobs currently in each production stage - status overview",
+            "description": "Operational Flow: Current jobs in each production stage with counts and details. Production visibility, stage monitoring.",
+            "category": "Operational Flow",
+            "query_id": "jobs_in_each_stage",
+            "parameters": [
+                "days_back"
+            ],
+            "is_virtual_tool": true
+        },
+        {
+            "name": "query_wip_by_stage_trend",
+            "short_description": "WIP trend by production stage over time - capacity monitoring",
+            "description": "Operational Flow: Work-in-progress trends by production stage over time. Capacity monitoring, bottleneck prediction.",
+            "category": "Operational Flow",
+            "query_id": "wip_by_stage_trend",
+            "parameters": [
+                "weeks"
+            ],
+            "is_virtual_tool": true
+        },
+        {
+            "name": "query_daily_production_plan",
+            "short_description": "Daily production plan - digital workflow prioritized by due date, urgency (validated)",
+            "description": "Production Planning: Daily production planning report for digital workflow - prioritizes jobs by due date, urgency, and stage. Daily kickoff, task prioritization.",
+            "category": "Production Planning",
+            "query_id": "daily_production_plan",
+            "parameters": [
+                "days_ahead",
+                "min_ticket_id",
+                "stages"
+            ],
+            "validated": true,
+            "is_virtual_tool": true
+        },
+        {
+            "name": "query_stage_capacity_projection",
+            "short_description": "Production stage capacity projection - forecast workload by stage",
+            "description": "Production Planning: Production stage capacity projection showing forecasted workload. Capacity planning, hiring decisions.",
+            "category": "Production Planning",
+            "query_id": "stage_capacity_projection",
+            "parameters": [
+                "days_ahead"
+            ],
+            "is_virtual_tool": true
+        },
+        {
+            "name": "query_weekly_production_forecast",
+            "short_description": "Weekly production forecast - job types, volumes, capacity needs",
+            "description": "Production Planning: Weekly production forecast showing job types and volumes. Weekly planning, resource allocation.",
+            "category": "Production Planning",
+            "query_id": "weekly_production_forecast",
+            "parameters": [
+                "weeks_ahead"
+            ],
+            "is_virtual_tool": true
+        },
+        {
+            "name": "query_bottleneck_detection_advanced",
+            "short_description": "Advanced bottleneck detection - overload, delays, resource constraints (validated)",
+            "description": "Production Planning: Identifies production bottlenecks - stages with overload, delays, or resource constraints. Provides actionable recommendations.",
+            "category": "Production Planning",
+            "query_id": "bottleneck_detection_advanced",
+            "parameters": [
+                "min_ticket_id",
+                "capacity_threshold",
+                "stages"
+            ],
+            "validated": true,
+            "is_virtual_tool": true
+        },
+        {
+            "name": "query_on_time_delivery_rate",
+            "short_description": "On-time delivery rate by product type - SLA performance tracking",
+            "description": "Performance & SLA: On-time delivery rate analysis by product type. SLA monitoring, process improvement.",
+            "category": "Performance & SLA",
+            "query_id": "on_time_delivery_rate",
+            "parameters": [
+                "months"
+            ],
+            "is_virtual_tool": true
+        },
+        {
+            "name": "query_customer_deadline_realism",
+            "short_description": "Customer deadline realism - realistic vs unrealistic lead times (validated)",
+            "description": "Performance & SLA: Customer deadline analysis showing who sets realistic vs unrealistic lead times. Customer education, expectation management.",
+            "category": "Performance & SLA",
+            "query_id": "customer_deadline_realism",
+            "parameters": [
+                "months",
+                "min_orders"
+            ],
+            "validated": true,
+            "is_virtual_tool": true
+        },
+        {
+            "name": "query_finishing_upsell_analysis",
+            "short_description": "Finishing options adoption rates & price impact by product type (validated)",
+            "description": "Upsell & Revenue: Finishing options adoption rates and price impact by product type. Upsell recommendations, pricing optimization.",
+            "category": "Upsell & Revenue",
+            "query_id": "finishing_upsell_analysis",
+            "parameters": [
+                "months"
+            ],
+            "validated": true,
+            "is_virtual_tool": true
+        },
+        {
+            "name": "query_rush_pricing_analysis",
+            "short_description": "Rush order pricing analysis - rush fee adoption, revenue impact",
+            "description": "Upsell & Revenue: Rush order pricing analysis showing rush fee adoption and revenue impact. Pricing strategy, rush order management.",
+            "category": "Upsell & Revenue",
+            "query_id": "rush_pricing_analysis",
+            "parameters": [
+                "months"
+            ],
+            "is_virtual_tool": true
+        },
+        {
+            "name": "query_fold_types_analysis",
+            "short_description": "Fold type analysis - adoption rates, popular configurations (validated)",
+            "description": "Upsell & Revenue: Fold type analysis showing adoption rates and popular configurations. Service offering, calculator validation.",
+            "category": "Upsell & Revenue",
+            "query_id": "fold_types_analysis",
+            "parameters": [
+                "months"
+            ],
+            "validated": true,
+            "is_virtual_tool": true
+        },
+        {
+            "name": "query_boolean_flags_summary",
+            "short_description": "Finishing option flags summary - cello, fold, stitch adoption (validated)",
+            "description": "Upsell & Revenue: Comprehensive summary of all finishing option flags (cello, fold, stitch, etc.). Understanding finishing options usage, upsell opportunities.",
+            "category": "Upsell & Revenue",
+            "query_id": "boolean_flags_summary",
+            "parameters": [
+                "months"
+            ],
+            "validated": true,
+            "is_virtual_tool": true
+        },
+        {
+            "name": "query_department_workload_balance",
+            "short_description": "Workload distribution across departments - Digital, Signage, Pre-Production (validated)",
+            "description": "Operational Optimization: Workload distribution across departments (Digital, Signage, Pre-Production). Resource allocation, hiring decisions.",
+            "category": "Operational Optimization",
+            "query_id": "department_workload_balance",
+            "parameters": [
+                "days"
+            ],
+            "validated": true,
+            "is_virtual_tool": true
+        },
+        {
+            "name": "query_product_bundle_opportunities",
+            "short_description": "Product bundle analysis - frequently ordered together (validated)",
+            "description": "Customer Behavior: Product bundle analysis showing products frequently ordered together. Bundle pricing, package deals.",
+            "category": "Customer Behavior",
+            "query_id": "product_bundle_opportunities",
+            "parameters": [
+                "months",
+                "min_support"
+            ],
+            "validated": true,
+            "is_virtual_tool": true
+        },
+        {
+            "name": "query_paper_gsm_by_product",
+            "short_description": "Paper GSM analysis by product type - common weights (validated)",
+            "description": "Specification Intelligence: Paper GSM analysis by product type showing common weights. Calculator validation, default optimization.",
+            "category": "Specification Intelligence",
+            "query_id": "paper_gsm_by_product",
+            "parameters": [
+                "product_type",
+                "months"
+            ],
+            "validated": true,
+            "is_virtual_tool": true
+        },
+        {
+            "name": "query_binding_by_page_count",
+            "short_description": "Binding type recommendations based on page count analysis (validated)",
+            "description": "Specification Intelligence: Binding type recommendations based on page count analysis. Binding recommendations, calculator validation.",
+            "category": "Specification Intelligence",
+            "query_id": "binding_by_page_count",
+            "parameters": [
+                "months"
+            ],
+            "validated": true,
+            "is_virtual_tool": true
+        },
+        {
+            "name": "query_profit_margin_analysis",
+            "short_description": "Profit margin analysis by product type - margin optimization",
+            "description": "Financial Analysis: Profit margin analysis by product type. Pricing optimization, margin improvement.",
+            "category": "Financial Analysis",
+            "query_id": "profit_margin_analysis",
+            "parameters": [
+                "months"
+            ],
+            "is_virtual_tool": true
+        },
+        {
+            "name": "query_quote_conversion_rate",
+            "short_description": "Quote conversion rate analysis - quote to order conversion tracking",
+            "description": "Financial Analysis: Quote conversion rate analysis showing quote to order conversion. Sales effectiveness, pricing strategy.",
+            "category": "Financial Analysis",
+            "query_id": "quote_conversion_rate",
+            "parameters": [
+                "months"
+            ],
+            "is_virtual_tool": true
+        },
+        {
+            "name": "query_apg_workflow_status",
+            "short_description": "APG workflow status by stage - American Printing Group production monitoring",
+            "description": "Business Divisions: APG (American Printing Group) workflow status by stage. APG production monitoring, bottleneck identification.",
+            "category": "Business Divisions",
+            "query_id": "apg_workflow_status",
+            "parameters": [
+                "days"
+            ],
+            "is_virtual_tool": true
+        },
+        {
+            "name": "query_publishing_pipeline_status",
+            "short_description": "Book publishing pipeline status - manuscripts to production",
+            "description": "Business Divisions: Book publishing pipeline status from manuscripts to production. Publishing workflow monitoring.",
+            "category": "Business Divisions",
+            "query_id": "publishing_pipeline_status",
+            "parameters": [
+                "days"
+            ],
+            "is_virtual_tool": true
+        },
+        {
+            "name": "query_perfect_bound_book_analysis",
+            "short_description": "Perfect bound book analysis - page counts, sizes, pricing trends",
+            "description": "Business Divisions: Perfect bound book analysis showing page counts, sizes, pricing trends. Book production optimization.",
+            "category": "Business Divisions",
+            "query_id": "perfect_bound_book_analysis",
+            "parameters": [
+                "months"
+            ],
+            "is_virtual_tool": true
+        },
+        {
+            "name": "query_year_over_year_comparison",
+            "short_description": "Year-over-year comparison - revenue, orders, growth trends",
+            "description": "Comparative Analysis: Year-over-year comparison of revenue, orders, and growth trends. Business performance tracking.",
+            "category": "Comparative Analysis",
+            "query_id": "year_over_year_comparison",
+            "parameters": [
+                "year1",
+                "year2"
+            ],
+            "is_virtual_tool": true
+        },
+        {
+            "name": "query_cross_sell_analysis",
+            "short_description": "Cross-sell analysis - products ordered together, recommendations",
+            "description": "Comparative Analysis: Cross-sell analysis showing products ordered together. Recommendation engine, upsell opportunities.",
+            "category": "Comparative Analysis",
+            "query_id": "cross_sell_analysis",
+            "parameters": [
+                "months"
+            ],
+            "is_virtual_tool": true
+        },
+        {
+            "name": "query_reorder_opportunities_by_product",
+            "short_description": "Reorder opportunities by product - customers due for reorders by product type",
+            "description": "Sales & Revenue Optimization: Reorder opportunities by product showing customers due for reorders by product type. Targeted sales campaigns.",
+            "category": "Sales & Revenue Optimization",
+            "query_id": "reorder_opportunities_by_product",
+            "parameters": [
+                "product_type",
+                "days_overdue"
+            ],
+            "is_virtual_tool": true
+        },
+        {
+            "name": "query_conversation_data_export",
+            "short_description": "Export conversation session data for AI analysis - messages, queries, results (validated)",
+            "description": "AI Export & Analysis: Export complete conversation session data for AI analysis - includes all messages, queries, results, metadata. Session review, external analysis.",
+            "category": "AI Export & Analysis",
+            "query_id": "conversation_data_export",
+            "parameters": [
+                "session_id",
+                "include_sql",
+                "include_results"
+            ],
+            "validated": true,
+            "is_virtual_tool": true
+        },
+        {
+            "name": "query_dashboard_snapshot_export",
+            "short_description": "Export current dashboard state with active queries & results (validated)",
+            "description": "AI Export & Analysis: Export current dashboard state with all active queries and results for AI analysis. Dashboard state capture, AI-powered insights.",
+            "category": "AI Export & Analysis",
+            "query_id": "dashboard_snapshot_export",
+            "parameters": [
+                "section_filter",
+                "format"
+            ],
+            "validated": true,
+            "is_virtual_tool": true
+        },
+        {
+            "name": "query_timeline_forecasting_by_stage",
+            "short_description": "Timeline forecasting by production stage - estimated completion dates",
+            "description": "Capacity & Timeline Planning: Timeline forecasting by production stage showing estimated completion dates. Project planning, customer commitments.",
+            "category": "Capacity & Timeline Planning",
+            "query_id": "timeline_forecasting_by_stage",
+            "parameters": [
+                "job_id"
+            ],
+            "is_virtual_tool": true
+        },
+        {
+            "name": "query_capacity_utilization_trend",
+            "short_description": "Capacity utilization trend over time - efficiency monitoring",
+            "description": "Capacity & Timeline Planning: Capacity utilization trend over time showing efficiency metrics. Capacity monitoring, efficiency improvement.",
+            "category": "Capacity & Timeline Planning",
+            "query_id": "capacity_utilization_trend",
+            "parameters": [
+                "weeks"
+            ],
+            "is_virtual_tool": true
+        },
+        {
+            "name": "query_timeline_accuracy_analysis",
+            "short_description": "Timeline estimation accuracy - actual vs estimated completion times",
+            "description": "Capacity & Timeline Planning: Timeline estimation accuracy showing actual vs estimated completion times. Estimation improvement, customer trust.",
+            "category": "Capacity & Timeline Planning",
+            "query_id": "timeline_accuracy_analysis",
+            "parameters": [
+                "months"
+            ],
+            "is_virtual_tool": true
+        },
+        {
+            "name": "query_future_capacity_requirements",
+            "short_description": "Future capacity requirements forecast - workload predictions",
+            "description": "Capacity & Timeline Planning: Future capacity requirements forecast showing workload predictions. Resource planning, hiring decisions.",
+            "category": "Capacity & Timeline Planning",
+            "query_id": "future_capacity_requirements",
+            "parameters": [
+                "days_ahead"
+            ],
+            "is_virtual_tool": true
+        }
+    ]
+}

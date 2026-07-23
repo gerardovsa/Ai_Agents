@@ -1,0 +1,418 @@
+{
+    "platform": "inhouse_query",
+    "description": "InHouse Print Database Query Tools - Direct SQL queries on Fred production database (SQL Server). Fred is the business platform name for the in-house print production system. Query orders, job tickets, clients, materials, and production data. Connection: SQL Server via inhouse_execute_sql() wrapper. Note: For guided queries with schema validation, use inhouse_print platform tools instead (inhouse_execute_sql, inhouse_get_query_library_catalog).",
+    "tools": [
+        {
+            "name": "inhouse_execute_query",
+            "short_description": "Execute custom SQL on Fred print shop database - orders, jobs, clients, production",
+            "description": "Execute custom SQL query on Fred InHouse print shop database (SQL Server). Query orders, jobs, clients, and production data.",
+            "parameters": {
+                "query": {
+                    "type": "string",
+                    "description": "SQL query to execute on Fred database. MUST use SQL Server syntax: TOP N (not LIMIT), ? placeholders (not %s), DATEADD() for dates, GETDATE() for current date. Case-insensitive LIKE search by default.",
+                    "required": true
+                },
+                "params": {
+                    "type": "array",
+                    "description": "List of values for ? placeholders in query (in order). Example: ['CJ King', '2025-01-01'] for WHERE ClientName = ? AND OrderDate > ?",
+                    "items": {
+                        "type": "any"
+                    },
+                    "required": false
+                },
+                "max_rows": {
+                    "type": "integer",
+                    "description": "Maximum rows to return (default 100, max 1000). Prevents token overflow.",
+                    "default": 100,
+                    "required": false
+                },
+                "read_only": {
+                    "type": "boolean",
+                    "description": "If true, only SELECT queries allowed. Set false for INSERT/UPDATE/DELETE (requires explicit permission).",
+                    "default": true,
+                    "required": false
+                }
+            },
+            "returns": {
+                "success": {
+                    "type": "boolean"
+                },
+                "rows": {
+                    "type": "array",
+                    "description": "Array of row objects (column_name: value)"
+                },
+                "row_count": {
+                    "type": "integer"
+                },
+                "columns": {
+                    "type": "array",
+                    "description": "Column names"
+                },
+                "query_type": {
+                    "type": "string",
+                    "enum": [
+                        "SELECT",
+                        "INSERT",
+                        "UPDATE",
+                        "DELETE"
+                    ]
+                },
+                "truncated": {
+                    "type": "boolean",
+                    "description": "True if results limited by max_rows"
+                },
+                "error": {
+                    "type": "string",
+                    "description": "Error message if query failed"
+                },
+                "hint": {
+                    "type": "string",
+                    "description": "Helpful suggestion if error occurred"
+                }
+            },
+            "examples": [
+                {
+                    "name": "Find orders by client name",
+                    "code": "fred_execute_query(\n  query='SELECT TOP 20 * FROM Orders WHERE ClientName LIKE ? ORDER BY OrderDate DESC',\n  params=['%CJ King%']\n)",
+                    "description": "Search for orders from client with 'CJ King' in name. Returns most recent 20 orders."
+                },
+                {
+                    "name": "Get job tickets for specific order",
+                    "code": "fred_execute_query(\n  query='''\n    SELECT jt.*, ps.[Desc] as PaperSize, bt.BindTypeDesc\n    FROM JobTickets jt\n    LEFT JOIN PaperSize ps ON jt.PaperSizeID = ps.SizeID\n    LEFT JOIN BindType bt ON jt.BindTypeID = bt.BindID\n    WHERE jt.OrderID = ?\n  ''',\n  params=[56230]\n)",
+                    "description": "Get all job tickets for order 56230 with paper size and binding type"
+                },
+                {
+                    "name": "Find urgent unpaid orders",
+                    "code": "fred_execute_query(\n  query='''\n    SELECT TOP 50\n      o.OrderID, o.ClientName, o.OrderDate, o.DateRequired,\n      COUNT(jt.TicketID) as JobCount,\n      SUM(jt.Cost) as TotalCost\n    FROM Orders o\n    LEFT JOIN JobTickets jt ON o.OrderID = jt.OrderID\n    WHERE o.Urgent = 1 AND o.Invoiced = 0\n    GROUP BY o.OrderID, o.ClientName, o.OrderDate, o.DateRequired\n    ORDER BY o.DateRequired\n  '''\n)",
+                    "description": "Get all urgent orders not yet invoiced, with job count and total cost"
+                },
+                {
+                    "name": "Search clients by email domain",
+                    "code": "fred_execute_query(\n  query='SELECT ClientID, ClientName, Email FROM Clients WHERE Email LIKE ?',\n  params=['%@cjking.com.au']\n)",
+                    "description": "Find all clients with email addresses from cjking.com.au domain"
+                },
+                {
+                    "name": "Get recent orders by date range",
+                    "code": "fred_execute_query(\n  query='''\n    SELECT TOP 100 *\n    FROM Orders\n    WHERE OrderDate >= ? AND OrderDate < ?\n    ORDER BY OrderDate DESC\n  ''',\n  params=['2025-11-01', '2025-12-01']\n)",
+                    "description": "Get all orders from November 2025"
+                },
+                {
+                    "name": "Find jobs with specific finishing options",
+                    "code": "fred_execute_query(\n  query='''\n    SELECT jt.TicketID, jt.ShortJobDesc, o.ClientName\n    FROM JobTickets jt\n    INNER JOIN Orders o ON jt.OrderID = o.OrderID\n    WHERE jt.FrontCelloGloss = 1\n    ORDER BY jt.TicketID DESC\n  ''',\n  max_rows=50\n)",
+                    "description": "Find jobs with front gloss cello lamination"
+                }
+            ],
+            "database_schema": {
+                "platform": "SQL Server (on-premises/hosted)",
+                "main_tables": {
+                    "Orders": {
+                        "description": "Customer orders and invoices",
+                        "primary_key": "OrderID (int)",
+                        "key_columns": [
+                            "OrderID - Primary key",
+                            "ClientName - Customer name (nvarchar)",
+                            "OrderDate - Order creation date (datetime)",
+                            "DateRequired - Due date (datetime)",
+                            "Urgent - Boolean flag (bit: 1/0)",
+                            "Invoiced - Boolean flag (bit: 1/0)",
+                            "InvoiceNumber - Invoice number (nvarchar)",
+                            "InvoiceDate - Date invoiced (datetime)",
+                            "ClientOrderNum - Client's order number (nvarchar)",
+                            "OrderNotes - Order notes (nvarchar MAX)"
+                        ],
+                        "common_mistakes": [
+                            "❌ Status column does NOT exist (use Invoiced instead)",
+                            "❌ TotalCost column does NOT exist (sum JobTickets.Cost instead)",
+                            "✅ Use Urgent for urgency flag (boolean 1/0)",
+                            "✅ Use Invoiced to check if paid (boolean 1/0)"
+                        ],
+                        "common_queries": [
+                            "SELECT TOP 20 * FROM Orders WHERE ClientName LIKE '%keyword%' ORDER BY OrderDate DESC",
+                            "SELECT * FROM Orders WHERE Urgent = 1 AND Invoiced = 0",
+                            "SELECT * FROM Orders WHERE DateRequired >= GETDATE() AND DateRequired <= DATEADD(day, 7, GETDATE())"
+                        ]
+                    },
+                    "JobTickets": {
+                        "description": "Individual print jobs with specifications",
+                        "primary_key": "TicketID (int)",
+                        "foreign_keys": [
+                            "OrderID → Orders.OrderID",
+                            "PaperSizeID → PaperSize.SizeID",
+                            "BindTypeID → BindType.BindID",
+                            "JobTypeID → JobType.JobTypeID",
+                            "StageID → JobStages.StageID"
+                        ],
+                        "key_columns": [
+                            "TicketID - Primary key",
+                            "OrderID - Links to Orders table",
+                            "QTY - Quantity to produce (int)",
+                            "Cost - Job cost per ticket (decimal)",
+                            "ShortJobDesc - Brief description (nvarchar)",
+                            "TicketNotes - Detailed specs (nvarchar MAX)",
+                            "ColourStatus - Status code (float: 1.0, 2.0, 3.0)",
+                            "StageID - Production stage (int)",
+                            "JobTypeID - Type of job (int)",
+                            "PaperSizeID - Paper size (int)",
+                            "BindTypeID - Binding type (int, nullable)"
+                        ],
+                        "finishing_options": [
+                            "CelloYes - Has cellophane (bit)",
+                            "FrontCelloGloss - Front gloss lamination (bit)",
+                            "FrontCelloMatt - Front matte lamination (bit)",
+                            "BackCelloGloss - Back gloss lamination (bit)",
+                            "BackCelloMatt - Back matte lamination (bit)",
+                            "FoldYes - Has folding (bit)",
+                            "StitchYes - Has stitching (bit)",
+                            "DieCutYes - Has die cutting (bit)",
+                            "DrillYes - Has drilling (bit)",
+                            "RingBind - Ring binding (bit)",
+                            "PerfectBind - Perfect binding (bit)"
+                        ],
+                        "common_mistakes": [
+                            "❌ PrintType column does NOT exist (use finishing flags instead)",
+                            "❌ ColourStatus is NUMERIC (1.0, 2.0, 3.0), not text ('Red', 'Yellow', 'Green')",
+                            "✅ Cost is per-ticket, not order total",
+                            "✅ TicketNotes contains full specs and customer delivery info"
+                        ],
+                        "common_queries": [
+                            "SELECT * FROM JobTickets WHERE OrderID = ?",
+                            "SELECT jt.*, ps.[Desc] as PaperSize FROM JobTickets jt LEFT JOIN PaperSize ps ON jt.PaperSizeID = ps.SizeID WHERE jt.TicketID = ?",
+                            "SELECT * FROM JobTickets WHERE ShortJobDesc LIKE '%business cards%' OR TicketNotes LIKE '%business cards%'"
+                        ]
+                    },
+                    "Clients": {
+                        "description": "Customer contact information",
+                        "primary_key": "ClientID (int)",
+                        "key_columns": [
+                            "ClientID - Primary key",
+                            "ClientName - Customer name (nvarchar)",
+                            "Email - Email address (nvarchar)",
+                            "MYOB_ID - MYOB UUID (uniqueidentifier)"
+                        ],
+                        "common_queries": [
+                            "SELECT * FROM Clients WHERE ClientName LIKE '%keyword%'",
+                            "SELECT * FROM Clients WHERE Email LIKE '%@domain.com'",
+                            "SELECT * FROM Clients WHERE ClientID = ?"
+                        ]
+                    },
+                    "PaperSize": {
+                        "description": "Paper sizes lookup table",
+                        "primary_key": "SizeID (int)",
+                        "key_columns": [
+                            "SizeID - Primary key",
+                            "[Desc] - Paper size description (nvarchar)"
+                        ],
+                        "note": "Use square brackets for [Desc] (reserved word)"
+                    },
+                    "BindType": {
+                        "description": "Binding types lookup table",
+                        "primary_key": "BindID (int)",
+                        "key_columns": [
+                            "BindID - Primary key",
+                            "BindTypeDesc - Binding description (nvarchar)"
+                        ],
+                        "note": "Column is BindTypeDesc, NOT [Desc]"
+                    },
+                    "JobStages": {
+                        "description": "Production stages",
+                        "primary_key": "StageID (int)",
+                        "key_columns": [
+                            "StageID - Primary key",
+                            "[Desc] - Stage description (nvarchar)"
+                        ],
+                        "common_values": [
+                            "1 - Quote",
+                            "2 - Design",
+                            "3 - Proofing",
+                            "10 - Completed"
+                        ]
+                    },
+                    "JobType": {
+                        "description": "Job type categories",
+                        "primary_key": "JobTypeID (int)",
+                        "key_columns": [
+                            "JobTypeID - Primary key",
+                            "[Desc] - Job type description (nvarchar)"
+                        ]
+                    }
+                },
+                "sql_server_syntax": {
+                    "limit": "Use TOP N (not LIMIT): SELECT TOP 20 * FROM Orders",
+                    "placeholders": "Use ? (not %s or $1): WHERE ClientName = ? AND OrderDate > ?",
+                    "concat": "Use + or CONCAT(): ClientName + ' - ' + InvoiceNumber",
+                    "dates": "Use DATEADD, GETDATE, CONVERT: WHERE OrderDate > DATEADD(month, -3, GETDATE())",
+                    "like": "Case-insensitive by default: WHERE ClientName LIKE '%printing%'",
+                    "boolean": "Use bit (1/0): WHERE Invoiced = 1 AND Urgent = 0",
+                    "reserved_words": "Use square brackets: SELECT [Desc] FROM PaperSize"
+                },
+                "common_joins": [
+                    "Orders → JobTickets: ON o.OrderID = jt.OrderID",
+                    "JobTickets → PaperSize: ON jt.PaperSizeID = ps.SizeID",
+                    "JobTickets → BindType: ON jt.BindTypeID = bt.BindID (LEFT JOIN - nullable)",
+                    "JobTickets → JobType: ON jt.JobTypeID = jtype.JobTypeID",
+                    "JobTickets → JobStages: ON jt.StageID = js.StageID"
+                ]
+            },
+            "tips": [
+                "✅ Use TOP N for limiting results (not LIMIT)",
+                "✅ Use ? placeholders (SQL Server syntax, not PostgreSQL %s)",
+                "✅ Orders.Invoiced is boolean (1/0), not 'Status' text field",
+                "✅ JobTickets.Cost is per-ticket, not order total",
+                "✅ ColourStatus is numeric (1.0, 2.0, 3.0), not 'Red'/'Yellow'/'Green'",
+                "✅ Use LIKE '%keyword%' for partial text search (case-insensitive)",
+                "✅ Use DATEADD() for date math: DATEADD(month, -3, GETDATE())",
+                "✅ Use square brackets for reserved words: [Desc]",
+                "✅ TicketNotes contains full job specs, ShortJobDesc is brief summary",
+                "✅ LEFT JOIN BindType (nullable), INNER JOIN Orders (required)"
+            ]
+        },
+        {
+            "name": "inhouse_search_database",
+            "short_description": "Search Fred database for text/keywords - cross-table search when location unknown",
+            "description": "Search Fred InHouse database for text/keywords across multiple tables. Use when you don't know which table contains the data.",
+            "parameters": {
+                "search_text": {
+                    "type": "string",
+                    "description": "Text to search for. Supports % wildcards (e.g., '%business cards%'). Case-insensitive. Automatically adds wildcards if not present.",
+                    "required": true
+                },
+                "tables": {
+                    "type": "array",
+                    "description": "Specific tables to search. Default: ['Orders', 'JobTickets', 'Clients']. Available: Orders, JobTickets, Clients, PaperSize, BindType, JobStages, JobType",
+                    "items": {
+                        "type": "string"
+                    },
+                    "required": false
+                },
+                "limit_per_table": {
+                    "type": "integer",
+                    "description": "Maximum results per table (default 10)",
+                    "default": 10,
+                    "required": false
+                }
+            },
+            "returns": {
+                "success": {
+                    "type": "boolean"
+                },
+                "results": {
+                    "type": "object",
+                    "description": "Results grouped by table name {table_name: [rows]}"
+                },
+                "total_matches": {
+                    "type": "integer"
+                },
+                "searched_tables": {
+                    "type": "array",
+                    "description": "Tables that were searched"
+                },
+                "message": {
+                    "type": "string"
+                }
+            },
+            "examples": [
+                {
+                    "name": "Find customer by name",
+                    "code": "inhouse_search_database(search_text='CJ King Printing')",
+                    "description": "Search for 'CJ King Printing' across Orders, JobTickets, and Clients tables"
+                },
+                {
+                    "name": "Search for invoice number",
+                    "code": "inhouse_search_database(search_text='INV-2025-0123')",
+                    "description": "Find invoice INV-2025-0123 in Orders table (InvoiceNumber column)"
+                },
+                {
+                    "name": "Find jobs about business cards",
+                    "code": "inhouse_search_database(\n  search_text='%business cards%',\n  tables=['JobTickets']\n)",
+                    "description": "Search for 'business cards' in JobTickets ShortJobDesc and TicketNotes"
+                },
+                {
+                    "name": "Search by email domain",
+                    "code": "inhouse_search_database(\n  search_text='%@cjking.com.au',\n  tables=['Clients']\n)",
+                    "description": "Find all clients with email addresses from cjking.com.au domain"
+                }
+            ],
+            "searchable_tables": {
+                "Orders": {
+                    "columns": [
+                        "ClientName",
+                        "ClientOrderNum",
+                        "OrderNotes",
+                        "InvoiceNumber"
+                    ],
+                    "description": "Search customer name, order numbers, notes, invoice numbers"
+                },
+                "JobTickets": {
+                    "columns": [
+                        "ShortJobDesc",
+                        "TicketNotes"
+                    ],
+                    "description": "Search job descriptions and production notes"
+                },
+                "Clients": {
+                    "columns": [
+                        "ClientName",
+                        "Email"
+                    ],
+                    "description": "Search customer names and email addresses"
+                },
+                "PaperSize": {
+                    "columns": [
+                        "[Desc]"
+                    ],
+                    "description": "Search paper size descriptions"
+                },
+                "BindType": {
+                    "columns": [
+                        "BindTypeDesc"
+                    ],
+                    "description": "Search binding type descriptions"
+                },
+                "JobStages": {
+                    "columns": [
+                        "[Desc]"
+                    ],
+                    "description": "Search production stage names"
+                },
+                "JobType": {
+                    "columns": [
+                        "[Desc]"
+                    ],
+                    "description": "Search job type descriptions"
+                }
+            },
+            "tips": [
+                "✅ Use wildcards % for partial matches: '%business cards%'",
+                "✅ Searches are case-insensitive by default in SQL Server",
+                "✅ Narrow search by specifying tables=['Orders', 'JobTickets']",
+                "✅ Increase limit_per_table for more results (default 10)",
+                "✅ Use for exploratory searches when table location unknown",
+                "✅ Results grouped by table for easy scanning",
+                "✅ Check Clients table for email/contact searches"
+            ]
+        }
+    ],
+    "database_context": {
+        "name": "Fred InHouse Print Shop Database",
+        "platform": "SQL Server (on-premises/hosted)",
+        "purpose": "Production print shop management - orders, jobs, customers, materials",
+        "connection": "Via inhouse_execute_sql() wrapper tool",
+        "key_features": [
+            "Orders: Customer orders and invoicing",
+            "JobTickets: Individual print jobs with full specifications",
+            "Clients: Customer contact information",
+            "Materials: Paper sizes, types, GSM, binding types",
+            "Production: Job stages, types, shipping methods"
+        ],
+        "important_notes": [
+            "⚠️ Orders.Status column does NOT exist - use Invoiced (boolean)",
+            "⚠️ Orders.TotalCost column does NOT exist - sum JobTickets.Cost",
+            "⚠️ JobTickets.ColourStatus is NUMERIC (1.0, 2.0, 3.0), not text",
+            "⚠️ JobTickets.PrintType column does NOT exist - use finishing flags",
+            "✅ Cost is per-ticket in JobTickets, not order total",
+            "✅ TicketNotes contains full specs, ShortJobDesc is brief",
+            "✅ Urgent flag is at Order level (boolean 1/0)",
+            "✅ Lookup tables use [Desc] or BindTypeDesc for names"
+        ]
+    }
+}

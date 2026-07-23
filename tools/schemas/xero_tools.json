@@ -1,0 +1,660 @@
+{
+  "platform": "xero",
+  "description": "Xero Accounting API - Invoices, contacts, accounts, payments, bank transactions",
+  "tools": [
+    {
+      "name": "xero_platform_guide",
+      "short_description": "Get comprehensive guidance on using Xero tools with best practices and workflow examples",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Read X from **[Resource Name]** (ID: `[id]` | URL: [url])'\n(3) Use EXACT [id] provided - NEVER substitute with different ID\n(4) If tool fails (404/403), say 'Failed to read [resource] ID: [id]' and explain error\n(5) NEVER make up data if read fails - acknowledge the failure clearly\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\n⚠️ CALL THIS FIRST! Get comprehensive guidance on using Xero tools effectively. Returns tool recommendations, best practices, warnings about large datasets, and workflow examples. Essential reading before using any other Xero tools.",
+      "platform": "xero",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "task_description": {
+            "type": "string",
+            "description": "What you want to do (e.g., 'get recent invoices', 'find customer', 'accounts payable report'). Optional - if omitted, returns general guide."
+          }
+        },
+        "required": []
+      },
+      "returns": {
+        "type": "object",
+        "description": "Comprehensive guide including: tool recommendations for your task, best practices, warnings about data volume, workflow steps, and common pitfalls to avoid"
+      }
+    },
+    {
+      "name": "xero_get_invoices",
+      "short_description": "Get Xero invoices with filters by status, contact, or invoice number (use date range for large datasets)",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Read X from **[Resource Name]** (ID: `[id]` | URL: [url])'\n(3) Use EXACT [id] provided - NEVER substitute with different ID\n(4) If tool fails (404/403), say 'Failed to read [resource] ID: [id]' and explain error\n(5) NEVER make up data if read fails - acknowledge the failure clearly\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\n⚠️ WARNING: Can return 50,000+ invoices (100MB+ data). RECOMMENDED: Use xero_get_data_metadata FIRST to check volume, then use xero_get_invoices_by_date_range with specific dates. This tool returns ALL invoices matching filters - use status filter to reduce volume (e.g., status='AUTHORISED' for unpaid only).",
+      "platform": "xero",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "business_id": {
+            "type": "integer",
+            "description": "Business ID (1=InHouse Print, 2=Publishing, 3=Signs)",
+            "default": 1
+          },
+          "status": {
+            "type": "string",
+            "description": "Invoice status filter (DRAFT, SUBMITTED, AUTHORISED, PAID)"
+          },
+          "contact_name": {
+            "type": "string",
+            "description": "Filter by contact name (optional)"
+          },
+          "invoice_number": {
+            "type": "string",
+            "description": "Specific invoice number (optional)"
+          }
+        },
+        "required": [
+          "business_id"
+        ]
+      },
+      "returns": {
+        "type": "object",
+        "description": "List of invoices with details"
+      }
+    },
+    {
+      "name": "xero_get_invoice_by_id",
+      "short_description": "Get specific Xero invoice details by invoice GUID including number, date, total, and status",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Read X from **[Resource Name]** (ID: `[id]` | URL: [url])'\n(3) Use EXACT [id] provided - NEVER substitute with different ID\n(4) If tool fails (404/403), say 'Failed to read [resource] ID: [id]' and explain error\n(5) NEVER make up data if read fails - acknowledge the failure clearly\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nGet a specific invoice by Xero invoice ID",
+      "platform": "xero",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "business_id": {
+            "type": "integer",
+            "description": "Business ID (1=InHouse Print, 2=Publishing, 3=Signs)"
+          },
+          "invoice_id": {
+            "type": "string",
+            "description": "Xero invoice GUID"
+          }
+        },
+        "required": [
+          "business_id",
+          "invoice_id"
+        ]
+      },
+      "returns": {
+        "type": "object",
+        "description": "Invoice details including number, date, total, status"
+      }
+    },
+    {
+      "name": "xero_get_contacts",
+      "short_description": "Get Xero contacts with optional search by name (use date range for large datasets, 7000+ contacts)",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Read X from **[Resource Name]** (ID: `[id]` | URL: [url])'\n(3) Use EXACT [id] provided - NEVER substitute with different ID\n(4) If tool fails (404/403), say 'Failed to read [resource] ID: [id]' and explain error\n(5) NEVER make up data if read fails - acknowledge the failure clearly\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\n⚠️ WARNING: Can return 7,000+ contacts (3.5MB+ data). RECOMMENDED: Use xero_get_data_metadata FIRST to check volume, then use xero_get_contacts_by_date_range for recent contacts, OR use search parameter to filter by name (e.g., search='Smith' finds 'John Smith', 'Smith Corp').",
+      "platform": "xero",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "business_id": {
+            "type": "integer",
+            "description": "Business ID (1=InHouse Print, 2=Publishing, 3=Signs)",
+            "default": 1
+          },
+          "search": {
+            "type": "string",
+            "description": "Search by contact name (optional)"
+          },
+          "limit": {
+            "type": "integer",
+            "description": "Maximum number of contacts to return (default: 50)",
+            "default": 50
+          }
+        },
+        "required": [
+          "business_id"
+        ]
+      },
+      "returns": {
+        "type": "object",
+        "description": "List of contacts with details including contact_id, name, email, phone, customer/supplier status"
+      },
+      "example": {
+        "request": {
+          "business_id": 1,
+          "search": "CJ King",
+          "limit": 10
+        },
+        "response": {
+          "success": true,
+          "business_id": 1,
+          "business_name": "InHouse Print",
+          "contact_count": 1,
+          "contacts": [
+            {
+              "contact_id": "996dfeab-0754-4d5c-881b-00740d6d12a2",
+              "name": "CJ King Printing",
+              "email": "info@cjking.com",
+              "phone": "555-0123",
+              "is_customer": true,
+              "is_supplier": false
+            }
+          ]
+        }
+      },
+      "workflow_context": {
+        "typical_usage": "First step in any customer-related workflow - find the contact to get their contact_id",
+        "common_workflows": [
+          "Step 1 of 5: Quote Creation + Email workflow - Find customer before creating quote",
+          "Step 1 of 4: Contact + Quotes workflow - Find customer then get all their quotes",
+          "Step 1 of 5: Customer Research workflow - Find customer then get invoices, quotes, payments"
+        ],
+        "key_returned_fields": [
+          "contact_id - Required for xero_create_quote, xero_list_quotes, xero_get_invoices",
+          "name - Customer name for email personalization and quote titles",
+          "email - Email address for sending quotes via outlook_send_email"
+        ],
+        "search_tips": [
+          "Use search parameter for faster results: search='ABC Company'",
+          "Search is case-insensitive and matches partial names",
+          "Without search, returns all contacts (can be 7,000+ records)",
+          "Use limit parameter to control result size (default: 50, max: 100)"
+        ],
+        "next_steps": [
+          "For quote creation: xero_create_quote(contact_id=<from_this_result>)",
+          "For detailed contact info: xero_get_contact_by_id(contact_id=<from_this_result>)",
+          "For customer quotes: xero_list_quotes(contact_id=<from_this_result>)",
+          "For customer invoices: xero_get_invoices(contact_name=<from_this_result>)"
+        ]
+      }
+    },
+    {
+      "name": "xero_get_contact_by_id",
+      "short_description": "Get specific Xero contact details by contact GUID including name, email, and phone",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Read X from **[Resource Name]** (ID: `[id]` | URL: [url])'\n(3) Use EXACT [id] provided - NEVER substitute with different ID\n(4) If tool fails (404/403), say 'Failed to read [resource] ID: [id]' and explain error\n(5) NEVER make up data if read fails - acknowledge the failure clearly\n\nExample response:\nRead contact details from **Xero Contacts API**\n- Contact ID: `996dfeab-0754-4d5c-881b-00740d6d12a2`\n- Contact: CJ King Printing\n- Data: [full contact details with addresses, phones, contact persons]\n\nGet detailed information for a specific contact by ContactID. Returns complete contact profile including addresses, phone numbers, contact persons, and account details. Use this BEFORE getting quotes to understand the full customer relationship.",
+      "platform": "xero",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "business_id": {
+            "type": "integer",
+            "description": "Business ID (1=InHouse Print, 2=Publishing, 3=Signs)",
+            "default": 1
+          },
+          "contact_id": {
+            "type": "string",
+            "description": "Xero ContactID (GUID format) - get from xero_get_contacts first"
+          }
+        },
+        "required": [
+          "business_id",
+          "contact_id"
+        ]
+      },
+      "returns": {
+        "type": "object",
+        "description": "Detailed contact information including: contact details (name, email, phones, addresses), contact status and type (customer/supplier), account numbers and tax details, contact persons, and related data tools suggestions"
+      },
+      "example": {
+        "request": {
+          "business_id": 1,
+          "contact_id": "996dfeab-0754-4d5c-881b-00740d6d12a2"
+        },
+        "response": {
+          "success": true,
+          "business_id": 1,
+          "business_name": "InHouse Print",
+          "contact": {
+            "contact_id": "996dfeab-0754-4d5c-881b-00740d6d12a2",
+            "contact_number": "C001",
+            "name": "CJ King Printing",
+            "email": "info@cjking.com",
+            "is_customer": true,
+            "is_supplier": false,
+            "status": "ACTIVE",
+            "addresses": [
+              {
+                "type": "STREET",
+                "line1": "123 Main St",
+                "city": "Sydney",
+                "region": "NSW",
+                "postal_code": "2000",
+                "country": "Australia"
+              }
+            ],
+            "phones": [
+              {
+                "type": "DEFAULT",
+                "number": "555-0123",
+                "area_code": "02",
+                "country_code": "+61"
+              }
+            ],
+            "contact_persons": [
+              {
+                "first_name": "John",
+                "last_name": "Doe",
+                "email": "john@cjking.com",
+                "include_in_emails": true
+              }
+            ],
+            "tax_number": "ABN 12345678901",
+            "default_currency": "AUD"
+          },
+          "related_data_tools": {
+            "get_invoices": "Use xero_get_invoices with contact_name parameter",
+            "get_quotes": "Use xero_list_quotes (from xero_quotes.py) with contact_id parameter",
+            "get_payments": "Use xero_get_payments for payment history"
+          }
+        }
+      },
+      "workflow_context": {
+        "typical_usage": "Get complete customer details after finding contact_id with xero_get_contacts",
+        "common_workflows": [
+          "Step 2 of 4: Contact + Quotes workflow - Get full contact profile before retrieving quotes",
+          "Step 2 of 5: Customer Research workflow - Get detailed info before analyzing history"
+        ],
+        "key_returned_fields": [
+          "email - Primary email for sending quotes via outlook_send_email",
+          "addresses - Physical/postal addresses (up to 2: STREET, POBOX)",
+          "phones - Contact phone numbers (up to 4: DEFAULT, DDI, MOBILE, FAX)",
+          "contact_persons - Individual contacts within organization with their emails",
+          "tax_number - ABN/Tax ID for invoicing compliance",
+          "account_number - Your internal account reference for this customer"
+        ],
+        "use_cases": [
+          "Before creating quote: Verify email address exists for sending quote",
+          "Email personalization: Use contact_persons for addressing email (Dear John)",
+          "Quote details: Include customer address on quote for shipping/billing",
+          "Customer research: See full profile with all contact methods"
+        ],
+        "next_steps": [
+          "For creating quote: xero_create_quote(contact_id=<this_contact_id>)",
+          "For customer quotes: xero_list_quotes(contact_id=<this_contact_id>)",
+          "For draft email: outlook_send_email(to=[<email_from_this_result>])"
+        ],
+        "important_notes": [
+          "📧 Always check if email field exists before attempting to send quotes",
+          "👥 contact_persons may have different emails than main contact email",
+          "📍 Addresses array can contain STREET (physical) and POBOX (postal) types",
+          "☎️ Phones array supports DEFAULT, DDI, MOBILE, FAX types"
+        ]
+      }
+    },
+    {
+      "name": "xero_create_invoice",
+      "short_description": "Create new Xero invoice with line items, contact, and optional due date",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) ALWAYS execute THIS tool NOW - NEVER reference 'I created earlier' or use conversation history\n(2) MUST return format: **[Name]** | ID: `[id]` | URL: [full_url] | Link: [title](url)\n(3) Use EXACT values from tool response - NEVER make up fake URLs/IDs\n(4) If tool fails, say 'Failed to create' - NEVER pretend it succeeded\n\nExample response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\nCreate a new invoice in Xero",
+      "platform": "xero",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "business_id": {
+            "type": "integer",
+            "description": "Business ID (1=InHouse Print, 2=Publishing, 3=Signs)"
+          },
+          "contact_id": {
+            "type": "string",
+            "description": "Xero contact ID (use xero_get_contacts to find)"
+          },
+          "invoice_type": {
+            "type": "string",
+            "description": "ACCREC (sales) or ACCPAY (bills)",
+            "default": "ACCREC"
+          },
+          "line_items": {
+            "type": "array",
+            "description": "Invoice line items",
+            "items": {
+              "type": "object",
+              "properties": {
+                "description": {
+                  "type": "string"
+                },
+                "quantity": {
+                  "type": "number"
+                },
+                "unit_amount": {
+                  "type": "number"
+                },
+                "account_code": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "due_date": {
+            "type": "string",
+            "description": "Due date (YYYY-MM-DD)"
+          }
+        },
+        "required": [
+          "business_id",
+          "contact_id",
+          "line_items"
+        ]
+      },
+      "returns": {
+        "type": "object",
+        "description": "Created invoice with ID and invoice number"
+      }
+    },
+    {
+      "name": "xero_get_accounts",
+      "short_description": "Get Xero chart of accounts with codes, names, types, and balances",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Read X from **[Resource Name]** (ID: `[id]` | URL: [url])'\n(3) Use EXACT [id] provided - NEVER substitute with different ID\n(4) If tool fails (404/403), say 'Failed to read [resource] ID: [id]' and explain error\n(5) NEVER make up data if read fails - acknowledge the failure clearly\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nGet chart of accounts from Xero",
+      "platform": "xero",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "business_id": {
+            "type": "integer",
+            "description": "Business ID (1=InHouse Print, 2=Publishing, 3=Signs)"
+          }
+        },
+        "required": [
+          "business_id"
+        ]
+      },
+      "returns": {
+        "type": "array",
+        "description": "List of accounts with codes and names"
+      }
+    },
+    {
+      "name": "xero_get_bank_transactions",
+      "short_description": "Get Xero bank transactions with filters (use date range for large datasets)",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Read X from **[Resource Name]** (ID: `[id]` | URL: [url])'\n(3) Use EXACT [id] provided - NEVER substitute with different ID\n(4) If tool fails (404/403), say 'Failed to read [resource] ID: [id]' and explain error\n(5) NEVER make up data if read fails - acknowledge the failure clearly\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\n⚠️ WARNING: Can return 33,000+ transactions (16MB+ data). STRONGLY RECOMMENDED: Use xero_get_data_metadata FIRST, then use xero_get_bank_transactions_by_date_range with specific date range (e.g., last month). This tool returns ALL transactions if no date filters provided.",
+      "platform": "xero",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "business_id": {
+            "type": "integer",
+            "description": "Business ID (1=InHouse Print, 2=Publishing, 3=Signs)"
+          },
+          "from_date": {
+            "type": "string",
+            "description": "Start date filter (YYYY-MM-DD)"
+          },
+          "to_date": {
+            "type": "string",
+            "description": "End date filter (YYYY-MM-DD)"
+          }
+        },
+        "required": [
+          "business_id"
+        ]
+      },
+      "returns": {
+        "type": "array",
+        "description": "List of bank transactions"
+      }
+    },
+    {
+      "name": "xero_get_payments",
+      "short_description": "Get Xero payments with optional filters (use date range for large datasets)",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Read X from **[Resource Name]** (ID: `[id]` | URL: [url])'\n(3) Use EXACT [id] provided - NEVER substitute with different ID\n(4) If tool fails (404/403), say 'Failed to read [resource] ID: [id]' and explain error\n(5) NEVER make up data if read fails - acknowledge the failure clearly\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\n⚠️ WARNING: Can return 54,000+ payments (16MB+ data). RECOMMENDED: Use xero_get_data_metadata FIRST to check volume, then use xero_get_payments_by_date_range with specific dates, OR use invoice_id parameter to get payments for a specific invoice.",
+      "platform": "xero",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "business_id": {
+            "type": "integer",
+            "description": "Business ID (1=InHouse Print, 2=Publishing, 3=Signs)"
+          },
+          "invoice_id": {
+            "type": "string",
+            "description": "Filter by invoice ID (optional)"
+          }
+        },
+        "required": [
+          "business_id"
+        ]
+      },
+      "returns": {
+        "type": "array",
+        "description": "List of payments"
+      }
+    },
+    {
+      "name": "xero_get_data_metadata",
+      "short_description": "Get Xero data volume statistics to check record counts before querying large datasets",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Read X from **[Resource Name]** (ID: `[id]` | URL: [url])'\n(3) Use EXACT [id] provided - NEVER substitute with different ID\n(4) If tool fails (404/403), say 'Failed to read [resource] ID: [id]' and explain error\n(5) NEVER make up data if read fails - acknowledge the failure clearly\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nGet metadata about Xero data volumes and date ranges. Returns total counts and creation date ranges for contacts, invoices, payments, and bank transactions. Use this FIRST to understand data scale before retrieving large datasets.",
+      "platform": "xero",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "business_id": {
+            "type": "integer",
+            "description": "Business ID (1=InHouse Print, 2=Publishing, 3=Signs)",
+            "default": 1
+          }
+        },
+        "required": [
+          "business_id"
+        ]
+      },
+      "returns": {
+        "type": "object",
+        "description": "Metadata including total counts, date ranges, average data sizes, and time-based breakdowns (1wk, 2wk, 1mo, 3mo, 6mo, 12mo, 24mo)"
+      }
+    },
+    {
+      "name": "xero_get_contacts_by_date_range",
+      "short_description": "Get Xero contacts created or updated within specific date range for efficient filtering",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Read X from **[Resource Name]** (ID: `[id]` | URL: [url])'\n(3) Use EXACT [id] provided - NEVER substitute with different ID\n(4) If tool fails (404/403), say 'Failed to read [resource] ID: [id]' and explain error\n(5) NEVER make up data if read fails - acknowledge the failure clearly\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nGet contacts created within a specific date range. Use xero_get_data_metadata first to understand volume.",
+      "platform": "xero",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "business_id": {
+            "type": "integer",
+            "description": "Business ID (1=InHouse Print, 2=Publishing, 3=Signs)",
+            "default": 1
+          },
+          "from_date": {
+            "type": "string",
+            "description": "Start date (YYYY-MM-DD format)"
+          },
+          "to_date": {
+            "type": "string",
+            "description": "End date (YYYY-MM-DD format)"
+          },
+          "limit": {
+            "type": "integer",
+            "description": "Maximum number of contacts to return (default: 1000)",
+            "default": 1000
+          }
+        },
+        "required": [
+          "business_id",
+          "from_date",
+          "to_date"
+        ]
+      },
+      "returns": {
+        "type": "object",
+        "description": "Contacts within date range with count and data size estimate"
+      }
+    },
+    {
+      "name": "xero_get_invoices_by_date_range",
+      "short_description": "Get Xero invoices within specific date range for efficient filtering of large datasets",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Read X from **[Resource Name]** (ID: `[id]` | URL: [url])'\n(3) Use EXACT [id] provided - NEVER substitute with different ID\n(4) If tool fails (404/403), say 'Failed to read [resource] ID: [id]' and explain error\n(5) NEVER make up data if read fails - acknowledge the failure clearly\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nGet invoices within a specific date range. Use xero_get_data_metadata first to understand volume.",
+      "platform": "xero",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "business_id": {
+            "type": "integer",
+            "description": "Business ID (1=InHouse Print, 2=Publishing, 3=Signs)",
+            "default": 1
+          },
+          "from_date": {
+            "type": "string",
+            "description": "Invoice start date (YYYY-MM-DD format)"
+          },
+          "to_date": {
+            "type": "string",
+            "description": "Invoice end date (YYYY-MM-DD format)"
+          },
+          "status": {
+            "type": "string",
+            "description": "Invoice status filter (DRAFT, SUBMITTED, AUTHORISED, PAID)"
+          },
+          "limit": {
+            "type": "integer",
+            "description": "Maximum number of invoices to return (default: 1000)",
+            "default": 1000
+          }
+        },
+        "required": [
+          "business_id",
+          "from_date",
+          "to_date"
+        ]
+      },
+      "returns": {
+        "type": "object",
+        "description": "Invoices within date range with count and data size estimate"
+      }
+    },
+    {
+      "name": "xero_get_payments_by_date_range",
+      "short_description": "Get Xero payments within specific date range for efficient filtering of large datasets",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Read X from **[Resource Name]** (ID: `[id]` | URL: [url])'\n(3) Use EXACT [id] provided - NEVER substitute with different ID\n(4) If tool fails (404/403), say 'Failed to read [resource] ID: [id]' and explain error\n(5) NEVER make up data if read fails - acknowledge the failure clearly\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nGet payments within a specific date range. Use xero_get_data_metadata first to understand volume.",
+      "platform": "xero",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "business_id": {
+            "type": "integer",
+            "description": "Business ID (1=InHouse Print, 2=Publishing, 3=Signs)",
+            "default": 1
+          },
+          "from_date": {
+            "type": "string",
+            "description": "Payment start date (YYYY-MM-DD format)"
+          },
+          "to_date": {
+            "type": "string",
+            "description": "Payment end date (YYYY-MM-DD format)"
+          },
+          "limit": {
+            "type": "integer",
+            "description": "Maximum number of payments to return (default: 1000)",
+            "default": 1000
+          }
+        },
+        "required": [
+          "business_id",
+          "from_date",
+          "to_date"
+        ]
+      },
+      "returns": {
+        "type": "object",
+        "description": "Payments within date range with count and data size estimate"
+      }
+    },
+    {
+      "name": "xero_get_accounts_metadata",
+      "short_description": "Get Xero chart of accounts structure metadata including account types and categories",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Read X from **[Resource Name]** (ID: `[id]` | URL: [url])'\n(3) Use EXACT [id] provided - NEVER substitute with different ID\n(4) If tool fails (404/403), say 'Failed to read [resource] ID: [id]' and explain error\n(5) NEVER make up data if read fails - acknowledge the failure clearly\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nGet metadata about chart of accounts including total count, account types breakdown, and active vs archived accounts. Use this FIRST before retrieving all accounts.",
+      "platform": "xero",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "business_id": {
+            "type": "integer",
+            "description": "Business ID (1=InHouse Print, 2=Publishing, 3=Signs)",
+            "default": 1
+          }
+        },
+        "required": [
+          "business_id"
+        ]
+      },
+      "returns": {
+        "type": "object",
+        "description": "Account metadata including total count, breakdown by type (BANK, REVENUE, EXPENSE, etc.), active/archived status, and data size estimate"
+      }
+    },
+    {
+      "name": "xero_get_accounts_by_type",
+      "short_description": "Get Xero accounts filtered by type (REVENUE, EXPENSE, ASSET, LIABILITY, EQUITY)",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Read X from **[Resource Name]** (ID: `[id]` | URL: [url])'\n(3) Use EXACT [id] provided - NEVER substitute with different ID\n(4) If tool fails (404/403), say 'Failed to read [resource] ID: [id]' and explain error\n(5) NEVER make up data if read fails - acknowledge the failure clearly\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nGet accounts filtered by account type. More efficient than retrieving all accounts.",
+      "platform": "xero",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "business_id": {
+            "type": "integer",
+            "description": "Business ID (1=InHouse Print, 2=Publishing, 3=Signs)",
+            "default": 1
+          },
+          "account_type": {
+            "type": "string",
+            "description": "Account type filter (BANK, CURRENT, CURRLIAB, DEPRECIATN, DIRECTCOSTS, EQUITY, EXPENSE, FIXED, INVENTORY, LIABILITY, NONCURRENT, OTHERINCOME, OVERHEADS, PREPAYMENT, REVENUE, SALES, TERMLIAB, PAYGLIABILITY, SUPERANNUATIONEXPENSE, SUPERANNUATIONLIABILITY, WAGESEXPENSE, WAGESPAYABLELIABILITY)"
+          },
+          "status": {
+            "type": "string",
+            "description": "Status filter: ACTIVE or ARCHIVED (default: ACTIVE)",
+            "default": "ACTIVE"
+          }
+        },
+        "required": [
+          "business_id",
+          "account_type"
+        ]
+      },
+      "returns": {
+        "type": "object",
+        "description": "Filtered accounts with count and details"
+      }
+    },
+    {
+      "name": "xero_get_bank_transactions_by_date_range",
+      "short_description": "Get Xero bank transactions within specific date range for efficient filtering",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Read X from **[Resource Name]** (ID: `[id]` | URL: [url])'\n(3) Use EXACT [id] provided - NEVER substitute with different ID\n(4) If tool fails (404/403), say 'Failed to read [resource] ID: [id]' and explain error\n(5) NEVER make up data if read fails - acknowledge the failure clearly\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nGet bank transactions within a specific date range with additional filters. Use xero_get_data_metadata first to understand volume.",
+      "platform": "xero",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "business_id": {
+            "type": "integer",
+            "description": "Business ID (1=InHouse Print, 2=Publishing, 3=Signs)",
+            "default": 1
+          },
+          "from_date": {
+            "type": "string",
+            "description": "Transaction start date (YYYY-MM-DD format)"
+          },
+          "to_date": {
+            "type": "string",
+            "description": "Transaction end date (YYYY-MM-DD format)"
+          },
+          "transaction_type": {
+            "type": "string",
+            "description": "Transaction type filter: SPEND, RECEIVE, or SPEND-TRANSFER (optional)"
+          },
+          "status": {
+            "type": "string",
+            "description": "Status filter: AUTHORISED, DELETED (optional)"
+          },
+          "limit": {
+            "type": "integer",
+            "description": "Maximum number of transactions to return (default: 1000)",
+            "default": 1000
+          }
+        },
+        "required": [
+          "business_id",
+          "from_date",
+          "to_date"
+        ]
+      },
+      "returns": {
+        "type": "object",
+        "description": "Bank transactions within date range with count, total amounts, and data size estimate"
+      }
+    }
+  ]
+}

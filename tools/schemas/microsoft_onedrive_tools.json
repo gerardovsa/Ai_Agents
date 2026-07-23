@@ -1,0 +1,738 @@
+{
+  "platform": "microsoft_onedrive",
+  "description": "Microsoft OneDrive - Cloud file storage, sharing, synchronization, and collaboration\n\n⚠️ CRITICAL: ALL Microsoft 365 tools MUST be called through the execute_tool meta-tool for proper OAuth credential injection. DO NOT call these tools directly. Always use: execute_tool(tool_name='toolname', ...parameters)",
+  "version": "1.0.0",
+  "tools": [
+    {
+      "name": "microsoft_onedrive_list_files",
+      "short_description": "List files and folders in Microsoft OneDrive with path filtering",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Read X from **[Resource Name]** (ID: `[id]` | URL: [url])'\n(3) Use EXACT [id] provided - NEVER substitute with different ID\n(4) If tool fails (404/403), say 'Failed to read [resource] ID: [id]' and explain error\n(5) NEVER make up data if read fails - acknowledge the failure clearly\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\n⚠️ MUST USE: execute_tool(tool_name='microsoft_onedrive_list_files', ...) - DO NOT call directly!\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nList files and folders in OneDrive",
+      "platform": "microsoft_onedrive",
+      "category": "basic",
+      "priority": "high",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "folder_path": {
+            "type": "string",
+            "description": "Folder path (root if not specified)",
+            "default": "root"
+          },
+          "max_results": {
+            "type": "integer",
+            "description": "Maximum number of items to return",
+            "default": 100
+          }
+        },
+        "required": []
+      },
+      "example": {
+        "folder_path": "Documents/Projects",
+        "max_results": 50
+      }
+    },
+    {
+      "name": "microsoft_onedrive_upload_file",
+      "short_description": "Upload file to Microsoft OneDrive from local path with conflict handling",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) ALWAYS execute THIS tool NOW - NEVER reference 'I created earlier' or use conversation history\n(2) MUST return format: **[Name]** | ID: `[id]` | URL: [full_url] | Link: [title](url)\n(3) Use EXACT values from tool response - NEVER make up fake URLs/IDs\n(4) If tool fails, say 'Failed to create' - NEVER pretend it succeeded\n\nExample response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\n⚠️ MUST USE: execute_tool(tool_name='microsoft_onedrive_upload_file', ...) - DO NOT call directly!\n\nExample response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\nUpload a file to OneDrive",
+      "platform": "microsoft_onedrive",
+      "category": "basic",
+      "priority": "high",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "file_path": {
+            "type": "string",
+            "description": "Local file path to upload"
+          },
+          "destination_folder": {
+            "type": "string",
+            "description": "OneDrive folder path (root if not specified)",
+            "default": "root"
+          },
+          "file_name": {
+            "type": "string",
+            "description": "Name for the file in OneDrive (uses original if not specified)"
+          },
+          "overwrite": {
+            "type": "boolean",
+            "description": "Whether to overwrite if file exists",
+            "default": true
+          }
+        },
+        "required": [
+          "file_path"
+        ]
+      },
+      "example": {
+        "file_path": "/path/to/document.pdf",
+        "destination_folder": "Work/Reports",
+        "file_name": "Q4_Report.pdf"
+      }
+    },
+    {
+      "name": "microsoft_onedrive_download_file",
+      "short_description": "Download file from Microsoft OneDrive by ID to local path",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Read X from **[Resource Name]** (ID: `[id]` | URL: [url])'\n(3) Use EXACT [id] provided - NEVER substitute with different ID\n(4) If tool fails (404/403), say 'Failed to read [resource] ID: [id]' and explain error\n(5) NEVER make up data if read fails - acknowledge the failure clearly\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\n⚠️ MUST USE: execute_tool(tool_name='microsoft_onedrive_download_file', ...) - DO NOT call directly!\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nDownload a file from OneDrive",
+      "platform": "microsoft_onedrive",
+      "category": "basic",
+      "priority": "high",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "file_id": {
+            "type": "string",
+            "description": "OneDrive file ID"
+          },
+          "local_path": {
+            "type": "string",
+            "description": "Local path to save file"
+          }
+        },
+        "required": [
+          "file_id",
+          "local_path"
+        ]
+      },
+      "example": {
+        "file_id": "01ABCDEF123456789",
+        "local_path": "/downloads/document.pdf"
+      }
+    },
+    {
+      "name": "microsoft_onedrive_get_file_info",
+      "short_description": "Get Microsoft OneDrive file metadata including size, dates, and URLs",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Read X from **[Resource Name]** (ID: `[id]` | URL: [url])'\n(3) Use EXACT [id] provided - NEVER substitute with different ID\n(4) If tool fails (404/403), say 'Failed to read [resource] ID: [id]' and explain error\n(5) NEVER make up data if read fails - acknowledge the failure clearly\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\n⚠️ MUST USE: execute_tool(tool_name='microsoft_onedrive_get_file_info', ...) - DO NOT call directly!\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nGet detailed information about a file or folder",
+      "platform": "microsoft_onedrive",
+      "category": "basic",
+      "priority": "medium",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "item_id": {
+            "type": "string",
+            "description": "File or folder ID"
+          }
+        },
+        "required": [
+          "item_id"
+        ]
+      },
+      "example": {
+        "item_id": "01ABCDEF123456789"
+      }
+    },
+    {
+      "name": "microsoft_onedrive_create_folder",
+      "short_description": "Create new folder in Microsoft OneDrive with nested path support",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) ALWAYS execute THIS tool NOW - NEVER reference 'I created earlier' or use conversation history\n(2) MUST return format: **[Name]** | ID: `[id]` | URL: [full_url] | Link: [title](url)\n(3) Use EXACT values from tool response - NEVER make up fake URLs/IDs\n(4) If tool fails, say 'Failed to create' - NEVER pretend it succeeded\n\nExample response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\n⚠️ MUST USE: execute_tool(tool_name='microsoft_onedrive_create_folder', ...) - DO NOT call directly!\n\nExample response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\nCreate a new folder in OneDrive",
+      "platform": "microsoft_onedrive",
+      "category": "basic",
+      "priority": "medium",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "folder_name": {
+            "type": "string",
+            "description": "Name of the new folder"
+          },
+          "parent_folder": {
+            "type": "string",
+            "description": "Parent folder path (root if not specified)",
+            "default": "root"
+          }
+        },
+        "required": [
+          "folder_name"
+        ]
+      },
+      "example": {
+        "folder_name": "2025 Projects",
+        "parent_folder": "Work"
+      }
+    },
+    {
+      "name": "microsoft_onedrive_delete_item",
+      "short_description": "Delete file or folder in Microsoft OneDrive by ID to recycle bin",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER pretend to delete from memory\n(2) MUST cite what was deleted: 'Deleted **[Resource Name]** (ID: `[id]`)'\n(3) CONFIRM deletion happened - don't assume success\n(4) If tool fails, say 'Failed to delete' and explain why\n\nExample response:\n✅ Deleted: **Old File**\n- ID: `abc123`\n- URL: https://example.com/file/abc123 (no longer accessible)\n\n⚠️ MUST USE: execute_tool(tool_name='microsoft_onedrive_delete_item', ...) - DO NOT call directly!\n\nExample response:\n✅ Deleted: **Old File**\n- ID: `abc123`\n- URL: https://example.com/file/abc123 (no longer accessible)\n\nDelete a file or folder from OneDrive",
+      "platform": "microsoft_onedrive",
+      "category": "basic",
+      "priority": "medium",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "item_id": {
+            "type": "string",
+            "description": "File or folder ID to delete"
+          }
+        },
+        "required": [
+          "item_id"
+        ]
+      },
+      "example": {
+        "item_id": "01ABCDEF123456789"
+      }
+    },
+    {
+      "name": "microsoft_onedrive_move_item",
+      "short_description": "Move file or folder in Microsoft OneDrive to different location",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Read X from **[Resource Name]** (ID: `[id]` | URL: [url])'\n(3) Use EXACT [id] provided - NEVER substitute with different ID\n(4) If tool fails (404/403), say 'Failed to read [resource] ID: [id]' and explain error\n(5) NEVER make up data if read fails - acknowledge the failure clearly\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\n⚠️ MUST USE: execute_tool(tool_name='microsoft_onedrive_move_item', ...) - DO NOT call directly!\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nMove a file or folder to another location",
+      "platform": "microsoft_onedrive",
+      "category": "basic",
+      "priority": "medium",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "item_id": {
+            "type": "string",
+            "description": "File or folder ID to move"
+          },
+          "destination_folder_id": {
+            "type": "string",
+            "description": "Destination folder ID"
+          },
+          "new_name": {
+            "type": "string",
+            "description": "Optional: New name for the item"
+          }
+        },
+        "required": [
+          "item_id",
+          "destination_folder_id"
+        ]
+      },
+      "example": {
+        "item_id": "01ABCDEF123456789",
+        "destination_folder_id": "01GHIJKL987654321"
+      }
+    },
+    {
+      "name": "microsoft_onedrive_copy_item",
+      "short_description": "Copy file or folder in Microsoft OneDrive to duplicate content",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Read X from **[Resource Name]** (ID: `[id]` | URL: [url])'\n(3) Use EXACT [id] provided - NEVER substitute with different ID\n(4) If tool fails (404/403), say 'Failed to read [resource] ID: [id]' and explain error\n(5) NEVER make up data if read fails - acknowledge the failure clearly\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\n⚠️ MUST USE: execute_tool(tool_name='microsoft_onedrive_copy_item', ...) - DO NOT call directly!\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nCopy a file or folder to another location",
+      "platform": "microsoft_onedrive",
+      "category": "basic",
+      "priority": "medium",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "item_id": {
+            "type": "string",
+            "description": "File or folder ID to copy"
+          },
+          "destination_folder_id": {
+            "type": "string",
+            "description": "Destination folder ID"
+          },
+          "new_name": {
+            "type": "string",
+            "description": "Optional: New name for the copy"
+          }
+        },
+        "required": [
+          "item_id",
+          "destination_folder_id"
+        ]
+      },
+      "example": {
+        "item_id": "01ABCDEF123456789",
+        "destination_folder_id": "01GHIJKL987654321",
+        "new_name": "document_copy.pdf"
+      }
+    },
+    {
+      "name": "microsoft_onedrive_rename_item",
+      "short_description": "Rename file or folder in Microsoft OneDrive with new name",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Read X from **[Resource Name]** (ID: `[id]` | URL: [url])'\n(3) Use EXACT [id] provided - NEVER substitute with different ID\n(4) If tool fails (404/403), say 'Failed to read [resource] ID: [id]' and explain error\n(5) NEVER make up data if read fails - acknowledge the failure clearly\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\n⚠️ MUST USE: execute_tool(tool_name='microsoft_onedrive_rename_item', ...) - DO NOT call directly!\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nRename a file or folder",
+      "platform": "microsoft_onedrive",
+      "category": "basic",
+      "priority": "low",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "item_id": {
+            "type": "string",
+            "description": "File or folder ID to rename"
+          },
+          "new_name": {
+            "type": "string",
+            "description": "New name for the item"
+          }
+        },
+        "required": [
+          "item_id",
+          "new_name"
+        ]
+      },
+      "example": {
+        "item_id": "01ABCDEF123456789",
+        "new_name": "Updated_Report_2025.pdf"
+      }
+    },
+    {
+      "name": "microsoft_onedrive_search_files",
+      "short_description": "Search Microsoft OneDrive files by query across names and content",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Read X from **[Resource Name]** (ID: `[id]` | URL: [url])'\n(3) Use EXACT [id] provided - NEVER substitute with different ID\n(4) If tool fails (404/403), say 'Failed to read [resource] ID: [id]' and explain error\n(5) NEVER make up data if read fails - acknowledge the failure clearly\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\n⚠️ MUST USE: execute_tool(tool_name='microsoft_onedrive_search_files', ...) - DO NOT call directly!\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nSearch for files and folders in OneDrive",
+      "platform": "microsoft_onedrive",
+      "category": "basic",
+      "priority": "high",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "query": {
+            "type": "string",
+            "description": "Search query"
+          },
+          "max_results": {
+            "type": "integer",
+            "description": "Maximum number of results",
+            "default": 50
+          }
+        },
+        "required": [
+          "query"
+        ]
+      },
+      "example": {
+        "query": "project report 2025",
+        "max_results": 25
+      }
+    },
+    {
+      "name": "microsoft_onedrive_create_share_link",
+      "short_description": "Create shareable link for Microsoft OneDrive file with view or edit permissions",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) ALWAYS execute THIS tool NOW - NEVER reference 'I created earlier' or use conversation history\n(2) MUST return format: **[Name]** | ID: `[id]` | URL: [full_url] | Link: [title](url)\n(3) Use EXACT values from tool response - NEVER make up fake URLs/IDs\n(4) If tool fails, say 'Failed to create' - NEVER pretend it succeeded\n\nExample response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\n⚠️ MUST USE: execute_tool(tool_name='microsoft_onedrive_create_share_link', ...) - DO NOT call directly!\n\nExample response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\nCreate a sharing link for a file or folder",
+      "platform": "microsoft_onedrive",
+      "category": "basic",
+      "priority": "high",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "item_id": {
+            "type": "string",
+            "description": "File or folder ID to share"
+          },
+          "link_type": {
+            "type": "string",
+            "description": "Link type: 'view', 'edit', 'embed'",
+            "default": "view"
+          },
+          "scope": {
+            "type": "string",
+            "description": "Scope: 'anonymous', 'organization'",
+            "default": "anonymous"
+          },
+          "expiration": {
+            "type": "string",
+            "description": "Optional: Expiration date (ISO 8601)"
+          }
+        },
+        "required": [
+          "item_id"
+        ]
+      },
+      "example": {
+        "item_id": "01ABCDEF123456789",
+        "link_type": "view",
+        "scope": "organization",
+        "expiration": "2025-12-31T23:59:59Z"
+      }
+    },
+    {
+      "name": "microsoft_onedrive_share_with_users",
+      "short_description": "Share Microsoft OneDrive file with specific users via email addresses",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Read X from **[Resource Name]** (ID: `[id]` | URL: [url])'\n(3) Use EXACT [id] provided - NEVER substitute with different ID\n(4) If tool fails (404/403), say 'Failed to read [resource] ID: [id]' and explain error\n(5) NEVER make up data if read fails - acknowledge the failure clearly\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\n⚠️ MUST USE: execute_tool(tool_name='microsoft_onedrive_share_with_users', ...) - DO NOT call directly!\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nShare a file or folder with specific users",
+      "platform": "microsoft_onedrive",
+      "category": "basic",
+      "priority": "medium",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "item_id": {
+            "type": "string",
+            "description": "File or folder ID to share"
+          },
+          "recipients": {
+            "type": "array",
+            "description": "List of email addresses to share with"
+          },
+          "role": {
+            "type": "string",
+            "description": "Permission role: 'read', 'write', 'owner'",
+            "default": "read"
+          },
+          "message": {
+            "type": "string",
+            "description": "Optional message to recipients"
+          }
+        },
+        "required": [
+          "item_id",
+          "recipients"
+        ]
+      },
+      "example": {
+        "item_id": "01ABCDEF123456789",
+        "recipients": [
+          "john@company.com",
+          "jane@company.com"
+        ],
+        "role": "write",
+        "message": "Please review and provide feedback"
+      }
+    },
+    {
+      "name": "microsoft_onedrive_get_permissions",
+      "short_description": "Get sharing permissions for Microsoft OneDrive file including users and links",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Read X from **[Resource Name]** (ID: `[id]` | URL: [url])'\n(3) Use EXACT [id] provided - NEVER substitute with different ID\n(4) If tool fails (404/403), say 'Failed to read [resource] ID: [id]' and explain error\n(5) NEVER make up data if read fails - acknowledge the failure clearly\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\n⚠️ MUST USE: execute_tool(tool_name='microsoft_onedrive_get_permissions', ...) - DO NOT call directly!\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nGet sharing permissions for a file or folder",
+      "platform": "microsoft_onedrive",
+      "category": "basic",
+      "priority": "low",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "item_id": {
+            "type": "string",
+            "description": "File or folder ID"
+          }
+        },
+        "required": [
+          "item_id"
+        ]
+      },
+      "example": {
+        "item_id": "01ABCDEF123456789"
+      }
+    },
+    {
+      "name": "microsoft_onedrive_revoke_permission",
+      "short_description": "Revoke sharing permission for Microsoft OneDrive file by permission ID",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Read X from **[Resource Name]** (ID: `[id]` | URL: [url])'\n(3) Use EXACT [id] provided - NEVER substitute with different ID\n(4) If tool fails (404/403), say 'Failed to read [resource] ID: [id]' and explain error\n(5) NEVER make up data if read fails - acknowledge the failure clearly\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\n⚠️ MUST USE: execute_tool(tool_name='microsoft_onedrive_revoke_permission', ...) - DO NOT call directly!\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nRevoke sharing permission",
+      "platform": "microsoft_onedrive",
+      "category": "basic",
+      "priority": "low",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "item_id": {
+            "type": "string",
+            "description": "File or folder ID"
+          },
+          "permission_id": {
+            "type": "string",
+            "description": "Permission ID to revoke"
+          }
+        },
+        "required": [
+          "item_id",
+          "permission_id"
+        ]
+      },
+      "example": {
+        "item_id": "01ABCDEF123456789",
+        "permission_id": "aTowIy5mfG1lbWJlcnNoaXB8"
+      }
+    },
+    {
+      "name": "microsoft_onedrive_get_file_versions",
+      "short_description": "Get version history for Microsoft OneDrive file with dates and sizes",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Read X from **[Resource Name]** (ID: `[id]` | URL: [url])'\n(3) Use EXACT [id] provided - NEVER substitute with different ID\n(4) If tool fails (404/403), say 'Failed to read [resource] ID: [id]' and explain error\n(5) NEVER make up data if read fails - acknowledge the failure clearly\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\n⚠️ MUST USE: execute_tool(tool_name='microsoft_onedrive_get_file_versions', ...) - DO NOT call directly!\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nGet version history of a file",
+      "platform": "microsoft_onedrive",
+      "category": "basic",
+      "priority": "low",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "file_id": {
+            "type": "string",
+            "description": "File ID"
+          }
+        },
+        "required": [
+          "file_id"
+        ]
+      },
+      "example": {
+        "file_id": "01ABCDEF123456789"
+      }
+    },
+    {
+      "name": "microsoft_onedrive_restore_version",
+      "short_description": "Restore Microsoft OneDrive file to previous version by version ID",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Read X from **[Resource Name]** (ID: `[id]` | URL: [url])'\n(3) Use EXACT [id] provided - NEVER substitute with different ID\n(4) If tool fails (404/403), say 'Failed to read [resource] ID: [id]' and explain error\n(5) NEVER make up data if read fails - acknowledge the failure clearly\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\n⚠️ MUST USE: execute_tool(tool_name='microsoft_onedrive_restore_version', ...) - DO NOT call directly!\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nRestore a previous version of a file",
+      "platform": "microsoft_onedrive",
+      "category": "basic",
+      "priority": "low",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "file_id": {
+            "type": "string",
+            "description": "File ID"
+          },
+          "version_id": {
+            "type": "string",
+            "description": "Version ID to restore"
+          }
+        },
+        "required": [
+          "file_id",
+          "version_id"
+        ]
+      },
+      "example": {
+        "file_id": "01ABCDEF123456789",
+        "version_id": "2.0"
+      }
+    },
+    {
+      "name": "microsoft_onedrive_get_thumbnail",
+      "short_description": "Get thumbnail image URL for Microsoft OneDrive file preview",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Read X from **[Resource Name]** (ID: `[id]` | URL: [url])'\n(3) Use EXACT [id] provided - NEVER substitute with different ID\n(4) If tool fails (404/403), say 'Failed to read [resource] ID: [id]' and explain error\n(5) NEVER make up data if read fails - acknowledge the failure clearly\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\n⚠️ MUST USE: execute_tool(tool_name='microsoft_onedrive_get_thumbnail', ...) - DO NOT call directly!\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nGet thumbnail preview of a file",
+      "platform": "microsoft_onedrive",
+      "category": "basic",
+      "priority": "low",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "file_id": {
+            "type": "string",
+            "description": "File ID"
+          },
+          "size": {
+            "type": "string",
+            "description": "Thumbnail size: 'small', 'medium', 'large'",
+            "default": "medium"
+          }
+        },
+        "required": [
+          "file_id"
+        ]
+      },
+      "example": {
+        "file_id": "01ABCDEF123456789",
+        "size": "large"
+      }
+    },
+    {
+      "name": "microsoft_onedrive_smart_organize_by_type",
+      "short_description": "SMART: Organize Microsoft OneDrive files into folders by type automatically",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Read X from **[Resource Name]** (ID: `[id]` | URL: [url])'\n(3) Use EXACT [id] provided - NEVER substitute with different ID\n(4) If tool fails (404/403), say 'Failed to read [resource] ID: [id]' and explain error\n(5) NEVER make up data if read fails - acknowledge the failure clearly\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\n⚠️ MUST USE: execute_tool(tool_name='microsoft_onedrive_smart_organize_by_type', ...) - DO NOT call directly!\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nAutomatically organize files into folders by file type",
+      "platform": "microsoft_onedrive",
+      "category": "smart_bundled",
+      "priority": "high",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "source_folder": {
+            "type": "string",
+            "description": "Folder to organize (root if not specified)",
+            "default": "root"
+          },
+          "type_mapping": {
+            "type": "object",
+            "description": "Mapping of file types to destination folders",
+            "default": {
+              "documents": [
+                "doc",
+                "docx",
+                "pdf",
+                "txt"
+              ],
+              "spreadsheets": [
+                "xls",
+                "xlsx",
+                "csv"
+              ],
+              "presentations": [
+                "ppt",
+                "pptx"
+              ],
+              "images": [
+                "jpg",
+                "jpeg",
+                "png",
+                "gif"
+              ],
+              "videos": [
+                "mp4",
+                "avi",
+                "mov"
+              ]
+            }
+          },
+          "create_folders": {
+            "type": "boolean",
+            "description": "Create destination folders if they don't exist",
+            "default": true
+          }
+        },
+        "required": []
+      },
+      "example": {
+        "source_folder": "root",
+        "type_mapping": {
+          "Work Documents": [
+            "doc",
+            "docx",
+            "pdf"
+          ],
+          "Invoices": [
+            "pdf"
+          ],
+          "Photos": [
+            "jpg",
+            "png"
+          ]
+        }
+      }
+    },
+    {
+      "name": "microsoft_onedrive_smart_backup_folder",
+      "short_description": "SMART: Backup Microsoft OneDrive folder with timestamps and compression",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Read X from **[Resource Name]** (ID: `[id]` | URL: [url])'\n(3) Use EXACT [id] provided - NEVER substitute with different ID\n(4) If tool fails (404/403), say 'Failed to read [resource] ID: [id]' and explain error\n(5) NEVER make up data if read fails - acknowledge the failure clearly\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\n⚠️ MUST USE: execute_tool(tool_name='microsoft_onedrive_smart_backup_folder', ...) - DO NOT call directly!\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nCreate timestamped backup of a folder",
+      "platform": "microsoft_onedrive",
+      "category": "smart_bundled",
+      "priority": "medium",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "folder_id": {
+            "type": "string",
+            "description": "Folder ID to backup"
+          },
+          "backup_location": {
+            "type": "string",
+            "description": "Where to store backup (root if not specified)",
+            "default": "Backups"
+          },
+          "include_timestamp": {
+            "type": "boolean",
+            "description": "Add timestamp to backup folder name",
+            "default": true
+          }
+        },
+        "required": [
+          "folder_id"
+        ]
+      },
+      "example": {
+        "folder_id": "01ABCDEF123456789",
+        "backup_location": "Backups/Projects",
+        "include_timestamp": true
+      }
+    },
+    {
+      "name": "microsoft_onedrive_smart_cleanup_duplicates",
+      "short_description": "SMART: Find and remove duplicate files in Microsoft OneDrive by hash",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Read X from **[Resource Name]** (ID: `[id]` | URL: [url])'\n(3) Use EXACT [id] provided - NEVER substitute with different ID\n(4) If tool fails (404/403), say 'Failed to read [resource] ID: [id]' and explain error\n(5) NEVER make up data if read fails - acknowledge the failure clearly\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\n⚠️ MUST USE: execute_tool(tool_name='microsoft_onedrive_smart_cleanup_duplicates', ...) - DO NOT call directly!\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nFind and optionally remove duplicate files",
+      "platform": "microsoft_onedrive",
+      "category": "smart_bundled",
+      "priority": "medium",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "folder_id": {
+            "type": "string",
+            "description": "Folder to scan for duplicates"
+          },
+          "comparison_method": {
+            "type": "string",
+            "description": "How to detect duplicates: 'name', 'size', 'hash'",
+            "default": "name"
+          },
+          "auto_delete": {
+            "type": "boolean",
+            "description": "Automatically delete duplicates (keeps newest)",
+            "default": false
+          }
+        },
+        "required": [
+          "folder_id"
+        ]
+      },
+      "example": {
+        "folder_id": "01ABCDEF123456789",
+        "comparison_method": "name",
+        "auto_delete": false
+      }
+    },
+    {
+      "name": "microsoft_onedrive_smart_sync_folders",
+      "short_description": "SMART: Sync Microsoft OneDrive folder with local folder bidirectionally",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Read X from **[Resource Name]** (ID: `[id]` | URL: [url])'\n(3) Use EXACT [id] provided - NEVER substitute with different ID\n(4) If tool fails (404/403), say 'Failed to read [resource] ID: [id]' and explain error\n(5) NEVER make up data if read fails - acknowledge the failure clearly\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\n⚠️ MUST USE: execute_tool(tool_name='microsoft_onedrive_smart_sync_folders', ...) - DO NOT call directly!\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nSynchronize two OneDrive folders (one-way or two-way)",
+      "platform": "microsoft_onedrive",
+      "category": "smart_bundled",
+      "priority": "medium",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "source_folder_id": {
+            "type": "string",
+            "description": "Source folder ID"
+          },
+          "destination_folder_id": {
+            "type": "string",
+            "description": "Destination folder ID"
+          },
+          "sync_mode": {
+            "type": "string",
+            "description": "Sync mode: 'one_way', 'two_way'",
+            "default": "one_way"
+          },
+          "delete_extra": {
+            "type": "boolean",
+            "description": "Delete files in destination not in source",
+            "default": false
+          }
+        },
+        "required": [
+          "source_folder_id",
+          "destination_folder_id"
+        ]
+      },
+      "example": {
+        "source_folder_id": "01ABCDEF123456789",
+        "destination_folder_id": "01GHIJKL987654321",
+        "sync_mode": "one_way"
+      }
+    },
+    {
+      "name": "microsoft_onedrive_get_storage_info",
+      "short_description": "Get Microsoft OneDrive storage quota including used and remaining space",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Read X from **[Resource Name]** (ID: `[id]` | URL: [url])'\n(3) Use EXACT [id] provided - NEVER substitute with different ID\n(4) If tool fails (404/403), say 'Failed to read [resource] ID: [id]' and explain error\n(5) NEVER make up data if read fails - acknowledge the failure clearly\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\n⚠️ MUST USE: execute_tool(tool_name='microsoft_onedrive_get_storage_info', ...) - DO NOT call directly!\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nGet storage quota and usage information",
+      "platform": "microsoft_onedrive",
+      "category": "advanced",
+      "priority": "low",
+      "parameters": {
+        "type": "object",
+        "properties": {},
+        "required": []
+      },
+      "example": {}
+    },
+    {
+      "name": "microsoft_onedrive_get_recent_files",
+      "short_description": "Get recently modified Microsoft OneDrive files for quick access",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Read X from **[Resource Name]** (ID: `[id]` | URL: [url])'\n(3) Use EXACT [id] provided - NEVER substitute with different ID\n(4) If tool fails (404/403), say 'Failed to read [resource] ID: [id]' and explain error\n(5) NEVER make up data if read fails - acknowledge the failure clearly\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\n⚠️ MUST USE: execute_tool(tool_name='microsoft_onedrive_get_recent_files', ...) - DO NOT call directly!\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nGet recently accessed or modified files",
+      "platform": "microsoft_onedrive",
+      "category": "advanced",
+      "priority": "medium",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "max_results": {
+            "type": "integer",
+            "description": "Maximum number of files to return",
+            "default": 20
+          }
+        },
+        "required": []
+      },
+      "example": {
+        "max_results": 10
+      }
+    }
+  ]
+}

@@ -1,0 +1,549 @@
+{
+  "platform": "slack",
+  "description": "Slack API - Team communication, channels, workspaces, bots, and file management",
+  "tools": [
+    {
+      "name": "slack_post_message",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) ALWAYS execute THIS tool NOW - NEVER reference 'I created earlier' or use conversation history\n(2) MUST return format: **[Name]** | ID: `[id]` | URL: [full_url] | Link: [title](url)\n(3) Use EXACT values from tool response - NEVER make up fake URLs/IDs\n(4) If tool fails, say 'Failed to create' - NEVER pretend it succeeded\n\nExample response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\nExample response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\nPost a message to a channel or user",
+      "platform": "slack",
+      "parameters": {
+        "channel": {
+          "type": "string",
+          "description": "Channel ID or name (e.g., '#general', 'C1234567890')"
+        },
+        "text": {
+          "type": "string",
+          "description": "Message text (supports markdown)"
+        },
+        "thread_ts": {
+          "type": "string",
+          "description": "Thread timestamp to reply to",
+          "required": false
+        },
+        "blocks": {
+          "type": "array",
+          "description": "Array of Block Kit blocks for rich formatting",
+          "required": false
+        },
+        "attachments": {
+          "type": "array",
+          "description": "Array of message attachments",
+          "required": false
+        },
+        "username": {
+          "type": "string",
+          "description": "Custom bot username",
+          "required": false
+        },
+        "icon_emoji": {
+          "type": "string",
+          "description": "Bot icon emoji (e.g., ':robot_face:')",
+          "required": false
+        },
+        "icon_url": {
+          "type": "string",
+          "description": "Bot icon image URL",
+          "required": false
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "Message timestamp and channel info"
+      }
+    },
+    {
+      "name": "slack_update_message",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER reference previous edits from conversation history\n(2) MUST cite what was updated: 'Updated **[Resource Name]** (ID: `[id]`)'\n(3) Use EXACT [id] provided - NEVER make up IDs\n(4) If tool fails, say 'Failed to update' and explain why\n(5) Show before/after if applicable\n\nExample response:\nUpdated: **Document Title**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Changed: [what was changed]\n\nExample response:\nUpdated: **Document Title**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Changed: [what was changed]\n\nUpdate an existing message",
+      "platform": "slack",
+      "parameters": {
+        "channel": {
+          "type": "string",
+          "description": "Channel ID"
+        },
+        "ts": {
+          "type": "string",
+          "description": "Message timestamp"
+        },
+        "text": {
+          "type": "string",
+          "description": "New message text"
+        },
+        "blocks": {
+          "type": "array",
+          "description": "New blocks",
+          "required": false
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "Updated message confirmation"
+      }
+    },
+    {
+      "name": "slack_delete_message",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER pretend to delete from memory\n(2) MUST cite what was deleted: 'Deleted **[Resource Name]** (ID: `[id]`)'\n(3) CONFIRM deletion happened - don't assume success\n(4) If tool fails, say 'Failed to delete' and explain why\n\nExample response:\n✅ Deleted: **Old File**\n- ID: `abc123`\n- URL: https://example.com/file/abc123 (no longer accessible)\n\nExample response:\n✅ Deleted: **Old File**\n- ID: `abc123`\n- URL: https://example.com/file/abc123 (no longer accessible)\n\nDelete a message",
+      "platform": "slack",
+      "parameters": {
+        "channel": {
+          "type": "string",
+          "description": "Channel ID"
+        },
+        "ts": {
+          "type": "string",
+          "description": "Message timestamp"
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "Deletion confirmation"
+      }
+    },
+    {
+      "name": "slack_get_message_permalink",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Read X from **[Resource Name]** (ID: `[id]` | URL: [url])'\n(3) Use EXACT [id] provided - NEVER substitute with different ID\n(4) If tool fails (404/403), say 'Failed to read [resource] ID: [id]' and explain error\n(5) NEVER make up data if read fails - acknowledge the failure clearly\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nGet permanent link to a message",
+      "platform": "slack",
+      "parameters": {
+        "channel": {
+          "type": "string",
+          "description": "Channel ID"
+        },
+        "message_ts": {
+          "type": "string",
+          "description": "Message timestamp"
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "Permanent URL to message"
+      }
+    },
+    {
+      "name": "slack_list_channels",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Read X from **[Resource Name]** (ID: `[id]` | URL: [url])'\n(3) Use EXACT [id] provided - NEVER substitute with different ID\n(4) If tool fails (404/403), say 'Failed to read [resource] ID: [id]' and explain error\n(5) NEVER make up data if read fails - acknowledge the failure clearly\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nList all public channels in workspace",
+      "platform": "slack",
+      "parameters": {
+        "exclude_archived": {
+          "type": "boolean",
+          "description": "Exclude archived channels",
+          "required": false,
+          "default": true
+        },
+        "limit": {
+          "type": "integer",
+          "description": "Number of channels (1-1000)",
+          "required": false,
+          "default": 100
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "List of channels with metadata"
+      }
+    },
+    {
+      "name": "slack_create_channel",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) ALWAYS execute THIS tool NOW - NEVER reference 'I created earlier' or use conversation history\n(2) MUST return format: **[Name]** | ID: `[id]` | URL: [full_url] | Link: [title](url)\n(3) Use EXACT values from tool response - NEVER make up fake URLs/IDs\n(4) If tool fails, say 'Failed to create' - NEVER pretend it succeeded\n\nExample response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\nExample response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\nCreate a new public or private channel",
+      "platform": "slack",
+      "parameters": {
+        "name": {
+          "type": "string",
+          "description": "Channel name (lowercase, no spaces)"
+        },
+        "is_private": {
+          "type": "boolean",
+          "description": "Create as private channel",
+          "required": false,
+          "default": false
+        },
+        "description": {
+          "type": "string",
+          "description": "Channel description",
+          "required": false
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "Created channel details"
+      }
+    },
+    {
+      "name": "slack_archive_channel",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Read X from **[Resource Name]** (ID: `[id]` | URL: [url])'\n(3) Use EXACT [id] provided - NEVER substitute with different ID\n(4) If tool fails (404/403), say 'Failed to read [resource] ID: [id]' and explain error\n(5) NEVER make up data if read fails - acknowledge the failure clearly\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nArchive a channel",
+      "platform": "slack",
+      "parameters": {
+        "channel": {
+          "type": "string",
+          "description": "Channel ID"
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "Archive confirmation"
+      }
+    },
+    {
+      "name": "slack_unarchive_channel",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Read X from **[Resource Name]** (ID: `[id]` | URL: [url])'\n(3) Use EXACT [id] provided - NEVER substitute with different ID\n(4) If tool fails (404/403), say 'Failed to read [resource] ID: [id]' and explain error\n(5) NEVER make up data if read fails - acknowledge the failure clearly\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nUnarchive a channel",
+      "platform": "slack",
+      "parameters": {
+        "channel": {
+          "type": "string",
+          "description": "Channel ID"
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "Unarchive confirmation"
+      }
+    },
+    {
+      "name": "slack_invite_to_channel",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Read X from **[Resource Name]** (ID: `[id]` | URL: [url])'\n(3) Use EXACT [id] provided - NEVER substitute with different ID\n(4) If tool fails (404/403), say 'Failed to read [resource] ID: [id]' and explain error\n(5) NEVER make up data if read fails - acknowledge the failure clearly\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nInvite users to a channel",
+      "platform": "slack",
+      "parameters": {
+        "channel": {
+          "type": "string",
+          "description": "Channel ID"
+        },
+        "users": {
+          "type": "array",
+          "description": "Array of user IDs to invite"
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "Invitation confirmation"
+      }
+    },
+    {
+      "name": "slack_kick_from_channel",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Read X from **[Resource Name]** (ID: `[id]` | URL: [url])'\n(3) Use EXACT [id] provided - NEVER substitute with different ID\n(4) If tool fails (404/403), say 'Failed to read [resource] ID: [id]' and explain error\n(5) NEVER make up data if read fails - acknowledge the failure clearly\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nRemove user from channel",
+      "platform": "slack",
+      "parameters": {
+        "channel": {
+          "type": "string",
+          "description": "Channel ID"
+        },
+        "user": {
+          "type": "string",
+          "description": "User ID to remove"
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "Removal confirmation"
+      }
+    },
+    {
+      "name": "slack_get_channel_info",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Read X from **[Resource Name]** (ID: `[id]` | URL: [url])'\n(3) Use EXACT [id] provided - NEVER substitute with different ID\n(4) If tool fails (404/403), say 'Failed to read [resource] ID: [id]' and explain error\n(5) NEVER make up data if read fails - acknowledge the failure clearly\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nGet channel information",
+      "platform": "slack",
+      "parameters": {
+        "channel": {
+          "type": "string",
+          "description": "Channel ID"
+        },
+        "include_num_members": {
+          "type": "boolean",
+          "description": "Include member count",
+          "required": false,
+          "default": true
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "Channel details"
+      }
+    },
+    {
+      "name": "slack_get_channel_history",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Read X from **[Resource Name]** (ID: `[id]` | URL: [url])'\n(3) Use EXACT [id] provided - NEVER substitute with different ID\n(4) If tool fails (404/403), say 'Failed to read [resource] ID: [id]' and explain error\n(5) NEVER make up data if read fails - acknowledge the failure clearly\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nGet message history from channel",
+      "platform": "slack",
+      "parameters": {
+        "channel": {
+          "type": "string",
+          "description": "Channel ID"
+        },
+        "limit": {
+          "type": "integer",
+          "description": "Number of messages (1-1000)",
+          "required": false,
+          "default": 100
+        },
+        "oldest": {
+          "type": "string",
+          "description": "Start timestamp",
+          "required": false
+        },
+        "latest": {
+          "type": "string",
+          "description": "End timestamp",
+          "required": false
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "Message history"
+      }
+    },
+    {
+      "name": "slack_list_users",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Read X from **[Resource Name]** (ID: `[id]` | URL: [url])'\n(3) Use EXACT [id] provided - NEVER substitute with different ID\n(4) If tool fails (404/403), say 'Failed to read [resource] ID: [id]' and explain error\n(5) NEVER make up data if read fails - acknowledge the failure clearly\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nList all users in workspace",
+      "platform": "slack",
+      "parameters": {
+        "limit": {
+          "type": "integer",
+          "description": "Number of users (1-1000)",
+          "required": false,
+          "default": 100
+        },
+        "include_locale": {
+          "type": "boolean",
+          "description": "Include user locale",
+          "required": false,
+          "default": false
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "List of users with profiles"
+      }
+    },
+    {
+      "name": "slack_get_user_info",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Read X from **[Resource Name]** (ID: `[id]` | URL: [url])'\n(3) Use EXACT [id] provided - NEVER substitute with different ID\n(4) If tool fails (404/403), say 'Failed to read [resource] ID: [id]' and explain error\n(5) NEVER make up data if read fails - acknowledge the failure clearly\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nGet user profile information",
+      "platform": "slack",
+      "parameters": {
+        "user": {
+          "type": "string",
+          "description": "User ID"
+        },
+        "include_locale": {
+          "type": "boolean",
+          "description": "Include locale",
+          "required": false,
+          "default": false
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "User profile details"
+      }
+    },
+    {
+      "name": "slack_set_user_status",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER reference previous edits from conversation history\n(2) MUST cite what was updated: 'Updated **[Resource Name]** (ID: `[id]`)'\n(3) Use EXACT [id] provided - NEVER make up IDs\n(4) If tool fails, say 'Failed to update' and explain why\n(5) Show before/after if applicable\n\nExample response:\nUpdated: **Document Title**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Changed: [what was changed]\n\nExample response:\nUpdated: **Document Title**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Changed: [what was changed]\n\nSet custom status for bot user",
+      "platform": "slack",
+      "parameters": {
+        "status_text": {
+          "type": "string",
+          "description": "Status text"
+        },
+        "status_emoji": {
+          "type": "string",
+          "description": "Status emoji",
+          "required": false
+        },
+        "status_expiration": {
+          "type": "integer",
+          "description": "Unix timestamp when status expires",
+          "required": false
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "Status update confirmation"
+      }
+    },
+    {
+      "name": "slack_upload_file",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) ALWAYS execute THIS tool NOW - NEVER reference 'I created earlier' or use conversation history\n(2) MUST return format: **[Name]** | ID: `[id]` | URL: [full_url] | Link: [title](url)\n(3) Use EXACT values from tool response - NEVER make up fake URLs/IDs\n(4) If tool fails, say 'Failed to create' - NEVER pretend it succeeded\n\nExample response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\nExample response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\nUpload a file to Slack",
+      "platform": "slack",
+      "parameters": {
+        "channels": {
+          "type": "array",
+          "description": "Array of channel IDs to share file",
+          "required": false
+        },
+        "content": {
+          "type": "string",
+          "description": "File content (text or base64 encoded)"
+        },
+        "filename": {
+          "type": "string",
+          "description": "File name"
+        },
+        "filetype": {
+          "type": "string",
+          "description": "File type (e.g., 'pdf', 'jpg', 'txt')",
+          "required": false
+        },
+        "title": {
+          "type": "string",
+          "description": "File title",
+          "required": false
+        },
+        "initial_comment": {
+          "type": "string",
+          "description": "Comment with file upload",
+          "required": false
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "Uploaded file details"
+      }
+    },
+    {
+      "name": "slack_get_file_info",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Read X from **[Resource Name]** (ID: `[id]` | URL: [url])'\n(3) Use EXACT [id] provided - NEVER substitute with different ID\n(4) If tool fails (404/403), say 'Failed to read [resource] ID: [id]' and explain error\n(5) NEVER make up data if read fails - acknowledge the failure clearly\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nGet file information",
+      "platform": "slack",
+      "parameters": {
+        "file": {
+          "type": "string",
+          "description": "File ID"
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "File details and download URL"
+      }
+    },
+    {
+      "name": "slack_delete_file",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER pretend to delete from memory\n(2) MUST cite what was deleted: 'Deleted **[Resource Name]** (ID: `[id]`)'\n(3) CONFIRM deletion happened - don't assume success\n(4) If tool fails, say 'Failed to delete' and explain why\n\nExample response:\n✅ Deleted: **Old File**\n- ID: `abc123`\n- URL: https://example.com/file/abc123 (no longer accessible)\n\nExample response:\n✅ Deleted: **Old File**\n- ID: `abc123`\n- URL: https://example.com/file/abc123 (no longer accessible)\n\nDelete a file",
+      "platform": "slack",
+      "parameters": {
+        "file": {
+          "type": "string",
+          "description": "File ID"
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "Deletion confirmation"
+      }
+    },
+    {
+      "name": "slack_add_reaction",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) ALWAYS execute THIS tool NOW - NEVER reference 'I created earlier' or use conversation history\n(2) MUST return format: **[Name]** | ID: `[id]` | URL: [full_url] | Link: [title](url)\n(3) Use EXACT values from tool response - NEVER make up fake URLs/IDs\n(4) If tool fails, say 'Failed to create' - NEVER pretend it succeeded\n\nExample response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\nExample response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\nAdd emoji reaction to a message",
+      "platform": "slack",
+      "parameters": {
+        "channel": {
+          "type": "string",
+          "description": "Channel ID"
+        },
+        "timestamp": {
+          "type": "string",
+          "description": "Message timestamp"
+        },
+        "name": {
+          "type": "string",
+          "description": "Emoji name (without colons, e.g., 'thumbsup')"
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "Reaction confirmation"
+      }
+    },
+    {
+      "name": "slack_remove_reaction",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER pretend to delete from memory\n(2) MUST cite what was deleted: 'Deleted **[Resource Name]** (ID: `[id]`)'\n(3) CONFIRM deletion happened - don't assume success\n(4) If tool fails, say 'Failed to delete' and explain why\n\nExample response:\n✅ Deleted: **Old File**\n- ID: `abc123`\n- URL: https://example.com/file/abc123 (no longer accessible)\n\nExample response:\n✅ Deleted: **Old File**\n- ID: `abc123`\n- URL: https://example.com/file/abc123 (no longer accessible)\n\nRemove emoji reaction from message",
+      "platform": "slack",
+      "parameters": {
+        "channel": {
+          "type": "string",
+          "description": "Channel ID"
+        },
+        "timestamp": {
+          "type": "string",
+          "description": "Message timestamp"
+        },
+        "name": {
+          "type": "string",
+          "description": "Emoji name"
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "Removal confirmation"
+      }
+    },
+    {
+      "name": "slack_get_workspace_info",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Read X from **[Resource Name]** (ID: `[id]` | URL: [url])'\n(3) Use EXACT [id] provided - NEVER substitute with different ID\n(4) If tool fails (404/403), say 'Failed to read [resource] ID: [id]' and explain error\n(5) NEVER make up data if read fails - acknowledge the failure clearly\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nGet workspace/team information",
+      "platform": "slack",
+      "parameters": {},
+      "returns": {
+        "type": "object",
+        "description": "Workspace details"
+      }
+    },
+    {
+      "name": "slack_search_messages",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Read X from **[Resource Name]** (ID: `[id]` | URL: [url])'\n(3) Use EXACT [id] provided - NEVER substitute with different ID\n(4) If tool fails (404/403), say 'Failed to read [resource] ID: [id]' and explain error\n(5) NEVER make up data if read fails - acknowledge the failure clearly\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nSearch messages in workspace",
+      "platform": "slack",
+      "parameters": {
+        "query": {
+          "type": "string",
+          "description": "Search query"
+        },
+        "count": {
+          "type": "integer",
+          "description": "Number of results (1-100)",
+          "required": false,
+          "default": 20
+        },
+        "sort": {
+          "type": "string",
+          "description": "Sort order: score or timestamp",
+          "required": false,
+          "default": "score"
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "Search results"
+      }
+    },
+    {
+      "name": "slack_set_channel_topic",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER reference previous edits from conversation history\n(2) MUST cite what was updated: 'Updated **[Resource Name]** (ID: `[id]`)'\n(3) Use EXACT [id] provided - NEVER make up IDs\n(4) If tool fails, say 'Failed to update' and explain why\n(5) Show before/after if applicable\n\nExample response:\nUpdated: **Document Title**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Changed: [what was changed]\n\nExample response:\nUpdated: **Document Title**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Changed: [what was changed]\n\nSet channel topic",
+      "platform": "slack",
+      "parameters": {
+        "channel": {
+          "type": "string",
+          "description": "Channel ID"
+        },
+        "topic": {
+          "type": "string",
+          "description": "New topic text"
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "Topic update confirmation"
+      }
+    },
+    {
+      "name": "slack_set_channel_purpose",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER reference previous edits from conversation history\n(2) MUST cite what was updated: 'Updated **[Resource Name]** (ID: `[id]`)'\n(3) Use EXACT [id] provided - NEVER make up IDs\n(4) If tool fails, say 'Failed to update' and explain why\n(5) Show before/after if applicable\n\nExample response:\nUpdated: **Document Title**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Changed: [what was changed]\n\nExample response:\nUpdated: **Document Title**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Changed: [what was changed]\n\nSet channel purpose/description",
+      "platform": "slack",
+      "parameters": {
+        "channel": {
+          "type": "string",
+          "description": "Channel ID"
+        },
+        "purpose": {
+          "type": "string",
+          "description": "New purpose text"
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "Purpose update confirmation"
+      }
+    }
+  ]
+}

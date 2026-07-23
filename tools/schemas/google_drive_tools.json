@@ -1,0 +1,413 @@
+{
+  "platform": "google_drive",
+  "description": "Google Drive API - Cloud storage, file management, and sharing tools\n\n⚠️ CRITICAL: ALL tools in this platform MUST be called through the execute_tool meta-tool for proper OAuth credential injection. DO NOT call these tools directly. Always use: execute_tool(tool_name='toolname', ...parameters)",
+  "tools": [
+    {
+      "name": "google_drive_list_files",
+      "short_description": "List files and folders in Google Drive with filters for type, owner, and modification date",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Read X from **[Resource Name]** (ID: `[id]` | URL: [url])'\n(3) Use EXACT [id] provided - NEVER substitute with different ID\n(4) If tool fails (404/403), say 'Failed to read [resource] ID: [id]' and explain error\n(5) NEVER make up data if read fails - acknowledge the failure clearly\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\n⚠️ MUST USE: execute_tool(tool_name='google_drive_list_files', ...) - DO NOT call directly!\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nList files and folders in Drive with filters",
+      "platform": "google_drive",
+      "parameters": {
+        "query": {
+          "type": "string",
+          "description": "Search query (e.g., \"name contains 'report' and mimeType='application/pdf'\")",
+          "required": false
+        },
+        "folder_id": {
+          "type": "string",
+          "description": "Specific folder ID to list (omit for root or search all)",
+          "required": false
+        },
+        "page_size": {
+          "type": "integer",
+          "description": "Number of files to return (1-1000)",
+          "required": false,
+          "default": 100
+        },
+        "order_by": {
+          "type": "string",
+          "description": "Sort order: createdTime, modifiedTime, name, quotaBytesUsed, etc.",
+          "required": false,
+          "default": "modifiedTime desc"
+        },
+        "include_trashed": {
+          "type": "boolean",
+          "description": "Include trashed files",
+          "required": false,
+          "default": false
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "List of files with metadata"
+      }
+    },
+    {
+      "name": "google_drive_get_file",
+      "short_description": "Get Google Drive file metadata by ID including name, size, permissions, and sharing",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Read X from **[Resource Name]** (ID: `[id]` | URL: [url])'\n(3) Use EXACT [id] provided - NEVER substitute with different ID\n(4) If tool fails (404/403), say 'Failed to read [resource] ID: [id]' and explain error\n(5) NEVER make up data if read fails - acknowledge the failure clearly\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\n⚠️ MUST USE: execute_tool(tool_name='google_drive_get_file', ...) - DO NOT call directly!\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nGet file metadata or download file content",
+      "platform": "google_drive",
+      "parameters": {
+        "file_id": {
+          "type": "string",
+          "description": "File ID"
+        },
+        "download": {
+          "type": "boolean",
+          "description": "Download file content (vs just metadata)",
+          "required": false,
+          "default": false
+        },
+        "mime_type": {
+          "type": "string",
+          "description": "Export format for Google Docs (e.g., 'application/pdf', 'text/plain')",
+          "required": false
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "File metadata or content"
+      }
+    },
+    {
+      "name": "google_drive_upload_file",
+      "short_description": "Upload file to Google Drive from local path or URL with folder destination",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) ALWAYS execute THIS tool NOW - NEVER reference 'I created earlier' or use conversation history\n(2) MUST return format: **[Name]** | ID: `[id]` | URL: [full_url] | Link: [title](url)\n(3) Use EXACT values from tool response - NEVER make up fake URLs/IDs\n(4) If tool fails, say 'Failed to create' - NEVER pretend it succeeded\n\nExample response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\n⚠️ MUST USE: execute_tool(tool_name='google_drive_upload_file', ...) - DO NOT call directly!\n\nExample response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\nUpload a new file to Google Drive",
+      "platform": "google_drive",
+      "parameters": {
+        "name": {
+          "type": "string",
+          "description": "File name"
+        },
+        "content": {
+          "type": "string",
+          "description": "File content (text) or base64 encoded binary"
+        },
+        "mime_type": {
+          "type": "string",
+          "description": "MIME type (e.g., 'text/plain', 'image/png', 'application/pdf')"
+        },
+        "parent_folder_id": {
+          "type": "string",
+          "description": "Parent folder ID (omit for root)",
+          "required": false
+        },
+        "description": {
+          "type": "string",
+          "description": "File description",
+          "required": false
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "Uploaded file metadata with ID"
+      }
+    },
+    {
+      "name": "google_drive_update_file",
+      "short_description": "Update Google Drive file content or metadata by ID to replace or modify existing file",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER reference previous edits from conversation history\n(2) MUST cite what was updated: 'Updated **[Resource Name]** (ID: `[id]`)'\n(3) Use EXACT [id] provided - NEVER make up IDs\n(4) If tool fails, say 'Failed to update' and explain why\n(5) Show before/after if applicable\n\nExample response:\nUpdated: **Document Title**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Changed: [what was changed]\n\n⚠️ MUST USE: execute_tool(tool_name='google_drive_update_file', ...) - DO NOT call directly!\n\nExample response:\nUpdated: **Document Title**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Changed: [what was changed]\n\nUpdate file content or metadata",
+      "platform": "google_drive",
+      "parameters": {
+        "file_id": {
+          "type": "string",
+          "description": "File ID to update"
+        },
+        "name": {
+          "type": "string",
+          "description": "New file name",
+          "required": false
+        },
+        "content": {
+          "type": "string",
+          "description": "New file content",
+          "required": false
+        },
+        "description": {
+          "type": "string",
+          "description": "New description",
+          "required": false
+        },
+        "mime_type": {
+          "type": "string",
+          "description": "MIME type for content update",
+          "required": false
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "Updated file metadata"
+      }
+    },
+    {
+      "name": "google_drive_delete_file",
+      "short_description": "Delete file or folder from Google Drive by ID to move to trash or permanently remove",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER pretend to delete from memory\n(2) MUST cite what was deleted: 'Deleted **[Resource Name]** (ID: `[id]`)'\n(3) CONFIRM deletion happened - don't assume success\n(4) If tool fails, say 'Failed to delete' and explain why\n\nExample response:\n✅ Deleted: **Old File**\n- ID: `abc123`\n- URL: https://example.com/file/abc123 (no longer accessible)\n\n⚠️ MUST USE: execute_tool(tool_name='google_drive_delete_file', ...) - DO NOT call directly!\n\nExample response:\n✅ Deleted: **Old File**\n- ID: `abc123`\n- URL: https://example.com/file/abc123 (no longer accessible)\n\nDelete or trash a file",
+      "platform": "google_drive",
+      "parameters": {
+        "file_id": {
+          "type": "string",
+          "description": "File ID to delete"
+        },
+        "permanent": {
+          "type": "boolean",
+          "description": "Permanently delete (vs move to trash)",
+          "required": false,
+          "default": false
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "Deletion confirmation"
+      }
+    },
+    {
+      "name": "google_drive_create_folder",
+      "short_description": "Create new folder in Google Drive by name for file organization and structure",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) ALWAYS execute THIS tool NOW - NEVER reference 'I created earlier' or use conversation history\n(2) MUST return format: **[Name]** | ID: `[id]` | URL: [full_url] | Link: [title](url)\n(3) Use EXACT values from tool response - NEVER make up fake URLs/IDs\n(4) If tool fails, say 'Failed to create' - NEVER pretend it succeeded\n\nExample response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\n⚠️ MUST USE: execute_tool(tool_name='google_drive_create_folder', ...) - DO NOT call directly!\n\nExample response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\nCreate a new folder",
+      "platform": "google_drive",
+      "parameters": {
+        "name": {
+          "type": "string",
+          "description": "Folder name"
+        },
+        "parent_folder_id": {
+          "type": "string",
+          "description": "Parent folder ID (omit for root)",
+          "required": false
+        },
+        "description": {
+          "type": "string",
+          "description": "Folder description",
+          "required": false
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "Created folder metadata with ID"
+      }
+    },
+    {
+      "name": "google_drive_move_file",
+      "short_description": "Move file or folder to different Google Drive location by changing parent folder",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Read X from **[Resource Name]** (ID: `[id]` | URL: [url])'\n(3) Use EXACT [id] provided - NEVER substitute with different ID\n(4) If tool fails (404/403), say 'Failed to read [resource] ID: [id]' and explain error\n(5) NEVER make up data if read fails - acknowledge the failure clearly\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\n⚠️ MUST USE: execute_tool(tool_name='google_drive_move_file', ...) - DO NOT call directly!\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nMove file to a different folder",
+      "platform": "google_drive",
+      "parameters": {
+        "file_id": {
+          "type": "string",
+          "description": "File ID to move"
+        },
+        "new_parent_folder_id": {
+          "type": "string",
+          "description": "Destination folder ID"
+        },
+        "remove_from_current": {
+          "type": "boolean",
+          "description": "Remove from current parent folders",
+          "required": false,
+          "default": true
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "Updated file with new parent"
+      }
+    },
+    {
+      "name": "google_drive_copy_file",
+      "short_description": "Copy file in Google Drive by ID to duplicate content with new name or location",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Read X from **[Resource Name]** (ID: `[id]` | URL: [url])'\n(3) Use EXACT [id] provided - NEVER substitute with different ID\n(4) If tool fails (404/403), say 'Failed to read [resource] ID: [id]' and explain error\n(5) NEVER make up data if read fails - acknowledge the failure clearly\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\n⚠️ MUST USE: execute_tool(tool_name='google_drive_copy_file', ...) - DO NOT call directly!\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nCreate a copy of a file",
+      "platform": "google_drive",
+      "parameters": {
+        "file_id": {
+          "type": "string",
+          "description": "File ID to copy"
+        },
+        "name": {
+          "type": "string",
+          "description": "Name for the copy",
+          "required": false
+        },
+        "parent_folder_id": {
+          "type": "string",
+          "description": "Destination folder ID",
+          "required": false
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "Copied file metadata"
+      }
+    },
+    {
+      "name": "google_drive_share_file",
+      "short_description": "Share Google Drive file by ID with email addresses and permission levels for collaboration",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Read X from **[Resource Name]** (ID: `[id]` | URL: [url])'\n(3) Use EXACT [id] provided - NEVER substitute with different ID\n(4) If tool fails (404/403), say 'Failed to read [resource] ID: [id]' and explain error\n(5) NEVER make up data if read fails - acknowledge the failure clearly\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\n⚠️ MUST USE: execute_tool(tool_name='google_drive_share_file', ...) - DO NOT call directly!\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nShare a file with users or create public link",
+      "platform": "google_drive",
+      "parameters": {
+        "file_id": {
+          "type": "string",
+          "description": "File ID to share"
+        },
+        "email": {
+          "type": "string",
+          "description": "Email address to share with (for specific users)",
+          "required": false
+        },
+        "role": {
+          "type": "string",
+          "description": "Permission role: reader, writer, commenter, or owner"
+        },
+        "type": {
+          "type": "string",
+          "description": "Permission type: user, group, domain, or anyone (public)"
+        },
+        "send_notification": {
+          "type": "boolean",
+          "description": "Send email notification",
+          "required": false,
+          "default": true
+        },
+        "message": {
+          "type": "string",
+          "description": "Custom message for notification",
+          "required": false
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "Permission details with link"
+      }
+    },
+    {
+      "name": "google_drive_list_permissions",
+      "short_description": "List all permissions for Google Drive file to view who has access and permission levels",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Read X from **[Resource Name]** (ID: `[id]` | URL: [url])'\n(3) Use EXACT [id] provided - NEVER substitute with different ID\n(4) If tool fails (404/403), say 'Failed to read [resource] ID: [id]' and explain error\n(5) NEVER make up data if read fails - acknowledge the failure clearly\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\n⚠️ MUST USE: execute_tool(tool_name='google_drive_list_permissions', ...) - DO NOT call directly!\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nList all permissions for a file",
+      "platform": "google_drive",
+      "parameters": {
+        "file_id": {
+          "type": "string",
+          "description": "File ID"
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "List of permissions with users and roles"
+      }
+    },
+    {
+      "name": "google_drive_remove_permission",
+      "short_description": "Remove user permission from Google Drive file by permission ID to revoke access",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER pretend to delete from memory\n(2) MUST cite what was deleted: 'Deleted **[Resource Name]** (ID: `[id]`)'\n(3) CONFIRM deletion happened - don't assume success\n(4) If tool fails, say 'Failed to delete' and explain why\n\nExample response:\n✅ Deleted: **Old File**\n- ID: `abc123`\n- URL: https://example.com/file/abc123 (no longer accessible)\n\n⚠️ MUST USE: execute_tool(tool_name='google_drive_remove_permission', ...) - DO NOT call directly!\n\nExample response:\n✅ Deleted: **Old File**\n- ID: `abc123`\n- URL: https://example.com/file/abc123 (no longer accessible)\n\nRemove sharing permission from a file",
+      "platform": "google_drive",
+      "parameters": {
+        "file_id": {
+          "type": "string",
+          "description": "File ID"
+        },
+        "permission_id": {
+          "type": "string",
+          "description": "Permission ID to remove"
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "Removal confirmation"
+      }
+    },
+    {
+      "name": "google_drive_search_files",
+      "short_description": "Search Google Drive files by name, content, type, or metadata with advanced query filters",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Read X from **[Resource Name]** (ID: `[id]` | URL: [url])'\n(3) Use EXACT [id] provided - NEVER substitute with different ID\n(4) If tool fails (404/403), say 'Failed to read [resource] ID: [id]' and explain error\n(5) NEVER make up data if read fails - acknowledge the failure clearly\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\n⚠️ MUST USE: execute_tool(tool_name='google_drive_search_files', ...) - DO NOT call directly!\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nAdvanced file search with multiple criteria",
+      "platform": "google_drive",
+      "parameters": {
+        "name_contains": {
+          "type": "string",
+          "description": "File name contains text",
+          "required": false
+        },
+        "mime_type": {
+          "type": "string",
+          "description": "Specific MIME type",
+          "required": false
+        },
+        "modified_after": {
+          "type": "string",
+          "description": "Modified after date (ISO 8601)",
+          "required": false
+        },
+        "modified_before": {
+          "type": "string",
+          "description": "Modified before date (ISO 8601)",
+          "required": false
+        },
+        "owner_email": {
+          "type": "string",
+          "description": "Owner email address",
+          "required": false
+        },
+        "shared_with_me": {
+          "type": "boolean",
+          "description": "Files shared with me",
+          "required": false
+        },
+        "starred": {
+          "type": "boolean",
+          "description": "Starred files only",
+          "required": false
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "Search results with file list"
+      }
+    },
+    {
+      "name": "google_drive_export_file",
+      "short_description": "Export Google Workspace file to different format like PDF, DOCX, XLSX for download",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Read X from **[Resource Name]** (ID: `[id]` | URL: [url])'\n(3) Use EXACT [id] provided - NEVER substitute with different ID\n(4) If tool fails (404/403), say 'Failed to read [resource] ID: [id]' and explain error\n(5) NEVER make up data if read fails - acknowledge the failure clearly\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\n⚠️ MUST USE: execute_tool(tool_name='google_drive_export_file', ...) - DO NOT call directly!\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nExport Google Docs/Sheets/Slides to different format",
+      "platform": "google_drive",
+      "parameters": {
+        "file_id": {
+          "type": "string",
+          "description": "Google file ID to export"
+        },
+        "mime_type": {
+          "type": "string",
+          "description": "Export format (PDF, DOCX, XLSX, PPTX, etc.)"
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "Exported file content"
+      }
+    },
+    {
+      "name": "google_drive_get_storage_quota",
+      "short_description": "Get Google Drive storage quota with used space, total limit, and remaining capacity",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Read X from **[Resource Name]** (ID: `[id]` | URL: [url])'\n(3) Use EXACT [id] provided - NEVER substitute with different ID\n(4) If tool fails (404/403), say 'Failed to read [resource] ID: [id]' and explain error\n(5) NEVER make up data if read fails - acknowledge the failure clearly\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\n⚠️ MUST USE: execute_tool(tool_name='google_drive_get_storage_quota', ...) - DO NOT call directly!\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nGet Drive storage usage and quota information",
+      "platform": "google_drive",
+      "parameters": {},
+      "returns": {
+        "type": "object",
+        "description": "Storage usage, limit, and breakdown by type"
+      }
+    },
+    {
+      "name": "google_drive_restore_file",
+      "short_description": "Restore deleted file from Google Drive trash by ID to recover accidentally removed content",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Read X from **[Resource Name]** (ID: `[id]` | URL: [url])'\n(3) Use EXACT [id] provided - NEVER substitute with different ID\n(4) If tool fails (404/403), say 'Failed to read [resource] ID: [id]' and explain error\n(5) NEVER make up data if read fails - acknowledge the failure clearly\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\n⚠️ MUST USE: execute_tool(tool_name='google_drive_restore_file', ...) - DO NOT call directly!\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nRestore a file from trash",
+      "platform": "google_drive",
+      "parameters": {
+        "file_id": {
+          "type": "string",
+          "description": "File ID to restore"
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "Restored file metadata"
+      }
+    }
+  ]
+}

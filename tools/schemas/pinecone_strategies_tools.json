@@ -1,0 +1,63 @@
+{
+    "platform": "pinecone",
+    "description": "Pinecone Vector Database Strategies & Configuration Guide - Expert AI assistance for understanding vector database concepts, choosing optimal settings, and implementing best practices",
+    "tools": [
+        {
+            "name": "pinecone_explain_strategies",
+            "description": "🎓 COMPREHENSIVE VECTOR DATABASE EDUCATION TOOL\n\nThis tool provides expert explanations, definitions, use cases, and strategic guidance for Pinecone vector database configurations. Use this when users need help understanding:\n\n📚 CORE CONCEPTS:\n- Vector embeddings and semantic search fundamentals\n- Dense vs sparse vectors (hybrid search)\n- Similarity metrics (cosine, euclidean, dotproduct)\n- Namespaces and multi-tenancy architecture\n- Metadata filtering and query optimization\n\n🎯 STRATEGIC DECISIONS:\n- When to use hybrid search vs pure semantic search\n- How to structure namespaces for different use cases\n- Optimal chunk sizes for document processing\n- Category/folder organization strategies\n- User permission models (user/global/team visibility)\n\n⚙️ CONFIGURATION GUIDANCE:\n- Index dimension selection (384, 768, 1536, 3072)\n- Metric selection based on embedding model\n- top_k parameter tuning for accuracy vs performance\n- Chunk size and overlap optimization\n- Sparse vector feature count selection\n\n💡 USE CASE EXAMPLES:\n- Legal document management with compliance\n- Customer support knowledge base\n- E-commerce product search\n- Healthcare patient records (HIPAA-compliant)\n- Multi-tenant SaaS applications\n- Enterprise document repositories\n\n🔬 ADVANCED PATTERNS:\n- Hybrid search implementation (dense + sparse)\n- Cross-namespace aggregation\n- Metadata filtering operators ($eq, $ne, $gt, $in)\n- Reranking strategies for improved relevance\n- Multi-modal embeddings (text + images)\n\nEXAMPLE QUERIES:\n- 'Explain when to use cosine vs euclidean distance'\n- 'How should I structure namespaces for a legal firm?'\n- 'What chunk size is best for technical documentation?'\n- 'Explain hybrid search and when to use it'\n- 'How do I implement user permissions with Pinecone?'\n- 'What are metadata filters and how do I use them?'",
+            "platform": "pinecone",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "topic": {
+                        "type": "string",
+                        "enum": [
+                            "embeddings_basics",
+                            "similarity_metrics",
+                            "hybrid_search",
+                            "namespaces",
+                            "metadata_filtering",
+                            "chunk_optimization",
+                            "user_permissions",
+                            "performance_tuning",
+                            "use_cases",
+                            "best_practices",
+                            "security",
+                            "multi_tenancy",
+                            "categorization",
+                            "reranking",
+                            "troubleshooting"
+                        ],
+                        "description": "Topic to explain (REQUIRED). Select the concept you want to understand."
+                    },
+                    "context": {
+                        "type": "string",
+                        "description": "User's specific situation or question (optional). Example: 'I have 10,000 legal documents and need to organize by client and year'"
+                    },
+                    "depth": {
+                        "type": "string",
+                        "enum": [
+                            "beginner",
+                            "intermediate",
+                            "advanced"
+                        ],
+                        "description": "Explanation depth level (default: intermediate)",
+                        "default": "intermediate"
+                    },
+                    "include_examples": {
+                        "type": "boolean",
+                        "description": "Include code examples and implementation patterns (default: true)",
+                        "default": true
+                    }
+                },
+                "required": [
+                    "topic"
+                ]
+            },
+            "returns": {
+                "type": "object",
+                "description": "Comprehensive explanation with definitions, use cases, best practices, code examples, and strategic recommendations"
+            }
+        }
+    ]
+}

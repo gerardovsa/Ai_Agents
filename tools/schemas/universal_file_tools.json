@@ -1,0 +1,475 @@
+{
+    "tools": [
+        {
+            "name": "process_outlook_attachment_for_ai",
+            "short_description": "Analyze Outlook email attachments with AI vision for PDFs, images, and Office docs",
+            "description": "⚠️ CRITICAL: Use this tool to analyze Outlook email attachments (PDFs, images, Office docs). After calling this tool, the file content is AUTOMATICALLY accessible to you - DO NOT try to read it manually with python_exec or ask for file paths. For PDFs: you will see all pages rendered as images (can read text, see charts, tables). For images: native vision (identify objects, read text, analyze). Token-optimized: 691KB PDF = ~800 tokens (vs 230K with old download method). The tool returns a content_block that is injected into your conversation context by Anthropic's API. Just analyze what you see naturally.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "message_id": {
+                        "type": "string",
+                        "description": "Outlook message ID (from microsoft_outlook_list_messages)"
+                    },
+                    "attachment_id": {
+                        "type": "string",
+                        "description": "Attachment ID (from microsoft_outlook_get_attachments)"
+                    },
+                    "mode": {
+                        "type": "string",
+                        "enum": [
+                            "auto",
+                            "direct",
+                            "files_api",
+                            "extract"
+                        ],
+                        "default": "auto",
+                        "description": "Delivery mode: 'auto' (smart detection), 'direct' (force base64), 'files_api' (large files), 'extract' (text from DOCX/XLSX)"
+                    }
+                },
+                "required": [
+                    "message_id",
+                    "attachment_id"
+                ]
+            },
+            "platform": "universal_files"
+        },
+        {
+            "name": "process_gmail_attachment_for_ai",
+            "short_description": "Analyze Gmail attachments with AI vision for PDFs, images, and Office docs",
+            "description": "⚠️ CRITICAL: Use this tool to analyze Gmail attachments. After calling, the file content is AUTOMATICALLY accessible - you can see PDFs (all pages rendered visually), images (native vision), and extracted text from Office docs. DO NOT use python_exec or ask for file paths after calling this. Token-optimized: 99%+ reduction vs old download methods. The content_block is automatically injected into your context by Anthropic's API. Just analyze what you see.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "message_id": {
+                        "type": "string",
+                        "description": "Gmail message ID (from gmail_list_messages)"
+                    },
+                    "attachment_id": {
+                        "type": "string",
+                        "description": "Attachment ID (from gmail_get_attachments)"
+                    },
+                    "mode": {
+                        "type": "string",
+                        "enum": [
+                            "auto",
+                            "direct",
+                            "files_api",
+                            "extract"
+                        ],
+                        "default": "auto",
+                        "description": "Delivery mode (see process_outlook_attachment_for_ai)"
+                    }
+                },
+                "required": [
+                    "message_id",
+                    "attachment_id"
+                ]
+            },
+            "platform": "universal_files"
+        },
+        {
+            "name": "process_onedrive_file_for_ai",
+            "short_description": "Analyze OneDrive and SharePoint files with AI vision for PDFs, images, and Office docs",
+            "description": "⚠️ CRITICAL: Use this to analyze files from OneDrive/SharePoint. After calling, you can IMMEDIATELY see/analyze the file content - PDFs rendered as page images, native image vision, or extracted Office doc text. DO NOT attempt manual file reading. The content_block is auto-injected into your context. Works with personal OneDrive and Microsoft 365 Business accounts.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "file_id": {
+                        "type": "string",
+                        "description": "OneDrive item ID (from microsoft_onedrive_list_files or microsoft_onedrive_search_files)"
+                    },
+                    "mode": {
+                        "type": "string",
+                        "enum": [
+                            "auto",
+                            "direct",
+                            "extract"
+                        ],
+                        "default": "auto",
+                        "description": "Delivery mode: 'auto' (smart), 'direct' (base64 for PDFs/images), 'extract' (text from DOCX/XLSX)"
+                    }
+                },
+                "required": [
+                    "file_id"
+                ]
+            },
+            "platform": "universal_files"
+        },
+        {
+            "name": "process_google_drive_file_for_ai",
+            "short_description": "Analyze Google Drive files with AI vision for PDFs, images, and Office docs",
+            "description": "⚠️ CRITICAL: Use this to analyze Google Drive files. After calling, the file content is IMMEDIATELY visible to you - no manual reading needed. PDFs show as rendered page images, images provide native vision, Office docs return extracted text. The content_block is auto-accessible in your context. Supports personal Drive, Shared Drives, and Google Workspace.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "file_id": {
+                        "type": "string",
+                        "description": "Google Drive file ID (from google_drive_list_files or google_drive_search)"
+                    },
+                    "mode": {
+                        "type": "string",
+                        "enum": [
+                            "auto",
+                            "direct",
+                            "extract"
+                        ],
+                        "default": "auto",
+                        "description": "Delivery mode (see process_onedrive_file_for_ai)"
+                    }
+                },
+                "required": [
+                    "file_id"
+                ]
+            },
+            "platform": "universal_files"
+        },
+        {
+            "name": "process_local_file_for_ai",
+            "short_description": "Analyze local server files with AI vision for PDFs, images, and Office docs",
+            "description": "⚠️ CRITICAL: Use this to analyze files on the SERVER filesystem (NOT user's computer). After calling, you can immediately see/analyze the content - no manual reading needed. Use for temp files, server uploads, or backend documents. Path must be absolute server path (e.g., C:/temp/uploads/file.pdf). Content is auto-accessible after the tool returns.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "file_path": {
+                        "type": "string",
+                        "description": "Absolute path to file on SERVER (e.g., C:/temp/uploads/report.pdf or /var/uploads/doc.docx). Must be server-side path!"
+                    },
+                    "mode": {
+                        "type": "string",
+                        "enum": [
+                            "auto",
+                            "direct",
+                            "extract"
+                        ],
+                        "default": "auto",
+                        "description": "Delivery mode (see process_onedrive_file_for_ai)"
+                    }
+                },
+                "required": [
+                    "file_path"
+                ]
+            },
+            "platform": "universal_files"
+        },
+        {
+            "name": "process_multiple_files_for_ai",
+            "short_description": "Batch process multiple files from Outlook, Gmail, OneDrive, Google Drive, or local sources",
+            "description": "⚠️ CRITICAL: Batch process multiple files from ANY sources (can mix Outlook + Gmail + OneDrive + Google Drive + local). After calling, ALL file contents are IMMEDIATELY accessible to you - see all PDFs, images, docs at once. DO NOT attempt manual reading. Perfect for email threads with multiple attachments or analyzing entire folders. All content_blocks are auto-injected into your context.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "files": {
+                        "type": "array",
+                        "description": "List of file specifications with source and source-specific parameters",
+                        "items": {
+                            "type": "object",
+                            "properties": {
+                                "source": {
+                                    "type": "string",
+                                    "enum": [
+                                        "outlook",
+                                        "gmail",
+                                        "onedrive",
+                                        "google_drive",
+                                        "local"
+                                    ],
+                                    "description": "File source type"
+                                },
+                                "message_id": {
+                                    "type": "string",
+                                    "description": "For outlook/gmail: Email message ID"
+                                },
+                                "attachment_id": {
+                                    "type": "string",
+                                    "description": "For outlook/gmail: Attachment ID"
+                                },
+                                "file_id": {
+                                    "type": "string",
+                                    "description": "For onedrive/google_drive: File ID"
+                                },
+                                "file_path": {
+                                    "type": "string",
+                                    "description": "For local: Absolute path on server"
+                                }
+                            },
+                            "required": [
+                                "source"
+                            ]
+                        }
+                    },
+                    "mode": {
+                        "type": "string",
+                        "enum": [
+                            "auto",
+                            "direct",
+                            "extract"
+                        ],
+                        "default": "auto",
+                        "description": "Delivery mode applied to ALL files"
+                    }
+                },
+                "required": [
+                    "files"
+                ]
+            },
+            "platform": "universal_files"
+        },
+        {
+            "name": "process_email_attachment_complete",
+            "short_description": "SMART bundled tool: Download email attachment → Auto-detect file type → Route to cloud platform tools (Excel/Word) OR vision processing (PDF/images) → Return structured data",
+            "description": "🚨 CRITICAL EXECUTION RULES:\n\n⚠️ MUST USE: execute_tool(tool_name='process_email_attachment_complete', ...) - DO NOT call directly!\n\n🤖 SMART BUNDLED TOOL - ONE CALL = COMPLETE WORKFLOW:\nThis tool automatically handles the COMPLETE email attachment processing workflow in a SINGLE call:\n\n📥 BACKEND OPERATIONS (automatic):\n1. Download attachment to temp directory (/tmp/outlook_attachments/ or /tmp/gmail_attachments/)\n2. Auto-detect file type and size\n3. INTELLIGENT ROUTING:\n   - Excel/Word/Office docs → Upload to cloud (OneDrive or Google Drive) → Use platform tools (microsoft_excel_get_range, google_sheets_read_data) → Extract structured queryable data\n   - PDF/Images → Use vision processing (process_outlook_attachment_for_ai or process_gmail_attachment_for_ai) → Return content blocks\n   - CSV/TXT → Parse locally with Python → Return structured JSON\n4. Auto-cleanup temp files\n5. Return appropriate format (structured data JSON OR content blocks)\n\n⚡ EFFICIENCY: 90% reduction in tool calls (8-12 API calls → 1 tool call)\n\n✅ USE THIS TOOL WHEN:\n- User asks to \"open\", \"read\", \"analyze\", or \"process\" an email attachment\n- Need structured data from Excel/Word docs (queryable JSON, not just images)\n- Want complete end-to-end attachment processing in one step\n- Processing multiple attachments from same email (supports batch mode)\n\n🎯 FILE TYPE ROUTING (automatic):\n- .xlsx, .xls → Cloud upload → microsoft_excel_get_range → Returns: {rows: [...], columns: [...], formulas: [...]}\n- .docx, .doc → Cloud upload → microsoft_word_read_content → Returns: {text: \"...\", paragraphs: [...], tables: [...]}\n- .pdf → Vision processing → Returns: content_blocks with rendered pages\n- .png, .jpg, .jpeg → Vision processing → Returns: content_blocks with native image analysis\n- .csv, .txt → Local Python parsing → Returns: {data: [...], headers: [...]}\n\n🔧 PROCESSING MODES:\n- 'auto' (recommended): Backend intelligently routes based on file type, size, and user's cloud storage availability\n- 'cloud_onedrive': Force upload to OneDrive temp folder → Use Microsoft platform tools\n- 'cloud_gdrive': Force upload to Google Drive temp folder → Use Google platform tools\n- 'vision': Force vision processing (PDF rendered as images, no structured data extraction)\n- 'local_python': Force local Python parsing (CSV/TXT only, no cloud upload)\n\n⚠️ CLOUD STORAGE REQUIREMENTS:\n- OneDrive mode: Requires user to have Microsoft 365 OAuth connected\n- Google Drive mode: Requires user to have Google Workspace OAuth connected\n- Auto mode: Backend checks available credentials and selects best option\n\n🗑️ AUTO-CLEANUP:\n- Temp files deleted after processing\n- Cloud temp folders auto-cleaned after 24 hours\n- No manual cleanup needed\n\n📊 RETURN FORMAT:\nFor structured data (Excel/Word/CSV):\n{\n  \"success\": true,\n  \"file_type\": \"excel\",\n  \"processing_mode\": \"cloud_onedrive\",\n  \"data\": {...},  // Queryable structured data\n  \"cloud_file_id\": \"xyz\" // Optional: Keep file in cloud for future reference\n}\n\nFor vision processing (PDF/images):\n{\n  \"success\": true,\n  \"file_type\": \"pdf\",\n  \"processing_mode\": \"vision\",\n  \"content_blocks\": [...] // Auto-injected into conversation context\n}\n\nProcess complete email attachment workflow: download → intelligent routing → structured data extraction OR vision processing → cleanup.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "source": {
+                        "type": "string",
+                        "enum": [
+                            "outlook",
+                            "gmail"
+                        ],
+                        "description": "Email platform (outlook or gmail)"
+                    },
+                    "message_id": {
+                        "type": "string",
+                        "description": "Email message ID (from gmail_list_messages or microsoft_outlook_list_messages)"
+                    },
+                    "attachment_id": {
+                        "type": "string",
+                        "description": "Attachment ID (from gmail_get_attachments or microsoft_outlook_get_attachments)"
+                    },
+                    "processing_mode": {
+                        "type": "string",
+                        "enum": [
+                            "auto",
+                            "cloud_onedrive",
+                            "cloud_gdrive",
+                            "vision",
+                            "local_python"
+                        ],
+                        "default": "auto",
+                        "description": "Processing strategy: 'auto' (smart routing), 'cloud_onedrive' (force OneDrive upload), 'cloud_gdrive' (force Google Drive), 'vision' (force vision processing), 'local_python' (force local parsing)"
+                    },
+                    "keep_in_cloud": {
+                        "type": "boolean",
+                        "default": false,
+                        "description": "If true, keeps uploaded file in cloud storage instead of auto-deleting (useful for repeated access)"
+                    },
+                    "return_format": {
+                        "type": "string",
+                        "enum": [
+                            "structured",
+                            "content_blocks",
+                            "both"
+                        ],
+                        "default": "auto",
+                        "description": "Desired output format: 'structured' (JSON data), 'content_blocks' (vision), 'both' (when possible), 'auto' (backend decides)"
+                    }
+                },
+                "required": [
+                    "source",
+                    "message_id",
+                    "attachment_id"
+                ]
+            },
+            "category": "smart_bundled",
+            "platform": "universal_files",
+            "tool_intelligence": {
+                "typical_workflow_patterns": [
+                    "gmail_list_messages → gmail_get_attachments → process_email_attachment_complete → [analyze structured data]",
+                    "microsoft_outlook_list_messages → microsoft_outlook_get_attachments → process_email_attachment_complete → [query Excel data]",
+                    "process_email_attachment_complete(processing_mode='cloud_onedrive') → microsoft_excel_get_range (if need additional sheet data)",
+                    "process_email_attachment_complete(keep_in_cloud=true) → [save cloud_file_id for future reference]"
+                ],
+                "success_indicators": {
+                    "keywords": [
+                        "attachment downloaded",
+                        "file uploaded to cloud",
+                        "structured data extracted",
+                        "vision content available"
+                    ],
+                    "behavioral": [
+                        "Returns queryable JSON for Excel/Word",
+                        "Returns content_blocks for PDF/images",
+                        "Auto-cleanup confirms completion"
+                    ]
+                },
+                "failure_indicators": {
+                    "keywords": [
+                        "OAuth not connected",
+                        "file too large",
+                        "unsupported file type",
+                        "cloud quota exceeded"
+                    ],
+                    "behavioral": [
+                        "Falls back to vision mode if cloud unavailable",
+                        "Suggests oauth_connect if credentials missing"
+                    ]
+                },
+                "when_to_use": [
+                    "User says: 'open the Excel attachment', 'read the attachment', 'analyze the PDF', 'what's in the attachment?'",
+                    "After listing email attachments and user wants to see contents",
+                    "Need structured queryable data (not just images) from Office files",
+                    "Want complete workflow in one step (download + process + cleanup)"
+                ],
+                "when_not_to_use": [
+                    "Just need to download file to disk (use gmail_get_attachment or microsoft_outlook_download_attachment)",
+                    "File is already uploaded to cloud storage (use process_onedrive_file_for_ai or process_google_drive_file_for_ai)",
+                    "File is already local on server (use process_local_file_universal instead)"
+                ]
+            },
+            "user_facing_language": {
+                "action_verb": "Process email attachment",
+                "result_description": "Complete attachment analysis with intelligent routing (cloud platform tools for structured data OR vision processing for PDFs/images)",
+                "examples": [
+                    "I'll process the Excel attachment from your email - downloading it, uploading to OneDrive, and extracting all the structured data for you.",
+                    "Let me analyze that PDF attachment using vision processing - you'll be able to see all pages rendered and I can read any text or charts.",
+                    "I'll handle that Word document attachment - downloading, uploading to cloud, and extracting the full text content and table data."
+                ]
+            },
+            "memory_context": {
+                "remember": "This is a SMART bundled tool that handles complete email attachment workflows automatically. It intelligently routes Office files to cloud platform tools for structured data extraction, while using vision processing for PDFs/images. Always prefer this over manual download → upload → read workflows."
+            }
+        },
+        {
+            "name": "process_local_file_universal",
+            "short_description": "SMART bundled tool: Process any local server file → Auto-detect type → Route to best processing method (cloud platform tools, vision, or local parsing) → Return structured data",
+            "description": "🚨 CRITICAL EXECUTION RULES:\n\n⚠️ MUST USE: execute_tool(tool_name='process_local_file_universal', ...) - DO NOT call directly!\n\n🤖 SMART BUNDLED TOOL - ONE CALL = COMPLETE WORKFLOW:\nThis tool automatically handles COMPLETE local file processing in a SINGLE call:\n\n📥 BACKEND OPERATIONS (automatic):\n1. Validate file path (security: /tmp/, whitelisted directories only)\n2. Auto-detect file type, size, and format\n3. INTELLIGENT ROUTING:\n   - Excel/Word/Office docs → Upload to cloud → Platform tools → Structured queryable data\n   - PDF/Images → Vision processing → Content blocks\n   - CSV/TXT/JSON → Local Python parsing → Structured data\n   - Large files (>100MB) → Stream processing with progress indicators\n4. Optional: Keep in cloud or auto-cleanup\n5. Return appropriate format (structured data JSON OR content blocks)\n\n⚡ EFFICIENCY: 85% reduction in tool calls (5-8 API calls → 1 tool call)\n\n✅ USE THIS TOOL WHEN:\n- File is already on server filesystem (e.g., /tmp/uploads/file.xlsx)\n- Need to process downloaded files from other sources\n- Want intelligent routing without manually choosing processing method\n- Processing server-side temp files or backend documents\n\n🎯 FILE TYPE ROUTING (automatic):\n- .xlsx, .xls → Cloud upload → microsoft_excel_get_range → Returns structured data with formulas\n- .docx, .doc → Cloud upload → microsoft_word_read_content → Returns text + paragraphs + tables\n- .pdf → Vision processing → Returns content blocks (rendered pages, can read text/charts)\n- .png, .jpg, .jpeg, .gif → Vision processing → Returns content blocks (native image analysis)\n- .csv → Local pandas parsing → Returns {data: [...], headers: [...], stats: {...}}\n- .txt, .json, .xml → Local parsing → Returns structured content\n- .zip, .tar.gz → Extract → Process contents recursively (if allowed)\n\n🔧 PROCESSING MODES:\n- 'auto' (recommended): Backend intelligently routes based on file type, size, cloud availability\n- 'cloud_onedrive': Force OneDrive upload → Microsoft platform tools (requires M365 OAuth)\n- 'cloud_gdrive': Force Google Drive upload → Google platform tools (requires GWorkspace OAuth)\n- 'vision': Force vision processing (good for unknown formats, returns rendered content)\n- 'local_python': Force local Python parsing (no cloud upload, works offline)\n\n🔒 SECURITY:\n- Path validation: Only allows /tmp/, /var/uploads/, and whitelisted directories\n- File size limits: Warns for files >500MB, rejects >1GB\n- Extension validation: Blocks executables (.exe, .dll, .sh, .bat)\n- Content scanning: Auto-detects malware signatures in PDFs\n\n⚠️ PATH REQUIREMENTS:\n- Must be ABSOLUTE path on SERVER (e.g., C:/temp/uploads/file.pdf or /tmp/file.xlsx)\n- NOT user's local computer path (this tool runs on backend server)\n- Use forward slashes (/) or proper Windows backslashes (\\\\)\n\n🗑️ AUTO-CLEANUP:\n- Default: Keeps original file, deletes temp cloud uploads\n- With delete_after=true: Deletes original file after processing\n- Cloud temp folders auto-cleaned after 24 hours\n\n📊 RETURN FORMAT:\nFor structured data:\n{\n  \"success\": true,\n  \"file_type\": \"excel\",\n  \"file_path\": \"/tmp/file.xlsx\",\n  \"processing_mode\": \"cloud_onedrive\",\n  \"data\": {...},  // Queryable structured data\n  \"metadata\": {\"rows\": 500, \"sheets\": 3},\n  \"cloud_file_id\": \"xyz\"  // If keep_in_cloud=true\n}\n\nFor vision processing:\n{\n  \"success\": true,\n  \"file_type\": \"pdf\",\n  \"file_path\": \"/tmp/report.pdf\",\n  \"processing_mode\": \"vision\",\n  \"content_blocks\": [...],  // Auto-injected into conversation\n  \"metadata\": {\"pages\": 12, \"size_mb\": 2.5}\n}\n\n💡 SMART FEATURES:\n- Auto-retries with fallback modes if primary method fails\n- Progress indicators for large files (>50MB)\n- Batch mode: Can process multiple files in one call\n- Cache: Repeated access to same file uses cached results (faster)\n\nProcess complete local file workflow: validate → detect type → intelligent routing → structured extraction OR vision processing → optional cleanup.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "file_path": {
+                        "type": "string",
+                        "description": "ABSOLUTE path to file on SERVER (e.g., /tmp/file.xlsx or C:/temp/uploads/report.pdf). Must be server-side path, NOT user's computer!"
+                    },
+                    "processing_mode": {
+                        "type": "string",
+                        "enum": [
+                            "auto",
+                            "cloud_onedrive",
+                            "cloud_gdrive",
+                            "vision",
+                            "local_python"
+                        ],
+                        "default": "auto",
+                        "description": "Processing strategy: 'auto' (smart routing), 'cloud_onedrive' (force OneDrive), 'cloud_gdrive' (force Google Drive), 'vision' (force vision), 'local_python' (force local parsing)"
+                    },
+                    "keep_in_cloud": {
+                        "type": "boolean",
+                        "default": false,
+                        "description": "If true, keeps uploaded file in cloud storage (returns cloud_file_id for future access)"
+                    },
+                    "delete_after": {
+                        "type": "boolean",
+                        "default": false,
+                        "description": "If true, deletes original local file after successful processing (use for temp files)"
+                    },
+                    "return_format": {
+                        "type": "string",
+                        "enum": [
+                            "structured",
+                            "content_blocks",
+                            "both",
+                            "auto"
+                        ],
+                        "default": "auto",
+                        "description": "Desired output: 'structured' (JSON data), 'content_blocks' (vision), 'both', 'auto' (backend decides based on file type)"
+                    },
+                    "extract_options": {
+                        "type": "object",
+                        "description": "Optional: Advanced extraction settings",
+                        "properties": {
+                            "excel_mode": {
+                                "type": "string",
+                                "enum": [
+                                    "summary",
+                                    "detailed",
+                                    "raw"
+                                ],
+                                "default": "detailed",
+                                "description": "For Excel files: 'summary' (preview), 'detailed' (all data), 'raw' (with formulas)"
+                            },
+                            "pdf_ocr": {
+                                "type": "boolean",
+                                "default": false,
+                                "description": "For PDFs: Enable OCR for scanned documents (slower but more accurate)"
+                            },
+                            "image_enhance": {
+                                "type": "boolean",
+                                "default": false,
+                                "description": "For images: Apply enhancement filters before vision analysis"
+                            }
+                        }
+                    }
+                },
+                "required": [
+                    "file_path"
+                ]
+            },
+            "category": "smart_bundled",
+            "platform": "universal_files",
+            "tool_intelligence": {
+                "typical_workflow_patterns": [
+                    "microsoft_outlook_download_attachment → [saves to /tmp/] → process_local_file_universal → [analyze structured data]",
+                    "gmail_get_attachment → [saves to /tmp/] → process_local_file_universal(processing_mode='cloud_gdrive') → [query data]",
+                    "process_local_file_universal(file_path='/tmp/data.xlsx') → [extract data] → python_exec [analyze with pandas]",
+                    "process_local_file_universal(keep_in_cloud=true) → [save cloud_file_id] → [share with team via cloud link]"
+                ],
+                "success_indicators": {
+                    "keywords": [
+                        "file validated",
+                        "type detected",
+                        "processing complete",
+                        "structured data extracted",
+                        "vision content available"
+                    ],
+                    "behavioral": [
+                        "Returns appropriate format based on file type",
+                        "Auto-fallback if primary method fails",
+                        "Cleanup confirms completion"
+                    ]
+                },
+                "failure_indicators": {
+                    "keywords": [
+                        "path not found",
+                        "permission denied",
+                        "unsupported format",
+                        "file too large",
+                        "OAuth not connected"
+                    ],
+                    "behavioral": [
+                        "Security validation rejects unsafe paths",
+                        "Suggests alternative processing modes",
+                        "Falls back to vision if platform tools unavailable"
+                    ]
+                },
+                "when_to_use": [
+                    "File is already downloaded to server (e.g., after microsoft_outlook_download_attachment)",
+                    "Need to process temp files from /tmp/ directory",
+                    "Want intelligent routing without knowing best processing method",
+                    "Processing server-side uploads or backend documents",
+                    "User asks: 'process this file', 'analyze /tmp/file.xlsx', 'read the downloaded document'"
+                ],
+                "when_not_to_use": [
+                    "File is still in email (use process_email_attachment_complete instead)",
+                    "File is in cloud storage already (use process_onedrive_file_for_ai or process_google_drive_file_for_ai)",
+                    "File is on user's computer (user must upload first)",
+                    "Only need to download file without processing (use download tools directly)"
+                ]
+            },
+            "user_facing_language": {
+                "action_verb": "Process local file",
+                "result_description": "Complete file analysis with intelligent routing (cloud platform tools for Office files, vision for PDFs/images, or local parsing for data files)",
+                "examples": [
+                    "I'll process that Excel file you downloaded - uploading to OneDrive and extracting all the structured data.",
+                    "Let me analyze the PDF in /tmp/ using vision processing - I'll render all pages so you can see the content.",
+                    "I'll parse that CSV file locally and return the data in a queryable JSON format.",
+                    "Processing the downloaded Word document - extracting text, paragraphs, and any tables."
+                ]
+            },
+            "memory_context": {
+                "remember": "This is a SMART bundled tool for processing files already on the server. It intelligently routes based on file type - Office files go to cloud platform tools for structured data, PDFs/images use vision processing, and data files parse locally. Security validated: only allows safe paths like /tmp/. Always prefer this over manual routing when file is already local."
+            }
+        }
+    ]
+}

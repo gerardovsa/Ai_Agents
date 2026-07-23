@@ -1,0 +1,549 @@
+{
+    "category": "phone_communication",
+    "description": "Tools for sending coaching documents and alerts via email and SMS to veterinary staff",
+    "tools": [
+        {
+            "name": "send_email_veterinary_coaching",
+            "short_description": "Send AI coaching document to staff member via email with optional custom message and transcript",
+            "description": "Sends the AI-generated coaching document for a specific veterinary call to a staff member's email address using SMTP. Supports HTML formatting, custom manager messages, optional transcript inclusion, and automatically logs all sends to the database for tracking. Ideal for delivering constructive feedback after coaching document generation.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "call_id": {
+                        "type": "string",
+                        "description": "The call ID for which coaching was generated (from veterinary_calls or call_manager_alerts table)"
+                    },
+                    "to_email": {
+                        "type": "string",
+                        "description": "Recipient email address (staff member who handled the call)"
+                    },
+                    "subject": {
+                        "type": "string",
+                        "description": "Email subject line",
+                        "default": "AI Coaching Document - Call Review"
+                    },
+                    "custom_message": {
+                        "type": "string",
+                        "description": "Optional custom message from manager to prepend to the coaching document (will appear in highlighted box)"
+                    },
+                    "include_transcript": {
+                        "type": "boolean",
+                        "description": "Whether to include the full call transcript in the email (useful for reference but makes email longer)",
+                        "default": false
+                    },
+                    "smtp_config": {
+                        "type": "object",
+                        "description": "Optional SMTP configuration to override environment variables",
+                        "properties": {
+                            "smtp_server": {
+                                "type": "string",
+                                "description": "SMTP server address (e.g., smtp.gmail.com)"
+                            },
+                            "smtp_port": {
+                                "type": "integer",
+                                "description": "SMTP port (typically 587 for TLS)"
+                            },
+                            "smtp_user": {
+                                "type": "string",
+                                "description": "SMTP username/email"
+                            },
+                            "smtp_password": {
+                                "type": "string",
+                                "description": "SMTP password (use App Password for Gmail)"
+                            },
+                            "from_email": {
+                                "type": "string",
+                                "description": "From email address"
+                            }
+                        }
+                    }
+                },
+                "required": [
+                    "call_id",
+                    "to_email"
+                ]
+            },
+            "returns": {
+                "type": "object",
+                "properties": {
+                    "success": {
+                        "type": "boolean",
+                        "description": "Whether the email was sent successfully"
+                    },
+                    "message": {
+                        "type": "string",
+                        "description": "Success confirmation or error message"
+                    },
+                    "error": {
+                        "type": "string",
+                        "description": "Error details if success is false"
+                    },
+                    "sent_at": {
+                        "type": "string",
+                        "description": "ISO timestamp when email was sent"
+                    }
+                }
+            },
+            "examples": [
+                {
+                    "description": "Send coaching email without custom message",
+                    "input": {
+                        "call_id": "ABC123",
+                        "to_email": "drsmith@vetclinic.com"
+                    },
+                    "output": {
+                        "success": true,
+                        "message": "Email sent successfully to drsmith@vetclinic.com",
+                        "sent_at": "2025-12-11T10:30:00Z"
+                    }
+                },
+                {
+                    "description": "Send coaching email with manager's note",
+                    "input": {
+                        "call_id": "DEF456",
+                        "to_email": "techjones@vetclinic.com",
+                        "subject": "Great Job Today - Review for Improvement",
+                        "custom_message": "Hi Sarah,\n\nYou did an excellent job on this call overall. I've included some AI-generated coaching points below that highlight areas for even more success. Please review and let's discuss tomorrow.\n\nKeep up the great work!\n- Manager"
+                    },
+                    "output": {
+                        "success": true,
+                        "message": "Email sent successfully to techjones@vetclinic.com",
+                        "sent_at": "2025-12-11T11:15:00Z"
+                    }
+                },
+                {
+                    "description": "Send coaching email with transcript included",
+                    "input": {
+                        "call_id": "GHI789",
+                        "to_email": "trainee@vetclinic.com",
+                        "include_transcript": true
+                    },
+                    "output": {
+                        "success": true,
+                        "message": "Email sent successfully to trainee@vetclinic.com",
+                        "sent_at": "2025-12-11T14:20:00Z"
+                    }
+                }
+            ],
+            "error_cases": [
+                {
+                    "error": "No coaching document found for call ABC123",
+                    "cause": "Coaching hasn't been generated yet for this call",
+                    "solution": "Generate coaching first using generate_coaching endpoint"
+                },
+                {
+                    "error": "SMTP authentication failed",
+                    "cause": "Invalid email credentials or need App Password",
+                    "solution": "For Gmail, create App Password in Google Account settings"
+                },
+                {
+                    "error": "SMTP credentials not configured",
+                    "cause": "Environment variables not set",
+                    "solution": "Set SMTP_USER and SMTP_PASSWORD environment variables"
+                }
+            ]
+        },
+        {
+            "name": "send_sms_veterinary_alert",
+            "short_description": "Send urgent alert notification to staff member's phone via SMS using Twilio",
+            "description": "Sends an alert notification for a specific veterinary call to a staff member's mobile phone via SMS using Twilio. Ideal for high-priority alerts that require immediate attention. Automatically formats message with call context, truncates to SMS limits (1600 chars), and logs all sends to the database. Phone number should be in E.164 format (+1234567890) but will auto-format US numbers.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "call_id": {
+                        "type": "string",
+                        "description": "The call ID related to the alert (from veterinary_calls or call_manager_alerts table)"
+                    },
+                    "to_phone": {
+                        "type": "string",
+                        "description": "Recipient phone number in E.164 format (+1234567890) or 10-digit US format (will auto-add +1)"
+                    },
+                    "message_text": {
+                        "type": "string",
+                        "description": "SMS message content describing the alert (max 1600 chars, will be truncated if longer)"
+                    },
+                    "alert_type": {
+                        "type": "string",
+                        "description": "Optional alert type for categorization (REVENUE_LEAKAGE, MISSED_OPPORTUNITY, CLIENT_EXPERIENCE, etc.)"
+                    },
+                    "twilio_config": {
+                        "type": "object",
+                        "description": "Optional Twilio configuration to override environment variables",
+                        "properties": {
+                            "account_sid": {
+                                "type": "string",
+                                "description": "Twilio Account SID"
+                            },
+                            "auth_token": {
+                                "type": "string",
+                                "description": "Twilio Auth Token"
+                            },
+                            "from_phone": {
+                                "type": "string",
+                                "description": "Twilio phone number (must be E.164 format)"
+                            }
+                        }
+                    }
+                },
+                "required": [
+                    "call_id",
+                    "to_phone",
+                    "message_text"
+                ]
+            },
+            "returns": {
+                "type": "object",
+                "properties": {
+                    "success": {
+                        "type": "boolean",
+                        "description": "Whether the SMS was sent successfully"
+                    },
+                    "message": {
+                        "type": "string",
+                        "description": "Success confirmation or error message"
+                    },
+                    "error": {
+                        "type": "string",
+                        "description": "Error details if success is false"
+                    },
+                    "sms_sid": {
+                        "type": "string",
+                        "description": "Twilio message SID for tracking"
+                    },
+                    "sent_at": {
+                        "type": "string",
+                        "description": "ISO timestamp when SMS was sent"
+                    }
+                }
+            },
+            "examples": [
+                {
+                    "description": "Send urgent alert SMS",
+                    "input": {
+                        "call_id": "ABC123",
+                        "to_phone": "+15551234567",
+                        "message_text": "URGENT: High-priority alert triggered on call with Mrs. Johnson. Client expressed dissatisfaction with wait time. Please review coaching document and follow up today.",
+                        "alert_type": "CLIENT_EXPERIENCE"
+                    },
+                    "output": {
+                        "success": true,
+                        "message": "SMS sent successfully to +15551234567",
+                        "sms_sid": "SM1234567890abcdef",
+                        "sent_at": "2025-12-11T09:45:00Z"
+                    }
+                },
+                {
+                    "description": "Send revenue alert SMS with US number auto-format",
+                    "input": {
+                        "call_id": "DEF456",
+                        "to_phone": "5559876543",
+                        "message_text": "Revenue opportunity identified: Client mentioned needing dental work for 2 pets but no quote provided. Follow up to schedule and quote.",
+                        "alert_type": "REVENUE_LEAKAGE"
+                    },
+                    "output": {
+                        "success": true,
+                        "message": "SMS sent successfully to +15559876543",
+                        "sms_sid": "SM0987654321fedcba",
+                        "sent_at": "2025-12-11T13:20:00Z"
+                    }
+                }
+            ],
+            "error_cases": [
+                {
+                    "error": "Twilio SDK not installed",
+                    "cause": "twilio package not available",
+                    "solution": "Install with: pip install twilio"
+                },
+                {
+                    "error": "Twilio credentials not configured",
+                    "cause": "Environment variables not set",
+                    "solution": "Set TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, and TWILIO_FROM_PHONE"
+                },
+                {
+                    "error": "Invalid phone number format",
+                    "cause": "Phone number not in E.164 format",
+                    "solution": "Use +1234567890 format or 10-digit US number"
+                }
+            ]
+        },
+        {
+            "name": "send_bulk_coaching_emails",
+            "short_description": "Send coaching documents to multiple staff members in a single batch operation",
+            "description": "Sends AI-generated coaching documents to multiple staff members in batch. Useful for end-of-day coaching distribution or team-wide training. Each email is personalized with the staff member's specific call data and coaching. Provides detailed success/failure tracking for each recipient. All sends are logged to the database for audit trail.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "call_ids": {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        },
+                        "description": "List of call IDs to send coaching for (must match length of to_emails)"
+                    },
+                    "to_emails": {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        },
+                        "description": "List of recipient email addresses (must match length of call_ids, paired 1:1)"
+                    },
+                    "subject_template": {
+                        "type": "string",
+                        "description": "Email subject template where {call_id} will be replaced with actual call ID",
+                        "default": "AI Coaching Document - Call {call_id}"
+                    },
+                    "custom_message": {
+                        "type": "string",
+                        "description": "Optional custom message from manager to include in ALL emails"
+                    },
+                    "smtp_config": {
+                        "type": "object",
+                        "description": "Optional SMTP configuration to override environment variables"
+                    }
+                },
+                "required": [
+                    "call_ids",
+                    "to_emails"
+                ]
+            },
+            "returns": {
+                "type": "object",
+                "properties": {
+                    "success": {
+                        "type": "boolean",
+                        "description": "Whether ALL emails were sent successfully (false if any failed)"
+                    },
+                    "message": {
+                        "type": "string",
+                        "description": "Overall summary of batch send operation"
+                    },
+                    "sent_count": {
+                        "type": "integer",
+                        "description": "Number of emails successfully sent"
+                    },
+                    "failed_count": {
+                        "type": "integer",
+                        "description": "Number of emails that failed to send"
+                    },
+                    "details": {
+                        "type": "array",
+                        "description": "Detailed status for each email",
+                        "items": {
+                            "type": "object",
+                            "properties": {
+                                "call_id": {
+                                    "type": "string"
+                                },
+                                "email": {
+                                    "type": "string"
+                                },
+                                "status": {
+                                    "type": "string",
+                                    "enum": [
+                                        "sent",
+                                        "failed",
+                                        "error"
+                                    ]
+                                },
+                                "error": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "examples": [
+                {
+                    "description": "Batch send coaching to 3 staff members",
+                    "input": {
+                        "call_ids": [
+                            "ABC123",
+                            "DEF456",
+                            "GHI789"
+                        ],
+                        "to_emails": [
+                            "drsmith@vet.com",
+                            "techjones@vet.com",
+                            "receptionistlee@vet.com"
+                        ],
+                        "subject_template": "Daily Coaching Review - Call {call_id}",
+                        "custom_message": "Team,\n\nGreat work today! Please review your coaching documents below for continuous improvement.\n\n- Manager"
+                    },
+                    "output": {
+                        "success": true,
+                        "message": "Successfully sent all 3 emails",
+                        "sent_count": 3,
+                        "failed_count": 0,
+                        "details": [
+                            {
+                                "call_id": "ABC123",
+                                "email": "drsmith@vet.com",
+                                "status": "sent"
+                            },
+                            {
+                                "call_id": "DEF456",
+                                "email": "techjones@vet.com",
+                                "status": "sent"
+                            },
+                            {
+                                "call_id": "GHI789",
+                                "email": "receptionistlee@vet.com",
+                                "status": "sent"
+                            }
+                        ]
+                    }
+                },
+                {
+                    "description": "Batch send with one failure",
+                    "input": {
+                        "call_ids": [
+                            "ABC123",
+                            "DEF456"
+                        ],
+                        "to_emails": [
+                            "drsmith@vet.com",
+                            "invalid-email"
+                        ],
+                        "subject_template": "Coaching - Call {call_id}"
+                    },
+                    "output": {
+                        "success": false,
+                        "message": "Sent 1/2 emails. 1 failed.",
+                        "sent_count": 1,
+                        "failed_count": 1,
+                        "details": [
+                            {
+                                "call_id": "ABC123",
+                                "email": "drsmith@vet.com",
+                                "status": "sent"
+                            },
+                            {
+                                "call_id": "DEF456",
+                                "email": "invalid-email",
+                                "status": "failed",
+                                "error": "Invalid email format"
+                            }
+                        ]
+                    }
+                }
+            ],
+            "error_cases": [
+                {
+                    "error": "call_ids and to_emails must have the same length",
+                    "cause": "Mismatched array lengths",
+                    "solution": "Ensure both arrays have the same number of elements (paired 1:1)"
+                }
+            ]
+        }
+    ],
+    "configuration": {
+        "environment_variables": {
+            "email": {
+                "SMTP_SERVER": {
+                    "description": "SMTP server address",
+                    "default": "smtp.gmail.com",
+                    "example": "smtp.gmail.com"
+                },
+                "SMTP_PORT": {
+                    "description": "SMTP port for TLS",
+                    "default": "587",
+                    "example": "587"
+                },
+                "SMTP_USER": {
+                    "description": "SMTP username (email address)",
+                    "required": true,
+                    "example": "your_email@gmail.com"
+                },
+                "SMTP_PASSWORD": {
+                    "description": "SMTP password (use App Password for Gmail)",
+                    "required": true,
+                    "example": "xxxx xxxx xxxx xxxx",
+                    "note": "For Gmail: Google Account > Security > 2-Step Verification > App passwords"
+                },
+                "SMTP_FROM_EMAIL": {
+                    "description": "From email address (defaults to SMTP_USER)",
+                    "example": "vsa-coaching@vetclinic.com"
+                }
+            },
+            "sms": {
+                "TWILIO_ACCOUNT_SID": {
+                    "description": "Twilio Account SID",
+                    "required": true,
+                    "example": "ACxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+                    "where_to_find": "https://www.twilio.com/console"
+                },
+                "TWILIO_AUTH_TOKEN": {
+                    "description": "Twilio Auth Token",
+                    "required": true,
+                    "example": "your_auth_token_here",
+                    "where_to_find": "https://www.twilio.com/console"
+                },
+                "TWILIO_FROM_PHONE": {
+                    "description": "Twilio phone number (E.164 format)",
+                    "required": true,
+                    "example": "+15551234567",
+                    "where_to_find": "https://www.twilio.com/console/phone-numbers"
+                }
+            }
+        },
+        "setup_instructions": {
+            "email_gmail": [
+                "1. Enable 2-Step Verification in Google Account",
+                "2. Go to Google Account > Security > 2-Step Verification",
+                "3. Scroll to 'App passwords' section",
+                "4. Click 'App passwords' and generate new password",
+                "5. Select 'Mail' and 'Other' (custom name: VSA Platform)",
+                "6. Copy the 16-character app password",
+                "7. Set environment variables: SMTP_USER=your_email@gmail.com, SMTP_PASSWORD=app_password"
+            ],
+            "sms_twilio": [
+                "1. Sign up for Twilio account (free trial available): https://www.twilio.com/try-twilio",
+                "2. Get $15.50 free credit for testing",
+                "3. Go to Twilio Console: https://www.twilio.com/console",
+                "4. Copy Account SID and Auth Token",
+                "5. Get a Twilio phone number: https://www.twilio.com/console/phone-numbers",
+                "6. Set environment variables: TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, TWILIO_FROM_PHONE",
+                "7. Install twilio package: pip install twilio"
+            ]
+        }
+    },
+    "best_practices": {
+        "email": [
+            "Use App Passwords for Gmail (never use actual account password)",
+            "Test with your own email first before sending to staff",
+            "Include custom_message for context and personal touch",
+            "Keep subject lines professional and clear",
+            "Only include transcript when necessary (makes email very long)",
+            "Check spam folder if emails not arriving"
+        ],
+        "sms": [
+            "Reserve SMS for urgent, high-priority alerts only",
+            "Keep messages concise (SMS has 1600 char limit)",
+            "Always include call_id for reference",
+            "Use E.164 phone format (+1234567890) for best results",
+            "Test with your own phone first",
+            "Monitor Twilio usage/costs (charges per SMS)",
+            "Consider time zones before sending (avoid late night SMS)"
+        ],
+        "batch": [
+            "Use batch sending for daily coaching distribution",
+            "Limit batch size to 50 emails max to avoid rate limits",
+            "Add delays between large batches (Gmail has sending limits)",
+            "Review failed sends and retry individually",
+            "Log all batch operations for audit trail"
+        ]
+    },
+    "cost_estimates": {
+        "email": {
+            "cost_per_send": "Free (using SMTP)",
+            "gmail_limits": "500 emails/day for Gmail accounts, 2000/day for Google Workspace",
+            "notes": "No per-email charges, only infrastructure costs"
+        },
+        "sms": {
+            "cost_per_sms": "$0.0075-$0.01 per SMS (Twilio US rates)",
+            "free_trial": "$15.50 free credit (enough for ~1500-2000 SMS)",
+            "notes": "Rates vary by country. Long messages (>160 chars) may count as multiple SMS."
+        }
+    }
+}

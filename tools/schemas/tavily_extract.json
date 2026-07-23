@@ -1,0 +1,29 @@
+{
+  "platform": "tavily",
+  "description": "Tavily URL content extraction. Fetches one or more URLs and returns clean, parsed text content (HTML/scripts/styles removed). Use when the user provides a URL or names a specific page to read.",
+  "tools": [
+    {
+      "name": "tavily_extract",
+      "short_description": "Fetch and extract clean text from one or more URLs - HTML stripped, scripts removed",
+      "description": "Fetch the content of one or more URLs and return clean extracted text. Up to 20 URLs per call. Use when the user gives you a URL, names a specific page ('read the README from anthropics/anthropic-sdk-python'), or when a previous tavily_search result is worth reading in detail. Returns raw_content per URL. Fails for JS-rendered SPAs (no JavaScript execution). For deep multi-page reading, prefer tavily_crawl. For discovering a site's pages, prefer tavily_map first.",
+      "platform": "tavily",
+      "parameters": {
+        "urls": {
+          "type": "array",
+          "items": {"type": "string"},
+          "description": "List of URLs to extract content from (1-20 URLs per call). Must be http or https."
+        },
+        "include_images": {
+          "type": "boolean",
+          "description": "Include images found on the pages in the response.",
+          "required": false,
+          "default": false
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "Extraction results with raw_content per URL and a failed_results list for URLs that could not be fetched"
+      }
+    }
+  ]
+}

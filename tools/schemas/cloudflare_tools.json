@@ -1,0 +1,88 @@
+{
+  "platform": "cloudflare",
+  "description": "Cloudflare Workers deployment and management tools",
+  "tools": [
+    {
+      "name": "cloudflare_deploy_worker",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Read X from **[Resource Name]** (ID: `[id]` | URL: [url])'\n(3) Use EXACT [id] provided - NEVER substitute with different ID\n(4) If tool fails (404/403), say 'Failed to read [resource] ID: [id]' and explain error\n(5) NEVER make up data if read fails - acknowledge the failure clearly\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nDeploy a Cloudflare Worker script",
+      "platform": "cloudflare",
+      "parameters": {
+        "worker_name": {
+          "type": "string",
+          "description": "Name of the Worker"
+        },
+        "script_path": {
+          "type": "string",
+          "description": "Path to JavaScript file"
+        },
+        "routes": {
+          "type": "array",
+          "description": "Array of routes to bind (e.g., ['example.com/*'])",
+          "required": false
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "Deployment result with Worker ID and URL"
+      },
+      "examples": [
+        {
+          "description": "Deploy API worker",
+          "parameters": {
+            "worker_name": "api-handler",
+            "script_path": "/path/to/worker.js",
+            "routes": [
+              "api.example.com/*"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "cloudflare_list_workers",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Read X from **[Resource Name]** (ID: `[id]` | URL: [url])'\n(3) Use EXACT [id] provided - NEVER substitute with different ID\n(4) If tool fails (404/403), say 'Failed to read [resource] ID: [id]' and explain error\n(5) NEVER make up data if read fails - acknowledge the failure clearly\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nList all deployed Cloudflare Workers",
+      "platform": "cloudflare",
+      "parameters": {},
+      "returns": {
+        "type": "object",
+        "description": "List of Workers with names, IDs, and routes"
+      }
+    },
+    {
+      "name": "cloudflare_get_worker_logs",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Read X from **[Resource Name]** (ID: `[id]` | URL: [url])'\n(3) Use EXACT [id] provided - NEVER substitute with different ID\n(4) If tool fails (404/403), say 'Failed to read [resource] ID: [id]' and explain error\n(5) NEVER make up data if read fails - acknowledge the failure clearly\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nFetch logs for a specific Worker",
+      "platform": "cloudflare",
+      "parameters": {
+        "worker_name": {
+          "type": "string",
+          "description": "Name of the Worker"
+        },
+        "limit": {
+          "type": "integer",
+          "description": "Maximum number of log entries",
+          "required": false,
+          "default": 100
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "Worker logs with timestamps and messages"
+      }
+    },
+    {
+      "name": "cloudflare_worker_status",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Read X from **[Resource Name]** (ID: `[id]` | URL: [url])'\n(3) Use EXACT [id] provided - NEVER substitute with different ID\n(4) If tool fails (404/403), say 'Failed to read [resource] ID: [id]' and explain error\n(5) NEVER make up data if read fails - acknowledge the failure clearly\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nCheck the health/status of a Worker",
+      "platform": "cloudflare",
+      "parameters": {
+        "worker_name": {
+          "type": "string",
+          "description": "Name of the Worker"
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "Worker status including request count and errors"
+      }
+    }
+  ]
+}

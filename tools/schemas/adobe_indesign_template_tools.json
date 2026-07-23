@@ -1,0 +1,2122 @@
+{
+    "platform": "adobe_indesign",
+    "description": "Template management tools for Adobe InDesign. Create, edit, clone, and manage InDesign templates (.indt files) for consistent document production. Templates enable rapid document creation with pre-defined layouts, styles, master pages, and placeholder content.",
+    "tools": [
+        {
+            "name": "indesign_create_template",
+            "description": "Create a new InDesign template file (.indt) from scratch or from an existing document.\n\nTemplates are reusable InDesign files that define:\n- Page layouts and master pages\n- Paragraph and character styles\n- Color swatches and style libraries\n- Placeholder text and image frames\n- Grid and margin settings\n\nUse this tool when:\n- User wants to create a reusable document template\n- User needs to standardize document production\n- User wants to save current document as template\n- User is building a brand style guide\n\nCommon scenarios:\n1. 'Create a business card template' → 3.5x2 inch template with logo placement\n2. 'Make a brochure template' → Tri-fold layout with master pages\n3. 'Save this document as a template' → Convert .indd to .indt\n4. 'Create catalog template for data merge' → Template with <<placeholders>>\n\nImportant notes:\n- Templates save as .indt files (InDesign Template format)\n- Include placeholder fields using <<FieldName>> syntax for data merge\n- Master pages define consistent headers/footers/layouts\n- Styles cascade to documents created from template\n- Lock elements you don't want users to modify\n\nBest practices:\n- Use descriptive placeholder names (<<ProductName>>, not <<Field1>>)\n- Create multiple master pages for different sections\n- Include comprehensive paragraph/character style library\n- Document template usage in a separate guide\n- Version templates (template_v1, template_v2) for tracking",
+            "platform": "adobe_indesign",
+            "category": "template_management",
+            "backend": "soap",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "template_name": {
+                        "type": "string",
+                        "description": "Template filename (without .indt extension). Example: 'catalog_template_2024' becomes 'catalog_template_2024.indt'"
+                    },
+                    "page_size": {
+                        "type": "object",
+                        "properties": {
+                            "width": {
+                                "type": "string",
+                                "description": "Page width with units (e.g., '8.5in', '210mm', '612pt')"
+                            },
+                            "height": {
+                                "type": "string",
+                                "description": "Page height with units"
+                            }
+                        },
+                        "description": "Page dimensions. Common presets: Letter (8.5x11in), A4 (210x297mm), Tabloid (11x17in)"
+                    },
+                    "page_count": {
+                        "type": "integer",
+                        "default": 1,
+                        "description": "Initial number of pages (can be expanded when using template)"
+                    },
+                    "facing_pages": {
+                        "type": "boolean",
+                        "default": false,
+                        "description": "True for spreads (left/right pages), false for single pages"
+                    },
+                    "master_pages": {
+                        "type": "array",
+                        "items": {
+                            "type": "object",
+                            "properties": {
+                                "name": {
+                                    "type": "string",
+                                    "description": "Master page name (e.g., 'Cover', 'Content', 'Back')"
+                                },
+                                "layout": {
+                                    "type": "string",
+                                    "description": "Layout description or structure"
+                                }
+                            }
+                        },
+                        "description": "Master pages to create (page templates for consistent layouts)"
+                    },
+                    "placeholders": {
+                        "type": "array",
+                        "items": {
+                            "type": "object",
+                            "properties": {
+                                "name": {
+                                    "type": "string",
+                                    "description": "Placeholder field name (becomes <<Name>>)"
+                                },
+                                "type": {
+                                    "type": "string",
+                                    "enum": [
+                                        "text",
+                                        "image",
+                                        "table"
+                                    ],
+                                    "description": "Content type"
+                                },
+                                "position": {
+                                    "type": "object",
+                                    "description": "Frame position {x, y, width, height} in points"
+                                }
+                            }
+                        },
+                        "description": "Data merge placeholders to include in template"
+                    },
+                    "styles": {
+                        "type": "object",
+                        "properties": {
+                            "paragraph_styles": {
+                                "type": "array",
+                                "items": {
+                                    "type": "object"
+                                }
+                            },
+                            "character_styles": {
+                                "type": "array",
+                                "items": {
+                                    "type": "object"
+                                }
+                            },
+                            "object_styles": {
+                                "type": "array",
+                                "items": {
+                                    "type": "object"
+                                }
+                            }
+                        },
+                        "description": "Style definitions to include in template"
+                    },
+                    "output_path": {
+                        "type": "string",
+                        "description": "Full path where template will be saved (e.g., 'C:/Templates/catalog.indt')"
+                    }
+                },
+                "required": [
+                    "template_name",
+                    "page_size"
+                ]
+            },
+            "returns": {
+                "type": "object",
+                "properties": {
+                    "success": {
+                        "type": "boolean"
+                    },
+                    "template_path": {
+                        "type": "string",
+                        "description": "Path to created .indt file"
+                    },
+                    "template_id": {
+                        "type": "string",
+                        "description": "Unique template identifier"
+                    },
+                    "pages_created": {
+                        "type": "integer"
+                    },
+                    "master_pages": {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
+                    },
+                    "placeholders": {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
+                    },
+                    "error": {
+                        "type": "string"
+                    }
+                }
+            },
+            "examples": [
+                {
+                    "description": "Simple business card template",
+                    "parameters": {
+                        "template_name": "business_card_template",
+                        "page_size": {
+                            "width": "3.5in",
+                            "height": "2in"
+                        },
+                        "placeholders": [
+                            {
+                                "name": "CompanyName",
+                                "type": "text"
+                            },
+                            {
+                                "name": "ContactName",
+                                "type": "text"
+                            },
+                            {
+                                "name": "Phone",
+                                "type": "text"
+                            },
+                            {
+                                "name": "Logo",
+                                "type": "image"
+                            }
+                        ]
+                    },
+                    "expected_result": {
+                        "success": true,
+                        "template_path": "C:/Templates/business_card_template.indt",
+                        "placeholders": [
+                            "<<CompanyName>>",
+                            "<<ContactName>>",
+                            "<<Phone>>",
+                            "<<Logo>>"
+                        ]
+                    }
+                },
+                {
+                    "description": "Catalog template with master pages",
+                    "parameters": {
+                        "template_name": "product_catalog_template",
+                        "page_size": {
+                            "width": "8.5in",
+                            "height": "11in"
+                        },
+                        "page_count": 8,
+                        "facing_pages": true,
+                        "master_pages": [
+                            {
+                                "name": "Cover",
+                                "layout": "Full bleed image + title"
+                            },
+                            {
+                                "name": "Content",
+                                "layout": "3-column grid"
+                            },
+                            {
+                                "name": "Back",
+                                "layout": "Contact info + legal"
+                            }
+                        ],
+                        "placeholders": [
+                            {
+                                "name": "ProductName",
+                                "type": "text"
+                            },
+                            {
+                                "name": "Price",
+                                "type": "text"
+                            },
+                            {
+                                "name": "Description",
+                                "type": "text"
+                            },
+                            {
+                                "name": "ProductImage",
+                                "type": "image"
+                            }
+                        ]
+                    },
+                    "expected_result": {
+                        "success": true,
+                        "template_path": "product_catalog_template.indt",
+                        "pages_created": 8,
+                        "master_pages": [
+                            "Cover",
+                            "Content",
+                            "Back"
+                        ]
+                    }
+                }
+            ],
+            "usage_guide": {
+                "when_to_use": [
+                    "User wants to create a reusable document template",
+                    "User needs standardized layouts for production work",
+                    "User is building brand templates for consistent output",
+                    "User wants to enable data merge with placeholders",
+                    "User needs templates for team/client distribution"
+                ],
+                "workflow": [
+                    "Step 1: Design template structure (page size, count, master pages)",
+                    "Step 2: Call indesign_create_template() with specifications",
+                    "Step 3: Store template_id for later reference",
+                    "Step 4: Optionally call indesign_add_template_content() to populate",
+                    "Step 5: Test template with indesign_create_document_from_template()",
+                    "Step 6: Distribute to users or save in template library"
+                ],
+                "best_practices": [
+                    "Use clear placeholder names that describe content (<<ProductName>>, not <<Text1>>)",
+                    "Create master pages for consistent headers/footers across documents",
+                    "Include comprehensive style library (paragraph, character, object styles)",
+                    "Lock elements that shouldn't be modified (logos, brand elements)",
+                    "Version templates with dates (catalog_template_2024_v2.indt)",
+                    "Document placeholder fields in separate guide for users",
+                    "Test template with sample data before distribution"
+                ],
+                "error_handling": [
+                    "Error 'Invalid page size' → Use units (8.5in, 210mm, not just numbers)",
+                    "Error 'Master page name conflict' → Use unique names per master page",
+                    "Error 'Placeholder already exists' → Check for duplicate placeholder names",
+                    "Error 'Path not accessible' → Verify output_path folder exists",
+                    "Error 'Template locked' → Another user has template open"
+                ],
+                "related_tools": [
+                    "indesign_create_document_from_template - Use template after creation",
+                    "indesign_list_templates - Browse available templates",
+                    "indesign_clone_template - Duplicate for variations",
+                    "indesign_set_template_master_pages - Modify master pages",
+                    "indesign_define_template_variables - Add data merge fields",
+                    "indesign_validate_template_structure - Check template integrity"
+                ]
+            },
+            "tool_intelligence": {
+                "category": "content_management",
+                "typical_workflow_patterns": [
+                    "indesign_create_template → indesign_define_template_variables",
+                    "indesign_create_template → indesign_create_document_from_template → indesign_create_product_catalog"
+                ],
+                "success_indicators": {
+                    "keywords": [
+                        "template created",
+                        "saved successfully",
+                        ".indt file"
+                    ],
+                    "behavioral": [
+                        "User creates document from template",
+                        "User shares template"
+                    ]
+                },
+                "failure_indicators": {
+                    "keywords": [
+                        "failed to create",
+                        "invalid page size",
+                        "error saving"
+                    ],
+                    "behavioral": [
+                        "User retries with different parameters"
+                    ]
+                },
+                "performance_expectations": {
+                    "typical_duration_ms": 2000,
+                    "rate_limit_per_minute": 30,
+                    "max_retries": 3
+                }
+            },
+            "memory_context": {
+                "vectorization_fields": [
+                    "template_name",
+                    "page_size",
+                    "placeholders"
+                ],
+                "search_keywords": [
+                    "template",
+                    "indesign",
+                    "reusable",
+                    "brand",
+                    "catalog"
+                ],
+                "related_synergy_platforms": [
+                    "indesign"
+                ],
+                "typical_use_cases": [
+                    "Creating product catalog templates for data merge workflows",
+                    "Building brand style guide templates for team consistency",
+                    "Designing business card templates for print shop automation",
+                    "Creating brochure templates for marketing material production"
+                ],
+                "conversation_memory_hints": {
+                    "what_to_remember": "Template name, placeholder fields, page structure, intended use case",
+                    "search_context": "When user asks about past template projects or reusable designs"
+                }
+            }
+        },
+        {
+            "name": "indesign_list_templates",
+            "description": "List all available InDesign templates in specified folder or template library.\n\nRetrieves template files (.indt) with metadata including:\n- Template name and file path\n- Page count and dimensions\n- Creation and modification dates\n- Placeholder fields (for data merge)\n- Master page names\n- Style counts (paragraph, character, object)\n\nUse this tool when:\n- User wants to see available templates\n- User needs to find a specific template\n- User is browsing template library\n- User wants to know template capabilities before using\n\nCommon scenarios:\n1. 'Show me all templates' → List all .indt files\n2. 'Find catalog templates' → Filter by name/keyword\n3. 'What templates have product placeholders?' → Search by placeholder fields\n4. 'Which templates were updated this month?' → Filter by date\n\nUseful for template discovery before document creation.",
+            "platform": "adobe_indesign",
+            "category": "template_management",
+            "backend": "soap",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "folder_path": {
+                        "type": "string",
+                        "description": "Path to folder containing templates. If omitted, searches default template library."
+                    },
+                    "filter": {
+                        "type": "object",
+                        "properties": {
+                            "name_pattern": {
+                                "type": "string",
+                                "description": "Filename pattern (e.g., '*catalog*', 'template_2024*')"
+                            },
+                            "has_placeholders": {
+                                "type": "boolean",
+                                "description": "Only templates with data merge placeholders"
+                            },
+                            "page_size": {
+                                "type": "string",
+                                "description": "Filter by page size (e.g., 'Letter', 'A4')"
+                            },
+                            "modified_after": {
+                                "type": "string",
+                                "description": "ISO date (e.g., '2024-01-01')"
+                            }
+                        },
+                        "description": "Optional filters to narrow results"
+                    },
+                    "include_metadata": {
+                        "type": "boolean",
+                        "default": true,
+                        "description": "Include detailed metadata (placeholders, master pages, styles)"
+                    }
+                },
+                "required": []
+            },
+            "returns": {
+                "type": "object",
+                "properties": {
+                    "success": {
+                        "type": "boolean"
+                    },
+                    "templates": {
+                        "type": "array",
+                        "items": {
+                            "type": "object",
+                            "properties": {
+                                "template_name": {
+                                    "type": "string"
+                                },
+                                "file_path": {
+                                    "type": "string"
+                                },
+                                "page_count": {
+                                    "type": "integer"
+                                },
+                                "page_size": {
+                                    "type": "object"
+                                },
+                                "placeholders": {
+                                    "type": "array"
+                                },
+                                "master_pages": {
+                                    "type": "array"
+                                },
+                                "created_date": {
+                                    "type": "string"
+                                },
+                                "modified_date": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    },
+                    "total_found": {
+                        "type": "integer"
+                    },
+                    "error": {
+                        "type": "string"
+                    }
+                }
+            },
+            "examples": [
+                {
+                    "description": "List all templates in default library",
+                    "parameters": {},
+                    "expected_result": {
+                        "success": true,
+                        "templates": [
+                            {
+                                "template_name": "catalog_template_2024",
+                                "file_path": "C:/Templates/catalog_template_2024.indt",
+                                "page_count": 8,
+                                "placeholders": [
+                                    "<<ProductName>>",
+                                    "<<Price>>"
+                                ],
+                                "master_pages": [
+                                    "Cover",
+                                    "Content",
+                                    "Back"
+                                ]
+                            }
+                        ],
+                        "total_found": 15
+                    }
+                }
+            ],
+            "usage_guide": {
+                "when_to_use": [
+                    "User wants to browse available templates before creating document",
+                    "User needs to find specific template by name or features",
+                    "User wants to see what placeholders a template contains",
+                    "User is auditing template library for organization"
+                ],
+                "workflow": [
+                    "Step 1: Call indesign_list_templates() with optional filters",
+                    "Step 2: Review returned templates array",
+                    "Step 3: Select template_name or file_path for next operation",
+                    "Step 4: Use with indesign_create_document_from_template()"
+                ],
+                "best_practices": [
+                    "Use filters to narrow large template libraries",
+                    "Check placeholders to ensure template matches data source",
+                    "Review page_size to confirm it matches print requirements",
+                    "Check modified_date to find most current templates"
+                ],
+                "error_handling": [
+                    "Error 'Folder not found' → Verify folder_path exists",
+                    "Error 'No templates found' → Check file_pattern or remove filters",
+                    "Error 'Permission denied' → Verify read access to template folder"
+                ],
+                "related_tools": [
+                    "indesign_create_document_from_template - Use template after finding it",
+                    "indesign_get_template_details - Get full details on specific template",
+                    "indesign_search_templates - More advanced search with keywords",
+                    "indesign_validate_template_structure - Check template integrity"
+                ]
+            },
+            "tool_intelligence": {
+                "category": "content_management",
+                "typical_workflow_patterns": [
+                    "indesign_list_templates → indesign_get_template_details → indesign_create_document_from_template"
+                ],
+                "success_indicators": {
+                    "keywords": [
+                        "found X templates",
+                        "templates listed"
+                    ],
+                    "behavioral": [
+                        "User selects template for document creation"
+                    ]
+                }
+            },
+            "memory_context": {
+                "vectorization_fields": [
+                    "folder_path",
+                    "templates"
+                ],
+                "search_keywords": [
+                    "template",
+                    "library",
+                    "browse",
+                    "find"
+                ],
+                "typical_use_cases": [
+                    "Browsing template library before starting project",
+                    "Finding templates with specific placeholders for data merge",
+                    "Auditing template collection for organization"
+                ]
+            }
+        },
+        {
+            "name": "indesign_clone_template",
+            "description": "Duplicate an existing InDesign template to create a variation.\n\nCreates exact copy of template with option to:\n- Rename the clone\n- Modify placeholders\n- Adjust page count\n- Update styles\n- Change master pages\n\nUse this when:\n- User wants to create template variation\n- User needs similar template with small changes\n- User wants to preserve original while experimenting\n- User is creating template version series\n\nFaster than creating template from scratch when starting from existing design.",
+            "platform": "adobe_indesign",
+            "category": "template_management",
+            "backend": "soap",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "source_template": {
+                        "type": "string",
+                        "description": "Path to template to clone (.indt file)"
+                    },
+                    "new_template_name": {
+                        "type": "string",
+                        "description": "Name for cloned template (without .indt extension)"
+                    },
+                    "modifications": {
+                        "type": "object",
+                        "properties": {
+                            "rename_placeholders": {
+                                "type": "object",
+                                "description": "Map old → new placeholder names"
+                            },
+                            "add_placeholders": {
+                                "type": "array",
+                                "description": "New placeholders to add"
+                            },
+                            "page_count": {
+                                "type": "integer",
+                                "description": "Change page count"
+                            },
+                            "update_styles": {
+                                "type": "boolean",
+                                "description": "Update style definitions"
+                            }
+                        },
+                        "description": "Optional modifications to apply during cloning"
+                    }
+                },
+                "required": [
+                    "source_template",
+                    "new_template_name"
+                ]
+            },
+            "returns": {
+                "type": "object",
+                "properties": {
+                    "success": {
+                        "type": "boolean"
+                    },
+                    "new_template_path": {
+                        "type": "string"
+                    },
+                    "modifications_applied": {
+                        "type": "array"
+                    },
+                    "error": {
+                        "type": "string"
+                    }
+                }
+            },
+            "examples": [
+                {
+                    "description": "Clone catalog template with new name",
+                    "parameters": {
+                        "source_template": "catalog_template_2024.indt",
+                        "new_template_name": "catalog_template_2025"
+                    },
+                    "expected_result": {
+                        "success": true,
+                        "new_template_path": "catalog_template_2025.indt"
+                    }
+                }
+            ],
+            "usage_guide": {
+                "when_to_use": [
+                    "User wants template variation without recreating from scratch",
+                    "User needs to preserve original while making changes",
+                    "User is creating seasonal template versions",
+                    "User wants to experiment with template modifications"
+                ],
+                "workflow": [
+                    "Step 1: Call indesign_list_templates() to find source template",
+                    "Step 2: Call indesign_clone_template() with source path and new name",
+                    "Step 3: Optionally modify clone with indesign_update_template()",
+                    "Step 4: Test clone with indesign_create_document_from_template()"
+                ],
+                "best_practices": [
+                    "Use descriptive names that indicate variation (template_summer, template_v2)",
+                    "Document changes between versions in template metadata",
+                    "Test cloned template before distribution",
+                    "Keep original template unmodified as baseline"
+                ],
+                "error_handling": [
+                    "Error 'Source template not found' → Verify source_template path",
+                    "Error 'Template name conflict' → Choose different new_template_name",
+                    "Error 'Template locked' → Source template is open, close it first"
+                ],
+                "related_tools": [
+                    "indesign_list_templates - Find template to clone",
+                    "indesign_update_template - Modify clone after creation",
+                    "indesign_compare_templates - See differences between versions",
+                    "indesign_version_template - Create versioned copy"
+                ]
+            }
+        },
+        {
+            "name": "indesign_get_template_details",
+            "description": "Retrieve comprehensive details about a specific InDesign template.\n\nReturns template metadata including:\n- Page structure (count, size, orientation)\n- Master pages (names, applied pages)\n- Placeholders and data merge fields\n- Paragraph and character styles\n- Color swatches and libraries\n- Image and text frame counts\n- Creation and modification dates\n- Template version and author info\n\nUse this tool when:\n- User wants to inspect template before using\n- User needs to verify placeholder fields match data\n- User is reviewing template structure\n- User wants to document template capabilities\n\nCommon scenarios:\n1. 'What fields are in the catalog template?' → List placeholders\n2. 'Show me template structure' → Complete metadata\n3. 'Does template have product image placeholder?' → Check fields\n4. 'What styles are in this template?' → List paragraph/character styles",
+            "platform": "adobe_indesign",
+            "category": "template_management",
+            "backend": "soap",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "template_id": {
+                        "type": "string",
+                        "description": "Template identifier or path to .indt file"
+                    },
+                    "include_styles": {
+                        "type": "boolean",
+                        "default": true,
+                        "description": "Include paragraph/character style details"
+                    },
+                    "include_swatches": {
+                        "type": "boolean",
+                        "default": true,
+                        "description": "Include color swatch library"
+                    }
+                },
+                "required": [
+                    "template_id"
+                ]
+            },
+            "returns": {
+                "type": "object",
+                "properties": {
+                    "success": {
+                        "type": "boolean"
+                    },
+                    "template_name": {
+                        "type": "string"
+                    },
+                    "page_count": {
+                        "type": "integer"
+                    },
+                    "page_size": {
+                        "type": "object"
+                    },
+                    "placeholders": {
+                        "type": "array"
+                    },
+                    "master_pages": {
+                        "type": "array"
+                    },
+                    "paragraph_styles": {
+                        "type": "array"
+                    },
+                    "character_styles": {
+                        "type": "array"
+                    },
+                    "color_swatches": {
+                        "type": "array"
+                    },
+                    "created_date": {
+                        "type": "string"
+                    },
+                    "modified_date": {
+                        "type": "string"
+                    },
+                    "error": {
+                        "type": "string"
+                    }
+                }
+            },
+            "examples": [
+                {
+                    "description": "Get template details with all metadata",
+                    "parameters": {
+                        "template_id": "catalog_template_2024.indt"
+                    },
+                    "expected_result": {
+                        "success": true,
+                        "template_name": "catalog_template_2024",
+                        "placeholders": [
+                            "<<ProductName>>",
+                            "<<Price>>",
+                            "<<Description>>"
+                        ],
+                        "master_pages": [
+                            "Cover",
+                            "Content",
+                            "Back"
+                        ]
+                    }
+                }
+            ],
+            "usage_guide": {
+                "when_to_use": [
+                    "Inspecting template before creating document",
+                    "Verifying placeholder fields match data source",
+                    "Reviewing template structure and capabilities",
+                    "Documenting template for team usage"
+                ],
+                "workflow": [
+                    "Step 1: Call indesign_list_templates() to find available templates",
+                    "Step 2: Call indesign_get_template_details() for specific template",
+                    "Step 3: Review placeholders to match with data source",
+                    "Step 4: Proceed with indesign_create_document_from_template()"
+                ],
+                "best_practices": [
+                    "Always check template details before data merge",
+                    "Verify placeholder names match data column names exactly",
+                    "Review styles to ensure they match branding requirements",
+                    "Check page count for appropriate template selection"
+                ],
+                "error_handling": [
+                    "Error 'Template not found' → Verify template_id path",
+                    "Error 'Template corrupted' → Template file damaged, use backup",
+                    "Error 'Permission denied' → Check file access permissions"
+                ],
+                "related_tools": [
+                    "indesign_list_templates - Find templates first",
+                    "indesign_validate_template_structure - Check integrity",
+                    "indesign_create_document_from_template - Use template after inspection"
+                ]
+            }
+        },
+        {
+            "name": "indesign_update_template",
+            "description": "Modify existing InDesign template properties and structure.\n\nUpdate template elements:\n- Add or remove placeholders\n- Modify master pages\n- Update paragraph/character styles\n- Change page dimensions\n- Add or remove color swatches\n- Update template metadata\n\nUse when:\n- Template needs modification\n- Adding new placeholder fields\n- Updating brand styles\n- Changing page structure\n\nPreserves template integrity while applying changes.",
+            "platform": "adobe_indesign",
+            "category": "template_management",
+            "backend": "soap",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "template_id": {
+                        "type": "string"
+                    },
+                    "updates": {
+                        "type": "object",
+                        "properties": {
+                            "add_placeholders": {
+                                "type": "array"
+                            },
+                            "remove_placeholders": {
+                                "type": "array"
+                            },
+                            "update_styles": {
+                                "type": "object"
+                            },
+                            "page_size": {
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "required": [
+                    "template_id",
+                    "updates"
+                ]
+            },
+            "returns": {
+                "type": "object",
+                "properties": {
+                    "success": {
+                        "type": "boolean"
+                    },
+                    "changes_applied": {
+                        "type": "array"
+                    },
+                    "backup_created": {
+                        "type": "boolean"
+                    },
+                    "error": {
+                        "type": "string"
+                    }
+                }
+            },
+            "examples": [
+                {
+                    "description": "Add new placeholder to template",
+                    "parameters": {
+                        "template_id": "catalog_template.indt",
+                        "updates": {
+                            "add_placeholders": [
+                                {
+                                    "name": "SKU",
+                                    "type": "text"
+                                }
+                            ]
+                        }
+                    },
+                    "expected_result": {
+                        "success": true,
+                        "changes_applied": [
+                            "Added placeholder: <<SKU>>"
+                        ],
+                        "backup_created": true
+                    }
+                }
+            ],
+            "usage_guide": {
+                "when_to_use": [
+                    "Template needs new placeholder fields",
+                    "Updating brand styles in template",
+                    "Modifying template structure",
+                    "Adding features to existing template"
+                ],
+                "workflow": [
+                    "Step 1: Call indesign_get_template_details() to see current state",
+                    "Step 2: Prepare updates object with changes",
+                    "Step 3: Call indesign_update_template() with updates",
+                    "Step 4: Verify changes with indesign_get_template_details()"
+                ],
+                "best_practices": [
+                    "Always creates backup before modification",
+                    "Test updated template before distribution",
+                    "Document changes in template metadata",
+                    "Use version_template for major changes"
+                ],
+                "error_handling": [
+                    "Error 'Template locked' → Close template in InDesign",
+                    "Error 'Invalid update' → Check update structure",
+                    "Error 'Placeholder conflict' → Name already exists"
+                ],
+                "related_tools": [
+                    "indesign_get_template_details - Inspect before updating",
+                    "indesign_version_template - Create version for major changes",
+                    "indesign_validate_template_structure - Verify after update"
+                ]
+            }
+        },
+        {
+            "name": "indesign_delete_template",
+            "description": "Remove InDesign template from template library.\n\nDeletes template file with options to:\n- Archive before deletion\n- Remove associated files\n- Check for active usage\n- Confirm deletion safety\n\nUse when:\n- Template no longer needed\n- Cleaning up template library\n- Removing deprecated templates\n- Managing storage space\n\nSafety checks prevent accidental deletion of active templates.",
+            "platform": "adobe_indesign",
+            "category": "template_management",
+            "backend": "soap",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "template_id": {
+                        "type": "string"
+                    },
+                    "archive_before_delete": {
+                        "type": "boolean",
+                        "default": true
+                    },
+                    "force": {
+                        "type": "boolean",
+                        "default": false
+                    }
+                },
+                "required": [
+                    "template_id"
+                ]
+            },
+            "returns": {
+                "type": "object",
+                "properties": {
+                    "success": {
+                        "type": "boolean"
+                    },
+                    "archived_path": {
+                        "type": "string"
+                    },
+                    "error": {
+                        "type": "string"
+                    }
+                }
+            },
+            "examples": [
+                {
+                    "description": "Delete template with archiving",
+                    "parameters": {
+                        "template_id": "old_template.indt",
+                        "archive_before_delete": true
+                    },
+                    "expected_result": {
+                        "success": true,
+                        "archived_path": "archive/old_template_20250130.indt"
+                    }
+                }
+            ],
+            "usage_guide": {
+                "when_to_use": [
+                    "Removing obsolete templates",
+                    "Cleaning up template library",
+                    "Deleting test templates",
+                    "Managing storage"
+                ],
+                "workflow": [
+                    "Step 1: Call indesign_template_usage_report() to check if template is used",
+                    "Step 2: Archive template if still needed",
+                    "Step 3: Call indesign_delete_template()",
+                    "Step 4: Verify deletion with indesign_list_templates()"
+                ],
+                "best_practices": [
+                    "Always archive before deletion unless force=true",
+                    "Check template usage before deleting",
+                    "Inform team before deleting shared templates",
+                    "Keep archives for 90 days minimum"
+                ],
+                "error_handling": [
+                    "Error 'Template in use' → Wait or use force=true",
+                    "Error 'Permission denied' → Check file permissions",
+                    "Error 'Template not found' → Already deleted or wrong path"
+                ],
+                "related_tools": [
+                    "indesign_template_usage_report - Check usage before delete",
+                    "indesign_list_templates - Verify deletion",
+                    "indesign_import_template - Restore from archive if needed"
+                ]
+            }
+        },
+        {
+            "name": "indesign_validate_template_structure",
+            "description": "Validate InDesign template integrity and structure.\n\nChecks template for:\n- Missing linked files\n- Invalid placeholder syntax\n- Broken master page references\n- Style conflicts\n- Font availability\n- Color profile issues\n- Data merge field errors\n\nUse when:\n- Before distributing template\n- After template modifications\n- Troubleshooting template issues\n- Quality assurance workflow\n\nReturns detailed validation report with errors and warnings.",
+            "platform": "adobe_indesign",
+            "category": "template_management",
+            "backend": "soap",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "template_id": {
+                        "type": "string"
+                    },
+                    "strict_mode": {
+                        "type": "boolean",
+                        "default": false
+                    },
+                    "check_fonts": {
+                        "type": "boolean",
+                        "default": true
+                    },
+                    "check_links": {
+                        "type": "boolean",
+                        "default": true
+                    }
+                },
+                "required": [
+                    "template_id"
+                ]
+            },
+            "returns": {
+                "type": "object",
+                "properties": {
+                    "success": {
+                        "type": "boolean"
+                    },
+                    "valid": {
+                        "type": "boolean"
+                    },
+                    "errors": {
+                        "type": "array"
+                    },
+                    "warnings": {
+                        "type": "array"
+                    },
+                    "missing_fonts": {
+                        "type": "array"
+                    },
+                    "missing_links": {
+                        "type": "array"
+                    },
+                    "error": {
+                        "type": "string"
+                    }
+                }
+            },
+            "examples": [
+                {
+                    "description": "Validate template with all checks",
+                    "parameters": {
+                        "template_id": "catalog_template.indt",
+                        "strict_mode": true
+                    },
+                    "expected_result": {
+                        "success": true,
+                        "valid": true,
+                        "errors": [],
+                        "warnings": [
+                            "Font 'Arial Bold' not embedded"
+                        ]
+                    }
+                }
+            ],
+            "usage_guide": {
+                "when_to_use": [
+                    "Before distributing template to team",
+                    "After template updates or modifications",
+                    "Troubleshooting template errors",
+                    "Quality assurance checks"
+                ],
+                "workflow": [
+                    "Step 1: Call indesign_validate_template_structure()",
+                    "Step 2: Review errors array for critical issues",
+                    "Step 3: Fix errors with indesign_update_template()",
+                    "Step 4: Re-validate until errors array is empty"
+                ],
+                "best_practices": [
+                    "Run validation before template distribution",
+                    "Fix all errors before using in production",
+                    "Address warnings for better compatibility",
+                    "Use strict_mode for production templates"
+                ],
+                "error_handling": [
+                    "Error 'Template corrupted' → Restore from backup",
+                    "Missing fonts → Install fonts or replace with alternatives",
+                    "Missing links → Re-link images or update paths",
+                    "Invalid placeholders → Fix syntax (<<FieldName>>)"
+                ],
+                "related_tools": [
+                    "indesign_update_template - Fix errors found during validation",
+                    "indesign_get_template_details - Inspect template structure",
+                    "indesign_export_template - Create clean export after fixes"
+                ]
+            }
+        },
+        {
+            "name": "indesign_define_template_variables",
+            "description": "Define and manage data merge placeholder variables in template.\n\nConfigure placeholders:\n- Add text placeholders (<<FieldName>>)\n- Add image placeholders (<<@ImageField>>)\n- Set default values\n- Define field types and validation\n- Map to data source columns\n- Set placeholder formatting\n\nUse when:\n- Setting up template for data merge\n- Defining placeholder fields\n- Mapping data source to template\n- Creating dynamic templates\n\nEssential for automated document generation workflows.",
+            "platform": "adobe_indesign",
+            "category": "template_management",
+            "backend": "soap",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "template_id": {
+                        "type": "string"
+                    },
+                    "variables": {
+                        "type": "array",
+                        "items": {
+                            "type": "object",
+                            "properties": {
+                                "name": {
+                                    "type": "string"
+                                },
+                                "type": {
+                                    "type": "string",
+                                    "enum": [
+                                        "text",
+                                        "image",
+                                        "number",
+                                        "date"
+                                    ]
+                                },
+                                "default_value": {
+                                    "type": "string"
+                                },
+                                "required": {
+                                    "type": "boolean"
+                                },
+                                "validation": {
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    }
+                },
+                "required": [
+                    "template_id",
+                    "variables"
+                ]
+            },
+            "returns": {
+                "type": "object",
+                "properties": {
+                    "success": {
+                        "type": "boolean"
+                    },
+                    "variables_added": {
+                        "type": "integer"
+                    },
+                    "placeholders": {
+                        "type": "array"
+                    },
+                    "error": {
+                        "type": "string"
+                    }
+                }
+            },
+            "examples": [
+                {
+                    "description": "Define product catalog variables",
+                    "parameters": {
+                        "template_id": "catalog_template.indt",
+                        "variables": [
+                            {
+                                "name": "ProductName",
+                                "type": "text"
+                            },
+                            {
+                                "name": "Price",
+                                "type": "number",
+                                "default_value": "$0.00"
+                            },
+                            {
+                                "name": "ProductImage",
+                                "type": "image"
+                            }
+                        ]
+                    },
+                    "expected_result": {
+                        "success": true,
+                        "variables_added": 3,
+                        "placeholders": [
+                            "<<ProductName>>",
+                            "<<Price>>",
+                            "<<@ProductImage>>"
+                        ]
+                    }
+                }
+            ],
+            "usage_guide": {
+                "when_to_use": [
+                    "Setting up template for data merge",
+                    "Defining placeholder fields for dynamic content",
+                    "Creating catalog or mail merge templates",
+                    "Mapping data source columns to template"
+                ],
+                "workflow": [
+                    "Step 1: Analyze data source structure (CSV, JSON)",
+                    "Step 2: Define variables matching data columns",
+                    "Step 3: Call indesign_define_template_variables()",
+                    "Step 4: Test with indesign_create_document_from_template()"
+                ],
+                "best_practices": [
+                    "Use descriptive variable names (ProductName, not Field1)",
+                    "Set required=true for essential fields",
+                    "Provide default values for optional fields",
+                    "Image placeholders need @ prefix (<<@ImageField>>)",
+                    "Match variable names exactly to data column names"
+                ],
+                "error_handling": [
+                    "Error 'Variable name conflict' → Name already exists",
+                    "Error 'Invalid variable type' → Use text, image, number, or date",
+                    "Error 'Reserved name' → Avoid InDesign reserved words"
+                ],
+                "related_tools": [
+                    "indesign_create_template - Create template first",
+                    "indesign_create_data_merge - Use variables for merge",
+                    "indesign_validate_data_source - Verify data matches variables"
+                ]
+            }
+        },
+        {
+            "name": "indesign_version_template",
+            "description": "Create versioned copy of template for change tracking.\n\nVersioning features:\n- Automatic version numbering\n- Change documentation\n- Version comparison support\n- Rollback capability\n- Version history tracking\n\nUse when:\n- Making significant template changes\n- Creating seasonal variations\n- Tracking template evolution\n- Need rollback capability\n\nVersioned templates enable safe experimentation and change history.",
+            "platform": "adobe_indesign",
+            "category": "template_management",
+            "backend": "soap",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "template_id": {
+                        "type": "string"
+                    },
+                    "version_note": {
+                        "type": "string"
+                    },
+                    "auto_increment": {
+                        "type": "boolean",
+                        "default": true
+                    }
+                },
+                "required": [
+                    "template_id"
+                ]
+            },
+            "returns": {
+                "type": "object",
+                "properties": {
+                    "success": {
+                        "type": "boolean"
+                    },
+                    "new_version_id": {
+                        "type": "string"
+                    },
+                    "version_number": {
+                        "type": "string"
+                    },
+                    "error": {
+                        "type": "string"
+                    }
+                }
+            },
+            "examples": [
+                {
+                    "description": "Create new template version",
+                    "parameters": {
+                        "template_id": "catalog_template.indt",
+                        "version_note": "Added SKU field and updated brand colors"
+                    },
+                    "expected_result": {
+                        "success": true,
+                        "new_version_id": "catalog_template_v2.indt",
+                        "version_number": "2.0"
+                    }
+                }
+            ],
+            "usage_guide": {
+                "when_to_use": [
+                    "Before making significant template changes",
+                    "Creating seasonal template variations",
+                    "Need to preserve previous version",
+                    "Tracking template evolution over time"
+                ],
+                "workflow": [
+                    "Step 1: Call indesign_version_template() before changes",
+                    "Step 2: Work on new version with indesign_update_template()",
+                    "Step 3: Test new version thoroughly",
+                    "Step 4: Use indesign_compare_templates() to see differences"
+                ],
+                "best_practices": [
+                    "Always version before major changes",
+                    "Include descriptive version notes",
+                    "Keep at least last 3 versions",
+                    "Use semantic versioning (1.0, 1.1, 2.0)",
+                    "Test new version before deploying"
+                ],
+                "error_handling": [
+                    "Error 'Template not found' → Verify template_id",
+                    "Error 'Version limit reached' → Archive old versions",
+                    "Error 'Disk space' → Clean up old versions"
+                ],
+                "related_tools": [
+                    "indesign_compare_templates - Compare versions",
+                    "indesign_list_templates - View all versions",
+                    "indesign_update_template - Modify new version"
+                ]
+            }
+        },
+        {
+            "name": "indesign_compare_templates",
+            "description": "Compare two template versions to identify differences.\n\nComparison detects:\n- Added/removed placeholders\n- Style changes\n- Master page modifications\n- Page structure changes\n- Color swatch differences\n\nUse when:\n- Reviewing template changes\n- Auditing template variations\n- Deciding which version to use\n- Documenting template evolution\n\nReturns detailed diff report with all changes.",
+            "platform": "adobe_indesign",
+            "category": "template_management",
+            "backend": "soap",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "template_a": {
+                        "type": "string"
+                    },
+                    "template_b": {
+                        "type": "string"
+                    },
+                    "compare_content": {
+                        "type": "boolean",
+                        "default": false
+                    }
+                },
+                "required": [
+                    "template_a",
+                    "template_b"
+                ]
+            },
+            "returns": {
+                "type": "object",
+                "properties": {
+                    "success": {
+                        "type": "boolean"
+                    },
+                    "differences": {
+                        "type": "array"
+                    },
+                    "added": {
+                        "type": "object"
+                    },
+                    "removed": {
+                        "type": "object"
+                    },
+                    "modified": {
+                        "type": "object"
+                    },
+                    "error": {
+                        "type": "string"
+                    }
+                }
+            },
+            "examples": [
+                {
+                    "description": "Compare template versions",
+                    "parameters": {
+                        "template_a": "catalog_v1.indt",
+                        "template_b": "catalog_v2.indt"
+                    },
+                    "expected_result": {
+                        "success": true,
+                        "differences": [
+                            "Added placeholder: <<SKU>>",
+                            "Modified style: ProductName"
+                        ],
+                        "added": {
+                            "placeholders": [
+                                "<<SKU>>"
+                            ]
+                        },
+                        "modified": {
+                            "styles": [
+                                "ProductName"
+                            ]
+                        }
+                    }
+                }
+            ],
+            "usage_guide": {
+                "when_to_use": [
+                    "Reviewing changes between template versions",
+                    "Understanding template evolution",
+                    "Deciding which version to deploy",
+                    "Auditing template modifications"
+                ],
+                "workflow": [
+                    "Step 1: Have two template versions to compare",
+                    "Step 2: Call indesign_compare_templates()",
+                    "Step 3: Review differences array",
+                    "Step 4: Choose appropriate version or merge changes"
+                ],
+                "best_practices": [
+                    "Compare before deploying new version",
+                    "Document significant differences",
+                    "Test both versions if differences are major",
+                    "Use comparison to inform rollback decisions"
+                ],
+                "error_handling": [
+                    "Error 'Template not found' → Verify both paths",
+                    "Error 'Incompatible versions' → Templates too different to compare",
+                    "Error 'Comparison timeout' → Templates too large"
+                ],
+                "related_tools": [
+                    "indesign_version_template - Create versions to compare",
+                    "indesign_get_template_details - Inspect individual templates",
+                    "indesign_merge_templates - Combine features from both"
+                ]
+            }
+        },
+        {
+            "name": "indesign_export_template",
+            "description": "Export InDesign template in various formats for distribution or backup.\n\nExport formats:\n- IDML (InDesign Markup Language - version-independent)\n- PDF (for review and approval)\n- Package (with fonts and links)\n- INDT (standard template format)\n\nUse when:\n- Distributing templates to other users\n- Creating backups\n- Sharing with older InDesign versions\n- Preparing template packages\n\nIDML export ensures cross-version compatibility.",
+            "platform": "adobe_indesign",
+            "category": "template_management",
+            "backend": "soap",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "template_id": {
+                        "type": "string"
+                    },
+                    "export_format": {
+                        "type": "string",
+                        "enum": [
+                            "idml",
+                            "pdf",
+                            "package",
+                            "indt"
+                        ]
+                    },
+                    "output_path": {
+                        "type": "string"
+                    },
+                    "include_fonts": {
+                        "type": "boolean",
+                        "default": true
+                    },
+                    "include_links": {
+                        "type": "boolean",
+                        "default": true
+                    }
+                },
+                "required": [
+                    "template_id",
+                    "export_format"
+                ]
+            },
+            "returns": {
+                "type": "object",
+                "properties": {
+                    "success": {
+                        "type": "boolean"
+                    },
+                    "export_path": {
+                        "type": "string"
+                    },
+                    "file_size": {
+                        "type": "number"
+                    },
+                    "error": {
+                        "type": "string"
+                    }
+                }
+            },
+            "examples": [
+                {
+                    "description": "Export template as IDML for compatibility",
+                    "parameters": {
+                        "template_id": "catalog_template.indt",
+                        "export_format": "idml",
+                        "output_path": "./exports/"
+                    },
+                    "expected_result": {
+                        "success": true,
+                        "export_path": "./exports/catalog_template.idml"
+                    }
+                }
+            ],
+            "usage_guide": {
+                "when_to_use": [
+                    "Sharing with older InDesign versions",
+                    "Creating distribution packages",
+                    "Backing up templates",
+                    "Cross-platform sharing"
+                ],
+                "workflow": [
+                    "Step 1: Call indesign_export_template()",
+                    "Step 2: Retrieve from export_path",
+                    "Step 3: Distribute to team"
+                ],
+                "best_practices": [
+                    "Use IDML for version compatibility",
+                    "Include fonts/links for complete packages",
+                    "Use PDF for review only"
+                ],
+                "error_handling": [
+                    "Error 'Export failed' → Check disk space",
+                    "Error 'Missing fonts' → Set include_fonts=true"
+                ],
+                "related_tools": [
+                    "indesign_import_template - Import exported templates",
+                    "indesign_validate_template_structure - Validate before export"
+                ]
+            }
+        },
+        {
+            "name": "indesign_import_template",
+            "description": "Import InDesign template from file or package.\n\nImport from:\n- INDT files\n- IDML files\n- Template packages\n- Archived templates\n\nUse when:\n- Adding templates to library\n- Restoring from backup\n- Importing shared templates\n- Migrating templates\n\nAutomatically handles font and link resolution.",
+            "platform": "adobe_indesign",
+            "category": "template_management",
+            "backend": "soap",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "file_path": {
+                        "type": "string"
+                    },
+                    "target_folder": {
+                        "type": "string"
+                    },
+                    "merge_styles": {
+                        "type": "boolean",
+                        "default": false
+                    },
+                    "resolve_conflicts": {
+                        "type": "string",
+                        "enum": [
+                            "rename",
+                            "skip",
+                            "overwrite"
+                        ],
+                        "default": "rename"
+                    }
+                },
+                "required": [
+                    "file_path"
+                ]
+            },
+            "returns": {
+                "type": "object",
+                "properties": {
+                    "success": {
+                        "type": "boolean"
+                    },
+                    "template_id": {
+                        "type": "string"
+                    },
+                    "conflicts_resolved": {
+                        "type": "integer"
+                    },
+                    "error": {
+                        "type": "string"
+                    }
+                }
+            },
+            "examples": [
+                {
+                    "description": "Import IDML template",
+                    "parameters": {
+                        "file_path": "./imports/catalog_template.idml",
+                        "target_folder": "./templates/"
+                    },
+                    "expected_result": {
+                        "success": true,
+                        "template_id": "catalog_template.indt"
+                    }
+                }
+            ],
+            "usage_guide": {
+                "when_to_use": [
+                    "Adding new templates to library",
+                    "Restoring from backup",
+                    "Importing from other users",
+                    "Template migration"
+                ],
+                "workflow": [
+                    "Step 1: Prepare template file",
+                    "Step 2: Call indesign_import_template()",
+                    "Step 3: Validate with indesign_validate_template_structure()"
+                ],
+                "best_practices": [
+                    "Validate after import",
+                    "Use rename for conflict resolution",
+                    "Check for missing fonts/links"
+                ],
+                "error_handling": [
+                    "Error 'Invalid format' → Check file type",
+                    "Error 'Name conflict' → Use resolve_conflicts parameter"
+                ],
+                "related_tools": [
+                    "indesign_export_template - Export before import",
+                    "indesign_validate_template_structure - Validate after import"
+                ]
+            }
+        },
+        {
+            "name": "indesign_set_template_master_pages",
+            "description": "Configure master pages for template.\n\nMaster page operations:\n- Create new master pages\n- Edit existing masters\n- Set master page inheritance\n- Apply masters to pages\n- Define master page layouts\n\nUse when:\n- Setting up template structure\n- Creating consistent page layouts\n- Defining headers/footers\n- Building complex templates\n\nMaster pages ensure consistency across documents.",
+            "platform": "adobe_indesign",
+            "category": "template_management",
+            "backend": "soap",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "template_id": {
+                        "type": "string"
+                    },
+                    "master_pages": {
+                        "type": "array",
+                        "items": {
+                            "type": "object",
+                            "properties": {
+                                "name": {
+                                    "type": "string"
+                                },
+                                "based_on": {
+                                    "type": "string"
+                                },
+                                "layout": {
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    }
+                },
+                "required": [
+                    "template_id",
+                    "master_pages"
+                ]
+            },
+            "returns": {
+                "type": "object",
+                "properties": {
+                    "success": {
+                        "type": "boolean"
+                    },
+                    "masters_created": {
+                        "type": "integer"
+                    },
+                    "master_page_ids": {
+                        "type": "array"
+                    },
+                    "error": {
+                        "type": "string"
+                    }
+                }
+            },
+            "examples": [
+                {
+                    "description": "Create master pages for magazine",
+                    "parameters": {
+                        "template_id": "magazine_template.indt",
+                        "master_pages": [
+                            {
+                                "name": "Cover",
+                                "layout": {}
+                            },
+                            {
+                                "name": "Content",
+                                "based_on": "A-Master"
+                            }
+                        ]
+                    },
+                    "expected_result": {
+                        "success": true,
+                        "masters_created": 2
+                    }
+                }
+            ],
+            "usage_guide": {
+                "when_to_use": [
+                    "Creating template structure",
+                    "Defining page layouts",
+                    "Setting up headers/footers",
+                    "Building complex templates"
+                ],
+                "workflow": [
+                    "Step 1: Design master page layouts",
+                    "Step 2: Call indesign_set_template_master_pages()",
+                    "Step 3: Apply to pages"
+                ],
+                "best_practices": [
+                    "Use inheritance for variations",
+                    "Name masters descriptively",
+                    "Include page numbers on masters"
+                ],
+                "error_handling": [
+                    "Error 'Master name exists' → Use unique names",
+                    "Error 'Invalid based_on' → Check parent master exists"
+                ],
+                "related_tools": [
+                    "indesign_create_template - Create template first",
+                    "indesign_apply_master_page - Apply to document pages"
+                ]
+            }
+        },
+        {
+            "name": "indesign_lock_template_elements",
+            "description": "Lock template elements to prevent modification.\n\nLock features:\n- Lock specific frames\n- Lock master page items\n- Lock styles\n- Protect brand elements\n- Set unlock permissions\n\nUse when:\n- Protecting brand elements\n- Preventing accidental changes\n- Distributing templates to users\n- Enforcing template structure\n\nLocked elements maintain template integrity.",
+            "platform": "adobe_indesign",
+            "category": "template_management",
+            "backend": "soap",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "template_id": {
+                        "type": "string"
+                    },
+                    "lock_items": {
+                        "type": "object",
+                        "properties": {
+                            "frame_ids": {
+                                "type": "array"
+                            },
+                            "element_types": {
+                                "type": "array"
+                            },
+                            "master_items": {
+                                "type": "boolean"
+                            }
+                        }
+                    }
+                },
+                "required": [
+                    "template_id",
+                    "lock_items"
+                ]
+            },
+            "returns": {
+                "type": "object",
+                "properties": {
+                    "success": {
+                        "type": "boolean"
+                    },
+                    "items_locked": {
+                        "type": "integer"
+                    },
+                    "error": {
+                        "type": "string"
+                    }
+                }
+            },
+            "examples": [
+                {
+                    "description": "Lock logo and brand elements",
+                    "parameters": {
+                        "template_id": "branded_template.indt",
+                        "lock_items": {
+                            "element_types": [
+                                "logo",
+                                "brand_colors"
+                            ],
+                            "master_items": true
+                        }
+                    },
+                    "expected_result": {
+                        "success": true,
+                        "items_locked": 5
+                    }
+                }
+            ],
+            "usage_guide": {
+                "when_to_use": [
+                    "Protecting brand elements",
+                    "Distributing templates to users",
+                    "Preventing structure changes",
+                    "Template quality control"
+                ],
+                "workflow": [
+                    "Step 1: Identify elements to lock",
+                    "Step 2: Call indesign_lock_template_elements()",
+                    "Step 3: Test template"
+                ],
+                "best_practices": [
+                    "Lock brand elements always",
+                    "Lock master page items",
+                    "Document locked elements",
+                    "Provide unlock instructions"
+                ],
+                "error_handling": [
+                    "Error 'Element not found' → Check frame_ids",
+                    "Error 'Already locked' → Element locked elsewhere"
+                ],
+                "related_tools": [
+                    "indesign_create_template - Create before locking",
+                    "indesign_get_template_details - View locked elements"
+                ]
+            }
+        },
+        {
+            "name": "indesign_merge_templates",
+            "description": "Merge multiple templates into single template.\n\nMerge operations:\n- Combine master pages\n- Merge style libraries\n- Consolidate placeholders\n- Combine color swatches\n- Resolve conflicts\n\nUse when:\n- Creating comprehensive template\n- Combining specialized templates\n- Building template library\n- Consolidating resources\n\nMerged templates inherit best features of source templates.",
+            "platform": "adobe_indesign",
+            "category": "template_management",
+            "backend": "soap",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "template_a": {
+                        "type": "string"
+                    },
+                    "template_b": {
+                        "type": "string"
+                    },
+                    "output_name": {
+                        "type": "string"
+                    },
+                    "merge_strategy": {
+                        "type": "string",
+                        "enum": [
+                            "prefer_a",
+                            "prefer_b",
+                            "combine"
+                        ],
+                        "default": "combine"
+                    }
+                },
+                "required": [
+                    "template_a",
+                    "template_b",
+                    "output_name"
+                ]
+            },
+            "returns": {
+                "type": "object",
+                "properties": {
+                    "success": {
+                        "type": "boolean"
+                    },
+                    "merged_template_id": {
+                        "type": "string"
+                    },
+                    "conflicts": {
+                        "type": "array"
+                    },
+                    "error": {
+                        "type": "string"
+                    }
+                }
+            },
+            "examples": [
+                {
+                    "description": "Merge catalog and brochure templates",
+                    "parameters": {
+                        "template_a": "catalog_template.indt",
+                        "template_b": "brochure_template.indt",
+                        "output_name": "marketing_template",
+                        "merge_strategy": "combine"
+                    },
+                    "expected_result": {
+                        "success": true,
+                        "merged_template_id": "marketing_template.indt"
+                    }
+                }
+            ],
+            "usage_guide": {
+                "when_to_use": [
+                    "Creating comprehensive templates",
+                    "Combining specialized templates",
+                    "Building unified template library"
+                ],
+                "workflow": [
+                    "Step 1: Select templates to merge",
+                    "Step 2: Choose merge_strategy",
+                    "Step 3: Call indesign_merge_templates()",
+                    "Step 4: Resolve conflicts"
+                ],
+                "best_practices": [
+                    "Review conflicts before finalizing",
+                    "Use combine strategy for maximum features",
+                    "Test merged template thoroughly"
+                ],
+                "error_handling": [
+                    "Error 'Style conflict' → Use merge_strategy to resolve",
+                    "Error 'Incompatible templates' → Templates too different"
+                ],
+                "related_tools": [
+                    "indesign_compare_templates - Preview merge differences",
+                    "indesign_validate_template_structure - Validate after merge"
+                ]
+            }
+        },
+        {
+            "name": "indesign_template_usage_report",
+            "description": "Generate usage analytics for template.\n\nReport includes:\n- Document creation count\n- Last used date\n- User statistics\n- Popular placeholders\n- Error frequency\n\nUse when:\n- Analyzing template effectiveness\n- Deciding template retirement\n- Usage metrics tracking\n- Template optimization\n\nHelps identify valuable vs unused templates.",
+            "platform": "adobe_indesign",
+            "category": "template_management",
+            "backend": "soap",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "template_id": {
+                        "type": "string"
+                    },
+                    "date_range": {
+                        "type": "object",
+                        "properties": {
+                            "start_date": {
+                                "type": "string"
+                            },
+                            "end_date": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                },
+                "required": [
+                    "template_id"
+                ]
+            },
+            "returns": {
+                "type": "object",
+                "properties": {
+                    "success": {
+                        "type": "boolean"
+                    },
+                    "usage_count": {
+                        "type": "integer"
+                    },
+                    "last_used": {
+                        "type": "string"
+                    },
+                    "documents_created": {
+                        "type": "integer"
+                    },
+                    "popular_placeholders": {
+                        "type": "array"
+                    },
+                    "error": {
+                        "type": "string"
+                    }
+                }
+            },
+            "examples": [
+                {
+                    "description": "Get template usage for last 30 days",
+                    "parameters": {
+                        "template_id": "catalog_template.indt",
+                        "date_range": {
+                            "start_date": "2025-01-01",
+                            "end_date": "2025-01-30"
+                        }
+                    },
+                    "expected_result": {
+                        "success": true,
+                        "usage_count": 45,
+                        "documents_created": 120
+                    }
+                }
+            ],
+            "usage_guide": {
+                "when_to_use": [
+                    "Analyzing template usage",
+                    "Template library optimization",
+                    "Deciding template retirement",
+                    "Usage reporting"
+                ],
+                "workflow": [
+                    "Step 1: Call indesign_template_usage_report()",
+                    "Step 2: Review usage metrics",
+                    "Step 3: Decide optimization or retirement"
+                ],
+                "best_practices": [
+                    "Run monthly usage reports",
+                    "Archive unused templates",
+                    "Optimize popular templates"
+                ],
+                "error_handling": [
+                    "Error 'No usage data' → Template never used",
+                    "Error 'Invalid date range' → Check date format"
+                ],
+                "related_tools": [
+                    "indesign_list_templates - View all templates",
+                    "indesign_delete_template - Remove unused"
+                ]
+            }
+        },
+        {
+            "name": "indesign_apply_template_to_document",
+            "description": "Apply template to existing document.\n\nRetrofit operations:\n- Apply master pages\n- Import styles\n- Add placeholders\n- Update formatting\n- Preserve content\n\nUse when:\n- Retrofitting existing documents\n- Applying new branding\n- Standardizing documents\n- Template migration\n\nApplies template structure to existing content.",
+            "platform": "adobe_indesign",
+            "category": "template_management",
+            "backend": "soap",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "document_id": {
+                        "type": "string"
+                    },
+                    "template_id": {
+                        "type": "string"
+                    },
+                    "apply_options": {
+                        "type": "object",
+                        "properties": {
+                            "apply_masters": {
+                                "type": "boolean",
+                                "default": true
+                            },
+                            "import_styles": {
+                                "type": "boolean",
+                                "default": true
+                            },
+                            "preserve_content": {
+                                "type": "boolean",
+                                "default": true
+                            }
+                        }
+                    }
+                },
+                "required": [
+                    "document_id",
+                    "template_id"
+                ]
+            },
+            "returns": {
+                "type": "object",
+                "properties": {
+                    "success": {
+                        "type": "boolean"
+                    },
+                    "changes_applied": {
+                        "type": "array"
+                    },
+                    "error": {
+                        "type": "string"
+                    }
+                }
+            },
+            "examples": [
+                {
+                    "description": "Apply new branding template to document",
+                    "parameters": {
+                        "document_id": "old_catalog.indd",
+                        "template_id": "new_brand_template.indt"
+                    },
+                    "expected_result": {
+                        "success": true,
+                        "changes_applied": [
+                            "Applied master pages",
+                            "Imported 15 styles"
+                        ]
+                    }
+                }
+            ],
+            "usage_guide": {
+                "when_to_use": [
+                    "Rebranding existing documents",
+                    "Applying new templates",
+                    "Standardizing document format",
+                    "Template migration"
+                ],
+                "workflow": [
+                    "Step 1: Backup document",
+                    "Step 2: Call indesign_apply_template_to_document()",
+                    "Step 3: Review changes"
+                ],
+                "best_practices": [
+                    "Always backup before applying",
+                    "Preview changes first",
+                    "Test with copy"
+                ],
+                "error_handling": [
+                    "Error 'Style conflict' → Resolve manually",
+                    "Error 'Content overflow' → Adjust layout"
+                ],
+                "related_tools": [
+                    "indesign_create_document_from_template - Create new from template",
+                    "indesign_get_template_details - Preview template"
+                ]
+            }
+        },
+        {
+            "name": "indesign_extract_template_from_document",
+            "description": "Extract template from existing document.\n\nExtraction process:\n- Convert document to template\n- Preserve structure and styles\n- Create placeholders from content\n- Generate master pages\n- Save as .indt file\n\nUse when:\n- Creating template from existing design\n- Converting documents to templates\n- Building template library\n- Standardizing designs\n\nConverts finished documents into reusable templates.",
+            "platform": "adobe_indesign",
+            "category": "template_management",
+            "backend": "soap",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "document_id": {
+                        "type": "string"
+                    },
+                    "template_name": {
+                        "type": "string"
+                    },
+                    "auto_create_placeholders": {
+                        "type": "boolean",
+                        "default": true
+                    },
+                    "preserve_content": {
+                        "type": "boolean",
+                        "default": false
+                    }
+                },
+                "required": [
+                    "document_id",
+                    "template_name"
+                ]
+            },
+            "returns": {
+                "type": "object",
+                "properties": {
+                    "success": {
+                        "type": "boolean"
+                    },
+                    "template_id": {
+                        "type": "string"
+                    },
+                    "placeholders_created": {
+                        "type": "integer"
+                    },
+                    "error": {
+                        "type": "string"
+                    }
+                }
+            },
+            "examples": [
+                {
+                    "description": "Extract template from catalog document",
+                    "parameters": {
+                        "document_id": "finished_catalog.indd",
+                        "template_name": "catalog_template_2025",
+                        "auto_create_placeholders": true
+                    },
+                    "expected_result": {
+                        "success": true,
+                        "template_id": "catalog_template_2025.indt",
+                        "placeholders_created": 8
+                    }
+                }
+            ],
+            "usage_guide": {
+                "when_to_use": [
+                    "Converting documents to templates",
+                    "Creating template from design",
+                    "Building template library from existing work"
+                ],
+                "workflow": [
+                    "Step 1: Select document to convert",
+                    "Step 2: Call indesign_extract_template_from_document()",
+                    "Step 3: Review placeholders",
+                    "Step 4: Test template"
+                ],
+                "best_practices": [
+                    "Use auto_create_placeholders for data merge templates",
+                    "Set preserve_content=false for clean template",
+                    "Review and refine placeholders"
+                ],
+                "error_handling": [
+                    "Error 'Document locked' → Close document first",
+                    "Error 'Invalid document' → Check document format"
+                ],
+                "related_tools": [
+                    "indesign_create_template - Create from scratch",
+                    "indesign_define_template_variables - Refine placeholders"
+                ]
+            }
+        }
+    ]
+}

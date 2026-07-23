@@ -1,0 +1,3676 @@
+{
+  "platform": "gmail",
+  "version": "2.0",
+  "description": "Gmail API - Complete email management with SMART bundled tools for AI-powered composition, bulk operations, inbox organization, and intelligent processing.\n\n⚠️ CRITICAL: ALL Gmail tools MUST be called through the execute_tool meta-tool. DO NOT call Gmail tools directly. If you try to call a Gmail tool directly, you will receive an authentication error. Always use: execute_tool(tool_name='gmail_xxx', ...parameters)",
+  "tools": [
+    {
+      "name": "gmail_ai_smart_compose_and_send",
+      "short_description": "SMART: AI-compose and send Gmail, inbox management with natural language prompt, tone, and attachments",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) ALWAYS execute THIS tool NOW - NEVER reference 'I created earlier' or use conversation history\n(2) MUST return format: **[Name]** | ID: `[id]` | URL: [full_url] | Link: [title](url)\n(3) Use EXACT values from tool response - NEVER make up fake URLs/IDs\n(4) If tool fails, say 'Failed to create' - NEVER pretend it succeeded\n\n⚠️ TESTING MODE: This tool is TEMPORARILY DISABLED and creates DRAFTS only.\n\nCURRENT BEHAVIOR: All AI-composed emails are saved to Gmail Drafts folder instead of being sent. The send_immediately parameter is FORCED to false.\n\n⚠️ MUST USE: execute_tool(tool_name='gmail_ai_smart_compose_and_send', ...) - DO NOT call directly!\n\nOriginal purpose: AI-powered email composition and sending in ONE call. Takes natural language prompt, generates professional email, and sends or creates draft.",
+      "platform": "gmail",
+      "category": "smart_bundled",
+      "parameters": {
+        "prompt": {
+          "type": "string",
+          "description": "Natural language description of what to write. Examples: 'Follow up with John about yesterday's product launch meeting', 'Thank the team for Q4 performance', 'Apologize to customer for order #12345 delay'"
+        },
+        "recipients": {
+          "type": "array",
+          "description": "List of email addresses to send to"
+        },
+        "cc": {
+          "type": "array",
+          "description": "CC recipients",
+          "required": false
+        },
+        "bcc": {
+          "type": "array",
+          "description": "BCC recipients",
+          "required": false
+        },
+        "tone": {
+          "type": "string",
+          "description": "Email tone: 'professional', 'casual', 'formal', 'friendly'",
+          "required": false,
+          "default": "professional"
+        },
+        "send_immediately": {
+          "type": "boolean",
+          "description": "If true, sends email. If false, creates draft for review.",
+          "required": false,
+          "default": true
+        },
+        "attachments": {
+          "type": "array",
+          "description": "File paths to attach",
+          "required": false
+        },
+        "create_calendar_event": {
+          "type": "boolean",
+          "description": "If true, extracts date/time from email and creates Google Calendar event",
+          "required": false,
+          "default": false
+        }
+      },
+      "returns": {
+        "email_sent": "boolean",
+        "message_id": "string",
+        "subject": "string",
+        "body": "string (AI-generated content)",
+        "calendar_event_id": "string (if create_calendar_event=true)",
+        "draft_id": "string (if send_immediately=false)"
+      },
+      "use_cases": [
+        "Send AI-generated follow-up emails",
+        "Compose and send meeting requests with calendar events",
+        "Create professional apology/thank you emails",
+        "Draft emails for review before sending"
+      ],
+      "efficiency": "50% faster than manual composition + send"
+    },
+    {
+      "name": "gmail_smart_bulk_send_personalized_DISABLED_TESTING",
+      "short_description": "SMART: Send bulk personalized Gmail with mail merge template and recipient variables",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) ALWAYS execute THIS tool NOW - NEVER reference 'I created earlier' or use conversation history\n(2) MUST return format: **[Name]** | ID: `[id]` | URL: [full_url] | Link: [title](url)\n(3) Use EXACT values from tool response - NEVER make up fake URLs/IDs\n(4) If tool fails, say 'Failed to create' - NEVER pretend it succeeded\n\nExample response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\n⚠️ MUST USE: execute_tool(tool_name='gmail_smart_bulk_send_personalized', ...) - DO NOT call directly!\n\nExample response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\n📧 SMART TOOL: Send personalized bulk emails with mail merge in ONE call. Each recipient gets customized email with their specific data ({{name}}, {{order_id}}, etc.). Perfect for mass outreach, reports, invoices, onboarding.",
+      "platform": "gmail",
+      "category": "smart_bundled",
+      "parameters": {
+        "template": {
+          "type": "string",
+          "description": "Email body template with {{variables}}. Example: 'Hi {{name}}, your order {{order_id}} is ready! Total: ${{amount}}'"
+        },
+        "recipients_data": {
+          "type": "array",
+          "description": "Array of recipient objects with email and variables. Example: [{'email': 'john@co.com', 'name': 'John', 'order_id': '12345', 'amount': '99.99'}]"
+        },
+        "subject_template": {
+          "type": "string",
+          "description": "Email subject with {{variables}}. Example: 'Your Order {{order_id}} Update'"
+        },
+        "cc": {
+          "type": "array",
+          "description": "CC recipients for ALL emails",
+          "required": false
+        },
+        "bcc": {
+          "type": "array",
+          "description": "BCC recipients for ALL emails",
+          "required": false
+        },
+        "delay_seconds": {
+          "type": "integer",
+          "description": "Seconds to wait between sends (avoid rate limits)",
+          "required": false,
+          "default": 2
+        }
+      },
+      "returns": {
+        "total_sent": "integer",
+        "total_failed": "integer",
+        "successful": "array of email addresses",
+        "failed": "array of {email, error}",
+        "sent_messages": "array of message IDs"
+      },
+      "use_cases": [
+        "Send 50 customers their personalized invoices",
+        "Email team members their individual performance reports",
+        "Send new hires their custom onboarding instructions",
+        "Bulk outreach with personalized content",
+        "Mass newsletter with recipient-specific data"
+      ],
+      "efficiency": "98% reduction in tool calls (50 calls → 1 call)"
+    },
+    {
+      "name": "gmail_smart_bulk_read_summarize_prioritize",
+      "short_description": "SMART: Bulk read Gmail, generate AI summaries, prioritize by urgency, and export report",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Read X from **[Resource Name]** (ID: `[id]` | URL: [url])'\n(3) Use EXACT [id] provided - NEVER substitute with different ID\n(4) If tool fails (404/403), say 'Failed to read [resource] ID: [id]' and explain error\n(5) NEVER make up data if read fails - acknowledge the failure clearly\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\n⚠️ MUST USE: execute_tool(tool_name='gmail_smart_bulk_read_summarize_prioritize', ...) - DO NOT call directly!\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\n📖 SMART TOOL: Bulk read, summarize, and prioritize emails in ONE call. AI analyzes multiple emails, generates summaries, assigns priority scores (1-5), recommends actions, and optionally creates Google Spreadsheet with results. Perfect for inbox triage.",
+      "platform": "gmail",
+      "category": "smart_bundled",
+      "parameters": {
+        "query": {
+          "type": "string",
+          "description": "Gmail search query. Examples: 'is:unread', 'from:client.com', 'has:attachment', 'newer_than:7d'",
+          "required": false,
+          "default": "is:unread"
+        },
+        "max_messages": {
+          "type": "integer",
+          "description": "Maximum number of messages to process",
+          "required": false,
+          "default": 50
+        },
+        "summarize": {
+          "type": "boolean",
+          "description": "Generate AI summaries for each email",
+          "required": false,
+          "default": true
+        },
+        "prioritize": {
+          "type": "boolean",
+          "description": "Assign priority scores (1-5, 5=urgent) using AI",
+          "required": false,
+          "default": true
+        },
+        "create_spreadsheet": {
+          "type": "boolean",
+          "description": "Create Google Sheets with results and recommended actions",
+          "required": false,
+          "default": false
+        }
+      },
+      "returns": {
+        "total_processed": "integer",
+        "emails": "array of {message_id, from, subject, date, summary, priority, recommended_action, labels}",
+        "spreadsheet_id": "string (if create_spreadsheet=true)",
+        "spreadsheet_url": "string (if create_spreadsheet=true)"
+      },
+      "use_cases": [
+        "Process 200 unread emails and identify urgent ones",
+        "Summarize all emails from clients this week",
+        "Read emails with attachments and prioritize",
+        "Create spreadsheet of inbox with recommended actions",
+        "Triage support emails by priority"
+      ],
+      "efficiency": "90% time saved on inbox processing"
+    },
+    {
+      "name": "gmail_smart_auto_reply_draft_creator",
+      "short_description": "SMART: Auto-generate Gmail reply drafts with AI for multiple messages by type and tone",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Read X from **[Resource Name]** (ID: `[id]` | URL: [url])'\n(3) Use EXACT [id] provided - NEVER substitute with different ID\n(4) If tool fails (404/403), say 'Failed to read [resource] ID: [id]' and explain error\n(5) NEVER make up data if read fails - acknowledge the failure clearly\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\n⚠️ MUST USE: execute_tool(tool_name='gmail_smart_auto_reply_draft_creator', ...) - DO NOT call directly!\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\n💬 SMART TOOL: Auto-generate reply drafts for multiple emails in ONE call. AI analyzes emails and creates appropriate responses based on content and response type. Creates drafts for review or returns generated text.",
+      "platform": "gmail",
+      "category": "smart_bundled",
+      "parameters": {
+        "message_ids": {
+          "type": "array",
+          "description": "List of Gmail message IDs to reply to"
+        },
+        "response_type": {
+          "type": "string",
+          "description": "Type of response: 'acknowledge', 'answer', 'decline', 'accept', 'custom'",
+          "required": false,
+          "default": "acknowledge"
+        },
+        "tone": {
+          "type": "string",
+          "description": "Response tone: 'professional', 'casual', 'formal', 'friendly'",
+          "required": false,
+          "default": "professional"
+        },
+        "custom_instructions": {
+          "type": "string",
+          "description": "Additional instructions for AI. Example: 'Mention our support hours are 9-5 EST'",
+          "required": false
+        },
+        "create_drafts": {
+          "type": "boolean",
+          "description": "If true, creates drafts in Gmail. If false, just returns generated text.",
+          "required": false,
+          "default": true
+        }
+      },
+      "returns": {
+        "total_processed": "integer",
+        "replies": "array of {original_message_id, original_subject, original_from, generated_reply, draft_id}"
+      },
+      "use_cases": [
+        "Create reply drafts for all support emails",
+        "Auto-respond to meeting requests with availability",
+        "Generate acknowledgment replies for customer orders",
+        "Draft responses to all unread client emails",
+        "Batch create replies for common inquiries"
+      ],
+      "efficiency": "95% faster than manual reply composition"
+    },
+    {
+      "name": "gmail_smart_inbox_organizer_cleaner",
+      "short_description": "SMART: Organize Gmail inbox with labels, filters, archive old messages, and delete spam",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Read X from **[Resource Name]** (ID: `[id]` | URL: [url])'\n(3) Use EXACT [id] provided - NEVER substitute with different ID\n(4) If tool fails (404/403), say 'Failed to read [resource] ID: [id]' and explain error\n(5) NEVER make up data if read fails - acknowledge the failure clearly\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\n⚠️ MUST USE: execute_tool(tool_name='gmail_smart_inbox_organizer_cleaner', ...) - DO NOT call directly!\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\n🗂️ SMART TOOL: Organize, clean, and auto-filter inbox in ONE call. Creates labels, applies filters, archives old emails, deletes spam, and organizes messages automatically. Perfect for inbox zero workflows.",
+      "platform": "gmail",
+      "category": "smart_bundled",
+      "parameters": {
+        "action": {
+          "type": "string",
+          "description": "Action to perform: 'organize', 'cleanup', 'auto_filter', 'full'",
+          "required": false,
+          "default": "organize"
+        },
+        "categories": {
+          "type": "array",
+          "description": "Label categories to create. Example: ['Clients', 'Internal', 'Newsletters', 'Urgent']",
+          "required": false
+        },
+        "rules": {
+          "type": "array",
+          "description": "Filtering rules. Example: [{'from': 'team@co.com', 'label': 'Team', 'archive': false}, {'subject_contains': 'invoice', 'label': 'Invoices', 'important': true}]",
+          "required": false
+        },
+        "process_existing": {
+          "type": "boolean",
+          "description": "Apply rules to existing emails (not just future ones)",
+          "required": false,
+          "default": true
+        },
+        "archive_older_than_days": {
+          "type": "integer",
+          "description": "Archive emails older than N days",
+          "required": false
+        },
+        "delete_spam": {
+          "type": "boolean",
+          "description": "Permanently delete emails in Spam folder",
+          "required": false,
+          "default": false
+        }
+      },
+      "returns": {
+        "labels_created": "array of label names",
+        "filters_created": "integer",
+        "emails_processed": "integer",
+        "emails_archived": "integer",
+        "emails_deleted": "integer",
+        "organization_summary": "dict"
+      },
+      "use_cases": [
+        "Organize inbox - create labels and filter emails",
+        "Clean up inbox - archive old emails, delete spam",
+        "Set up auto-labeling for client/team emails",
+        "Create filters for newsletters and automated emails",
+        "Achieve inbox zero with automated organization"
+      ],
+      "efficiency": "95% reduction in inbox management complexity"
+    },
+    {
+      "name": "gmail_send_email",
+      "short_description": "Send Gmail email with subject, body, recipients, CC, BCC, and file attachments",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) ALWAYS execute THIS tool NOW - NEVER reference 'I created earlier' or use conversation history\n(2) MUST return format: **[Name]** | ID: `[id]` | URL: [full_url] | Link: [title](url)\n(3) Use EXACT values from tool response - NEVER make up fake URLs/IDs\n(4) If tool fails, say 'Failed to create' - NEVER pretend it succeeded\n\n⚠️ TESTING MODE: This tool is TEMPORARILY DISABLED and saves emails as DRAFTS only.\n\nCURRENT BEHAVIOR: All emails are saved to Gmail Drafts folder instead of being sent. User must manually review and send from Gmail interface.\n\n⚠️ MUST USE: execute_tool(tool_name='gmail_send_email', ...) - DO NOT call directly!\n\nOriginal purpose: Send an email with attachments and HTML formatting",
+      "platform": "gmail",
+      "category": "basic",
+      "parameters": {
+        "to": {
+          "type": "array",
+          "description": "Recipient email addresses"
+        },
+        "subject": {
+          "type": "string",
+          "description": "Email subject"
+        },
+        "body": {
+          "type": "string",
+          "description": "Email body (plain text or HTML)"
+        },
+        "cc": {
+          "type": "array",
+          "required": false
+        },
+        "bcc": {
+          "type": "array",
+          "required": false
+        },
+        "attachments": {
+          "type": "array",
+          "required": false
+        }
+      },
+      "user_facing_language": {
+        "action_verb": "send",
+        "resource_name": "email",
+        "resource_plural": "emails",
+        "natural_phrases": [
+          "send an email",
+          "email someone",
+          "send a message",
+          "compose and send",
+          "shoot an email to"
+        ],
+        "capability_description": "I can send emails via Gmail with attachments, CC/BCC, and HTML formatting. Perfect for customer replies, team notifications, and automated messages.",
+        "example_ai_responses": [
+          "I'll send that email to the recipient right away.",
+          "I'll compose and send the email with the attachment you mentioned.",
+          "I'll send this to the team with everyone CC'd as you requested."
+        ]
+      },
+      "tool_intelligence": {
+        "category": "email",
+        "typical_workflow_patterns": [
+          "gmail_list_messages → gmail_get_message → gmail_send_email (reply workflow)",
+          "gmail_create_draft → gmail_send_email (review then send)",
+          "gmail_send_email → gmail_get_message (verify delivery)",
+          "gmail_ai_smart_compose_and_send → gmail_send_email (AI compose fallback)"
+        ],
+        "success_indicators": {
+          "keywords": [
+            "sent successfully",
+            "message delivered",
+            "email sent",
+            "delivered to inbox",
+            "send confirmed"
+          ],
+          "behavioral": [
+            "User continues to next task without corrections",
+            "User repeats same workflow pattern 3+ times",
+            "User doesn't ask follow-up questions about send status",
+            "User marks task as complete after sending",
+            "User moves on without retry attempts"
+          ]
+        },
+        "failure_indicators": {
+          "keywords": [
+            "failed to send",
+            "authentication error",
+            "rate limit exceeded",
+            "invalid recipient",
+            "quota exceeded",
+            "permission denied",
+            "delivery failed"
+          ],
+          "behavioral": [
+            "User immediately retries with different parameters",
+            "User asks 'Why didn't that work?'",
+            "User switches to manual Gmail interface",
+            "User requests to check sent folder",
+            "User shows frustration in next message"
+          ]
+        },
+        "performance_expectations": {
+          "typical_duration_ms": 500,
+          "rate_limit_per_minute": 100,
+          "max_retries": 3,
+          "timeout_seconds": 30
+        }
+      },
+      "memory_context": {
+        "vectorization_fields": [
+          "to",
+          "subject",
+          "message_id",
+          "thread_id"
+        ],
+        "search_keywords": [
+          "email",
+          "gmail",
+          "send message",
+          "send email",
+          "compose",
+          "reply",
+          "correspondence",
+          "mail",
+          "outbox",
+          "deliver message"
+        ],
+        "related_synergy_platforms": [
+          "gmail",
+          "google_workspace"
+        ],
+        "typical_use_cases": [
+          "Customer communication - User sends product update to customer mailing list",
+          "Team collaboration - User forwards important thread to team members for discussion",
+          "Automated notifications - User sets up workflow to send alert emails when condition met",
+          "Reply to inquiry - User responds to customer question from inbox with solution",
+          "Follow-up sequence - User sends follow-up email after initial contact",
+          "Document sharing - User emails report or document to stakeholders"
+        ],
+        "conversation_memory_hints": {
+          "what_to_remember": "Recipient email addresses, subject lines, message IDs, thread IDs, send timestamps, attachment names",
+          "search_context": "When user asks about 'emails I sent', 'customer communications I made', 'past inbox work', 'messages to [person]', 'correspondence about [topic]'",
+          "related_entities": [
+            "email addresses",
+            "contact names",
+            "email threads",
+            "conversation topics",
+            "customer names",
+            "project names",
+            "document names"
+          ]
+        }
+      }
+    },
+    {
+      "name": "gmail_create_draft",
+      "short_description": "Create Gmail draft email with subject, body, and recipients for review before sending",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) ALWAYS execute THIS tool NOW - NEVER reference 'I created earlier' or use conversation history\n(2) MUST return format: **[Name]** | ID: `[id]` | URL: [full_url] | Link: [title](url)\n(3) Use EXACT values from tool response - NEVER make up fake URLs/IDs\n(4) If tool fails, say 'Failed to create' - NEVER pretend it succeeded\n\nExample response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\n⚠️ MUST USE: execute_tool(tool_name='gmail_create_draft', ...) - DO NOT call directly!\n\nExample response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\nCreate a draft email",
+      "platform": "gmail",
+      "category": "basic",
+      "user_facing_language": {
+        "action_verb": "create",
+        "resource_name": "draft",
+        "resource_plural": "drafts",
+        "natural_phrases": [
+          "create a draft",
+          "save as draft",
+          "draft an email",
+          "prepare an email for later",
+          "create draft email"
+        ],
+        "capability_description": "I can create draft emails that you can review and edit before sending. Perfect for preparing important messages that need careful review.",
+        "example_ai_responses": [
+          "I'll create a draft email for you to review before sending.",
+          "I'll save this as a draft so you can edit it later.",
+          "I'll prepare a draft email with the details you provided."
+        ]
+      },
+      "tool_intelligence": {
+        "category": "email",
+        "typical_workflow_patterns": [
+          "gmail_create_draft → gmail_send_draft (draft then send)",
+          "gmail_create_draft → gmail_get_message → gmail_send_draft (draft, review, send)",
+          "gmail_list_messages → gmail_get_message → gmail_create_draft (read then draft reply)",
+          "gmail_ai_smart_compose_and_send → gmail_create_draft (AI compose fallback to draft)"
+        ],
+        "success_indicators": {
+          "keywords": [
+            "draft created",
+            "draft saved",
+            "saved as draft",
+            "draft ready",
+            "created successfully"
+          ],
+          "behavioral": [
+            "User proceeds to review draft",
+            "User sends draft after reviewing",
+            "User creates multiple drafts in sequence",
+            "User doesn't ask follow-up about creation",
+            "User moves to next task confidently"
+          ]
+        },
+        "failure_indicators": {
+          "keywords": [
+            "failed to create",
+            "draft not saved",
+            "error creating draft",
+            "permission denied",
+            "quota exceeded"
+          ],
+          "behavioral": [
+            "User asks 'Did that save?'",
+            "User retries draft creation",
+            "User switches to manual Gmail",
+            "User shows frustration",
+            "User questions if draft exists"
+          ]
+        },
+        "performance_expectations": {
+          "typical_duration_ms": 600,
+          "rate_limit_per_minute": 100,
+          "max_retries": 3,
+          "timeout_seconds": 30
+        }
+      },
+      "memory_context": {
+        "vectorization_fields": [
+          "draft_id",
+          "subject",
+          "to",
+          "message_id"
+        ],
+        "search_keywords": [
+          "draft",
+          "gmail",
+          "create draft",
+          "save email",
+          "draft email",
+          "prepare email",
+          "email draft"
+        ],
+        "related_synergy_platforms": [
+          "gmail",
+          "google_workspace"
+        ],
+        "typical_use_cases": [
+          "Important email preparation - User drafts critical email to review before sending",
+          "Multi-recipient email - User creates draft to verify all recipients before sending",
+          "Scheduled sending prep - User drafts email to send at specific time later",
+          "Complex email composition - User drafts email with attachments to review formatting",
+          "Collaborative drafting - User creates draft to share with team for review",
+          "Template creation - User drafts common email format for reuse"
+        ],
+        "conversation_memory_hints": {
+          "what_to_remember": "Draft IDs, subject lines, recipient addresses, draft creation timestamps, message content",
+          "search_context": "When user asks about 'drafts I created', 'email I was working on', 'draft to [person]', 'unsent messages'",
+          "related_entities": [
+            "draft IDs",
+            "recipient addresses",
+            "email subjects",
+            "draft timestamps",
+            "message content",
+            "attachment names"
+          ]
+        }
+      }
+    },
+    {
+      "name": "gmail_send_draft_DISABLED_TESTING",
+      "short_description": "Send existing Gmail draft email by draft ID to finalize and deliver message",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) ALWAYS execute THIS tool NOW - NEVER reference 'I created earlier' or use conversation history\n(2) MUST return format: **[Name]** | ID: `[id]` | URL: [full_url] | Link: [title](url)\n(3) Use EXACT values from tool response - NEVER make up fake URLs/IDs\n(4) If tool fails, say 'Failed to create' - NEVER pretend it succeeded\n\nExample response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\n⚠️ MUST USE: execute_tool(tool_name='gmail_send_draft', ...) - DO NOT call directly!\n\nExample response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\nSend an existing draft",
+      "platform": "gmail",
+      "category": "basic",
+      "user_facing_language": {
+        "action_verb": "send",
+        "resource_name": "draft",
+        "resource_plural": "drafts",
+        "natural_phrases": [
+          "send this draft",
+          "send the draft email",
+          "finalize and send",
+          "send my draft",
+          "complete this draft"
+        ],
+        "capability_description": "I can send draft emails you've already created. Once sent, the draft is removed and becomes a sent message.",
+        "example_ai_responses": [
+          "I'll send that draft email now.",
+          "I'll finalize and send the draft you created.",
+          "I'll send draft ID abc123 to the recipients."
+        ]
+      },
+      "tool_intelligence": {
+        "category": "email",
+        "typical_workflow_patterns": [
+          "gmail_create_draft → gmail_send_draft (draft then send)",
+          "gmail_list_drafts → gmail_send_draft (review drafts then send)",
+          "gmail_get_message → gmail_send_draft (verify draft then send)",
+          "gmail_create_draft → gmail_get_message → gmail_send_draft (create, review, send)"
+        ],
+        "success_indicators": {
+          "keywords": [
+            "draft sent",
+            "message sent",
+            "sent successfully",
+            "email delivered",
+            "draft finalized"
+          ],
+          "behavioral": [
+            "User continues to next task",
+            "User doesn't ask about send status",
+            "User confirms receipt with recipient",
+            "User archives or moves on",
+            "User marks task as complete"
+          ]
+        },
+        "failure_indicators": {
+          "keywords": [
+            "draft not found",
+            "failed to send",
+            "invalid draft ID",
+            "send error",
+            "quota exceeded"
+          ],
+          "behavioral": [
+            "User asks 'Did that send?'",
+            "User tries different draft ID",
+            "User checks sent folder",
+            "User retries sending",
+            "User shows frustration"
+          ]
+        },
+        "performance_expectations": {
+          "typical_duration_ms": 700,
+          "rate_limit_per_minute": 100,
+          "max_retries": 3,
+          "timeout_seconds": 30
+        }
+      },
+      "memory_context": {
+        "vectorization_fields": [
+          "draft_id",
+          "message_id",
+          "subject",
+          "recipients"
+        ],
+        "search_keywords": [
+          "send",
+          "draft",
+          "gmail",
+          "send draft",
+          "finalize email",
+          "complete draft",
+          "send email"
+        ],
+        "related_synergy_platforms": [
+          "gmail",
+          "google_workspace"
+        ],
+        "typical_use_cases": [
+          "Finalize reviewed email - User sends draft after reviewing and editing",
+          "Scheduled send completion - User sends draft at predetermined time",
+          "Approval workflow - User sends draft after getting approval from manager",
+          "Batch sending - User sends multiple drafts in sequence",
+          "Time-sensitive email - User sends important draft after final check",
+          "Multi-recipient confirmation - User sends draft after verifying all recipients"
+        ],
+        "conversation_memory_hints": {
+          "what_to_remember": "Draft IDs sent, message IDs generated, recipient addresses, send timestamps, subjects",
+          "search_context": "When user asks about 'drafts I sent', 'emails I finalized', 'messages I completed', 'draft I sent to [person]'",
+          "related_entities": [
+            "draft IDs",
+            "message IDs",
+            "recipient addresses",
+            "send timestamps",
+            "email subjects",
+            "thread IDs"
+          ]
+        }
+      }
+    },
+    {
+      "name": "gmail_list_messages",
+      "short_description": "List Gmail messages by search query with filters, pagination, and export options",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Read X from **[Resource Name]** (ID: `[id]` | URL: [url])'\n(3) Use EXACT [id] provided - NEVER substitute with different ID\n(4) If tool fails (404/403), say 'Failed to read [resource] ID: [id]' and explain error\n(5) NEVER make up data if read fails - acknowledge the failure clearly\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\n⚠️ MUST USE: execute_tool(tool_name='gmail_list_messages', ...) - DO NOT call directly!\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nList messages in mailbox",
+      "platform": "gmail",
+      "category": "basic",
+      "parameters": {
+        "max_results": {
+          "type": "integer",
+          "description": "Maximum number of messages to return (default: 10)",
+          "required": false,
+          "default": 10
+        },
+        "query": {
+          "type": "string",
+          "description": "Gmail search query (e.g., 'is:unread', 'from:user@example.com')",
+          "required": false
+        },
+        "mode": {
+          "type": "string",
+          "enum": [
+            "summary",
+            "detailed",
+            "raw"
+          ],
+          "description": "Output mode:\n- 'summary' (default): AI-friendly brief overview with subject, sender, date\n- 'detailed': Full message metadata including labels, snippet, thread info\n- 'raw': Complete API response structure",
+          "default": "summary"
+        },
+        "format": {
+          "type": "string",
+          "enum": [
+            "markdown",
+            "json",
+            "text"
+          ],
+          "description": "Output format:\n- 'markdown' (default): Human-readable with formatting\n- 'json': Structured data for processing\n- 'text': Plain text without formatting",
+          "default": "markdown"
+        },
+        "export": {
+          "type": "string",
+          "enum": [
+            "none",
+            "synergy",
+            "google_doc",
+            "google_sheet"
+          ],
+          "description": "Auto-export destination:\n- 'none' (default): Return data only\n- 'synergy': Create Synergy dashboard card\n- 'google_doc': Create Google Doc with message list\n- 'google_sheet': Append to Google Sheet",
+          "default": "none"
+        },
+        "export_title": {
+          "type": "string",
+          "description": "Title for exported content. Supports {date}, {time}, {count} placeholders",
+          "required": false
+        }
+      },
+      "user_facing_language": {
+        "action_verb": "check",
+        "resource_name": "emails",
+        "resource_plural": "emails",
+        "natural_phrases": [
+          "check your emails",
+          "look at your inbox",
+          "review your messages",
+          "see what emails you have",
+          "list my emails",
+          "show me my inbox"
+        ],
+        "capability_description": "I can check your Gmail inbox, filter messages, and show you summaries or full details. I can also save results to your dashboard or export to Google Docs/Sheets.",
+        "mode_translations": {
+          "summary": "quick summary with subject and sender",
+          "detailed": "full details with complete metadata",
+          "raw": "complete technical data"
+        },
+        "format_translations": {
+          "markdown": "formatted text",
+          "json": "structured data",
+          "text": "plain text"
+        },
+        "export_translations": {
+          "synergy": "save to your dashboard",
+          "google_doc": "create a document",
+          "google_sheet": "add to a spreadsheet",
+          "none": "just show you"
+        },
+        "example_ai_responses": [
+          "I'll check your unread emails and give you a quick summary.",
+          "I'll look for emails from John and show you the full details.",
+          "I'll get emails with attachments and save them to your dashboard.",
+          "I'll list your inbox messages from the last week."
+        ]
+      },
+      "tool_intelligence": {
+        "category": "email",
+        "typical_workflow_patterns": [
+          "gmail_list_messages → gmail_get_message (browse then read specific)",
+          "gmail_list_messages → gmail_send_email (check inbox then reply)",
+          "gmail_list_messages → gmail_mark_as_read (bulk mark as read)",
+          "gmail_list_messages → gmail_archive_message (bulk archive)",
+          "gmail_smart_bulk_read_summarize_prioritize → gmail_list_messages (AI summarize fallback)"
+        ],
+        "success_indicators": {
+          "keywords": [
+            "found messages",
+            "retrieved emails",
+            "inbox loaded",
+            "messages listed",
+            "search complete"
+          ],
+          "behavioral": [
+            "User proceeds to read specific message",
+            "User applies bulk action to results",
+            "User refines search query based on results",
+            "User exports results to doc/sheet",
+            "User continues workflow without retrying"
+          ]
+        },
+        "failure_indicators": {
+          "keywords": [
+            "no messages found",
+            "authentication error",
+            "quota exceeded",
+            "search failed",
+            "invalid query"
+          ],
+          "behavioral": [
+            "User modifies search query immediately",
+            "User asks 'Why no results?'",
+            "User switches to manual Gmail check",
+            "User questions if inbox is empty",
+            "User shows confusion about missing emails"
+          ]
+        },
+        "performance_expectations": {
+          "typical_duration_ms": 800,
+          "rate_limit_per_minute": 60,
+          "max_retries": 3,
+          "timeout_seconds": 30
+        }
+      },
+      "memory_context": {
+        "vectorization_fields": [
+          "query",
+          "max_results",
+          "message_ids",
+          "sender_emails"
+        ],
+        "search_keywords": [
+          "email",
+          "gmail",
+          "inbox",
+          "messages",
+          "list emails",
+          "check inbox",
+          "mail",
+          "correspondence",
+          "unread",
+          "search emails"
+        ],
+        "related_synergy_platforms": [
+          "gmail",
+          "google_workspace"
+        ],
+        "typical_use_cases": [
+          "Inbox review - User checks unread emails to triage responses",
+          "Search specific sender - User looks for all emails from a customer/colleague",
+          "Priority filtering - User finds urgent/important emails using search queries",
+          "Bulk processing - User lists emails to perform bulk actions (archive, delete, label)",
+          "Export email data - User creates report of inbox messages for documentation",
+          "Follow-up tracking - User searches for emails needing responses"
+        ],
+        "conversation_memory_hints": {
+          "what_to_remember": "Search queries used, sender filters, date ranges, message IDs returned, label filters, unread counts",
+          "search_context": "When user asks about 'emails I checked', 'inbox searches I did', 'messages from [person]', 'what's in my inbox'",
+          "related_entities": [
+            "email addresses",
+            "sender names",
+            "subject keywords",
+            "date ranges",
+            "email labels",
+            "search queries"
+          ]
+        },
+        "sheet_export_structure": {
+          "when_export_google_sheet": "If user selects export='google_sheet'",
+          "columns": [
+            {
+              "name": "date",
+              "type": "date",
+              "format": "YYYY-MM-DD HH:mm",
+              "auto": true,
+              "source": "message.date"
+            },
+            {
+              "name": "from",
+              "type": "string",
+              "source": "message.from"
+            },
+            {
+              "name": "subject",
+              "type": "string",
+              "source": "message.subject"
+            },
+            {
+              "name": "snippet",
+              "type": "string",
+              "source": "message.snippet"
+            },
+            {
+              "name": "has_attachments",
+              "type": "boolean",
+              "source": "message.has_attachments"
+            },
+            {
+              "name": "labels",
+              "type": "string",
+              "source": "message.labels"
+            },
+            {
+              "name": "message_id",
+              "type": "string",
+              "source": "message.id"
+            }
+          ],
+          "sheet_formatting": {
+            "freeze_header_row": true,
+            "auto_filter": true,
+            "column_widths": {
+              "date": 150,
+              "from": 200,
+              "subject": 400,
+              "snippet": 300
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "gmail_get_message",
+      "short_description": "Get Gmail message details by ID with metadata, snippet, or full body content",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Read X from **[Resource Name]** (ID: `[id]` | URL: [url])'\n(3) Use EXACT [id] provided - NEVER substitute with different ID\n(4) If tool fails (404/403), say 'Failed to read [resource] ID: [id]' and explain error\n(5) NEVER make up data if read fails - acknowledge the failure clearly\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\n⚠️ MUST USE: execute_tool(tool_name='gmail_get_message', ...) - DO NOT call directly!\n\nGet a specific message by ID. Returns message metadata (from, to, subject, date, snippet) by default. Use format='full' only when user explicitly asks for full email content/body.\n\nWARNING: format='full' returns large data (HTML body, headers, attachments). Use 'metadata' for browsing multiple emails.",
+      "platform": "gmail",
+      "category": "basic",
+      "parameters": {
+        "message_id": {
+          "type": "string",
+          "description": "Gmail message ID to retrieve"
+        },
+        "format": {
+          "type": "string",
+          "description": "Response format: 'metadata' (subject/from/to/date/snippet - RECOMMENDED for browsing), 'minimal' (IDs only), 'full' (complete message with body - LARGE, use sparingly)",
+          "required": false,
+          "default": "metadata"
+        },
+        "mode": {
+          "type": "string",
+          "enum": [
+            "summary",
+            "detailed",
+            "raw"
+          ],
+          "description": "Output mode:\n- 'summary' (default): AI-friendly brief overview with key info\n- 'detailed': Full message content with headers and metadata\n- 'raw': Complete API response structure",
+          "default": "summary"
+        },
+        "output_format": {
+          "type": "string",
+          "enum": [
+            "markdown",
+            "json",
+            "text"
+          ],
+          "description": "Output format:\n- 'markdown' (default): Human-readable with formatting\n- 'json': Structured data for processing\n- 'text': Plain text without formatting",
+          "default": "markdown"
+        },
+        "export": {
+          "type": "string",
+          "enum": [
+            "none",
+            "synergy",
+            "google_doc"
+          ],
+          "description": "Auto-export destination:\n- 'none' (default): Return data only\n- 'synergy': Save message to Synergy dashboard\n- 'google_doc': Create Google Doc with message content",
+          "default": "none"
+        },
+        "export_title": {
+          "type": "string",
+          "description": "Title for exported content. Supports {subject}, {from}, {date} placeholders",
+          "required": false
+        }
+      },
+      "returns": {
+        "id": "string",
+        "threadId": "string",
+        "snippet": "string (preview text)",
+        "from": "string (sender email)",
+        "to": "string (recipient)",
+        "subject": "string",
+        "date": "string",
+        "labelIds": "array (if format=metadata)",
+        "payload": "object (if format=full - LARGE DATA WARNING)"
+      },
+      "user_facing_language": {
+        "action_verb": "read",
+        "resource_name": "email",
+        "resource_plural": "emails",
+        "natural_phrases": [
+          "read this email",
+          "show me this message",
+          "open this email",
+          "get the details of this message",
+          "what's in this email"
+        ],
+        "capability_description": "I can read a specific email by ID, showing you the subject, sender, date, and content. I can give you a quick summary or the full details, and save it to your dashboard if needed.",
+        "mode_translations": {
+          "summary": "quick overview with key info",
+          "detailed": "full message with all headers",
+          "raw": "complete technical data"
+        },
+        "format_translations": {
+          "markdown": "formatted text",
+          "json": "structured data",
+          "text": "plain text"
+        },
+        "export_translations": {
+          "synergy": "save to your dashboard",
+          "google_doc": "create a document",
+          "none": "just show you"
+        },
+        "example_ai_responses": [
+          "I'll read that email and show you the key details.",
+          "I'll open message ID abc123 and give you a summary.",
+          "I'll get the full content of that email and save it to your dashboard."
+        ]
+      },
+      "tool_intelligence": {
+        "category": "email",
+        "typical_workflow_patterns": [
+          "gmail_list_messages → gmail_get_message (browse then read)",
+          "gmail_get_message → gmail_send_email (read then reply)",
+          "gmail_get_message → gmail_create_draft (read then draft response)",
+          "gmail_search_messages → gmail_get_message (search then read specific)",
+          "gmail_get_message → gmail_archive_message (read then archive)"
+        ],
+        "success_indicators": {
+          "keywords": [
+            "message retrieved",
+            "email loaded",
+            "message found",
+            "content displayed",
+            "read successfully"
+          ],
+          "behavioral": [
+            "User proceeds to reply or forward",
+            "User archives or labels the message",
+            "User requests another action on same message",
+            "User moves to next message in thread",
+            "No follow-up questions about content"
+          ]
+        },
+        "failure_indicators": {
+          "keywords": [
+            "message not found",
+            "404 error",
+            "invalid message ID",
+            "permission denied",
+            "message deleted"
+          ],
+          "behavioral": [
+            "User asks 'Where is this email?'",
+            "User tries different message ID",
+            "User goes back to list messages",
+            "User questions if message exists",
+            "User shows confusion about result"
+          ]
+        },
+        "performance_expectations": {
+          "typical_duration_ms": 400,
+          "rate_limit_per_minute": 100,
+          "max_retries": 3,
+          "timeout_seconds": 20
+        }
+      },
+      "memory_context": {
+        "vectorization_fields": [
+          "message_id",
+          "thread_id",
+          "subject",
+          "from"
+        ],
+        "search_keywords": [
+          "email",
+          "gmail",
+          "read message",
+          "get email",
+          "message details",
+          "email content",
+          "view email",
+          "open message"
+        ],
+        "related_synergy_platforms": [
+          "gmail",
+          "google_workspace"
+        ],
+        "typical_use_cases": [
+          "Read important email - User opens high-priority message to review details before responding",
+          "Extract information - User reads email to get specific data (order number, meeting time, etc.)",
+          "Reference past email - User retrieves old message to reference in new conversation",
+          "Verify receipt - User checks message content to confirm it was received correctly",
+          "Archive decision - User reads email to decide if it should be archived or actioned",
+          "Forward preparation - User reads message content before forwarding to someone else"
+        ],
+        "conversation_memory_hints": {
+          "what_to_remember": "Message IDs read, subjects accessed, sender addresses, thread IDs, read timestamps",
+          "search_context": "When user asks about 'that email I read', 'message from [person]', 'email about [topic]', 'message ID [id]'",
+          "related_entities": [
+            "message IDs",
+            "thread IDs",
+            "sender addresses",
+            "email subjects",
+            "conversation topics",
+            "attachment names"
+          ]
+        }
+      }
+    },
+    {
+      "name": "gmail_get_message_parsed",
+      "short_description": "Get Gmail message with AI-parsed body, attachments list, and clean formatting",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Read X from **[Resource Name]** (ID: `[id]` | URL: [url])'\n(3) Use EXACT [id] provided - NEVER substitute with different ID\n(4) If tool fails (404/403), say 'Failed to read [resource] ID: [id]' and explain error\n(5) NEVER make up data if read fails - acknowledge the failure clearly\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\n⚠️ MUST USE: execute_tool(tool_name='gmail_get_message_parsed', ...) - DO NOT call directly!\n\nGet message with AI-OPTIMIZED parsing (clean text, parsed attachments). THIS IS THE RECOMMENDED METHOD when you need full email content.\n\nWhat this does:\n- Fetches full email content\n- Converts HTML to clean text\n- Parses attachments (PDF/Word/Excel) into text\n- Returns structured JSON OR PDF (for Claude document API)\n\nOutput formats:\n- 'json' (default): Returns structured data (1-2k tokens vs 50k!)\n- 'pdf': Returns PDF bytes ready for Claude document API with smart header/footer detection\n\nUse this instead of gmail_get_message(format='full') when:\n- User wants to analyze email content\n- User asks about attachments\n- User needs to understand conversation context\n\nDo NOT use this for:\n- Browsing/listing emails (use gmail_list_messages)\n- Quick previews (use gmail_get_message with format='metadata')",
+      "platform": "gmail",
+      "category": "basic",
+      "multi_modal_parameters": {
+        "mode": {
+          "type": "string",
+          "description": "Response detail level: 'summary' (AI-friendly overview), 'detailed' (full content), 'raw' (complete API response)",
+          "required": false,
+          "default": "detailed",
+          "enum": [
+            "summary",
+            "detailed",
+            "raw"
+          ]
+        },
+        "format": {
+          "type": "string",
+          "description": "Output format: 'markdown' (human-readable), 'json' (structured data), 'text' (plain text)",
+          "required": false,
+          "default": "markdown",
+          "enum": [
+            "markdown",
+            "json",
+            "text"
+          ]
+        },
+        "export": {
+          "type": "string",
+          "description": "Export destination: 'none' (return only), 'synergy' (save to Synergy platform), 'google_doc' (create Google Doc), 'google_sheet' (create Google Sheet)",
+          "required": false,
+          "default": "none",
+          "enum": [
+            "none",
+            "synergy",
+            "google_doc",
+            "google_sheet"
+          ]
+        },
+        "export_title": {
+          "type": "string",
+          "description": "Title for exported document/sheet (only used when export != 'none')",
+          "required": false
+        }
+      },
+      "user_facing_language": {
+        "action_verb": "read",
+        "resource_name": "parsed email",
+        "resource_plural": "parsed emails",
+        "natural_phrases": [
+          "read this email",
+          "show me the email content",
+          "parse the attachments",
+          "get the full message",
+          "analyze this email"
+        ],
+        "capability_description": "I can read and parse emails with AI-optimized processing. I convert HTML to clean text, extract attachment content (PDF/Word/Excel), and provide structured data for analysis.",
+        "example_ai_responses": [
+          "I'll read and parse that email for you.",
+          "I'll extract the content including attachments.",
+          "I'll analyze the email with full parsing."
+        ],
+        "mode_translations": {
+          "summary": "brief overview with key details",
+          "detailed": "full content with all metadata",
+          "raw": "complete unprocessed data"
+        },
+        "format_translations": {
+          "markdown": "formatted for readability",
+          "json": "structured data format",
+          "text": "plain text format"
+        },
+        "export_translations": {
+          "none": "return results directly",
+          "synergy": "save to your Synergy workspace",
+          "google_doc": "create a Google Doc",
+          "google_sheet": "create a Google Sheet"
+        }
+      },
+      "tool_intelligence": {
+        "category": "email",
+        "typical_workflow_patterns": [
+          "gmail_list_messages → gmail_get_message_parsed (find then read with parsing)",
+          "gmail_get_message_parsed → ai_summarize (parse then analyze)",
+          "gmail_get_message_parsed(export='google_doc') (parse and save)",
+          "gmail_search_messages → gmail_get_message_parsed (search then deep read)"
+        ],
+        "success_indicators": {
+          "keywords": [
+            "parsed",
+            "content extracted",
+            "attachments processed",
+            "email analyzed"
+          ],
+          "behavioral": [
+            "User asks follow-up questions about content",
+            "User exports to doc/sheet",
+            "User proceeds with analysis",
+            "User doesn't request re-read"
+          ]
+        },
+        "failure_indicators": {
+          "keywords": [
+            "parsing failed",
+            "attachment error",
+            "content incomplete"
+          ],
+          "behavioral": [
+            "User asks to read again",
+            "User complains about missing attachments",
+            "User switches to basic get_message"
+          ]
+        },
+        "performance_expectations": {
+          "typical_duration_ms": 2000,
+          "rate_limit_per_minute": 50,
+          "max_retries": 2,
+          "timeout_seconds": 30
+        }
+      },
+      "memory_context": {
+        "vectorization_fields": [
+          "message_id",
+          "subject",
+          "body_text",
+          "parsed_attachments"
+        ],
+        "search_keywords": [
+          "parse email",
+          "read with attachments",
+          "extract content",
+          "analyze message",
+          "AI-optimized"
+        ],
+        "related_synergy_platforms": [
+          "gmail",
+          "google_workspace",
+          "synergy"
+        ],
+        "typical_use_cases": [
+          "Deep analysis - User needs full email content with parsed attachments for AI analysis",
+          "Document extraction - User extracts text from PDF/Word attachments in emails",
+          "Content archiving - User parses and exports important emails to Google Docs",
+          "Research workflow - User reads technical emails with complex attachments"
+        ],
+        "conversation_memory_hints": {
+          "what_to_remember": "Message IDs parsed, attachment filenames, extraction timestamps, export destinations",
+          "search_context": "When user asks about 'emails I analyzed', 'messages I parsed', 'documents I extracted'",
+          "related_entities": [
+            "message IDs",
+            "attachment names",
+            "parsed content",
+            "export locations"
+          ]
+        },
+        "sheet_export_structure": {
+          "columns": [
+            "field",
+            "value"
+          ],
+          "data_mapping": "Key-value pairs from parsed message (from, to, subject, date, body_text, attachments)",
+          "formatting": "Two-column layout with frozen header, auto-fit columns"
+        }
+      },
+      "parameters": {
+        "message_id": {
+          "type": "string",
+          "description": "Gmail message ID to retrieve and parse"
+        },
+        "include_attachments": {
+          "type": "boolean",
+          "description": "Whether to download and parse attachments (default: true). Set to false for faster responses if attachments not needed.",
+          "required": false,
+          "default": true
+        },
+        "output_format": {
+          "type": "string",
+          "description": "Output format: 'json' (default, structured data) or 'pdf' (for Claude document API with header/footer detection)",
+          "required": false,
+          "default": "json",
+          "enum": [
+            "json",
+            "pdf"
+          ]
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "Parsed message with clean text",
+        "properties": {
+          "id": "string (message ID)",
+          "thread_id": "string",
+          "from": "object {name: str, email: str}",
+          "to": "array of {name: str, email: str}",
+          "subject": "string",
+          "date": "string (ISO format)",
+          "body_text": "string (clean text, HTML converted)",
+          "attachments": "array of {filename: str, content_type: str, size_bytes: int, parsed_content: str}",
+          "token_estimate": "int (rough token count for AI context)"
+        }
+      },
+      "examples": [
+        {
+          "description": "Get email with full content and attachments parsed",
+          "parameters": {
+            "message_id": "msg_abc123",
+            "include_attachments": true
+          }
+        },
+        {
+          "description": "Get email without attachments (faster)",
+          "parameters": {
+            "message_id": "msg_xyz789",
+            "include_attachments": false
+          }
+        }
+      ]
+    },
+    {
+      "name": "gmail_get_thread_parsed",
+      "short_description": "Get Gmail conversation thread with all messages, participants, and chronological order",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Read X from **[Resource Name]** (ID: `[id]` | URL: [url])'\n(3) Use EXACT [id] provided - NEVER substitute with different ID\n(4) If tool fails (404/403), say 'Failed to read [resource] ID: [id]' and explain error\n(5) NEVER make up data if read fails - acknowledge the failure clearly\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\n⚠️ MUST USE: execute_tool(tool_name='gmail_get_thread_parsed', ...) - DO NOT call directly!\n\nGet entire email thread with conversation timeline and parsed content. Use this when user asks to:\n- 'Show me the conversation'\n- 'What's the email thread about?'\n- 'Read this email chain'\n- 'Understand the context'\n\nOutput formats:\n- 'json' (default): Returns structured timeline with message previews\n- 'pdf': Returns comprehensive PDF with entire thread, all messages, and attachments (RECOMMENDED for Claude analysis)\n\nPDF format benefits:\n- Entire thread in context\n- Smart header/footer detection (extracts text from signatures/logos)\n- All attachments inline\n- Preserves conversation flow\n- ~7k tokens per 3 pages\n\nFor full content of individual messages, use gmail_get_message_parsed with the message IDs from the timeline.",
+      "platform": "gmail",
+      "category": "basic",
+      "multi_modal_parameters": {
+        "mode": {
+          "type": "string",
+          "description": "Thread detail level: 'summary' (timeline overview), 'detailed' (full messages), 'raw' (complete data)",
+          "required": false,
+          "default": "detailed",
+          "enum": [
+            "summary",
+            "detailed",
+            "raw"
+          ]
+        },
+        "format": {
+          "type": "string",
+          "description": "Output format: 'markdown' (conversation view), 'json' (structured timeline), 'text' (plain thread)",
+          "required": false,
+          "default": "markdown",
+          "enum": [
+            "markdown",
+            "json",
+            "text"
+          ]
+        },
+        "export": {
+          "type": "string",
+          "description": "Export destination: 'none', 'synergy', 'google_doc' (recommended for threads), 'google_sheet' (timeline table)",
+          "required": false,
+          "default": "none",
+          "enum": [
+            "none",
+            "synergy",
+            "google_doc",
+            "google_sheet"
+          ]
+        },
+        "export_title": {
+          "type": "string",
+          "description": "Title for exported thread document (defaults to thread subject)",
+          "required": false
+        }
+      },
+      "user_facing_language": {
+        "action_verb": "read",
+        "resource_name": "email thread",
+        "resource_plural": "email threads",
+        "natural_phrases": [
+          "show me the conversation",
+          "read the email chain",
+          "get the thread",
+          "see the full conversation",
+          "understand the context"
+        ],
+        "capability_description": "I can read entire email threads with conversation timeline and parsed content. This shows the full back-and-forth exchange with smart formatting.",
+        "example_ai_responses": [
+          "I'll show you the entire conversation.",
+          "I'll read the full email thread for you.",
+          "I'll get the conversation timeline."
+        ],
+        "mode_translations": {
+          "summary": "timeline overview with key messages",
+          "detailed": "full conversation with all messages",
+          "raw": "complete unprocessed thread data"
+        },
+        "format_translations": {
+          "markdown": "conversation view",
+          "json": "structured timeline data",
+          "text": "plain text thread"
+        },
+        "export_translations": {
+          "none": "return directly",
+          "synergy": "save to Synergy",
+          "google_doc": "create conversation document",
+          "google_sheet": "create timeline table"
+        }
+      },
+      "tool_intelligence": {
+        "category": "email",
+        "typical_workflow_patterns": [
+          "gmail_list_messages → gmail_get_thread_parsed (find then read full thread)",
+          "gmail_get_message → gmail_get_thread_parsed (one message leads to reading full thread)",
+          "gmail_get_thread_parsed → ai_summarize (read thread then summarize)",
+          "gmail_get_thread_parsed(export='google_doc') (archive conversation)"
+        ],
+        "success_indicators": {
+          "keywords": [
+            "read thread",
+            "conversation loaded",
+            "timeline shown",
+            "all messages retrieved"
+          ],
+          "behavioral": [
+            "User understands context",
+            "User asks about specific messages in thread",
+            "User exports thread",
+            "User doesn't ask for clarification"
+          ]
+        },
+        "failure_indicators": {
+          "keywords": [
+            "thread incomplete",
+            "messages missing",
+            "timeline error"
+          ],
+          "behavioral": [
+            "User asks for individual messages",
+            "User complains about gaps",
+            "User switches to get_message"
+          ]
+        },
+        "performance_expectations": {
+          "typical_duration_ms": 3000,
+          "rate_limit_per_minute": 30,
+          "max_retries": 2,
+          "timeout_seconds": 45
+        }
+      },
+      "memory_context": {
+        "vectorization_fields": [
+          "thread_id",
+          "subject",
+          "participants",
+          "message_count"
+        ],
+        "search_keywords": [
+          "thread",
+          "conversation",
+          "email chain",
+          "back and forth",
+          "discussion"
+        ],
+        "related_synergy_platforms": [
+          "gmail",
+          "google_workspace",
+          "synergy"
+        ],
+        "typical_use_cases": [
+          "Context understanding - User reads full thread to understand ongoing discussion",
+          "Decision tracking - User reviews conversation history to see decisions made",
+          "Archive conversations - User exports important thread discussions to Google Docs",
+          "Customer support - User reads entire support thread for context"
+        ],
+        "conversation_memory_hints": {
+          "what_to_remember": "Thread IDs, subjects, participants, message counts, key decisions",
+          "search_context": "When user asks about 'conversations I read', 'email threads', 'discussions with [person]'",
+          "related_entities": [
+            "thread IDs",
+            "participant emails",
+            "conversation topics",
+            "message timestamps"
+          ]
+        },
+        "sheet_export_structure": {
+          "columns": [
+            "position",
+            "date",
+            "from",
+            "to",
+            "body_preview",
+            "message_id"
+          ],
+          "data_mapping": "Timeline rows with conversation flow",
+          "formatting": "Frozen header, alternating row colors for readability, auto-filter"
+        }
+      },
+      "parameters": {
+        "thread_id": {
+          "type": "string",
+          "description": "Gmail thread ID (from gmail_list_messages or gmail_get_message)"
+        },
+        "max_messages": {
+          "type": "integer",
+          "description": "Maximum number of messages to fetch (default: 20)",
+          "required": false,
+          "default": 20
+        },
+        "output_format": {
+          "type": "string",
+          "description": "Output format: 'json' (default, timeline structure) or 'pdf' (comprehensive PDF for Claude document API)",
+          "required": false,
+          "default": "json",
+          "enum": [
+            "json",
+            "pdf"
+          ]
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "Thread timeline with conversation flow",
+        "properties": {
+          "thread_id": "string",
+          "subject": "string",
+          "participants": "array of {name: str, email: str}",
+          "start_date": "string (ISO format)",
+          "last_date": "string (ISO format)",
+          "message_count": "int",
+          "messages": "array of {position: int, from: object, date: str, body_text: str (preview), full_message_id: str}",
+          "token_estimate": "int"
+        }
+      },
+      "examples": [
+        {
+          "description": "Get thread conversation timeline",
+          "parameters": {
+            "thread_id": "thread_12345",
+            "max_messages": 20
+          }
+        }
+      ]
+    },
+    {
+      "name": "gmail_get_attachment",
+      "short_description": "Download Gmail email attachment by message ID and attachment ID to local file",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Read X from **[Resource Name]** (ID: `[id]` | URL: [url])'\n(3) Use EXACT [id] provided - NEVER substitute with different ID\n(4) If tool fails (404/403), say 'Failed to read [resource] ID: [id]' and explain error\n(5) NEVER make up data if read fails - acknowledge the failure clearly\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\n⚠️ MUST USE: execute_tool(tool_name='gmail_get_attachment', ...) - DO NOT call directly!\n\n⚠️ NEXT STEP RECOMMENDATION:\nAfter downloading, use process_email_attachment_complete (SMART tool) to automatically:\n- Route Office files (Excel/Word) → Upload to cloud → Extract structured queryable data\n- Route PDFs/images → Vision processing → Content blocks\n- Route CSV/TXT → Local parsing → Structured JSON\n- Auto-cleanup temp files\nOne tool call instead of 8-12 manual steps!\n\nOR use process_local_file_universal if you need to process the downloaded file with custom options.\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nDownload email attachment",
+      "platform": "gmail",
+      "category": "basic",
+      "multi_modal_parameters": {
+        "mode": {
+          "type": "string",
+          "description": "Processing level: 'summary' (metadata only), 'detailed' (download + metadata), 'raw' (binary data)",
+          "required": false,
+          "default": "detailed",
+          "enum": [
+            "summary",
+            "detailed",
+            "raw"
+          ]
+        },
+        "format": {
+          "type": "string",
+          "description": "Output format: 'markdown' (info display), 'json' (structured), 'text' (parsed content if text file)",
+          "required": false,
+          "default": "markdown",
+          "enum": [
+            "markdown",
+            "json",
+            "text"
+          ]
+        },
+        "export": {
+          "type": "string",
+          "description": "Export destination: 'none' (return data), 'synergy', 'google_drive' (upload to Drive)",
+          "required": false,
+          "default": "none",
+          "enum": [
+            "none",
+            "synergy",
+            "google_drive"
+          ]
+        },
+        "export_title": {
+          "type": "string",
+          "description": "Filename for exported attachment (defaults to original filename)",
+          "required": false
+        }
+      },
+      "user_facing_language": {
+        "action_verb": "download",
+        "resource_name": "attachment",
+        "resource_plural": "attachments",
+        "natural_phrases": [
+          "download this attachment",
+          "get the file",
+          "download the PDF",
+          "save this attachment",
+          "get the attached file"
+        ],
+        "capability_description": "I can download email attachments and optionally save them to Google Drive or Synergy.",
+        "example_ai_responses": [
+          "I'll download that attachment for you.",
+          "I'll get the file from the email.",
+          "I'll download and save it to Drive."
+        ],
+        "mode_translations": {
+          "summary": "attachment info only",
+          "detailed": "download with full metadata",
+          "raw": "binary file data"
+        },
+        "format_translations": {
+          "markdown": "readable attachment info",
+          "json": "structured metadata",
+          "text": "parsed text content"
+        },
+        "export_translations": {
+          "none": "return attachment data",
+          "synergy": "save to Synergy",
+          "google_drive": "upload to Google Drive"
+        }
+      },
+      "tool_intelligence": {
+        "category": "email",
+        "typical_workflow_patterns": [
+          "gmail_get_message → gmail_get_attachment (read email then download attachment)",
+          "gmail_list_messages → gmail_get_attachment (find then download)",
+          "gmail_get_attachment(export='google_drive') (download and save)",
+          "gmail_get_attachment → process_email_attachment_complete (RECOMMENDED: download then auto-process with intelligent routing)",
+          "gmail_get_attachment → process_local_file_universal (download then process with custom options)",
+          "gmail_get_attachment → ai_analyze_file (download then analyze)"
+        ],
+        "success_indicators": {
+          "keywords": [
+            "downloaded",
+            "attachment retrieved",
+            "file saved",
+            "uploaded to Drive"
+          ],
+          "behavioral": [
+            "User proceeds to analyze content",
+            "User asks about file contents",
+            "User exports to Drive",
+            "User doesn't request re-download"
+          ]
+        },
+        "failure_indicators": {
+          "keywords": [
+            "download failed",
+            "attachment not found",
+            "file error",
+            "too large"
+          ],
+          "behavioral": [
+            "User asks to retry",
+            "User asks for different format",
+            "User complains about file size"
+          ]
+        },
+        "performance_expectations": {
+          "typical_duration_ms": 1500,
+          "rate_limit_per_minute": 60,
+          "max_retries": 3,
+          "timeout_seconds": 30
+        }
+      },
+      "memory_context": {
+        "vectorization_fields": [
+          "attachment_id",
+          "filename",
+          "content_type",
+          "message_id"
+        ],
+        "search_keywords": [
+          "download",
+          "attachment",
+          "file",
+          "PDF",
+          "document",
+          "save to Drive"
+        ],
+        "related_synergy_platforms": [
+          "gmail",
+          "google_drive",
+          "synergy"
+        ],
+        "typical_use_cases": [
+          "Document retrieval - User downloads PDFs/Word docs from emails",
+          "File backup - User saves important attachments to Google Drive",
+          "Data extraction - User downloads CSV/Excel files for analysis",
+          "Image download - User saves photos/diagrams from emails"
+        ],
+        "conversation_memory_hints": {
+          "what_to_remember": "Attachment IDs, filenames, sizes, export destinations, download timestamps",
+          "search_context": "When user asks about 'files I downloaded', 'attachments I saved', 'documents from emails'",
+          "related_entities": [
+            "attachment IDs",
+            "filenames",
+            "message IDs",
+            "Drive file IDs"
+          ]
+        },
+        "sheet_export_structure": {
+          "columns": [
+            "filename",
+            "content_type",
+            "size_bytes",
+            "message_id",
+            "download_timestamp"
+          ],
+          "data_mapping": "Attachment metadata with download info",
+          "formatting": "Frozen header, file size formatting, timestamp column"
+        }
+      }
+    },
+    {
+      "name": "gmail_delete_message",
+      "short_description": "Delete Gmail message by ID to move to trash folder for 30-day retention",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER pretend to delete from memory\n(2) MUST cite what was deleted: 'Deleted **[Resource Name]** (ID: `[id]`)'\n(3) CONFIRM deletion happened - don't assume success\n(4) If tool fails, say 'Failed to delete' and explain why\n\nExample response:\n✅ Deleted: **Old File**\n- ID: `abc123`\n- URL: https://example.com/file/abc123 (no longer accessible)\n\n⚠️ MUST USE: execute_tool(tool_name='gmail_delete_message', ...) - DO NOT call directly!\n\nExample response:\n✅ Deleted: **Old File**\n- ID: `abc123`\n- URL: https://example.com/file/abc123 (no longer accessible)\n\nDelete a message",
+      "platform": "gmail",
+      "category": "basic",
+      "user_facing_language": {
+        "action_verb": "delete",
+        "resource_name": "email",
+        "resource_plural": "emails",
+        "natural_phrases": [
+          "delete this email",
+          "remove this message",
+          "delete it",
+          "trash this email",
+          "permanently delete"
+        ],
+        "capability_description": "I can permanently delete emails from your account. Use with caution as this cannot be undone.",
+        "example_ai_responses": [
+          "I'll delete that email permanently.",
+          "I'll remove the message from your account.",
+          "I'll delete it - this action is permanent."
+        ]
+      },
+      "tool_intelligence": {
+        "category": "email",
+        "typical_workflow_patterns": [
+          "gmail_get_message → gmail_delete_message (review then delete)",
+          "gmail_search_messages → gmail_delete_message (bulk delete spam/old)",
+          "gmail_list_messages → gmail_delete_message (inbox cleanup)"
+        ],
+        "success_indicators": {
+          "keywords": [
+            "deleted",
+            "removed",
+            "permanently deleted",
+            "message removed"
+          ],
+          "behavioral": [
+            "User continues cleanup workflow",
+            "User deletes multiple in sequence",
+            "User doesn't ask where message went",
+            "User proceeds confidently"
+          ]
+        },
+        "failure_indicators": {
+          "keywords": [
+            "failed to delete",
+            "message not found",
+            "deletion error",
+            "permission denied"
+          ],
+          "behavioral": [
+            "User asks 'Did that work?'",
+            "User checks trash folder",
+            "User retries deletion",
+            "User shows concern"
+          ]
+        },
+        "performance_expectations": {
+          "typical_duration_ms": 400,
+          "rate_limit_per_minute": 100,
+          "max_retries": 3,
+          "timeout_seconds": 20
+        }
+      },
+      "memory_context": {
+        "vectorization_fields": [
+          "message_id",
+          "subject",
+          "from"
+        ],
+        "search_keywords": [
+          "delete",
+          "remove email",
+          "trash",
+          "permanently delete",
+          "cleanup"
+        ],
+        "related_synergy_platforms": [
+          "gmail",
+          "google_workspace"
+        ],
+        "typical_use_cases": [
+          "Spam cleanup - User deletes spam or unwanted promotional emails",
+          "Privacy management - User permanently removes sensitive messages",
+          "Storage management - User deletes old emails to free space",
+          "Inbox deep clean - User removes outdated or irrelevant messages"
+        ],
+        "conversation_memory_hints": {
+          "what_to_remember": "Message IDs deleted, subjects, senders, deletion timestamps",
+          "search_context": "When user asks about 'emails I deleted', 'messages I removed', 'cleanup I did'",
+          "related_entities": [
+            "message IDs",
+            "subjects",
+            "sender addresses",
+            "deletion timestamps"
+          ]
+        }
+      }
+    },
+    {
+      "name": "gmail_modify_message",
+      "short_description": "Modify Gmail message labels to add or remove categories and organization tags",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER reference previous edits from conversation history\n(2) MUST cite what was updated: 'Updated **[Resource Name]** (ID: `[id]`)'\n(3) Use EXACT [id] provided - NEVER make up IDs\n(4) If tool fails, say 'Failed to update' and explain why\n(5) Show before/after if applicable\n\nExample response:\nUpdated: **Document Title**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Changed: [what was changed]\n\n⚠️ MUST USE: execute_tool(tool_name='gmail_modify_message', ...) - DO NOT call directly!\n\nExample response:\nUpdated: **Document Title**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Changed: [what was changed]\n\nModify message labels",
+      "platform": "gmail",
+      "category": "basic",
+      "user_facing_language": {
+        "action_verb": "modify",
+        "resource_name": "email labels",
+        "resource_plural": "email labels",
+        "natural_phrases": [
+          "change labels",
+          "update labels",
+          "modify labels",
+          "add labels",
+          "remove labels"
+        ],
+        "capability_description": "I can modify email labels to organize and categorize your messages. You can add or remove labels from any email.",
+        "example_ai_responses": [
+          "I'll update the labels on that email.",
+          "I'll add the Work label to this message.",
+          "I'll remove the old labels and add new ones."
+        ]
+      },
+      "tool_intelligence": {
+        "category": "email",
+        "typical_workflow_patterns": [
+          "gmail_get_message → gmail_modify_message (review then label)",
+          "gmail_list_messages → gmail_modify_message (bulk label)",
+          "gmail_search_messages → gmail_modify_message (filter then organize)",
+          "gmail_modify_message → gmail_archive_message (label then archive)"
+        ],
+        "success_indicators": {
+          "keywords": [
+            "labels updated",
+            "modified",
+            "labels added",
+            "labels removed",
+            "organized"
+          ],
+          "behavioral": [
+            "User proceeds to organize more messages",
+            "User applies labels in batch",
+            "User doesn't ask for confirmation",
+            "User uses labels for filtering later"
+          ]
+        },
+        "failure_indicators": {
+          "keywords": [
+            "failed to modify",
+            "label error",
+            "invalid label",
+            "update failed"
+          ],
+          "behavioral": [
+            "User asks if labels were applied",
+            "User checks message manually",
+            "User retries operation"
+          ]
+        },
+        "performance_expectations": {
+          "typical_duration_ms": 350,
+          "rate_limit_per_minute": 100,
+          "max_retries": 3,
+          "timeout_seconds": 20
+        }
+      },
+      "memory_context": {
+        "vectorization_fields": [
+          "message_id",
+          "labels_added",
+          "labels_removed"
+        ],
+        "search_keywords": [
+          "modify",
+          "labels",
+          "organize",
+          "categorize",
+          "tag emails"
+        ],
+        "related_synergy_platforms": [
+          "gmail",
+          "google_workspace"
+        ],
+        "typical_use_cases": [
+          "Project organization - User adds project labels to related emails",
+          "Priority tagging - User labels urgent messages for quick filtering",
+          "Category management - User organizes inbox with custom labels",
+          "Bulk organization - User applies labels to multiple messages",
+          "Label cleanup - User removes outdated labels and applies new ones"
+        ],
+        "conversation_memory_hints": {
+          "what_to_remember": "Message IDs modified, labels added/removed, organization patterns",
+          "search_context": "When user asks about 'labels I added', 'messages I organized', 'emails I tagged'",
+          "related_entities": [
+            "message IDs",
+            "label names",
+            "organization categories",
+            "timestamps"
+          ]
+        }
+      }
+    },
+    {
+      "name": "gmail_mark_as_read",
+      "short_description": "Mark Gmail message as read by ID to clear unread status and notifications",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Read X from **[Resource Name]** (ID: `[id]` | URL: [url])'\n(3) Use EXACT [id] provided - NEVER substitute with different ID\n(4) If tool fails (404/403), say 'Failed to read [resource] ID: [id]' and explain error\n(5) NEVER make up data if read fails - acknowledge the failure clearly\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\n⚠️ MUST USE: execute_tool(tool_name='gmail_mark_as_read', ...) - DO NOT call directly!\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nMark message as read",
+      "platform": "gmail",
+      "category": "basic",
+      "user_facing_language": {
+        "action_verb": "mark",
+        "resource_name": "email",
+        "resource_plural": "emails",
+        "natural_phrases": [
+          "mark as read",
+          "mark email as read",
+          "set to read",
+          "mark this read",
+          "mark message read"
+        ],
+        "capability_description": "I can mark emails as read to keep your inbox organized and clear unread indicators.",
+        "example_ai_responses": [
+          "I'll mark that email as read.",
+          "I'll mark these messages as read.",
+          "I'll update the read status."
+        ]
+      },
+      "tool_intelligence": {
+        "category": "email",
+        "typical_workflow_patterns": [
+          "gmail_list_messages → gmail_get_message → gmail_mark_as_read (inbox zero workflow)",
+          "gmail_search_messages → gmail_mark_as_read (bulk mark as read)",
+          "gmail_get_message → gmail_mark_as_read (after reading)"
+        ],
+        "success_indicators": {
+          "keywords": [
+            "marked as read",
+            "status updated",
+            "marked successfully",
+            "updated"
+          ],
+          "behavioral": [
+            "User continues to next message",
+            "User doesn't ask about unread count",
+            "User proceeds with inbox triage",
+            "User marks multiple in sequence"
+          ]
+        },
+        "failure_indicators": {
+          "keywords": [
+            "failed to mark",
+            "message not found",
+            "invalid ID",
+            "error updating"
+          ],
+          "behavioral": [
+            "User asks if it worked",
+            "User checks unread count",
+            "User retries operation"
+          ]
+        },
+        "performance_expectations": {
+          "typical_duration_ms": 300,
+          "rate_limit_per_minute": 100,
+          "max_retries": 3,
+          "timeout_seconds": 15
+        }
+      },
+      "memory_context": {
+        "vectorization_fields": [
+          "message_id",
+          "thread_id"
+        ],
+        "search_keywords": [
+          "mark read",
+          "read status",
+          "inbox zero",
+          "email management",
+          "unread"
+        ],
+        "related_synergy_platforms": [
+          "gmail",
+          "google_workspace"
+        ],
+        "typical_use_cases": [
+          "Inbox zero workflow - User marks processed emails as read",
+          "Bulk triage - User marks multiple emails read after review",
+          "Notification clearing - User marks all unread as read",
+          "Message cleanup - User marks old messages read for organization"
+        ],
+        "conversation_memory_hints": {
+          "what_to_remember": "Message IDs marked, timestamps, bulk operations",
+          "search_context": "When user asks about 'emails I marked read', 'inbox cleanup', 'messages I processed'",
+          "related_entities": [
+            "message IDs",
+            "thread IDs",
+            "timestamps"
+          ]
+        }
+      }
+    },
+    {
+      "name": "gmail_mark_as_unread",
+      "short_description": "Mark Gmail message as unread by ID to flag for attention and follow-up",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Read X from **[Resource Name]** (ID: `[id]` | URL: [url])'\n(3) Use EXACT [id] provided - NEVER substitute with different ID\n(4) If tool fails (404/403), say 'Failed to read [resource] ID: [id]' and explain error\n(5) NEVER make up data if read fails - acknowledge the failure clearly\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\n⚠️ MUST USE: execute_tool(tool_name='gmail_mark_as_unread', ...) - DO NOT call directly!\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nMark message as unread",
+      "platform": "gmail",
+      "category": "basic",
+      "user_facing_language": {
+        "action_verb": "mark",
+        "resource_name": "email",
+        "resource_plural": "emails",
+        "natural_phrases": [
+          "mark as unread",
+          "mark email as unread",
+          "set to unread",
+          "mark this unread",
+          "flag as unread"
+        ],
+        "capability_description": "I can mark emails as unread to flag them for later attention or follow-up.",
+        "example_ai_responses": [
+          "I'll mark that email as unread for you.",
+          "I'll flag this message as unread.",
+          "I'll mark it unread so you remember to follow up."
+        ]
+      },
+      "tool_intelligence": {
+        "category": "email",
+        "typical_workflow_patterns": [
+          "gmail_get_message → gmail_mark_as_unread (read then flag for later)",
+          "gmail_mark_as_unread → gmail_list_messages (flag then view all unread)",
+          "gmail_search_messages → gmail_mark_as_unread (find then flag important)"
+        ],
+        "success_indicators": {
+          "keywords": [
+            "marked as unread",
+            "flagged",
+            "set to unread",
+            "updated status"
+          ],
+          "behavioral": [
+            "User returns to message later",
+            "User uses as reminder system",
+            "User doesn't ask for confirmation",
+            "User marks multiple for follow-up"
+          ]
+        },
+        "failure_indicators": {
+          "keywords": [
+            "failed to mark",
+            "error updating",
+            "message not found"
+          ],
+          "behavioral": [
+            "User asks 'Did that work?'",
+            "User checks message status",
+            "User retries"
+          ]
+        },
+        "performance_expectations": {
+          "typical_duration_ms": 300,
+          "rate_limit_per_minute": 100,
+          "max_retries": 3,
+          "timeout_seconds": 15
+        }
+      },
+      "memory_context": {
+        "vectorization_fields": [
+          "message_id",
+          "thread_id"
+        ],
+        "search_keywords": [
+          "mark unread",
+          "flag email",
+          "reminder",
+          "follow-up",
+          "unread status"
+        ],
+        "related_synergy_platforms": [
+          "gmail",
+          "google_workspace"
+        ],
+        "typical_use_cases": [
+          "Follow-up flagging - User marks important email unread as reminder",
+          "Task creation - User flags emails that need action",
+          "Snooze alternative - User marks unread to review later",
+          "Priority marking - User flags urgent messages for visibility"
+        ],
+        "conversation_memory_hints": {
+          "what_to_remember": "Message IDs flagged, reasons for flagging, follow-up context",
+          "search_context": "When user asks about 'emails I flagged', 'messages to follow up', 'unread reminders'",
+          "related_entities": [
+            "message IDs",
+            "follow-up tasks",
+            "priority flags"
+          ]
+        }
+      }
+    },
+    {
+      "name": "gmail_archive_message",
+      "short_description": "Archive Gmail message by ID to remove from inbox while keeping searchable",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Read X from **[Resource Name]** (ID: `[id]` | URL: [url])'\n(3) Use EXACT [id] provided - NEVER substitute with different ID\n(4) If tool fails (404/403), say 'Failed to read [resource] ID: [id]' and explain error\n(5) NEVER make up data if read fails - acknowledge the failure clearly\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\n⚠️ MUST USE: execute_tool(tool_name='gmail_archive_message', ...) - DO NOT call directly!\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nArchive a message",
+      "platform": "gmail",
+      "category": "basic",
+      "user_facing_language": {
+        "action_verb": "archive",
+        "resource_name": "email",
+        "resource_plural": "emails",
+        "natural_phrases": [
+          "archive this email",
+          "archive the message",
+          "move to archive",
+          "archive it",
+          "put in archive"
+        ],
+        "capability_description": "I can archive emails to remove them from your inbox while keeping them searchable and accessible.",
+        "example_ai_responses": [
+          "I'll archive that email for you.",
+          "I'll move it to the archive.",
+          "I'll archive this to clean up your inbox."
+        ]
+      },
+      "tool_intelligence": {
+        "category": "email",
+        "typical_workflow_patterns": [
+          "gmail_get_message → gmail_archive_message (read then archive)",
+          "gmail_list_messages → gmail_archive_message (bulk archive)",
+          "gmail_mark_as_read → gmail_archive_message (mark read then archive)",
+          "gmail_send_email → gmail_archive_message (reply then archive)"
+        ],
+        "success_indicators": {
+          "keywords": [
+            "archived",
+            "removed from inbox",
+            "moved to archive",
+            "cleaned up"
+          ],
+          "behavioral": [
+            "User proceeds to next message",
+            "User performs inbox zero workflow",
+            "User archives multiple in sequence",
+            "User doesn't ask where message went"
+          ]
+        },
+        "failure_indicators": {
+          "keywords": [
+            "failed to archive",
+            "message not found",
+            "archive error"
+          ],
+          "behavioral": [
+            "User asks if message was archived",
+            "User looks for message in inbox",
+            "User retries operation"
+          ]
+        },
+        "performance_expectations": {
+          "typical_duration_ms": 350,
+          "rate_limit_per_minute": 100,
+          "max_retries": 3,
+          "timeout_seconds": 20
+        }
+      },
+      "memory_context": {
+        "vectorization_fields": [
+          "message_id",
+          "thread_id",
+          "subject"
+        ],
+        "search_keywords": [
+          "archive",
+          "inbox cleanup",
+          "organize email",
+          "inbox zero",
+          "move from inbox"
+        ],
+        "related_synergy_platforms": [
+          "gmail",
+          "google_workspace"
+        ],
+        "typical_use_cases": [
+          "Inbox zero - User archives processed emails to maintain clean inbox",
+          "Post-action cleanup - User archives after replying or actioning",
+          "Bulk organization - User archives old or irrelevant messages",
+          "Project completion - User archives project-related threads after completion"
+        ],
+        "conversation_memory_hints": {
+          "what_to_remember": "Message IDs archived, subjects, archive timestamps, bulk operations",
+          "search_context": "When user asks about 'emails I archived', 'messages I moved', 'inbox cleanup I did'",
+          "related_entities": [
+            "message IDs",
+            "thread IDs",
+            "archive timestamps",
+            "subjects"
+          ]
+        }
+      }
+    },
+    {
+      "name": "gmail_unarchive_message",
+      "short_description": "Unarchive Gmail message by ID to restore to inbox from archive folder",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Read X from **[Resource Name]** (ID: `[id]` | URL: [url])'\n(3) Use EXACT [id] provided - NEVER substitute with different ID\n(4) If tool fails (404/403), say 'Failed to read [resource] ID: [id]' and explain error\n(5) NEVER make up data if read fails - acknowledge the failure clearly\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\n⚠️ MUST USE: execute_tool(tool_name='gmail_unarchive_message', ...) - DO NOT call directly!\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nUnarchive a message",
+      "platform": "gmail",
+      "category": "basic",
+      "user_facing_language": {
+        "action_verb": "unarchive",
+        "resource_name": "email",
+        "resource_plural": "emails",
+        "natural_phrases": [
+          "unarchive this email",
+          "move back to inbox",
+          "restore from archive",
+          "bring back to inbox",
+          "unarchive it"
+        ],
+        "capability_description": "I can unarchive emails to move them back to your inbox for renewed attention.",
+        "example_ai_responses": [
+          "I'll unarchive that email.",
+          "I'll move it back to your inbox.",
+          "I'll restore it from the archive."
+        ]
+      },
+      "tool_intelligence": {
+        "category": "email",
+        "typical_workflow_patterns": [
+          "gmail_search_messages(in:archive) → gmail_get_message → gmail_unarchive_message (find in archive then restore)",
+          "gmail_unarchive_message → gmail_mark_as_unread (restore and flag for attention)"
+        ],
+        "success_indicators": {
+          "keywords": [
+            "unarchived",
+            "moved to inbox",
+            "restored",
+            "back in inbox"
+          ],
+          "behavioral": [
+            "User proceeds to read message",
+            "User re-engages with thread",
+            "User doesn't ask where it went"
+          ]
+        },
+        "failure_indicators": {
+          "keywords": [
+            "failed to unarchive",
+            "message not found",
+            "restore error"
+          ],
+          "behavioral": [
+            "User asks if message is back",
+            "User searches inbox",
+            "User retries"
+          ]
+        },
+        "performance_expectations": {
+          "typical_duration_ms": 350,
+          "rate_limit_per_minute": 100,
+          "max_retries": 3,
+          "timeout_seconds": 20
+        }
+      },
+      "memory_context": {
+        "vectorization_fields": [
+          "message_id",
+          "thread_id"
+        ],
+        "search_keywords": [
+          "unarchive",
+          "restore email",
+          "move to inbox",
+          "bring back"
+        ],
+        "related_synergy_platforms": [
+          "gmail",
+          "google_workspace"
+        ],
+        "typical_use_cases": [
+          "Reopen conversation - User unarchives old thread to continue discussion",
+          "Error correction - User restores accidentally archived message",
+          "Follow-up needed - User brings back archived email requiring new action",
+          "Reference retrieval - User unarchives for easier access during active work"
+        ],
+        "conversation_memory_hints": {
+          "what_to_remember": "Message IDs unarchived, reasons for restoring, timestamps",
+          "search_context": "When user asks about 'emails I restored', 'messages I brought back', 'unarchived items'",
+          "related_entities": [
+            "message IDs",
+            "thread IDs",
+            "restoration timestamps"
+          ]
+        }
+      }
+    },
+    {
+      "name": "gmail_list_labels",
+      "short_description": "Gmail inbox management: organize Gmail, list labels and categories for filtering, inbox organization",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Read X from **[Resource Name]** (ID: `[id]` | URL: [url])'\n(3) Use EXACT [id] provided - NEVER substitute with different ID\n(4) If tool fails (404/403), say 'Failed to read [resource] ID: [id]' and explain error\n(5) NEVER make up data if read fails - acknowledge the failure clearly\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\n⚠️ MUST USE: execute_tool(tool_name='gmail_list_labels', ...) - DO NOT call directly!\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nList all labels",
+      "platform": "gmail",
+      "category": "basic",
+      "multi_modal_parameters": {
+        "mode": {
+          "type": "string",
+          "description": "List detail: 'summary' (names only), 'detailed' (with stats), 'raw' (full API response)",
+          "required": false,
+          "default": "summary",
+          "enum": [
+            "summary",
+            "detailed",
+            "raw"
+          ]
+        },
+        "format": {
+          "type": "string",
+          "description": "Output format: 'markdown' (readable list), 'json' (structured), 'text' (plain list)",
+          "required": false,
+          "default": "markdown",
+          "enum": [
+            "markdown",
+            "json",
+            "text"
+          ]
+        },
+        "export": {
+          "type": "string",
+          "description": "Export destination: 'none', 'synergy', 'google_sheet' (recommended for labels)",
+          "required": false,
+          "default": "none",
+          "enum": [
+            "none",
+            "synergy",
+            "google_sheet"
+          ]
+        },
+        "export_title": {
+          "type": "string",
+          "description": "Title for exported label list (defaults to 'Gmail Labels')",
+          "required": false
+        }
+      },
+      "user_facing_language": {
+        "action_verb": "list",
+        "resource_name": "label",
+        "resource_plural": "labels",
+        "natural_phrases": [
+          "show my labels",
+          "list all labels",
+          "what labels do I have",
+          "show my folders",
+          "list my categories"
+        ],
+        "capability_description": "I can list all your Gmail labels (folders) including system labels and custom labels you've created.",
+        "example_ai_responses": [
+          "I'll show you all your Gmail labels.",
+          "I'll list your folders and categories.",
+          "I'll get your label structure."
+        ],
+        "mode_translations": {
+          "summary": "label names only",
+          "detailed": "labels with message counts",
+          "raw": "complete label data"
+        },
+        "format_translations": {
+          "markdown": "readable label list",
+          "json": "structured label data",
+          "text": "plain text list"
+        },
+        "export_translations": {
+          "none": "return list directly",
+          "synergy": "save to Synergy",
+          "google_sheet": "create label inventory sheet"
+        }
+      },
+      "tool_intelligence": {
+        "category": "email",
+        "typical_workflow_patterns": [
+          "gmail_list_labels → gmail_create_label (check existing then create new)",
+          "gmail_list_labels → gmail_search_messages(label:X) (find labels then search)",
+          "gmail_list_labels → gmail_modify_message (see labels then apply)"
+        ],
+        "success_indicators": {
+          "keywords": [
+            "labels retrieved",
+            "found labels",
+            "label list",
+            "folders shown"
+          ],
+          "behavioral": [
+            "User proceeds to use labels",
+            "User creates new label",
+            "User applies labels to messages",
+            "User doesn't ask for clarification"
+          ]
+        },
+        "failure_indicators": {
+          "keywords": [
+            "no labels",
+            "labels error",
+            "failed to retrieve"
+          ],
+          "behavioral": [
+            "User asks to retry",
+            "User manually checks Gmail",
+            "User asks about specific labels"
+          ]
+        },
+        "performance_expectations": {
+          "typical_duration_ms": 500,
+          "rate_limit_per_minute": 100,
+          "max_retries": 3,
+          "timeout_seconds": 15
+        }
+      },
+      "memory_context": {
+        "vectorization_fields": [
+          "label_names",
+          "label_ids",
+          "message_counts"
+        ],
+        "search_keywords": [
+          "labels",
+          "folders",
+          "categories",
+          "tags",
+          "organization"
+        ],
+        "related_synergy_platforms": [
+          "gmail",
+          "google_workspace"
+        ],
+        "typical_use_cases": [
+          "Label discovery - User checks what organizational labels exist",
+          "Inbox organization - User reviews label structure before organizing",
+          "Label inventory - User exports list of all labels for reference",
+          "Workflow planning - User sees labels to plan email categorization"
+        ],
+        "conversation_memory_hints": {
+          "what_to_remember": "Label names, IDs, message counts, custom vs system labels",
+          "search_context": "When user asks about 'my labels', 'email categories', 'folder structure'",
+          "related_entities": [
+            "label names",
+            "label IDs",
+            "message counts",
+            "label types"
+          ]
+        },
+        "sheet_export_structure": {
+          "columns": [
+            "label_name",
+            "label_id",
+            "type",
+            "message_count",
+            "unread_count"
+          ],
+          "data_mapping": "One row per label with metadata",
+          "formatting": "Frozen header, auto-filter, conditional formatting for counts"
+        }
+      }
+    },
+    {
+      "name": "gmail_create_label",
+      "short_description": "Create new Gmail label by name for custom email categorization and filters",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) ALWAYS execute THIS tool NOW - NEVER reference 'I created earlier' or use conversation history\n(2) MUST return format: **[Name]** | ID: `[id]` | URL: [full_url] | Link: [title](url)\n(3) Use EXACT values from tool response - NEVER make up fake URLs/IDs\n(4) If tool fails, say 'Failed to create' - NEVER pretend it succeeded\n\nExample response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\n⚠️ MUST USE: execute_tool(tool_name='gmail_create_label', ...) - DO NOT call directly!\n\nExample response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\nCreate a new label",
+      "platform": "gmail",
+      "category": "basic",
+      "user_facing_language": {
+        "action_verb": "create",
+        "resource_name": "label",
+        "resource_plural": "labels",
+        "natural_phrases": [
+          "create a label",
+          "make a new label",
+          "add a label",
+          "create folder",
+          "new category"
+        ],
+        "capability_description": "I can create custom labels (folders) to organize your Gmail inbox with any name you choose.",
+        "example_ai_responses": [
+          "I'll create that label for you.",
+          "I'll add a new folder called [name].",
+          "I'll create the label [name]."
+        ]
+      },
+      "tool_intelligence": {
+        "category": "email",
+        "typical_workflow_patterns": [
+          "gmail_list_labels → gmail_create_label (check existing then create)",
+          "gmail_create_label → gmail_modify_message (create then apply to messages)",
+          "gmail_create_label → gmail_create_filter (create label then auto-apply with filter)"
+        ],
+        "success_indicators": {
+          "keywords": [
+            "label created",
+            "folder added",
+            "new label",
+            "created successfully"
+          ],
+          "behavioral": [
+            "User applies label to messages",
+            "User creates filter with new label",
+            "User doesn't ask if it worked",
+            "User proceeds with organization"
+          ]
+        },
+        "failure_indicators": {
+          "keywords": [
+            "failed to create",
+            "label exists",
+            "creation error",
+            "invalid name"
+          ],
+          "behavioral": [
+            "User asks 'Did that work?'",
+            "User checks label list",
+            "User retries with different name"
+          ]
+        },
+        "performance_expectations": {
+          "typical_duration_ms": 400,
+          "rate_limit_per_minute": 100,
+          "max_retries": 3,
+          "timeout_seconds": 15
+        }
+      },
+      "memory_context": {
+        "vectorization_fields": [
+          "label_name",
+          "label_id"
+        ],
+        "search_keywords": [
+          "create label",
+          "new folder",
+          "add category",
+          "organize",
+          "label creation"
+        ],
+        "related_synergy_platforms": [
+          "gmail",
+          "google_workspace"
+        ],
+        "typical_use_cases": [
+          "Project organization - User creates labels for different projects",
+          "Client management - User creates labels for each client",
+          "Priority system - User creates Urgent/High/Low priority labels",
+          "Category setup - User creates Work/Personal/Finance labels"
+        ],
+        "conversation_memory_hints": {
+          "what_to_remember": "Label names created, IDs, creation timestamps, organizational purpose",
+          "search_context": "When user asks about 'labels I created', 'folders I added', 'new categories'",
+          "related_entities": [
+            "label names",
+            "label IDs",
+            "creation dates"
+          ]
+        }
+      }
+    },
+    {
+      "name": "gmail_update_label",
+      "short_description": "Update Gmail label name or visibility settings to modify organization system",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER reference previous edits from conversation history\n(2) MUST cite what was updated: 'Updated **[Resource Name]** (ID: `[id]`)'\n(3) Use EXACT [id] provided - NEVER make up IDs\n(4) If tool fails, say 'Failed to update' and explain why\n(5) Show before/after if applicable\n\nExample response:\nUpdated: **Document Title**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Changed: [what was changed]\n\n⚠️ MUST USE: execute_tool(tool_name='gmail_update_label', ...) - DO NOT call directly!\n\nExample response:\nUpdated: **Document Title**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Changed: [what was changed]\n\nUpdate label properties",
+      "platform": "gmail",
+      "category": "basic",
+      "user_facing_language": {
+        "action_verb": "update",
+        "resource_name": "label",
+        "resource_plural": "labels",
+        "natural_phrases": [
+          "rename label",
+          "update label",
+          "change label name",
+          "modify label",
+          "rename folder"
+        ],
+        "capability_description": "I can update label properties like name and color to reorganize your Gmail.",
+        "example_ai_responses": [
+          "I'll rename that label.",
+          "I'll update the label properties.",
+          "I'll change the label name to [new_name]."
+        ]
+      },
+      "tool_intelligence": {
+        "category": "email",
+        "typical_workflow_patterns": [
+          "gmail_list_labels → gmail_update_label (find then rename)",
+          "gmail_update_label → gmail_modify_message (rename then reapply to messages)"
+        ],
+        "success_indicators": {
+          "keywords": [
+            "label updated",
+            "renamed",
+            "properties changed",
+            "updated successfully"
+          ],
+          "behavioral": [
+            "User proceeds with organization",
+            "User doesn't ask for confirmation",
+            "User continues working"
+          ]
+        },
+        "failure_indicators": {
+          "keywords": [
+            "failed to update",
+            "label not found",
+            "update error"
+          ],
+          "behavioral": [
+            "User asks if change worked",
+            "User checks label list",
+            "User retries"
+          ]
+        },
+        "performance_expectations": {
+          "typical_duration_ms": 400,
+          "rate_limit_per_minute": 100,
+          "max_retries": 3,
+          "timeout_seconds": 15
+        }
+      },
+      "memory_context": {
+        "vectorization_fields": [
+          "label_id",
+          "old_name",
+          "new_name"
+        ],
+        "search_keywords": [
+          "rename",
+          "update label",
+          "change name",
+          "modify label"
+        ],
+        "related_synergy_platforms": [
+          "gmail",
+          "google_workspace"
+        ],
+        "typical_use_cases": [
+          "Label correction - User fixes typo in label name",
+          "Reorganization - User renames labels for clarity",
+          "Project changes - User updates label when project name changes",
+          "Color coding - User changes label colors for visual organization"
+        ],
+        "conversation_memory_hints": {
+          "what_to_remember": "Label IDs updated, old names, new names, update timestamps",
+          "search_context": "When user asks about 'labels I renamed', 'changes I made'",
+          "related_entities": [
+            "label IDs",
+            "old/new names",
+            "update dates"
+          ]
+        }
+      }
+    },
+    {
+      "name": "gmail_delete_label",
+      "short_description": "Delete Gmail label by ID to remove custom category from organization system",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER pretend to delete from memory\n(2) MUST cite what was deleted: 'Deleted **[Resource Name]** (ID: `[id]`)'\n(3) CONFIRM deletion happened - don't assume success\n(4) If tool fails, say 'Failed to delete' and explain why\n\nExample response:\n✅ Deleted: **Old File**\n- ID: `abc123`\n- URL: https://example.com/file/abc123 (no longer accessible)\n\n⚠️ MUST USE: execute_tool(tool_name='gmail_delete_label', ...) - DO NOT call directly!\n\nExample response:\n✅ Deleted: **Old File**\n- ID: `abc123`\n- URL: https://example.com/file/abc123 (no longer accessible)\n\nDelete a label",
+      "platform": "gmail",
+      "category": "basic",
+      "user_facing_language": {
+        "action_verb": "delete",
+        "resource_name": "label",
+        "resource_plural": "labels",
+        "natural_phrases": [
+          "delete label",
+          "remove label",
+          "delete folder",
+          "remove category",
+          "delete this label"
+        ],
+        "capability_description": "I can delete custom labels from your Gmail. Note: Deleting a label doesn't delete the messages, just removes the organizational tag.",
+        "example_ai_responses": [
+          "I'll delete that label.",
+          "I'll remove the label (messages will remain).",
+          "I'll delete the folder [name]."
+        ]
+      },
+      "tool_intelligence": {
+        "category": "email",
+        "typical_workflow_patterns": [
+          "gmail_list_labels → gmail_delete_label (find then delete)",
+          "gmail_delete_label → gmail_list_labels (delete then verify)"
+        ],
+        "success_indicators": {
+          "keywords": [
+            "label deleted",
+            "removed",
+            "deleted successfully",
+            "label gone"
+          ],
+          "behavioral": [
+            "User proceeds with cleanup",
+            "User doesn't ask where label went",
+            "User continues organization"
+          ]
+        },
+        "failure_indicators": {
+          "keywords": [
+            "failed to delete",
+            "label not found",
+            "deletion error",
+            "system label"
+          ],
+          "behavioral": [
+            "User asks if deletion worked",
+            "User checks label list",
+            "User concerned about messages"
+          ]
+        },
+        "performance_expectations": {
+          "typical_duration_ms": 400,
+          "rate_limit_per_minute": 100,
+          "max_retries": 3,
+          "timeout_seconds": 15
+        }
+      },
+      "memory_context": {
+        "vectorization_fields": [
+          "label_id",
+          "label_name"
+        ],
+        "search_keywords": [
+          "delete label",
+          "remove folder",
+          "cleanup",
+          "label deletion"
+        ],
+        "related_synergy_platforms": [
+          "gmail",
+          "google_workspace"
+        ],
+        "typical_use_cases": [
+          "Cleanup - User removes outdated project labels",
+          "Reorganization - User deletes unused categories",
+          "Simplification - User removes redundant labels",
+          "Project completion - User deletes labels for finished projects"
+        ],
+        "conversation_memory_hints": {
+          "what_to_remember": "Label IDs deleted, label names, deletion timestamps, reasons",
+          "search_context": "When user asks about 'labels I deleted', 'folders I removed'",
+          "related_entities": [
+            "label names",
+            "label IDs",
+            "deletion dates"
+          ]
+        }
+      }
+    },
+    {
+      "name": "gmail_create_filter",
+      "short_description": "Create Gmail filter by criteria to auto-label, archive, or delete messages",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) ALWAYS execute THIS tool NOW - NEVER reference 'I created earlier' or use conversation history\n(2) MUST return format: **[Name]** | ID: `[id]` | URL: [full_url] | Link: [title](url)\n(3) Use EXACT values from tool response - NEVER make up fake URLs/IDs\n(4) If tool fails, say 'Failed to create' - NEVER pretend it succeeded\n\nExample response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\n⚠️ MUST USE: execute_tool(tool_name='gmail_create_filter', ...) - DO NOT call directly!\n\nExample response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\nCreate email filter",
+      "platform": "gmail",
+      "category": "basic",
+      "user_facing_language": {
+        "action_verb": "create",
+        "resource_name": "filter",
+        "resource_plural": "filters",
+        "natural_phrases": [
+          "create filter",
+          "set up automation",
+          "auto-label emails",
+          "create rule",
+          "automatically organize"
+        ],
+        "capability_description": "I can create email filters to automatically organize incoming mail (auto-label, archive, mark as read, etc.).",
+        "example_ai_responses": [
+          "I'll create a filter to automatically [action].",
+          "I'll set up an automation rule for [criteria].",
+          "I'll create a filter for emails from [sender]."
+        ]
+      },
+      "tool_intelligence": {
+        "category": "email",
+        "typical_workflow_patterns": [
+          "gmail_create_label → gmail_create_filter (create label then auto-apply)",
+          "gmail_search_messages → gmail_create_filter (test query then automate)",
+          "gmail_create_filter → gmail_list_filters (create then verify)"
+        ],
+        "success_indicators": {
+          "keywords": [
+            "filter created",
+            "automation set up",
+            "rule created",
+            "auto-labeling enabled"
+          ],
+          "behavioral": [
+            "User tests filter with search",
+            "User creates multiple filters",
+            "User proceeds with organization"
+          ]
+        },
+        "failure_indicators": {
+          "keywords": [
+            "failed to create",
+            "filter error",
+            "invalid criteria"
+          ],
+          "behavioral": [
+            "User asks if filter was created",
+            "User retries with different criteria"
+          ]
+        },
+        "performance_expectations": {
+          "typical_duration_ms": 500,
+          "rate_limit_per_minute": 100,
+          "max_retries": 3,
+          "timeout_seconds": 15
+        }
+      },
+      "memory_context": {
+        "vectorization_fields": [
+          "filter_id",
+          "filter_criteria",
+          "filter_actions"
+        ],
+        "search_keywords": [
+          "create filter",
+          "automation",
+          "auto-label",
+          "email rules",
+          "organize automatically"
+        ],
+        "related_synergy_platforms": [
+          "gmail",
+          "google_workspace"
+        ],
+        "typical_use_cases": [
+          "Auto-labeling - User creates filter to label emails from specific senders",
+          "Inbox cleanup - User auto-archives newsletters/promotions",
+          "Priority management - User auto-marks important emails",
+          "Project organization - User auto-labels project-related emails"
+        ],
+        "conversation_memory_hints": {
+          "what_to_remember": "Filter IDs, criteria (from/to/subject), actions (label/archive/read), creation timestamps",
+          "search_context": "When user asks about 'filters I created', 'automation I set up'",
+          "related_entities": [
+            "filter IDs",
+            "criteria",
+            "actions",
+            "label names"
+          ]
+        }
+      }
+    },
+    {
+      "name": "gmail_list_filters",
+      "short_description": "List all Gmail filters to view automation rules for labels and actions",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Read X from **[Resource Name]** (ID: `[id]` | URL: [url])'\n(3) Use EXACT [id] provided - NEVER substitute with different ID\n(4) If tool fails (404/403), say 'Failed to read [resource] ID: [id]' and explain error\n(5) NEVER make up data if read fails - acknowledge the failure clearly\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\n⚠️ MUST USE: execute_tool(tool_name='gmail_list_filters', ...) - DO NOT call directly!\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nList all filters",
+      "platform": "gmail",
+      "category": "basic",
+      "multi_modal_parameters": {
+        "mode": {
+          "type": "string",
+          "description": "Filter list detail: 'summary' (criteria only), 'detailed' (with actions), 'raw' (full data)",
+          "required": false,
+          "default": "detailed",
+          "enum": [
+            "summary",
+            "detailed",
+            "raw"
+          ]
+        },
+        "format": {
+          "type": "string",
+          "description": "Output format: 'markdown' (readable list), 'json' (structured), 'text' (plain)",
+          "required": false,
+          "default": "markdown",
+          "enum": [
+            "markdown",
+            "json",
+            "text"
+          ]
+        },
+        "export": {
+          "type": "string",
+          "description": "Export destination: 'none', 'synergy', 'google_sheet' (recommended for filters)",
+          "required": false,
+          "default": "none",
+          "enum": [
+            "none",
+            "synergy",
+            "google_sheet"
+          ]
+        },
+        "export_title": {
+          "type": "string",
+          "description": "Title for exported filter list (defaults to 'Gmail Filters')",
+          "required": false
+        }
+      },
+      "user_facing_language": {
+        "action_verb": "list",
+        "resource_name": "filter",
+        "resource_plural": "filters",
+        "natural_phrases": [
+          "show my filters",
+          "list automation rules",
+          "what filters do I have",
+          "show email rules"
+        ],
+        "capability_description": "I can list all your Gmail filters (automation rules) including criteria and actions.",
+        "example_ai_responses": [
+          "I'll show you all your filters.",
+          "I'll list your automation rules.",
+          "I'll get your filter configuration."
+        ],
+        "mode_translations": {
+          "summary": "filter criteria only",
+          "detailed": "criteria and actions",
+          "raw": "complete filter data"
+        },
+        "format_translations": {
+          "markdown": "readable filter list",
+          "json": "structured filter data",
+          "text": "plain text list"
+        },
+        "export_translations": {
+          "none": "return list directly",
+          "synergy": "save to Synergy",
+          "google_sheet": "create filter inventory"
+        }
+      },
+      "tool_intelligence": {
+        "category": "email",
+        "typical_workflow_patterns": [
+          "gmail_list_filters → gmail_delete_filter (review then cleanup)",
+          "gmail_list_filters → gmail_create_filter (check existing then add)",
+          "gmail_list_filters(export='google_sheet') (document automation setup)"
+        ],
+        "success_indicators": {
+          "keywords": [
+            "filters retrieved",
+            "automation rules",
+            "found filters"
+          ],
+          "behavioral": [
+            "User reviews filters",
+            "User deletes/creates filters",
+            "User exports for documentation"
+          ]
+        },
+        "failure_indicators": {
+          "keywords": [
+            "no filters",
+            "filters error",
+            "failed to retrieve"
+          ],
+          "behavioral": [
+            "User asks to retry",
+            "User manually checks Gmail settings"
+          ]
+        },
+        "performance_expectations": {
+          "typical_duration_ms": 500,
+          "rate_limit_per_minute": 100,
+          "max_retries": 3,
+          "timeout_seconds": 15
+        }
+      },
+      "memory_context": {
+        "vectorization_fields": [
+          "filter_ids",
+          "filter_criteria",
+          "filter_actions"
+        ],
+        "search_keywords": [
+          "filters",
+          "automation",
+          "rules",
+          "auto-label",
+          "email organization"
+        ],
+        "related_synergy_platforms": [
+          "gmail",
+          "google_workspace"
+        ],
+        "typical_use_cases": [
+          "Filter audit - User reviews all automation rules",
+          "Cleanup planning - User checks filters before deleting",
+          "Documentation - User exports filter configuration",
+          "Troubleshooting - User checks why emails are auto-labeled"
+        ],
+        "conversation_memory_hints": {
+          "what_to_remember": "Filter IDs, criteria patterns, actions, filter count",
+          "search_context": "When user asks about 'my filters', 'automation rules', 'email organization'",
+          "related_entities": [
+            "filter IDs",
+            "criteria",
+            "actions",
+            "label names"
+          ]
+        },
+        "sheet_export_structure": {
+          "columns": [
+            "filter_id",
+            "criteria_from",
+            "criteria_to",
+            "criteria_subject",
+            "action_label",
+            "action_archive",
+            "action_read"
+          ],
+          "data_mapping": "One row per filter with criteria and actions",
+          "formatting": "Frozen header, auto-filter, color-coded actions"
+        }
+      }
+    },
+    {
+      "name": "gmail_delete_filter",
+      "short_description": "Delete Gmail filter by ID to remove automation rule from organization",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER pretend to delete from memory\n(2) MUST cite what was deleted: 'Deleted **[Resource Name]** (ID: `[id]`)'\n(3) CONFIRM deletion happened - don't assume success\n(4) If tool fails, say 'Failed to delete' and explain why\n\nExample response:\n✅ Deleted: **Old File**\n- ID: `abc123`\n- URL: https://example.com/file/abc123 (no longer accessible)\n\n⚠️ MUST USE: execute_tool(tool_name='gmail_delete_filter', ...) - DO NOT call directly!\n\nExample response:\n✅ Deleted: **Old File**\n- ID: `abc123`\n- URL: https://example.com/file/abc123 (no longer accessible)\n\nDelete a filter",
+      "platform": "gmail",
+      "category": "basic",
+      "user_facing_language": {
+        "action_verb": "delete",
+        "resource_name": "filter",
+        "resource_plural": "filters",
+        "natural_phrases": [
+          "delete filter",
+          "remove filter",
+          "delete automation rule",
+          "remove auto-label"
+        ],
+        "capability_description": "I can delete email filters (automation rules) that automatically organize your incoming mail.",
+        "example_ai_responses": [
+          "I'll delete that filter.",
+          "I'll remove the automation rule.",
+          "I'll delete the filter [description]."
+        ]
+      },
+      "tool_intelligence": {
+        "category": "email",
+        "typical_workflow_patterns": [
+          "gmail_list_filters → gmail_delete_filter (find then delete)",
+          "gmail_delete_filter → gmail_list_filters (delete then verify)"
+        ],
+        "success_indicators": {
+          "keywords": [
+            "filter deleted",
+            "removed",
+            "automation deleted"
+          ],
+          "behavioral": [
+            "User proceeds with cleanup",
+            "User doesn't ask where filter went"
+          ]
+        },
+        "failure_indicators": {
+          "keywords": [
+            "failed to delete",
+            "filter not found",
+            "deletion error"
+          ],
+          "behavioral": [
+            "User asks if deletion worked",
+            "User checks filter list"
+          ]
+        },
+        "performance_expectations": {
+          "typical_duration_ms": 400,
+          "rate_limit_per_minute": 100,
+          "max_retries": 3,
+          "timeout_seconds": 15
+        }
+      },
+      "memory_context": {
+        "vectorization_fields": [
+          "filter_id",
+          "filter_criteria"
+        ],
+        "search_keywords": [
+          "delete filter",
+          "remove automation",
+          "filter cleanup"
+        ],
+        "related_synergy_platforms": [
+          "gmail",
+          "google_workspace"
+        ],
+        "typical_use_cases": [
+          "Cleanup - User removes outdated automation rules",
+          "Reorganization - User deletes conflicting filters",
+          "Simplification - User removes unused auto-labeling"
+        ],
+        "conversation_memory_hints": {
+          "what_to_remember": "Filter IDs deleted, filter criteria, deletion timestamps",
+          "search_context": "When user asks about 'filters I deleted', 'rules I removed'",
+          "related_entities": [
+            "filter IDs",
+            "filter criteria",
+            "deletion dates"
+          ]
+        }
+      }
+    },
+    {
+      "name": "gmail_get_profile",
+      "short_description": "Get Gmail account profile with email address, history ID, and message count",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Read X from **[Resource Name]** (ID: `[id]` | URL: [url])'\n(3) Use EXACT [id] provided - NEVER substitute with different ID\n(4) If tool fails (404/403), say 'Failed to read [resource] ID: [id]' and explain error\n(5) NEVER make up data if read fails - acknowledge the failure clearly\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\n⚠️ MUST USE: execute_tool(tool_name='gmail_get_profile', ...) - DO NOT call directly!\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nGet Gmail profile info",
+      "platform": "gmail",
+      "category": "basic",
+      "multi_modal_parameters": {
+        "mode": {
+          "type": "string",
+          "description": "Profile detail: 'summary' (email + name), 'detailed' (all info), 'raw' (full response)",
+          "required": false,
+          "default": "summary",
+          "enum": [
+            "summary",
+            "detailed",
+            "raw"
+          ]
+        },
+        "format": {
+          "type": "string",
+          "description": "Output format: 'markdown' (readable), 'json' (structured), 'text' (plain)",
+          "required": false,
+          "default": "markdown",
+          "enum": [
+            "markdown",
+            "json",
+            "text"
+          ]
+        },
+        "export": {
+          "type": "string",
+          "description": "Export destination: 'none', 'synergy', 'google_doc'",
+          "required": false,
+          "default": "none",
+          "enum": [
+            "none",
+            "synergy",
+            "google_doc"
+          ]
+        },
+        "export_title": {
+          "type": "string",
+          "description": "Title for exported profile (defaults to 'Gmail Profile')",
+          "required": false
+        }
+      },
+      "user_facing_language": {
+        "action_verb": "get",
+        "resource_name": "profile",
+        "resource_plural": "profiles",
+        "natural_phrases": [
+          "show my profile",
+          "get my Gmail info",
+          "what's my email address",
+          "show account info"
+        ],
+        "capability_description": "I can retrieve your Gmail profile information including email address, total messages, and threads count.",
+        "example_ai_responses": [
+          "I'll get your Gmail profile.",
+          "I'll show your account information.",
+          "I'll retrieve your profile details."
+        ],
+        "mode_translations": {
+          "summary": "email and name only",
+          "detailed": "all profile information",
+          "raw": "complete profile data"
+        },
+        "format_translations": {
+          "markdown": "readable profile",
+          "json": "structured data",
+          "text": "plain text"
+        },
+        "export_translations": {
+          "none": "return directly",
+          "synergy": "save to Synergy",
+          "google_doc": "create profile document"
+        }
+      },
+      "tool_intelligence": {
+        "category": "email",
+        "typical_workflow_patterns": [
+          "gmail_get_profile (check account info)",
+          "gmail_get_profile → gmail_list_messages (verify then browse)"
+        ],
+        "success_indicators": {
+          "keywords": [
+            "profile retrieved",
+            "email address",
+            "account info"
+          ],
+          "behavioral": [
+            "User proceeds with email tasks",
+            "User doesn't ask for clarification"
+          ]
+        },
+        "failure_indicators": {
+          "keywords": [
+            "profile error",
+            "failed to retrieve",
+            "auth error"
+          ],
+          "behavioral": [
+            "User asks to retry",
+            "User concerned about account access"
+          ]
+        },
+        "performance_expectations": {
+          "typical_duration_ms": 300,
+          "rate_limit_per_minute": 100,
+          "max_retries": 3,
+          "timeout_seconds": 10
+        }
+      },
+      "memory_context": {
+        "vectorization_fields": [
+          "email_address",
+          "total_messages",
+          "total_threads"
+        ],
+        "search_keywords": [
+          "profile",
+          "account",
+          "email address",
+          "Gmail info"
+        ],
+        "related_synergy_platforms": [
+          "gmail",
+          "google_workspace"
+        ],
+        "typical_use_cases": [
+          "Account verification - User checks email address",
+          "Stats check - User reviews message/thread counts",
+          "Setup verification - User confirms Gmail connection"
+        ],
+        "conversation_memory_hints": {
+          "what_to_remember": "Email address, message counts, thread counts",
+          "search_context": "When user asks about 'my Gmail', 'my account', 'email address'",
+          "related_entities": [
+            "email address",
+            "message totals"
+          ]
+        },
+        "sheet_export_structure": {
+          "columns": [
+            "field",
+            "value"
+          ],
+          "data_mapping": "Key-value pairs (email, messages_total, threads_total, history_id)",
+          "formatting": "Two-column layout"
+        }
+      }
+    },
+    {
+      "name": "gmail_search_messages",
+      "short_description": "Search Gmail messages by query with filters for sender, subject, and date",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Read X from **[Resource Name]** (ID: `[id]` | URL: [url])'\n(3) Use EXACT [id] provided - NEVER substitute with different ID\n(4) If tool fails (404/403), say 'Failed to read [resource] ID: [id]' and explain error\n(5) NEVER make up data if read fails - acknowledge the failure clearly\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\n⚠️ MUST USE: execute_tool(tool_name='gmail_search_messages', ...) - DO NOT call directly!\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nSearch messages with query",
+      "platform": "gmail",
+      "category": "basic",
+      "multi_modal_parameters": {
+        "mode": {
+          "type": "string",
+          "description": "Search result detail: 'summary' (count + subjects), 'detailed' (full previews), 'raw' (all metadata)",
+          "required": false,
+          "default": "summary",
+          "enum": [
+            "summary",
+            "detailed",
+            "raw"
+          ]
+        },
+        "format": {
+          "type": "string",
+          "description": "Output format: 'markdown' (readable results), 'json' (structured), 'text' (plain list)",
+          "required": false,
+          "default": "markdown",
+          "enum": [
+            "markdown",
+            "json",
+            "text"
+          ]
+        },
+        "export": {
+          "type": "string",
+          "description": "Export destination: 'none', 'synergy', 'google_sheet' (recommended for search results)",
+          "required": false,
+          "default": "none",
+          "enum": [
+            "none",
+            "synergy",
+            "google_sheet"
+          ]
+        },
+        "export_title": {
+          "type": "string",
+          "description": "Title for exported search results (defaults to search query)",
+          "required": false
+        }
+      },
+      "user_facing_language": {
+        "action_verb": "search",
+        "resource_name": "email",
+        "resource_plural": "emails",
+        "natural_phrases": [
+          "search emails",
+          "find messages",
+          "look for emails",
+          "search for",
+          "find emails from"
+        ],
+        "capability_description": "I can search your Gmail using Gmail's powerful query syntax (from:, to:, subject:, has:attachment, etc.) to find exactly what you need.",
+        "example_ai_responses": [
+          "I'll search for those emails.",
+          "I'll find messages matching [query].",
+          "I'll search your inbox for [criteria]."
+        ],
+        "mode_translations": {
+          "summary": "count and subjects only",
+          "detailed": "full message previews",
+          "raw": "complete search results"
+        },
+        "format_translations": {
+          "markdown": "readable search results",
+          "json": "structured data",
+          "text": "plain text list"
+        },
+        "export_translations": {
+          "none": "return results directly",
+          "synergy": "save to Synergy",
+          "google_sheet": "create results spreadsheet"
+        }
+      },
+      "tool_intelligence": {
+        "category": "email",
+        "typical_workflow_patterns": [
+          "gmail_search_messages → gmail_get_message (search then read)",
+          "gmail_search_messages → gmail_delete_message (search then bulk delete)",
+          "gmail_search_messages → gmail_modify_message (search then bulk label)",
+          "gmail_search_messages(export='google_sheet') (search and document results)"
+        ],
+        "success_indicators": {
+          "keywords": [
+            "found messages",
+            "search results",
+            "located emails",
+            "matching messages"
+          ],
+          "behavioral": [
+            "User proceeds to read results",
+            "User refines search query",
+            "User exports results",
+            "User takes action on results"
+          ]
+        },
+        "failure_indicators": {
+          "keywords": [
+            "no results",
+            "search failed",
+            "nothing found",
+            "invalid query"
+          ],
+          "behavioral": [
+            "User tries different search terms",
+            "User asks for help with syntax",
+            "User asks if query was correct"
+          ]
+        },
+        "performance_expectations": {
+          "typical_duration_ms": 1000,
+          "rate_limit_per_minute": 60,
+          "max_retries": 3,
+          "timeout_seconds": 20
+        }
+      },
+      "memory_context": {
+        "vectorization_fields": [
+          "search_query",
+          "result_count",
+          "message_ids"
+        ],
+        "search_keywords": [
+          "search",
+          "find",
+          "query",
+          "locate emails",
+          "search inbox"
+        ],
+        "related_synergy_platforms": [
+          "gmail",
+          "google_workspace"
+        ],
+        "typical_use_cases": [
+          "Find specific messages - User searches for emails from person or about topic",
+          "Attachment search - User finds emails with specific attachments (has:attachment filename:pdf)",
+          "Date range search - User finds old emails (before:2024/01/01)",
+          "Bulk operations - User searches then performs action on all results",
+          "Research - User exports search results for documentation"
+        ],
+        "conversation_memory_hints": {
+          "what_to_remember": "Search queries used, result counts, common search patterns, message IDs found",
+          "search_context": "When user asks about 'emails I searched for', 'messages I found', 'searches I did'",
+          "related_entities": [
+            "search queries",
+            "message IDs",
+            "sender names",
+            "date ranges"
+          ]
+        },
+        "sheet_export_structure": {
+          "columns": [
+            "date",
+            "from",
+            "to",
+            "subject",
+            "snippet",
+            "labels",
+            "has_attachments",
+            "message_id"
+          ],
+          "data_mapping": "One row per search result with key metadata",
+          "formatting": "Frozen header, auto-filter, date formatting, conditional formatting for unread"
+        }
+      }
+    },
+    {
+      "name": "gmail_batch_delete",
+      "short_description": "Delete multiple Gmail messages by ID list to bulk clean inbox or trash",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER pretend to delete from memory\n(2) MUST cite what was deleted: 'Deleted **[Resource Name]** (ID: `[id]`)'\n(3) CONFIRM deletion happened - don't assume success\n(4) If tool fails, say 'Failed to delete' and explain why\n\nExample response:\n✅ Deleted: **Old File**\n- ID: `abc123`\n- URL: https://example.com/file/abc123 (no longer accessible)\n\n⚠️ MUST USE: execute_tool(tool_name='gmail_batch_delete', ...) - DO NOT call directly!\n\nExample response:\n✅ Deleted: **Old File**\n- ID: `abc123`\n- URL: https://example.com/file/abc123 (no longer accessible)\n\nDelete multiple messages",
+      "platform": "gmail",
+      "category": "basic",
+      "user_facing_language": {
+        "action_verb": "delete",
+        "resource_name": "messages",
+        "resource_plural": "messages",
+        "natural_phrases": [
+          "delete multiple emails",
+          "bulk delete",
+          "delete all these",
+          "delete these messages",
+          "remove multiple emails"
+        ],
+        "capability_description": "I can delete multiple emails at once for efficient cleanup. This is faster than deleting one by one.",
+        "example_ai_responses": [
+          "I'll delete all [X] messages.",
+          "I'll bulk delete these emails.",
+          "I'll remove all [X] messages permanently."
+        ]
+      },
+      "tool_intelligence": {
+        "category": "email",
+        "typical_workflow_patterns": [
+          "gmail_search_messages → gmail_batch_delete (search then bulk delete)",
+          "gmail_list_messages → gmail_batch_delete (browse then bulk delete)"
+        ],
+        "success_indicators": {
+          "keywords": [
+            "deleted",
+            "removed",
+            "bulk deleted",
+            "[X] messages deleted"
+          ],
+          "behavioral": [
+            "User proceeds with cleanup",
+            "User doesn't ask how many deleted",
+            "User continues organization"
+          ]
+        },
+        "failure_indicators": {
+          "keywords": [
+            "failed to delete",
+            "some failed",
+            "partial deletion",
+            "error deleting"
+          ],
+          "behavioral": [
+            "User asks how many deleted",
+            "User retries",
+            "User concerned about failures"
+          ]
+        },
+        "performance_expectations": {
+          "typical_duration_ms": 2000,
+          "rate_limit_per_minute": 50,
+          "max_retries": 2,
+          "timeout_seconds": 45
+        }
+      },
+      "memory_context": {
+        "vectorization_fields": [
+          "message_ids",
+          "deletion_count"
+        ],
+        "search_keywords": [
+          "bulk delete",
+          "delete multiple",
+          "batch delete",
+          "mass delete"
+        ],
+        "related_synergy_platforms": [
+          "gmail",
+          "google_workspace"
+        ],
+        "typical_use_cases": [
+          "Spam cleanup - User bulk deletes promotional/spam emails",
+          "Inbox zero - User deletes old processed messages",
+          "Storage management - User removes large batches to free space",
+          "Project cleanup - User deletes all project-related emails after completion"
+        ],
+        "conversation_memory_hints": {
+          "what_to_remember": "Number deleted, search criteria used, deletion timestamp",
+          "search_context": "When user asks about 'bulk deletions', 'messages I cleaned up'",
+          "related_entities": [
+            "deletion counts",
+            "search queries",
+            "timestamps"
+          ]
+        }
+      }
+    },
+    {
+      "name": "gmail_batch_modify",
+      "short_description": "Modify multiple Gmail messages by ID list to bulk add or remove labels",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER reference previous edits from conversation history\n(2) MUST cite what was updated: 'Updated **[Resource Name]** (ID: `[id]`)'\n(3) Use EXACT [id] provided - NEVER make up IDs\n(4) If tool fails, say 'Failed to update' and explain why\n(5) Show before/after if applicable\n\nExample response:\nUpdated: **Document Title**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Changed: [what was changed]\n\n⚠️ MUST USE: execute_tool(tool_name='gmail_batch_modify', ...) - DO NOT call directly!\n\nExample response:\nUpdated: **Document Title**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Changed: [what was changed]\n\nModify multiple messages",
+      "platform": "gmail",
+      "category": "basic",
+      "user_facing_language": {
+        "action_verb": "modify",
+        "resource_name": "messages",
+        "resource_plural": "messages",
+        "natural_phrases": [
+          "label multiple emails",
+          "bulk modify",
+          "update these messages",
+          "apply labels to all",
+          "bulk organize"
+        ],
+        "capability_description": "I can modify multiple emails at once (add/remove labels, mark read/unread, archive) for efficient organization.",
+        "example_ai_responses": [
+          "I'll label all [X] messages.",
+          "I'll bulk modify these emails.",
+          "I'll apply [label] to all [X] messages."
+        ]
+      },
+      "tool_intelligence": {
+        "category": "email",
+        "typical_workflow_patterns": [
+          "gmail_search_messages → gmail_batch_modify (search then bulk label)",
+          "gmail_list_messages → gmail_batch_modify (browse then bulk organize)",
+          "gmail_batch_modify → gmail_batch_delete (label then delete)"
+        ],
+        "success_indicators": {
+          "keywords": [
+            "modified",
+            "updated",
+            "labeled",
+            "[X] messages updated"
+          ],
+          "behavioral": [
+            "User proceeds with more organization",
+            "User doesn't ask for confirmation",
+            "User continues workflow"
+          ]
+        },
+        "failure_indicators": {
+          "keywords": [
+            "failed to modify",
+            "some failed",
+            "partial update"
+          ],
+          "behavioral": [
+            "User asks how many modified",
+            "User retries",
+            "User checks manually"
+          ]
+        },
+        "performance_expectations": {
+          "typical_duration_ms": 2000,
+          "rate_limit_per_minute": 50,
+          "max_retries": 2,
+          "timeout_seconds": 45
+        }
+      },
+      "memory_context": {
+        "vectorization_fields": [
+          "message_ids",
+          "labels_added",
+          "labels_removed",
+          "modification_count"
+        ],
+        "search_keywords": [
+          "bulk modify",
+          "batch label",
+          "bulk organize",
+          "mass update"
+        ],
+        "related_synergy_platforms": [
+          "gmail",
+          "google_workspace"
+        ],
+        "typical_use_cases": [
+          "Project organization - User bulk labels project emails",
+          "Inbox cleanup - User bulk archives processed messages",
+          "Priority tagging - User applies urgent label to multiple emails",
+          "Bulk mark as read - User marks old messages read in batch"
+        ],
+        "conversation_memory_hints": {
+          "what_to_remember": "Number modified, labels applied/removed, modification timestamp",
+          "search_context": "When user asks about 'bulk changes', 'messages I organized'",
+          "related_entities": [
+            "modification counts",
+            "label names",
+            "timestamps"
+          ]
+        }
+      }
+    },
+    {
+      "name": "gmail_watch_mailbox",
+      "short_description": "Watch Gmail mailbox for changes to receive push notifications for new mail",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Read X from **[Resource Name]** (ID: `[id]` | URL: [url])'\n(3) Use EXACT [id] provided - NEVER substitute with different ID\n(4) If tool fails (404/403), say 'Failed to read [resource] ID: [id]' and explain error\n(5) NEVER make up data if read fails - acknowledge the failure clearly\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\n⚠️ MUST USE: execute_tool(tool_name='gmail_watch_mailbox', ...) - DO NOT call directly!\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nSet up mailbox watch",
+      "platform": "gmail",
+      "category": "basic"
+    },
+    {
+      "name": "gmail_stop_watch",
+      "short_description": "Stop watching Gmail mailbox to disable push notifications for changes",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Read X from **[Resource Name]** (ID: `[id]` | URL: [url])'\n(3) Use EXACT [id] provided - NEVER substitute with different ID\n(4) If tool fails (404/403), say 'Failed to read [resource] ID: [id]' and explain error\n(5) NEVER make up data if read fails - acknowledge the failure clearly\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\n⚠️ MUST USE: execute_tool(tool_name='gmail_stop_watch', ...) - DO NOT call directly!\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nStop mailbox watch",
+      "platform": "gmail",
+      "category": "basic"
+    },
+    {
+      "name": "gmail_get_thread",
+      "short_description": "Get Gmail thread by ID to view all messages in email conversation chain",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Read X from **[Resource Name]** (ID: `[id]` | URL: [url])'\n(3) Use EXACT [id] provided - NEVER substitute with different ID\n(4) If tool fails (404/403), say 'Failed to read [resource] ID: [id]' and explain error\n(5) NEVER make up data if read fails - acknowledge the failure clearly\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\n⚠️ MUST USE: execute_tool(tool_name='gmail_get_thread', ...) - DO NOT call directly!\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nGet email thread",
+      "platform": "gmail",
+      "category": "basic"
+    },
+    {
+      "name": "gmail_list_threads",
+      "short_description": "List Gmail threads by query to view email conversations with filters",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Read X from **[Resource Name]** (ID: `[id]` | URL: [url])'\n(3) Use EXACT [id] provided - NEVER substitute with different ID\n(4) If tool fails (404/403), say 'Failed to read [resource] ID: [id]' and explain error\n(5) NEVER make up data if read fails - acknowledge the failure clearly\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\n⚠️ MUST USE: execute_tool(tool_name='gmail_list_threads', ...) - DO NOT call directly!\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nList email threads",
+      "platform": "gmail",
+      "category": "basic"
+    },
+    {
+      "name": "gmail_trash_thread",
+      "short_description": "Move entire Gmail conversation thread to trash by ID to delete all messages in email chain at once",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Read X from **[Resource Name]** (ID: `[id]` | URL: [url])'\n(3) Use EXACT [id] provided - NEVER substitute with different ID\n(4) If tool fails (404/403), say 'Failed to read [resource] ID: [id]' and explain error\n(5) NEVER make up data if read fails - acknowledge the failure clearly\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\n⚠️ MUST USE: execute_tool(tool_name='gmail_trash_thread', ...) - DO NOT call directly!\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nMove thread to trash",
+      "platform": "gmail",
+      "category": "basic"
+    },
+    {
+      "name": "gmail_get_history",
+      "short_description": "Get Gmail mailbox history since history ID to track changes and sync new messages with filters",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Read X from **[Resource Name]** (ID: `[id]` | URL: [url])'\n(3) Use EXACT [id] provided - NEVER substitute with different ID\n(4) If tool fails (404/403), say 'Failed to read [resource] ID: [id]' and explain error\n(5) NEVER make up data if read fails - acknowledge the failure clearly\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\n⚠️ MUST USE: execute_tool(tool_name='gmail_get_history', ...) - DO NOT call directly!\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nGet mailbox history",
+      "platform": "gmail",
+      "category": "basic"
+    },
+    {
+      "name": "gmail_send_email_smtp_DISABLED_TESTING",
+      "short_description": "[TESTING ONLY] Send Gmail email via SMTP protocol with plain text body for alternative delivery method",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) ALWAYS execute THIS tool NOW - NEVER reference 'I created earlier' or use conversation history\n(2) MUST return format: **[Name]** | ID: `[id]` | URL: [full_url] | Link: [title](url)\n(3) Use EXACT values from tool response - NEVER make up fake URLs/IDs\n(4) If tool fails, say 'Failed to create' - NEVER pretend it succeeded\n\nExample response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\n⚠️ MUST USE: execute_tool(tool_name='gmail_send_email_smtp', ...) - DO NOT call directly!\n\nExample response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\nSend email via SMTP",
+      "platform": "gmail",
+      "category": "basic"
+    },
+    {
+      "name": "gmail_send_email_smtp_html_DISABLED_TESTING",
+      "short_description": "[TESTING ONLY] Send Gmail email via SMTP with HTML formatting and rich content for styled messages",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) ALWAYS execute THIS tool NOW - NEVER reference 'I created earlier' or use conversation history\n(2) MUST return format: **[Name]** | ID: `[id]` | URL: [full_url] | Link: [title](url)\n(3) Use EXACT values from tool response - NEVER make up fake URLs/IDs\n(4) If tool fails, say 'Failed to create' - NEVER pretend it succeeded\n\nExample response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\n⚠️ MUST USE: execute_tool(tool_name='gmail_send_email_smtp_html', ...) - DO NOT call directly!\n\nExample response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\nSend HTML email via SMTP",
+      "platform": "gmail",
+      "category": "basic"
+    },
+    {
+      "name": "gmail_list_available_accounts",
+      "short_description": "List all connected Gmail accounts with authentication status to view available email addresses for operations",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Read X from **[Resource Name]** (ID: `[id]` | URL: [url])'\n(3) Use EXACT [id] provided - NEVER substitute with different ID\n(4) If tool fails (404/403), say 'Failed to read [resource] ID: [id]' and explain error\n(5) NEVER make up data if read fails - acknowledge the failure clearly\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\n⚠️ MUST USE: execute_tool(tool_name='gmail_list_available_accounts', ...) - DO NOT call directly!\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nList configured email accounts",
+      "platform": "gmail",
+      "category": "basic"
+    }
+  ],
+  "usage_guide": {
+    "smart_tools_overview": "Gmail SMART tools bundle multiple operations into single AI-powered calls for maximum efficiency.",
+    "decision_tree": {
+      "composing_email": "Use gmail_ai_smart_compose_and_send - AI writes professional emails from natural language",
+      "bulk_personalized_send": "Use gmail_smart_bulk_send_personalized - Send customized emails to multiple recipients with mail merge",
+      "inbox_triage": "Use gmail_smart_bulk_read_summarize_prioritize - AI analyzes, summarizes, and prioritizes emails",
+      "auto_replies": "Use gmail_smart_auto_reply_draft_creator - AI generates appropriate replies for multiple emails",
+      "inbox_organization": "Use gmail_smart_inbox_organizer_cleaner - Auto-create labels, filters, and organize inbox",
+      "single_email": "Use basic gmail_send_email or gmail_create_draft"
+    },
+    "efficiency_gains": {
+      "email_composition": "50% faster with AI generation",
+      "bulk_sending": "98% reduction (50 calls → 1 call)",
+      "inbox_processing": "90% time saved on analysis",
+      "auto_replies": "95% faster than manual",
+      "organization": "95% reduction in complexity"
+    }
+  }
+}

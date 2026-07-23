@@ -1,0 +1,212 @@
+{
+    "platform": "cadquery",
+    "description": "Python-generated CAD using CadQuery. AI writes code, CadQuery generates geometry.",
+    "tools": [
+        {
+            "name": "generate_cad_from_code",
+            "platform": "cadquery",
+            "short_description": "Generate 3D CAD geometry from Python code with STEP and STL export for rendering",
+            "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW when user asks to create ANY CAD part (bolts, gears, wheels, cars, brackets, etc.)\n(2) AI writes CadQuery Python code (AI's strength) → CadQuery generates geometry (its strength)\n(3) Returns STEP files (for OpenCascade.js) and STL files (for Three.js browser rendering)\n\nGenerate 3D CAD geometry from CadQuery Python code. This is THE solution for AI-generated CAD because AI is excellent at writing code but poor at generating geometry directly. Let AI write parametric Python code, and CadQuery's OpenCascade kernel creates professional-quality CAD.\n\nUse cases:\n- User asks: 'Create an M6x40 bolt' → AI writes CadQuery code with thread, head, dimensions\n- User asks: 'Design a sports car wheel' → AI writes code for rim, spokes, hub, lug holes\n- User asks: 'Make a mounting bracket' → AI writes code for L-bracket with holes\n- User asks: 'Build a spur gear' → AI writes code with involute tooth profile\n\nReturns: STEP file (industry standard CAD format), STL file (web-friendly mesh), geometry stats (vertices, faces, volume, bounding box).",
+            "parameters": {
+                "code": {
+                    "type": "string",
+                    "description": "CadQuery Python code that sets 'result' variable. Example: import cadquery as cq\\nresult = cq.Workplane('XY').box(50,50,50).faces('>Z').hole(10)",
+                    "required": true
+                },
+                "description": {
+                    "type": "string",
+                    "description": "Human-readable description of the part being created (e.g., 'hex bolt M6x40', 'sports car wheel', 'mounting bracket')",
+                    "required": true
+                }
+            },
+            "returns": {
+                "success": "boolean - Whether generation succeeded",
+                "step_file": "string - Path to STEP file (for OpenCascade.js rendering)",
+                "stl_file": "string - Path to STL file (for Three.js rendering)",
+                "vertices": "integer - Number of vertices in mesh",
+                "edges": "integer - Number of edges",
+                "faces": "integer - Number of faces",
+                "volume": "number - Volume in mm^3",
+                "bounding_box": "object - Min/max/size coordinates",
+                "error": "string - Error message if failed"
+            }
+        },
+        {
+            "name": "validate_cadquery_code",
+            "platform": "cadquery",
+            "short_description": "Validate CadQuery Python code for syntax errors and security issues before execution",
+            "description": "Validate CadQuery Python code before execution to catch errors early and prevent security issues. Performs comprehensive safety checks including: syntax validation, security checks (detects dangerous operations like os/subprocess/eval), required patterns (verifies code sets 'result' variable), and CadQuery usage confirmation. Use before calling generate_cad_from_code() to prevent execution failures.",
+            "parameters": {
+                "code": {
+                    "type": "string",
+                    "description": "CadQuery Python code to validate",
+                    "required": true
+                }
+            },
+            "returns": {
+                "valid": "boolean - Whether code is valid",
+                "error": "string - Error message if invalid"
+            },
+            "example": "validate_cadquery_code(code='import cadquery as cq\\nresult = cq.Workplane(\"XY\").box(10,10,10)')"
+        },
+        {
+            "name": "list_cadquery_templates",
+            "platform": "cadquery",
+            "short_description": "List available CadQuery code templates for bolts, gears, bearings, wheels, and more",
+            "description": "List all available CadQuery code templates that AI can use as reference examples for learning code patterns. Templates include: hex_bolt, socket_head_cap_screw, spur_gear, ball_bearing, t_slot_extrusion, bracket, wheel_rim, simple_car_body, parametric_box. AI should study these to understand CadQuery syntax, then modify/combine for user's specific requirements. Returns array of template objects with name, code, description, category.",
+            "parameters": {},
+            "returns": {
+                "templates": "array - List of template objects with name, code, description, category"
+            }
+        },
+        {
+            "name": "get_cadquery_template",
+            "platform": "cadquery",
+            "short_description": "Get specific CadQuery template code by name to use as starting point",
+            "description": "Get specific CadQuery template code by name to use as a reference or starting point. Templates provide working CadQuery code examples that AI can study, modify, and adapt for user's requirements. Available: hex_bolt, socket_head_cap_screw, spur_gear, ball_bearing, t_slot_extrusion, bracket, wheel_rim, simple_car_body, parametric_box. Returns complete CadQuery Python code string and description.",
+            "parameters": {
+                "name": {
+                    "type": "string",
+                    "description": "Template name (hex_bolt, spur_gear, ball_bearing, wheel_rim, simple_car_body, etc.)",
+                    "required": true
+                }
+            },
+            "returns": {
+                "code": "string - Complete CadQuery Python code for the template",
+                "description": "string - Description of what the template creates"
+            }
+        },
+        {
+            "name": "cadquery_export_dxf",
+            "platform": "cadquery",
+            "short_description": "Export CAD model to DXF format for laser cutting and CNC routing",
+            "description": "Export a STEP file to DXF (2D vector format) for laser cutting, CNC routing, or AutoCAD. Use this when user wants to fabricate the part using 2D cutting methods (laser cutter, waterjet, plasma cutter). Takes the step_file path from generate_cad_from_code result. Returns DXF file path for download or further processing. Compatible with AutoCAD, LibreCAD, and all CAM software.",
+            "parameters": {
+                "step_file_path": {
+                    "type": "string",
+                    "description": "Path to STEP file (from generate_cad_from_code result). Example: 'AI_infrastructure/generated_cad/bolt_20251217.step'",
+                    "required": true
+                },
+                "output_path": {
+                    "type": "string",
+                    "description": "Optional custom output path. If not provided, saves as .dxf next to STEP file",
+                    "required": false
+                }
+            },
+            "returns": {
+                "success": "boolean - Whether export succeeded",
+                "dxf_file": "string - Path to exported DXF file",
+                "message": "string - Success message",
+                "error": "string - Error message if failed"
+            }
+        },
+        {
+            "name": "cadquery_export_svg",
+            "platform": "cadquery",
+            "short_description": "Export technical drawing as SVG for documentation and presentations",
+            "description": "Export a STEP file as SVG technical drawing for documentation, presentations, or web display. Creates a 2D projection view with customizable dimensions. Returns both file path and SVG content for inline display in chat. Use this when user wants a technical drawing, illustration, or printable documentation. SVG is vector format (scales perfectly) and can be edited in Inkscape or Adobe Illustrator.",
+            "parameters": {
+                "step_file_path": {
+                    "type": "string",
+                    "description": "Path to STEP file to export",
+                    "required": true
+                },
+                "output_path": {
+                    "type": "string",
+                    "description": "Optional custom output path",
+                    "required": false
+                },
+                "width": {
+                    "type": "integer",
+                    "description": "SVG width in pixels (default: 800)",
+                    "required": false
+                },
+                "height": {
+                    "type": "integer",
+                    "description": "SVG height in pixels (default: 600)",
+                    "required": false
+                }
+            },
+            "returns": {
+                "success": "boolean - Whether export succeeded",
+                "svg_file": "string - Path to exported SVG file",
+                "svg_content": "string - SVG markup for inline display",
+                "dimensions": "object - Width and height used",
+                "message": "string - Success message",
+                "error": "string - Error message if failed"
+            }
+        },
+        {
+            "name": "cadquery_list_generated_files",
+            "platform": "cadquery",
+            "short_description": "List all generated CAD files with metadata and file information",
+            "description": "List all CAD files that have been generated in the output directory. Returns file names, paths, sizes, creation dates, and file types. Use this when user asks 'What CAD files have I created?', 'Show me my models', or wants to browse previous work. Can filter by file type (step, stl, dxf, svg). Files are sorted by creation date (newest first) for easy access to recent work.",
+            "parameters": {
+                "filter_type": {
+                    "type": "string",
+                    "description": "Optional filter by file type: 'step', 'stl', 'dxf', 'svg', or omit for all types",
+                    "required": false
+                }
+            },
+            "returns": {
+                "success": "boolean - Whether listing succeeded",
+                "files": "array - List of file objects with name, path, size, created, modified, type",
+                "count": "integer - Number of files found",
+                "total_size_mb": "number - Total size of all files in MB",
+                "directory": "string - Path to generated files directory"
+            }
+        },
+        {
+            "name": "cadquery_get_file_info",
+            "platform": "cadquery",
+            "short_description": "Get detailed information about a specific CAD file including geometry",
+            "description": "Get comprehensive information about a specific CAD file including file metadata (size, dates) and geometry data (vertices, faces, bounding box, volume). Use this when user wants details about a specific file, asks 'Tell me about that file', or needs to verify dimensions. For STEP files, loads the geometry and calculates statistics. Returns bounding box dimensions for size verification.",
+            "parameters": {
+                "file_path": {
+                    "type": "string",
+                    "description": "Path to CAD file (can use path from cadquery_list_generated_files)",
+                    "required": true
+                }
+            },
+            "returns": {
+                "success": "boolean - Whether info retrieval succeeded",
+                "file": "object - File metadata (name, path, size, dates, type)",
+                "geometry": "object - Geometry info (vertices, edges, faces, bounding_box) if available",
+                "error": "string - Error message if failed"
+            }
+        },
+        {
+            "name": "cadquery_calculate_mass",
+            "platform": "cadquery",
+            "short_description": "Calculate part mass given material density for weight estimation",
+            "description": "Calculate the mass/weight of a CAD part given material density. Use this when user asks 'How much would this weigh?', 'What's the weight in aluminum?', or needs material planning. Loads STEP file, calculates volume, applies density. Common densities: Aluminum (2.7 g/cm³), Steel (7.85 g/cm³), Titanium (4.5 g/cm³), Brass (8.5 g/cm³), ABS Plastic (1.05 g/cm³). Returns mass in both grams and kilograms for convenience.",
+            "parameters": {
+                "step_file_path": {
+                    "type": "string",
+                    "description": "Path to STEP file",
+                    "required": true
+                },
+                "material_density": {
+                    "type": "number",
+                    "description": "Material density (e.g., 2.7 for aluminum, 7.85 for steel)",
+                    "required": true
+                },
+                "units": {
+                    "type": "string",
+                    "description": "Density units: 'g/cm3' (default) or 'kg/m3'",
+                    "required": false
+                }
+            },
+            "returns": {
+                "success": "boolean - Whether calculation succeeded",
+                "mass_grams": "number - Mass in grams",
+                "mass_kg": "number - Mass in kilograms",
+                "volume_mm3": "number - Volume in cubic millimeters",
+                "volume_cm3": "number - Volume in cubic centimeters",
+                "material_density": "number - Density used (g/cm³)",
+                "density_units": "string - Units used",
+                "error": "string - Error message if failed"
+            }
+        }
+    ]
+}

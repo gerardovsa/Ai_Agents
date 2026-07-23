@@ -1,0 +1,159 @@
+{
+    "platform": "vector_database",
+    "description": "Vector Database Search Tools - Autonomous AI control over document search and retrieval\n\n🎯 PURPOSE: Give AI agents the ability to search vector databases on-demand instead of automatic snippet injection.\n\n💡 HOW IT WORKS:\n1. AI decides when to search (not automatic)\n2. AI crafts specific search queries\n3. Results include metadata for full document retrieval\n4. AI can fetch complete documents from cloud drives\n\n⚡ WORKFLOW:\nAI Query → vector_db_search → Get snippets + metadata → vector_db_get_full_document → Complete file",
+    "tools": [
+        {
+            "name": "vector_db_search",
+            "short_description": "Search vector database for document snippets - semantic similarity, metadata, cloud URLs",
+            "description": "🔍 Search vector database for relevant document snippets.\n\n🎯 USE THIS WHEN:\n- User asks about specific topics/concepts\n- Need context from uploaded documents\n- Building answers from knowledge base\n- Looking for specific information\n\n⚠️ AI DECIDES WHEN TO SEARCH (not automatic!)\n\n📊 RESULTS INCLUDE:\n- Text snippets (400 chars each)\n- Similarity scores (0-1, higher = more relevant)\n- Document metadata (file name, type, location)\n- Cloud storage links (Drive/OneDrive URLs)\n- Full document retrieval IDs\n\n💡 SMART USAGE:\n- Craft specific queries for better results\n- Use follow-up searches to refine\n- Combine results from multiple searches\n- Fetch full documents when snippets aren't enough\n\n🔗 CHAIN WITH: vector_db_get_full_document to retrieve complete files",
+            "platform": "vector_database",
+            "parameters": {
+                "query": {
+                    "type": "string",
+                    "description": "Search query text. Be specific for better results. Examples: 'product return policy', 'Q4 sales figures', 'patient consent forms', 'API authentication steps'"
+                },
+                "namespace": {
+                    "type": "string",
+                    "description": "Vector database namespace/collection to search (default: 'default'). Use user-specific or workspace-specific namespaces for isolation.",
+                    "required": false,
+                    "default": "default"
+                },
+                "top_k": {
+                    "type": "integer",
+                    "description": "Number of results to return (default: 5, max: 20). More results = broader context but more tokens.",
+                    "required": false,
+                    "default": 5
+                },
+                "min_score": {
+                    "type": "number",
+                    "description": "Minimum similarity score threshold (0-1, default: 0.7). Higher = more relevant but fewer results. Recommended: 0.7-0.8 for precise matches, 0.5-0.6 for broader searches.",
+                    "required": false,
+                    "default": 0.7
+                },
+                "include_metadata": {
+                    "type": "boolean",
+                    "description": "Include full document metadata (file path, size, created date, cloud URLs). Set to true for document retrieval workflow (default: true).",
+                    "required": false,
+                    "default": true
+                }
+            },
+            "returns": {
+                "type": "object",
+                "description": "Search results with snippets and metadata:\n{\n  success: true,\n  query: 'search query',\n  results_count: 5,\n  namespace: 'default',\n  results: [\n    {\n      id: 'doc_abc123_chunk_0',\n      score: 0.89,\n      text: 'Relevant text snippet (400 chars)...',\n      metadata: {\n        document_id: 'doc_abc123',\n        filename: 'product_policy.pdf',\n        file_type: 'pdf',\n        chunk_index: 0,\n        total_chunks: 5,\n        created_at: '2025-11-28T10:30:00Z',\n        file_size_bytes: 145600,\n        cloud_storage: {\n          provider: 'google_drive',\n          file_id: 'xyz789',\n          web_view_url: 'https://drive.google.com/file/d/xyz789/view',\n          download_url: 'https://drive.google.com/uc?id=xyz789&export=download'\n        }\n      }\n    },\n    ...\n  ],\n  next_actions: {\n    fetch_full_doc: 'Use vector_db_get_full_document(document_id) to retrieve complete file',\n    refine_search: 'Adjust query or min_score to refine results',\n    search_again: 'Try different query terms'\n  }\n}"
+            },
+            "examples": [
+                {
+                    "description": "Search for product return policy",
+                    "parameters": {
+                        "query": "product return policy within 30 days",
+                        "namespace": "customer_docs",
+                        "top_k": 3,
+                        "min_score": 0.75
+                    }
+                },
+                {
+                    "description": "Broad search for sales data",
+                    "parameters": {
+                        "query": "Q4 2024 sales figures revenue",
+                        "namespace": "financial_reports",
+                        "top_k": 10,
+                        "min_score": 0.6
+                    }
+                }
+            ]
+        },
+        {
+            "name": "vector_db_get_full_document",
+            "short_description": "Retrieve full document from Drive/OneDrive - complete text after vector search",
+            "description": "📄 Retrieve complete document from cloud storage (Google Drive/OneDrive).\n\n🎯 USE THIS WHEN:\n- Snippets from vector_db_search aren't enough\n- Need to see complete document structure\n- User asks for full document\n- Building comprehensive summaries\n\n⚠️ WORKFLOW:\n1. First call vector_db_search to get document_id\n2. Then call this tool with document_id\n3. Returns full text + metadata\n\n💡 SMART USAGE:\n- Check file size before retrieving (large PDFs may be slow)\n- Use for documents under 10MB for best performance\n- Combine with vector_db_search for targeted retrieval\n\n🔗 INTEGRATES WITH: Google Drive, OneDrive, local storage",
+            "platform": "vector_database",
+            "parameters": {
+                "document_id": {
+                    "type": "string",
+                    "description": "Document ID from vector_db_search results (e.g., 'doc_abc123'). This is the metadata.document_id field from search results."
+                },
+                "namespace": {
+                    "type": "string",
+                    "description": "Vector database namespace where document is stored (default: 'default'). Must match namespace used in vector_db_search.",
+                    "required": false,
+                    "default": "default"
+                },
+                "format": {
+                    "type": "string",
+                    "description": "Return format: 'text' (plain text), 'markdown' (formatted), 'json' (structured with metadata). Default: 'text'.",
+                    "required": false,
+                    "default": "text"
+                },
+                "fetch_from_cloud": {
+                    "type": "boolean",
+                    "description": "Fetch latest version from cloud storage (Google Drive/OneDrive) if available. Set to false to use cached vector database version (default: true).",
+                    "required": false,
+                    "default": true
+                }
+            },
+            "returns": {
+                "type": "object",
+                "description": "Complete document with full text and metadata:\n{\n  success: true,\n  document_id: 'doc_abc123',\n  filename: 'product_policy.pdf',\n  full_text: 'Complete document text...',\n  metadata: {\n    file_type: 'pdf',\n    file_size_bytes: 145600,\n    created_at: '2025-11-28T10:30:00Z',\n    modified_at: '2025-11-28T14:20:00Z',\n    page_count: 12,\n    word_count: 3450,\n    total_chunks: 5,\n    cloud_storage: {\n      provider: 'google_drive',\n      file_id: 'xyz789',\n      web_view_url: 'https://drive.google.com/file/d/xyz789/view',\n      last_synced: '2025-11-28T14:30:00Z'\n    }\n  },\n  source: 'cloud' or 'cache',\n  next_actions: {\n    summarize: 'Use AI to summarize this document',\n    extract_data: 'Extract specific data points',\n    compare: 'Compare with other documents'\n  }\n}"
+            },
+            "examples": [
+                {
+                    "description": "Get full document from search result",
+                    "parameters": {
+                        "document_id": "doc_abc123",
+                        "namespace": "customer_docs",
+                        "format": "markdown",
+                        "fetch_from_cloud": true
+                    }
+                }
+            ]
+        },
+        {
+            "name": "vector_db_list_namespaces",
+            "short_description": "List vector database namespaces - collections, document counts, statistics",
+            "description": "📂 List all available vector database namespaces/collections.\n\n🎯 USE THIS WHEN:\n- Discovering available document collections\n- Checking workspace/user document access\n- Planning multi-namespace searches\n\n💡 RETURNS:\n- Namespace names\n- Document counts\n- Vector counts\n- Last updated timestamps",
+            "platform": "vector_database",
+            "parameters": {},
+            "returns": {
+                "type": "object",
+                "description": "List of namespaces with statistics:\n{\n  success: true,\n  namespaces: [\n    {\n      name: 'customer_docs',\n      document_count: 45,\n      vector_count: 234,\n      last_updated: '2025-11-28T14:30:00Z',\n      size_bytes: 5242880\n    },\n    ...\n  ],\n  total_namespaces: 3\n}"
+            },
+            "examples": [
+                {
+                    "description": "List all available namespaces",
+                    "parameters": {}
+                }
+            ]
+        },
+        {
+            "name": "vector_db_get_document_metadata",
+            "short_description": "Get document metadata only - size, type, location without full text",
+            "description": "📋 Get document metadata without fetching full text.\n\n🎯 USE THIS WHEN:\n- Need file info (size, type, location)\n- Checking document availability\n- Planning whether to fetch full document\n\n💡 FAST & LIGHTWEIGHT:\n- Returns only metadata (no text)\n- Check file size before downloading\n- Verify cloud storage links",
+            "platform": "vector_database",
+            "parameters": {
+                "document_id": {
+                    "type": "string",
+                    "description": "Document ID from vector_db_search results"
+                },
+                "namespace": {
+                    "type": "string",
+                    "description": "Vector database namespace (default: 'default')",
+                    "required": false,
+                    "default": "default"
+                }
+            },
+            "returns": {
+                "type": "object",
+                "description": "Document metadata only (no text):\n{\n  success: true,\n  document_id: 'doc_abc123',\n  filename: 'product_policy.pdf',\n  metadata: {\n    file_type: 'pdf',\n    file_size_bytes: 145600,\n    file_size_human: '142.2 KB',\n    created_at: '2025-11-28T10:30:00Z',\n    page_count: 12,\n    total_chunks: 5,\n    cloud_storage: {...}\n  }\n}"
+            },
+            "examples": [
+                {
+                    "description": "Check document metadata",
+                    "parameters": {
+                        "document_id": "doc_abc123",
+                        "namespace": "customer_docs"
+                    }
+                }
+            ]
+        }
+    ]
+}

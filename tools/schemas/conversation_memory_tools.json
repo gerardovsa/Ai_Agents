@@ -1,0 +1,744 @@
+{
+    "schema_version": "1.0",
+    "category": "conversation_memory",
+    "platform": "conversation_memory",
+    "description": "Search vectorized conversation threads, messages, Synergy projects, and retrieve full context. Uses pgvector semantic search on embedded content.",
+    "last_updated": "2025-12-16",
+    "tools": [
+        {
+            "name": "session_conversation_search",
+            "short_description": "Search past conversations by meaning using AI embeddings to find relevant threads and messages",
+            "description": "Semantic search across conversation history (sessions.threads and sessions.messages) using vector embeddings. Finds conversations by MEANING, not just keywords - e.g., searching 'email automation' finds threads about Gmail, Outlook, messaging, etc. Returns summary with thread IDs and message IDs that you can use to retrieve full context with session_conversation_get_thread_messages or session_conversation_get_message_context.\n\nUse this when user asks: 'Remember when we discussed...', 'Find that conversation about...', 'What did we talk about regarding...', 'Search our previous chats for...'.\n\nIMPORTANT: This returns SUMMARIES only. To get full message content, use the retrieval tools with the returned IDs.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "query": {
+                        "type": "string",
+                        "description": "Natural language search query. Describe what you're looking for in plain English. The vector search finds semantically similar content, not just exact keyword matches. Examples: 'email automation project', 'Python database code', 'customer validation rules', 'pricing calculations for print quotes'."
+                    },
+                    "user_id": {
+                        "type": "integer",
+                        "description": "User ID to search conversations for. Required for security - users can only search their own conversations."
+                    },
+                    "time_filter": {
+                        "type": "string",
+                        "enum": [
+                            "last_7_days",
+                            "last_30_days",
+                            "last_90_days",
+                            "last_year",
+                            "all_time"
+                        ],
+                        "description": "Optional time range filter. Defaults to 'all_time'. Use 'last_30_days' for recent work, 'all_time' to search entire history."
+                    },
+                    "search_type": {
+                        "type": "string",
+                        "enum": [
+                            "threads",
+                            "messages",
+                            "both"
+                        ],
+                        "description": "What to search: 'threads' (conversation titles/summaries), 'messages' (individual message content), 'both' (comprehensive search). Default: 'both'."
+                    },
+                    "limit": {
+                        "type": "integer",
+                        "description": "Maximum number of results to return. Default: 5, Max: 20. Use lower limits for faster responses."
+                    }
+                },
+                "required": [
+                    "query",
+                    "user_id"
+                ]
+            },
+            "returns": {
+                "type": "object",
+                "properties": {
+                    "success": {
+                        "type": "boolean",
+                        "description": "True if search completed successfully"
+                    },
+                    "threads": {
+                        "type": "array",
+                        "description": "Array of matching conversation threads with similarity scores and metadata. Use thread_id to retrieve full messages with session_conversation_get_thread_messages."
+                    },
+                    "messages": {
+                        "type": "array",
+                        "description": "Array of matching individual messages with context. Use message_id to get surrounding context with session_conversation_get_message_context."
+                    },
+                    "total_results": {
+                        "type": "integer",
+                        "description": "Total number of matches found"
+                    }
+                }
+            },
+            "examples": [
+                {
+                    "description": "Search for past email automation work",
+                    "input": {
+                        "query": "email automation Gmail API integration",
+                        "user_id": 14,
+                        "time_filter": "last_90_days",
+                        "search_type": "both",
+                        "limit": 5
+                    },
+                    "output": {
+                        "success": true,
+                        "threads": [
+                            {
+                                "thread_id": 1523,
+                                "title": "Gmail Automation Setup",
+                                "similarity_score": 0.94,
+                                "message_count": 47,
+                                "created_at": "2025-10-15T14:23:00Z",
+                                "tools_used": [
+                                    "gmail_send_email",
+                                    "google_sheets_create"
+                                ]
+                            }
+                        ],
+                        "messages": [
+                            {
+                                "message_id": 2891,
+                                "thread_id": 1523,
+                                "content_preview": "Here's the email validation code using Gmail API...",
+                                "similarity_score": 0.91,
+                                "role": "assistant",
+                                "timestamp": "2025-10-16T09:15:00Z"
+                            }
+                        ],
+                        "total_results": 2
+                    }
+                },
+                {
+                    "description": "Find Python code snippets from past work",
+                    "input": {
+                        "query": "Python database validation regex patterns",
+                        "user_id": 14,
+                        "search_type": "messages",
+                        "limit": 10
+                    },
+                    "output": {
+                        "success": true,
+                        "threads": [],
+                        "messages": [
+                            {
+                                "message_id": 3401,
+                                "thread_id": 1678,
+                                "content_preview": "import re\ndef validate_email(email):\n    return re.match...",
+                                "similarity_score": 0.88,
+                                "role": "assistant",
+                                "timestamp": "2025-11-02T16:30:00Z"
+                            }
+                        ],
+                        "total_results": 1
+                    }
+                }
+            ],
+            "usage_guide": {
+                "when_to_use": [
+                    "User asks to recall past conversations or work",
+                    "Need to find code snippets or solutions from previous threads",
+                    "User says 'remember when...', 'find that discussion...', 'what did we work on...'",
+                    "Looking for context from old projects to reuse",
+                    "User wants to continue work from a past conversation"
+                ],
+                "when_not_to_use": [
+                    "User asks about current conversation (use existing context)",
+                    "Searching for external information (use web_search)",
+                    "Looking for Synergy projects (use synergy_project_search)",
+                    "Need real-time data (this searches historical conversations only)"
+                ],
+                "workflow": [
+                    "1. Call session_conversation_search with user's query",
+                    "2. Review returned thread_ids and message_ids with similarity scores",
+                    "3. Present summary to user: 'Found 3 relevant conversations...'",
+                    "4. If user wants details, call session_conversation_get_thread_messages(thread_id)",
+                    "5. Or call session_conversation_get_message_context(message_id) for specific message context"
+                ],
+                "best_practices": [
+                    "Use natural language queries - vector search handles synonyms and related terms",
+                    "Start with 'both' search_type for comprehensive results",
+                    "Filter by time_range if user mentions 'recent' or 'last month'",
+                    "Always show similarity_score to user - helps them judge relevance",
+                    "Don't retrieve full messages unless user asks - summaries are often enough"
+                ],
+                "error_handling": [
+                    "If no results: 'No matching conversations found. Try broader search terms or different time range.'",
+                    "If embeddings not populated: Returns error - need to vectorize database first",
+                    "If user_id invalid: Returns authorization error"
+                ]
+            },
+            "related_tools": [
+                "session_conversation_get_thread_messages",
+                "session_conversation_get_message_context",
+                "synergy_project_search",
+                "synergy_docs_search"
+            ],
+            "tool_intelligence": {
+                "primary_use_case": "memory_retrieval",
+                "typical_user_phrasing": [
+                    "remember when we discussed",
+                    "find that conversation about",
+                    "what did we work on regarding",
+                    "search our previous chats for",
+                    "recall that project where"
+                ],
+                "success_criteria": "Returns relevant threads/messages with similarity >0.7",
+                "token_cost_range": [
+                    800,
+                    2500
+                ],
+                "depends_on_tools": [],
+                "enables_tools": [
+                    "session_conversation_get_thread_messages",
+                    "session_conversation_get_message_context"
+                ],
+                "learning_category": "semantic_search"
+            }
+        },
+        {
+            "name": "session_conversation_get_thread_messages",
+            "short_description": "Retrieve all messages from a conversation thread to see full context and history",
+            "description": "Get complete message history for a specific thread. Use this AFTER session_conversation_search returns a thread_id that looks relevant. Returns all messages in chronological order with full content, tool calls, timestamps, and metadata.\n\nThis gives you the FULL context of what was discussed, including code, decisions, tool usage, and outcomes. Essential for understanding the complete story of a past conversation.\n\nIMPORTANT: Threads can be long (50+ messages). Consider summarizing for user unless they specifically ask for full transcript.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "thread_id": {
+                        "type": "integer",
+                        "description": "Thread ID from session_conversation_search results. Identifies which conversation to retrieve."
+                    },
+                    "user_id": {
+                        "type": "integer",
+                        "description": "User ID for authorization. Must match thread owner."
+                    },
+                    "limit": {
+                        "type": "integer",
+                        "description": "Optional limit on messages returned. Useful for long threads. If omitted, returns ALL messages. Use 'recent_only' to get last 10 messages."
+                    },
+                    "recent_only": {
+                        "type": "boolean",
+                        "description": "If true, returns only the most recent 10 messages. Useful for very long threads where you just need recent context."
+                    }
+                },
+                "required": [
+                    "thread_id",
+                    "user_id"
+                ]
+            },
+            "returns": {
+                "type": "object",
+                "properties": {
+                    "success": {
+                        "type": "boolean"
+                    },
+                    "thread": {
+                        "type": "object",
+                        "description": "Thread metadata (title, created_at, message_count, etc.)"
+                    },
+                    "messages": {
+                        "type": "array",
+                        "description": "Array of messages in chronological order with full content, role, timestamps, tool_calls, etc."
+                    },
+                    "truncated": {
+                        "type": "boolean",
+                        "description": "True if results were limited (not all messages returned)"
+                    }
+                }
+            },
+            "examples": [
+                {
+                    "description": "Get full thread after finding relevant conversation",
+                    "input": {
+                        "thread_id": 1523,
+                        "user_id": 14
+                    },
+                    "output": {
+                        "success": true,
+                        "thread": {
+                            "thread_id": 1523,
+                            "title": "Gmail Automation Setup",
+                            "message_count": 47,
+                            "created_at": "2025-10-15T14:23:00Z"
+                        },
+                        "messages": [
+                            {
+                                "message_id": 2845,
+                                "role": "user",
+                                "content": "[{\"text\": \"Help me automate Gmail\", \"type\": \"text\"}]",
+                                "timestamp": "2025-10-15T14:23:00Z"
+                            },
+                            {
+                                "message_id": 2846,
+                                "role": "assistant",
+                                "content": "[{\"text\": \"I'll help you set up Gmail automation...\", \"type\": \"text\"}]",
+                                "tool_calls": "gmail_authorize",
+                                "timestamp": "2025-10-15T14:23:15Z"
+                            }
+                        ],
+                        "truncated": false
+                    }
+                }
+            ],
+            "usage_guide": {
+                "when_to_use": [
+                    "User wants to see full conversation history after search",
+                    "Need complete context to understand what was done",
+                    "User asks: 'Show me that whole conversation', 'What exactly did we discuss?'",
+                    "Retrieving code, decisions, or outcomes from past work"
+                ],
+                "when_not_to_use": [
+                    "Search returned many threads - don't retrieve all, ask user which one",
+                    "Just need specific message - use session_conversation_get_message_context",
+                    "Thread has 100+ messages and user didn't ask for everything - use recent_only=true"
+                ],
+                "workflow": [
+                    "1. Call session_conversation_search first",
+                    "2. Present summary: 'Found thread about Gmail automation with 47 messages'",
+                    "3. If user says 'show me' or 'load that conversation', call this tool",
+                    "4. Parse messages and present key information to user",
+                    "5. For long threads, summarize instead of showing everything"
+                ],
+                "best_practices": [
+                    "Check message_count before retrieving - warn user if >50 messages",
+                    "Use recent_only=true for quick context on long threads",
+                    "Summarize technical details unless user asks for specifics",
+                    "Highlight code snippets, tool calls, and key decisions",
+                    "Provide thread_id reference in case user wants to return to it"
+                ],
+                "error_handling": [
+                    "If thread_id not found: 'That conversation no longer exists or was deleted'",
+                    "If user_id mismatch: 'You don't have access to that conversation'",
+                    "If thread empty: 'That thread has no messages'"
+                ]
+            },
+            "related_tools": [
+                "session_conversation_search",
+                "session_conversation_get_message_context"
+            ],
+            "tool_intelligence": {
+                "primary_use_case": "context_retrieval",
+                "typical_user_phrasing": [
+                    "show me that conversation",
+                    "load that thread",
+                    "what exactly did we discuss",
+                    "let me see the full chat"
+                ],
+                "success_criteria": "Returns complete message history",
+                "token_cost_range": [
+                    2000,
+                    15000
+                ],
+                "depends_on_tools": [
+                    "session_conversation_search"
+                ],
+                "enables_tools": [],
+                "learning_category": "context_loading"
+            }
+        },
+        {
+            "name": "session_conversation_get_message_context",
+            "short_description": "Get a specific message plus surrounding messages for context (before and after)",
+            "description": "Retrieve a specific message along with messages before and after it for context. Use this when session_conversation_search returns a specific message_id that's relevant, but you need to understand the surrounding conversation.\n\nReturns the target message plus N messages before and N messages after, giving you the conversational context without loading the entire thread.\n\nPerfect for: 'What led to this code?', 'What happened after this decision?', 'Show me the discussion around this solution'.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "message_id": {
+                        "type": "integer",
+                        "description": "Message ID from session_conversation_search results. The specific message you want context for."
+                    },
+                    "user_id": {
+                        "type": "integer",
+                        "description": "User ID for authorization."
+                    },
+                    "context_size": {
+                        "type": "integer",
+                        "description": "How many messages before and after to include. Default: 3, Max: 10. Higher = more context, more tokens."
+                    }
+                },
+                "required": [
+                    "message_id",
+                    "user_id"
+                ]
+            },
+            "returns": {
+                "type": "object",
+                "properties": {
+                    "success": {
+                        "type": "boolean"
+                    },
+                    "target_message": {
+                        "type": "object",
+                        "description": "The requested message with full content"
+                    },
+                    "messages_before": {
+                        "type": "array",
+                        "description": "Messages that came before, in chronological order"
+                    },
+                    "messages_after": {
+                        "type": "array",
+                        "description": "Messages that came after, in chronological order"
+                    },
+                    "thread_info": {
+                        "type": "object",
+                        "description": "Thread metadata for context"
+                    }
+                }
+            },
+            "examples": [
+                {
+                    "description": "Get context around a code snippet found in search",
+                    "input": {
+                        "message_id": 2891,
+                        "user_id": 14,
+                        "context_size": 3
+                    },
+                    "output": {
+                        "success": true,
+                        "target_message": {
+                            "message_id": 2891,
+                            "role": "assistant",
+                            "content": "[{\"text\": \"Here's the email validation code...\", \"type\": \"text\"}]",
+                            "timestamp": "2025-10-16T09:15:00Z"
+                        },
+                        "messages_before": [
+                            {
+                                "message_id": 2888,
+                                "role": "user",
+                                "content": "[{\"text\": \"Need to validate emails\", \"type\": \"text\"}]"
+                            }
+                        ],
+                        "messages_after": [
+                            {
+                                "message_id": 2892,
+                                "role": "user",
+                                "content": "[{\"text\": \"Perfect! Does it handle subdomains?\", \"type\": \"text\"}]"
+                            }
+                        ],
+                        "thread_info": {
+                            "thread_id": 1523,
+                            "title": "Gmail Automation Setup"
+                        }
+                    }
+                }
+            ],
+            "usage_guide": {
+                "when_to_use": [
+                    "Search found a specific message with code/info you need",
+                    "Want to understand what led to a decision or solution",
+                    "Need context but don't want entire thread",
+                    "User asks: 'Why did we do that?', 'What was the question that led to this?'"
+                ],
+                "when_not_to_use": [
+                    "User wants full conversation - use session_conversation_get_thread_messages",
+                    "Just need the found message itself - search results include preview",
+                    "Looking for multiple unrelated messages - retrieve each separately"
+                ],
+                "workflow": [
+                    "1. session_conversation_search returns message_id with high similarity",
+                    "2. Call this tool to get surrounding context",
+                    "3. Present to user: 'Here's what led to that code...'",
+                    "4. Show messages_before → target_message → messages_after",
+                    "5. Offer to load full thread if user wants more"
+                ],
+                "best_practices": [
+                    "Default context_size=3 is usually enough for understanding",
+                    "Use context_size=5-10 for complex technical discussions",
+                    "Highlight the target_message so user knows which one matched their search",
+                    "Show timestamps to help user understand conversation flow",
+                    "Include thread_info so user knows which conversation this is from"
+                ],
+                "error_handling": [
+                    "If message_id not found: 'That message no longer exists'",
+                    "If at start/end of thread: Returns fewer before/after messages",
+                    "If user_id mismatch: Authorization error"
+                ]
+            },
+            "related_tools": [
+                "session_conversation_search",
+                "session_conversation_get_thread_messages"
+            ],
+            "tool_intelligence": {
+                "primary_use_case": "focused_context_retrieval",
+                "typical_user_phrasing": [
+                    "what led to this",
+                    "show me the context around this",
+                    "what happened before/after this",
+                    "why did we do this"
+                ],
+                "success_criteria": "Returns message with adequate surrounding context",
+                "token_cost_range": [
+                    500,
+                    2000
+                ],
+                "depends_on_tools": [
+                    "session_conversation_search"
+                ],
+                "enables_tools": [],
+                "learning_category": "context_retrieval"
+            }
+        },
+        {
+            "name": "synergy_project_search",
+            "short_description": "Search Synergy projects by meaning using AI embeddings to find relevant sessions",
+            "description": "Semantic search across Synergy project sessions using vector embeddings on project titles and descriptions. Finds projects by MEANING and context, not just keywords.\n\nReturns project metadata including status, priority, documents, next steps, and assigned agents. Use the returned session_id to load full project details or update project status.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "query": {
+                        "type": "string",
+                        "description": "Natural language search query describing the project you're looking for."
+                    },
+                    "user_id": {
+                        "type": "integer",
+                        "description": "User ID for authorization."
+                    },
+                    "status_filter": {
+                        "type": "string",
+                        "enum": [
+                            "active",
+                            "in_progress",
+                            "completed",
+                            "archived",
+                            "all"
+                        ],
+                        "description": "Filter by project status. Default: 'all'. Use 'active' for ongoing work, 'completed' for finished projects."
+                    },
+                    "limit": {
+                        "type": "integer",
+                        "description": "Max results to return. Default: 5, Max: 20."
+                    }
+                },
+                "required": [
+                    "query",
+                    "user_id"
+                ]
+            },
+            "returns": {
+                "type": "object",
+                "properties": {
+                    "success": {
+                        "type": "boolean"
+                    },
+                    "projects": {
+                        "type": "array",
+                        "description": "Array of matching Synergy projects with metadata and similarity scores"
+                    },
+                    "total_results": {
+                        "type": "integer"
+                    }
+                }
+            },
+            "examples": [
+                {
+                    "description": "Find print quote project",
+                    "input": {
+                        "query": "custom quote calculator implementation",
+                        "user_id": 14,
+                        "status_filter": "in_progress"
+                    },
+                    "output": {
+                        "success": true,
+                        "projects": [
+                            {
+                                "session_id": "sess_20251216_162536",
+                                "title": "InHouse Print - Custom Quote Implementation",
+                                "description": "Building AI-assisted custom quote system...",
+                                "similarity_score": 0.92,
+                                "status": "in_progress",
+                                "priority": "high",
+                                "documents_count": 12,
+                                "next_steps": [
+                                    "Implement Option 5",
+                                    "Test with sample quotes"
+                                ],
+                                "created_at": "2025-12-16T16:25:36Z"
+                            }
+                        ],
+                        "total_results": 1
+                    }
+                }
+            ],
+            "usage_guide": {
+                "when_to_use": [
+                    "User asks about Synergy projects",
+                    "Looking for specific project to continue working on",
+                    "Need to find project documentation or status",
+                    "User says: 'Continue that project...', 'Find my work on...'"
+                ],
+                "when_not_to_use": [
+                    "Searching conversation threads - use session_conversation_search",
+                    "Looking for specific documents within project - use synergy_docs_search",
+                    "Creating new project - use synergy_create_session"
+                ],
+                "workflow": [
+                    "1. Call synergy_project_search with user's query",
+                    "2. Present matching projects with status and priority",
+                    "3. User selects project to work on",
+                    "4. Use session_id to load/update project with other synergy tools"
+                ],
+                "best_practices": [
+                    "Filter by status_filter='active' to exclude completed work",
+                    "Show similarity_score to help user identify best match",
+                    "Display next_steps and documents_count in summary",
+                    "Offer to load full project details if user interested"
+                ],
+                "error_handling": [
+                    "If no results: 'No matching Synergy projects found'",
+                    "If embeddings not populated: Error - need vectorization",
+                    "If user_id invalid: Authorization error"
+                ]
+            },
+            "related_tools": [
+                "synergy_docs_search",
+                "synergy_get_session",
+                "synergy_update_session"
+            ],
+            "tool_intelligence": {
+                "primary_use_case": "project_discovery",
+                "typical_user_phrasing": [
+                    "find my project about",
+                    "continue that Synergy project",
+                    "what projects am I working on",
+                    "load the project for"
+                ],
+                "success_criteria": "Returns relevant projects with similarity >0.7",
+                "token_cost_range": [
+                    600,
+                    1500
+                ],
+                "depends_on_tools": [],
+                "enables_tools": [
+                    "synergy_get_session",
+                    "synergy_docs_search"
+                ],
+                "learning_category": "project_search"
+            }
+        },
+        {
+            "name": "synergy_docs_search",
+            "short_description": "Search Synergy project documents by content using AI embeddings",
+            "description": "Semantic search within Synergy internal documents (synergy_internal_docs). Searches document content, titles, and descriptions using vector embeddings.\n\nUse this to find specific information within Synergy project documentation - like pricing guidelines, technical specs, meeting notes, or decision documents.\n\nReturns document summaries with doc_id that you can use to retrieve full content.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "query": {
+                        "type": "string",
+                        "description": "What you're looking for in the documents."
+                    },
+                    "user_id": {
+                        "type": "integer",
+                        "description": "User ID for authorization."
+                    },
+                    "session_id": {
+                        "type": "string",
+                        "description": "Optional: Search only within specific Synergy session. Omit to search all projects."
+                    },
+                    "limit": {
+                        "type": "integer",
+                        "description": "Max results. Default: 5, Max: 20."
+                    }
+                },
+                "required": [
+                    "query",
+                    "user_id"
+                ]
+            },
+            "returns": {
+                "type": "object",
+                "properties": {
+                    "success": {
+                        "type": "boolean"
+                    },
+                    "documents": {
+                        "type": "array",
+                        "description": "Matching documents with content previews and metadata"
+                    },
+                    "total_results": {
+                        "type": "integer"
+                    }
+                }
+            },
+            "examples": [
+                {
+                    "description": "Find pricing guidelines in print project",
+                    "input": {
+                        "query": "custom quote pricing guidelines vinyl banners",
+                        "user_id": 14,
+                        "session_id": "sess_20251216_162536"
+                    },
+                    "output": {
+                        "success": true,
+                        "documents": [
+                            {
+                                "doc_id": "int_doc_1765866849538",
+                                "session_id": "sess_20251216_162536",
+                                "title": "EXECUTIVE SUMMARY - Custom Quote Implementation",
+                                "content_preview": "## Option 5: AI-Assisted Custom Quoting\nPricing guidelines for vinyl work...",
+                                "similarity_score": 0.89,
+                                "doc_type": "richtext",
+                                "created_at": "2025-12-16T16:34:09Z"
+                            }
+                        ],
+                        "total_results": 1
+                    }
+                }
+            ],
+            "usage_guide": {
+                "when_to_use": [
+                    "Looking for specific info within Synergy projects",
+                    "User asks: 'Find that document about...', 'Where are the pricing guidelines?'",
+                    "Need technical specs or meeting notes from project",
+                    "Searching across all projects for related documentation"
+                ],
+                "when_not_to_use": [
+                    "Looking for the project itself - use synergy_project_search",
+                    "Searching conversation threads - use session_conversation_search",
+                    "Creating new document - use synergy_create_internal_doc"
+                ],
+                "workflow": [
+                    "1. Call synergy_docs_search with query",
+                    "2. Present matching documents with titles and previews",
+                    "3. If user wants full content, retrieve with doc_id",
+                    "4. Can filter by session_id if user specifies which project"
+                ],
+                "best_practices": [
+                    "Use session_id to narrow search to specific project",
+                    "Show doc_type and similarity_score to help user assess relevance",
+                    "Present content_preview so user can decide if they need full document",
+                    "Include session title in results for context"
+                ],
+                "error_handling": [
+                    "If no results: 'No matching documents found in Synergy projects'",
+                    "If session_id invalid: 'That Synergy session doesn't exist'",
+                    "If embeddings missing: Need to vectorize documents first"
+                ]
+            },
+            "related_tools": [
+                "synergy_project_search",
+                "synergy_get_internal_doc",
+                "synergy_create_internal_doc"
+            ],
+            "tool_intelligence": {
+                "primary_use_case": "document_search",
+                "typical_user_phrasing": [
+                    "find that document about",
+                    "where are the guidelines for",
+                    "search project docs for",
+                    "what did we document about"
+                ],
+                "success_criteria": "Returns relevant documents with similarity >0.7",
+                "token_cost_range": [
+                    700,
+                    2000
+                ],
+                "depends_on_tools": [
+                    "synergy_project_search"
+                ],
+                "enables_tools": [
+                    "synergy_get_internal_doc"
+                ],
+                "learning_category": "document_search"
+            }
+        }
+    ]
+}

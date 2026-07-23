@@ -1,0 +1,474 @@
+{
+  "platform": "automation_workflows",
+  "description": "Supabase-backed automation workflow management system. Create, manage, execute visual workflows with full database persistence. Includes templates, execution history, scheduling, and custom node library.",
+  "tools": [
+    {
+      "name": "automation_workflow_create",
+      "short_description": "Create new automation workflow in Supabase with definition and canvas UI data",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) ALWAYS execute THIS tool NOW - NEVER reference 'I created earlier' or use conversation history\n(2) MUST return format: **[Name]** | ID: `[id]` | URL: [full_url] | Link: [title](url)\n(3) Use EXACT values from tool response - NEVER make up fake URLs/IDs\n(4) If tool fails, say 'Failed to create' - NEVER pretend it succeeded\n\nExample response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\nCreate a new automation workflow in Supabase with complete workflow definition and canvas UI data",
+      "platform": "automation_workflows",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "user_id": {
+            "type": "integer",
+            "description": "User ID creating the workflow"
+          },
+          "name": {
+            "type": "string",
+            "description": "Workflow name (human-readable)"
+          },
+          "workflow_json": {
+            "type": "string",
+            "description": "Complete workflow definition as JSON string (nodes, connections, triggers, actions)"
+          },
+          "description": {
+            "type": "string",
+            "description": "Optional workflow description"
+          },
+          "category": {
+            "type": "string",
+            "description": "Category: email, quotes, customer_service, finance, workflow_automation, etc."
+          },
+          "canvas_data": {
+            "type": "string",
+            "description": "UI positioning data as JSON string (x, y coordinates, zoom, pan)"
+          },
+          "slug": {
+            "type": "string",
+            "description": "Optional custom slug (auto-generated from name if not provided)"
+          }
+        },
+        "required": [
+          "user_id",
+          "name",
+          "workflow_json"
+        ]
+      },
+      "returns": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "workflow": {
+            "type": "object",
+            "description": "Created workflow with workflow_id, slug, timestamps"
+          },
+          "workflow_id": {
+            "type": "string",
+            "description": "UUID of created workflow"
+          },
+          "slug": {
+            "type": "string",
+            "description": "Generated or provided slug"
+          }
+        }
+      }
+    },
+    {
+      "name": "automation_workflow_list",
+      "short_description": "List automation workflows for user with filters by category or enabled status",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Read X from **[Resource Name]** (ID: `[id]` | URL: [url])'\n(3) Use EXACT [id] provided - NEVER substitute with different ID\n(4) If tool fails (404/403), say 'Failed to read [resource] ID: [id]' and explain error\n(5) NEVER make up data if read fails - acknowledge the failure clearly\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nList automation workflows for a user with optional filters by category or enabled status",
+      "platform": "automation_workflows",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "user_id": {
+            "type": "integer",
+            "description": "User ID to list workflows for"
+          },
+          "category": {
+            "type": "string",
+            "description": "Filter by category (optional)"
+          },
+          "enabled": {
+            "type": "boolean",
+            "description": "Filter by enabled status (optional)"
+          }
+        },
+        "required": [
+          "user_id"
+        ]
+      },
+      "returns": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "workflows": {
+            "type": "array",
+            "description": "Array of workflow objects"
+          },
+          "count": {
+            "type": "integer",
+            "description": "Number of workflows returned"
+          }
+        }
+      }
+    },
+    {
+      "name": "automation_workflow_get",
+      "short_description": "Get specific workflow by UUID or slug with complete definition and metadata",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Read X from **[Resource Name]** (ID: `[id]` | URL: [url])'\n(3) Use EXACT [id] provided - NEVER substitute with different ID\n(4) If tool fails (404/403), say 'Failed to read [resource] ID: [id]' and explain error\n(5) NEVER make up data if read fails - acknowledge the failure clearly\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nGet a specific workflow by UUID or slug with complete definition",
+      "platform": "automation_workflows",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "workflow_id": {
+            "type": "string",
+            "description": "Workflow UUID (optional if slug provided)"
+          },
+          "slug": {
+            "type": "string",
+            "description": "Workflow slug (optional if workflow_id provided)"
+          }
+        },
+        "required": []
+      },
+      "returns": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "workflow": {
+            "type": "object",
+            "description": "Complete workflow object with all fields"
+          }
+        }
+      }
+    },
+    {
+      "name": "automation_workflow_update",
+      "short_description": "Update workflow's configuration, definition, status, or any field",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER reference previous edits from conversation history\n(2) MUST cite what was updated: 'Updated **[Resource Name]** (ID: `[id]`)'\n(3) Use EXACT [id] provided - NEVER make up IDs\n(4) If tool fails, say 'Failed to update' and explain why\n(5) Show before/after if applicable\n\nExample response:\nUpdated: **Document Title**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Changed: [what was changed]\n\nUpdate a workflow's configuration, definition, or status",
+      "platform": "automation_workflows",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "workflow_id": {
+            "type": "string",
+            "description": "Workflow UUID"
+          },
+          "updates": {
+            "type": "object",
+            "description": "Fields to update: name, workflow_json, canvas_data, enabled, description, category, etc."
+          }
+        },
+        "required": [
+          "workflow_id",
+          "updates"
+        ]
+      },
+      "returns": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "workflow": {
+            "type": "object",
+            "description": "Updated workflow object"
+          }
+        }
+      }
+    },
+    {
+      "name": "automation_workflow_delete",
+      "short_description": "Permanently delete workflow and cascade to executions and schedules",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER pretend to delete from memory\n(2) MUST cite what was deleted: 'Deleted **[Resource Name]** (ID: `[id]`)'\n(3) CONFIRM deletion happened - don't assume success\n(4) If tool fails, say 'Failed to delete' and explain why\n\nExample response:\n✅ Deleted: **Old File**\n- ID: `abc123`\n- URL: https://example.com/file/abc123 (no longer accessible)\n\nDelete a workflow permanently (cascades to executions and schedules)",
+      "platform": "automation_workflows",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "workflow_id": {
+            "type": "string",
+            "description": "Workflow UUID to delete"
+          }
+        },
+        "required": [
+          "workflow_id"
+        ]
+      },
+      "returns": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "deleted": {
+            "type": "boolean"
+          },
+          "workflow_id": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    {
+      "name": "automation_workflow_execute",
+      "short_description": "Start workflow execution and create execution record in database",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Read X from **[Resource Name]** (ID: `[id]` | URL: [url])'\n(3) Use EXACT [id] provided - NEVER substitute with different ID\n(4) If tool fails (404/403), say 'Failed to read [resource] ID: [id]' and explain error\n(5) NEVER make up data if read fails - acknowledge the failure clearly\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nStart a workflow execution and create execution record in database",
+      "platform": "automation_workflows",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "workflow_id": {
+            "type": "string",
+            "description": "Workflow UUID to execute"
+          },
+          "trigger_data": {
+            "type": "string",
+            "description": "JSON string of trigger data (what triggered this execution)"
+          },
+          "executed_by": {
+            "type": "integer",
+            "description": "User ID who triggered the execution"
+          }
+        },
+        "required": [
+          "workflow_id",
+          "trigger_data",
+          "executed_by"
+        ]
+      },
+      "returns": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "execution_id": {
+            "type": "string",
+            "description": "UUID of created execution"
+          },
+          "execution": {
+            "type": "object",
+            "description": "Execution record"
+          }
+        }
+      }
+    },
+    {
+      "name": "automation_workflow_execution_update",
+      "short_description": "Update workflow execution status, results, errors, completion data",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER reference previous edits from conversation history\n(2) MUST cite what was updated: 'Updated **[Resource Name]** (ID: `[id]`)'\n(3) Use EXACT [id] provided - NEVER make up IDs\n(4) If tool fails, say 'Failed to update' and explain why\n(5) Show before/after if applicable\n\nExample response:\nUpdated: **Document Title**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Changed: [what was changed]\n\nUpdate workflow execution status, results, errors, and completion data",
+      "platform": "automation_workflows",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "execution_id": {
+            "type": "string",
+            "description": "Execution UUID"
+          },
+          "status": {
+            "type": "string",
+            "description": "Status: running, completed, failed, cancelled"
+          },
+          "execution_state": {
+            "type": "string",
+            "description": "JSON string of execution state (variables, node results)"
+          },
+          "error_message": {
+            "type": "string",
+            "description": "Error details if status is failed"
+          },
+          "error_node_id": {
+            "type": "string",
+            "description": "Which node failed (if applicable)"
+          },
+          "duration_ms": {
+            "type": "integer",
+            "description": "Execution duration in milliseconds"
+          }
+        },
+        "required": [
+          "execution_id",
+          "status"
+        ]
+      },
+      "returns": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "execution": {
+            "type": "object",
+            "description": "Updated execution record"
+          }
+        }
+      }
+    },
+    {
+      "name": "automation_workflow_execution_history",
+      "short_description": "Get workflow execution history with timestamps, status, results",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Read X from **[Resource Name]** (ID: `[id]` | URL: [url])'\n(3) Use EXACT [id] provided - NEVER substitute with different ID\n(4) If tool fails (404/403), say 'Failed to read [resource] ID: [id]' and explain error\n(5) NEVER make up data if read fails - acknowledge the failure clearly\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nGet execution history for a workflow with timestamps, status, and results",
+      "platform": "automation_workflows",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "workflow_id": {
+            "type": "string",
+            "description": "Workflow UUID"
+          },
+          "limit": {
+            "type": "integer",
+            "description": "Max executions to return (default: 20)"
+          }
+        },
+        "required": [
+          "workflow_id"
+        ]
+      },
+      "returns": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "executions": {
+            "type": "array",
+            "description": "Array of execution records"
+          },
+          "count": {
+            "type": "integer",
+            "description": "Number of executions returned"
+          }
+        }
+      }
+    },
+    {
+      "name": "automation_workflow_template_list",
+      "short_description": "List pre-built workflow templates with category and featured filters",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Read X from **[Resource Name]** (ID: `[id]` | URL: [url])'\n(3) Use EXACT [id] provided - NEVER substitute with different ID\n(4) If tool fails (404/403), say 'Failed to read [resource] ID: [id]' and explain error\n(5) NEVER make up data if read fails - acknowledge the failure clearly\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nList available pre-built workflow templates with optional category and featured filters",
+      "platform": "automation_workflows",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "category": {
+            "type": "string",
+            "description": "Filter by category (optional)"
+          },
+          "featured": {
+            "type": "boolean",
+            "description": "Show only featured templates (optional)"
+          }
+        },
+        "required": []
+      },
+      "returns": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "templates": {
+            "type": "array",
+            "description": "Array of template objects"
+          },
+          "count": {
+            "type": "integer",
+            "description": "Number of templates"
+          }
+        }
+      }
+    },
+    {
+      "name": "automation_workflow_template_clone",
+      "short_description": "Clone template to create new workflow for user with auto-generated slug",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Read X from **[Resource Name]** (ID: `[id]` | URL: [url])'\n(3) Use EXACT [id] provided - NEVER substitute with different ID\n(4) If tool fails (404/403), say 'Failed to read [resource] ID: [id]' and explain error\n(5) NEVER make up data if read fails - acknowledge the failure clearly\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nClone a template to create a new workflow for user with auto-generated slug",
+      "platform": "automation_workflows",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "template_id": {
+            "type": "string",
+            "description": "Template UUID to clone"
+          },
+          "user_id": {
+            "type": "integer",
+            "description": "User ID creating the workflow"
+          },
+          "name": {
+            "type": "string",
+            "description": "Optional custom name (uses template name if not provided)"
+          }
+        },
+        "required": [
+          "template_id",
+          "user_id"
+        ]
+      },
+      "returns": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "workflow": {
+            "type": "object",
+            "description": "Created workflow from template"
+          },
+          "cloned_from_template": {
+            "type": "string",
+            "description": "Template UUID"
+          }
+        }
+      }
+    },
+    {
+      "name": "automation_workflow_schedule_create",
+      "short_description": "Create workflow schedule with cron, interval, or one-time execution",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) ALWAYS execute THIS tool NOW - NEVER reference 'I created earlier' or use conversation history\n(2) MUST return format: **[Name]** | ID: `[id]` | URL: [full_url] | Link: [title](url)\n(3) Use EXACT values from tool response - NEVER make up fake URLs/IDs\n(4) If tool fails, say 'Failed to create' - NEVER pretend it succeeded\n\nExample response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\nCreate a schedule for a workflow (cron, interval, or one-time execution)",
+      "platform": "automation_workflows",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "workflow_id": {
+            "type": "string",
+            "description": "Workflow UUID to schedule"
+          },
+          "schedule_type": {
+            "type": "string",
+            "description": "Type: cron, interval, once"
+          },
+          "cron_expression": {
+            "type": "string",
+            "description": "Cron expression (for cron type): '0 8 * * *' = daily at 8am"
+          },
+          "interval_minutes": {
+            "type": "integer",
+            "description": "Interval in minutes (for interval type)"
+          },
+          "run_at": {
+            "type": "string",
+            "description": "Timestamp (for once type): '2025-01-15 22:00:00'"
+          },
+          "timezone": {
+            "type": "string",
+            "description": "Timezone (default: UTC)"
+          }
+        },
+        "required": [
+          "workflow_id",
+          "schedule_type"
+        ]
+      },
+      "returns": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "schedule": {
+            "type": "object",
+            "description": "Created schedule record"
+          }
+        }
+      }
+    }
+  ]
+}

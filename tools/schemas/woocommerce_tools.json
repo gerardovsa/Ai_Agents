@@ -1,0 +1,807 @@
+{
+  "platform": "woocommerce",
+  "description": "WooCommerce e-commerce management tools - Complete API coverage for orders, products, customers, analytics, and store management",
+  "tools": [
+    {
+      "name": "woocommerce_get_orders",
+      "short_description": "List orders with filters (status, date, customer)",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Read X from **[Resource Name]** (ID: `[id]` | URL: [url])'\n(3) Use EXACT [id] provided - NEVER substitute with different ID\n(4) If tool fails (404/403), say 'Failed to read [resource] ID: [id]' and explain error\n(5) NEVER make up data if read fails - acknowledge the failure clearly\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nRetrieve orders from WooCommerce store with advanced filtering",
+      "platform": "woocommerce",
+      "parameters": {
+        "status": {
+          "type": "string",
+          "description": "Order status filter (pending, processing, on-hold, completed, cancelled, refunded, failed)",
+          "required": false
+        },
+        "limit": {
+          "type": "integer",
+          "description": "Maximum number of orders to return (1-100)",
+          "required": false,
+          "default": 10
+        },
+        "page": {
+          "type": "integer",
+          "description": "Page number for pagination",
+          "required": false,
+          "default": 1
+        },
+        "after": {
+          "type": "string",
+          "description": "Limit results to orders created after given ISO8601 date",
+          "required": false
+        },
+        "before": {
+          "type": "string",
+          "description": "Limit results to orders created before given ISO8601 date",
+          "required": false
+        },
+        "customer": {
+          "type": "integer",
+          "description": "Filter by customer ID",
+          "required": false
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "List of orders with full details including line items, shipping, billing, and metadata"
+      }
+    },
+    {
+      "name": "woocommerce_get_order",
+      "short_description": "Get single order by ID with complete details",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Read X from **[Resource Name]** (ID: `[id]` | URL: [url])'\n(3) Use EXACT [id] provided - NEVER substitute with different ID\n(4) If tool fails (404/403), say 'Failed to read [resource] ID: [id]' and explain error\n(5) NEVER make up data if read fails - acknowledge the failure clearly\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nGet a single order by ID with complete details",
+      "platform": "woocommerce",
+      "parameters": {
+        "order_id": {
+          "type": "integer",
+          "description": "Order ID to retrieve"
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "Complete order details"
+      }
+    },
+    {
+      "name": "woocommerce_create_order",
+      "short_description": "Create new order programmatically with line items",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) ALWAYS execute THIS tool NOW - NEVER reference 'I created earlier' or use conversation history\n(2) MUST return format: **[Name]** | ID: `[id]` | URL: [full_url] | Link: [title](url)\n(3) Use EXACT values from tool response - NEVER make up fake URLs/IDs\n(4) If tool fails, say 'Failed to create' - NEVER pretend it succeeded\n\nExample response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\nExample response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\nCreate a new order programmatically",
+      "platform": "woocommerce",
+      "parameters": {
+        "payment_method": {
+          "type": "string",
+          "description": "Payment method ID"
+        },
+        "payment_method_title": {
+          "type": "string",
+          "description": "Payment method title"
+        },
+        "set_paid": {
+          "type": "boolean",
+          "description": "Mark order as paid",
+          "required": false,
+          "default": false
+        },
+        "billing": {
+          "type": "object",
+          "description": "Billing address object"
+        },
+        "shipping": {
+          "type": "object",
+          "description": "Shipping address object",
+          "required": false
+        },
+        "line_items": {
+          "type": "array",
+          "description": "Array of line items with product_id and quantity"
+        },
+        "customer_id": {
+          "type": "integer",
+          "description": "Customer ID",
+          "required": false
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "Created order with ID"
+      }
+    },
+    {
+      "name": "woocommerce_update_order",
+      "short_description": "Update order status, notes, or addresses",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER reference previous edits from conversation history\n(2) MUST cite what was updated: 'Updated **[Resource Name]** (ID: `[id]`)'\n(3) Use EXACT [id] provided - NEVER make up IDs\n(4) If tool fails, say 'Failed to update' and explain why\n(5) Show before/after if applicable\n\nExample response:\nUpdated: **Document Title**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Changed: [what was changed]\n\nExample response:\nUpdated: **Document Title**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Changed: [what was changed]\n\nUpdate an order's status, notes, or details",
+      "platform": "woocommerce",
+      "parameters": {
+        "order_id": {
+          "type": "integer",
+          "description": "Order ID to update"
+        },
+        "status": {
+          "type": "string",
+          "description": "New order status",
+          "required": false
+        },
+        "customer_note": {
+          "type": "string",
+          "description": "Customer note",
+          "required": false
+        },
+        "billing": {
+          "type": "object",
+          "description": "Updated billing address",
+          "required": false
+        },
+        "shipping": {
+          "type": "object",
+          "description": "Updated shipping address",
+          "required": false
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "Updated order details"
+      }
+    },
+    {
+      "name": "woocommerce_delete_order",
+      "short_description": "Delete order permanently or move to trash",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER pretend to delete from memory\n(2) MUST cite what was deleted: 'Deleted **[Resource Name]** (ID: `[id]`)'\n(3) CONFIRM deletion happened - don't assume success\n(4) If tool fails, say 'Failed to delete' and explain why\n\nExample response:\n✅ Deleted: **Old File**\n- ID: `abc123`\n- URL: https://example.com/file/abc123 (no longer accessible)\n\nExample response:\n✅ Deleted: **Old File**\n- ID: `abc123`\n- URL: https://example.com/file/abc123 (no longer accessible)\n\nDelete an order permanently",
+      "platform": "woocommerce",
+      "parameters": {
+        "order_id": {
+          "type": "integer",
+          "description": "Order ID to delete"
+        },
+        "force": {
+          "type": "boolean",
+          "description": "Force delete (bypass trash)",
+          "required": false,
+          "default": false
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "Deletion confirmation"
+      }
+    },
+    {
+      "name": "woocommerce_get_products",
+      "short_description": "List products with search, category, and stock filters",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Read X from **[Resource Name]** (ID: `[id]` | URL: [url])'\n(3) Use EXACT [id] provided - NEVER substitute with different ID\n(4) If tool fails (404/403), say 'Failed to read [resource] ID: [id]' and explain error\n(5) NEVER make up data if read fails - acknowledge the failure clearly\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nList products from WooCommerce store with advanced filtering",
+      "platform": "woocommerce",
+      "parameters": {
+        "limit": {
+          "type": "integer",
+          "description": "Maximum number of products (1-100)",
+          "required": false,
+          "default": 10
+        },
+        "page": {
+          "type": "integer",
+          "description": "Page number",
+          "required": false,
+          "default": 1
+        },
+        "search": {
+          "type": "string",
+          "description": "Search term to filter products",
+          "required": false
+        },
+        "category": {
+          "type": "integer",
+          "description": "Filter by category ID",
+          "required": false
+        },
+        "tag": {
+          "type": "integer",
+          "description": "Filter by tag ID",
+          "required": false
+        },
+        "sku": {
+          "type": "string",
+          "description": "Filter by SKU",
+          "required": false
+        },
+        "status": {
+          "type": "string",
+          "description": "Product status (draft, pending, private, publish)",
+          "required": false
+        },
+        "stock_status": {
+          "type": "string",
+          "description": "Stock status (instock, outofstock, onbackorder)",
+          "required": false
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "List of products with details"
+      }
+    },
+    {
+      "name": "woocommerce_get_product",
+      "short_description": "Get single product by ID with full details",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Read X from **[Resource Name]** (ID: `[id]` | URL: [url])'\n(3) Use EXACT [id] provided - NEVER substitute with different ID\n(4) If tool fails (404/403), say 'Failed to read [resource] ID: [id]' and explain error\n(5) NEVER make up data if read fails - acknowledge the failure clearly\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nGet a single product by ID",
+      "platform": "woocommerce",
+      "parameters": {
+        "product_id": {
+          "type": "integer",
+          "description": "Product ID to retrieve"
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "Complete product details"
+      }
+    },
+    {
+      "name": "woocommerce_create_product",
+      "short_description": "Create new product with price, SKU, stock, images",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) ALWAYS execute THIS tool NOW - NEVER reference 'I created earlier' or use conversation history\n(2) MUST return format: **[Name]** | ID: `[id]` | URL: [full_url] | Link: [title](url)\n(3) Use EXACT values from tool response - NEVER make up fake URLs/IDs\n(4) If tool fails, say 'Failed to create' - NEVER pretend it succeeded\n\nExample response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\nExample response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\nCreate a new product in WooCommerce",
+      "platform": "woocommerce",
+      "parameters": {
+        "name": {
+          "type": "string",
+          "description": "Product name"
+        },
+        "type": {
+          "type": "string",
+          "description": "Product type (simple, grouped, external, variable)",
+          "required": false,
+          "default": "simple"
+        },
+        "regular_price": {
+          "type": "string",
+          "description": "Product regular price"
+        },
+        "sale_price": {
+          "type": "string",
+          "description": "Product sale price",
+          "required": false
+        },
+        "description": {
+          "type": "string",
+          "description": "Product description (HTML allowed)",
+          "required": false
+        },
+        "short_description": {
+          "type": "string",
+          "description": "Product short description",
+          "required": false
+        },
+        "sku": {
+          "type": "string",
+          "description": "Unique SKU",
+          "required": false
+        },
+        "stock_quantity": {
+          "type": "integer",
+          "description": "Stock quantity",
+          "required": false
+        },
+        "manage_stock": {
+          "type": "boolean",
+          "description": "Enable stock management",
+          "required": false,
+          "default": false
+        },
+        "categories": {
+          "type": "array",
+          "description": "Array of category IDs",
+          "required": false
+        },
+        "images": {
+          "type": "array",
+          "description": "Array of image objects with src",
+          "required": false
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "Created product with ID"
+      }
+    },
+    {
+      "name": "woocommerce_update_product",
+      "short_description": "Update product price, stock, or details",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER reference previous edits from conversation history\n(2) MUST cite what was updated: 'Updated **[Resource Name]** (ID: `[id]`)'\n(3) Use EXACT [id] provided - NEVER make up IDs\n(4) If tool fails, say 'Failed to update' and explain why\n(5) Show before/after if applicable\n\nExample response:\nUpdated: **Document Title**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Changed: [what was changed]\n\nExample response:\nUpdated: **Document Title**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Changed: [what was changed]\n\nUpdate an existing product",
+      "platform": "woocommerce",
+      "parameters": {
+        "product_id": {
+          "type": "integer",
+          "description": "Product ID to update"
+        },
+        "name": {
+          "type": "string",
+          "description": "Product name",
+          "required": false
+        },
+        "regular_price": {
+          "type": "string",
+          "description": "Regular price",
+          "required": false
+        },
+        "sale_price": {
+          "type": "string",
+          "description": "Sale price",
+          "required": false
+        },
+        "stock_quantity": {
+          "type": "integer",
+          "description": "Stock quantity",
+          "required": false
+        },
+        "stock_status": {
+          "type": "string",
+          "description": "Stock status (instock, outofstock, onbackorder)",
+          "required": false
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "Updated product"
+      }
+    },
+    {
+      "name": "woocommerce_delete_product",
+      "short_description": "Delete product permanently or move to trash",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER pretend to delete from memory\n(2) MUST cite what was deleted: 'Deleted **[Resource Name]** (ID: `[id]`)'\n(3) CONFIRM deletion happened - don't assume success\n(4) If tool fails, say 'Failed to delete' and explain why\n\nExample response:\n✅ Deleted: **Old File**\n- ID: `abc123`\n- URL: https://example.com/file/abc123 (no longer accessible)\n\nExample response:\n✅ Deleted: **Old File**\n- ID: `abc123`\n- URL: https://example.com/file/abc123 (no longer accessible)\n\nDelete a product",
+      "platform": "woocommerce",
+      "parameters": {
+        "product_id": {
+          "type": "integer",
+          "description": "Product ID to delete"
+        },
+        "force": {
+          "type": "boolean",
+          "description": "Force delete (bypass trash)",
+          "required": false,
+          "default": false
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "Deletion confirmation"
+      }
+    },
+    {
+      "name": "woocommerce_get_customers",
+      "short_description": "List customers with search and role filters",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Read X from **[Resource Name]** (ID: `[id]` | URL: [url])'\n(3) Use EXACT [id] provided - NEVER substitute with different ID\n(4) If tool fails (404/403), say 'Failed to read [resource] ID: [id]' and explain error\n(5) NEVER make up data if read fails - acknowledge the failure clearly\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nList customers from store",
+      "platform": "woocommerce",
+      "parameters": {
+        "limit": {
+          "type": "integer",
+          "description": "Maximum number of customers (1-100)",
+          "required": false,
+          "default": 10
+        },
+        "page": {
+          "type": "integer",
+          "description": "Page number",
+          "required": false,
+          "default": 1
+        },
+        "search": {
+          "type": "string",
+          "description": "Search term",
+          "required": false
+        },
+        "email": {
+          "type": "string",
+          "description": "Filter by email",
+          "required": false
+        },
+        "role": {
+          "type": "string",
+          "description": "Filter by role (customer, subscriber, etc.)",
+          "required": false
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "List of customers"
+      }
+    },
+    {
+      "name": "woocommerce_get_customer",
+      "short_description": "Get single customer by ID with order history",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Read X from **[Resource Name]** (ID: `[id]` | URL: [url])'\n(3) Use EXACT [id] provided - NEVER substitute with different ID\n(4) If tool fails (404/403), say 'Failed to read [resource] ID: [id]' and explain error\n(5) NEVER make up data if read fails - acknowledge the failure clearly\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nGet a single customer by ID",
+      "platform": "woocommerce",
+      "parameters": {
+        "customer_id": {
+          "type": "integer",
+          "description": "Customer ID"
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "Customer details"
+      }
+    },
+    {
+      "name": "woocommerce_create_customer",
+      "short_description": "Create new customer with email and billing info",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) ALWAYS execute THIS tool NOW - NEVER reference 'I created earlier' or use conversation history\n(2) MUST return format: **[Name]** | ID: `[id]` | URL: [full_url] | Link: [title](url)\n(3) Use EXACT values from tool response - NEVER make up fake URLs/IDs\n(4) If tool fails, say 'Failed to create' - NEVER pretend it succeeded\n\nExample response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\nExample response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\nCreate a new customer",
+      "platform": "woocommerce",
+      "parameters": {
+        "email": {
+          "type": "string",
+          "description": "Customer email"
+        },
+        "first_name": {
+          "type": "string",
+          "description": "First name",
+          "required": false
+        },
+        "last_name": {
+          "type": "string",
+          "description": "Last name",
+          "required": false
+        },
+        "username": {
+          "type": "string",
+          "description": "Username",
+          "required": false
+        },
+        "password": {
+          "type": "string",
+          "description": "Password",
+          "required": false
+        },
+        "billing": {
+          "type": "object",
+          "description": "Billing address",
+          "required": false
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "Created customer"
+      }
+    },
+    {
+      "name": "woocommerce_get_categories",
+      "short_description": "List product categories with hierarchy",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Read X from **[Resource Name]** (ID: `[id]` | URL: [url])'\n(3) Use EXACT [id] provided - NEVER substitute with different ID\n(4) If tool fails (404/403), say 'Failed to read [resource] ID: [id]' and explain error\n(5) NEVER make up data if read fails - acknowledge the failure clearly\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nList product categories",
+      "platform": "woocommerce",
+      "parameters": {
+        "limit": {
+          "type": "integer",
+          "description": "Maximum number of categories",
+          "required": false,
+          "default": 10
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "List of categories"
+      }
+    },
+    {
+      "name": "woocommerce_create_category",
+      "short_description": "Create new product category with parent support",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) ALWAYS execute THIS tool NOW - NEVER reference 'I created earlier' or use conversation history\n(2) MUST return format: **[Name]** | ID: `[id]` | URL: [full_url] | Link: [title](url)\n(3) Use EXACT values from tool response - NEVER make up fake URLs/IDs\n(4) If tool fails, say 'Failed to create' - NEVER pretend it succeeded\n\nExample response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\nExample response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\nCreate a new product category",
+      "platform": "woocommerce",
+      "parameters": {
+        "name": {
+          "type": "string",
+          "description": "Category name"
+        },
+        "slug": {
+          "type": "string",
+          "description": "Category slug",
+          "required": false
+        },
+        "parent": {
+          "type": "integer",
+          "description": "Parent category ID",
+          "required": false
+        },
+        "description": {
+          "type": "string",
+          "description": "Category description",
+          "required": false
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "Created category"
+      }
+    },
+    {
+      "name": "woocommerce_get_coupons",
+      "short_description": "List discount coupons with code filters",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Read X from **[Resource Name]** (ID: `[id]` | URL: [url])'\n(3) Use EXACT [id] provided - NEVER substitute with different ID\n(4) If tool fails (404/403), say 'Failed to read [resource] ID: [id]' and explain error\n(5) NEVER make up data if read fails - acknowledge the failure clearly\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nList discount coupons",
+      "platform": "woocommerce",
+      "parameters": {
+        "limit": {
+          "type": "integer",
+          "description": "Maximum number of coupons",
+          "required": false,
+          "default": 10
+        },
+        "code": {
+          "type": "string",
+          "description": "Filter by coupon code",
+          "required": false
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "List of coupons"
+      }
+    },
+    {
+      "name": "woocommerce_create_coupon",
+      "short_description": "Create discount coupon (percent/fixed, usage limits)",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) ALWAYS execute THIS tool NOW - NEVER reference 'I created earlier' or use conversation history\n(2) MUST return format: **[Name]** | ID: `[id]` | URL: [full_url] | Link: [title](url)\n(3) Use EXACT values from tool response - NEVER make up fake URLs/IDs\n(4) If tool fails, say 'Failed to create' - NEVER pretend it succeeded\n\nExample response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\nExample response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\nCreate a new discount coupon",
+      "platform": "woocommerce",
+      "parameters": {
+        "code": {
+          "type": "string",
+          "description": "Coupon code"
+        },
+        "discount_type": {
+          "type": "string",
+          "description": "Discount type (percent, fixed_cart, fixed_product)"
+        },
+        "amount": {
+          "type": "string",
+          "description": "Discount amount"
+        },
+        "individual_use": {
+          "type": "boolean",
+          "description": "Allow coupon to be used alone",
+          "required": false
+        },
+        "usage_limit": {
+          "type": "integer",
+          "description": "Usage limit",
+          "required": false
+        },
+        "expiry_date": {
+          "type": "string",
+          "description": "Expiry date (YYYY-MM-DD)",
+          "required": false
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "Created coupon"
+      }
+    },
+    {
+      "name": "woocommerce_get_refunds",
+      "short_description": "List refunds for specific order",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Read X from **[Resource Name]** (ID: `[id]` | URL: [url])'\n(3) Use EXACT [id] provided - NEVER substitute with different ID\n(4) If tool fails (404/403), say 'Failed to read [resource] ID: [id]' and explain error\n(5) NEVER make up data if read fails - acknowledge the failure clearly\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nList refunds for an order",
+      "platform": "woocommerce",
+      "parameters": {
+        "order_id": {
+          "type": "integer",
+          "description": "Order ID"
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "List of refunds"
+      }
+    },
+    {
+      "name": "woocommerce_create_refund",
+      "short_description": "Create refund for order (full/partial, via gateway)",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) ALWAYS execute THIS tool NOW - NEVER reference 'I created earlier' or use conversation history\n(2) MUST return format: **[Name]** | ID: `[id]` | URL: [full_url] | Link: [title](url)\n(3) Use EXACT values from tool response - NEVER make up fake URLs/IDs\n(4) If tool fails, say 'Failed to create' - NEVER pretend it succeeded\n\nExample response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\nExample response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\nCreate a refund for an order",
+      "platform": "woocommerce",
+      "parameters": {
+        "order_id": {
+          "type": "integer",
+          "description": "Order ID"
+        },
+        "amount": {
+          "type": "string",
+          "description": "Refund amount",
+          "required": false
+        },
+        "reason": {
+          "type": "string",
+          "description": "Refund reason",
+          "required": false
+        },
+        "api_refund": {
+          "type": "boolean",
+          "description": "Process refund via payment gateway",
+          "required": false,
+          "default": true
+        },
+        "line_items": {
+          "type": "array",
+          "description": "Line items to refund",
+          "required": false
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "Created refund"
+      }
+    },
+    {
+      "name": "woocommerce_get_reports_sales",
+      "short_description": "Get sales reports with date range analytics",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Read X from **[Resource Name]** (ID: `[id]` | URL: [url])'\n(3) Use EXACT [id] provided - NEVER substitute with different ID\n(4) If tool fails (404/403), say 'Failed to read [resource] ID: [id]' and explain error\n(5) NEVER make up data if read fails - acknowledge the failure clearly\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nGet sales reports",
+      "platform": "woocommerce",
+      "parameters": {
+        "period": {
+          "type": "string",
+          "description": "Report period (day, week, month, year)",
+          "required": false,
+          "default": "week"
+        },
+        "date_min": {
+          "type": "string",
+          "description": "Start date (YYYY-MM-DD)",
+          "required": false
+        },
+        "date_max": {
+          "type": "string",
+          "description": "End date (YYYY-MM-DD)",
+          "required": false
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "Sales report data"
+      }
+    },
+    {
+      "name": "woocommerce_get_reports_top_sellers",
+      "short_description": "Get top selling products report by period",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Read X from **[Resource Name]** (ID: `[id]` | URL: [url])'\n(3) Use EXACT [id] provided - NEVER substitute with different ID\n(4) If tool fails (404/403), say 'Failed to read [resource] ID: [id]' and explain error\n(5) NEVER make up data if read fails - acknowledge the failure clearly\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nGet top selling products report",
+      "platform": "woocommerce",
+      "parameters": {
+        "period": {
+          "type": "string",
+          "description": "Report period",
+          "required": false,
+          "default": "week"
+        },
+        "limit": {
+          "type": "integer",
+          "description": "Number of products to return",
+          "required": false,
+          "default": 10
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "Top sellers data"
+      }
+    },
+    {
+      "name": "woocommerce_get_order_notes",
+      "short_description": "Get notes/comments for specific order",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Read X from **[Resource Name]** (ID: `[id]` | URL: [url])'\n(3) Use EXACT [id] provided - NEVER substitute with different ID\n(4) If tool fails (404/403), say 'Failed to read [resource] ID: [id]' and explain error\n(5) NEVER make up data if read fails - acknowledge the failure clearly\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nGet notes for an order",
+      "platform": "woocommerce",
+      "parameters": {
+        "order_id": {
+          "type": "integer",
+          "description": "Order ID"
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "List of order notes"
+      }
+    },
+    {
+      "name": "woocommerce_create_order_note",
+      "short_description": "Add note to order (internal or customer-visible)",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) ALWAYS execute THIS tool NOW - NEVER reference 'I created earlier' or use conversation history\n(2) MUST return format: **[Name]** | ID: `[id]` | URL: [full_url] | Link: [title](url)\n(3) Use EXACT values from tool response - NEVER make up fake URLs/IDs\n(4) If tool fails, say 'Failed to create' - NEVER pretend it succeeded\n\nExample response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\nExample response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\nAdd a note to an order",
+      "platform": "woocommerce",
+      "parameters": {
+        "order_id": {
+          "type": "integer",
+          "description": "Order ID"
+        },
+        "note": {
+          "type": "string",
+          "description": "Note content"
+        },
+        "customer_note": {
+          "type": "boolean",
+          "description": "Is customer note (visible to customer)",
+          "required": false,
+          "default": false
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "Created note"
+      }
+    },
+    {
+      "name": "woocommerce_get_shipping_zones",
+      "short_description": "List configured shipping zones and methods",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Read X from **[Resource Name]** (ID: `[id]` | URL: [url])'\n(3) Use EXACT [id] provided - NEVER substitute with different ID\n(4) If tool fails (404/403), say 'Failed to read [resource] ID: [id]' and explain error\n(5) NEVER make up data if read fails - acknowledge the failure clearly\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nList shipping zones",
+      "platform": "woocommerce",
+      "parameters": {},
+      "returns": {
+        "type": "object",
+        "description": "List of shipping zones"
+      }
+    },
+    {
+      "name": "woocommerce_get_payment_gateways",
+      "short_description": "List available payment gateways with settings",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Read X from **[Resource Name]** (ID: `[id]` | URL: [url])'\n(3) Use EXACT [id] provided - NEVER substitute with different ID\n(4) If tool fails (404/403), say 'Failed to read [resource] ID: [id]' and explain error\n(5) NEVER make up data if read fails - acknowledge the failure clearly\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nList available payment gateways",
+      "platform": "woocommerce",
+      "parameters": {},
+      "returns": {
+        "type": "object",
+        "description": "List of payment gateways with settings"
+      }
+    },
+    {
+      "name": "woocommerce_get_tax_rates",
+      "short_description": "List tax rates by class and location",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Read X from **[Resource Name]** (ID: `[id]` | URL: [url])'\n(3) Use EXACT [id] provided - NEVER substitute with different ID\n(4) If tool fails (404/403), say 'Failed to read [resource] ID: [id]' and explain error\n(5) NEVER make up data if read fails - acknowledge the failure clearly\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nList tax rates",
+      "platform": "woocommerce",
+      "parameters": {
+        "class": {
+          "type": "string",
+          "description": "Filter by tax class",
+          "required": false
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "List of tax rates"
+      }
+    },
+    {
+      "name": "woocommerce_get_webhooks",
+      "short_description": "List configured webhooks for events",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Read X from **[Resource Name]** (ID: `[id]` | URL: [url])'\n(3) Use EXACT [id] provided - NEVER substitute with different ID\n(4) If tool fails (404/403), say 'Failed to read [resource] ID: [id]' and explain error\n(5) NEVER make up data if read fails - acknowledge the failure clearly\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nList webhooks",
+      "platform": "woocommerce",
+      "parameters": {},
+      "returns": {
+        "type": "object",
+        "description": "List of configured webhooks"
+      }
+    },
+    {
+      "name": "woocommerce_create_webhook",
+      "short_description": "Create webhook for event notifications",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) ALWAYS execute THIS tool NOW - NEVER reference 'I created earlier' or use conversation history\n(2) MUST return format: **[Name]** | ID: `[id]` | URL: [full_url] | Link: [title](url)\n(3) Use EXACT values from tool response - NEVER make up fake URLs/IDs\n(4) If tool fails, say 'Failed to create' - NEVER pretend it succeeded\n\nExample response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\nExample response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\nCreate a new webhook",
+      "platform": "woocommerce",
+      "parameters": {
+        "name": {
+          "type": "string",
+          "description": "Webhook name"
+        },
+        "topic": {
+          "type": "string",
+          "description": "Webhook topic (e.g., order.created, product.updated)"
+        },
+        "delivery_url": {
+          "type": "string",
+          "description": "Delivery URL"
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "Created webhook"
+      }
+    },
+    {
+      "name": "woocommerce_get_system_status",
+      "short_description": "Get WooCommerce system status and diagnostics",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Read X from **[Resource Name]** (ID: `[id]` | URL: [url])'\n(3) Use EXACT [id] provided - NEVER substitute with different ID\n(4) If tool fails (404/403), say 'Failed to read [resource] ID: [id]' and explain error\n(5) NEVER make up data if read fails - acknowledge the failure clearly\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nGet WooCommerce system status",
+      "platform": "woocommerce",
+      "parameters": {},
+      "returns": {
+        "type": "object",
+        "description": "System status information"
+      }
+    }
+  ]
+}

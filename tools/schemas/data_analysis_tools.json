@@ -1,0 +1,565 @@
+{
+  "platform": "data_analysis",
+  "description": "Comprehensive data analysis toolkit with 3 security tiers. All tools use 'data_' prefix for easy discovery. Tier 1 (50-500ms): Predefined safe operations. Tier 2 (100ms-2s): Template-based calculations with RestrictedPython. Tier 3 (5-60s): Docker sandbox for advanced custom analysis.",
+  "tools": [
+    {
+      "name": "data_analyze_statistics",
+      "short_description": "TIER 1 fast statistics - summary, correlation, distribution, outliers, missing data",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Read X from **[Resource Name]** (ID: `[id]` | URL: [url])'\n(3) Use EXACT [id] provided - NEVER substitute with different ID\n(4) If tool fails (404/403), say 'Failed to read [resource] ID: [id]' and explain error\n(5) NEVER make up data if read fails - acknowledge the failure clearly\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nTIER 1 - FAST (50-200ms) - Comprehensive statistical analysis with 6 analysis types. Use for: summary statistics, correlation matrices, distribution analysis, outlier detection, missing value analysis, variance analysis. AI instructions: For simple statistics, use this tool first. For correlation, specify method (pearson/spearman/kendall) and set include_pvalues=true for significance testing. For outliers, choose method (zscore for normal distributions, iqr for skewed data).",
+      "platform": "data_analysis",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "data_source": {
+            "type": "string",
+            "description": "CSV file path, JSON string, or dict. Examples: 'sales.csv', '{\"Product\": [\"A\", \"B\"], \"Sales\": [100, 200]}'"
+          },
+          "analysis_type": {
+            "type": "string",
+            "description": "Type of statistical analysis: 'summary' (mean, median, std, min, max, quartiles), 'correlation' (Pearson/Spearman/Kendall correlation matrix), 'distribution' (skewness, kurtosis, normality tests), 'outliers' (Z-score or IQR outlier detection), 'missing' (missing value counts and percentages), 'variance' (variance, std dev, coefficient of variation)",
+            "enum": [
+              "summary",
+              "correlation",
+              "distribution",
+              "outliers",
+              "missing",
+              "variance"
+            ]
+          },
+          "columns": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Optional: Specific columns to analyze. If null, analyzes all numeric columns. Example: ['Sales', 'Revenue', 'Profit']"
+          },
+          "options": {
+            "type": "object",
+            "description": "Optional analysis-specific parameters. correlation: {'method': 'pearson|spearman|kendall', 'include_pvalues': true}. outliers: {'method': 'zscore|iqr', 'threshold': 3.0}. distribution: {'test_normality': true}"
+          }
+        },
+        "required": [
+          "data_source",
+          "analysis_type"
+        ]
+      },
+      "returns": {
+        "type": "object",
+        "description": "Analysis results with metadata including row count, column names, and numeric columns"
+      },
+      "examples": [
+        {
+          "description": "Get summary statistics for all numeric columns",
+          "parameters": {
+            "data_source": "sales_data.csv",
+            "analysis_type": "summary"
+          }
+        },
+        {
+          "description": "Calculate Pearson correlation with p-values",
+          "parameters": {
+            "data_source": "financial_data.csv",
+            "analysis_type": "correlation",
+            "columns": [
+              "Revenue",
+              "Cost",
+              "Profit"
+            ],
+            "options": {
+              "method": "pearson",
+              "include_pvalues": true
+            }
+          }
+        },
+        {
+          "description": "Detect outliers using IQR method",
+          "parameters": {
+            "data_source": "sensor_readings.csv",
+            "analysis_type": "outliers",
+            "options": {
+              "method": "iqr"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "data_run_hypothesis_test",
+      "short_description": "TIER 1 hypothesis testing - t-test, ANOVA, chi-square, Mann-Whitney, Kruskal",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Read X from **[Resource Name]** (ID: `[id]` | URL: [url])'\n(3) Use EXACT [id] provided - NEVER substitute with different ID\n(4) If tool fails (404/403), say 'Failed to read [resource] ID: [id]' and explain error\n(5) NEVER make up data if read fails - acknowledge the failure clearly\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nTIER 1 - FAST (50-300ms) - Statistical hypothesis testing with 7 test types. Use for: comparing groups (t-test, ANOVA), testing independence (chi-square), non-parametric tests (Mann-Whitney, Kruskal-Wallis, Wilcoxon), variance testing (F-test). AI instructions: For 2 groups, use t_test (parametric) or mann_whitney (non-parametric). For 3+ groups, use anova or kruskal. For categorical data, use chi_square. Always check if assumptions are met (normality, equal variance) before selecting test.",
+      "platform": "data_analysis",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "data_source": {
+            "type": "string",
+            "description": "CSV file path, JSON string, or dict containing test data"
+          },
+          "test_type": {
+            "type": "string",
+            "description": "Type of hypothesis test: 't_test' (independent/paired t-test for 2 groups), 'anova' (one-way/two-way ANOVA for 3+ groups), 'chi_square' (chi-square test of independence for categorical data), 'mann_whitney' (non-parametric alternative to t-test), 'kruskal' (non-parametric alternative to ANOVA), 'wilcoxon' (paired non-parametric test), 'f_test' (F-test for equality of variances)",
+            "enum": [
+              "t_test",
+              "anova",
+              "chi_square",
+              "mann_whitney",
+              "kruskal",
+              "wilcoxon",
+              "f_test"
+            ]
+          },
+          "groups": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Column names for grouping variables. For t_test/ANOVA: categorical column defining groups. For chi_square: two categorical columns. Example: ['Treatment'] for ANOVA, ['Gender', 'Outcome'] for chi-square"
+          },
+          "variables": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Column names for dependent/outcome variables. For t_test/ANOVA: continuous variable to compare. For wilcoxon: two paired variables. Example: ['Score'] for t-test, ['PreTest', 'PostTest'] for wilcoxon"
+          },
+          "options": {
+            "type": "object",
+            "description": "Test-specific options. t_test: {'paired': false, 'equal_var': true, 'alternative': 'two-sided'}. anova: {'type': 'one-way', 'post_hoc': 'tukey'}. chi_square: {'correction': true}"
+          }
+        },
+        "required": [
+          "data_source",
+          "test_type"
+        ]
+      },
+      "returns": {
+        "type": "object",
+        "description": "Test results including test statistic, p-value, significance indicator, and group-specific statistics"
+      },
+      "examples": [
+        {
+          "description": "Independent t-test comparing two treatment groups",
+          "parameters": {
+            "data_source": "clinical_trial.csv",
+            "test_type": "t_test",
+            "groups": [
+              "Treatment"
+            ],
+            "variables": [
+              "BloodPressure"
+            ],
+            "options": {
+              "equal_var": true,
+              "alternative": "two-sided"
+            }
+          }
+        },
+        {
+          "description": "One-way ANOVA with Tukey post-hoc",
+          "parameters": {
+            "data_source": "experiment.csv",
+            "test_type": "anova",
+            "groups": [
+              "Condition"
+            ],
+            "variables": [
+              "Response"
+            ],
+            "options": {
+              "post_hoc": "tukey"
+            }
+          }
+        },
+        {
+          "description": "Chi-square test of independence",
+          "parameters": {
+            "data_source": "survey.csv",
+            "test_type": "chi_square",
+            "groups": [
+              "Gender",
+              "Preference"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "data_create_aggregation",
+      "short_description": "TIER 1 data aggregation - sum, average, count with group by operations",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) ALWAYS execute THIS tool NOW - NEVER reference 'I created earlier' or use conversation history\n(2) MUST return format: **[Name]** | ID: `[id]` | URL: [full_url] | Link: [title](url)\n(3) Use EXACT values from tool response - NEVER make up fake URLs/IDs\n(4) If tool fails, say 'Failed to create' - NEVER pretend it succeeded\n\nExample response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\nTIER 1 - FAST (50-500ms) - Data aggregation and transformation with 6 aggregation types. Use for: pivot tables, group by operations, rolling averages, cumulative sums, time series resampling, cross-tabulation. AI instructions: For Excel-like pivot tables, use 'pivot' with values/index/columns in options. For group by with custom aggregations, use 'groupby'. For moving averages, use 'rolling' with window size. For cumulative metrics, use 'cumulative'. For time series data, use 'resample' with frequency (D=daily, W=weekly, M=monthly).",
+      "platform": "data_analysis",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "data_source": {
+            "type": "string",
+            "description": "CSV file path, JSON string, or dict containing data to aggregate"
+          },
+          "aggregation_type": {
+            "type": "string",
+            "description": "Type of aggregation: 'pivot' (pivot table with multi-level aggregations), 'groupby' (group by with custom aggregations), 'rolling' (moving averages, rolling sums, etc.), 'cumulative' (cumulative sums, products, max, min), 'resample' (time series resampling by date), 'crosstab' (cross-tabulation of two categorical variables)",
+            "enum": [
+              "pivot",
+              "groupby",
+              "rolling",
+              "cumulative",
+              "resample",
+              "crosstab"
+            ]
+          },
+          "group_by": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Columns to group by. For groupby: columns to group on. For crosstab: two categorical columns. Example: ['Product', 'Region'] for multi-level grouping"
+          },
+          "aggregations": {
+            "type": "object",
+            "description": "Dictionary mapping columns to aggregation functions. Single function: {'Sales': 'sum'}. Multiple functions: {'Sales': ['sum', 'mean', 'max'], 'Quantity': 'mean'}. Supported functions: sum, mean, median, min, max, std, var, count"
+          },
+          "options": {
+            "type": "object",
+            "description": "Aggregation-specific options. pivot: {'values': 'Sales', 'index': 'Product', 'columns': 'Region', 'aggfunc': 'sum'}. rolling: {'window': 7, 'min_periods': 1}. resample: {'freq': 'D|W|M|Y', 'method': 'sum'}. crosstab: {'normalize': false}"
+          }
+        },
+        "required": [
+          "data_source",
+          "aggregation_type"
+        ]
+      },
+      "returns": {
+        "type": "object",
+        "description": "Aggregated data with metadata including original row count and result row count"
+      },
+      "examples": [
+        {
+          "description": "Group by with multiple aggregations",
+          "parameters": {
+            "data_source": "sales.csv",
+            "aggregation_type": "groupby",
+            "group_by": [
+              "Product",
+              "Region"
+            ],
+            "aggregations": {
+              "Sales": "sum",
+              "Quantity": [
+                "mean",
+                "max"
+              ]
+            }
+          }
+        },
+        {
+          "description": "7-day rolling average",
+          "parameters": {
+            "data_source": "daily_sales.csv",
+            "aggregation_type": "rolling",
+            "aggregations": {
+              "Sales": "mean"
+            },
+            "options": {
+              "window": 7,
+              "min_periods": 1
+            }
+          }
+        },
+        {
+          "description": "Pivot table with sales by product and region",
+          "parameters": {
+            "data_source": "transactions.csv",
+            "aggregation_type": "pivot",
+            "options": {
+              "values": "Sales",
+              "index": "Product",
+              "columns": "Region",
+              "aggfunc": "sum"
+            }
+          }
+        },
+        {
+          "description": "Monthly resampling of daily data",
+          "parameters": {
+            "data_source": "timeseries.csv",
+            "aggregation_type": "resample",
+            "aggregations": {
+              "Sales": "sum",
+              "Orders": "count"
+            },
+            "options": {
+              "freq": "M"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "data_execute_calculation",
+      "short_description": "TIER 2 template calculations - RestrictedPython for safe custom formulas",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Read X from **[Resource Name]** (ID: `[id]` | URL: [url])'\n(3) Use EXACT [id] provided - NEVER substitute with different ID\n(4) If tool fails (404/403), say 'Failed to read [resource] ID: [id]' and explain error\n(5) NEVER make up data if read fails - acknowledge the failure clearly\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nTIER 2 - MODERATE (100-400ms) - Custom calculations using safe templates with RestrictedPython sandbox. Use for: adding calculated columns, applying formulas, conditional logic, VLOOKUP-style merges, percentage calculations, ranking. AI instructions: Use 'calculate_column' for simple formulas like 'Quantity * Price'. Use 'conditional' for if-then-else logic. Use 'lookup' for merging data from another source. Use 'apply_formula' for mathematical functions (sqrt, log, exp). Use 'custom' template ONLY when predefined templates cannot fulfill requirement (requires RestrictedPython).",
+      "platform": "data_analysis",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "data_source": {
+            "type": "string",
+            "description": "CSV file path, JSON string, or dict containing data for calculations"
+          },
+          "calculation_template": {
+            "type": "string",
+            "description": "Template for calculation: 'calculate_column' (add column with formula), 'apply_formula' (apply math function to column), 'conditional' (if-then-else logic), 'lookup' (VLOOKUP-style merge), 'percentage' (calculate percentages), 'ranking' (rank/percentile/quartile), 'custom' (execute custom pandas code via RestrictedPython)",
+            "enum": [
+              "calculate_column",
+              "apply_formula",
+              "conditional",
+              "lookup",
+              "percentage",
+              "ranking",
+              "custom"
+            ]
+          },
+          "parameters": {
+            "type": "object",
+            "description": "Template-specific parameters. calculate_column: {'new_column': 'Total', 'formula': 'Quantity * Price'}. apply_formula: {'column': 'Sales', 'operation': 'sqrt|log|log10|exp|abs|square|cube|reciprocal', 'new_column': 'Sales_Log'}. conditional: {'new_column': 'Category', 'condition': 'Sales > 1000', 'if_true': 'High', 'if_false': 'Low'}. lookup: {'lookup_data': 'products.csv', 'on': 'ProductID', 'columns': ['ProductName']}. percentage: {'column': 'Sales', 'new_column': 'SalesPct'}. ranking: {'column': 'Sales', 'method': 'dense|min|max|average', 'new_column': 'Rank', 'ascending': false}. custom: {'code': 'df[\"New\"] = df[\"A\"] + df[\"B\"]; result = df'}"
+          }
+        },
+        "required": [
+          "data_source",
+          "calculation_template",
+          "parameters"
+        ]
+      },
+      "returns": {
+        "type": "object",
+        "description": "Calculated data with new columns and metadata"
+      },
+      "examples": [
+        {
+          "description": "Calculate total as Quantity * Price",
+          "parameters": {
+            "data_source": "orders.csv",
+            "calculation_template": "calculate_column",
+            "parameters": {
+              "new_column": "Total",
+              "formula": "Quantity * Price"
+            }
+          }
+        },
+        {
+          "description": "Apply logarithm transformation",
+          "parameters": {
+            "data_source": "financial_data.csv",
+            "calculation_template": "apply_formula",
+            "parameters": {
+              "column": "Revenue",
+              "operation": "log",
+              "new_column": "LogRevenue"
+            }
+          }
+        },
+        {
+          "description": "Categorize based on condition",
+          "parameters": {
+            "data_source": "customers.csv",
+            "calculation_template": "conditional",
+            "parameters": {
+              "new_column": "Segment",
+              "condition": "Revenue > 10000",
+              "if_true": "Premium",
+              "if_false": "Standard"
+            }
+          }
+        },
+        {
+          "description": "VLOOKUP product names",
+          "parameters": {
+            "data_source": "transactions.csv",
+            "calculation_template": "lookup",
+            "parameters": {
+              "lookup_data": "products.csv",
+              "on": "ProductID",
+              "columns": [
+                "ProductName",
+                "Category"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "data_create_regression_model",
+      "short_description": "TIER 2 regression modeling - linear, polynomial, logistic with predictions",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) ALWAYS execute THIS tool NOW - NEVER reference 'I created earlier' or use conversation history\n(2) MUST return format: **[Name]** | ID: `[id]` | URL: [full_url] | Link: [title](url)\n(3) Use EXACT values from tool response - NEVER make up fake URLs/IDs\n(4) If tool fails, say 'Failed to create' - NEVER pretend it succeeded\n\nExample response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\nTIER 2 - MODERATE (200ms-2s) - Build statistical and machine learning regression models. Use for: linear regression, logistic regression, polynomial regression, ridge/lasso regression, random forest, time series forecasting. AI instructions: Use 'linear' for simple relationships. Use 'polynomial' when relationship is curved (specify degree). Use 'ridge' or 'lasso' for regularization when many predictors. Use 'random_forest' for complex non-linear patterns. Use 'time_series' for ARIMA forecasting. Set return_predictions=true to get predicted values. Check R-squared for model quality (>0.7 is good, >0.9 is excellent).",
+      "platform": "data_analysis",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "data_source": {
+            "type": "string",
+            "description": "CSV file path, JSON string, or dict containing training data"
+          },
+          "model_type": {
+            "type": "string",
+            "description": "Type of regression model: 'linear' (OLS linear regression, use for simple linear relationships), 'logistic' (classification, use for binary outcomes), 'polynomial' (polynomial regression, use for curved relationships), 'ridge' (ridge regression with L2 regularization, use when many correlated predictors), 'lasso' (lasso regression with L1 regularization, performs feature selection), 'random_forest' (random forest regression, use for complex non-linear patterns), 'time_series' (ARIMA time series forecasting)"
+          },
+          "target_variable": {
+            "type": "string",
+            "description": "Column name for dependent variable (y). This is what you're trying to predict. Example: 'Sales', 'Revenue', 'Price'"
+          },
+          "predictor_variables": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "List of column names for independent variables (X). These are the features used to predict the target. Example: ['Advertising', 'Price', 'Season']"
+          },
+          "options": {
+            "type": "object",
+            "description": "Model-specific options. polynomial: {'degree': 2|3}. ridge/lasso: {'alpha': 1.0} (higher=more regularization). random_forest: {'n_estimators': 100, 'max_depth': 10}. time_series: {'order': (1,1,1), 'forecast_steps': 10}. All models: {'return_predictions': true|false}"
+          }
+        },
+        "required": [
+          "data_source",
+          "model_type",
+          "target_variable",
+          "predictor_variables"
+        ]
+      },
+      "returns": {
+        "type": "object",
+        "description": "Model results including coefficients, R-squared, p-values, predictions (if requested), and model-specific metrics"
+      },
+      "examples": [
+        {
+          "description": "Simple linear regression predicting sales from advertising",
+          "parameters": {
+            "data_source": "marketing.csv",
+            "model_type": "linear",
+            "target_variable": "Sales",
+            "predictor_variables": [
+              "Advertising",
+              "Price"
+            ],
+            "options": {
+              "return_predictions": true
+            }
+          }
+        },
+        {
+          "description": "Ridge regression with multiple predictors",
+          "parameters": {
+            "data_source": "housing.csv",
+            "model_type": "ridge",
+            "target_variable": "Price",
+            "predictor_variables": [
+              "SquareFeet",
+              "Bedrooms",
+              "Bathrooms",
+              "Age"
+            ],
+            "options": {
+              "alpha": 0.5,
+              "return_predictions": false
+            }
+          }
+        },
+        {
+          "description": "Random forest for complex prediction",
+          "parameters": {
+            "data_source": "sales_data.csv",
+            "model_type": "random_forest",
+            "target_variable": "Revenue",
+            "predictor_variables": [
+              "Feature1",
+              "Feature2",
+              "Feature3",
+              "Feature4"
+            ],
+            "options": {
+              "n_estimators": 100,
+              "max_depth": 10,
+              "return_predictions": true
+            }
+          }
+        },
+        {
+          "description": "ARIMA time series forecast",
+          "parameters": {
+            "data_source": "monthly_sales.csv",
+            "model_type": "time_series",
+            "target_variable": "Sales",
+            "predictor_variables": [],
+            "options": {
+              "order": [
+                1,
+                1,
+                1
+              ],
+              "forecast_steps": 12
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "data_execute_advanced_analysis",
+      "short_description": "TIER 3 Docker sandbox - advanced custom Python analysis, ML, visualizations",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Read X from **[Resource Name]** (ID: `[id]` | URL: [url])'\n(3) Use EXACT [id] provided - NEVER substitute with different ID\n(4) If tool fails (404/403), say 'Failed to read [resource] ID: [id]' and explain error\n(5) NEVER make up data if read fails - acknowledge the failure clearly\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nTIER 3 - SLOW (5-60 seconds) - Execute arbitrary Python code in secure Docker sandbox. CRITICAL: AI MUST inform user BEFORE calling: 'Running advanced analysis in secure sandbox environment. This will take approximately 20-30 seconds for container initialization and execution...'. Use ONLY when Tier 1/2 tools cannot fulfill requirement. Use for: custom statistical models, complex machine learning pipelines, specialized algorithms, multi-step analysis workflows. Security: Complete Docker isolation, no network, 1GB RAM limit, CPU limit, automatic timeout. Available libraries: pandas, numpy, scipy, statsmodels, scikit-learn. Code must use 'df' variable for input and set 'result' variable for output.",
+      "platform": "data_analysis",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "data_source": {
+            "type": "string",
+            "description": "CSV file path, JSON string, or dict containing data for analysis"
+          },
+          "analysis_code": {
+            "type": "string",
+            "description": "Python code to execute in Docker sandbox. MUST use 'df' variable to access input DataFrame. MUST set 'result' variable with output (can be DataFrame, dict, list, or scalar). Example: df['Total'] = df['Qty'] * df['Price']; result = df.groupby('Product').sum(). Available libraries: pandas (import pd), numpy (import numpy as np), scipy.stats, statsmodels.api (import statsmodels.api as sm), sklearn (from sklearn.linear_model import LinearRegression)"
+          },
+          "timeout": {
+            "type": "integer",
+            "description": "Maximum execution time in seconds. Default: 60 seconds. Minimum: 5 seconds. Maximum: 300 seconds (5 minutes). Adjust based on data size and complexity. Simple analyses: 30-60s. Complex ML models: 120-180s. Large datasets: 180-300s.",
+            "default": 60
+          }
+        },
+        "required": [
+          "data_source",
+          "analysis_code"
+        ]
+      },
+      "returns": {
+        "type": "object",
+        "description": "Analysis results with execution metadata including container init time, data copy time, execution time, and total time"
+      },
+      "examples": [
+        {
+          "description": "Custom profit and ROI calculation with grouping",
+          "parameters": {
+            "data_source": "sales.csv",
+            "analysis_code": "import pandas as pd\nimport numpy as np\n\n# Calculate metrics\ndf['Profit'] = df['Revenue'] - df['Cost']\ndf['ROI'] = (df['Profit'] / df['Cost']) * 100\n\n# Group by product\nsummary = df.groupby('Product').agg({\n    'Profit': ['sum', 'mean', 'std'],\n    'ROI': 'mean'\n})\n\nresult = summary.to_dict()",
+            "timeout": 60
+          }
+        },
+        {
+          "description": "Random forest classification with metrics",
+          "parameters": {
+            "data_source": "training_data.csv",
+            "analysis_code": "from sklearn.ensemble import RandomForestClassifier\nfrom sklearn.model_selection import train_test_split\nfrom sklearn.metrics import accuracy_score, classification_report\nimport pandas as pd\n\n# Prepare data\nX = df[['Feature1', 'Feature2', 'Feature3', 'Feature4']]\ny = df['Target']\n\n# Split\nX_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)\n\n# Train\nmodel = RandomForestClassifier(n_estimators=100, random_state=42)\nmodel.fit(X_train, y_train)\n\n# Evaluate\npredictions = model.predict(X_test)\naccuracy = accuracy_score(y_test, predictions)\n\nresult = {\n    'accuracy': float(accuracy),\n    'feature_importances': dict(zip(X.columns, model.feature_importances_.tolist())),\n    'predictions': predictions.tolist()\n}",
+            "timeout": 120
+          }
+        },
+        {
+          "description": "ARIMA time series forecasting",
+          "parameters": {
+            "data_source": "monthly_data.csv",
+            "analysis_code": "from statsmodels.tsa.arima.model import ARIMA\nimport pandas as pd\n\n# Extract time series\nts = df['Sales']\n\n# Fit ARIMA model\nmodel = ARIMA(ts, order=(1,1,1))\nfitted = model.fit()\n\n# Forecast\nforecast = fitted.forecast(steps=12)\n\nresult = {\n    'forecast': forecast.tolist(),\n    'aic': float(fitted.aic),\n    'bic': float(fitted.bic),\n    'model_summary': str(fitted.summary())\n}",
+            "timeout": 90
+          }
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,321 @@
+{
+  "platform": "twilio_veterinary",
+  "description": "Twilio integration for veterinary practice phone system with AI answering, call routing, and emergency triage",
+  "tools": [
+    {
+      "name": "twilio_vet_answer_call",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Read X from **[Resource Name]** (ID: `[id]` | URL: [url])'\n(3) Use EXACT [id] provided - NEVER substitute with different ID\n(4) If tool fails (404/403), say 'Failed to read [resource] ID: [id]' and explain error\n(5) NEVER make up data if read fails - acknowledge the failure clearly\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nAI-powered phone answering for veterinary practice. Provides intelligent IVR menu with business hours detection, emergency routing, and appointment scheduling options. Returns TwiML for call flow control.",
+      "platform": "twilio_veterinary",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "to": {
+            "type": "string",
+            "description": "Calling phone number (E.164 format, e.g., +15555551234)"
+          },
+          "from_": {
+            "type": "string",
+            "description": "Practice phone number (Twilio number, E.164 format)"
+          },
+          "greeting_text": {
+            "type": "string",
+            "description": "Custom greeting message (optional, auto-generates based on time of day)"
+          },
+          "practice_name": {
+            "type": "string",
+            "description": "Name of veterinary practice (default: 'Veterinary Practice')"
+          },
+          "menu_enabled": {
+            "type": "boolean",
+            "description": "Enable IVR menu (true/false, default: true)"
+          },
+          "callback_url": {
+            "type": "string",
+            "description": "URL for TwiML callbacks (optional)"
+          }
+        },
+        "required": [
+          "to",
+          "from_"
+        ]
+      },
+      "returns": {
+        "type": "object",
+        "description": "Call details with TwiML, business hours status, and call_sid if outbound"
+      },
+      "examples": [
+        {
+          "description": "Answer incoming call during business hours",
+          "parameters": {
+            "to": "+15555551234",
+            "from_": "+15555559999",
+            "practice_name": "Happy Paws Veterinary Clinic",
+            "menu_enabled": true
+          }
+        }
+      ]
+    },
+    {
+      "name": "twilio_vet_route_call",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Read X from **[Resource Name]** (ID: `[id]` | URL: [url])'\n(3) Use EXACT [id] provided - NEVER substitute with different ID\n(4) If tool fails (404/403), say 'Failed to read [resource] ID: [id]' and explain error\n(5) NEVER make up data if read fails - acknowledge the failure clearly\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nIntelligent call routing to appropriate department or staff member. Routes based on department name (appointments, emergency, billing, vet_tech) or direct phone number. Supports priority levels (normal, high, emergency).",
+      "platform": "twilio_veterinary",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "call_sid": {
+            "type": "string",
+            "description": "Twilio call SID to route (format: CAxxxxxxxxxxxxx)"
+          },
+          "route_to": {
+            "type": "string",
+            "description": "Destination: department name (appointments/emergency/billing/vet_tech) or phone number"
+          },
+          "department": {
+            "type": "string",
+            "description": "Department name for display (optional)"
+          },
+          "priority": {
+            "type": "string",
+            "description": "Priority level: normal, high, or emergency (default: normal)",
+            "enum": [
+              "normal",
+              "high",
+              "emergency"
+            ]
+          }
+        },
+        "required": [
+          "call_sid",
+          "route_to"
+        ]
+      },
+      "returns": {
+        "type": "object",
+        "description": "Routing status with destination phone, department, and call status"
+      },
+      "examples": [
+        {
+          "description": "Route emergency call to vet on-call",
+          "parameters": {
+            "call_sid": "CA1234567890abcdef",
+            "route_to": "emergency",
+            "priority": "emergency"
+          }
+        }
+      ]
+    },
+    {
+      "name": "twilio_vet_handle_voicemail",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Read X from **[Resource Name]** (ID: `[id]` | URL: [url])'\n(3) Use EXACT [id] provided - NEVER substitute with different ID\n(4) If tool fails (404/403), say 'Failed to read [resource] ID: [id]' and explain error\n(5) NEVER make up data if read fails - acknowledge the failure clearly\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nProcess voicemail recording with transcription and AI analysis. Detects emergency keywords and sends urgent notifications. Transcribes voicemail content for follow-up.",
+      "platform": "twilio_veterinary",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "call_sid": {
+            "type": "string",
+            "description": "Twilio call SID (format: CAxxxxxxxxxxxxx)"
+          },
+          "recording_url": {
+            "type": "string",
+            "description": "URL to voicemail recording (optional, auto-fetched if not provided)"
+          },
+          "transcription_text": {
+            "type": "string",
+            "description": "Pre-transcribed text (optional)"
+          },
+          "caller_phone": {
+            "type": "string",
+            "description": "Caller's phone number (E.164 format)"
+          }
+        },
+        "required": [
+          "call_sid"
+        ]
+      },
+      "returns": {
+        "type": "object",
+        "description": "Voicemail details with transcription, emergency flag, and notification status"
+      },
+      "examples": [
+        {
+          "description": "Process voicemail with emergency detection",
+          "parameters": {
+            "call_sid": "CA1234567890abcdef",
+            "caller_phone": "+15555551234",
+            "transcription_text": "My dog is bleeding heavily after being hit by a car"
+          }
+        }
+      ]
+    },
+    {
+      "name": "twilio_vet_schedule_callback",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Read X from **[Resource Name]** (ID: `[id]` | URL: [url])'\n(3) Use EXACT [id] provided - NEVER substitute with different ID\n(4) If tool fails (404/403), say 'Failed to read [resource] ID: [id]' and explain error\n(5) NEVER make up data if read fails - acknowledge the failure clearly\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nSchedule callback request via SMS with confirmation. Sends SMS to client confirming callback time and allows reply to confirm/reschedule.",
+      "platform": "twilio_veterinary",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "phone": {
+            "type": "string",
+            "description": "Client phone number (E.164 format, e.g., +15555551234)"
+          },
+          "preferred_time": {
+            "type": "string",
+            "description": "Preferred callback time (e.g., '2:00 PM today', 'tomorrow morning')"
+          },
+          "reason": {
+            "type": "string",
+            "description": "Reason for callback (optional, e.g., 'prescription refill')"
+          },
+          "patient_name": {
+            "type": "string",
+            "description": "Pet's name (optional)"
+          }
+        },
+        "required": [
+          "phone",
+          "preferred_time"
+        ]
+      },
+      "returns": {
+        "type": "object",
+        "description": "Scheduled callback details with SMS message_sid and status"
+      },
+      "examples": [
+        {
+          "description": "Schedule callback for prescription refill",
+          "parameters": {
+            "phone": "+15555551234",
+            "preferred_time": "2:00 PM today",
+            "reason": "prescription refill",
+            "patient_name": "Max"
+          }
+        }
+      ]
+    },
+    {
+      "name": "twilio_vet_send_appointment_reminder",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) ALWAYS execute THIS tool NOW - NEVER reference 'I created earlier' or use conversation history\n(2) MUST return format: **[Name]** | ID: `[id]` | URL: [full_url] | Link: [title](url)\n(3) Use EXACT values from tool response - NEVER make up fake URLs/IDs\n(4) If tool fails, say 'Failed to create' - NEVER pretend it succeeded\n\nExample response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\nSend automated appointment reminder via SMS. Includes date, time, veterinarian name, and allows reply to confirm/cancel. Supports scheduled sending (hours_before parameter).",
+      "platform": "twilio_veterinary",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "phone": {
+            "type": "string",
+            "description": "Client phone number (E.164 format, e.g., +15555551234)"
+          },
+          "appointment_details": {
+            "type": "object",
+            "description": "Appointment information",
+            "properties": {
+              "date": {
+                "type": "string",
+                "description": "Appointment date (e.g., 'Monday, Nov 25')"
+              },
+              "time": {
+                "type": "string",
+                "description": "Appointment time (e.g., '2:30 PM')"
+              },
+              "patient_name": {
+                "type": "string",
+                "description": "Pet's name"
+              },
+              "vet_name": {
+                "type": "string",
+                "description": "Veterinarian's name"
+              },
+              "practice_name": {
+                "type": "string",
+                "description": "Practice name"
+              }
+            },
+            "required": [
+              "date",
+              "time"
+            ]
+          },
+          "hours_before": {
+            "type": "integer",
+            "description": "Hours before appointment to send reminder (default: 24)"
+          }
+        },
+        "required": [
+          "phone",
+          "appointment_details"
+        ]
+      },
+      "returns": {
+        "type": "object",
+        "description": "Reminder status with message_sid and delivery details"
+      },
+      "examples": [
+        {
+          "description": "Send 24-hour appointment reminder",
+          "parameters": {
+            "phone": "+15555551234",
+            "appointment_details": {
+              "date": "Monday, Nov 25",
+              "time": "2:30 PM",
+              "patient_name": "Bella",
+              "vet_name": "Dr. Smith",
+              "practice_name": "Happy Paws Clinic"
+            },
+            "hours_before": 24
+          }
+        }
+      ]
+    },
+    {
+      "name": "twilio_vet_emergency_triage",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Read X from **[Resource Name]** (ID: `[id]` | URL: [url])'\n(3) Use EXACT [id] provided - NEVER substitute with different ID\n(4) If tool fails (404/403), say 'Failed to read [resource] ID: [id]' and explain error\n(5) NEVER make up data if read fails - acknowledge the failure clearly\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nAI-powered emergency triage assessment. Analyzes symptoms, assigns triage level (CRITICAL/URGENT/ROUTINE), and routes accordingly. Detects emergency keywords (bleeding, seizure, poisoned, etc.) and provides immediate routing to emergency hotline if critical.",
+      "platform": "twilio_veterinary",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "call_sid": {
+            "type": "string",
+            "description": "Twilio call SID (format: CAxxxxxxxxxxxxx)"
+          },
+          "symptoms": {
+            "type": "string",
+            "description": "Described symptoms from caller (e.g., 'vomiting, lethargic, not eating')"
+          },
+          "pet_species": {
+            "type": "string",
+            "description": "Dog, cat, bird, etc. (optional)"
+          },
+          "pet_age": {
+            "type": "string",
+            "description": "Pet's age (optional, e.g., '3 years')"
+          }
+        },
+        "required": [
+          "call_sid",
+          "symptoms"
+        ]
+      },
+      "returns": {
+        "type": "object",
+        "description": "Triage assessment with level, recommended action, wait time, and routing TwiML"
+      },
+      "examples": [
+        {
+          "description": "Triage emergency call",
+          "parameters": {
+            "call_sid": "CA1234567890abcdef",
+            "symptoms": "dog hit by car, bleeding heavily, unconscious",
+            "pet_species": "dog",
+            "pet_age": "5 years"
+          }
+        },
+        {
+          "description": "Triage routine symptoms",
+          "parameters": {
+            "call_sid": "CA1234567890abcdef",
+            "symptoms": "limping slightly after playing at park",
+            "pet_species": "dog"
+          }
+        }
+      ]
+    }
+  ]
+}

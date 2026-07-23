@@ -1,0 +1,39 @@
+{
+  "platform": "tavily",
+  "description": "Tavily recursive website crawl. Starting from a URL, follows internal links up to a depth limit and returns clean text from each page. Use for reading documentation sites, knowledge bases, or any multi-page resource.",
+  "tools": [
+    {
+      "name": "tavily_crawl",
+      "short_description": "Recursively crawl a website starting from a URL - reads multiple pages up to a depth/limit",
+      "description": "Crawl a website starting from the given URL, following internal links. Returns clean text content from each page visited. Use for documentation sites, knowledge bases, or any resource that spans multiple pages. NOTE: Tavily's /crawl endpoint is currently invite-only - if it returns 402/403, fall back to tavily_map (to discover the site structure) followed by tavily_extract (to read specific pages). For a single page, use tavily_extract. For just discovering URLs without reading them, use tavily_map.",
+      "platform": "tavily",
+      "parameters": {
+        "url": {
+          "type": "string",
+          "description": "The starting URL to crawl. Must be http or https."
+        },
+        "max_depth": {
+          "type": "integer",
+          "description": "How many link-hops to follow from the starting URL (1-5). Higher = more pages, larger response.",
+          "required": false,
+          "default": 2
+        },
+        "limit": {
+          "type": "integer",
+          "description": "Maximum number of pages to crawl (1-50).",
+          "required": false,
+          "default": 10
+        },
+        "instructions": {
+          "type": "string",
+          "description": "Optional natural-language guidance for the crawler (e.g. 'focus on API reference pages', 'skip blog posts').",
+          "required": false
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "Crawl results with url and raw_content for each page visited"
+      }
+    }
+  ]
+}

@@ -1,0 +1,122 @@
+{
+  "platform": "github",
+  "description": "GitHub repository and code management tools",
+  "tools": [
+    {
+      "name": "github_create_repo",
+      "short_description": "Create new GitHub repository - set name, description, public/private",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) ALWAYS execute THIS tool NOW - NEVER reference 'I created earlier' or use conversation history\n(2) MUST return format: **[Name]** | ID: `[id]` | URL: [full_url] | Link: [title](url)\n(3) Use EXACT values from tool response - NEVER make up fake URLs/IDs\n(4) If tool fails, say 'Failed to create' - NEVER pretend it succeeded\n\nExample response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\nExample response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\nCreate a new GitHub repository",
+      "platform": "github",
+      "parameters": {
+        "name": {
+          "type": "string",
+          "description": "Repository name"
+        },
+        "description": {
+          "type": "string",
+          "description": "Repository description",
+          "required": false
+        },
+        "private": {
+          "type": "boolean",
+          "description": "Make repository private",
+          "required": false,
+          "default": false
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "Created repository details with clone URL"
+      }
+    },
+    {
+      "name": "github_commit_file",
+      "short_description": "Commit file to GitHub repo - push content with commit message",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Read X from **[Resource Name]** (ID: `[id]` | URL: [url])'\n(3) Use EXACT [id] provided - NEVER substitute with different ID\n(4) If tool fails (404/403), say 'Failed to read [resource] ID: [id]' and explain error\n(5) NEVER make up data if read fails - acknowledge the failure clearly\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nCommit a file to a GitHub repository",
+      "platform": "github",
+      "parameters": {
+        "repo": {
+          "type": "string",
+          "description": "Repository name (owner/repo)"
+        },
+        "file_path": {
+          "type": "string",
+          "description": "Path within repository"
+        },
+        "content": {
+          "type": "string",
+          "description": "File content"
+        },
+        "message": {
+          "type": "string",
+          "description": "Commit message"
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "Commit details with SHA"
+      }
+    },
+    {
+      "name": "github_create_pr",
+      "short_description": "Create GitHub pull request - merge head branch to base with title/description",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) ALWAYS execute THIS tool NOW - NEVER reference 'I created earlier' or use conversation history\n(2) MUST return format: **[Name]** | ID: `[id]` | URL: [full_url] | Link: [title](url)\n(3) Use EXACT values from tool response - NEVER make up fake URLs/IDs\n(4) If tool fails, say 'Failed to create' - NEVER pretend it succeeded\n\nExample response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\nExample response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\nCreate a pull request",
+      "platform": "github",
+      "parameters": {
+        "repo": {
+          "type": "string",
+          "description": "Repository name (owner/repo)"
+        },
+        "title": {
+          "type": "string",
+          "description": "PR title"
+        },
+        "head": {
+          "type": "string",
+          "description": "Head branch"
+        },
+        "base": {
+          "type": "string",
+          "description": "Base branch"
+        },
+        "body": {
+          "type": "string",
+          "description": "PR description",
+          "required": false
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "Created PR with number and URL"
+      }
+    },
+    {
+      "name": "github_get_issues",
+      "short_description": "List GitHub repository issues - filter by state (open/closed/all), limit results",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Read X from **[Resource Name]** (ID: `[id]` | URL: [url])'\n(3) Use EXACT [id] provided - NEVER substitute with different ID\n(4) If tool fails (404/403), say 'Failed to read [resource] ID: [id]' and explain error\n(5) NEVER make up data if read fails - acknowledge the failure clearly\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nList issues from a repository",
+      "platform": "github",
+      "parameters": {
+        "repo": {
+          "type": "string",
+          "description": "Repository name (owner/repo)"
+        },
+        "state": {
+          "type": "string",
+          "description": "Issue state: 'open', 'closed', or 'all'",
+          "required": false,
+          "default": "open"
+        },
+        "limit": {
+          "type": "integer",
+          "description": "Maximum number of issues",
+          "required": false,
+          "default": 30
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "List of issues"
+      }
+    }
+  ]
+}

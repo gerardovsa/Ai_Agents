@@ -1,0 +1,580 @@
+{
+  "platform": "pinecone",
+  "description": "Pinecone vector database operations - cloud-based semantic search and similarity matching",
+  "tools": [
+    {
+      "name": "pinecone_query_vectors",
+      "short_description": "Search Pinecone vector database for semantically similar documents by text or vector",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Read X from **[Resource Name]** (ID: `[id]` | URL: [url])'\n(3) Use EXACT [id] provided - NEVER substitute with different ID\n(4) If tool fails (404/403), say 'Failed to read [resource] ID: [id]' and explain error\n(5) NEVER make up data if read fails - acknowledge the failure clearly\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nQuery vectors from Pinecone index for semantic search. Returns most similar vectors based on query text or vector. Use this when AI needs to find relevant documents/content from the vector database based on user queries.",
+      "platform": "pinecone",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "query_text": {
+            "type": "string",
+            "description": "Text to search for (will be embedded automatically)"
+          },
+          "query_vector": {
+            "type": "array",
+            "items": {
+              "type": "number"
+            },
+            "description": "Pre-computed query vector (1536 dimensions for ada-002)"
+          },
+          "top_k": {
+            "type": "integer",
+            "description": "Number of results to return (default: 4, max: 100)",
+            "default": 4
+          },
+          "namespace": {
+            "type": "string",
+            "description": "Namespace to query (optional, empty = default namespace)"
+          },
+          "filter": {
+            "type": "object",
+            "description": "Metadata filter (e.g., {'docType': 'pdf', 'author': 'John'})"
+          },
+          "include_metadata": {
+            "type": "boolean",
+            "description": "Include metadata in results (default: true)",
+            "default": true
+          },
+          "include_values": {
+            "type": "boolean",
+            "description": "Include vector values in results (default: false)",
+            "default": false
+          }
+        },
+        "required": []
+      },
+      "returns": {
+        "type": "object",
+        "description": "Query results with matches, scores, and metadata"
+      },
+      "examples": [
+        {
+          "description": "Search for documents about AI",
+          "parameters": {
+            "query_text": "artificial intelligence and machine learning",
+            "top_k": 5
+          }
+        }
+      ]
+    },
+    {
+      "name": "pinecone_upsert_vectors",
+      "short_description": "Insert or update vectors in Pinecone index with embeddings and metadata",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Read X from **[Resource Name]** (ID: `[id]` | URL: [url])'\n(3) Use EXACT [id] provided - NEVER substitute with different ID\n(4) If tool fails (404/403), say 'Failed to read [resource] ID: [id]' and explain error\n(5) NEVER make up data if read fails - acknowledge the failure clearly\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nUpsert (insert or update) vectors into Pinecone index. Use this to add new documents/embeddings to the vector database. Supports batch operations for efficiency.",
+      "platform": "pinecone",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "vectors": {
+            "type": "array",
+            "description": "Array of vector objects with id, values, and metadata",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "description": "Unique vector ID"
+                },
+                "values": {
+                  "type": "array",
+                  "items": {
+                    "type": "number"
+                  },
+                  "description": "Vector values (1536 dimensions for ada-002)"
+                },
+                "metadata": {
+                  "type": "object",
+                  "description": "Associated metadata (searchable)"
+                }
+              }
+            }
+          },
+          "namespace": {
+            "type": "string",
+            "description": "Namespace to upsert into (optional)"
+          }
+        },
+        "required": [
+          "vectors"
+        ]
+      },
+      "returns": {
+        "type": "object",
+        "description": "Upsert confirmation with count"
+      }
+    },
+    {
+      "name": "pinecone_delete_vectors",
+      "short_description": "Delete vectors from Pinecone index by ID, filter, or namespace",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER pretend to delete from memory\n(2) MUST cite what was deleted: 'Deleted **[Resource Name]** (ID: `[id]`)'\n(3) CONFIRM deletion happened - don't assume success\n(4) If tool fails, say 'Failed to delete' and explain why\n\nExample response:\n✅ Deleted: **Old File**\n- ID: `abc123`\n- URL: https://example.com/file/abc123 (no longer accessible)\n\nDelete vectors from Pinecone index by ID, filter, or delete all in namespace. Use this to remove outdated or unwanted documents from the vector database.",
+      "platform": "pinecone",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "ids": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Array of vector IDs to delete"
+          },
+          "delete_all": {
+            "type": "boolean",
+            "description": "Delete all vectors in namespace (use with caution!)",
+            "default": false
+          },
+          "namespace": {
+            "type": "string",
+            "description": "Namespace to delete from (required if delete_all=true)"
+          },
+          "filter": {
+            "type": "object",
+            "description": "Metadata filter to delete matching vectors"
+          }
+        },
+        "required": []
+      },
+      "returns": {
+        "type": "object",
+        "description": "Deletion confirmation"
+      }
+    },
+    {
+      "name": "pinecone_fetch_vectors",
+      "short_description": "Fetch specific vectors from Pinecone by ID with metadata and values",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Read X from **[Resource Name]** (ID: `[id]` | URL: [url])'\n(3) Use EXACT [id] provided - NEVER substitute with different ID\n(4) If tool fails (404/403), say 'Failed to read [resource] ID: [id]' and explain error\n(5) NEVER make up data if read fails - acknowledge the failure clearly\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nFetch specific vectors by ID from Pinecone index. Use this to retrieve exact vectors when you know their IDs.",
+      "platform": "pinecone",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "ids": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Array of vector IDs to fetch"
+          },
+          "namespace": {
+            "type": "string",
+            "description": "Namespace to fetch from (optional)"
+          }
+        },
+        "required": [
+          "ids"
+        ]
+      },
+      "returns": {
+        "type": "object",
+        "description": "Fetched vectors with metadata"
+      }
+    },
+    {
+      "name": "pinecone_update_vector",
+      "short_description": "Update vector values or metadata in Pinecone index by ID",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER reference previous edits from conversation history\n(2) MUST cite what was updated: 'Updated **[Resource Name]** (ID: `[id]`)'\n(3) Use EXACT [id] provided - NEVER make up IDs\n(4) If tool fails, say 'Failed to update' and explain why\n(5) Show before/after if applicable\n\nExample response:\nUpdated: **Document Title**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Changed: [what was changed]\n\nUpdate a vector's values or metadata in Pinecone index. Use this to modify existing vectors without re-upserting.",
+      "platform": "pinecone",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Vector ID to update"
+          },
+          "values": {
+            "type": "array",
+            "items": {
+              "type": "number"
+            },
+            "description": "New vector values (optional)"
+          },
+          "metadata": {
+            "type": "object",
+            "description": "New metadata (optional, merges with existing)"
+          },
+          "namespace": {
+            "type": "string",
+            "description": "Namespace containing the vector (optional)"
+          }
+        },
+        "required": [
+          "id"
+        ]
+      },
+      "returns": {
+        "type": "object",
+        "description": "Update confirmation"
+      }
+    },
+    {
+      "name": "pinecone_describe_index_stats",
+      "short_description": "Get Pinecone index statistics with total vectors, dimensions, and namespace counts",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Read X from **[Resource Name]** (ID: `[id]` | URL: [url])'\n(3) Use EXACT [id] provided - NEVER substitute with different ID\n(4) If tool fails (404/403), say 'Failed to read [resource] ID: [id]' and explain error\n(5) NEVER make up data if read fails - acknowledge the failure clearly\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nGet statistics about the Pinecone index including total vectors, dimensions, and namespace breakdown. Use this to check database status and capacity.",
+      "platform": "pinecone",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "filter": {
+            "type": "object",
+            "description": "Optional metadata filter for stats"
+          }
+        },
+        "required": []
+      },
+      "returns": {
+        "type": "object",
+        "description": "Index statistics including total vectors, dimensions, namespaces"
+      }
+    },
+    {
+      "name": "pinecone_list_namespaces",
+      "short_description": "List all Pinecone namespaces (folders) with vector counts and metadata",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Read X from **[Resource Name]** (ID: `[id]` | URL: [url])'\n(3) Use EXACT [id] provided - NEVER substitute with different ID\n(4) If tool fails (404/403), say 'Failed to read [resource] ID: [id]' and explain error\n(5) NEVER make up data if read fails - acknowledge the failure clearly\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nList all namespaces in the Pinecone index with vector counts. Use this to see how documents are organized in the vector database.",
+      "platform": "pinecone",
+      "parameters": {
+        "type": "object",
+        "properties": {},
+        "required": []
+      },
+      "returns": {
+        "type": "object",
+        "description": "List of namespaces with metadata"
+      }
+    },
+    {
+      "name": "vector_db_upload_document",
+      "short_description": "Upload document to Pinecone with hybrid search, chunking, and embedding generation",
+      "description": "🚀 ENHANCED: Upload document with HYBRID SEARCH support (dense + sparse vectors), user ownership tagging, hierarchical categorization, and flexible tag system.\n\n🚨 CRITICAL EXECUTION RULES:\n(1) ALWAYS execute THIS tool NOW - NEVER reference 'I created earlier' or use conversation history\n(2) MUST return format: **[Name]** | ID: `[id]` | Category: [category] | Namespace: [namespace]\n(3) Use EXACT values from tool response - NEVER make up fake URLs/IDs\n(4) If tool fails, say 'Failed to upload' - NEVER pretend it succeeded\n\n🎯 NEW FEATURES:\n- **Sparse Vectors**: Automatic TF-IDF generation for keyword matching\n- **User Ownership**: owner_user_id metadata for data isolation\n- **Categorization**: Hierarchical category/subcategory system\n- **Tags**: Flexible tag array for organization\n- **Visibility Control**: user (private), global (public), team access\n\nEXAMPLE:\n```\nUpload: contract_2024.pdf\nCategory: legal | Subcategory: contracts | Tags: ['important', '2024']\nVisibility: user (private)\nResult: 45 vectors in user_42_legal namespace with hybrid search enabled\n```\n\nUpload and process a document into the vector database. Handles text extraction, chunking, dense+sparse embedding generation, and upsert to Pinecone. Supports PDF, TXT, MD, DOCX formats.",
+      "platform": "pinecone",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "file_path": {
+            "type": "string",
+            "description": "Path to document file (REQUIRED)"
+          },
+          "filename": {
+            "type": "string",
+            "description": "Original filename (REQUIRED)"
+          },
+          "chunk_size": {
+            "type": "integer",
+            "description": "Text chunk size in characters (default: 800)",
+            "default": 800
+          },
+          "chunk_overlap": {
+            "type": "integer",
+            "description": "Overlap between chunks in characters (default: 20)",
+            "default": 20
+          },
+          "namespace": {
+            "type": "string",
+            "description": "Pinecone namespace (default: user_{user_id}_{category})"
+          },
+          "category": {
+            "type": "string",
+            "description": "Document category for organization (default: 'general') - Examples: 'legal', 'finance', 'marketing', 'hr', 'engineering'",
+            "default": "general"
+          },
+          "subcategory": {
+            "type": "string",
+            "description": "Document subcategory (optional) - Examples: 'contracts', 'invoices', 'campaigns', 'policies'"
+          },
+          "tags": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "List of tags for flexible organization (optional) - Examples: ['important', '2024', 'confidential', 'archived']"
+          },
+          "visibility": {
+            "type": "string",
+            "enum": [
+              "user",
+              "global",
+              "team"
+            ],
+            "description": "Access control: 'user' (private, owner only), 'global' (public, all users), 'team' (team members) - Default: 'user'",
+            "default": "user"
+          }
+        },
+        "required": [
+          "file_path",
+          "filename"
+        ]
+      },
+      "returns": {
+        "type": "object",
+        "description": "Upload result with vector count, document ID, namespace, hybrid search status, and metadata"
+      }
+    },
+    {
+      "name": "pinecone_query_namespaces",
+      "short_description": "Search multiple Pinecone namespaces in parallel with hybrid semantic and keyword matching",
+      "description": "🚀 NEW TOOL: Query multiple namespaces (folders) in parallel and aggregate results. **HYBRID SEARCH**: Automatically generates sparse vectors from query text for keyword matching alongside semantic search.\n\nUSE CASES:\n- Search across multiple document categories simultaneously\n- User searches 'legal' and 'finance' folders at once\n- Cross-category document discovery\n- Find documents matching both keywords AND semantic meaning\n\nFEATURES:\n- Parallel namespace queries with aggregation\n- Automatic sparse vector generation (TF-IDF-based)\n- User ownership filtering (only returns user's documents)\n- Hybrid search (dense semantic + sparse keyword vectors)\n\nEXAMPLE:\n```\nQuery: 'contract amendments from 2024'\nNamespaces: ['user_42_legal', 'user_42_finance']\nResult: Top 10 results sorted by relevance across both folders\n```",
+      "platform": "pinecone",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "query_text": {
+            "type": "string",
+            "description": "Natural language query (will generate dense + sparse vectors)"
+          },
+          "namespaces": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "List of namespace names to search (empty = all user's namespaces)"
+          },
+          "metric": {
+            "type": "string",
+            "enum": [
+              "cosine",
+              "euclidean",
+              "dotproduct"
+            ],
+            "description": "Similarity metric (default: cosine)",
+            "default": "cosine"
+          },
+          "top_k": {
+            "type": "integer",
+            "description": "Results per namespace before aggregation (default: 10)",
+            "default": 10
+          },
+          "filter": {
+            "type": "object",
+            "description": "Metadata filter (e.g., {'category': {'$eq': 'legal'}, 'year': {'$gte': 2024}})"
+          },
+          "include_metadata": {
+            "type": "boolean",
+            "description": "Include document metadata (default: true)",
+            "default": true
+          },
+          "include_values": {
+            "type": "boolean",
+            "description": "Include vector values (default: false)",
+            "default": false
+          }
+        },
+        "required": [
+          "query_text"
+        ]
+      },
+      "returns": {
+        "type": "object",
+        "description": "Aggregated results from all namespaces with scores, metadata, and hybrid search indicators"
+      }
+    },
+    {
+      "name": "pinecone_fetch_by_metadata",
+      "short_description": "Fetch Pinecone vectors by metadata filters for compliance and bulk operations",
+      "description": "🔍 NEW TOOL: Fetch vectors by metadata filter WITHOUT generating query embeddings. Pure metadata-based retrieval for data export, compliance auditing, and bulk operations.\n\nUSE CASES:\n- Find all documents by category: 'Get all legal documents'\n- Filter by date range: 'Documents uploaded in 2024'\n- Multi-field queries: 'PDFs by author John in finance category'\n- Compliance auditing: 'All documents tagged as confidential'\n- Data export: 'Export all vectors with specific tag'\n\nFILTER OPERATORS:\n- $eq: Equals (e.g., {'category': {'$eq': 'legal'}})\n- $ne: Not equals\n- $gt/$gte: Greater than (or equal)\n- $lt/$lte: Less than (or equal)\n- $in: In array (e.g., {'author': {'$in': ['John', 'Jane']}})\n- $nin: Not in array\n- $exists: Field exists\n\nEXAMPLE:\n```\nFilter: {'category': {'$eq': 'legal'}, 'year': {'$gte': 2024}, 'author': {'$in': ['John', 'Jane']}}\nResult: All legal documents from 2024 by John or Jane\n```",
+      "platform": "pinecone",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "filter": {
+            "type": "object",
+            "description": "Metadata filter with operators (REQUIRED)"
+          },
+          "namespace": {
+            "type": "string",
+            "description": "Target namespace (default: user's default namespace)"
+          },
+          "limit": {
+            "type": "integer",
+            "description": "Max results (default: 100, max: 1000)",
+            "default": 100
+          },
+          "fields": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Metadata fields to return (null = all fields)"
+          }
+        },
+        "required": [
+          "filter"
+        ]
+      },
+      "returns": {
+        "type": "object",
+        "description": "Vectors matching metadata filter with IDs, metadata, and total count"
+      }
+    },
+    {
+      "name": "pinecone_search_summaries",
+      "short_description": "Search Pinecone and return document summaries only for token-efficient discovery",
+      "description": "🎯 SMART VECTOR SEARCH - SUMMARIES ONLY (Token-Efficient)\n\n**PURPOSE:** Enable AI agents to efficiently scan vector database without token overload. Returns document names, categories, and preview snippets ONLY - no full vector content.\n\n**AI AGENT WORKFLOW:**\n1. User asks: 'Find contracts about severance'\n2. AI calls: pinecone_search_summaries(query_text='severance agreements', top_k=20)\n3. AI receives: 20 doc summaries (200 tokens vs 5000 tokens for full vectors)\n4. AI analyzes summaries, identifies 3 relevant docs\n5. AI calls: pinecone_get_vector_details(vector_ids=['doc1_chunk0', 'doc2_chunk0', 'doc3_chunk0'])\n6. AI reads full content (only 3 docs, ~800 tokens)\n\n**RESULT:** 80% token savings, purposeful retrieval\n\n**When to use this tool:**\n- Initial exploration of vector database ('What documents do I have about X?')\n- When user wants document list without full content\n- Before retrieving full vectors (two-step workflow)\n- When searching large document collections (100+ docs)\n\n**Returns:** Document names, categories, tags, relevance scores, 100-char previews, grouped by document. Use vector_ids from results to call pinecone_get_vector_details() for full content.",
+      "platform": "pinecone",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "query_text": {
+            "type": "string",
+            "description": "Search query (e.g., 'employment contracts 2024', 'severance pay policies')"
+          },
+          "top_k": {
+            "type": "integer",
+            "description": "Number of chunk results (default: 10, max: 100). Note: Results grouped by document.",
+            "default": 10
+          },
+          "namespace": {
+            "type": "string",
+            "description": "Folder to search (optional). Leave empty for default namespace."
+          },
+          "filter": {
+            "type": "object",
+            "description": "Metadata filter (e.g., {'category': 'legal', 'year': 2024})"
+          },
+          "include_chunk_preview": {
+            "type": "boolean",
+            "description": "Include 100-char preview of each chunk (default: true)",
+            "default": true
+          }
+        },
+        "required": [
+          "query_text"
+        ]
+      },
+      "returns": {
+        "type": "object",
+        "description": "Document summaries with: document names, categories, tags, relevance scores, chunk counts, vector IDs for retrieval, grouped by document, token savings estimate"
+      },
+      "examples": [
+        {
+          "description": "Find contracts - summary mode",
+          "parameters": {
+            "query_text": "employment contracts with severance clauses",
+            "top_k": 20
+          }
+        },
+        {
+          "description": "Search specific category",
+          "parameters": {
+            "query_text": "termination procedures",
+            "top_k": 15,
+            "filter": {
+              "category": "legal",
+              "year": 2024
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "pinecone_get_vector_details",
+      "short_description": "Retrieve full text content from specific Pinecone vectors by ID with navigation",
+      "description": "📄 RETRIEVE FULL VECTOR CONTENT - Get specific vectors by ID\n\n**PURPOSE:** After AI reviews summaries from pinecone_search_summaries(), retrieve full text content of ONLY the relevant documents.\n\n**AI AGENT WORKFLOW:**\n1. AI called pinecone_search_summaries() → received 20 doc summaries\n2. AI analyzed summaries, identified 3 relevant documents: 'Contract_A.pdf', 'Contract_B.pdf', 'Policy_C.pdf'\n3. AI extracted vector_ids: ['doc_abc_chunk_0', 'doc_abc_chunk_1', 'doc_xyz_chunk_0']\n4. AI calls: pinecone_get_vector_details(vector_ids=['doc_abc_chunk_0', 'doc_abc_chunk_1', 'doc_xyz_chunk_0'])\n5. AI receives full text content (~800 tokens for 3 docs)\n6. AI provides detailed answer to user with quotes from specific sections\n\n**When to use this tool:**\n- After pinecone_search_summaries() when AI needs full content\n- To retrieve specific chunks by ID\n- When user asks for detailed information from specific documents\n- To get adjacent chunks for more context (tool suggests prev/next chunk IDs)\n\n**Returns:** Full text content of requested chunks, metadata, chunk navigation info (prev/next chunk IDs), total text length, suggested adjacent chunks for context.",
+      "platform": "pinecone",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "vector_ids": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "List of vector IDs to retrieve (from search_summaries results). Example: ['doc_abc123_chunk_0', 'doc_xyz789_chunk_2']"
+          },
+          "namespace": {
+            "type": "string",
+            "description": "Folder to search (optional, should match namespace from search)"
+          },
+          "include_full_text": {
+            "type": "boolean",
+            "description": "Include complete chunk text (default: true). Set false for metadata-only.",
+            "default": true
+          }
+        },
+        "required": [
+          "vector_ids"
+        ]
+      },
+      "returns": {
+        "type": "object",
+        "description": "Full vectors with: complete chunk text, metadata, chunk navigation (prev/next IDs), document info, total text length, suggested adjacent chunks"
+      },
+      "examples": [
+        {
+          "description": "Retrieve 3 specific chunks",
+          "parameters": {
+            "vector_ids": [
+              "doc_abc_chunk_0",
+              "doc_abc_chunk_1",
+              "doc_xyz_chunk_0"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "pinecone_search_and_retrieve",
+      "short_description": "Search Pinecone and auto-retrieve full content from top matching documents",
+      "description": "🚀 SMART SEARCH + AUTO-RETRIEVE - Two-stage search (summary → selective retrieval)\n\n**PURPOSE:** Combines search_summaries + get_vector_details in ONE call. Searches, ranks by document relevance, retrieves top N documents automatically.\n\n**AI AGENT WORKFLOW:**\nWhen AI needs immediate detailed results without two-step process:\n\nUser: 'What do my contracts say about severance pay?'\nAI: pinecone_search_and_retrieve(query_text='severance pay', max_documents=3)\nResult: Full text from top 3 most relevant documents (auto-selected)\n\n**HOW IT WORKS:**\n1. Search vector DB for query (gets 50 chunk summaries)\n2. Group chunks by document, rank by best_score\n3. Select top N documents (max_documents parameter)\n4. Retrieve M chunks per document (chunks_per_document parameter)\n5. Return full text + document structure\n\n**When to use this tool:**\n- User wants immediate detailed answer (no two-step workflow)\n- Query requires reading full document content\n- Time-sensitive queries where efficiency matters\n- When AI needs to quote specific sections from documents\n\n**When NOT to use (use search_summaries instead):**\n- User wants document list without content\n- Initial exploration ('What documents do I have?')\n- Need to review many documents before deciding which to read\n\n**Returns:** Full text from top N documents, organized by document with relevance scores, metadata, search/retrieval phase stats, total token count.",
+      "platform": "pinecone",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "query_text": {
+            "type": "string",
+            "description": "Search query (e.g., 'severance pay policies', 'termination procedures')"
+          },
+          "max_documents": {
+            "type": "integer",
+            "description": "Max documents to retrieve full content (default: 3, recommended: 2-5)",
+            "default": 3
+          },
+          "chunks_per_document": {
+            "type": "integer",
+            "description": "Chunks per document to retrieve (default: 2 = ~1600 chars per doc, recommended: 1-4)",
+            "default": 2
+          },
+          "namespace": {
+            "type": "string",
+            "description": "Folder to search (optional)"
+          },
+          "filter": {
+            "type": "object",
+            "description": "Metadata filter (e.g., {'category': 'legal', 'year': 2024})"
+          },
+          "auto_retrieve": {
+            "type": "boolean",
+            "description": "If false, returns summaries only without retrieval (default: true)",
+            "default": true
+          }
+        },
+        "required": [
+          "query_text"
+        ]
+      },
+      "returns": {
+        "type": "object",
+        "description": "Full documents with: search phase stats (total chunks, unique docs), retrieval phase stats (docs retrieved, chunks, text length), organized documents with full text, metadata, relevance scores"
+      },
+      "examples": [
+        {
+          "description": "Get top 3 documents about severance",
+          "parameters": {
+            "query_text": "severance pay and termination procedures",
+            "max_documents": 3,
+            "chunks_per_document": 2
+          }
+        },
+        {
+          "description": "Deep dive into single document",
+          "parameters": {
+            "query_text": "employment contract clause 4.2",
+            "max_documents": 1,
+            "chunks_per_document": 5
+          }
+        }
+      ]
+    }
+  ]
+}

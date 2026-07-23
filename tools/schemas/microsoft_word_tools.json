@@ -1,0 +1,3753 @@
+{
+  "platform": "microsoft_word",
+  "version": "1.0",
+  "description": "Microsoft Word document creation, editing, and automation tools via Graph API\n\n⚠️ CRITICAL: ALL Microsoft 365 tools MUST be called through the execute_tool meta-tool for proper OAuth credential injection. DO NOT call these tools directly. Always use: execute_tool(tool_name='toolname', ...parameters)",
+  "authentication": "microsoft_oauth",
+  "base_url": "https://graph.microsoft.com/v1.0",
+  "tools": [
+    {
+      "name": "microsoft_word_create_document",
+      "short_description": "Create new document: Word doc in OneDrive with PLAIN TEXT only (no markdown, no formatting)",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) ALWAYS execute THIS tool NOW - NEVER reference 'I created earlier' or use conversation history\n(2) MUST return format: **[Name]** | ID: `[id]` | URL: [full_url] | Link: [title](url)\n(3) Use EXACT values from tool response - NEVER make up fake URLs/IDs\n(4) If tool fails, say 'Failed to create' - NEVER pretend it succeeded\n\nExample response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\n⚠️ MUST USE: execute_tool(tool_name='microsoft_word_create_document', ...) - DO NOT call directly!\n\nCreate a new Word document in OneDrive",
+      "category": "content_management",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "Document name (will add .docx if not present)"
+          },
+          "content": {
+            "type": "string",
+            "description": "Initial text content (PLAIN TEXT ONLY - no markdown, no formatting, no JSON). For formatted documents use microsoft_word_smart_create_from_markdown instead."
+          },
+          "folder_id": {
+            "type": "string",
+            "description": "OneDrive folder ID (default: root)"
+          }
+        },
+        "required": [
+          "name"
+        ]
+      },
+      "returns": "Dict with document_id, name, web_url, created_datetime",
+      "user_facing_language": {
+        "action_verb": "create",
+        "resource_name": "document",
+        "resource_plural": "documents",
+        "natural_phrases": [
+          "create a Word document",
+          "make a new document",
+          "create a new Word file",
+          "start a new document",
+          "create a doc"
+        ],
+        "capability_description": "I can create new Word documents in your OneDrive with initial content. Documents are automatically saved and shareable.",
+        "example_ai_responses": [
+          "I'll create that Word document for you.",
+          "I'll make a new document called 'Project Report'.",
+          "I'll create that doc in your OneDrive."
+        ]
+      },
+      "tool_intelligence": {
+        "category": "content_management",
+        "typical_workflow_patterns": [
+          "microsoft_word_create_document → microsoft_word_append_text (create then add content)",
+          "microsoft_word_create_document → microsoft_word_insert_heading (create then structure)",
+          "microsoft_word_create_document → microsoft_word_insert_table (create then add data)",
+          "microsoft_word_create_document → microsoft_word_export_pdf (create then export)"
+        ],
+        "success_indicators": {
+          "keywords": [
+            "document created",
+            "created successfully",
+            "new document",
+            "document ready",
+            "file created"
+          ],
+          "behavioral": [
+            "User proceeds to add content to document",
+            "User opens document in Word Online",
+            "User shares document link",
+            "User continues editing workflow"
+          ]
+        },
+        "failure_indicators": {
+          "keywords": [
+            "creation failed",
+            "invalid name",
+            "folder not found",
+            "permission denied",
+            "quota exceeded"
+          ],
+          "behavioral": [
+            "User retries with different name",
+            "User checks folder permissions",
+            "User asks about storage limits",
+            "User manually creates in Word"
+          ]
+        },
+        "performance_expectations": {
+          "typical_duration_ms": 800,
+          "rate_limit_per_minute": 60,
+          "max_retries": 3,
+          "timeout_seconds": 30
+        }
+      },
+      "memory_context": {
+        "vectorization_fields": [
+          "name",
+          "document_id",
+          "folder_id"
+        ],
+        "search_keywords": [
+          "create document",
+          "new word file",
+          "word document",
+          "create doc",
+          "new file",
+          "document creation"
+        ],
+        "related_synergy_platforms": [
+          "microsoft_word",
+          "microsoft_365",
+          "onedrive"
+        ],
+        "typical_use_cases": [
+          "Project documentation - User creates new project doc for team collaboration",
+          "Report creation - User starts new quarterly report document",
+          "Meeting notes - User creates document for recording meeting discussion",
+          "Proposal writing - User creates new business proposal document",
+          "Template starting point - User creates blank document to build template"
+        ],
+        "conversation_memory_hints": {
+          "what_to_remember": "Document names, document IDs, folder locations, creation timestamps, initial content topics",
+          "search_context": "When user asks about 'documents I created', 'Word files I made', 'new docs about [topic]'",
+          "related_entities": [
+            "document names",
+            "document IDs",
+            "folder paths",
+            "creation dates",
+            "document topics"
+          ]
+        }
+      }
+    },
+    {
+      "name": "microsoft_word_get_document",
+      "short_description": "Get Microsoft Word document metadata by ID including size, dates, and web URL",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Read X from **[Resource Name]** (ID: `[id]` | URL: [url])'\n(3) Use EXACT [id] provided - NEVER substitute with different ID\n(4) If tool fails (404/403), say 'Failed to read [resource] ID: [id]' and explain error\n(5) NEVER make up data if read fails - acknowledge the failure clearly\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\n⚠️ MUST USE: execute_tool(tool_name='microsoft_word_get_document', ...) - DO NOT call directly!\n\nGet Word document metadata",
+      "category": "content_management",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "document_id": {
+            "type": "string",
+            "description": "OneDrive item ID of the document"
+          },
+          "mode": {
+            "type": "string",
+            "enum": [
+              "summary",
+              "detailed",
+              "raw"
+            ],
+            "description": "Output mode:\n- 'summary' (default): Name, size, dates, URL\n- 'detailed': Complete metadata with permissions and sharing\n- 'raw': Full API response",
+            "default": "summary"
+          },
+          "format": {
+            "type": "string",
+            "enum": [
+              "markdown",
+              "json",
+              "text"
+            ],
+            "description": "Output format:\n- 'markdown' (default): Formatted metadata display\n- 'json': Structured data\n- 'text': Plain text summary",
+            "default": "markdown"
+          },
+          "export": {
+            "type": "string",
+            "enum": [
+              "none",
+              "synergy",
+              "google_doc",
+              "google_sheet"
+            ],
+            "description": "Auto-export destination:\n- 'none' (default): Return data only\n- 'synergy': Save metadata to dashboard\n- 'google_doc': Create metadata report\n- 'google_sheet': Not recommended for single document",
+            "default": "none"
+          },
+          "export_title": {
+            "type": "string",
+            "description": "Title for exported content. Supports {date}, {time}, {name} placeholders",
+            "default": null
+          }
+        },
+        "required": [
+          "document_id"
+        ]
+      },
+      "returns": "Dict with document details including name, URLs, dates, size",
+      "user_facing_language": {
+        "action_verb": "get",
+        "resource_name": "document info",
+        "resource_plural": "document info",
+        "natural_phrases": [
+          "get document information",
+          "show document details",
+          "check document metadata",
+          "get doc info",
+          "view document properties"
+        ],
+        "capability_description": "I can retrieve detailed information about Word documents including size, dates, sharing status, and URLs.",
+        "mode_translations": {
+          "summary": "basic info",
+          "detailed": "complete metadata",
+          "raw": "full technical data"
+        },
+        "format_translations": {
+          "markdown": "formatted display",
+          "json": "structured data",
+          "text": "plain text"
+        },
+        "export_translations": {
+          "synergy": "save to your dashboard",
+          "google_doc": "create info report",
+          "google_sheet": "not recommended for single document",
+          "none": "just show you"
+        },
+        "example_ai_responses": [
+          "I'll get the details for that document.",
+          "I'll show you the document information.",
+          "I'll retrieve the metadata for that file."
+        ]
+      },
+      "tool_intelligence": {
+        "category": "content_management",
+        "typical_workflow_patterns": [
+          "microsoft_word_list_documents → microsoft_word_get_document (browse then inspect)",
+          "microsoft_word_get_document → microsoft_word_get_content (check metadata then read)",
+          "microsoft_word_get_document → microsoft_word_copy_document (inspect then duplicate)",
+          "microsoft_word_search_text → microsoft_word_get_document (find then examine)"
+        ],
+        "success_indicators": {
+          "keywords": [
+            "document found",
+            "metadata retrieved",
+            "document details",
+            "info loaded",
+            "document accessed"
+          ],
+          "behavioral": [
+            "User reviews document properties",
+            "User proceeds to read content",
+            "User checks file size or dates",
+            "User verifies document location"
+          ]
+        },
+        "failure_indicators": {
+          "keywords": [
+            "document not found",
+            "invalid document ID",
+            "404 error",
+            "access denied",
+            "permission error"
+          ],
+          "behavioral": [
+            "User checks document ID",
+            "User asks to search for document",
+            "User reports document should exist",
+            "User tries different ID"
+          ]
+        },
+        "performance_expectations": {
+          "typical_duration_ms": 400,
+          "rate_limit_per_minute": 120,
+          "max_retries": 3,
+          "timeout_seconds": 15
+        },
+        "multi_modal_usage_patterns": {
+          "common_mode_combinations": [
+            "mode=summary, format=markdown (quick info check)",
+            "mode=detailed, export=synergy (save document reference)",
+            "mode=detailed, format=json (programmatic access)"
+          ],
+          "export_use_cases": [
+            "Export to synergy for project documentation reference",
+            "Export to google_doc for document inventory report"
+          ]
+        }
+      },
+      "memory_context": {
+        "vectorization_fields": [
+          "document_id",
+          "name",
+          "folder_path"
+        ],
+        "search_keywords": [
+          "document metadata",
+          "doc info",
+          "file details",
+          "document properties",
+          "word file info",
+          "document stats"
+        ],
+        "related_synergy_platforms": [
+          "microsoft_word",
+          "microsoft_365",
+          "onedrive"
+        ],
+        "typical_use_cases": [
+          "Document verification - User checks if document exists and is accessible",
+          "Size check - User verifies document size before downloading",
+          "Date tracking - User checks last modified date for version control",
+          "Sharing audit - User reviews document permissions and sharing status",
+          "Location confirmation - User verifies document folder location"
+        ],
+        "conversation_memory_hints": {
+          "what_to_remember": "Document IDs checked, document names, file sizes, modification dates, sharing status",
+          "search_context": "When user asks about 'document details', 'file info for [name]', 'when was [doc] modified'",
+          "related_entities": [
+            "document IDs",
+            "document names",
+            "file sizes",
+            "modification dates",
+            "folder locations"
+          ]
+        },
+        "sheet_export_structure": {
+          "when_export_google_sheet": "If user selects export='google_sheet' (not typically recommended for single document)",
+          "columns": [
+            {
+              "name": "document_name",
+              "type": "string",
+              "source": "document.name"
+            },
+            {
+              "name": "document_id",
+              "type": "string",
+              "source": "document.id"
+            },
+            {
+              "name": "size_bytes",
+              "type": "integer",
+              "source": "document.size"
+            },
+            {
+              "name": "size_mb",
+              "type": "number",
+              "source": "document.size_mb"
+            },
+            {
+              "name": "created_date",
+              "type": "date",
+              "format": "YYYY-MM-DD HH:MM",
+              "source": "document.createdDateTime"
+            },
+            {
+              "name": "modified_date",
+              "type": "date",
+              "format": "YYYY-MM-DD HH:MM",
+              "source": "document.lastModifiedDateTime"
+            },
+            {
+              "name": "web_url",
+              "type": "string",
+              "source": "document.webUrl"
+            }
+          ],
+          "sheet_formatting": {
+            "freeze_header_row": true,
+            "auto_filter": false
+          }
+        }
+      }
+    },
+    {
+      "name": "microsoft_word_list_documents",
+      "short_description": "List Microsoft Word documents from OneDrive with filters for folder and search query",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Read X from **[Resource Name]** (ID: `[id]` | URL: [url])'\n(3) Use EXACT [id] provided - NEVER substitute with different ID\n(4) If tool fails (404/403), say 'Failed to read [resource] ID: [id]' and explain error\n(5) NEVER make up data if read fails - acknowledge the failure clearly\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\n⚠️ MUST USE: execute_tool(tool_name='microsoft_word_list_documents', ...) - DO NOT call directly!\n\nList Word documents in OneDrive folder",
+      "category": "content_management",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "folder_id": {
+            "type": "string",
+            "description": "Folder ID (default: root)"
+          },
+          "limit": {
+            "type": "integer",
+            "description": "Maximum documents to return",
+            "default": 50
+          },
+          "mode": {
+            "type": "string",
+            "enum": [
+              "summary",
+              "detailed",
+              "raw"
+            ],
+            "description": "Output mode:\n- 'summary' (default): Document names and IDs\n- 'detailed': Complete metadata for each document\n- 'raw': Full API response",
+            "default": "summary"
+          },
+          "format": {
+            "type": "string",
+            "enum": [
+              "markdown",
+              "json",
+              "text"
+            ],
+            "description": "Output format:\n- 'markdown' (default): Formatted document list\n- 'json': Structured data\n- 'text': Plain text list",
+            "default": "markdown"
+          },
+          "export": {
+            "type": "string",
+            "enum": [
+              "none",
+              "synergy",
+              "google_doc",
+              "google_sheet"
+            ],
+            "description": "Auto-export destination:\n- 'none' (default): Return data only\n- 'synergy': Save document inventory to dashboard\n- 'google_doc': Create document list report\n- 'google_sheet': Create document inventory spreadsheet",
+            "default": "none"
+          },
+          "export_title": {
+            "type": "string",
+            "description": "Title for exported content. Supports {date}, {time}, {count} placeholders",
+            "default": null
+          }
+        },
+        "required": []
+      },
+      "returns": "Dict with count and list of documents",
+      "user_facing_language": {
+        "action_verb": "list",
+        "resource_name": "documents",
+        "resource_plural": "documents",
+        "natural_phrases": [
+          "list Word documents",
+          "show my documents",
+          "what Word files do I have",
+          "list my docs",
+          "show documents in folder"
+        ],
+        "capability_description": "I can list all Word documents in your OneDrive folders, showing names, sizes, and dates. I can also export the inventory for tracking.",
+        "mode_translations": {
+          "summary": "document names and IDs",
+          "detailed": "complete information for each document",
+          "raw": "full technical data"
+        },
+        "format_translations": {
+          "markdown": "formatted list",
+          "json": "structured data",
+          "text": "plain text list"
+        },
+        "export_translations": {
+          "synergy": "save inventory to your dashboard",
+          "google_doc": "create document list report",
+          "google_sheet": "create inventory spreadsheet",
+          "none": "just show you"
+        },
+        "example_ai_responses": [
+          "I'll list all your Word documents.",
+          "I'll show you the documents in that folder.",
+          "I'll create a spreadsheet with your document inventory."
+        ]
+      },
+      "tool_intelligence": {
+        "category": "content_management",
+        "typical_workflow_patterns": [
+          "microsoft_word_list_documents → microsoft_word_get_document (browse then inspect)",
+          "microsoft_word_list_documents → microsoft_word_get_content (browse then read)",
+          "microsoft_word_list_documents → export=google_sheet (inventory management)",
+          "microsoft_word_list_documents → microsoft_word_delete_document (cleanup workflow)"
+        ],
+        "success_indicators": {
+          "keywords": [
+            "found X documents",
+            "documents listed",
+            "showing documents",
+            "inventory complete",
+            "list ready"
+          ],
+          "behavioral": [
+            "User reviews document names",
+            "User selects specific documents to open",
+            "User exports for tracking",
+            "User asks about specific document"
+          ]
+        },
+        "failure_indicators": {
+          "keywords": [
+            "no documents found",
+            "folder not found",
+            "permission denied",
+            "access error",
+            "empty folder"
+          ],
+          "behavioral": [
+            "User checks folder ID",
+            "User verifies folder permissions",
+            "User expects documents but sees none",
+            "User tries different folder"
+          ]
+        },
+        "performance_expectations": {
+          "typical_duration_ms": 800,
+          "rate_limit_per_minute": 60,
+          "max_retries": 3,
+          "timeout_seconds": 30
+        },
+        "multi_modal_usage_patterns": {
+          "common_mode_combinations": [
+            "mode=summary, format=markdown (quick document overview)",
+            "mode=detailed, export=google_sheet (comprehensive inventory)",
+            "mode=summary, export=synergy (save document list reference)"
+          ],
+          "export_use_cases": [
+            "Export to google_sheet for document management tracking",
+            "Export to synergy for project documentation inventory",
+            "Export to google_doc for document audit report"
+          ]
+        }
+      },
+      "memory_context": {
+        "vectorization_fields": [
+          "folder_id",
+          "document_names",
+          "document_count"
+        ],
+        "search_keywords": [
+          "list documents",
+          "word files",
+          "document inventory",
+          "docs list",
+          "file list",
+          "document catalog"
+        ],
+        "related_synergy_platforms": [
+          "microsoft_word",
+          "microsoft_365",
+          "onedrive"
+        ],
+        "typical_use_cases": [
+          "Document audit - User lists all documents for inventory tracking",
+          "Project review - User checks what documents exist in project folder",
+          "Cleanup planning - User lists documents before archiving or deleting",
+          "Documentation - User exports document list for team reference",
+          "File search - User browses documents to find specific file"
+        ],
+        "conversation_memory_hints": {
+          "what_to_remember": "Folder IDs listed, document names found, document counts, list timestamps",
+          "search_context": "When user asks about 'documents in [folder]', 'Word files I have', 'document inventory'",
+          "related_entities": [
+            "folder names",
+            "folder IDs",
+            "document names",
+            "document counts",
+            "folder paths"
+          ]
+        },
+        "sheet_export_structure": {
+          "when_export_google_sheet": "If user selects export='google_sheet'",
+          "columns": [
+            {
+              "name": "document_name",
+              "type": "string",
+              "source": "document.name"
+            },
+            {
+              "name": "document_id",
+              "type": "string",
+              "source": "document.id"
+            },
+            {
+              "name": "size_bytes",
+              "type": "integer",
+              "source": "document.size"
+            },
+            {
+              "name": "size_mb",
+              "type": "number",
+              "source": "document.size_mb"
+            },
+            {
+              "name": "created_date",
+              "type": "date",
+              "format": "YYYY-MM-DD",
+              "source": "document.createdDateTime"
+            },
+            {
+              "name": "modified_date",
+              "type": "date",
+              "format": "YYYY-MM-DD",
+              "source": "document.lastModifiedDateTime"
+            },
+            {
+              "name": "web_url",
+              "type": "string",
+              "source": "document.webUrl"
+            }
+          ],
+          "sheet_formatting": {
+            "freeze_header_row": true,
+            "auto_filter": true,
+            "conditional_formatting": [
+              {
+                "column": "size_mb",
+                "rule": ">10",
+                "format": "orange_text"
+              }
+            ]
+          }
+        }
+      }
+    }
+  ],
+  "rate_limits": {
+    "requests_per_second": 10,
+    "requests_per_minute": 600,
+    "note": "Follows Microsoft Graph API throttling limits"
+  },
+  "required_scopes": [
+    "Files.ReadWrite.All"
+  ],
+  "additional_tools": [
+    {
+      "name": "microsoft_word_delete_document",
+      "short_description": "Delete Microsoft Word document by ID to move to OneDrive recycle bin",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER pretend to delete from memory\n(2) MUST cite what was deleted: 'Deleted **[Resource Name]** (ID: `[id]`)'\n(3) CONFIRM deletion happened - don't assume success\n(4) If tool fails, say 'Failed to delete' and explain why\n\nExample response:\n✅ Deleted: **Old File**\n- ID: `abc123`\n- URL: https://example.com/file/abc123 (no longer accessible)\n\n⚠️ MUST USE: execute_tool(tool_name='microsoft_word_delete_document', ...) - DO NOT call directly!\n\nDelete a Word document",
+      "category": "content_management",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "document_id": {
+            "type": "string",
+            "description": "Document ID to delete"
+          }
+        },
+        "required": [
+          "document_id"
+        ]
+      },
+      "returns": "Dict with success status",
+      "user_facing_language": {
+        "action_verb": "delete",
+        "resource_name": "document",
+        "resource_plural": "documents",
+        "natural_phrases": [
+          "delete that document",
+          "remove the document",
+          "delete that Word file",
+          "get rid of that doc",
+          "remove that file"
+        ],
+        "capability_description": "I can permanently delete Word documents from your OneDrive. This action cannot be undone unless the file is in the recycle bin.",
+        "example_ai_responses": [
+          "I'll delete that document for you.",
+          "I'll remove that Word file permanently.",
+          "I'll delete that doc from your OneDrive."
+        ]
+      },
+      "tool_intelligence": {
+        "category": "content_management",
+        "typical_workflow_patterns": [
+          "microsoft_word_list_documents → microsoft_word_delete_document (browse then delete)",
+          "microsoft_word_get_document → microsoft_word_delete_document (verify then delete)",
+          "microsoft_word_copy_document → microsoft_word_delete_document (backup then delete original)",
+          "microsoft_word_search_text → microsoft_word_delete_document (find then remove)"
+        ],
+        "success_indicators": {
+          "keywords": [
+            "deleted successfully",
+            "document removed",
+            "file deleted",
+            "deletion complete",
+            "document gone"
+          ],
+          "behavioral": [
+            "User confirms document is gone",
+            "User doesn't ask to recover",
+            "User continues with other tasks",
+            "User checks folder and document not present"
+          ]
+        },
+        "failure_indicators": {
+          "keywords": [
+            "deletion failed",
+            "document not found",
+            "permission denied",
+            "file in use",
+            "access error"
+          ],
+          "behavioral": [
+            "User reports document still exists",
+            "User checks permissions",
+            "User asks to retry",
+            "User manually deletes in Word Online",
+            "User reports document is locked"
+          ]
+        },
+        "performance_expectations": {
+          "typical_duration_ms": 500,
+          "rate_limit_per_minute": 60,
+          "max_retries": 3,
+          "timeout_seconds": 20
+        }
+      },
+      "memory_context": {
+        "vectorization_fields": [
+          "document_id",
+          "document_name"
+        ],
+        "search_keywords": [
+          "delete document",
+          "remove file",
+          "delete word",
+          "file deletion",
+          "remove doc",
+          "delete file"
+        ],
+        "related_synergy_platforms": [
+          "microsoft_word",
+          "microsoft_365",
+          "onedrive"
+        ],
+        "typical_use_cases": [
+          "Cleanup - User deletes old or obsolete documents",
+          "Mistake correction - User removes incorrectly created document",
+          "Storage management - User deletes large files to free space",
+          "Project completion - User removes temporary work documents",
+          "Duplicate removal - User deletes duplicate versions of documents"
+        ],
+        "conversation_memory_hints": {
+          "what_to_remember": "Document IDs deleted, document names, deletion timestamps, reasons for deletion",
+          "search_context": "When user asks about 'documents I deleted', 'files I removed', 'what I deleted recently'",
+          "related_entities": [
+            "document IDs",
+            "document names",
+            "deletion timestamps",
+            "folder locations",
+            "deletion reasons"
+          ]
+        }
+      }
+    },
+    {
+      "name": "microsoft_word_get_content",
+      "short_description": "Get full text content from Microsoft Word document by ID for reading and analysis",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Read X from **[Resource Name]** (ID: `[id]` | URL: [url])'\n(3) Use EXACT [id] provided - NEVER substitute with different ID\n(4) If tool fails (404/403), say 'Failed to read [resource] ID: [id]' and explain error\n(5) NEVER make up data if read fails - acknowledge the failure clearly\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\n⚠️ MUST USE: execute_tool(tool_name='microsoft_word_get_content', ...) - DO NOT call directly!\n\nGet document content as text",
+      "category": "content_operations",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "document_id": {
+            "type": "string",
+            "description": "Document ID"
+          },
+          "mode": {
+            "type": "string",
+            "enum": [
+              "summary",
+              "detailed",
+              "raw"
+            ],
+            "description": "Output mode:\n- 'summary' (default): First 500 characters preview\n- 'detailed': Full text content\n- 'raw': Complete text with metadata",
+            "default": "summary"
+          },
+          "format": {
+            "type": "string",
+            "enum": [
+              "markdown",
+              "json",
+              "text"
+            ],
+            "description": "Output format:\n- 'markdown' (default): Formatted text display\n- 'json': Structured data with metadata\n- 'text': Plain text content",
+            "default": "markdown"
+          },
+          "export": {
+            "type": "string",
+            "enum": [
+              "none",
+              "synergy",
+              "google_doc",
+              "google_sheet"
+            ],
+            "description": "Auto-export destination:\n- 'none' (default): Return data only\n- 'synergy': Save content to dashboard\n- 'google_doc': Create new doc with content\n- 'google_sheet': Not recommended for text content",
+            "default": "none"
+          },
+          "export_title": {
+            "type": "string",
+            "description": "Title for exported content. Supports {date}, {time}, {name} placeholders",
+            "default": null
+          }
+        },
+        "required": [
+          "document_id"
+        ]
+      },
+      "returns": "Dict with text content and metadata",
+      "user_facing_language": {
+        "action_verb": "read",
+        "resource_name": "document content",
+        "resource_plural": "document content",
+        "natural_phrases": [
+          "read the document",
+          "get the document content",
+          "show me what's in the document",
+          "read that Word file",
+          "get the text from that doc"
+        ],
+        "capability_description": "I can read the text content from Word documents, showing you previews or full content. I can also export the content for further use.",
+        "mode_translations": {
+          "summary": "preview (first 500 characters)",
+          "detailed": "complete text",
+          "raw": "full content with metadata"
+        },
+        "format_translations": {
+          "markdown": "formatted display",
+          "json": "structured data",
+          "text": "plain text"
+        },
+        "export_translations": {
+          "synergy": "save to your dashboard",
+          "google_doc": "create new document",
+          "google_sheet": "not recommended for text content",
+          "none": "just show you"
+        },
+        "example_ai_responses": [
+          "I'll read that document for you.",
+          "I'll get the content from that Word file.",
+          "I'll show you what's in that document and save it to your dashboard."
+        ]
+      },
+      "tool_intelligence": {
+        "category": "content_operations",
+        "typical_workflow_patterns": [
+          "microsoft_word_get_document → microsoft_word_get_content (check metadata then read)",
+          "microsoft_word_list_documents → microsoft_word_get_content (browse then read)",
+          "microsoft_word_get_content → microsoft_word_update_content (read then edit)",
+          "microsoft_word_search_text → microsoft_word_get_content (find then read full content)"
+        ],
+        "success_indicators": {
+          "keywords": [
+            "content retrieved",
+            "text loaded",
+            "document read",
+            "content available",
+            "text extracted"
+          ],
+          "behavioral": [
+            "User reviews content",
+            "User asks questions about content",
+            "User requests to edit or update",
+            "User exports for further use"
+          ]
+        },
+        "failure_indicators": {
+          "keywords": [
+            "content not found",
+            "document empty",
+            "read error",
+            "access denied",
+            "corrupted document"
+          ],
+          "behavioral": [
+            "User reports content should exist",
+            "User checks document ID",
+            "User asks to verify document",
+            "User manually opens in Word Online"
+          ]
+        },
+        "performance_expectations": {
+          "typical_duration_ms": 800,
+          "rate_limit_per_minute": 60,
+          "max_retries": 3,
+          "timeout_seconds": 30
+        },
+        "multi_modal_usage_patterns": {
+          "common_mode_combinations": [
+            "mode=summary, format=markdown (quick preview)",
+            "mode=detailed, export=google_doc (backup content)",
+            "mode=detailed, export=synergy (save important content)"
+          ],
+          "export_use_cases": [
+            "Export to synergy for project documentation",
+            "Export to google_doc for content backup",
+            "Save content for AI analysis or processing"
+          ]
+        }
+      },
+      "memory_context": {
+        "vectorization_fields": [
+          "document_id",
+          "content_preview",
+          "document_name"
+        ],
+        "search_keywords": [
+          "read document",
+          "get content",
+          "document text",
+          "read file",
+          "text content",
+          "document body"
+        ],
+        "related_synergy_platforms": [
+          "microsoft_word",
+          "microsoft_365",
+          "onedrive"
+        ],
+        "typical_use_cases": [
+          "Content review - User reads document to understand contents",
+          "Information extraction - User retrieves text for analysis or processing",
+          "Content verification - User checks if document contains expected information",
+          "Backup creation - User exports content to another format",
+          "Content search - User reads document after finding via search"
+        ],
+        "conversation_memory_hints": {
+          "what_to_remember": "Document IDs read, content topics, read timestamps, content length, key phrases",
+          "search_context": "When user asks about 'content from [doc]', 'what I read in [document]', 'text from that file'",
+          "related_entities": [
+            "document IDs",
+            "document names",
+            "content topics",
+            "key phrases",
+            "read timestamps"
+          ]
+        },
+        "sheet_export_structure": {
+          "when_export_google_sheet": "If user selects export='google_sheet' (not typically recommended for text content)",
+          "columns": [
+            {
+              "name": "document_name",
+              "type": "string",
+              "source": "document.name"
+            },
+            {
+              "name": "document_id",
+              "type": "string",
+              "source": "document.id"
+            },
+            {
+              "name": "content_preview",
+              "type": "string",
+              "source": "content.preview"
+            },
+            {
+              "name": "content_length",
+              "type": "integer",
+              "source": "content.length"
+            },
+            {
+              "name": "read_date",
+              "type": "date",
+              "format": "YYYY-MM-DD HH:MM",
+              "auto": true
+            }
+          ],
+          "sheet_formatting": {
+            "freeze_header_row": true,
+            "wrap_text": [
+              "content_preview"
+            ]
+          }
+        }
+      }
+    },
+    {
+      "name": "microsoft_word_append_text",
+      "short_description": "Append text to end of Microsoft Word document for adding content without overwriting",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Read X from **[Resource Name]** (ID: `[id]` | URL: [url])'\n(3) Use EXACT [id] provided - NEVER substitute with different ID\n(4) If tool fails (404/403), say 'Failed to read [resource] ID: [id]' and explain error\n(5) NEVER make up data if read fails - acknowledge the failure clearly\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\n⚠️ MUST USE: execute_tool(tool_name='microsoft_word_append_text', ...) - DO NOT call directly!\n\nAppend text to document",
+      "category": "content_operations",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "document_id": {
+            "type": "string",
+            "description": "Document ID"
+          },
+          "text": {
+            "type": "string",
+            "description": "Text to append"
+          },
+          "paragraph": {
+            "type": "boolean",
+            "description": "Add as new paragraph (vs inline)",
+            "default": true
+          }
+        },
+        "required": [
+          "document_id",
+          "text"
+        ]
+      },
+      "returns": "Dict with success status",
+      "user_facing_language": {
+        "action_verb": "add",
+        "resource_name": "text",
+        "resource_plural": "text",
+        "natural_phrases": [
+          "add text to document",
+          "append to the document",
+          "add content to that doc",
+          "add a paragraph",
+          "write more to the document"
+        ],
+        "capability_description": "I can add text to the end of Word documents, either as new paragraphs or inline text. Perfect for building documents incrementally.",
+        "example_ai_responses": [
+          "I'll add that text to the document.",
+          "I'll append that paragraph to the end of the doc.",
+          "I'll add that content to your Word file."
+        ]
+      },
+      "tool_intelligence": {
+        "category": "content_operations",
+        "typical_workflow_patterns": [
+          "microsoft_word_create_document → microsoft_word_append_text (create then add content)",
+          "microsoft_word_get_content → microsoft_word_append_text (read then add more)",
+          "microsoft_word_append_text → microsoft_word_append_text (iterative content building)",
+          "microsoft_word_append_text → microsoft_word_export_pdf (write then export)"
+        ],
+        "success_indicators": {
+          "keywords": [
+            "text added",
+            "content appended",
+            "paragraph added",
+            "text inserted",
+            "content updated"
+          ],
+          "behavioral": [
+            "User continues adding more content",
+            "User requests to read updated document",
+            "User exports document after additions",
+            "User doesn't ask to verify append"
+          ]
+        },
+        "failure_indicators": {
+          "keywords": [
+            "append failed",
+            "document not found",
+            "write error",
+            "permission denied",
+            "document locked"
+          ],
+          "behavioral": [
+            "User asks if text was added",
+            "User checks document manually",
+            "User reports text not appearing",
+            "User retries append operation",
+            "User reports document is read-only"
+          ]
+        },
+        "performance_expectations": {
+          "typical_duration_ms": 600,
+          "rate_limit_per_minute": 60,
+          "max_retries": 3,
+          "timeout_seconds": 20
+        }
+      },
+      "memory_context": {
+        "vectorization_fields": [
+          "document_id",
+          "text_added",
+          "paragraph_mode"
+        ],
+        "search_keywords": [
+          "append text",
+          "add content",
+          "add paragraph",
+          "write to document",
+          "add text",
+          "document update"
+        ],
+        "related_synergy_platforms": [
+          "microsoft_word",
+          "microsoft_365",
+          "onedrive"
+        ],
+        "typical_use_cases": [
+          "Incremental writing - User builds document by adding sections one at a time",
+          "Meeting notes - User appends notes during or after meeting",
+          "Report building - User adds analysis sections to report document",
+          "Content compilation - User appends information from multiple sources",
+          "Log keeping - User appends entries to running log document"
+        ],
+        "conversation_memory_hints": {
+          "what_to_remember": "Document IDs updated, text added (summaries), append timestamps, paragraph vs inline",
+          "search_context": "When user asks about 'text I added to [doc]', 'content I appended', 'updates to [document]'",
+          "related_entities": [
+            "document IDs",
+            "document names",
+            "content topics",
+            "append timestamps",
+            "text summaries"
+          ]
+        }
+      }
+    },
+    {
+      "name": "microsoft_word_update_content",
+      "short_description": "Update specific paragraph in Microsoft Word document by index with new text content",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER reference previous edits from conversation history\n(2) MUST cite what was updated: 'Updated **[Resource Name]** (ID: `[id]`)'\n(3) Use EXACT [id] provided - NEVER make up IDs\n(4) If tool fails, say 'Failed to update' and explain why\n(5) Show before/after if applicable\n\nExample response:\nUpdated: **Document Title**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Changed: [what was changed]\n\n⚠️ MUST USE: execute_tool(tool_name='microsoft_word_update_content', ...) - DO NOT call directly!\n\nUpdate Microsoft Word document with multiple modes:\n\n**MODE: replace_all (default)** - Replace entire document:\n  execute_tool('microsoft_word_update_content', document_id='abc123', content='New content', mode='replace_all')\n\n**MODE: append** - Add content to end:\n  execute_tool('microsoft_word_update_content', document_id='abc123', content='Additional content', mode='append')\n\n**MODE: find_replace** - Find and replace specific text:\n  execute_tool('microsoft_word_update_content', document_id='abc123', content='New text', mode='find_replace', find_text='Old text')",
+      "category": "content_operations",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "document_id": {
+            "type": "string",
+            "description": "Document ID"
+          },
+          "content": {
+            "type": "string",
+            "description": "Content to write/replace (depends on mode)"
+          },
+          "mode": {
+            "type": "string",
+            "description": "Update mode: 'replace_all' (clear + write new), 'append' (add to end), 'find_replace' (find and replace)",
+            "default": "replace_all",
+            "enum": [
+              "replace_all",
+              "append",
+              "find_replace"
+            ]
+          },
+          "find_text": {
+            "type": "string",
+            "description": "Text to find and replace (required when mode='find_replace')"
+          }
+        },
+        "required": [
+          "document_id",
+          "content"
+        ]
+      },
+      "returns": "Dict with success status, mode, content_length, and mode-specific details",
+      "user_facing_language": {
+        "action_verb": "update",
+        "resource_name": "document",
+        "resource_plural": "documents",
+        "natural_phrases": [
+          "update the document",
+          "replace document content",
+          "change the document text",
+          "rewrite the document",
+          "update that doc"
+        ],
+        "capability_description": "I can update Word documents in three ways: replace all content, append to end, or find and replace specific text. Choose the mode that fits your needs.",
+        "example_ai_responses": [
+          "I'll replace the entire document content with the new text.",
+          "I'll find and replace that phrase throughout the document.",
+          "I'll append that content to the end of the document."
+        ]
+      },
+      "tool_intelligence": {
+        "category": "content_operations",
+        "typical_workflow_patterns": [
+          "microsoft_word_get_content → microsoft_word_update_content (read then edit)",
+          "microsoft_word_search_text → microsoft_word_update_content (find then replace)",
+          "microsoft_word_update_content → microsoft_word_export_pdf (update then export)",
+          "microsoft_word_copy_document → microsoft_word_update_content (backup then update)"
+        ],
+        "success_indicators": {
+          "keywords": [
+            "updated successfully",
+            "content replaced",
+            "document updated",
+            "text replaced",
+            "changes saved"
+          ],
+          "behavioral": [
+            "User verifies changes in document",
+            "User proceeds to next edit",
+            "User exports updated document",
+            "User doesn't ask to undo changes"
+          ]
+        },
+        "failure_indicators": {
+          "keywords": [
+            "update failed",
+            "replace failed",
+            "text not found",
+            "document locked",
+            "permission denied"
+          ],
+          "behavioral": [
+            "User reports changes not visible",
+            "User checks if document is locked",
+            "User asks to retry update",
+            "User manually edits in Word Online",
+            "User reports find_text not found"
+          ]
+        },
+        "performance_expectations": {
+          "typical_duration_ms": 1000,
+          "rate_limit_per_minute": 30,
+          "max_retries": 3,
+          "timeout_seconds": 30
+        }
+      },
+      "memory_context": {
+        "vectorization_fields": [
+          "document_id",
+          "mode",
+          "content_summary"
+        ],
+        "search_keywords": [
+          "update document",
+          "replace content",
+          "edit document",
+          "change text",
+          "find replace",
+          "rewrite document"
+        ],
+        "related_synergy_platforms": [
+          "microsoft_word",
+          "microsoft_365",
+          "onedrive"
+        ],
+        "typical_use_cases": [
+          "Content revision - User replaces entire document with updated version",
+          "Text correction - User finds and replaces incorrect information",
+          "Document refresh - User updates outdated content in document",
+          "Template customization - User replaces placeholder text with actual content",
+          "Bulk editing - User updates multiple instances of same text"
+        ],
+        "conversation_memory_hints": {
+          "what_to_remember": "Document IDs updated, update modes used, find/replace patterns, update timestamps",
+          "search_context": "When user asks about 'documents I updated', 'changes I made to [doc]', 'text I replaced'",
+          "related_entities": [
+            "document IDs",
+            "document names",
+            "update modes",
+            "find/replace text",
+            "update timestamps"
+          ]
+        }
+      }
+    },
+    {
+      "name": "microsoft_word_search_text",
+      "short_description": "Search for text in Microsoft Word document to find keywords and return matching paragraphs",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Read X from **[Resource Name]** (ID: `[id]` | URL: [url])'\n(3) Use EXACT [id] provided - NEVER substitute with different ID\n(4) If tool fails (404/403), say 'Failed to read [resource] ID: [id]' and explain error\n(5) NEVER make up data if read fails - acknowledge the failure clearly\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\n⚠️ MUST USE: execute_tool(tool_name='microsoft_word_search_text', ...) - DO NOT call directly!\n\nSearch for text in document",
+      "category": "content_operations",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "document_id": {
+            "type": "string",
+            "description": "Document ID"
+          },
+          "search_term": {
+            "type": "string",
+            "description": "Text to search for"
+          },
+          "mode": {
+            "type": "string",
+            "enum": [
+              "summary",
+              "detailed",
+              "raw"
+            ],
+            "description": "Output mode:\n- 'summary' (default): Match count and first few occurrences\n- 'detailed': All matches with surrounding context\n- 'raw': Complete search results with positions",
+            "default": "summary"
+          },
+          "format": {
+            "type": "string",
+            "enum": [
+              "markdown",
+              "json",
+              "text"
+            ],
+            "description": "Output format:\n- 'markdown' (default): Formatted search results\n- 'json': Structured match data\n- 'text': Plain text list",
+            "default": "markdown"
+          },
+          "export": {
+            "type": "string",
+            "enum": [
+              "none",
+              "synergy",
+              "google_doc",
+              "google_sheet"
+            ],
+            "description": "Auto-export destination:\n- 'none' (default): Return data only\n- 'synergy': Save search results to dashboard\n- 'google_doc': Create search results report\n- 'google_sheet': Create match list spreadsheet",
+            "default": "none"
+          },
+          "export_title": {
+            "type": "string",
+            "description": "Title for exported content. Supports {date}, {time}, {term}, {count} placeholders",
+            "default": null
+          }
+        },
+        "required": [
+          "document_id",
+          "search_term"
+        ]
+      },
+      "returns": "Dict with search results",
+      "user_facing_language": {
+        "action_verb": "search",
+        "resource_name": "text",
+        "resource_plural": "text",
+        "natural_phrases": [
+          "search for text in document",
+          "find text in that doc",
+          "search the document for",
+          "look for text",
+          "find occurrences of"
+        ],
+        "capability_description": "I can search for specific text in Word documents, showing you all matches with context. I can also export search results for tracking.",
+        "mode_translations": {
+          "summary": "match count and preview",
+          "detailed": "all matches with context",
+          "raw": "complete search data"
+        },
+        "format_translations": {
+          "markdown": "formatted results",
+          "json": "structured data",
+          "text": "plain text list"
+        },
+        "export_translations": {
+          "synergy": "save results to your dashboard",
+          "google_doc": "create search report",
+          "google_sheet": "create match spreadsheet",
+          "none": "just show you"
+        },
+        "example_ai_responses": [
+          "I'll search that document for 'customer'.",
+          "I'll find all occurrences of that phrase and show you the context.",
+          "I'll search for that text and export the results to a spreadsheet."
+        ]
+      },
+      "tool_intelligence": {
+        "category": "content_operations",
+        "typical_workflow_patterns": [
+          "microsoft_word_search_text → microsoft_word_update_content (find then replace)",
+          "microsoft_word_search_text → microsoft_word_get_content (search then read full content)",
+          "microsoft_word_list_documents → microsoft_word_search_text (browse then search in specific doc)",
+          "microsoft_word_search_text → export=google_sheet (search then analyze results)"
+        ],
+        "success_indicators": {
+          "keywords": [
+            "found X matches",
+            "search complete",
+            "X occurrences found",
+            "matches located",
+            "search successful"
+          ],
+          "behavioral": [
+            "User reviews search results",
+            "User proceeds to replace found text",
+            "User exports results for analysis",
+            "User reads content around matches"
+          ]
+        },
+        "failure_indicators": {
+          "keywords": [
+            "no matches found",
+            "search failed",
+            "text not found",
+            "document empty",
+            "search error"
+          ],
+          "behavioral": [
+            "User tries different search terms",
+            "User checks spelling of search term",
+            "User reports expecting matches",
+            "User manually searches in Word Online"
+          ]
+        },
+        "performance_expectations": {
+          "typical_duration_ms": 700,
+          "rate_limit_per_minute": 60,
+          "max_retries": 3,
+          "timeout_seconds": 30
+        },
+        "multi_modal_usage_patterns": {
+          "common_mode_combinations": [
+            "mode=summary, format=markdown (quick search check)",
+            "mode=detailed, export=google_sheet (comprehensive match analysis)",
+            "mode=detailed, export=synergy (save important search results)"
+          ],
+          "export_use_cases": [
+            "Export to google_sheet for match tracking/analysis",
+            "Export to synergy for search results reference",
+            "Export to google_doc for search report documentation"
+          ]
+        }
+      },
+      "memory_context": {
+        "vectorization_fields": [
+          "document_id",
+          "search_term",
+          "match_count"
+        ],
+        "search_keywords": [
+          "search text",
+          "find text",
+          "document search",
+          "text search",
+          "find occurrences",
+          "locate text"
+        ],
+        "related_synergy_platforms": [
+          "microsoft_word",
+          "microsoft_365",
+          "onedrive"
+        ],
+        "typical_use_cases": [
+          "Content verification - User searches to verify specific information exists",
+          "Text location - User finds where specific terms appear for editing",
+          "Research - User searches documents for relevant keywords",
+          "Compliance check - User searches for required terms or phrases",
+          "Duplicate detection - User finds repeated text for cleanup"
+        ],
+        "conversation_memory_hints": {
+          "what_to_remember": "Search terms used, document IDs searched, match counts, search timestamps",
+          "search_context": "When user asks about 'text I searched for', 'matches in [document]', 'when I looked for [term]'",
+          "related_entities": [
+            "document IDs",
+            "document names",
+            "search terms",
+            "match counts",
+            "search timestamps"
+          ]
+        },
+        "sheet_export_structure": {
+          "when_export_google_sheet": "If user selects export='google_sheet'",
+          "columns": [
+            {
+              "name": "match_number",
+              "type": "integer",
+              "source": "match.index"
+            },
+            {
+              "name": "matched_text",
+              "type": "string",
+              "source": "match.text"
+            },
+            {
+              "name": "context_before",
+              "type": "string",
+              "source": "match.context_before"
+            },
+            {
+              "name": "context_after",
+              "type": "string",
+              "source": "match.context_after"
+            },
+            {
+              "name": "position",
+              "type": "integer",
+              "source": "match.position"
+            },
+            {
+              "name": "paragraph",
+              "type": "integer",
+              "source": "match.paragraph_number"
+            }
+          ],
+          "sheet_formatting": {
+            "freeze_header_row": true,
+            "auto_filter": true,
+            "wrap_text": [
+              "matched_text",
+              "context_before",
+              "context_after"
+            ]
+          }
+        }
+      }
+    },
+    {
+      "name": "microsoft_word_insert_heading",
+      "short_description": "Insert heading in Microsoft Word document at position with text and level H1-H6",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) ALWAYS execute THIS tool NOW - NEVER reference 'I created earlier' or use conversation history\n(2) MUST return format: **[Name]** | ID: `[id]` | URL: [full_url] | Link: [title](url)\n(3) Use EXACT values from tool response - NEVER make up fake URLs/IDs\n(4) If tool fails, say 'Failed to create' - NEVER pretend it succeeded\n\nExample response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\n⚠️ MUST USE: execute_tool(tool_name='microsoft_word_insert_heading', ...) - DO NOT call directly!\n\nInsert heading in document",
+      "category": "formatting",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "document_id": {
+            "type": "string",
+            "description": "Document ID"
+          },
+          "text": {
+            "type": "string",
+            "description": "Heading text"
+          },
+          "level": {
+            "type": "integer",
+            "description": "Heading level (1-9)",
+            "default": 1
+          }
+        },
+        "required": [
+          "document_id",
+          "text"
+        ]
+      },
+      "returns": "Dict with success status",
+      "user_facing_language": {
+        "action_verb": "add",
+        "resource_name": "heading",
+        "resource_plural": "headings",
+        "natural_phrases": [
+          "add a heading",
+          "insert a heading",
+          "add section title",
+          "create a heading",
+          "add title"
+        ],
+        "capability_description": "I can insert formatted headings (H1-H9) into Word documents to structure your content professionally.",
+        "example_ai_responses": [
+          "I'll add that heading to the document.",
+          "I'll insert a level 2 heading with that text.",
+          "I'll add that section title to your doc."
+        ]
+      },
+      "tool_intelligence": {
+        "category": "formatting",
+        "typical_workflow_patterns": [
+          "microsoft_word_create_document → microsoft_word_insert_heading (create then structure)",
+          "microsoft_word_insert_heading → microsoft_word_append_text (heading then content)",
+          "microsoft_word_insert_heading → microsoft_word_insert_table (heading then data)",
+          "microsoft_word_smart_generate_report → microsoft_word_insert_heading (auto-generate then add sections)"
+        ],
+        "success_indicators": {
+          "keywords": [
+            "heading added",
+            "heading inserted",
+            "title added",
+            "section created",
+            "heading complete"
+          ],
+          "behavioral": [
+            "User adds content under heading",
+            "User adds more headings for structure",
+            "User views formatted document",
+            "User exports document with headings"
+          ]
+        },
+        "failure_indicators": {
+          "keywords": [
+            "heading failed",
+            "insert failed",
+            "invalid level",
+            "document locked",
+            "formatting error"
+          ],
+          "behavioral": [
+            "User reports heading not visible",
+            "User checks heading level",
+            "User retries insertion",
+            "User manually adds in Word Online"
+          ]
+        },
+        "performance_expectations": {
+          "typical_duration_ms": 600,
+          "rate_limit_per_minute": 60,
+          "max_retries": 3,
+          "timeout_seconds": 20
+        }
+      },
+      "memory_context": {
+        "vectorization_fields": [
+          "document_id",
+          "text",
+          "level"
+        ],
+        "search_keywords": [
+          "insert heading",
+          "add heading",
+          "section title",
+          "document structure",
+          "heading format",
+          "title"
+        ],
+        "related_synergy_platforms": [
+          "microsoft_word",
+          "microsoft_365",
+          "onedrive"
+        ],
+        "typical_use_cases": [
+          "Document structuring - User adds headings to organize long document",
+          "Report creation - User inserts section headings for professional report",
+          "Table of contents - User adds headings that will appear in TOC",
+          "Content hierarchy - User creates multi-level heading structure",
+          "Template building - User adds headings as structure for template"
+        ],
+        "conversation_memory_hints": {
+          "what_to_remember": "Document IDs updated, heading text, heading levels, insertion timestamps",
+          "search_context": "When user asks about 'headings I added', 'sections in [document]', 'structure of [doc]'",
+          "related_entities": [
+            "document IDs",
+            "document names",
+            "heading text",
+            "heading levels",
+            "document structure"
+          ]
+        }
+      }
+    },
+    {
+      "name": "microsoft_word_insert_table",
+      "short_description": "Insert table in Microsoft Word document with specified rows, columns, and data values",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) ALWAYS execute THIS tool NOW - NEVER reference 'I created earlier' or use conversation history\n(2) MUST return format: **[Name]** | ID: `[id]` | URL: [full_url] | Link: [title](url)\n(3) Use EXACT values from tool response - NEVER make up fake URLs/IDs\n(4) If tool fails, say 'Failed to create' - NEVER pretend it succeeded\n\nExample response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\n⚠️ MUST USE: execute_tool(tool_name='microsoft_word_insert_table', ...) - DO NOT call directly!\n\nInsert table in document",
+      "category": "formatting",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "document_id": {
+            "type": "string",
+            "description": "Document ID"
+          },
+          "rows": {
+            "type": "integer",
+            "description": "Number of rows"
+          },
+          "columns": {
+            "type": "integer",
+            "description": "Number of columns"
+          },
+          "data": {
+            "type": "array",
+            "description": "Optional 2D array of cell data"
+          }
+        },
+        "required": [
+          "document_id",
+          "rows",
+          "columns"
+        ]
+      },
+      "returns": "Dict with success status",
+      "user_facing_language": {
+        "action_verb": "insert",
+        "resource_name": "table",
+        "resource_plural": "tables",
+        "natural_phrases": [
+          "insert a table",
+          "add a table",
+          "create a table",
+          "add table to document",
+          "insert data table"
+        ],
+        "capability_description": "I can insert formatted tables into Word documents with specified rows and columns, optionally pre-filled with data.",
+        "example_ai_responses": [
+          "I'll insert a 5x3 table into the document.",
+          "I'll add that table with the data you provided.",
+          "I'll create a table in your doc."
+        ]
+      },
+      "tool_intelligence": {
+        "category": "formatting",
+        "typical_workflow_patterns": [
+          "microsoft_word_insert_heading → microsoft_word_insert_table (section title then data)",
+          "microsoft_word_create_document → microsoft_word_insert_table (create then add table)",
+          "microsoft_word_insert_table → microsoft_word_append_text (table then explanation)",
+          "microsoft_word_smart_generate_report → microsoft_word_insert_table (auto-report then additional tables)"
+        ],
+        "success_indicators": {
+          "keywords": [
+            "table inserted",
+            "table added",
+            "table created",
+            "data table added",
+            "table complete"
+          ],
+          "behavioral": [
+            "User views table in document",
+            "User adds more content around table",
+            "User exports document with table",
+            "User adds more tables to document"
+          ]
+        },
+        "failure_indicators": {
+          "keywords": [
+            "table failed",
+            "insert failed",
+            "invalid dimensions",
+            "data mismatch",
+            "formatting error"
+          ],
+          "behavioral": [
+            "User reports table not visible",
+            "User checks row/column counts",
+            "User retries with different dimensions",
+            "User manually creates table in Word Online"
+          ]
+        },
+        "performance_expectations": {
+          "typical_duration_ms": 800,
+          "rate_limit_per_minute": 30,
+          "max_retries": 3,
+          "timeout_seconds": 30
+        }
+      },
+      "memory_context": {
+        "vectorization_fields": [
+          "document_id",
+          "rows",
+          "columns"
+        ],
+        "search_keywords": [
+          "insert table",
+          "add table",
+          "data table",
+          "table format",
+          "create table",
+          "structured data"
+        ],
+        "related_synergy_platforms": [
+          "microsoft_word",
+          "microsoft_365",
+          "onedrive"
+        ],
+        "typical_use_cases": [
+          "Data presentation - User inserts table to display structured data",
+          "Report tables - User adds financial or statistical tables to report",
+          "Comparison charts - User creates table to compare options or products",
+          "Schedule tables - User inserts timetable or schedule",
+          "Pricing tables - User adds pricing comparison table"
+        ],
+        "conversation_memory_hints": {
+          "what_to_remember": "Document IDs updated, table dimensions (rows x columns), data summaries, insertion timestamps",
+          "search_context": "When user asks about 'tables I added', 'data in [document]', 'tables in [doc]'",
+          "related_entities": [
+            "document IDs",
+            "document names",
+            "table dimensions",
+            "data content",
+            "table purposes"
+          ]
+        }
+      }
+    },
+    {
+      "name": "microsoft_word_insert_image",
+      "short_description": "Insert image into Microsoft Word document from URL at position with size specifications",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) ALWAYS execute THIS tool NOW - NEVER reference 'I created earlier' or use conversation history\n(2) MUST return format: **[Name]** | ID: `[id]` | URL: [full_url] | Link: [title](url)\n(3) Use EXACT values from tool response - NEVER make up fake URLs/IDs\n(4) If tool fails, say 'Failed to create' - NEVER pretend it succeeded\n\nExample response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\n⚠️ MUST USE: execute_tool(tool_name='microsoft_word_insert_image', ...) - DO NOT call directly!\n\nInsert image in document",
+      "category": "formatting",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "document_id": {
+            "type": "string",
+            "description": "Document ID"
+          },
+          "image_url": {
+            "type": "string",
+            "description": "URL of image to insert"
+          },
+          "width": {
+            "type": "integer",
+            "description": "Image width in pixels"
+          },
+          "height": {
+            "type": "integer",
+            "description": "Image height in pixels"
+          }
+        },
+        "required": [
+          "document_id",
+          "image_url"
+        ]
+      },
+      "returns": "Dict with success status",
+      "user_facing_language": {
+        "action_verb": "insert",
+        "resource_name": "image",
+        "resource_plural": "images",
+        "natural_phrases": [
+          "insert an image",
+          "add an image",
+          "add picture to document",
+          "insert photo",
+          "add image to doc"
+        ],
+        "capability_description": "I can insert images from URLs into Word documents with optional width and height specifications for professional layout.",
+        "example_ai_responses": [
+          "I'll insert that image into the document.",
+          "I'll add that picture to your doc.",
+          "I'll insert the image at the specified size."
+        ]
+      },
+      "tool_intelligence": {
+        "category": "formatting",
+        "typical_workflow_patterns": [
+          "microsoft_word_insert_heading → microsoft_word_insert_image (title then visual)",
+          "microsoft_word_create_document → microsoft_word_insert_image (create then add visuals)",
+          "microsoft_word_insert_image → microsoft_word_append_text (image then caption)",
+          "microsoft_word_smart_generate_report → microsoft_word_insert_image (auto-report then additional images)"
+        ],
+        "success_indicators": {
+          "keywords": [
+            "image inserted",
+            "picture added",
+            "image added",
+            "visual added",
+            "image complete"
+          ],
+          "behavioral": [
+            "User views image in document",
+            "User adds caption or text around image",
+            "User inserts more images",
+            "User exports document with images"
+          ]
+        },
+        "failure_indicators": {
+          "keywords": [
+            "image failed",
+            "invalid URL",
+            "image not found",
+            "insert failed",
+            "format error"
+          ],
+          "behavioral": [
+            "User reports image not visible",
+            "User checks image URL",
+            "User tries different image",
+            "User manually inserts in Word Online",
+            "User reports image broken"
+          ]
+        },
+        "performance_expectations": {
+          "typical_duration_ms": 1200,
+          "rate_limit_per_minute": 30,
+          "max_retries": 3,
+          "timeout_seconds": 45
+        }
+      },
+      "memory_context": {
+        "vectorization_fields": [
+          "document_id",
+          "image_url",
+          "dimensions"
+        ],
+        "search_keywords": [
+          "insert image",
+          "add image",
+          "insert picture",
+          "add photo",
+          "document image",
+          "visual content"
+        ],
+        "related_synergy_platforms": [
+          "microsoft_word",
+          "microsoft_365",
+          "onedrive"
+        ],
+        "typical_use_cases": [
+          "Visual documentation - User adds screenshots or diagrams to technical doc",
+          "Report graphics - User inserts charts or graphs into report",
+          "Branding - User adds company logo to document",
+          "Product images - User inserts product photos into proposal",
+          "Illustrations - User adds visual aids to enhance content"
+        ],
+        "conversation_memory_hints": {
+          "what_to_remember": "Document IDs updated, image URLs, image dimensions, insertion timestamps, image purposes",
+          "search_context": "When user asks about 'images I added', 'pictures in [document]', 'visuals in [doc]'",
+          "related_entities": [
+            "document IDs",
+            "document names",
+            "image URLs",
+            "image sizes",
+            "image purposes"
+          ]
+        }
+      }
+    },
+    {
+      "name": "microsoft_word_apply_style",
+      "short_description": "Apply formatting style to Microsoft Word paragraph with bold, italic, and font options",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Read X from **[Resource Name]** (ID: `[id]` | URL: [url])'\n(3) Use EXACT [id] provided - NEVER substitute with different ID\n(4) If tool fails (404/403), say 'Failed to read [resource] ID: [id]' and explain error\n(5) NEVER make up data if read fails - acknowledge the failure clearly\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\n⚠️ MUST USE: execute_tool(tool_name='microsoft_word_apply_style', ...) - DO NOT call directly!\n\nApply formatting style to document",
+      "category": "formatting",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "document_id": {
+            "type": "string",
+            "description": "Document ID"
+          },
+          "style_name": {
+            "type": "string",
+            "description": "Style name (e.g., 'Heading 1', 'Normal')"
+          },
+          "scope": {
+            "type": "string",
+            "description": "Apply to 'document', 'paragraph', or 'selection'",
+            "default": "document"
+          }
+        },
+        "required": [
+          "document_id",
+          "style_name"
+        ]
+      },
+      "returns": "Dict with success status",
+      "user_facing_language": {
+        "action_verb": "apply",
+        "resource_name": "style",
+        "resource_plural": "styles",
+        "natural_phrases": [
+          "apply formatting style",
+          "format the document",
+          "apply style to document",
+          "change document style",
+          "format with style"
+        ],
+        "capability_description": "I can apply Word's built-in formatting styles to documents, paragraphs, or selections for consistent professional appearance.",
+        "example_ai_responses": [
+          "I'll apply the 'Heading 1' style to the document.",
+          "I'll format that paragraph with the specified style.",
+          "I'll apply that formatting style throughout the document."
+        ]
+      },
+      "tool_intelligence": {
+        "category": "formatting",
+        "typical_workflow_patterns": [
+          "microsoft_word_create_document → microsoft_word_apply_style (create then format)",
+          "microsoft_word_insert_heading → microsoft_word_apply_style (add heading then style)",
+          "microsoft_word_apply_style → microsoft_word_export_pdf (format then export)",
+          "microsoft_word_smart_generate_report → microsoft_word_apply_style (auto-generate then customize)"
+        ],
+        "success_indicators": {
+          "keywords": [
+            "style applied",
+            "formatting applied",
+            "style set",
+            "format complete",
+            "styling done"
+          ],
+          "behavioral": [
+            "User views formatted document",
+            "User applies additional styles",
+            "User exports formatted document",
+            "User doesn't request style changes"
+          ]
+        },
+        "failure_indicators": {
+          "keywords": [
+            "style failed",
+            "invalid style name",
+            "style not found",
+            "formatting error",
+            "apply failed"
+          ],
+          "behavioral": [
+            "User reports style not applied",
+            "User checks style name",
+            "User tries different style",
+            "User manually formats in Word Online",
+            "User asks for available styles"
+          ]
+        },
+        "performance_expectations": {
+          "typical_duration_ms": 600,
+          "rate_limit_per_minute": 60,
+          "max_retries": 3,
+          "timeout_seconds": 20
+        }
+      },
+      "memory_context": {
+        "vectorization_fields": [
+          "document_id",
+          "style_name",
+          "scope"
+        ],
+        "search_keywords": [
+          "apply style",
+          "document formatting",
+          "style formatting",
+          "format document",
+          "apply format",
+          "document style"
+        ],
+        "related_synergy_platforms": [
+          "microsoft_word",
+          "microsoft_365",
+          "onedrive"
+        ],
+        "typical_use_cases": [
+          "Professional formatting - User applies corporate style to document",
+          "Consistent appearance - User ensures uniform formatting across sections",
+          "Template application - User applies predefined styles to content",
+          "Quick formatting - User applies styles instead of manual formatting",
+          "Brand compliance - User applies company-approved styles"
+        ],
+        "conversation_memory_hints": {
+          "what_to_remember": "Document IDs styled, style names applied, scope of application, styling timestamps",
+          "search_context": "When user asks about 'styles I applied', 'formatting in [document]', 'how I styled [doc]'",
+          "related_entities": [
+            "document IDs",
+            "document names",
+            "style names",
+            "formatting scopes",
+            "styling timestamps"
+          ]
+        }
+      }
+    },
+    {
+      "name": "microsoft_word_add_comment",
+      "short_description": "Add comment to Microsoft Word paragraph by index for review and collaboration notes",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) ALWAYS execute THIS tool NOW - NEVER reference 'I created earlier' or use conversation history\n(2) MUST return format: **[Name]** | ID: `[id]` | URL: [full_url] | Link: [title](url)\n(3) Use EXACT values from tool response - NEVER make up fake URLs/IDs\n(4) If tool fails, say 'Failed to create' - NEVER pretend it succeeded\n\nExample response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\n⚠️ MUST USE: execute_tool(tool_name='microsoft_word_add_comment', ...) - DO NOT call directly!\n\nAdd comment to document",
+      "category": "collaboration",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "document_id": {
+            "type": "string",
+            "description": "Document ID"
+          },
+          "text": {
+            "type": "string",
+            "description": "Comment text"
+          },
+          "author": {
+            "type": "string",
+            "description": "Comment author name"
+          }
+        },
+        "required": [
+          "document_id",
+          "text"
+        ]
+      },
+      "returns": "Dict with comment ID",
+      "user_facing_language": {
+        "action_verb": "add",
+        "resource_name": "comment",
+        "resource_plural": "comments",
+        "natural_phrases": [
+          "add a comment",
+          "leave a comment",
+          "comment on document",
+          "add note to document",
+          "add feedback comment"
+        ],
+        "capability_description": "I can add comments to Word documents for collaboration, feedback, or notes. Comments are visible to all document editors.",
+        "example_ai_responses": [
+          "I'll add that comment to the document.",
+          "I'll leave a note in the document for the team.",
+          "I'll add your feedback as a comment."
+        ]
+      },
+      "tool_intelligence": {
+        "category": "collaboration",
+        "typical_workflow_patterns": [
+          "microsoft_word_get_content → microsoft_word_add_comment (review then comment)",
+          "microsoft_word_search_text → microsoft_word_add_comment (find then comment on specific text)",
+          "microsoft_word_add_comment → microsoft_word_get_comments (add then review all comments)",
+          "microsoft_word_smart_generate_report → microsoft_word_add_comment (generate then add review notes)"
+        ],
+        "success_indicators": {
+          "keywords": [
+            "comment added",
+            "comment created",
+            "note added",
+            "feedback added",
+            "comment ID"
+          ],
+          "behavioral": [
+            "User views comment in document",
+            "User adds more comments",
+            "User shares document with comments",
+            "User requests comment review"
+          ]
+        },
+        "failure_indicators": {
+          "keywords": [
+            "comment failed",
+            "permission denied",
+            "document locked",
+            "comment error",
+            "add failed"
+          ],
+          "behavioral": [
+            "User reports comment not visible",
+            "User checks document permissions",
+            "User retries comment",
+            "User manually adds in Word Online",
+            "User asks about commenting rights"
+          ]
+        },
+        "performance_expectations": {
+          "typical_duration_ms": 600,
+          "rate_limit_per_minute": 60,
+          "max_retries": 3,
+          "timeout_seconds": 20
+        }
+      },
+      "memory_context": {
+        "vectorization_fields": [
+          "document_id",
+          "text",
+          "author"
+        ],
+        "search_keywords": [
+          "add comment",
+          "document comment",
+          "feedback",
+          "review comment",
+          "note",
+          "collaboration"
+        ],
+        "related_synergy_platforms": [
+          "microsoft_word",
+          "microsoft_365",
+          "onedrive"
+        ],
+        "typical_use_cases": [
+          "Document review - User adds feedback comments during review process",
+          "Collaboration - User leaves notes for team members",
+          "Editing notes - User marks sections needing revision",
+          "Approval process - User adds approval or rejection comments",
+          "Question flagging - User comments on unclear sections"
+        ],
+        "conversation_memory_hints": {
+          "what_to_remember": "Document IDs commented, comment text (summaries), authors, comment timestamps, comment IDs",
+          "search_context": "When user asks about 'comments I added', 'feedback on [document]', 'notes in [doc]'",
+          "related_entities": [
+            "document IDs",
+            "document names",
+            "comment authors",
+            "comment topics",
+            "comment timestamps"
+          ]
+        }
+      }
+    },
+    {
+      "name": "microsoft_word_get_comments",
+      "short_description": "Get all comments from Microsoft Word document for review and feedback workflow",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Read X from **[Resource Name]** (ID: `[id]` | URL: [url])'\n(3) Use EXACT [id] provided - NEVER substitute with different ID\n(4) If tool fails (404/403), say 'Failed to read [resource] ID: [id]' and explain error\n(5) NEVER make up data if read fails - acknowledge the failure clearly\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\n⚠️ MUST USE: execute_tool(tool_name='microsoft_word_get_comments', ...) - DO NOT call directly!\n\nGet all comments in document",
+      "category": "collaboration",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "document_id": {
+            "type": "string",
+            "description": "Document ID"
+          },
+          "mode": {
+            "type": "string",
+            "enum": [
+              "summary",
+              "detailed",
+              "raw"
+            ],
+            "description": "Output mode:\n- 'summary' (default): Comment count and previews\n- 'detailed': Full comments with authors and timestamps\n- 'raw': Complete API response",
+            "default": "summary"
+          },
+          "format": {
+            "type": "string",
+            "enum": [
+              "markdown",
+              "json",
+              "text"
+            ],
+            "description": "Output format:\n- 'markdown' (default): Formatted comment list\n- 'json': Structured data\n- 'text': Plain text list",
+            "default": "markdown"
+          },
+          "export": {
+            "type": "string",
+            "enum": [
+              "none",
+              "synergy",
+              "google_doc",
+              "google_sheet"
+            ],
+            "description": "Auto-export destination:\n- 'none' (default): Return data only\n- 'synergy': Save comments to dashboard\n- 'google_doc': Create comments report\n- 'google_sheet': Create comment tracking spreadsheet",
+            "default": "none"
+          },
+          "export_title": {
+            "type": "string",
+            "description": "Title for exported content. Supports {date}, {time}, {count} placeholders",
+            "default": null
+          }
+        },
+        "required": [
+          "document_id"
+        ]
+      },
+      "returns": "Dict with comments list",
+      "user_facing_language": {
+        "action_verb": "get",
+        "resource_name": "comments",
+        "resource_plural": "comments",
+        "natural_phrases": [
+          "get document comments",
+          "show comments",
+          "list comments",
+          "review comments",
+          "see feedback"
+        ],
+        "capability_description": "I can retrieve all comments from Word documents, showing authors, timestamps, and content. Perfect for review tracking.",
+        "mode_translations": {
+          "summary": "comment count and previews",
+          "detailed": "complete comments with metadata",
+          "raw": "full technical data"
+        },
+        "format_translations": {
+          "markdown": "formatted comment list",
+          "json": "structured data",
+          "text": "plain text list"
+        },
+        "export_translations": {
+          "synergy": "save to your dashboard",
+          "google_doc": "create comments report",
+          "google_sheet": "create tracking spreadsheet",
+          "none": "just show you"
+        },
+        "example_ai_responses": [
+          "I'll get all the comments from that document.",
+          "I'll show you the feedback comments.",
+          "I'll export all comments to a spreadsheet for tracking."
+        ]
+      },
+      "tool_intelligence": {
+        "category": "collaboration",
+        "typical_workflow_patterns": [
+          "microsoft_word_add_comment → microsoft_word_get_comments (add then review all)",
+          "microsoft_word_get_document → microsoft_word_get_comments (check metadata then review comments)",
+          "microsoft_word_get_comments → export=google_sheet (track comment resolution)",
+          "microsoft_word_get_content → microsoft_word_get_comments (read content then review feedback)"
+        ],
+        "success_indicators": {
+          "keywords": [
+            "found X comments",
+            "comments retrieved",
+            "feedback loaded",
+            "comments listed",
+            "review ready"
+          ],
+          "behavioral": [
+            "User reviews comment content",
+            "User addresses feedback",
+            "User exports for tracking",
+            "User responds to comments"
+          ]
+        },
+        "failure_indicators": {
+          "keywords": [
+            "no comments found",
+            "document not found",
+            "access denied",
+            "comments unavailable",
+            "retrieval failed"
+          ],
+          "behavioral": [
+            "User expects comments but none found",
+            "User checks document permissions",
+            "User verifies document ID",
+            "User manually checks in Word Online"
+          ]
+        },
+        "performance_expectations": {
+          "typical_duration_ms": 600,
+          "rate_limit_per_minute": 60,
+          "max_retries": 3,
+          "timeout_seconds": 20
+        },
+        "multi_modal_usage_patterns": {
+          "common_mode_combinations": [
+            "mode=summary, format=markdown (quick comment review)",
+            "mode=detailed, export=google_sheet (comment tracking)",
+            "mode=detailed, export=synergy (save feedback reference)"
+          ],
+          "export_use_cases": [
+            "Export to google_sheet for comment resolution tracking",
+            "Export to synergy for review feedback reference",
+            "Export to google_doc for comment summary report"
+          ]
+        }
+      },
+      "memory_context": {
+        "vectorization_fields": [
+          "document_id",
+          "comment_count",
+          "authors"
+        ],
+        "search_keywords": [
+          "get comments",
+          "document feedback",
+          "review comments",
+          "comment list",
+          "feedback review",
+          "collaboration notes"
+        ],
+        "related_synergy_platforms": [
+          "microsoft_word",
+          "microsoft_365",
+          "onedrive"
+        ],
+        "typical_use_cases": [
+          "Review tracking - User retrieves all comments to track review progress",
+          "Feedback compilation - User exports comments for response planning",
+          "Collaboration audit - User reviews who provided feedback",
+          "Comment resolution - User lists open comments for addressing",
+          "Quality review - User checks feedback before finalizing document"
+        ],
+        "conversation_memory_hints": {
+          "what_to_remember": "Document IDs checked, comment counts, comment authors, retrieval timestamps",
+          "search_context": "When user asks about 'comments in [document]', 'feedback on [doc]', 'review notes'",
+          "related_entities": [
+            "document IDs",
+            "document names",
+            "comment authors",
+            "comment counts",
+            "review dates"
+          ]
+        },
+        "sheet_export_structure": {
+          "when_export_google_sheet": "If user selects export='google_sheet'",
+          "columns": [
+            {
+              "name": "comment_id",
+              "type": "string",
+              "source": "comment.id"
+            },
+            {
+              "name": "author",
+              "type": "string",
+              "source": "comment.author"
+            },
+            {
+              "name": "comment_text",
+              "type": "string",
+              "source": "comment.text"
+            },
+            {
+              "name": "created_date",
+              "type": "date",
+              "format": "YYYY-MM-DD HH:MM",
+              "source": "comment.createdDateTime"
+            },
+            {
+              "name": "status",
+              "type": "string",
+              "source": "comment.status"
+            },
+            {
+              "name": "replies",
+              "type": "integer",
+              "source": "comment.reply_count"
+            }
+          ],
+          "sheet_formatting": {
+            "freeze_header_row": true,
+            "auto_filter": true,
+            "wrap_text": [
+              "comment_text"
+            ],
+            "conditional_formatting": [
+              {
+                "column": "status",
+                "rule": "open",
+                "format": "orange_background"
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "name": "microsoft_word_export_pdf",
+      "short_description": "Export Microsoft Word document as PDF file with formatting preserved for sharing",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Read X from **[Resource Name]** (ID: `[id]` | URL: [url])'\n(3) Use EXACT [id] provided - NEVER substitute with different ID\n(4) If tool fails (404/403), say 'Failed to read [resource] ID: [id]' and explain error\n(5) NEVER make up data if read fails - acknowledge the failure clearly\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\n⚠️ MUST USE: execute_tool(tool_name='microsoft_word_export_pdf', ...) - DO NOT call directly!\n\nExport document as PDF",
+      "category": "export",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "document_id": {
+            "type": "string",
+            "description": "Document ID"
+          }
+        },
+        "required": [
+          "document_id"
+        ]
+      },
+      "returns": "Dict with PDF download URL and file ID",
+      "user_facing_language": {
+        "action_verb": "export",
+        "resource_name": "PDF",
+        "resource_plural": "PDFs",
+        "natural_phrases": [
+          "export as PDF",
+          "convert to PDF",
+          "save as PDF",
+          "export document to PDF",
+          "create PDF version"
+        ],
+        "capability_description": "I can export Word documents to PDF format for sharing, printing, or archiving. PDF preserves all formatting.",
+        "example_ai_responses": [
+          "I'll export that document as a PDF.",
+          "I'll convert that doc to PDF format.",
+          "I'll create a PDF version of the document."
+        ]
+      },
+      "tool_intelligence": {
+        "category": "export",
+        "typical_workflow_patterns": [
+          "microsoft_word_update_content → microsoft_word_export_pdf (finalize then export)",
+          "microsoft_word_smart_generate_report → microsoft_word_export_pdf (generate then export)",
+          "microsoft_word_apply_style → microsoft_word_export_pdf (format then export)",
+          "microsoft_word_get_content → microsoft_word_export_pdf (verify then export)"
+        ],
+        "success_indicators": {
+          "keywords": [
+            "PDF created",
+            "exported successfully",
+            "PDF ready",
+            "conversion complete",
+            "PDF available"
+          ],
+          "behavioral": [
+            "User downloads PDF",
+            "User shares PDF link",
+            "User confirms PDF quality",
+            "User exports more documents"
+          ]
+        },
+        "failure_indicators": {
+          "keywords": [
+            "export failed",
+            "conversion error",
+            "PDF creation failed",
+            "document not found",
+            "format error"
+          ],
+          "behavioral": [
+            "User reports PDF not created",
+            "User checks document ID",
+            "User retries export",
+            "User manually exports in Word Online",
+            "User reports PDF corrupted"
+          ]
+        },
+        "performance_expectations": {
+          "typical_duration_ms": 2000,
+          "rate_limit_per_minute": 20,
+          "max_retries": 3,
+          "timeout_seconds": 60
+        }
+      },
+      "memory_context": {
+        "vectorization_fields": [
+          "document_id",
+          "pdf_id",
+          "document_name"
+        ],
+        "search_keywords": [
+          "export PDF",
+          "convert PDF",
+          "PDF export",
+          "save PDF",
+          "document PDF",
+          "PDF conversion"
+        ],
+        "related_synergy_platforms": [
+          "microsoft_word",
+          "microsoft_365",
+          "onedrive"
+        ],
+        "typical_use_cases": [
+          "Final distribution - User exports finished document as PDF for sharing",
+          "Print preparation - User creates PDF for professional printing",
+          "Archive creation - User exports documents to PDF for long-term storage",
+          "Client delivery - User sends PDF version to clients",
+          "Read-only sharing - User exports PDF to prevent editing"
+        ],
+        "conversation_memory_hints": {
+          "what_to_remember": "Document IDs exported, PDF file IDs, export timestamps, PDF download URLs",
+          "search_context": "When user asks about 'PDFs I created', 'documents I exported', 'PDF versions of [doc]'",
+          "related_entities": [
+            "document IDs",
+            "document names",
+            "PDF file IDs",
+            "export timestamps",
+            "download URLs"
+          ]
+        }
+      }
+    },
+    {
+      "name": "microsoft_word_copy_document",
+      "short_description": "Copy Microsoft Word document by ID to duplicate content with new name or location",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Read X from **[Resource Name]** (ID: `[id]` | URL: [url])'\n(3) Use EXACT [id] provided - NEVER substitute with different ID\n(4) If tool fails (404/403), say 'Failed to read [resource] ID: [id]' and explain error\n(5) NEVER make up data if read fails - acknowledge the failure clearly\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\n⚠️ MUST USE: execute_tool(tool_name='microsoft_word_copy_document', ...) - DO NOT call directly!\n\nCopy document to new location",
+      "category": "content_management",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "document_id": {
+            "type": "string",
+            "description": "Source document ID"
+          },
+          "new_name": {
+            "type": "string",
+            "description": "Name for copied document"
+          },
+          "destination_folder_id": {
+            "type": "string",
+            "description": "Destination folder ID"
+          }
+        },
+        "required": [
+          "document_id",
+          "new_name"
+        ]
+      },
+      "returns": "Dict with new document info and monitor URL",
+      "user_facing_language": {
+        "action_verb": "copy",
+        "resource_name": "document",
+        "resource_plural": "documents",
+        "natural_phrases": [
+          "copy the document",
+          "duplicate the document",
+          "make a copy",
+          "copy that doc",
+          "create a duplicate"
+        ],
+        "capability_description": "I can copy Word documents to create duplicates in the same or different folders, useful for versioning or templates.",
+        "example_ai_responses": [
+          "I'll copy that document with the new name.",
+          "I'll duplicate that doc to the specified folder.",
+          "I'll create a copy of that document."
+        ]
+      },
+      "tool_intelligence": {
+        "category": "content_management",
+        "typical_workflow_patterns": [
+          "microsoft_word_get_document → microsoft_word_copy_document (verify then copy)",
+          "microsoft_word_copy_document → microsoft_word_update_content (copy then customize)",
+          "microsoft_word_list_documents → microsoft_word_copy_document (browse then duplicate)",
+          "microsoft_word_copy_document → microsoft_word_delete_document (backup then delete original)"
+        ],
+        "success_indicators": {
+          "keywords": [
+            "document copied",
+            "copy created",
+            "duplicate created",
+            "new document ID",
+            "copy successful"
+          ],
+          "behavioral": [
+            "User edits copied document",
+            "User verifies copy exists",
+            "User shares copied version",
+            "User creates multiple copies"
+          ]
+        },
+        "failure_indicators": {
+          "keywords": [
+            "copy failed",
+            "document not found",
+            "permission denied",
+            "folder not found",
+            "quota exceeded"
+          ],
+          "behavioral": [
+            "User reports copy not created",
+            "User checks source document",
+            "User verifies folder permissions",
+            "User retries copy operation",
+            "User manually copies in Word Online"
+          ]
+        },
+        "performance_expectations": {
+          "typical_duration_ms": 1200,
+          "rate_limit_per_minute": 30,
+          "max_retries": 3,
+          "timeout_seconds": 45
+        }
+      },
+      "memory_context": {
+        "vectorization_fields": [
+          "document_id",
+          "new_name",
+          "destination_folder_id"
+        ],
+        "search_keywords": [
+          "copy document",
+          "duplicate document",
+          "document copy",
+          "make copy",
+          "duplicate file",
+          "backup document"
+        ],
+        "related_synergy_platforms": [
+          "microsoft_word",
+          "microsoft_365",
+          "onedrive"
+        ],
+        "typical_use_cases": [
+          "Version control - User copies document before major edits",
+          "Template creation - User duplicates document to use as template",
+          "Backup - User creates backup copy before risky changes",
+          "Distribution - User copies document for different audiences",
+          "Archive - User duplicates document to archive folder"
+        ],
+        "conversation_memory_hints": {
+          "what_to_remember": "Source document IDs, new document IDs, new names, destination folders, copy timestamps",
+          "search_context": "When user asks about 'documents I copied', 'copies of [doc]', 'duplicates I created'",
+          "related_entities": [
+            "source document IDs",
+            "new document IDs",
+            "document names",
+            "folder locations",
+            "copy purposes"
+          ]
+        }
+      }
+    },
+    {
+      "name": "microsoft_word_smart_generate_report",
+      "short_description": "SMART: AI-generate professional report from data with sections, tables, and formatted content",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Read X from **[Resource Name]** (ID: `[id]` | URL: [url])'\n(3) Use EXACT [id] provided - NEVER substitute with different ID\n(4) If tool fails (404/403), say 'Failed to read [resource] ID: [id]' and explain error\n(5) NEVER make up data if read fails - acknowledge the failure clearly\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\n⚠️ MUST USE: execute_tool(tool_name='microsoft_word_smart_generate_report', ...) - DO NOT call directly!\n\nSMART: Generate professionally formatted Word document from structured data. Supports multiple document types (report, proposal, medical, legal, etc.) with intelligent content handling including tables, lists, and images. Creates beautiful documents with title pages, TOC, and auto-styling.",
+      "category": "smart_automation",
+      "tier": 1,
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": "string",
+            "description": "Document title"
+          },
+          "sections": {
+            "type": "array",
+            "description": "List of section dicts with: heading (required), content (text), level (1-3), tables (2D arrays), lists (bullet/numbered), images (URLs)",
+            "items": {
+              "type": "object",
+              "properties": {
+                "heading": {
+                  "type": "string"
+                },
+                "content": {
+                  "type": "string"
+                },
+                "level": {
+                  "type": "integer"
+                },
+                "tables": {
+                  "type": "array"
+                },
+                "lists": {
+                  "type": "array"
+                },
+                "images": {
+                  "type": "array"
+                }
+              }
+            }
+          },
+          "document_type": {
+            "type": "string",
+            "description": "Document type for styling: report (default), proposal, meeting_minutes, invoice, medical, legal, technical, letter",
+            "default": "report",
+            "enum": [
+              "report",
+              "proposal",
+              "meeting_minutes",
+              "invoice",
+              "medical",
+              "legal",
+              "technical",
+              "letter"
+            ]
+          },
+          "folder_id": {
+            "type": "string",
+            "description": "Destination folder ID"
+          },
+          "include_toc": {
+            "type": "boolean",
+            "description": "Include table of contents",
+            "default": true
+          },
+          "export_pdf": {
+            "type": "boolean",
+            "description": "Also export as PDF",
+            "default": false
+          },
+          "metadata": {
+            "type": "object",
+            "description": "Additional metadata (author, version, department, etc.)"
+          }
+        },
+        "required": [
+          "title",
+          "sections"
+        ]
+      },
+      "returns": "Dict with document_id, web_url, stats (sections/paragraphs/tables/lists/images counts), and optional pdf_id",
+      "use_cases": [
+        "Generate quarterly business reports with financial tables",
+        "Create medical reports with patient data and treatment plans",
+        "Build meeting minutes with agenda items and decisions",
+        "Generate technical documentation with code examples",
+        "Create legal documents with structured sections",
+        "Build proposals with pricing tables and timelines",
+        "Generate invoices with line items and totals"
+      ],
+      "user_facing_language": {
+        "action_verb": "generate",
+        "resource_name": "report",
+        "resource_plural": "reports",
+        "natural_phrases": [
+          "generate a report",
+          "create a formatted document",
+          "build a professional report",
+          "generate document from data",
+          "create structured document"
+        ],
+        "capability_description": "I can generate professionally formatted Word documents with tables, lists, images, and automatic table of contents. Supports multiple document types with appropriate styling.",
+        "example_ai_responses": [
+          "I'll generate that quarterly report with the financial tables.",
+          "I'll create a professional proposal document with your data.",
+          "I'll build that meeting minutes document with all the sections."
+        ]
+      },
+      "tool_intelligence": {
+        "category": "automation",
+        "typical_workflow_patterns": [
+          "data_collection → microsoft_word_smart_generate_report (gather data then auto-generate)",
+          "microsoft_word_smart_generate_report → microsoft_word_export_pdf (generate then export)",
+          "microsoft_word_smart_generate_report → microsoft_word_add_comment (generate then review)",
+          "microsoft_word_smart_generate_report → microsoft_word_update_content (generate then customize)"
+        ],
+        "success_indicators": {
+          "keywords": [
+            "report generated",
+            "document created",
+            "X sections added",
+            "TOC included",
+            "PDF exported",
+            "report ready"
+          ],
+          "behavioral": [
+            "User reviews generated report",
+            "User exports to PDF",
+            "User shares report",
+            "User generates more reports with same structure",
+            "User customizes generated report"
+          ]
+        },
+        "failure_indicators": {
+          "keywords": [
+            "generation failed",
+            "invalid section data",
+            "table error",
+            "image failed",
+            "formatting error",
+            "TOC failed"
+          ],
+          "behavioral": [
+            "User reports missing sections",
+            "User checks section data format",
+            "User retries with simpler structure",
+            "User manually creates document",
+            "User reports tables not rendering"
+          ]
+        },
+        "performance_expectations": {
+          "typical_duration_ms": 5000,
+          "rate_limit_per_minute": 10,
+          "max_retries": 2,
+          "timeout_seconds": 120
+        }
+      },
+      "memory_context": {
+        "vectorization_fields": [
+          "title",
+          "document_type",
+          "section_headings"
+        ],
+        "search_keywords": [
+          "generate report",
+          "auto generate",
+          "smart report",
+          "document automation",
+          "report builder",
+          "formatted report"
+        ],
+        "related_synergy_platforms": [
+          "microsoft_word",
+          "microsoft_365",
+          "onedrive"
+        ],
+        "typical_use_cases": [
+          "Business reporting - User generates quarterly financial reports automatically",
+          "Medical documentation - User creates patient reports with structured data",
+          "Meeting records - User generates meeting minutes from agenda and notes",
+          "Proposal creation - User builds proposals with pricing and timeline tables",
+          "Technical docs - User generates technical documentation with code samples",
+          "Legal documents - User creates structured legal documents with sections",
+          "Invoice generation - User creates invoices with line items automatically"
+        ],
+        "conversation_memory_hints": {
+          "what_to_remember": "Report titles, document types, section counts, table/list counts, generation timestamps, PDF exports",
+          "search_context": "When user asks about 'reports I generated', 'documents I auto-created', '[type] reports about [topic]'",
+          "related_entities": [
+            "document IDs",
+            "report titles",
+            "document types",
+            "section topics",
+            "generation timestamps"
+          ]
+        }
+      }
+    },
+    {
+      "name": "microsoft_word_smart_merge_documents",
+      "short_description": "SMART: Merge multiple Microsoft Word documents into single file with combined content",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Read X from **[Resource Name]** (ID: `[id]` | URL: [url])'\n(3) Use EXACT [id] provided - NEVER substitute with different ID\n(4) If tool fails (404/403), say 'Failed to read [resource] ID: [id]' and explain error\n(5) NEVER make up data if read fails - acknowledge the failure clearly\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\n⚠️ MUST USE: execute_tool(tool_name='microsoft_word_smart_merge_documents', ...) - DO NOT call directly!\n\nSMART: Merge multiple Word documents into one with page breaks and unified TOC",
+      "category": "smart_automation",
+      "tier": 1,
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "document_ids": {
+            "type": "array",
+            "description": "List of document IDs to merge"
+          },
+          "output_name": {
+            "type": "string",
+            "description": "Name for merged document"
+          },
+          "add_page_breaks": {
+            "type": "boolean",
+            "description": "Add page break between documents",
+            "default": true
+          },
+          "add_toc": {
+            "type": "boolean",
+            "description": "Generate table of contents",
+            "default": true
+          }
+        },
+        "required": [
+          "document_ids",
+          "output_name"
+        ]
+      },
+      "returns": "Dict with merged document info",
+      "use_cases": [
+        "Combine multiple reports",
+        "Create comprehensive documentation",
+        "Merge team submissions"
+      ],
+      "user_facing_language": {
+        "action_verb": "merge",
+        "resource_name": "documents",
+        "resource_plural": "documents",
+        "natural_phrases": [
+          "merge documents",
+          "combine documents",
+          "merge multiple docs",
+          "combine Word files",
+          "create unified document"
+        ],
+        "capability_description": "I can merge multiple Word documents into one unified document with page breaks and a combined table of contents.",
+        "example_ai_responses": [
+          "I'll merge those 3 documents into one file.",
+          "I'll combine those documents with page breaks between them.",
+          "I'll merge those docs and create a unified table of contents."
+        ]
+      },
+      "tool_intelligence": {
+        "category": "automation",
+        "typical_workflow_patterns": [
+          "microsoft_word_list_documents → microsoft_word_smart_merge_documents (identify then merge)",
+          "microsoft_word_smart_merge_documents → microsoft_word_export_pdf (merge then export)",
+          "multiple edits → microsoft_word_smart_merge_documents (separate edits then combine)",
+          "microsoft_word_smart_merge_documents → microsoft_word_add_comment (merge then review)"
+        ],
+        "success_indicators": {
+          "keywords": [
+            "documents merged",
+            "merge complete",
+            "unified document created",
+            "X documents combined",
+            "TOC generated"
+          ],
+          "behavioral": [
+            "User reviews merged document",
+            "User exports merged version",
+            "User shares combined document",
+            "User merges more document sets"
+          ]
+        },
+        "failure_indicators": {
+          "keywords": [
+            "merge failed",
+            "document not found",
+            "formatting conflict",
+            "TOC error",
+            "page break error"
+          ],
+          "behavioral": [
+            "User reports incomplete merge",
+            "User checks source document IDs",
+            "User retries with fewer documents",
+            "User manually merges in Word",
+            "User reports missing content"
+          ]
+        },
+        "performance_expectations": {
+          "typical_duration_ms": 8000,
+          "rate_limit_per_minute": 5,
+          "max_retries": 2,
+          "timeout_seconds": 180
+        }
+      },
+      "memory_context": {
+        "vectorization_fields": [
+          "document_ids",
+          "output_name",
+          "document_count"
+        ],
+        "search_keywords": [
+          "merge documents",
+          "combine docs",
+          "document merge",
+          "unified document",
+          "combine files",
+          "merge Word"
+        ],
+        "related_synergy_platforms": [
+          "microsoft_word",
+          "microsoft_365",
+          "onedrive"
+        ],
+        "typical_use_cases": [
+          "Report compilation - User merges department reports into company-wide report",
+          "Documentation - User combines multiple documentation sections into manual",
+          "Team submissions - User merges individual team member contributions",
+          "Proposal building - User combines sections from different authors",
+          "Archive creation - User merges related documents for storage"
+        ],
+        "conversation_memory_hints": {
+          "what_to_remember": "Source document IDs, merged document IDs, output names, document counts, merge timestamps",
+          "search_context": "When user asks about 'documents I merged', 'combined files', 'unified docs I created'",
+          "related_entities": [
+            "source document IDs",
+            "merged document IDs",
+            "document names",
+            "merge timestamps",
+            "document counts"
+          ]
+        }
+      }
+    },
+    {
+      "name": "microsoft_word_smart_template_fill",
+      "short_description": "SMART: Fill Microsoft Word template with variable data for automated document generation",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Read X from **[Resource Name]** (ID: `[id]` | URL: [url])'\n(3) Use EXACT [id] provided - NEVER substitute with different ID\n(4) If tool fails (404/403), say 'Failed to read [resource] ID: [id]' and explain error\n(5) NEVER make up data if read fails - acknowledge the failure clearly\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\n⚠️ MUST USE: execute_tool(tool_name='microsoft_word_smart_template_fill', ...) - DO NOT call directly!\n\nSMART: Fill template with variables by replacing {{variable}} placeholders",
+      "category": "smart_automation",
+      "tier": 1,
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "template_id": {
+            "type": "string",
+            "description": "Template document ID"
+          },
+          "variables": {
+            "type": "object",
+            "description": "Dict of variable_name: value pairs"
+          },
+          "output_name": {
+            "type": "string",
+            "description": "Name for generated document"
+          }
+        },
+        "required": [
+          "template_id",
+          "variables",
+          "output_name"
+        ]
+      },
+      "returns": "Dict with generated document info",
+      "use_cases": [
+        "Generate contracts",
+        "Create personalized letters",
+        "Build reports from templates"
+      ],
+      "user_facing_language": {
+        "action_verb": "fill",
+        "resource_name": "template",
+        "resource_plural": "templates",
+        "natural_phrases": [
+          "fill template",
+          "populate template",
+          "generate from template",
+          "fill document template",
+          "create from template"
+        ],
+        "capability_description": "I can fill Word templates by replacing {{variable}} placeholders with actual values, perfect for contracts, letters, and standardized documents.",
+        "example_ai_responses": [
+          "I'll fill that template with the customer data.",
+          "I'll generate a document from the template with those values.",
+          "I'll populate the template and create the final document."
+        ]
+      },
+      "tool_intelligence": {
+        "category": "automation",
+        "typical_workflow_patterns": [
+          "microsoft_word_get_content → microsoft_word_smart_template_fill (review template then fill)",
+          "microsoft_word_smart_template_fill → microsoft_word_export_pdf (fill then export)",
+          "data_lookup → microsoft_word_smart_template_fill (get data then generate)",
+          "microsoft_word_smart_template_fill → microsoft_word_add_comment (generate then review)"
+        ],
+        "success_indicators": {
+          "keywords": [
+            "template filled",
+            "document generated",
+            "variables replaced",
+            "X variables filled",
+            "template complete"
+          ],
+          "behavioral": [
+            "User reviews generated document",
+            "User generates more from same template",
+            "User exports filled document",
+            "User shares generated document"
+          ]
+        },
+        "failure_indicators": {
+          "keywords": [
+            "template fill failed",
+            "variable not found",
+            "missing variables",
+            "template error",
+            "placeholder not replaced"
+          ],
+          "behavioral": [
+            "User reports missing replacements",
+            "User checks variable names",
+            "User verifies template format",
+            "User retries with correct variables",
+            "User manually fills template"
+          ]
+        },
+        "performance_expectations": {
+          "typical_duration_ms": 2000,
+          "rate_limit_per_minute": 20,
+          "max_retries": 3,
+          "timeout_seconds": 60
+        }
+      },
+      "memory_context": {
+        "vectorization_fields": [
+          "template_id",
+          "output_name",
+          "variable_names"
+        ],
+        "search_keywords": [
+          "fill template",
+          "template fill",
+          "populate template",
+          "document generation",
+          "template variables",
+          "mail merge"
+        ],
+        "related_synergy_platforms": [
+          "microsoft_word",
+          "microsoft_365",
+          "onedrive"
+        ],
+        "typical_use_cases": [
+          "Contract generation - User fills contract template with client details",
+          "Letter personalization - User generates personalized letters from template",
+          "Report automation - User populates report template with current data",
+          "Invoice creation - User fills invoice template with billing information",
+          "Certificate generation - User creates certificates from template with names"
+        ],
+        "conversation_memory_hints": {
+          "what_to_remember": "Template IDs used, output document IDs, variable names filled, generation timestamps",
+          "search_context": "When user asks about 'documents from template', 'filled templates', 'generated [type] for [entity]'",
+          "related_entities": [
+            "template IDs",
+            "generated document IDs",
+            "variable names",
+            "output names",
+            "generation timestamps"
+          ]
+        }
+      }
+    },
+    {
+      "name": "microsoft_word_smart_extract_data",
+      "short_description": "SMART: AI-extract structured data from Microsoft Word document including tables and text",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Read X from **[Resource Name]** (ID: `[id]` | URL: [url])'\n(3) Use EXACT [id] provided - NEVER substitute with different ID\n(4) If tool fails (404/403), say 'Failed to read [resource] ID: [id]' and explain error\n(5) NEVER make up data if read fails - acknowledge the failure clearly\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\n⚠️ MUST USE: execute_tool(tool_name='microsoft_word_smart_extract_data', ...) - DO NOT call directly!\n\nSMART: Extract structured data from document (headings, tables, lists, images)",
+      "category": "smart_automation",
+      "tier": 1,
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "document_id": {
+            "type": "string",
+            "description": "Document ID to extract from"
+          },
+          "extract_type": {
+            "type": "string",
+            "description": "What to extract ('all', 'headings', 'tables', 'images')",
+            "default": "all"
+          },
+          "mode": {
+            "type": "string",
+            "enum": [
+              "summary",
+              "detailed",
+              "raw"
+            ],
+            "description": "Output mode:\n- 'summary' (default): Count and preview of extracted elements\n- 'detailed': Complete extracted data with structure\n- 'raw': Full extraction with technical details",
+            "default": "summary"
+          },
+          "format": {
+            "type": "string",
+            "enum": [
+              "markdown",
+              "json",
+              "text"
+            ],
+            "description": "Output format:\n- 'markdown' (default): Formatted extracted data\n- 'json': Structured data\n- 'text': Plain text",
+            "default": "markdown"
+          },
+          "export": {
+            "type": "string",
+            "enum": [
+              "none",
+              "synergy",
+              "google_doc",
+              "google_sheet"
+            ],
+            "description": "Auto-export destination:\n- 'none' (default): Return data only\n- 'synergy': Save extracted data to dashboard\n- 'google_doc': Create document with extracted content\n- 'google_sheet': Create spreadsheet with tables/data",
+            "default": "none"
+          },
+          "export_title": {
+            "type": "string",
+            "description": "Title for exported content. Supports {date}, {time}, {type} placeholders",
+            "default": null
+          }
+        },
+        "required": [
+          "document_id"
+        ]
+      },
+      "returns": "Dict with extracted structured data",
+      "use_cases": [
+        "Parse document content",
+        "Extract tables to CSV",
+        "Analyze document structure"
+      ],
+      "user_facing_language": {
+        "action_verb": "extract",
+        "resource_name": "data",
+        "resource_plural": "data",
+        "natural_phrases": [
+          "extract data from document",
+          "get structured data",
+          "extract tables from doc",
+          "parse document content",
+          "extract headings and tables"
+        ],
+        "capability_description": "I can extract structured data from Word documents including headings, tables, lists, and images. Perfect for data analysis or migration.",
+        "mode_translations": {
+          "summary": "count and preview",
+          "detailed": "complete extracted data",
+          "raw": "full technical extraction"
+        },
+        "format_translations": {
+          "markdown": "formatted output",
+          "json": "structured data",
+          "text": "plain text"
+        },
+        "export_translations": {
+          "synergy": "save to your dashboard",
+          "google_doc": "create content document",
+          "google_sheet": "create data spreadsheet",
+          "none": "just show you"
+        },
+        "example_ai_responses": [
+          "I'll extract all the tables from that document.",
+          "I'll get the document structure with all headings.",
+          "I'll extract the data and export it to a spreadsheet for analysis."
+        ]
+      },
+      "tool_intelligence": {
+        "category": "data_processing",
+        "typical_workflow_patterns": [
+          "microsoft_word_get_document → microsoft_word_smart_extract_data (verify then extract)",
+          "microsoft_word_smart_extract_data → export=google_sheet (extract then analyze)",
+          "microsoft_word_smart_extract_data → data_processing (extract then process)",
+          "microsoft_word_list_documents → microsoft_word_smart_extract_data (find then extract)"
+        ],
+        "success_indicators": {
+          "keywords": [
+            "extraction complete",
+            "X elements extracted",
+            "data extracted",
+            "tables found",
+            "headings extracted"
+          ],
+          "behavioral": [
+            "User analyzes extracted data",
+            "User exports to spreadsheet",
+            "User processes extracted tables",
+            "User extracts from more documents"
+          ]
+        },
+        "failure_indicators": {
+          "keywords": [
+            "extraction failed",
+            "no data found",
+            "document empty",
+            "no tables found",
+            "parsing error"
+          ],
+          "behavioral": [
+            "User reports missing data",
+            "User checks document content",
+            "User tries different extract_type",
+            "User manually extracts data",
+            "User verifies document format"
+          ]
+        },
+        "performance_expectations": {
+          "typical_duration_ms": 2500,
+          "rate_limit_per_minute": 20,
+          "max_retries": 3,
+          "timeout_seconds": 60
+        },
+        "multi_modal_usage_patterns": {
+          "common_mode_combinations": [
+            "mode=summary, format=markdown (quick data overview)",
+            "mode=detailed, export=google_sheet, extract_type='tables' (table analysis)",
+            "mode=detailed, export=synergy (save extracted content)"
+          ],
+          "export_use_cases": [
+            "Export tables to google_sheet for data analysis",
+            "Export to synergy for content reference",
+            "Export headings to google_doc for structure review"
+          ]
+        }
+      },
+      "memory_context": {
+        "vectorization_fields": [
+          "document_id",
+          "extract_type",
+          "element_counts"
+        ],
+        "search_keywords": [
+          "extract data",
+          "document parsing",
+          "extract tables",
+          "document structure",
+          "data extraction",
+          "parse content"
+        ],
+        "related_synergy_platforms": [
+          "microsoft_word",
+          "microsoft_365",
+          "onedrive"
+        ],
+        "typical_use_cases": [
+          "Data migration - User extracts tables from Word to move to database",
+          "Content analysis - User extracts document structure for review",
+          "Table extraction - User gets all tables for spreadsheet analysis",
+          "Document parsing - User extracts structured content for processing",
+          "Information retrieval - User extracts specific elements for reporting"
+        ],
+        "conversation_memory_hints": {
+          "what_to_remember": "Document IDs extracted, extraction types, element counts (tables, headings, etc.), extraction timestamps",
+          "search_context": "When user asks about 'data I extracted', 'tables from [document]', 'content I parsed'",
+          "related_entities": [
+            "document IDs",
+            "document names",
+            "extraction types",
+            "element counts",
+            "extraction timestamps"
+          ]
+        },
+        "sheet_export_structure": {
+          "when_export_google_sheet": "If user selects export='google_sheet' (recommended for tables extraction)",
+          "columns": [
+            {
+              "name": "element_type",
+              "type": "string",
+              "source": "element.type"
+            },
+            {
+              "name": "element_text",
+              "type": "string",
+              "source": "element.text"
+            },
+            {
+              "name": "element_level",
+              "type": "integer",
+              "source": "element.level"
+            },
+            {
+              "name": "row_count",
+              "type": "integer",
+              "source": "element.rows"
+            },
+            {
+              "name": "column_count",
+              "type": "integer",
+              "source": "element.columns"
+            },
+            {
+              "name": "position",
+              "type": "integer",
+              "source": "element.position"
+            }
+          ],
+          "sheet_formatting": {
+            "freeze_header_row": true,
+            "auto_filter": true,
+            "wrap_text": [
+              "element_text"
+            ]
+          }
+        }
+      }
+    },
+    {
+      "name": "microsoft_word_smart_create_from_markdown",
+      "short_description": "SMART: Create professional Word document from markdown with title page, auto-TOC, page numbers, headers/footers, and custom formatting",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) ALWAYS execute THIS tool NOW - NEVER reference 'I created earlier' or use conversation history\n(2) MUST return format: **[Name]** | ID: `[id]` | URL: [full_url] | Link: [title](url)\n(3) Use EXACT values from tool response - NEVER make up fake URLs/IDs\n(4) If tool fails, say 'Failed to create' - NEVER pretend it succeeded\n\nExample response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\n⚠️ MUST USE: execute_tool(tool_name='microsoft_word_smart_create_from_markdown', ...) - DO NOT call directly!\n\n🤖 SMART TOOL v2.0: Create professionally formatted Word document from markdown with FULL FORMATTING support. Converts AI-generated markdown into native Word formatting using python-docx library.\n\n✨ COMPLETE MARKDOWN SUPPORT (30+ Features):\n\n📝 TEXT FORMATTING:\n- **bold** or __bold__ → Bold text\n- *italic* or _italic_ → Italic text\n- __underline__ → Underlined text (double underscore)\n- ~~strikethrough~~ → Strikethrough text\n- ==highlight== → Yellow highlighted text\n- `inline code` → Monospace code\n- H~2~O → Subscript (H₂O)\n- x^2^ → Superscript (x²)\n\n📊 STRUCTURE:\n- # to ###### → 6 heading levels (H1-H6)\n- - or * → Bullet lists\n- 1. 2. 3. → Numbered lists\n-   - (2 spaces) → Nested lists (unlimited levels)\n- | Tables | → Professional tables with styling\n- ```code blocks``` → Monospace code blocks\n- > Blockquotes → Indented quotes\n\n🎨 SPECIAL ELEMENTS:\n- --- or *** → Horizontal line\n- <<PAGE-BREAK>> or <<PAGE_BREAK>> → Force a page break in the document\n\n",
+      "category": "smart_automation",
+      "tier": 1,
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": "string",
+            "description": "Document title/name (will append .docx if not present). Used in title page if include_title_page=true."
+          },
+          "markdown_content": {
+            "type": "string",
+            "description": "Markdown source to convert into a Word document. Supports 30+ markdown features including headings, bold, italic, tables, lists, code blocks, highlights, subscripts, superscripts, and more. Do NOT manually number headings if using TOC - let TOC auto-number them."
+          },
+          "folder_id": {
+            "type": "string",
+            "description": "OneDrive folder ID where the document will be saved (default: root)",
+            "required": false
+          },
+          "include_title_page": {
+            "type": "boolean",
+            "description": "Add professional title page with centered layout, logo support, and metadata fields. Recommended for formal reports and client deliverables.",
+            "default": false,
+            "required": false
+          },
+          "title_page_options": {
+            "type": "object",
+            "description": "Title page configuration (only used if include_title_page=true)",
+            "required": false,
+            "properties": {
+              "subtitle": {
+                "type": "string",
+                "description": "Document subtitle (appears below title in italic, 14-16pt)",
+                "required": false
+              },
+              "author": {
+                "type": "string",
+                "description": "Document author name",
+                "required": false
+              },
+              "company": {
+                "type": "string",
+                "description": "Company/organization name",
+                "required": false
+              },
+              "department": {
+                "type": "string",
+                "description": "Department or team name",
+                "required": false
+              },
+              "version": {
+                "type": "string",
+                "description": "Document version (e.g., '1.0', 'Draft', 'Final')",
+                "required": false
+              },
+              "date": {
+                "type": "string",
+                "description": "Date string. Use 'auto' for current date (formatted as 'December 14, 2025'), or provide custom date string.",
+                "required": false
+              },
+              "logo_url": {
+                "type": "string",
+                "description": "URL or file path to company logo image (appears at top of title page, 2.5 inches wide)",
+                "required": false
+              }
+            }
+          },
+          "include_toc": {
+            "type": "boolean",
+            "description": "Add auto-generated Table of Contents with Word TOC field (auto-updates when right-clicked). DO NOT manually number headings in markdown if using TOC - the TOC will auto-number all headings hierarchically (1, 1.1, 1.1.1, 2, 2.1, etc.).",
+            "default": false,
+            "required": false
+          },
+          "toc_options": {
+            "type": "object",
+            "description": "Table of Contents configuration (only used if include_toc=true)",
+            "required": false,
+            "properties": {
+              "title": {
+                "type": "string",
+                "description": "TOC heading title",
+                "default": "Table of Contents",
+                "required": false
+              },
+              "depth": {
+                "type": "integer",
+                "description": "Heading depth to include (1-6). Default 3 means H1, H2, H3 appear in TOC. Use 2 for just H1 and H2, or 6 for all heading levels.",
+                "default": 3,
+                "minimum": 1,
+                "maximum": 6,
+                "required": false
+              },
+              "page_break_after": {
+                "type": "boolean",
+                "description": "Insert page break after TOC",
+                "default": true,
+                "required": false
+              },
+              "strip_manual_numbers": {
+                "type": "boolean",
+                "description": "Automatically strip manual numbering from markdown headings (e.g., '# 1. Introduction' becomes '# Introduction') to prevent double-numbering. TOC will auto-number all headings hierarchically.",
+                "default": true,
+                "required": false
+              }
+            }
+          },
+          "include_page_numbers": {
+            "type": "boolean",
+            "description": "Add page numbers to document footer/header",
+            "default": false,
+            "required": false
+          },
+          "page_number_options": {
+            "type": "object",
+            "description": "Page number configuration (only used if include_page_numbers=true)",
+            "required": false,
+            "properties": {
+              "position": {
+                "type": "string",
+                "description": "Page number position",
+                "enum": [
+                  "footer-center",
+                  "footer-right",
+                  "footer-left",
+                  "header-center",
+                  "header-right",
+                  "header-left"
+                ],
+                "default": "footer-center",
+                "required": false
+              },
+              "format": {
+                "type": "string",
+                "description": "Page number format",
+                "enum": [
+                  "Page X",
+                  "Page X of Y",
+                  "X",
+                  "X/Y"
+                ],
+                "default": "Page X",
+                "required": false
+              },
+              "start_number": {
+                "type": "integer",
+                "description": "Starting page number",
+                "default": 1,
+                "required": false
+              },
+              "exclude_title_page": {
+                "type": "boolean",
+                "description": "Skip page numbering on first page (title page)",
+                "default": true,
+                "required": false
+              }
+            }
+          },
+          "header_text": {
+            "type": "string",
+            "description": "Custom text for document header (appears at top of every page). Example: 'CONFIDENTIAL - InHouse Print'",
+            "required": false
+          },
+          "footer_text": {
+            "type": "string",
+            "description": "Custom text for document footer (appears at bottom of every page). Example: '© 2025 InHouse Print'",
+            "required": false
+          },
+          "header_alignment": {
+            "type": "string",
+            "description": "Header text alignment",
+            "enum": [
+              "left",
+              "center",
+              "right"
+            ],
+            "default": "left",
+            "required": false
+          },
+          "footer_alignment": {
+            "type": "string",
+            "description": "Footer text alignment",
+            "enum": [
+              "left",
+              "center",
+              "right"
+            ],
+            "default": "center",
+            "required": false
+          },
+          "formatting_options": {
+            "type": "object",
+            "description": "Global document formatting preferences",
+            "required": false,
+            "properties": {
+              "center_horizontal_rules": {
+                "type": "boolean",
+                "description": "Center horizontal rule lines (--- in markdown) instead of left-aligning them. Recommended for professional appearance.",
+                "default": true,
+                "required": false
+              },
+              "default_font": {
+                "type": "string",
+                "description": "Default font family for ALL text (body AND headings). Calibri is the modern Word default.",
+                "enum": [
+                  "Arial",
+                  "Calibri",
+                  "Times New Roman",
+                  "Georgia",
+                  "Verdana",
+                  "Cambria",
+                  "Tahoma"
+                ],
+                "default": "Calibri",
+                "required": false
+              },
+              "body_font_size": {
+                "type": "integer",
+                "description": "Font size for body text (points). Headings will auto-scale larger.",
+                "default": 11,
+                "minimum": 8,
+                "maximum": 24,
+                "required": false
+              },
+              "line_spacing": {
+                "type": "number",
+                "description": "Line spacing multiplier (1.0 = single, 1.5 = 1.5x, 2.0 = double)",
+                "default": 1.15,
+                "minimum": 1.0,
+                "maximum": 3.0,
+                "required": false
+              },
+              "paragraph_spacing_before": {
+                "type": "number",
+                "description": "Space before paragraphs in points (0-72). Standard is 0.",
+                "default": 0,
+                "minimum": 0,
+                "maximum": 72,
+                "required": false
+              },
+              "paragraph_spacing_after": {
+                "type": "number",
+                "description": "Space after paragraphs in points (0-72). Standard is 8.",
+                "default": 8,
+                "minimum": 0,
+                "maximum": 72,
+                "required": false
+              },
+              "margin_inches": {
+                "type": "object",
+                "description": "Page margins in inches",
+                "required": false,
+                "properties": {
+                  "top": {
+                    "type": "number",
+                    "default": 1.0,
+                    "required": false
+                  },
+                  "bottom": {
+                    "type": "number",
+                    "default": 1.0,
+                    "required": false
+                  },
+                  "left": {
+                    "type": "number",
+                    "default": 1.0,
+                    "required": false
+                  },
+                  "right": {
+                    "type": "number",
+                    "default": 1.0,
+                    "required": false
+                  }
+                }
+              }
+            }
+          },
+          "export_pdf": {
+            "type": "boolean",
+            "description": "Also export document as PDF after creation. Returns both document_id and pdf_id.",
+            "default": false,
+            "required": false
+          },
+          "metadata": {
+            "type": "object",
+            "description": "Document metadata (appears in file properties, searchable in file explorer)",
+            "required": false,
+            "properties": {
+              "author": {
+                "type": "string",
+                "description": "Document author (file property)",
+                "required": false
+              },
+              "subject": {
+                "type": "string",
+                "description": "Document subject/category",
+                "required": false
+              },
+              "keywords": {
+                "type": "array",
+                "description": "Search keywords for document discovery",
+                "items": {
+                  "type": "string"
+                },
+                "required": false
+              },
+              "comments": {
+                "type": "string",
+                "description": "Document comments/notes",
+                "required": false
+              }
+            }
+          }
+        },
+        "required": [
+          "title",
+          "markdown_content"
+        ]
+      },
+      "returns": "Dict with document_id, name, web_url, created_datetime, size, shareable, share_link. Professional document with optional title page, TOC, page numbers, headers/footers, and custom formatting.",
+      "use_cases": [
+        "Professional Reports: Create formal business reports with title page, TOC, and page numbers",
+        "Client Deliverables: Generate polished documents with company branding (logo, headers, footers)",
+        "Technical Documentation: Convert README or markdown docs into formatted Word documents",
+        "Academic Papers: Create structured documents with auto-numbered sections and TOC",
+        "Marketing Materials: Generate branded documents with custom fonts and formatting",
+        "Executive Summaries: Quick professional documents with metadata for easy discovery"
+      ],
+      "examples": [
+        {
+          "name": "Simple Markdown Conversion",
+          "description": "Basic markdown to Word conversion without extras",
+          "code": "microsoft_word_smart_create_from_markdown(\n    title='Meeting Notes',\n    markdown_content='# Discussion Points\\n\\n- Budget approval\\n- Timeline review\\n- Next steps'\n)"
+        },
+        {
+          "name": "Professional Report with All Features",
+          "description": "Complete professional document with title page, TOC, page numbers, headers/footers",
+          "code": "microsoft_word_smart_create_from_markdown(\n    title='Q4 Financial Report',\n    markdown_content='# Executive Summary\\n\\nOur Q4 performance...\\n\\n## Revenue Analysis\\n\\nRevenue increased by...\\n\\n### Regional Breakdown\\n\\nNorth America...\\n\\n## Expenses\\n\\n### Operating Costs\\n\\n### Capital Expenditures',\n    include_title_page=True,\n    title_page_options={\n        'subtitle': 'Annual Performance Review',\n        'author': 'John Smith',\n        'company': 'InHouse Print',\n        'department': 'Finance',\n        'version': '1.0',\n        'date': 'auto'\n    },\n    include_toc=True,\n    toc_options={\n        'depth': 3,\n        'page_break_after': True,\n        'strip_manual_numbers': True\n    },\n    include_page_numbers=True,\n    page_number_options={\n        'position': 'footer-center',\n        'format': 'Page X of Y',\n        'exclude_title_page': True\n    },\n    header_text='CONFIDENTIAL - InHouse Print',\n    footer_text='© 2025 InHouse Print',\n    formatting_options={\n        'center_horizontal_rules': True,\n        'default_font': 'Arial',\n        'body_font_size': 11,\n        'line_spacing': 1.5\n    },\n    metadata={\n        'author': 'John Smith',\n        'subject': 'Q4 Financial Report',\n        'keywords': ['finance', 'Q4', '2025', 'report']\n    }\n)"
+        },
+        {
+          "name": "Quick Report with TOC",
+          "description": "Simple report with auto-generated table of contents",
+          "code": "microsoft_word_smart_create_from_markdown(\n    title='Technical Specification',\n    markdown_content='# Overview\\n\\nThis document...\\n\\n## System Architecture\\n\\n### Frontend\\n\\n### Backend\\n\\n## API Design\\n\\n### REST Endpoints\\n\\n### Authentication',\n    include_toc=True,\n    include_page_numbers=True\n)"
+        }
+      ],
+      "user_facing_language": {
+        "action_verb": "create",
+        "resource_name": "document from markdown",
+        "resource_plural": "documents from markdown",
+        "natural_phrases": [
+          "create a Word doc from markdown",
+          "convert markdown to Word",
+          "generate a .docx from this markdown"
+        ],
+        "capability_description": "I can convert markdown into a fully formatted Word document, preserving headings, lists, tables, code blocks, and special formatting (highlights, subscripts, superscripts).",
+        "example_ai_responses": [
+          "I'll convert your markdown into a polished Word document and save it to OneDrive.",
+          "I'll generate 'Project Summary.docx' from the markdown you provided and include a table of contents."
+        ]
+      },
+      "tool_intelligence": {
+        "category": "content_management",
+        "typical_workflow_patterns": [
+          "microsoft_word_smart_create_from_markdown → microsoft_word_apply_style (generate then apply company style)",
+          "microsoft_word_smart_create_from_markdown(export_pdf=true) → microsoft_word_export_pdf (generate and export)",
+          "microsoft_word_smart_template_fill → microsoft_word_smart_create_from_markdown (fill template then convert markdown sections)"
+        ],
+        "success_indicators": {
+          "keywords": [
+            "document created",
+            "converted from markdown",
+            "saved to OneDrive",
+            "exported to PDF"
+          ],
+          "behavioral": [
+            "User opens the generated doc",
+            "User requests minor edits",
+            "User shares document link"
+          ]
+        },
+        "failure_indicators": {
+          "keywords": [
+            "conversion failed",
+            "invalid markdown",
+            "permission denied",
+            "quota exceeded"
+          ],
+          "behavioral": [
+            "User retries with simplified markdown",
+            "User checks folder permissions"
+          ]
+        },
+        "performance_expectations": {
+          "typical_duration_ms": 1500,
+          "rate_limit_per_minute": 20,
+          "max_retries": 2,
+          "timeout_seconds": 120
+        }
+      },
+      "memory_context": {
+        "vectorization_fields": [
+          "document_id",
+          "name",
+          "markdown_snippet",
+          "generated_sections"
+        ],
+        "search_keywords": [
+          "markdown to word",
+          "convert markdown",
+          "generate docx"
+        ],
+        "related_synergy_platforms": [
+          "microsoft_word",
+          "onedrive",
+          "google_drive"
+        ],
+        "typical_use_cases": [
+          "Client deliverable creation",
+          "Report generation from AI output",
+          "Technical docs conversion"
+        ],
+        "conversation_memory_hints": {
+          "what_to_remember": "Generated document IDs, chosen style templates, include_toc preference",
+          "search_context": "When user asks about 'docs I generated from markdown' or 'convert that README'",
+          "related_entities": [
+            "document_id",
+            "folder_id",
+            "style_template"
+          ]
+        }
+      }
+    }
+  ]
+}

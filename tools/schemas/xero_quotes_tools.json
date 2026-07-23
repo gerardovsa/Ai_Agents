@@ -1,0 +1,520 @@
+{
+  "platform": "xero_quotes",
+  "description": "Xero Quotes and BrandingThemes (Templates) API - Create, manage, and retrieve sales quotes with template/branding assignment. Quotes are estimates/proposals that can be converted to invoices.",
+  "tools": [
+    {
+      "name": "xero_create_quote",
+      "short_description": "Create new Xero sales quote with line items, contact, and optional branding theme",
+      "description": "Create a new sales quote in Xero with optional branding theme (template) assignment. Use this to generate professional quote documents for customers. Quotes can include line items, pricing, terms, and expiry dates. Returns the created quote with QuoteID for tracking.",
+      "platform": "xero_quotes",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "business_id": {
+            "type": "integer",
+            "description": "Business ID (1=InHouse Print, 2=Publishing, 3=Signs) - Required to identify which Xero organization"
+          },
+          "contact_id": {
+            "type": "string",
+            "description": "Xero contact ID (use xero_get_contacts to find). The customer/client receiving this quote - Required"
+          },
+          "line_items": {
+            "type": "array",
+            "description": "Array of quote line items with description, quantity, unit_amount, and optional account_code - Required",
+            "items": {
+              "type": "object",
+              "properties": {
+                "description": {
+                  "type": "string",
+                  "description": "Item/service description"
+                },
+                "quantity": {
+                  "type": "number",
+                  "description": "Quantity of items"
+                },
+                "unit_amount": {
+                  "type": "number",
+                  "description": "Price per unit"
+                },
+                "account_code": {
+                  "type": "string",
+                  "description": "Xero account code (optional)"
+                }
+              }
+            }
+          },
+          "branding_theme_id": {
+            "type": "string",
+            "description": "BrandingThemeID from xero_get_branding_themes. Assigns template/logo/styling to quote. Optional - uses default if not provided. Use this if you have the exact GUID."
+          },
+          "template_name": {
+            "type": "string",
+            "description": "Template name (e.g., 'Default Theme', 'Standard Invoice'). Automatically looks up the BrandingThemeID. Use this instead of branding_theme_id if you know the template name. Optional - uses default if not provided."
+          },
+          "date": {
+            "type": "string",
+            "description": "Quote issue date in YYYY-MM-DD format. Optional - defaults to today"
+          },
+          "expiry_date": {
+            "type": "string",
+            "description": "Quote expiry date in YYYY-MM-DD format. Optional - quote validity period"
+          },
+          "title": {
+            "type": "string",
+            "description": "Quote title text (max 100 chars). Optional - appears at top of quote"
+          },
+          "summary": {
+            "type": "string",
+            "description": "Quote summary text (max 3000 chars). Optional - additional notes/description"
+          },
+          "terms": {
+            "type": "string",
+            "description": "Terms and conditions text (max 4000 chars). Optional"
+          },
+          "reference": {
+            "type": "string",
+            "description": "Additional reference number (max 4000 chars). Optional - your internal reference"
+          }
+        },
+        "required": [
+          "business_id",
+          "contact_id",
+          "line_items"
+        ]
+      },
+      "returns": {
+        "type": "object",
+        "description": "Created quote with QuoteID, QuoteNumber, Status (DRAFT), contact info, line items, totals, and URL"
+      },
+      "examples": [
+        {
+          "description": "Create quote with branding theme for printing services",
+          "parameters": {
+            "business_id": 1,
+            "contact_id": "a3675fc4-f8dd-4f03-ba5b-f1870566bcd7",
+            "line_items": [
+              {
+                "description": "Business Cards - 1000qty, 350GSM Satin",
+                "quantity": 1,
+                "unit_amount": 150.00,
+                "account_code": "200"
+              }
+            ],
+            "branding_theme_id": "d5b89e36-8a28-4c40-b8e4-2a0d3f5d7c93",
+            "title": "Business Card Printing Quote",
+            "expiry_date": "2025-12-31",
+            "terms": "50% deposit required. Balance due on completion."
+          }
+        },
+        {
+          "description": "Create quote using template_name (easier than branding_theme_id)",
+          "parameters": {
+            "business_id": 1,
+            "contact_id": "a3675fc4-f8dd-4f03-ba5b-f1870566bcd7",
+            "line_items": [
+              {
+                "description": "Business Cards - 1000qty, 350GSM",
+                "quantity": 1,
+                "unit_amount": 150.00,
+                "account_code": "200"
+              },
+              {
+                "description": "Letterhead - 500 sheets",
+                "quantity": 1,
+                "unit_amount": 85.00,
+                "account_code": "200"
+              }
+            ],
+            "template_name": "Standard Invoice",
+            "title": "Professional Printing Services Quote",
+            "expiry_date": "2025-12-31",
+            "summary": "Thank you for your interest in our professional printing services.",
+            "terms": "Payment due within 30 days. 50% deposit required to commence production."
+          }
+        }
+      ],
+      "workflow_example": {
+        "name": "Complete Quote Creation and Email Workflow",
+        "description": "5-step workflow to create a branded quote and send it via draft email",
+        "steps": [
+          {
+            "step": 1,
+            "tool": "xero_get_contacts",
+            "purpose": "Find the customer who will receive the quote",
+            "example": "xero_get_contacts(business_id=1, search='ABC Company', limit=10)",
+            "output": "Returns contact_id, name, and email address needed for quote and email"
+          },
+          {
+            "step": 2,
+            "tool": "xero_get_branding_themes",
+            "purpose": "List available quote templates (OPTIONAL - can skip if OAuth scope missing)",
+            "example": "xero_get_branding_themes(business_id=1)",
+            "output": "Returns branding_theme_id and template names",
+            "note": "⚠️ Requires 'accounting.settings.read' OAuth scope. If missing, use template_name parameter instead"
+          },
+          {
+            "step": 3,
+            "tool": "xero_create_quote",
+            "purpose": "Create the quote with line items and selected template",
+            "example": "xero_create_quote(business_id=1, contact_id='abc-123', line_items=[...], template_name='Standard Invoice', title='Printing Quote', expiry_date='2025-12-31')",
+            "output": "Returns quote_id, quote_number, total, and status (DRAFT)"
+          },
+          {
+            "step": 4,
+            "tool": "xero_get_quote_by_id",
+            "purpose": "Get complete quote details including PDF download URL",
+            "example": "xero_get_quote_by_id(business_id=1, quote_id='quote-guid')",
+            "output": "Returns full quote with pdf_url field for downloading quote PDF"
+          },
+          {
+            "step": 5,
+            "tool": "outlook_send_email",
+            "purpose": "Create draft email with quote information or PDF attachment",
+            "example": "outlook_send_email(to=['customer@abc.com'], subject='Quote QU-0123', body='<html>...</html>', attachments=[{...}])",
+            "output": "Creates draft email in Outlook Drafts folder (NOT sent automatically)",
+            "note": "⚠️ Email saved as DRAFT - user must manually send from Outlook"
+          }
+        ],
+        "important_notes": [
+          "📧 outlook_send_email creates DRAFTS only - user must send manually from Outlook",
+          "🔐 xero_get_branding_themes requires 'accounting.settings.read' OAuth scope (optional step)",
+          "📄 PDF attachments must be base64 encoded in 'content' field",
+          "✅ Use template_name parameter for easier template selection (auto-lookup)",
+          "💡 Quote PDF URLs expire - download immediately if attaching to email",
+          "🎨 Branding themes control logo, colors, fonts on quote PDFs",
+          "🔄 Account code '200' is standard for Sales/Revenue"
+        ],
+        "alternative_approaches": {
+          "without_template": "Omit both template_name and branding_theme_id - Xero will use default styling",
+          "email_with_link": "Instead of PDF attachment, include quote link in email body: '<a href=\"{pdf_url}\">View Quote</a>'",
+          "skip_branding_themes": "If OAuth scope missing, skip step 2 and use template_name='Standard Invoice' in step 3"
+        }
+      }
+    },
+    {
+      "name": "xero_list_quotes",
+      "short_description": "List Xero quotes with mandatory date range filters (70,000+ quotes requires date filtering)",
+      "description": "Retrieve quotes from Xero with advanced filtering and pagination. ⚠️ CRITICAL: With 70,000+ quotes, you MUST use date_from/date_to filters to prevent token overflow! MANDATORY filters: date_from + date_to (use last 30-90 days). Optional filters: contact_id, status, quote_number. Use pagination for large result sets. Returns quotes with contact info, line items, totals, and status.",
+      "platform": "xero_quotes",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "business_id": {
+            "type": "integer",
+            "description": "Business ID (1=InHouse Print, 2=Publishing, 3=Signs) - Required"
+          },
+          "date_from": {
+            "type": "string",
+            "description": "⚠️ MANDATORY: Filter quotes from this date (YYYY-MM-DD format). REQUIRED with 70,000+ quotes to prevent token overflow. Filters by Quote Date. Use recent date ranges (last 30-90 days) or specific periods."
+          },
+          "date_to": {
+            "type": "string",
+            "description": "⚠️ MANDATORY: Filter quotes to this date (YYYY-MM-DD format). REQUIRED with 70,000+ quotes to prevent token overflow. Filters by Quote Date. Use with date_from to create specific date range."
+          },
+          "contact_id": {
+            "type": "string",
+            "description": "Filter by specific Xero contact ID. Useful to see all quotes for one customer."
+          },
+          "status": {
+            "type": "string",
+            "description": "Filter by quote status. Options: DRAFT, SENT, DECLINED, ACCEPTED, INVOICED, DELETED. Useful to find quotes awaiting action.",
+            "enum": [
+              "DRAFT",
+              "SENT",
+              "DECLINED",
+              "ACCEPTED",
+              "INVOICED",
+              "DELETED"
+            ]
+          },
+          "quote_number": {
+            "type": "string",
+            "description": "Filter by specific quote number. Exact match search."
+          },
+          "page": {
+            "type": "integer",
+            "description": "Page number for pagination (default: 1). CRITICAL with 70,000+ quotes - use pagination!",
+            "default": 1
+          },
+          "page_size": {
+            "type": "integer",
+            "description": "Number of records per page (default: 100, max: 100). With 70,000 quotes, fetching all is impractical.",
+            "default": 100
+          }
+        },
+        "required": [
+          "business_id"
+        ]
+      },
+      "returns": {
+        "type": "object",
+        "description": "Paginated list of quotes with pagination metadata (total_count, page, page_size), quotes array with QuoteID, QuoteNumber, Contact, LineItems, Status, Total, Date, ExpiryDate"
+      },
+      "examples": [
+        {
+          "description": "Get recent quotes for last 30 days (recommended approach)",
+          "parameters": {
+            "business_id": 1,
+            "date_from": "2025-11-01",
+            "date_to": "2025-12-01",
+            "page": 1,
+            "page_size": 50
+          }
+        },
+        {
+          "description": "Get all DRAFT quotes awaiting approval",
+          "parameters": {
+            "business_id": 1,
+            "status": "DRAFT",
+            "page": 1,
+            "page_size": 100
+          }
+        },
+        {
+          "description": "Get all quotes for specific customer",
+          "parameters": {
+            "business_id": 1,
+            "contact_id": "a3675fc4-f8dd-4f03-ba5b-f1870566bcd7",
+            "page": 1,
+            "page_size": 50
+          }
+        }
+      ]
+    },
+    {
+      "name": "xero_get_quote_by_id",
+      "short_description": "Get specific Xero quote by QuoteID with line items, totals, and PDF URL",
+      "description": "Retrieve a specific quote by QuoteID. Use this to get complete quote details including all line items, contact information, pricing breakdown, branding theme, status, and PDF URL. Returns full quote object.",
+      "platform": "xero_quotes",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "business_id": {
+            "type": "integer",
+            "description": "Business ID (1=InHouse Print, 2=Publishing, 3=Signs) - Required"
+          },
+          "quote_id": {
+            "type": "string",
+            "description": "Xero QuoteID (GUID format: xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx) - Required"
+          }
+        },
+        "required": [
+          "business_id",
+          "quote_id"
+        ]
+      },
+      "returns": {
+        "type": "object",
+        "description": "Complete quote object with QuoteID, QuoteNumber, Contact, LineItems (with descriptions, quantities, prices), Status, SubTotal, TotalTax, Total, Date, ExpiryDate, BrandingThemeID, Terms, Reference, Title, Summary"
+      },
+      "examples": [
+        {
+          "description": "Get specific quote details",
+          "parameters": {
+            "business_id": 1,
+            "quote_id": "d5b89e36-8a28-4c40-b8e4-2a0d3f5d7c93"
+          }
+        },
+        {
+          "description": "Get quote after creation to obtain PDF URL for email attachment",
+          "parameters": {
+            "business_id": 1,
+            "quote_id": "d5b89e36-8a28-4c40-b8e4-2a0d3f5d7c93"
+          },
+          "usage_note": "After creating a quote with xero_create_quote, use this to get the pdf_url field for downloading and attaching to emails"
+        }
+      ],
+      "workflow_context": {
+        "typical_usage": "Called after xero_create_quote to retrieve complete quote details including PDF download URL",
+        "common_workflow": "Step 4 of 5 in Quote Creation + Email workflow",
+        "key_returned_fields": [
+          "pdf_url - URL to download quote PDF (requires authentication, expires quickly)",
+          "quote_number - Human-readable quote number (e.g., QU-0123) for email subject",
+          "total - Total amount for displaying in email body",
+          "line_items - Full list with descriptions, quantities, prices for email details",
+          "contact.email - Customer email address for sending quote"
+        ],
+        "important_notes": [
+          "💡 PDF URLs expire quickly - download immediately if attaching to email",
+          "📧 Use quote_number and total in email subject/body for professional communication",
+          "🔗 PDF URL requires Xero OAuth authentication to download"
+        ]
+      }
+    },
+    {
+      "name": "xero_update_quote",
+      "short_description": "Update existing Xero quote with new line items, status, or branding theme",
+      "description": "Update an existing quote in Xero. Use this to modify quote details, add/remove line items, change branding theme, update status (e.g., mark as SENT, ACCEPTED), or adjust pricing. Can update any editable fields including contact, line items, dates, terms, and branding.",
+      "platform": "xero_quotes",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "business_id": {
+            "type": "integer",
+            "description": "Business ID (1=InHouse Print, 2=Publishing, 3=Signs) - Required"
+          },
+          "quote_id": {
+            "type": "string",
+            "description": "Xero QuoteID to update (GUID format) - Required"
+          },
+          "contact_id": {
+            "type": "string",
+            "description": "Update contact ID. Optional - only if changing customer"
+          },
+          "line_items": {
+            "type": "array",
+            "description": "Updated array of line items. Optional - replaces all existing line items if provided",
+            "items": {
+              "type": "object",
+              "properties": {
+                "description": {
+                  "type": "string"
+                },
+                "quantity": {
+                  "type": "number"
+                },
+                "unit_amount": {
+                  "type": "number"
+                },
+                "account_code": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "status": {
+            "type": "string",
+            "description": "Update quote status. Options: DRAFT, SENT, DECLINED, ACCEPTED. Note: INVOICED status set automatically when converted to invoice.",
+            "enum": [
+              "DRAFT",
+              "SENT",
+              "DECLINED",
+              "ACCEPTED"
+            ]
+          },
+          "branding_theme_id": {
+            "type": "string",
+            "description": "Change branding theme/template. Optional"
+          },
+          "date": {
+            "type": "string",
+            "description": "Update quote date (YYYY-MM-DD). Optional"
+          },
+          "expiry_date": {
+            "type": "string",
+            "description": "Update expiry date (YYYY-MM-DD). Optional"
+          },
+          "title": {
+            "type": "string",
+            "description": "Update title text (max 100 chars). Optional"
+          },
+          "summary": {
+            "type": "string",
+            "description": "Update summary text (max 3000 chars). Optional"
+          },
+          "terms": {
+            "type": "string",
+            "description": "Update terms text (max 4000 chars). Optional"
+          },
+          "reference": {
+            "type": "string",
+            "description": "Update reference number (max 4000 chars). Optional"
+          }
+        },
+        "required": [
+          "business_id",
+          "quote_id"
+        ]
+      },
+      "returns": {
+        "type": "object",
+        "description": "Updated quote object with all current values"
+      },
+      "examples": [
+        {
+          "description": "Mark quote as SENT after emailing to customer",
+          "parameters": {
+            "business_id": 1,
+            "quote_id": "d5b89e36-8a28-4c40-b8e4-2a0d3f5d7c93",
+            "status": "SENT"
+          }
+        },
+        {
+          "description": "Update quote with new line items and branding",
+          "parameters": {
+            "business_id": 1,
+            "quote_id": "d5b89e36-8a28-4c40-b8e4-2a0d3f5d7c93",
+            "line_items": [
+              {
+                "description": "Updated service description",
+                "quantity": 2,
+                "unit_amount": 200.00
+              }
+            ],
+            "branding_theme_id": "new-theme-id-here"
+          }
+        }
+      ]
+    },
+    {
+      "name": "xero_get_branding_themes",
+      "short_description": "List all Xero branding themes (templates) with IDs, names, and logo URLs",
+      "description": "Retrieve all available branding themes (templates) from Xero. Branding themes control the logo, colors, and layout of quotes and invoices. Use this to find BrandingThemeID values for assigning templates when creating/updating quotes. Returns theme ID, name, logo URL, and sort order (default theme has sort_order=0).",
+      "platform": "xero_quotes",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "business_id": {
+            "type": "integer",
+            "description": "Business ID (1=InHouse Print, 2=Publishing, 3=Signs) - Required"
+          }
+        },
+        "required": [
+          "business_id"
+        ]
+      },
+      "returns": {
+        "type": "object",
+        "description": "Array of branding themes with BrandingThemeID, Name, LogoUrl, Type (INVOICE), SortOrder (0=default), CreatedDateUTC"
+      },
+      "examples": [
+        {
+          "description": "Get all branding themes/templates",
+          "parameters": {
+            "business_id": 1
+          }
+        },
+        {
+          "description": "List templates before creating quote to select professional branding",
+          "parameters": {
+            "business_id": 1
+          },
+          "usage_note": "Use returned branding_theme_id or name when calling xero_create_quote to apply logo and styling"
+        }
+      ],
+      "workflow_context": {
+        "typical_usage": "Called before xero_create_quote to discover available templates and select appropriate branding",
+        "common_workflow": "Step 2 of 5 in Quote Creation + Email workflow (OPTIONAL STEP)",
+        "oauth_requirement": "⚠️ Requires 'accounting.settings.read' OAuth scope - if missing, you'll get 401 Unauthorized",
+        "fallback_approach": "If OAuth scope is missing, skip this step and use template_name='Standard Invoice' parameter in xero_create_quote instead",
+        "key_returned_fields": [
+          "branding_theme_id - GUID for use in xero_create_quote branding_theme_id parameter",
+          "name - Template name for use in xero_create_quote template_name parameter (easier)",
+          "logo_url - URL to preview template logo",
+          "sort_order - Default theme has sort_order=0"
+        ],
+        "usage_options": [
+          "Option A: Use branding_theme_id directly - xero_create_quote(branding_theme_id='guid')",
+          "Option B: Use template name (easier) - xero_create_quote(template_name='Standard Invoice')",
+          "Option C: Skip this tool entirely and let Xero use default styling"
+        ],
+        "important_notes": [
+          "🔐 OAuth scope 'accounting.settings.read' is REQUIRED for this endpoint",
+          "✅ template_name parameter in xero_create_quote is easier than using branding_theme_id",
+          "🎨 Branding themes control logo, colors, fonts, and layout on quote PDFs",
+          "💡 If this tool fails with 401, use template_name='Standard Invoice' as fallback"
+        ]
+      }
+    }
+  ]
+}

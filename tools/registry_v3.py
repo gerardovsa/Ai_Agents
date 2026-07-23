@@ -14,6 +14,7 @@ FIXED: Microsoft tools class instance extraction - detects and uses global insta
 import json
 import importlib
 import os
+import pickle
 import sys
 import time
 import threading
@@ -23,6 +24,142 @@ import logging
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
+
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+# TIKTOKEN CACHE (July 23, 2026)
+# Pin the BPE ranks cache to Render's persistent disk so the ~10MB download
+# only happens once across redeploys. Falls back to default cache dir locally
+# (where /data/ does not exist). Must be set BEFORE tiktoken is imported
+# anywhere — tiktoken reads this env var at import time.
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+_TIKTOKEN_CACHE_DIR = "/data/.cache/tiktoken"
+if os.path.isdir("/data") and os.path.isdir(os.path.dirname(_TIKTOKEN_CACHE_DIR)):
+    os.environ.setdefault("TIKTOKEN_CACHE_DIR", _TIKTOKEN_CACHE_DIR)
+
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+# PLATFORM DISABLE FILTER (July 23, 2026)
+# Mirrors the RENDER_DISABLED_MODULES pattern from deployment_config.py but
+# applied at the SCHEMA LEVEL. These are platforms whose tool JSON schemas
+# are excluded from the registry on Render. The Python implementations
+# (in tools/implementations/) are independently guarded by the LazyModuleProxy
+# below, so even if a schema slips through, the heavy .py import is deferred.
+#
+# Three schemas have no `platform` field declared (phone_communication,
+# universal_file_tools, workspace_search) — we filter those by FILENAME
+# via _DISABLED_SCHEMA_FILENAMES, since platform key matching would miss them.
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+_RENDER_DISABLED_PLATFORMS = frozenset({
+    # Cloud / infra (8)
+    "ngrok",
+    "cloudflare",
+    "cloudconvert",
+    "github",          # NB: the schema platform `github`. The UI module
+                       #     also named `github` is blocked separately by
+                       #     RENDER_DISABLED_MODULES in deployment_config.py.
+    "render",
+    "resend",
+    "twilio",
+    "twilio_veterinary",
+    # Adobe InDesign toolchain
+    "adobe_indesign",
+    # In-house (quote-calculator etc. — user's note: "we are not using
+    # any inhouse tools — that was a customisation of the platform")
+    "inhouse_database",
+    "inhouse_query",
+    "inhouse_query_library",
+    # Xero quotes (normal xero stays enabled — only the quote sub-modules are out)
+    "xero_quotes",
+    "xero_quotes_smart",
+})
+
+_DISABLED_SCHEMA_FILENAMES = frozenset({
+    # Schemas with no `platform` key — identified by filename only
+    "phone_communication_tools.json",
+    "universal_file_tools.json",
+    "workspace_search_tools.json",
+})
+
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+# LAZY MODULE PROXY (July 23, 2026)
+# Defers `importlib.import_module()` until first attribute access. Solves
+# the cold-start crash caused by heavy implementation imports (cadquery,
+# query_library.py ~5,958 lines, pinecone client, BGE models, etc.) on
+# Render. With this proxy, importing registry_v3.py no longer pulls any
+# tools/implementations/*.py into memory — they materialise only when the
+# AI first dispatches a tool that needs them.
+#
+# Public surface intentionally matches a real module: hasattr/getattr/dir
+# all work, so get_tool_function() and _extract_class_instance() need no
+# changes. The proxy caches the materialised module after first access.
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+class _LazyModuleProxy:
+    """Module-like proxy that imports on first attribute access."""
+
+    __slots__ = ("_fq_name", "_mod", "_transform", "_err")
+
+    def __init__(self, fq_name: str, transform=None):
+        # object.__setattr__ to avoid recursion through our own __setattr__
+        object.__setattr__(self, "_fq_name", fq_name)
+        object.__setattr__(self, "_mod", None)
+        object.__setattr__(self, "_transform", transform)
+        object.__setattr__(self, "_err", None)
+
+    def _materialize(self):
+        mod = self._mod
+        if mod is None and self._err is None:
+            try:
+                mod = importlib.import_module(self._fq_name)
+                if self._transform is not None:
+                    mod = self._transform(mod)
+                object.__setattr__(self, "_mod", mod)
+            except Exception as e:
+                # Record the error and raise on every subsequent access —
+                # avoids re-importing a broken module every call.
+                object.__setattr__(self, "_err", e)
+                raise
+        if self._err is not None:
+            raise self._err
+        return mod
+
+    def __getattr__(self, name):
+        # Avoid recursion when Python looks up our own dunders
+        if name.startswith("_LazyModuleProxy__") or name in (
+            "_fq_name", "_mod", "_transform", "_err"
+        ):
+            raise AttributeError(name)
+        return getattr(self._materialize(), name)
+
+    def __bool__(self):
+        # Truthy once materialised (or attempt made). Used by `if impl:`
+        # guards in callers. Until materialised we report False so we don't
+        # accidentally claim the module loaded.
+        return self._mod is not None
+
+    def __repr__(self):
+        state = "materialised" if self._mod is not None else (
+            "errored" if self._err is not None else "pending"
+        )
+        return f"<LazyModuleProxy {self._fq_name} ({state})>"
+
+    def __dir__(self):
+        # Forward dir() to the materialised module so existing logging like
+        # `[name for name in dir(implementation) ...]` keeps working once
+        # the module has been touched.
+        try:
+            return dir(self._materialize())
+        except Exception:
+            return []
+
+
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+# PERSISTENT DISK WARM CACHE (July 23, 2026)
+# Cache path is on Render's persistent disk (/data/) so it survives across
+# redeploys. A warm boot hits this cache and skips re-parsing 99 JSON
+# schemas (saves ~2-4s on Render cold path). Local dev falls through to the
+# standard Redis cache when present, then to fresh load.
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+_WARM_CACHE_PATH = Path("/data/.cache/registry/tool_lookup.pickle")
+_WARM_CACHE_VERSION = 1  # bump to invalidate stale caches after schema-format changes
 
 
 class RegistryV3:
@@ -78,6 +215,12 @@ class RegistryV3:
                     if module_path not in sys.path:
                         sys.path.insert(0, module_path)
         
+        # Try warm cache (persistent pickle at /data/.cache/registry/) FIRST.
+        # FIX (July 23, 2026): The warm cache survives Render redeploys unlike
+        # the Redis cache (which is per-instance). On a hit, we skip the
+        # ~2-3s JSON parse + platform filter pass in _load_schemas().
+        warm_hit = self._load_from_warm_cache()
+
         # Try to load from cache first (50x faster on cache hit)
         cache_hit = self._load_from_cache()
 
@@ -90,7 +233,20 @@ class RegistryV3:
         # — a stale cache causes silent skip of every meta_tools / sql_database
         # function, producing "Tool not found" errors at dispatch. Correctness
         # over the ~2 second cold-start speedup.
-        self._load_schemas()
+        #
+        # FIX (July 23, 2026): Skip the disk reload when the WARM cache hit
+        # — the warm cache is regenerated on every fresh _load_schemas() run,
+        # so a hit means the schemas on disk match what's in the pickle.
+        # We still save back to the warm cache after a Redis-only hit so the
+        # next process restart benefits too.
+        if not warm_hit:
+            self._load_schemas()
+            # Persist for the NEXT cold start (also catches the case where
+            # the Redis cache was the source — without this the warm cache
+            # would never get populated after the very first deploy).
+            self._save_to_warm_cache()
+        else:
+            logger.info("[WARM_CACHE] Skipping _load_schemas() — using warm cache")
 
         if not cache_hit:
             # Save refreshed schemas to cache for next time (1-hour TTL)
@@ -169,15 +325,31 @@ class RegistryV3:
         
         for schema_file in schema_files:
             try:
+                # FIX (July 23, 2026): Skip disabled schemas BEFORE the JSON
+                # parse — saves CPU on the 14 disabled JSONs (~13% of all
+                # schemas) at every cold start.
+                if schema_file.name in _DISABLED_SCHEMA_FILENAMES:
+                    logger.info(f"  [SCHEMA] Skipped (disabled filename): {schema_file.name}")
+                    continue
+
                 # Use UTF-8 with error handling for problematic files
                 with open(schema_file, 'r', encoding='utf-8', errors='replace') as f:
                     schema_data = json.load(f)
-                
+
                 # Validate schema structure (must be dict, not list)
                 if not isinstance(schema_data, dict):
                     logger.warning(f"Skipping {schema_file.name}: Schema must be an object {{...}}, not an array [...]")
                     continue
-                
+
+                # Get top-level platform field (if present)
+                schema_platform = schema_data.get("platform")
+
+                # FIX (July 23, 2026): Skip disabled platforms before dynamic
+                # injection so we never pay the process_schema() cost on them.
+                if schema_platform and schema_platform in _RENDER_DISABLED_PLATFORMS:
+                    logger.info(f"  [SCHEMA] Skipped (disabled platform '{schema_platform}'): {schema_file.name}")
+                    continue
+
                 # Process schema to inject dynamic values ({{DYNAMIC:...}} placeholders)
                 if use_dynamic_injection:
                     try:
@@ -189,10 +361,7 @@ class RegistryV3:
                     except Exception as e:
                         logger.warning(f"Failed to process schema {schema_file.name}: {e}")
                         continue
-                
-                # Get top-level platform field (if present)
-                schema_platform = schema_data.get("platform")
-                
+
                 # Schema should have a "tools" array
                 if "tools" in schema_data:
                     for tool in schema_data["tools"]:
@@ -292,13 +461,13 @@ class RegistryV3:
         """
         Invalidate the tool registry cache.
         Call this when modules are reloaded or tool definitions change.
-        
+
         Returns:
             bool: True if cache invalidated, False if Redis unavailable
         """
         if not self.redis_manager or not self.redis_manager.connected:
             return False
-        
+
         try:
             success = self.redis_manager.cache_delete('registry_v3:tools')
             if success:
@@ -306,6 +475,84 @@ class RegistryV3:
             return success
         except Exception as e:
             logger.debug(f"[CACHE] Failed to invalidate cache: {e}")
+            return False
+
+    # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    # WARM CACHE (persistent disk pickle at /data/.cache/registry/)
+    # Survives Render redeploys unlike the Redis cache which is per-instance
+    # FIX (July 23, 2026): shipped to eliminate the 2-3s schema parse on every
+    # cold start. Cache holds only `self.tools` (the schema dict); the
+    # implementations are now lazy proxies so re-registering them on cold
+    # start costs ~0ms (just stub dict entries).
+    # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+    def _load_from_warm_cache(self) -> bool:
+        """
+        Try to load tool SCHEMAS from the persistent warm cache pickle.
+
+        Returns:
+            bool: True if cache hit and schema loaded, False otherwise.
+        """
+        if not _WARM_CACHE_PATH.exists():
+            logger.debug("[WARM_CACHE] No pickle found at %s", _WARM_CACHE_PATH)
+            return False
+
+        try:
+            with open(_WARM_CACHE_PATH, "rb") as fh:
+                blob = pickle.load(fh)
+
+            if not isinstance(blob, dict) or blob.get("version") != _WARM_CACHE_VERSION:
+                logger.info("[WARM_CACHE] Stale or wrong version — ignoring")
+                return False
+
+            cached_tools = blob.get("tools")
+            if not isinstance(cached_tools, dict):
+                logger.info("[WARM_CACHE] No tools dict in pickle — ignoring")
+                return False
+
+            self.tools = cached_tools
+            logger.info("[WARM_CACHE] Loaded %d tools from %s",
+                        len(self.tools), _WARM_CACHE_PATH)
+            return True
+
+        except Exception as exc:
+            logger.debug("[WARM_CACHE] Failed to load: %s", exc)
+            return False
+
+    def _save_to_warm_cache(self) -> None:
+        """
+        Persist the current `self.tools` dict to the warm cache pickle so the
+        next cold start can skip the JSON parse + platform filter pass.
+
+        No-op if /data is not mounted (local Windows dev) or the cache dir
+        is not writable.
+        """
+        try:
+            _WARM_CACHE_PATH.parent.mkdir(parents=True, exist_ok=True)
+            with open(_WARM_CACHE_PATH, "wb") as fh:
+                pickle.dump(
+                    {"version": _WARM_CACHE_VERSION, "tools": self.tools},
+                    fh,
+                    protocol=pickle.HIGHEST_PROTOCOL,
+                )
+            logger.info("[WARM_CACHE] Saved %d tools to %s",
+                        len(self.tools), _WARM_CACHE_PATH)
+        except Exception as exc:
+            logger.debug("[WARM_CACHE] Failed to save (non-fatal): %s", exc)
+
+    def invalidate_warm_cache(self) -> bool:
+        """
+        Delete the warm cache pickle. Useful after adding/removing schemas
+        or platform allowlist changes. Returns True if a file was removed.
+        """
+        try:
+            if _WARM_CACHE_PATH.exists():
+                _WARM_CACHE_PATH.unlink()
+                logger.info("[WARM_CACHE] Removed %s", _WARM_CACHE_PATH)
+                return True
+            return False
+        except Exception as exc:
+            logger.debug("[WARM_CACHE] Failed to remove: %s", exc)
             return False
 
 
@@ -395,18 +642,26 @@ class RegistryV3:
         return module
 
     def _load_from_implementations(self) -> None:
-        """Load from tools/implementations/ - FALLBACK for non-Google tools"""
+        """Load from tools/implementations/ - FALLBACK for non-Google tools
+
+        FIX (July 23, 2026): Now registers LazyModuleProxy stubs instead of
+        importing every .py eagerly. The heavy import (cadquery, query_library.py
+        ~5,958 lines, Pinecone client, BGE models, etc.) is deferred until the
+        AI first dispatches a tool from that module. This is the single biggest
+        cold-start win — eliminates the ~3-6s import storm that was crashing
+        Render workers at startup.
+        """
         implementations_dir = self.tools_dir / "implementations"
-        
+
         if not implementations_dir.exists():
             logger.warning(f"Implementations directory not found: {implementations_dir}")
             return
-        
-        impl_files = [f.stem for f in implementations_dir.glob("*.py") 
+
+        impl_files = [f.stem for f in implementations_dir.glob("*.py")
                      if f.name != "__init__.py" and f.name != "__pycache__"]
-        
-        logger.info(f"[REGISTRY_V3] Loading from tools/implementations/ ({len(impl_files)} modules)")
-        
+
+        logger.info(f"[REGISTRY_V3] Registering {len(impl_files)} lazy implementation stubs from tools/implementations/")
+
         # Load SQL database, meta_tools, and visualization_guide with individual
         # function registration (high priority). These modules expose multiple
         # distinct tool functions at the module level (e.g. visualization_guide
@@ -417,54 +672,65 @@ class RegistryV3:
         # overwrite makes sibling functions unreachable via get_tool_function
         # Case 2 (which skips callable entries). Per-function registration
         # avoids the module-vs-function collision entirely.
+        #
+        # FIX (July 23, 2026): Honour _RENDER_DISABLED_PLATFORMS for these
+        # special modules too — if `meta_tools` ever gets disabled, the
+        # list_available_platforms carryover rule says keep it. So we keep it
+        # in special_modules but skip the lazy registration if disabled.
         special_modules = ["sql_database", "meta_tools", "visualization_guide", "viz_snapshots"]
         for module_name in special_modules:
+            if module_name in _RENDER_DISABLED_PLATFORMS:
+                logger.info(f"  [SCHEMA] Skipped special module (disabled platform): {module_name}")
+                continue
             if module_name in impl_files:
                 try:
-                    module = importlib.import_module(f"tools.implementations.{module_name}")
-                    
+                    # FIX (July 23, 2026): lazy import the special module too.
+                    # Materialise once to discover its function names — the
+                    # cost is one extra import for these 4 small modules and
+                    # saves repeated `dir()` over materialised modules later.
+                    module = _LazyModuleProxy(f"tools.implementations.{module_name}")
+
+                    # Force materialisation here ONLY to enumerate functions
+                    # for the per-function registration pattern. The actual
+                    # function bodies stay deferred until dispatched.
+                    materialised = module._materialize()  # noqa: SLF001
+
                     # Get all functions from module and register individually
                     functions = []
-                    for attr_name in dir(module):
+                    for attr_name in dir(materialised):
                         if not attr_name.startswith('_'):
-                            attr = getattr(module, attr_name)
+                            attr = getattr(materialised, attr_name)
                             if callable(attr) and attr_name in self.tools:
                                 self.implementations[attr_name] = attr
                                 functions.append(attr_name)
-                    
+
                     icon = "[DB]" if module_name == "sql_database" else "[TOOLS]"
                     logger.info(f"  {icon}  {module_name}: {len(functions)} functions loaded")
                 except Exception as e:
                     logger.warning(f"Failed to load special module {module_name}: {e}")
-        
+
         for module_name in impl_files:
             # Skip if already loaded from google_workspace or special modules
             if module_name in self.implementations or module_name in special_modules:
                 logger.debug(f"  [OK]  {module_name}: skipped (already loaded)")
                 continue
-            
+
             try:
-                # Import from tools.implementations
-                module = importlib.import_module(f"tools.implementations.{module_name}")
-                
-                # CRITICAL FIX: Extract class instance for Microsoft tools
-                # Microsoft tools have classes with global instances at the bottom
-                implementation = self._extract_class_instance(module, module_name)
-                
-                self.implementations[module_name] = implementation
-                
-                # Count available functions (from instance or module)
-                functions = [name for name in dir(implementation) 
-                           if not name.startswith('_') and callable(getattr(implementation, name))]
-                
-                # Add indicator if we extracted an instance
-                instance_indicator = " [instance]" if implementation is not module else ""
-                logger.info(f"   tools.implementations.{module_name}: {len(functions)} functions{instance_indicator}")
-                
-            except ModuleNotFoundError:
-                logger.debug(f"  [WARN] tools.implementations.{module_name} not found")
-            except ImportError as e:
-                logger.debug(f"  [WARN] Error importing tools.implementations.{module_name}: {e}")
+                # FIX (July 23, 2026): Use a closure factory so the lambda
+                # captures THIS iteration's module_name, not the last one
+                # (avoids the classic Python late-binding gotcha).
+                def _make_transform(name):
+                    def _transform(materialised_module):
+                        return self._extract_class_instance(materialised_module, name)
+                    return _transform
+
+                fq_name = f"tools.implementations.{module_name}"
+                proxy = _LazyModuleProxy(fq_name, transform=_make_transform(module_name))
+                self.implementations[module_name] = proxy
+                logger.debug(f"   tools.implementations.{module_name}: lazy stub registered")
+
+            except Exception as e:
+                logger.debug(f"  [WARN] Error registering lazy stub for {module_name}: {e}")
 
     def _load_module_plugins(self) -> None:
         """

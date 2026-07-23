@@ -1,0 +1,350 @@
+{
+    "platform": "adobe_indesign",
+    "description": "Meta tools for discovering and navigating the Adobe InDesign toolkit. Start here to find the right tools for your automation needs.",
+    "tools": [
+        {
+            "name": "indesign_search_tools",
+            "description": "Search for InDesign tools by keyword or description. Returns matching tool names with brief descriptions. Use this when you're not sure which specific tool to use.",
+            "platform": "adobe_indesign",
+            "category": "meta",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "query": {
+                        "type": "string",
+                        "description": "Search query (e.g., 'template', 'export pdf', 'batch processing', 'data merge')"
+                    },
+                    "max_results": {
+                        "type": "integer",
+                        "default": 10,
+                        "description": "Maximum number of results to return"
+                    }
+                },
+                "required": [
+                    "query"
+                ]
+            },
+            "returns": {
+                "type": "object",
+                "description": "Search results with tool names and descriptions",
+                "properties": {
+                    "results": {
+                        "type": "array",
+                        "items": {
+                            "type": "object",
+                            "properties": {
+                                "tool_name": {
+                                    "type": "string"
+                                },
+                                "description": {
+                                    "type": "string"
+                                },
+                                "category": {
+                                    "type": "string"
+                                },
+                                "relevance_score": {
+                                    "type": "number"
+                                }
+                            }
+                        }
+                    },
+                    "total_found": {
+                        "type": "integer"
+                    }
+                }
+            },
+            "examples": [
+                {
+                    "description": "Search for template-related tools",
+                    "input": {
+                        "query": "template"
+                    },
+                    "output": {
+                        "results": [
+                            {
+                                "tool_name": "indesign_create_template",
+                                "description": "Create new InDesign template file",
+                                "category": "template_management",
+                                "relevance_score": 0.95
+                            },
+                            {
+                                "tool_name": "indesign_create_document_from_template",
+                                "description": "Create document using existing template",
+                                "category": "document_creation",
+                                "relevance_score": 0.92
+                            }
+                        ],
+                        "total_found": 18
+                    }
+                }
+            ],
+            "instructions": "Use this tool when the user's request is general (e.g., 'I need to work with templates'). The search returns tool names that you can then query for full schemas using indesign_get_tool_schema."
+        },
+        {
+            "name": "indesign_get_platform_guide",
+            "description": "Get comprehensive overview of the Adobe InDesign platform capabilities, common use cases, and workflow recommendations. Call this when starting a new InDesign project.",
+            "platform": "adobe_indesign",
+            "category": "meta",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "focus_area": {
+                        "type": "string",
+                        "enum": [
+                            "overview",
+                            "printing",
+                            "publishing",
+                            "marketing",
+                            "variable_data",
+                            "batch_operations"
+                        ],
+                        "default": "overview",
+                        "description": "Specific focus area for targeted guidance"
+                    }
+                },
+                "required": []
+            },
+            "returns": {
+                "type": "object",
+                "description": "Platform guide with capabilities and recommendations",
+                "properties": {
+                    "platform_name": {
+                        "type": "string"
+                    },
+                    "capabilities": {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
+                    },
+                    "common_workflows": {
+                        "type": "array",
+                        "items": {
+                            "type": "object"
+                        }
+                    },
+                    "recommended_tools": {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
+                    },
+                    "best_practices": {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
+                    }
+                }
+            },
+            "instructions": "This provides high-level guidance about InDesign automation. Use it when the user is exploring what's possible or planning a complex workflow."
+        },
+        {
+            "name": "indesign_list_categories",
+            "description": "List all available tool categories in the InDesign toolkit. Each category groups related tools (e.g., template_management, document_creation, data_merge).",
+            "platform": "adobe_indesign",
+            "category": "meta",
+            "parameters": {
+                "type": "object",
+                "properties": {},
+                "required": []
+            },
+            "returns": {
+                "type": "object",
+                "description": "List of categories with tool counts",
+                "properties": {
+                    "categories": {
+                        "type": "array",
+                        "items": {
+                            "type": "object",
+                            "properties": {
+                                "category_name": {
+                                    "type": "string"
+                                },
+                                "description": {
+                                    "type": "string"
+                                },
+                                "tool_count": {
+                                    "type": "integer"
+                                },
+                                "priority": {
+                                    "type": "string",
+                                    "enum": [
+                                        "critical",
+                                        "high",
+                                        "medium"
+                                    ]
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "examples": [
+                {
+                    "description": "List all categories",
+                    "input": {},
+                    "output": {
+                        "categories": [
+                            {
+                                "category_name": "smart_composite",
+                                "description": "Multi-step intelligent workflows (e.g., create_product_catalog)",
+                                "tool_count": 25,
+                                "priority": "critical"
+                            },
+                            {
+                                "category_name": "template_management",
+                                "description": "Create, edit, and manage InDesign templates",
+                                "tool_count": 18,
+                                "priority": "critical"
+                            }
+                        ]
+                    }
+                }
+            ],
+            "instructions": "Use this to help users understand the scope of available tools. After getting categories, use indesign_get_category_tools to see specific tools in a category."
+        },
+        {
+            "name": "indesign_get_category_tools",
+            "description": "Get list of all tools in a specific category with brief descriptions. This is the second tier of discovery after indesign_list_categories.",
+            "platform": "adobe_indesign",
+            "category": "meta",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "category": {
+                        "type": "string",
+                        "description": "Category name (e.g., 'smart_composite', 'template_management', 'data_merge')"
+                    }
+                },
+                "required": [
+                    "category"
+                ]
+            },
+            "returns": {
+                "type": "object",
+                "description": "Tools in the specified category",
+                "properties": {
+                    "category": {
+                        "type": "string"
+                    },
+                    "tools": {
+                        "type": "array",
+                        "items": {
+                            "type": "object",
+                            "properties": {
+                                "tool_name": {
+                                    "type": "string"
+                                },
+                                "description": {
+                                    "type": "string"
+                                },
+                                "backend": {
+                                    "type": "string"
+                                },
+                                "estimated_execution_time": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "examples": [
+                {
+                    "description": "Get all smart composite tools",
+                    "input": {
+                        "category": "smart_composite"
+                    },
+                    "output": {
+                        "category": "smart_composite",
+                        "tools": [
+                            {
+                                "tool_name": "indesign_create_product_catalog",
+                                "description": "Complete catalog from CSV + template (8 steps in 1 call)",
+                                "backend": "hybrid",
+                                "estimated_execution_time": "60-90 seconds"
+                            }
+                        ]
+                    }
+                }
+            ],
+            "instructions": "After discovering a relevant category, use this to see all available tools. Then use indesign_get_tool_schema for full details on a specific tool."
+        },
+        {
+            "name": "indesign_recommend_tools_for_task",
+            "description": "AI-powered tool recommendation based on natural language task description. Analyzes user intent and suggests 1-5 best tools for the job.",
+            "platform": "adobe_indesign",
+            "category": "meta",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "task_description": {
+                        "type": "string",
+                        "description": "Natural language description of what the user wants to accomplish (e.g., 'Create a catalog with 500 products from CSV', 'Update company name in all brochures')"
+                    },
+                    "max_recommendations": {
+                        "type": "integer",
+                        "default": 3,
+                        "description": "Maximum number of tool recommendations"
+                    }
+                },
+                "required": [
+                    "task_description"
+                ]
+            },
+            "returns": {
+                "type": "object",
+                "description": "Recommended tools with reasoning",
+                "properties": {
+                    "recommendations": {
+                        "type": "array",
+                        "items": {
+                            "type": "object",
+                            "properties": {
+                                "tool_name": {
+                                    "type": "string"
+                                },
+                                "confidence": {
+                                    "type": "number"
+                                },
+                                "reasoning": {
+                                    "type": "string"
+                                },
+                                "estimated_time": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "examples": [
+                {
+                    "description": "Get tool recommendation for catalog creation",
+                    "input": {
+                        "task_description": "Create a product catalog with 500 items from a CSV file",
+                        "max_recommendations": 2
+                    },
+                    "output": {
+                        "recommendations": [
+                            {
+                                "tool_name": "indesign_create_product_catalog",
+                                "confidence": 0.98,
+                                "reasoning": "Smart composite tool specifically designed for catalog generation from data sources. Handles data merge, image placement, styling, and export in one call.",
+                                "estimated_time": "60-90 seconds for 500 products"
+                            },
+                            {
+                                "tool_name": "indesign_setup_data_merge",
+                                "confidence": 0.75,
+                                "reasoning": "Manual approach: Set up data merge fields individually. More control but requires multiple additional tool calls.",
+                                "estimated_time": "5-10 minutes total (multiple steps)"
+                            }
+                        ]
+                    }
+                }
+            ],
+            "instructions": "This is the most powerful discovery tool. Use it when the user describes what they want to accomplish in natural language. It analyzes intent and recommends the best tool(s), often suggesting smart composite tools over multi-step workflows."
+        }
+    ]
+}

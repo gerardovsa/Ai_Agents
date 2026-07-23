@@ -1,0 +1,299 @@
+{
+    "platform": "email_attachments",
+    "description": "Universal email attachment processing for Outlook and Gmail. Optimized for AI consumption to prevent token overflow. Auto-selects best delivery method: direct base64 (< 5MB), Anthropic Files API (5-100MB), or cloud storage URL (>100MB).",
+    "tools": [
+        {
+            "name": "email_process_attachment_for_ai",
+            "short_description": "Process email attachment for AI - auto-selects base64, Files API, or URL to prevent overflow",
+            "description": "Process email attachment for AI consumption (Outlook or Gmail). Prevents token overflow by auto-selecting optimal delivery method: direct base64 for small files (~800 tokens/MB), Anthropic Files API for large files (~50 tokens), or cloud URL for huge files (0 tokens). USE THIS instead of outlook_download_attachment to avoid token overflow errors.",
+            "platform": "email_attachments",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "source": {
+                        "type": "string",
+                        "description": "Email platform: 'outlook' for Microsoft Outlook/Exchange, 'gmail' for Gmail",
+                        "enum": [
+                            "outlook",
+                            "gmail"
+                        ]
+                    },
+                    "message_id": {
+                        "type": "string",
+                        "description": "Email message ID (from Outlook or Gmail API)"
+                    },
+                    "attachment_id": {
+                        "type": "string",
+                        "description": "Attachment ID (from Outlook or Gmail API)"
+                    },
+                    "mode": {
+                        "type": "string",
+                        "description": "Delivery mode: 'auto' (smart detection, recommended), 'direct' (force base64), 'files_api' (force Files API), 'url' (force cloud URL)",
+                        "enum": [
+                            "auto",
+                            "direct",
+                            "files_api",
+                            "url"
+                        ],
+                        "default": "auto"
+                    }
+                },
+                "required": [
+                    "source",
+                    "message_id",
+                    "attachment_id"
+                ]
+            },
+            "returns": {
+                "type": "object",
+                "description": "Result with Anthropic-ready content_block or cloud URL, plus metadata (name, size, type, token_estimate, method used)"
+            },
+            "examples": [
+                {
+                    "description": "Process Outlook attachment with auto-detection",
+                    "parameters": {
+                        "source": "outlook",
+                        "message_id": "AAMkAGVmMDEz...",
+                        "attachment_id": "AAMkAGVmMDEz...",
+                        "mode": "auto"
+                    }
+                },
+                {
+                    "description": "Process Gmail attachment",
+                    "parameters": {
+                        "source": "gmail",
+                        "message_id": "18c5f2e3a1b2c3d4",
+                        "attachment_id": "ANGjdJ9g..."
+                    }
+                }
+            ]
+        },
+        {
+            "name": "email_process_attachments_batch",
+            "short_description": "Process multiple email attachments at once - batch processing for Outlook/Gmail",
+            "description": "Process multiple email attachments at once from Outlook or Gmail. Returns all content_blocks ready for Anthropic Messages API. Optimized for batch processing to prevent token overflow. Use this when an email has multiple attachments.",
+            "platform": "email_attachments",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "source": {
+                        "type": "string",
+                        "description": "Email platform: 'outlook' or 'gmail'",
+                        "enum": [
+                            "outlook",
+                            "gmail"
+                        ]
+                    },
+                    "attachments": {
+                        "type": "array",
+                        "description": "List of attachments to process. Each item has message_id and attachment_id fields.",
+                        "items": {
+                            "type": "object",
+                            "properties": {
+                                "message_id": {
+                                    "type": "string",
+                                    "description": "Email message ID"
+                                },
+                                "attachment_id": {
+                                    "type": "string",
+                                    "description": "Attachment ID"
+                                }
+                            },
+                            "required": [
+                                "message_id",
+                                "attachment_id"
+                            ]
+                        }
+                    },
+                    "mode": {
+                        "type": "string",
+                        "description": "Delivery mode for all attachments",
+                        "enum": [
+                            "auto",
+                            "direct",
+                            "files_api",
+                            "url"
+                        ],
+                        "default": "auto"
+                    }
+                },
+                "required": [
+                    "source",
+                    "attachments"
+                ]
+            },
+            "returns": {
+                "type": "object",
+                "description": "Batch result with results array, total_token_estimate, and content_blocks array ready for Anthropic API"
+            },
+            "examples": [
+                {
+                    "description": "Process multiple Outlook attachments",
+                    "parameters": {
+                        "source": "outlook",
+                        "attachments": [
+                            {
+                                "message_id": "AAMkAG...",
+                                "attachment_id": "AAMkAH..."
+                            },
+                            {
+                                "message_id": "AAMkAG...",
+                                "attachment_id": "AAMkAI..."
+                            }
+                        ]
+                    }
+                }
+            ]
+        },
+        {
+            "name": "microsoft_outlook_process_attachment_for_ai",
+            "short_description": "Process Outlook attachment for AI - replaces download_attachment, prevents token overflow",
+            "description": "Process Outlook attachment for AI. Wrapper around email_process_attachment_for_ai specifically for Outlook. REPLACES microsoft_outlook_download_attachment which causes token overflow. Use this to analyze attachments from Outlook emails without exceeding token limits.",
+            "platform": "email_attachments",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "message_id": {
+                        "type": "string",
+                        "description": "Outlook message ID"
+                    },
+                    "attachment_id": {
+                        "type": "string",
+                        "description": "Outlook attachment ID (from outlook_get_attachments)"
+                    },
+                    "mode": {
+                        "type": "string",
+                        "description": "Delivery mode: 'auto' (recommended), 'direct', 'files_api', or 'url'",
+                        "enum": [
+                            "auto",
+                            "direct",
+                            "files_api",
+                            "url"
+                        ],
+                        "default": "auto"
+                    }
+                },
+                "required": [
+                    "message_id",
+                    "attachment_id"
+                ]
+            },
+            "returns": {
+                "type": "object",
+                "description": "Anthropic-ready content_block or URL with metadata"
+            }
+        },
+        {
+            "name": "microsoft_outlook_process_all_attachments",
+            "short_description": "Process all Outlook attachments at once - auto-fetches list, returns Anthropic blocks",
+            "description": "Process ALL attachments from an Outlook message at once. Gets attachment list automatically and processes all files in batch. Returns content_blocks ready for Anthropic API. Use this when you want to analyze all attachments from an email without token overflow.",
+            "platform": "email_attachments",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "message_id": {
+                        "type": "string",
+                        "description": "Outlook message ID"
+                    },
+                    "mode": {
+                        "type": "string",
+                        "description": "Delivery mode for all attachments",
+                        "enum": [
+                            "auto",
+                            "direct",
+                            "files_api",
+                            "url"
+                        ],
+                        "default": "auto"
+                    }
+                },
+                "required": [
+                    "message_id"
+                ]
+            },
+            "returns": {
+                "type": "object",
+                "description": "Batch result with all attachments processed, content_blocks array, and total token estimate"
+            },
+            "examples": [
+                {
+                    "description": "Process all attachments from Sign Doctor email",
+                    "parameters": {
+                        "message_id": "AAMkAGVmMDEz..."
+                    }
+                }
+            ]
+        },
+        {
+            "name": "google_gmail_process_attachment_for_ai",
+            "short_description": "Process Gmail attachment for AI - optimal delivery method based on file size and type",
+            "description": "Process Gmail attachment for AI. Wrapper around email_process_attachment_for_ai specifically for Gmail. Prevents token overflow by using optimal delivery method based on file size and type.",
+            "platform": "email_attachments",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "message_id": {
+                        "type": "string",
+                        "description": "Gmail message ID"
+                    },
+                    "attachment_id": {
+                        "type": "string",
+                        "description": "Gmail attachment ID"
+                    },
+                    "mode": {
+                        "type": "string",
+                        "description": "Delivery mode: 'auto' (recommended), 'direct', 'files_api', or 'url'",
+                        "enum": [
+                            "auto",
+                            "direct",
+                            "files_api",
+                            "url"
+                        ],
+                        "default": "auto"
+                    }
+                },
+                "required": [
+                    "message_id",
+                    "attachment_id"
+                ]
+            },
+            "returns": {
+                "type": "object",
+                "description": "Anthropic-ready content_block or URL with metadata"
+            }
+        },
+        {
+            "name": "google_gmail_process_all_attachments",
+            "short_description": "Process all Gmail attachments at once - auto-fetches list, batch processing for AI",
+            "description": "Process ALL attachments from a Gmail message at once. Gets attachment list automatically and processes all files in batch. Returns content_blocks ready for Anthropic API.",
+            "platform": "email_attachments",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "message_id": {
+                        "type": "string",
+                        "description": "Gmail message ID"
+                    },
+                    "mode": {
+                        "type": "string",
+                        "description": "Delivery mode for all attachments",
+                        "enum": [
+                            "auto",
+                            "direct",
+                            "files_api",
+                            "url"
+                        ],
+                        "default": "auto"
+                    }
+                },
+                "required": [
+                    "message_id"
+                ]
+            },
+            "returns": {
+                "type": "object",
+                "description": "Batch result with all attachments processed, content_blocks array, and total token estimate"
+            }
+        }
+    ]
+}

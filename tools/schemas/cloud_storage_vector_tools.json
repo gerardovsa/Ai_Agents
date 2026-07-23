@@ -1,0 +1,389 @@
+{
+    "platform": "cloud_storage_vector",
+    "description": "Cloud storage integration for Vector Database - Direct upload from Google Drive, OneDrive, Dropbox to Pinecone with folder monitoring and scheduled sync",
+    "tools": [
+        {
+            "name": "cloud_storage_list_providers",
+            "description": "List available cloud storage providers and their connection status for the user. Shows which providers are connected and ready to use for vector database uploads.",
+            "platform": "cloud_storage_vector",
+            "parameters": {
+                "type": "object",
+                "properties": {},
+                "required": []
+            },
+            "returns": {
+                "type": "object",
+                "description": "List of cloud storage providers with connection status, available features, and folder count"
+            },
+            "examples": [
+                {
+                    "description": "Check connected cloud storage providers",
+                    "parameters": {},
+                    "returns": {
+                        "success": true,
+                        "providers": [
+                            {
+                                "name": "Google Drive",
+                                "platform": "google_drive",
+                                "connected": true,
+                                "folders": 5
+                            },
+                            {
+                                "name": "Microsoft OneDrive",
+                                "platform": "onedrive",
+                                "connected": false
+                            },
+                            {
+                                "name": "Dropbox",
+                                "platform": "dropbox",
+                                "connected": false
+                            }
+                        ]
+                    }
+                }
+            ]
+        },
+        {
+            "name": "cloud_storage_browse_folders",
+            "description": "Browse folders in connected cloud storage (Google Drive, OneDrive, or Dropbox). Returns folder tree with file counts, file types, and total sizes.",
+            "platform": "cloud_storage_vector",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "provider": {
+                        "type": "string",
+                        "description": "Cloud storage provider (google_drive, onedrive, dropbox)",
+                        "enum": [
+                            "google_drive",
+                            "onedrive",
+                            "dropbox"
+                        ]
+                    },
+                    "folder_id": {
+                        "type": "string",
+                        "description": "Folder ID to browse (optional, defaults to root folder)"
+                    },
+                    "include_files": {
+                        "type": "boolean",
+                        "description": "Include files in response (default: false, folders only)"
+                    },
+                    "file_types": {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        },
+                        "description": "Filter by file types (pdf, docx, txt, md, etc)"
+                    }
+                },
+                "required": [
+                    "provider"
+                ]
+            },
+            "returns": {
+                "type": "object",
+                "description": "Folder tree with files and metadata"
+            },
+            "examples": [
+                {
+                    "description": "Browse Google Drive root folder",
+                    "parameters": {
+                        "provider": "google_drive",
+                        "include_files": true,
+                        "file_types": [
+                            "pdf",
+                            "docx"
+                        ]
+                    },
+                    "returns": {
+                        "success": true,
+                        "folder_name": "My Drive",
+                        "folders": [
+                            {
+                                "id": "abc123",
+                                "name": "Documents",
+                                "file_count": 45,
+                                "size": "12.5 MB"
+                            }
+                        ],
+                        "files": [
+                            {
+                                "id": "xyz789",
+                                "name": "report.pdf",
+                                "size": "2.3 MB",
+                                "modified": "2025-11-30T10:00:00Z"
+                            }
+                        ]
+                    }
+                }
+            ]
+        },
+        {
+            "name": "cloud_storage_upload_to_vector_db",
+            "description": "Upload files directly from cloud storage to Pinecone vector database. Processes PDFs, DOCX, TXT, MD files, generates embeddings, and stores vectors. Supports batch processing with progress tracking.",
+            "platform": "cloud_storage_vector",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "provider": {
+                        "type": "string",
+                        "description": "Cloud storage provider",
+                        "enum": [
+                            "google_drive",
+                            "onedrive",
+                            "dropbox"
+                        ]
+                    },
+                    "file_ids": {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        },
+                        "description": "Array of file IDs to upload"
+                    },
+                    "namespace": {
+                        "type": "string",
+                        "description": "Pinecone namespace for organization (optional)"
+                    },
+                    "metadata": {
+                        "type": "object",
+                        "description": "Additional metadata to attach to vectors (tags, category, etc)"
+                    },
+                    "chunk_size": {
+                        "type": "integer",
+                        "description": "Text chunk size in characters (default: 800)"
+                    },
+                    "chunk_overlap": {
+                        "type": "integer",
+                        "description": "Overlap between chunks in characters (default: 100)"
+                    }
+                },
+                "required": [
+                    "provider",
+                    "file_ids"
+                ]
+            },
+            "returns": {
+                "type": "object",
+                "description": "Upload results with success/failure counts and vector IDs"
+            },
+            "examples": [
+                {
+                    "description": "Upload 3 PDFs from Google Drive",
+                    "parameters": {
+                        "provider": "google_drive",
+                        "file_ids": [
+                            "file1",
+                            "file2",
+                            "file3"
+                        ],
+                        "namespace": "company-docs",
+                        "metadata": {
+                            "department": "legal",
+                            "year": 2025
+                        }
+                    },
+                    "returns": {
+                        "success": true,
+                        "processed": 3,
+                        "total_chunks": 145,
+                        "vector_ids": [
+                            "vec_1",
+                            "vec_2",
+                            "..."
+                        ],
+                        "failed": []
+                    }
+                }
+            ]
+        },
+        {
+            "name": "cloud_storage_create_folder_link",
+            "description": "Create a monitored folder link between cloud storage and vector database. Any new/updated files in the linked folder will be automatically synced to Pinecone on schedule (hourly, daily, weekly).",
+            "platform": "cloud_storage_vector",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "provider": {
+                        "type": "string",
+                        "description": "Cloud storage provider",
+                        "enum": [
+                            "google_drive",
+                            "onedrive",
+                            "dropbox"
+                        ]
+                    },
+                    "folder_id": {
+                        "type": "string",
+                        "description": "Folder ID to link"
+                    },
+                    "sync_schedule": {
+                        "type": "string",
+                        "description": "Sync frequency (hourly, daily, weekly, manual)",
+                        "enum": [
+                            "hourly",
+                            "daily",
+                            "weekly",
+                            "manual"
+                        ]
+                    },
+                    "namespace": {
+                        "type": "string",
+                        "description": "Pinecone namespace for synced vectors"
+                    },
+                    "file_types": {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        },
+                        "description": "File types to sync (pdf, docx, txt, md)"
+                    },
+                    "auto_delete": {
+                        "type": "boolean",
+                        "description": "Delete vectors when source files are deleted (default: false)"
+                    }
+                },
+                "required": [
+                    "provider",
+                    "folder_id",
+                    "sync_schedule"
+                ]
+            },
+            "returns": {
+                "type": "object",
+                "description": "Folder link details with link ID and next sync time"
+            },
+            "examples": [
+                {
+                    "description": "Link Google Drive folder with daily sync",
+                    "parameters": {
+                        "provider": "google_drive",
+                        "folder_id": "folder123",
+                        "sync_schedule": "daily",
+                        "namespace": "team-knowledge",
+                        "file_types": [
+                            "pdf",
+                            "docx"
+                        ],
+                        "auto_delete": true
+                    },
+                    "returns": {
+                        "success": true,
+                        "link_id": "link_abc123",
+                        "folder_name": "Team Documents",
+                        "next_sync": "2025-12-01T09:00:00Z",
+                        "status": "active"
+                    }
+                }
+            ]
+        },
+        {
+            "name": "cloud_storage_list_folder_links",
+            "description": "List all active folder links and their sync status. Shows connected folders, sync schedules, last sync time, and file counts.",
+            "platform": "cloud_storage_vector",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "provider": {
+                        "type": "string",
+                        "description": "Filter by provider (optional)"
+                    },
+                    "status": {
+                        "type": "string",
+                        "description": "Filter by status (active, paused, error)"
+                    }
+                },
+                "required": []
+            },
+            "returns": {
+                "type": "object",
+                "description": "List of folder links with sync status"
+            }
+        },
+        {
+            "name": "cloud_storage_sync_folder_now",
+            "description": "Trigger immediate sync of a linked folder (outside regular schedule). Useful for testing or when you know new files have been added.",
+            "platform": "cloud_storage_vector",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "link_id": {
+                        "type": "string",
+                        "description": "Folder link ID to sync"
+                    }
+                },
+                "required": [
+                    "link_id"
+                ]
+            },
+            "returns": {
+                "type": "object",
+                "description": "Sync results with processed file counts"
+            }
+        },
+        {
+            "name": "cloud_storage_update_folder_link",
+            "description": "Update folder link settings (sync schedule, file types, namespace, etc). Allows changing configuration without recreating the link.",
+            "platform": "cloud_storage_vector",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "link_id": {
+                        "type": "string",
+                        "description": "Folder link ID to update"
+                    },
+                    "sync_schedule": {
+                        "type": "string",
+                        "description": "New sync frequency"
+                    },
+                    "file_types": {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        },
+                        "description": "Updated file types filter"
+                    },
+                    "status": {
+                        "type": "string",
+                        "description": "Change status (active, paused)",
+                        "enum": [
+                            "active",
+                            "paused"
+                        ]
+                    }
+                },
+                "required": [
+                    "link_id"
+                ]
+            },
+            "returns": {
+                "type": "object",
+                "description": "Updated folder link details"
+            }
+        },
+        {
+            "name": "cloud_storage_delete_folder_link",
+            "description": "Delete a folder link. Stops automatic syncing but does NOT delete existing vectors in Pinecone (vectors remain unless explicitly deleted).",
+            "platform": "cloud_storage_vector",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "link_id": {
+                        "type": "string",
+                        "description": "Folder link ID to delete"
+                    },
+                    "delete_vectors": {
+                        "type": "boolean",
+                        "description": "Also delete all vectors from this folder (default: false)"
+                    }
+                },
+                "required": [
+                    "link_id"
+                ]
+            },
+            "returns": {
+                "type": "object",
+                "description": "Deletion confirmation"
+            }
+        }
+    ]
+}

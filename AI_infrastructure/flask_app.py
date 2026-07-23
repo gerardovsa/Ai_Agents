@@ -18,6 +18,22 @@ if sys.platform == 'win32' and sys.stdout.encoding != 'utf-8':
 import os
 from pathlib import Path
 
+# FIX (July 23, 2026): Pin TIKTOKEN_CACHE_DIR to the persistent Render disk
+# BEFORE any module that imports tiktoken (utils.token_counter, etc.). Without
+# this, tiktoken re-downloads its BPE tables (~2 MB) on every cold start and
+# on every redeploy. Set via setdefault() so a user-supplied env var still wins.
+_DATA_DIR = "/data"
+_TIKTOKEN_CACHE_DIR = "/data/.cache/tiktoken"
+if os.path.isdir(_DATA_DIR):
+    os.makedirs(_TIKTOKEN_CACHE_DIR, exist_ok=True)
+    os.environ.setdefault("TIKTOKEN_CACHE_DIR", _TIKTOKEN_CACHE_DIR)
+    # Mirror the registry warm cache dir pattern so all persistent caches live
+    # under the same /data/.cache/ tree. Cheap to mkdir, no harm if it already
+    # exists.
+    os.makedirs("/data/.cache/registry", exist_ok=True)
+    print(f"[CACHE] Persistent caches pinned to {_DATA_DIR}/.cache/ "
+          f"(tiktoken + registry warm cache)")
+
 # Configure AI_agents paths ONLY - Standalone project
 ai_agents_root = Path(__file__).parent.parent  # Go up to AI_agents root
 ai_infrastructure_path = ai_agents_root / 'AI_infrastructure'
@@ -26,6 +42,11 @@ ai_infrastructure_path = ai_agents_root / 'AI_infrastructure'
 for path in [str(ai_agents_root), str(ai_infrastructure_path)]:
     if path not in sys.path:
         sys.path.insert(0, path)
+
+# Import startup-timing helper FIRST so its _BOOT_T0 anchor captures every
+# subsequent millisecond of import time (including the logging setup below).
+# See AI_infrastructure/shared/startup_timing.py for the public API.
+from shared.startup_timing import begin as _st_begin, end as _st_end  # noqa: E402
 
 # Setup unified logging FIRST
 from utils.logger_config import setup_logger, log_init, log_config, log_success, log_warning, log_error, ColoredFormatter, Colors
@@ -36,6 +57,11 @@ def log_debug(message: str):
     print(f"{Colors.DEBUG}[DEBUG]{Colors.RESET} {message}")
 
 logger = setup_logger('flask_app')
+
+# ============================================================================
+# Phase 1 of 12: bootstrap_logging (werkzeug + apscheduler + registry loggers)
+# ============================================================================
+_st_begin('bootstrap_logging', note='werkzeug + apscheduler + registry logger config')
 
 # Configure werkzeug (Flask's HTTP server) with colored output
 werkzeug_logger = logging.getLogger('werkzeug')
@@ -63,6 +89,8 @@ registry_handler.setFormatter(ColoredFormatter('%(levelname)s:%(name)s: %(messag
 registry_logger.addHandler(registry_handler)
 registry_logger.setLevel(logging.INFO)
 registry_logger.propagate = False
+
+_st_end('bootstrap_logging', note='loggers configured')
 
 log_init(logger, "AI_agents standalone - No external dependencies")
 
@@ -121,6 +149,10 @@ else:
     log_warning(logger, f"Stock management disabled - SUPABASE_URL not set")
 
 # Flask Configuration (inline - no external config.py needed)
+# ============================================================================
+# Phase 2 of 12: framework_config (inline Config class)
+# ============================================================================
+_st_begin('framework_config', note='inline Config class (paths, sessions, CORS, DB)')
 class Config:
         """Flask app configuration - Fallback"""
         BASE_DIR = Path(__file__).parent
@@ -145,9 +177,16 @@ class Config:
         # Database configuration (SQLite) - Centralized location
         DATABASE_PATH = os.getenv('DATABASE_PATH', str(DATA_DIR / 'ai_infrastructure.db'))
 
+_st_end('framework_config', note='Config class defined')
+
 # Import core infrastructure (NEW CLEAN CODE)
 from core.unified_session_manager import session_manager
 from core.unified_ai_client import initialize_ai_client
+
+# ============================================================================
+# Phase 3 of 12: core_route_imports (~50 Flask blueprints)
+# ============================================================================
+_st_begin('core_route_imports', note='50+ blueprint imports (agent, thread, chat, etc.)')
 
 # Import routes (blueprints) - Working In_House_SQL implementation
 log_debug("Importing agent_routes_v4...")
@@ -247,11 +286,18 @@ from routes.module_routes import module_bp  # NEW: Self-registering module syste
 from routes.session_management_routes import cloud_storage_bp  # NEW: Cloud storage sync (Google Drive folders to database, 6 endpoints)
 from routes.connection_routes import connections_bp  # Platform connections (2 endpoints)
 
+_st_end('core_route_imports', note='all blueprints imported')
+
 # Generate unique cache version on Flask startup (forces browser refresh)
 import time
 import random
 CACHE_VERSION = f"{int(time.time())}_{random.randint(1000, 9999)}"
 log_success(logger, f"🔄 Generated cache version: {CACHE_VERSION}")
+
+# ============================================================================
+# Phase 4 of 12: flask_app_create (Flask app object + Config binding)
+# ============================================================================
+_st_begin('flask_app_create', note='app = Flask(__name__) + Config binding')
 
 # Initialize Flask app with error handling
 try:
@@ -262,6 +308,8 @@ except Exception as e:
     log_error(logger, f"CRITICAL: Failed to create Flask app: {e}")
     logger.error(traceback.format_exc())
     raise
+
+_st_end('flask_app_create', note='app ready')
 
 
 # ============================================================================
@@ -505,6 +553,11 @@ if os.getenv('RENDER') == 'true':
         log_success(logger, f"/data directory exists - Render persistent disk mounted")
 
 # Initialize database schema BEFORE any routes are registered
+# ============================================================================
+# Phase 5 of 12: database_initialization (prompt library + user auth + automation)
+# ============================================================================
+_st_begin('database_initialization', note='prompt_library + user_auth + automation tables')
+
 try:
     from init_prompt_library import init_prompt_library_table
     # No db_path needed - uses Supabase ai_infrastructure schema
@@ -596,6 +649,13 @@ try:
 except Exception as e:
     log_error(logger, f"Failed to initialize automation tables: {e}")
 
+_st_end('database_initialization', note='schema initialised')
+
+# ============================================================================
+# Phase 6 of 12: module_registry_initialization (ModuleRegistry scan)
+# ============================================================================
+_st_begin('module_registry_initialization', note='ModuleRegistry scan of UI/modules_external')
+
 # Initialize ModuleRegistry (self-registering module system)
 try:
     from AI_infrastructure.core.module_registry import get_module_registry  # ✅ FIX: Use full import path (matches module_routes.py)
@@ -617,7 +677,7 @@ try:
     registry._modules_loaded = True
     
     log_success(logger, f"Module Registry initialized: {len(registry.modules)} modules discovered")
-    
+
     # List discovered modules
     for module_id, module in registry.modules.items():
         log_config(logger, f"  - {module.name} ({module_id}): {len(module.required_platforms)} required platforms")
@@ -625,6 +685,13 @@ except Exception as e:
     log_error(logger, f"Failed to initialize Module Registry: {e}")
     import traceback
     log_error(logger, traceback.format_exc())
+
+_st_end('module_registry_initialization', note='registry populated')
+
+# ============================================================================
+# Phase 7 of 12: blueprint_registration (app.register_blueprint cascade)
+# ============================================================================
+_st_begin('blueprint_registration', note='~50 blueprints registered with Flask')
 
 # Register blueprints - Working In_House_SQL implementation
 app.register_blueprint(agent_bp, url_prefix='/api/agent')           # Working agent routes with async support
@@ -714,9 +781,15 @@ except Exception as e:
 from routes.dev_tools_routes import dev_tools_bp
 app.register_blueprint(dev_tools_bp)                                 # DEV TOOLS: Module development endpoints (4 endpoints: /api/dev-tools/*)
 
+_st_end('blueprint_registration', note='all static blueprints registered')
+
 # 🆕 AUTO-LOAD MODULE BLUEPRINTS (Quote Calculator, Stock Management, etc.)
 # This discovers and registers Flask routes from UI/external/modules/*/routes/
 # INCLUDES: Stock Management, Shopify E-Commerce, Database Visualizer, Quote Calculator, etc.
+# ============================================================================
+# Phase 8 of 12: module_blueprint_autoload (UI/modules_external auto-discovery)
+# ============================================================================
+_st_begin('module_blueprint_autoload', note='UI/modules_external/*/routes auto-loaded')
 try:
     from core.module_blueprint_loader import load_module_blueprints
     from utils.logger_config import log_module, log_route
@@ -726,6 +799,8 @@ try:
     log_route(logger, "Stock Management: /api/stock-management/* (Blueprint auto-loaded)")
 except Exception as e:
     log_warning(logger, f"Module blueprints not loaded: {e} (Module blueprints are optional)")
+
+_st_end('module_blueprint_autoload', note='external module routes registered')
 
 # REMOVED DUPLICATE: Stock Management routes now loaded via module_blueprint_loader above
 # Old init_stock_routes() pattern caused route conflicts with Blueprint system
@@ -994,6 +1069,11 @@ except ImportError:
     log_warning(logger, "[WS] ⚠️  Threading mode may cause WebSocket connection delays on Render")
     async_mode_config = 'threading'
 
+# ============================================================================
+# Phase 9 of 12: socketio_services (SocketIO init + connection state recovery)
+# ============================================================================
+_st_begin('socketio_services', note='SocketIO(app, gevent/threading, recovery)')
+
 try:
     socketio = SocketIO(
         app,
@@ -1054,6 +1134,8 @@ except Exception as e:
         }
     )
     log_success(logger, f"[WS] SocketIO initialized (fallback mode) - ping_timeout={ping_timeout_config}s")
+
+_st_end('socketio_services', note='SocketIO bound to app')
 
 # Track connected clients and their rooms
 connected_clients = {}
@@ -2746,8 +2828,47 @@ def dev_presence_view():
 
         return html
 
+def _startup_summary_block() -> dict:
+    """Lightweight startup-phase summary for /api/health/detailed.
+
+    Lazy-imports shared.startup_timing so the import cost stays off the
+    cold-start path. If the helper is unavailable for any reason (e.g.
+    a torn checkout), returns an empty dict rather than raising — the
+    health endpoint must never 500 on a diagnostic-field failure.
+    """
+    try:
+        from shared.startup_timing import summary as _st_summary, snapshot as _st_snapshot
+        snap = _st_snapshot()
+        s = snap.get('summary', {})
+        slowest = s.get('slowest_phase') or {}
+        return {
+            'boot_total_ms': snap.get('boot_total_ms', 0.0),
+            'under_5s_target': bool(s.get('under_5s_target', False)),
+            'slowest_phase': slowest.get('id'),
+            'slowest_phase_dt_ms': slowest.get('dt_ms'),
+            'phases_recorded': len(snap.get('phases', [])),
+            'phases_over_1000ms': s.get('phases_over_1000ms', 0),
+            'render_mode': snap.get('render_mode', False),
+            'deep_dive_endpoint': '/api/dev-tools/startup-diagnostics',
+        }
+    except Exception as _e:  # pragma: no cover — defensive
+        # Logged at debug level; never break the health response.
+        try:
+            log_warning(logger, f'[STARTUP_TIMING] summary unavailable: {_e}')
+        except Exception:
+            pass
+        return {}
+
+
 @app.route('/api/health/detailed', methods=['GET', 'OPTIONS'])  # ✅ Moved off /health (Render's 5s healthCheckPath) — use _render_health() for the bare /health answer
 def health_check():
+    """Enhanced health check endpoint with Socket.IO metrics and explicit CORS.
+
+    Moved from /health → /api/health/detailed so Render's healthCheckPath
+    can hit the minimal dependency-free /health handler (registered right
+    after `app = Flask(__name__)`) on cold start. This richer diagnostic
+    remains available at /api/health/detailed for ops debugging."""
+    from datetime import datetime
     """Enhanced health check endpoint with Socket.IO metrics and explicit CORS.
 
     Moved from /health → /api/health/detailed so Render's healthCheckPath
@@ -2785,7 +2906,12 @@ def health_check():
         'semantic_search': semantic_search_status,
         'pgvector_bge': pgvector_bge_status,
         'timestamp': datetime.now(UTC).isoformat() + 'Z',
-        'environment': 'production' if IS_RENDER else 'development'
+        'environment': 'production' if IS_RENDER else 'development',
+        # Startup phase summary — added 2026-07-23 to support Render's
+        # 5s healthCheckPath diagnostics. Deep-dive lives at
+        # /api/dev-tools/startup-diagnostics[.txt].
+        # Lazy import: startup_timing is not on the cold-start path.
+        'startup': _startup_summary_block(),
     })
     
     # Add CORS headers explicitly
@@ -4584,6 +4710,10 @@ def bad_request(error):
 # ============================================================================
 
 # Initialize and start automation scheduler
+# ============================================================================
+# Phase 10 of 12: scheduler_and_finalization (APScheduler + atexit handlers)
+# ============================================================================
+_st_begin('scheduler_and_finalization', note='APScheduler start + atexit registration')
 from scheduler import start_scheduler
 try:
     scheduler = start_scheduler()
@@ -4592,6 +4722,8 @@ except Exception as e:
     log_error(logger, f"Failed to start scheduler: {e}")
     import traceback
     log_error(logger, traceback.format_exc())
+
+_st_end('scheduler_and_finalization', note='scheduler running')
 
 # ============================================================================
 # CLEANUP HANDLER
@@ -4862,6 +4994,11 @@ def _prewarm_connection_pools():
     t.start()
 
 # Only pre-warm when running under gunicorn (RENDER=true) or directly
+# ============================================================================
+# Phase 11 of 12: gunicorn_runtime_services (pool prewarm + leak detector)
+# ============================================================================
+_st_begin('gunicorn_runtime_services', note='pool prewarm + connection leak detector')
+
 if os.environ.get('RENDER') == 'true' or __name__ == '__main__':
     _prewarm_connection_pools()
 
@@ -4958,9 +5095,17 @@ if os.environ.get('RENDER') == 'true' or __name__ == '__main__':
         print(_msg)
         logger.error(f'[LEAK_DETECTOR] {_msg}', exc_info=True)
 
+    _st_end('gunicorn_runtime_services', note='runtime services live')
+
 # ============================================================================
 # RUN APP
 # ============================================================================
+
+# ============================================================================
+# Phase 12 of 12: module_import_complete (worker is now request-ready)
+# ============================================================================
+_st_begin('module_import_complete', note='worker ready to serve /health within Render 5s')
+_st_end('module_import_complete', note='all 12 phases recorded')
 
 if __name__ == '__main__':
     # Reduce noise from geventwebsocket health check logs

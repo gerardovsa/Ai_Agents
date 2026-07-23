@@ -1,0 +1,770 @@
+{
+  "platform": "google_forms",
+  "description": "Google Forms API - Create forms, add questions, collect responses, analyze data. V2 includes SMART BUNDLED TOOLS for efficient operations.",
+  "version": "2.1.0",
+  "last_updated": "November 10, 2025",
+  "critical_fixes": [
+    "Nov 2025: Two-step form creation (title only → batchUpdate) to comply with API restrictions",
+    "Nov 2025: Removed response_format parameter from AI functions for universal OpenAI model compatibility",
+    "Nov 2025: Properly handles description and documentTitle via batchUpdate (fixes HTTP 400 errors)"
+  ],
+  "authentication_notes": "Google Forms API requires OAuth user credentials (not service accounts). Use http://localhost:5001/api/auth/google/login?user_id=X to authenticate.",
+  "tools": [
+    {
+      "name": "google_forms_create_complete_form",
+      "short_description": "Create feedback form or survey: build complete Google Form with questions, validation, response collection",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) ALWAYS execute THIS tool NOW - NEVER reference 'I created earlier' or use conversation history\n(2) MUST return format: **[Name]** | ID: `[id]` | URL: [full_url] | Link: [title](url)\n(3) Use EXACT values from tool response - NEVER make up fake URLs/IDs\n(4) If tool fails, say 'Failed to create' - NEVER pretend it succeeded\n\nExample response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\nExample response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\n⭐ PREFERRED METHOD: Create a complete Google Form with all questions in ONE operation. Much more efficient than calling create_form + add_question multiple times. Form is automatically shareable.",
+      "platform": "google_forms",
+      "category": "smart_bundled",
+      "priority": "high",
+      "parameters": {
+        "title": {
+          "type": "string",
+          "description": "Form title",
+          "example": "Customer Feedback Survey"
+        },
+        "questions": {
+          "type": "array",
+          "description": "List of questions to add. Each question is an object with: type (text|paragraph|multiple_choice|checkbox|dropdown|linear_scale), text (question text), options (array, for choice questions), required (boolean), low_value/high_value/low_label/high_label (for linear_scale)",
+          "example": [
+            {
+              "type": "text",
+              "text": "What is your name?"
+            },
+            {
+              "type": "multiple_choice",
+              "text": "How satisfied are you?",
+              "options": [
+                "Very Satisfied",
+                "Satisfied",
+                "Neutral",
+                "Dissatisfied"
+              ]
+            },
+            {
+              "type": "paragraph",
+              "text": "Additional comments?",
+              "required": false
+            }
+          ]
+        },
+        "description": {
+          "type": "string",
+          "description": "Form description shown to responders",
+          "required": false,
+          "example": "We value your feedback!"
+        },
+        "shareable": {
+          "type": "boolean",
+          "description": "Make form accessible to anyone with the link",
+          "required": false,
+          "default": true
+        },
+        "collect_email": {
+          "type": "boolean",
+          "description": "Require responders to provide email addresses",
+          "required": false,
+          "default": false
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "Complete form details with responder_uri (shareable link), edit_uri (edit link), form_id, and questions_added count"
+      },
+      "usage_notes": "This is the MOST EFFICIENT way to create forms. Use this instead of separate create + add_question calls. The form is automatically shareable by default."
+    },
+    {
+      "name": "google_forms_ai_generate_form",
+      "short_description": "SMART: AI-generate Google Form from prompt with questions, validation, and logic automatically created",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Read X from **[Resource Name]** (ID: `[id]` | URL: [url])'\n(3) Use EXACT [id] provided - NEVER substitute with different ID\n(4) If tool fails (404/403), say 'Failed to read [resource] ID: [id]' and explain error\n(5) NEVER make up data if read fails - acknowledge the failure clearly\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\n⭐ AI-POWERED: Generate a complete form from natural language description. AI determines appropriate questions, types, and options automatically. Perfect when you're not sure what questions to ask.",
+      "platform": "google_forms",
+      "category": "ai_powered",
+      "priority": "high",
+      "parameters": {
+        "prompt": {
+          "type": "string",
+          "description": "Natural language description of the form you want to create",
+          "example": "Create a restaurant feedback survey with questions about food quality, service speed, cleanliness, value for money, and likelihood to return. Include ratings and open-ended questions."
+        },
+        "form_type": {
+          "type": "string",
+          "description": "Type of form to generate",
+          "required": false,
+          "default": "survey",
+          "enum": [
+            "survey",
+            "quiz",
+            "registration",
+            "feedback",
+            "assessment"
+          ]
+        },
+        "shareable": {
+          "type": "boolean",
+          "description": "Make form accessible to anyone with the link",
+          "required": false,
+          "default": true
+        },
+        "ai_model": {
+          "type": "string",
+          "description": "OpenAI model to use",
+          "required": false,
+          "default": "gpt-4",
+          "enum": [
+            "gpt-4",
+            "gpt-3.5-turbo"
+          ]
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "Complete form with responder_uri (link to share), questions_count, and AI generation details"
+      },
+      "usage_notes": "Use this when the user describes what they want in natural language. AI will determine the best questions, types, and options. Requires OPENAI_API_KEY environment variable.",
+      "implementation_notes": "OPENAI COMPATIBILITY FIX (Nov 2025): Uses prompt engineering ('Return ONLY valid JSON') instead of response_format parameter for universal model compatibility. Works with gpt-4, gpt-3.5-turbo, and other OpenAI models."
+    },
+    {
+      "name": "google_forms_bulk_create_multiple",
+      "short_description": "SMART: Create multiple Google Forms from template list in batch for bulk form generation",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) ALWAYS execute THIS tool NOW - NEVER reference 'I created earlier' or use conversation history\n(2) MUST return format: **[Name]** | ID: `[id]` | URL: [full_url] | Link: [title](url)\n(3) Use EXACT values from tool response - NEVER make up fake URLs/IDs\n(4) If tool fails, say 'Failed to create' - NEVER pretend it succeeded\n\nExample response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\nExample response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\n⭐ BULK OPERATION: Create multiple complete forms at once. Most efficient for creating many forms with similar structure (e.g., event registrations for different locations).",
+      "platform": "google_forms",
+      "category": "bulk",
+      "priority": "high",
+      "parameters": {
+        "forms_configs": {
+          "type": "array",
+          "description": "List of form configurations. Each config is an object with: title, description (optional), questions (array of question objects), collect_email (boolean)",
+          "example": [
+            {
+              "title": "Event Registration - NYC",
+              "description": "Register for our NYC conference",
+              "questions": [
+                {
+                  "type": "text",
+                  "text": "Full Name"
+                },
+                {
+                  "type": "text",
+                  "text": "Email"
+                },
+                {
+                  "type": "multiple_choice",
+                  "text": "Attendance Type",
+                  "options": [
+                    "In-Person",
+                    "Virtual"
+                  ]
+                }
+              ]
+            },
+            {
+              "title": "Event Registration - LA",
+              "description": "Register for our LA summit",
+              "questions": [
+                {
+                  "type": "text",
+                  "text": "Full Name"
+                },
+                {
+                  "type": "text",
+                  "text": "Email"
+                }
+              ]
+            }
+          ]
+        },
+        "shareable": {
+          "type": "boolean",
+          "description": "Make all forms accessible to anyone with the link",
+          "required": false,
+          "default": true
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "Array of all created forms with their responder URIs and details"
+      },
+      "usage_notes": "Use this when creating 2+ forms at once. Much more efficient than creating forms one by one."
+    },
+    {
+      "name": "google_forms_create_form",
+      "short_description": "Create blank Google Form by title and description for manual question configuration",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) ALWAYS execute THIS tool NOW - NEVER reference 'I created earlier' or use conversation history\n(2) MUST return format: **[Name]** | ID: `[id]` | URL: [full_url] | Link: [title](url)\n(3) Use EXACT values from tool response - NEVER make up fake URLs/IDs\n(4) If tool fails, say 'Failed to create' - NEVER pretend it succeeded\n\nExample response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\nExample response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\nCreate a basic Google Form (empty, no questions). NOTE: Use google_forms_create_complete_form instead for better efficiency.\n\nIMPORTANT - API COMPLIANCE (Nov 2025 Fix):\n- Uses two-step process: (1) Create with title only, (2) Add description via batchUpdate\n- This complies with Google Forms API restriction: \"Only info.title can be set when creating a form\"\n- Description and documentTitle are added via separate batchUpdate call if provided",
+      "platform": "google_forms",
+      "category": "basic",
+      "priority": "low",
+      "parameters": {
+        "title": {
+          "type": "string",
+          "description": "Form title (REQUIRED - only field allowed during creation)"
+        },
+        "description": {
+          "type": "string",
+          "description": "Form description (added via batchUpdate after creation)",
+          "required": false
+        },
+        "document_title": {
+          "type": "string",
+          "description": "Document title in Google Drive (defaults to form title, added via batchUpdate)",
+          "required": false
+        },
+        "shareable": {
+          "type": "boolean",
+          "description": "Make form accessible to anyone with link",
+          "required": false,
+          "default": true
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "Form with form_id, responder_uri (link to share), edit_uri, and shareability status"
+      },
+      "implementation_notes": "Two-step API process: (1) forms().create() with title only, (2) forms().batchUpdate() for description/documentTitle. This fixes HTTP 400 errors from Nov 2025."
+    },
+    {
+      "name": "google_forms_batch_add_questions",
+      "short_description": "Add multiple questions to Google Form in batch with types and validation rules",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) ALWAYS execute THIS tool NOW - NEVER reference 'I created earlier' or use conversation history\n(2) MUST return format: **[Name]** | ID: `[id]` | URL: [full_url] | Link: [title](url)\n(3) Use EXACT values from tool response - NEVER make up fake URLs/IDs\n(4) If tool fails, say 'Failed to create' - NEVER pretend it succeeded\n\nExample response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\nExample response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\n⭐ BULK OPERATION: Add multiple questions to a form at once. More efficient than adding questions one by one.",
+      "platform": "google_forms",
+      "category": "bulk",
+      "priority": "medium",
+      "parameters": {
+        "form_id": {
+          "type": "string",
+          "description": "Form ID"
+        },
+        "questions_list": {
+          "type": "array",
+          "description": "List of question objects",
+          "example": [
+            {
+              "type": "text",
+              "text": "Question 1"
+            },
+            {
+              "type": "multiple_choice",
+              "text": "Question 2",
+              "options": [
+                "A",
+                "B",
+                "C"
+              ]
+            },
+            {
+              "type": "linear_scale",
+              "text": "Rate this",
+              "low_value": 1,
+              "high_value": 5
+            }
+          ]
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "Batch update result"
+      }
+    },
+    {
+      "name": "google_forms_get_form",
+      "short_description": "Get Google Form details by ID including questions, settings, and metadata structure",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Read X from **[Resource Name]** (ID: `[id]` | URL: [url])'\n(3) Use EXACT [id] provided - NEVER substitute with different ID\n(4) If tool fails (404/403), say 'Failed to read [resource] ID: [id]' and explain error\n(5) NEVER make up data if read fails - acknowledge the failure clearly\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\n⚠️ ENHANCED - Multi-format Google Forms reader with 98.4% token reduction!\n\nAvoids token overflow with progressive format disclosure:\n- summary (1.5K tokens): Question list with types/options/required status\n- text (15K tokens): Readable plain text form\n- markdown (18K tokens): Formatted with ○ (radio) and ☐ (checkbox) symbols\n- full (95K tokens): Complete JSON with validation rules (AVOID unless necessary)\n\nExample responses:\n✅ format='summary' (98.4% reduction):\n\"Form: **Customer Feedback Survey** (12 questions)\nQuestions:\n1. Email (TEXT, required)\n2. Rating (SCALE 1-5, required)\n3. Preferred contact (RADIO: Email, Phone, Text)\n...\" (~1.5K tokens)\n\n✅ format='markdown' (81% reduction):\n\"# Customer Feedback Survey\n\n**Question 1:** What is your email? *(required)*\nType: Short answer\n\n**Question 2:** Rate your experience *(required)*\n○ 1\n○ 2\n○ 3\" (~18K tokens)\n\n❌ format='full' (AVOID - 95K tokens)\n\n---\n\nGet form structure with format options. Prevents token overflow by defaulting to summary format. Markdown uses ○ for radio buttons, ☐ for checkboxes.",
+      "platform": "google_forms",
+      "category": "basic",
+      "priority": "medium",
+      "parameters": {
+        "form_id": {
+          "type": "string",
+          "description": "Form ID (required)"
+        },
+        "format": {
+          "type": "string",
+          "description": "Response format (CRITICAL for token management):\n- 'summary' (DEFAULT, 1.5K tokens): Question titles with types, options, and required status. Use for quick overview.\n- 'text' (15K tokens): Readable plain text format with all questions and options.\n- 'markdown' (18K tokens): Formatted with ## headings, **bold questions**, ○ radio, ☐ checkboxes.\n- 'full' (95K tokens): Complete JSON with validation rules. AVOID unless you need form logic.\n\nDefault: 'summary'",
+          "required": false,
+          "default": "summary",
+          "enum": [
+            "summary",
+            "text",
+            "markdown",
+            "full"
+          ]
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "Form data in requested format with token counts:\n- summary: {title, question_count, questions: [{title, type, options, required}], tokens: ~1.5K}\n- text: {text_content: string, question_count, tokens: ~15K}\n- markdown: {markdown_content: string, question_count, tokens: ~18K}\n- full: {complete JSON structure, tokens: 95K}"
+      },
+      "examples": [
+        {
+          "description": "Get form overview (recommended default)",
+          "parameters": {
+            "form_id": "1FAIpQLSe...",
+            "format": "summary"
+          },
+          "expected_tokens": 1500
+        },
+        {
+          "description": "Get markdown for documentation",
+          "parameters": {
+            "form_id": "1FAIpQLSe...",
+            "format": "markdown"
+          },
+          "expected_tokens": 18000
+        }
+      ]
+    },
+    {
+      "name": "google_forms_get_responses",
+      "short_description": "Get all responses from Google Form by ID for analysis and reporting",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Read X from **[Resource Name]** (ID: `[id]` | URL: [url])'\n(3) Use EXACT [id] provided - NEVER substitute with different ID\n(4) If tool fails (404/403), say 'Failed to read [resource] ID: [id]' and explain error\n(5) NEVER make up data if read fails - acknowledge the failure clearly\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\n⚠️ MANDATORY FORMAT USAGE - Multi-format Google Forms response reader with 99.5% token reduction!\n\nCRITICAL: Forms can have thousands of responses! You MUST use format='summary' (default) to avoid 500K+ token overflow.\n\n- summary (3K tokens): Aggregated statistics with percentages by question [MANDATORY DEFAULT]\n- sample (5K tokens): First N responses (use limit parameter) [Use ONLY if you need individual responses]\n- full (500K+ tokens): ALL responses with metadata [NEVER USE - causes massive overflow!]\n\nExample responses:\n✅ format='summary' (99.5% reduction for 2847 responses):\n\"Form responses: 2,847 total\n\nQuestion 1: Email address\n- Total responses: 2,847\n\nQuestion 2: Rating (Scale 1-5)\n- Answer '5': 1,234 (43.3%)\n- Answer '4': 987 (34.6%)\n...\" (~3K tokens)\n\n✅ format='sample' with limit=100 (99% reduction):\n\"Showing 100 of 2,847 responses:\n\nResponse 1 (2024-01-15):\n- Email: john@example.com\n- Rating: 5\n...\" (~5K tokens)\n\n❌ format='full' (AVOID - 500K+ tokens for 2847 responses!)\n\n---\n\nGet form responses with format options. Defaults to summary with aggregated statistics to prevent token overflow from thousands of individual responses.",
+      "platform": "google_forms",
+      "category": "responses",
+      "priority": "high",
+      "parameters": {
+        "form_id": {
+          "type": "string",
+          "description": "Form ID (required)"
+        },
+        "format": {
+          "type": "string",
+          "description": "Response format (CRITICAL for token management):\n- 'summary' (DEFAULT, 3K tokens): Aggregated statistics with answer counts and percentages. Use for trends.\n- 'sample' (5K tokens): First N responses (use 'limit' parameter, default 100). Use for spot-checking.\n- 'full' (500K+ tokens): ALL individual responses. AVOID unless you need every response.\n\nDefault: 'summary'",
+          "required": false,
+          "default": "summary",
+          "enum": [
+            "summary",
+            "sample",
+            "full"
+          ]
+        },
+        "limit": {
+          "type": "integer",
+          "description": "Only used with format='sample'. Number of responses to return (default 100).",
+          "required": false,
+          "default": 100
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "Response data in requested format with token counts:\n- summary: {total_responses, aggregated_answers: [{question, answer_counts, percentages}], tokens: ~3K}\n- sample: {responses: [{response_id, timestamp, answers}], total_responses, showing_count, tokens: ~5K}\n- full: {all responses with complete metadata, tokens: 500K+}"
+      },
+      "examples": [
+        {
+          "description": "Get aggregated statistics (recommended default)",
+          "parameters": {
+            "form_id": "1FAIpQLSe...",
+            "format": "summary"
+          },
+          "expected_tokens": 3000
+        },
+        {
+          "description": "Get first 50 responses for spot check",
+          "parameters": {
+            "form_id": "1FAIpQLSe...",
+            "format": "sample",
+            "limit": 50
+          },
+          "expected_tokens": 2500
+        }
+      ]
+    },
+    {
+      "name": "google_forms_get_questions_markdown",
+      "short_description": "Export Google Form questions as markdown text for documentation and sharing",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Read X questions from **[Form Name]** (ID: `[id]`)'\n(3) Use EXACT [id] provided - NEVER substitute with different ID\n(4) If tool fails (404/403), say 'Failed to read [form] ID: [id]' and explain error\n(5) NEVER make up data if read fails - acknowledge the failure clearly\n\nExample response:\nRead 8 questions from **Customer Feedback Survey**\n- ID: `1FAIpQLSe...`\n- Questions extracted in markdown format\n\n⭐ ULTRA-COMPACT: Get ONLY form questions in minimal markdown - 99.2% token reduction!\n\nPURPOSE: Token-efficient form reading for AI. Returns ONLY questions without metadata/JSON.\nSimilar to google_docs_get_document(format='markdown') - optimized for AI consumption.\n\nTOKEN COMPARISON (for typical 10-question form):\n- google_forms_get_form(format='full'): ~95K tokens (complete JSON)\n- google_forms_get_form(format='markdown'): ~18K tokens (formatted)\n- google_forms_get_form(format='text'): ~15K tokens (plain text)\n- google_forms_get_form(format='summary'): ~1.5K tokens (question list)\n- THIS FUNCTION: ~800 tokens (questions only!) ⭐ 99.2% reduction\n\nOUTPUT FORMAT:\n```markdown\n# Customer Feedback Survey\n\n**Q1:** What is your name? *(required)*\n- Type: TEXT\n\n**Q2:** How satisfied are you? *(required)*\n- Type: RADIO\n- Options: Very Satisfied | Satisfied | Neutral | Dissatisfied\n\n**Q3:** Additional comments?\n- Type: PARAGRAPH\n```\n\nBENEFITS:\n✅ 99.2% smaller than format='full' (95K → 800 tokens)\n✅ 95.6% smaller than format='markdown' (18K → 800 tokens)\n✅ 46.7% smaller than format='summary' (1.5K → 800 tokens)\n✅ Easy for AI to read and understand\n✅ Preserves all question information\n✅ No JSON parsing needed\n\nUSE THIS when you need to read form questions for AI processing/analysis.",
+      "platform": "google_forms",
+      "category": "basic",
+      "priority": "high",
+      "parameters": {
+        "form_id": {
+          "type": "string",
+          "description": "Form ID (required)"
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "Ultra-compact response with: markdown (questions in minimal format), question_count, estimated_tokens (~800), format='questions_markdown'"
+      },
+      "examples": [
+        {
+          "description": "Get questions for AI analysis (recommended for form reading)",
+          "parameters": {
+            "form_id": "1FAIpQLSe..."
+          },
+          "expected_tokens": 800,
+          "note": "Use this instead of format='summary' when you need question text for AI processing"
+        }
+      ],
+      "usage_notes": "PREFERRED method for AI reading of form questions. Use this instead of google_forms_get_form(format='summary') when you need the actual question text for analysis/processing, not just metadata."
+    },
+    {
+      "name": "google_forms_search_responses",
+      "short_description": "Search Google Form responses by criteria to filter and find specific submissions",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Read X from **[Resource Name]** (ID: `[id]` | URL: [url])'\n(3) Use EXACT [id] provided - NEVER substitute with different ID\n(4) If tool fails (404/403), say 'Failed to read [resource] ID: [id]' and explain error\n(5) NEVER make up data if read fails - acknowledge the failure clearly\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nSearch through form responses for a text query. Returns matching responses with answer context.",
+      "platform": "google_forms",
+      "category": "responses",
+      "priority": "medium",
+      "parameters": {
+        "form_id": {
+          "type": "string",
+          "description": "Form ID (required)"
+        },
+        "query": {
+          "type": "string",
+          "description": "Text to search for in response answers (case-insensitive, required)"
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "Search results with: matched_responses (list with response_id, timestamp, matched_answers containing the query), total_matches, query"
+      },
+      "examples": [
+        {
+          "description": "Search for responses mentioning 'bug'",
+          "parameters": {
+            "form_id": "1FAIpQLSe...",
+            "query": "bug"
+          }
+        }
+      ]
+    },
+    {
+      "name": "google_forms_export_responses_csv",
+      "short_description": "Export Google Form responses as CSV file for spreadsheet analysis and data processing",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Read X from **[Resource Name]** (ID: `[id]` | URL: [url])'\n(3) Use EXACT [id] provided - NEVER substitute with different ID\n(4) If tool fails (404/403), say 'Failed to read [resource] ID: [id]' and explain error\n(5) NEVER make up data if read fails - acknowledge the failure clearly\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nExport form responses as CSV format",
+      "platform": "google_forms",
+      "category": "export",
+      "priority": "medium",
+      "parameters": {
+        "form_id": {
+          "type": "string",
+          "description": "Form ID"
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "CSV data and response count"
+      }
+    },
+    {
+      "name": "google_forms_ai_analyze_responses",
+      "short_description": "SMART: AI-analyze Google Form responses with sentiment, themes, and insights extraction",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Read X from **[Resource Name]** (ID: `[id]` | URL: [url])'\n(3) Use EXACT [id] provided - NEVER substitute with different ID\n(4) If tool fails (404/403), say 'Failed to read [resource] ID: [id]' and explain error\n(5) NEVER make up data if read fails - acknowledge the failure clearly\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\n⭐ AI-POWERED: Analyze form responses using AI. Get sentiment, insights, trends, or summary analysis.",
+      "platform": "google_forms",
+      "category": "ai_powered",
+      "priority": "high",
+      "parameters": {
+        "form_id": {
+          "type": "string",
+          "description": "Form ID"
+        },
+        "analysis_type": {
+          "type": "string",
+          "description": "Type of analysis to perform",
+          "required": false,
+          "default": "summary",
+          "enum": [
+            "summary",
+            "sentiment",
+            "insights",
+            "trends",
+            "recommendations"
+          ]
+        },
+        "ai_model": {
+          "type": "string",
+          "description": "OpenAI model to use",
+          "required": false,
+          "default": "gpt-4"
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "AI analysis results with response count and insights"
+      },
+      "usage_notes": "Requires OPENAI_API_KEY. Analyzes up to first 50 responses by default."
+    },
+    {
+      "name": "google_forms_clone_form",
+      "short_description": "Clone existing Google Form by ID to duplicate questions and settings for reuse",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Read X from **[Resource Name]** (ID: `[id]` | URL: [url])'\n(3) Use EXACT [id] provided - NEVER substitute with different ID\n(4) If tool fails (404/403), say 'Failed to read [resource] ID: [id]' and explain error\n(5) NEVER make up data if read fails - acknowledge the failure clearly\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nClone an existing form",
+      "platform": "google_forms",
+      "category": "basic",
+      "priority": "medium",
+      "parameters": {
+        "form_id": {
+          "type": "string",
+          "description": "Form ID to clone"
+        },
+        "new_title": {
+          "type": "string",
+          "description": "Title for cloned form",
+          "required": false
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "Cloned form details"
+      }
+    },
+    {
+      "name": "google_forms_delete_form",
+      "short_description": "Delete Google Form by ID to permanently remove form and all responses",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER pretend to delete from memory\n(2) MUST cite what was deleted: 'Deleted **[Resource Name]** (ID: `[id]`)'\n(3) CONFIRM deletion happened - don't assume success\n(4) If tool fails, say 'Failed to delete' and explain why\n\nExample response:\n✅ Deleted: **Old File**\n- ID: `abc123`\n- URL: https://example.com/file/abc123 (no longer accessible)\n\nExample response:\n✅ Deleted: **Old File**\n- ID: `abc123`\n- URL: https://example.com/file/abc123 (no longer accessible)\n\nDelete a form permanently",
+      "platform": "google_forms",
+      "category": "basic",
+      "priority": "low",
+      "parameters": {
+        "form_id": {
+          "type": "string",
+          "description": "Form ID to delete"
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "Deletion confirmation"
+      }
+    },
+    {
+      "name": "google_forms_add_text_question",
+      "short_description": "Add text question to Google Form with short or paragraph answer type",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) ALWAYS execute THIS tool NOW - NEVER reference 'I created earlier' or use conversation history\n(2) MUST return format: **[Name]** | ID: `[id]` | URL: [full_url] | Link: [title](url)\n(3) Use EXACT values from tool response - NEVER make up fake URLs/IDs\n(4) If tool fails, say 'Failed to create' - NEVER pretend it succeeded\n\nExample response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\nExample response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\nAdd a text question to a form. NOTE: Use google_forms_batch_add_questions for multiple questions.",
+      "platform": "google_forms",
+      "category": "basic",
+      "priority": "low",
+      "parameters": {
+        "form_id": {
+          "type": "string",
+          "description": "Form ID"
+        },
+        "text": {
+          "type": "string",
+          "description": "Question text"
+        },
+        "paragraph": {
+          "type": "boolean",
+          "description": "Use paragraph text (long answer) instead of short text",
+          "required": false,
+          "default": false
+        },
+        "required": {
+          "type": "boolean",
+          "description": "Make question required",
+          "required": false,
+          "default": false
+        },
+        "index": {
+          "type": "number",
+          "description": "Position in form (0-based)",
+          "required": false,
+          "default": 0
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "Added question details"
+      }
+    },
+    {
+      "name": "google_forms_add_multiple_choice",
+      "short_description": "Add multiple choice question to Google Form with answer options and validation",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) ALWAYS execute THIS tool NOW - NEVER reference 'I created earlier' or use conversation history\n(2) MUST return format: **[Name]** | ID: `[id]` | URL: [full_url] | Link: [title](url)\n(3) Use EXACT values from tool response - NEVER make up fake URLs/IDs\n(4) If tool fails, say 'Failed to create' - NEVER pretend it succeeded\n\nExample response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\nExample response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\nAdd a multiple choice question (single selection). NOTE: Use google_forms_batch_add_questions for multiple questions.",
+      "platform": "google_forms",
+      "category": "basic",
+      "priority": "low",
+      "parameters": {
+        "form_id": {
+          "type": "string",
+          "description": "Form ID"
+        },
+        "text": {
+          "type": "string",
+          "description": "Question text"
+        },
+        "options": {
+          "type": "array",
+          "description": "Answer options",
+          "example": [
+            "Option 1",
+            "Option 2",
+            "Option 3"
+          ]
+        },
+        "required": {
+          "type": "boolean",
+          "description": "Make question required",
+          "required": false,
+          "default": false
+        },
+        "index": {
+          "type": "number",
+          "description": "Position in form",
+          "required": false,
+          "default": 0
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "Added question details"
+      }
+    },
+    {
+      "name": "google_forms_add_checkbox",
+      "short_description": "Add checkbox question to Google Form allowing multiple answer selections",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) ALWAYS execute THIS tool NOW - NEVER reference 'I created earlier' or use conversation history\n(2) MUST return format: **[Name]** | ID: `[id]` | URL: [full_url] | Link: [title](url)\n(3) Use EXACT values from tool response - NEVER make up fake URLs/IDs\n(4) If tool fails, say 'Failed to create' - NEVER pretend it succeeded\n\nExample response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\nExample response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\nAdd a checkbox question (multiple selection)",
+      "platform": "google_forms",
+      "category": "basic",
+      "priority": "low",
+      "parameters": {
+        "form_id": {
+          "type": "string",
+          "description": "Form ID"
+        },
+        "text": {
+          "type": "string",
+          "description": "Question text"
+        },
+        "options": {
+          "type": "array",
+          "description": "Answer options"
+        },
+        "required": {
+          "type": "boolean",
+          "description": "Make question required",
+          "required": false,
+          "default": false
+        },
+        "index": {
+          "type": "number",
+          "description": "Position in form",
+          "required": false,
+          "default": 0
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "Added question details"
+      }
+    },
+    {
+      "name": "google_forms_add_linear_scale",
+      "short_description": "Add linear scale rating question to Google Form with min/max range and labels",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) ALWAYS execute THIS tool NOW - NEVER reference 'I created earlier' or use conversation history\n(2) MUST return format: **[Name]** | ID: `[id]` | URL: [full_url] | Link: [title](url)\n(3) Use EXACT values from tool response - NEVER make up fake URLs/IDs\n(4) If tool fails, say 'Failed to create' - NEVER pretend it succeeded\n\nExample response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\nExample response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\nAdd a linear scale rating question (e.g., 1-5 stars)",
+      "platform": "google_forms",
+      "category": "basic",
+      "priority": "low",
+      "parameters": {
+        "form_id": {
+          "type": "string",
+          "description": "Form ID"
+        },
+        "text": {
+          "type": "string",
+          "description": "Question text"
+        },
+        "low_label": {
+          "type": "string",
+          "description": "Label for lowest value",
+          "example": "Poor"
+        },
+        "high_label": {
+          "type": "string",
+          "description": "Label for highest value",
+          "example": "Excellent"
+        },
+        "low_value": {
+          "type": "number",
+          "description": "Lowest value",
+          "required": false,
+          "default": 1
+        },
+        "high_value": {
+          "type": "number",
+          "description": "Highest value",
+          "required": false,
+          "default": 5
+        },
+        "required": {
+          "type": "boolean",
+          "description": "Make question required",
+          "required": false,
+          "default": false
+        },
+        "index": {
+          "type": "number",
+          "description": "Position in form",
+          "required": false,
+          "default": 0
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "Added question details"
+      }
+    },
+    {
+      "name": "google_forms_update_info",
+      "short_description": "Update Google Form title and description to modify form header information",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER reference previous edits from conversation history\n(2) MUST cite what was updated: 'Updated **[Resource Name]** (ID: `[id]`)'\n(3) Use EXACT [id] provided - NEVER make up IDs\n(4) If tool fails, say 'Failed to update' and explain why\n(5) Show before/after if applicable\n\nExample response:\nUpdated: **Document Title**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Changed: [what was changed]\n\nExample response:\nUpdated: **Document Title**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Changed: [what was changed]\n\nUpdate form title and description",
+      "platform": "google_forms",
+      "category": "basic",
+      "priority": "low",
+      "parameters": {
+        "form_id": {
+          "type": "string",
+          "description": "Form ID"
+        },
+        "title": {
+          "type": "string",
+          "description": "New title",
+          "required": false
+        },
+        "description": {
+          "type": "string",
+          "description": "New description",
+          "required": false
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "Update result"
+      }
+    },
+    {
+      "name": "google_forms_get_summary_statistics",
+      "short_description": "Get Google Form response summary with count, completion rate, and question statistics",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Read X from **[Resource Name]** (ID: `[id]` | URL: [url])'\n(3) Use EXACT [id] provided - NEVER substitute with different ID\n(4) If tool fails (404/403), say 'Failed to read [resource] ID: [id]' and explain error\n(5) NEVER make up data if read fails - acknowledge the failure clearly\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nGet response statistics and counts",
+      "platform": "google_forms",
+      "category": "analytics",
+      "priority": "medium",
+      "parameters": {
+        "form_id": {
+          "type": "string",
+          "description": "Form ID"
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "Statistics including total responses, response dates, and per-question counts"
+      }
+    }
+  ],
+  "usage_instructions": {
+    "creating_forms": {
+      "preferred_method": "Use google_forms_create_complete_form - it creates the form with all questions in ONE call",
+      "ai_method": "Use google_forms_ai_generate_form when the user describes what they want in natural language",
+      "bulk_method": "Use google_forms_bulk_create_multiple when creating 2+ forms at once"
+    },
+    "best_practices": [
+      "Always use smart bundled tools (google_forms_create_complete_form) instead of create + add_question multiple times",
+      "Forms are shareable by default - no need to set permissions manually",
+      "Use AI generation when user provides a description rather than specific questions",
+      "Use bulk operations when working with multiple forms or questions",
+      "Check response count with google_forms_get_responses before analyzing"
+    ],
+    "common_workflows": {
+      "simple_survey": "google_forms_create_complete_form with questions array",
+      "ai_survey": "google_forms_ai_generate_form with prompt",
+      "multiple_events": "google_forms_bulk_create_multiple with configs array",
+      "analyze_responses": "google_forms_get_responses then google_forms_ai_analyze_responses"
+    }
+  }
+}

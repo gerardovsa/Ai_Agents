@@ -1,0 +1,4024 @@
+{
+  "platform": "synergy",
+  "description": "Synergy Dashboard - Visual Kanban project tracking system for multi-platform, multi-step workflows. Use for projects involving 3+ tools/platforms that need central coordination, visual tracking, and cross-conversation persistence.",
+  "tools": [
+    {
+      "name": "synergy_create_session_complete",
+      "short_description": "Create complete Synergy session with ALL 30+ fields - milestones, tasks, integrations, tracking, permissions in ONE call",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data\n(2) ALWAYS use milestone structure (use_milestones=true) - flat structure deprecated\n(3) After creating session, CREATE resources first, THEN update session with document links\n(4) Save session_id immediately - you need it for ALL future updates\n(5) Tell user about dashboard URL so they can view progress\n\n📋 COMPLETE PROJECT SETUP IN ONE CALL\n\nCreate a comprehensive Synergy session with milestones, tasks, and initial setup. This is the PRIMARY tool for starting any multi-platform project.\n\n🎯 WHEN TO USE:\n✅ Projects involving 3+ different platforms/tools\n✅ Multi-step workflows that span multiple conversations\n✅ Need visual Kanban tracking (Backlog → In Progress → Review → Done)\n✅ Building systems with multiple related resources (forms + sheets + docs + emails)\n✅ Projects where multiple AI agents collaborate\n\n❌ NEVER USE FOR:\n❌ Simple single-tool tasks (just create the resource directly)\n❌ One-off document creation\n❌ Quick searches or data lookups\n❌ Answering questions without creating resources\n\n📊 MILESTONE STRUCTURE (RECOMMENDED):\nUse milestones to organize work into phases/stages. Each milestone contains tasks, each task can have subtasks.\n\nStructure:\n  Session (Project)\n  └─ Milestone 1: \"Phase 1 - Setup\"\n      ├─ Task 1.1: \"Create database\"\n      │   ├─ Subtask 1.1.1: \"Design schema\"\n      │   └─ Subtask 1.1.2: \"Add validation\"\n      └─ Task 1.2: \"Import data\"\n  └─ Milestone 2: \"Phase 2 - Integration\"\n      └─ Task 2.1: \"Connect to forms\"\n\n💡 WORKFLOW PATTERN:\n1. Call synergy_create_session_complete() with initial_milestones\n2. Save the returned session_id\n3. Create your first resource (doc/sheet/form)\n4. Call synergy_add_document(session_id, doc_details) to link it\n5. Create next resource\n6. Call synergy_add_document() again\n7. Repeat for each resource\n8. Update milestone progress as you complete tasks\n9. Move session between Kanban columns as project progresses",
+      "platform": "synergy",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": "string",
+            "description": "Project title (REQUIRED). Be clear and descriptive. Examples: 'Customer Onboarding System', 'Sales Pipeline Dashboard', 'Email Campaign Builder'. This appears as the card title on the Kanban board.",
+            "examples": [
+              "Customer Database Migration",
+              "Multi-Platform Email Campaign",
+              "Sales Pipeline with Google Sheets Integration"
+            ]
+          },
+          "description": {
+            "type": "string",
+            "description": "Detailed project description (RECOMMENDED). Explain:\n- What you're building and why\n- Which platforms are involved\n- Expected outcome\n- Any special requirements or constraints\n\nThis helps you and other AI agents understand the project context in future conversations.",
+            "examples": [
+              "Building a customer onboarding system that connects Google Forms (signup) → Google Sheets (database) → Gmail (welcome emails). Goal: Automate the entire onboarding workflow.",
+              "Creating a sales pipeline dashboard that pulls data from Stripe, displays in Google Sheets with charts, and sends weekly summary emails to the team."
+            ]
+          },
+          "platforms_involved": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": [
+                "gmail",
+                "google_sheets",
+                "google_docs",
+                "google_forms",
+                "google_drive",
+                "google_calendar",
+                "google_slides",
+                "microsoft_excel",
+                "microsoft_word",
+                "microsoft_outlook",
+                "onedrive",
+                "slack",
+                "discord",
+                "telegram",
+                "stripe",
+                "shopify",
+                "quickbooks",
+                "hubspot",
+                "salesforce",
+                "notion",
+                "asana",
+                "trello",
+                "monday",
+                "zapier",
+                "make",
+                "airtable",
+                "other"
+              ]
+            },
+            "description": "List of platforms used in this project (REQUIRED for multi-platform projects). Choose from the enum list. This helps:\n- Visual identification on the dashboard\n- Filtering projects by platform\n- Understanding project complexity\n\nExample: ['gmail', 'google_sheets', 'google_forms']",
+            "examples": [
+              [
+                "gmail",
+                "google_sheets",
+                "google_forms"
+              ],
+              [
+                "stripe",
+                "google_sheets",
+                "gmail",
+                "slack"
+              ],
+              [
+                "notion",
+                "google_docs",
+                "google_calendar"
+              ]
+            ]
+          },
+          "priority": {
+            "type": "string",
+            "enum": [
+              "low",
+              "medium",
+              "high",
+              "critical"
+            ],
+            "description": "Project priority level (OPTIONAL, default: 'high').\n\n- 'critical': Urgent, blocking other work\n- 'high': Important, should complete soon\n- 'medium': Normal priority\n- 'low': Nice-to-have, no deadline\n\nPriority affects visual display (color coding) and helps organize work.",
+            "default": "high"
+          },
+          "kanban_column": {
+            "type": "string",
+            "enum": "{{DYNAMIC:kanban_columns}}",
+            "description": "Initial Kanban column position (OPTIONAL, default: 'in_progress').\n\nColumns are dynamically loaded from database config. Standard columns include:\n- 'backlog': Planning phase, not started yet\n- 'in_progress': Active work, currently building\n- 'blocked': Work stuck, waiting for resolution\n- 'review': Under review/testing\n- 'done': Completed work\n- 'archived': Historical/closed work\n\nUse synergy_move_session() to move between columns as work progresses.",
+            "default": "in_progress"
+          },
+          "assignees": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "People/teams assigned to this session (OPTIONAL). Displays in UI as assignee avatars/badges. Example: ['John Smith', 'DevOps Team', 'Marketing']",
+            "examples": [
+              [
+                "John Smith",
+                "DevOps Team"
+              ],
+              [
+                "AI Agent Alpha",
+                "Backend Team",
+                "Frontend Team"
+              ]
+            ]
+          },
+          "color_hex": {
+            "type": "string",
+            "description": "Custom card color in hex format (OPTIONAL). Example: '#FF5733', '#3498DB'. Use for visual categorization.",
+            "examples": [
+              "#FF5733",
+              "#3498DB",
+              "#2ECC71",
+              "#F39C12"
+            ]
+          },
+          "notes": {
+            "type": "string",
+            "description": "Additional notes or context (OPTIONAL). Displayed in expanded session view. Use for important details not in description.",
+            "examples": [
+              "Customer requested rush delivery by Dec 20",
+              "Dependencies: Must complete Phase 1 before starting Phase 2",
+              "Important: Use production credentials only"
+            ]
+          },
+          "start_in_column": {
+            "type": "string",
+            "enum": "{{DYNAMIC:kanban_columns}}",
+            "description": "Initial Kanban column (OPTIONAL, DEPRECATED - use kanban_column instead).\n\nThis field is deprecated. Use 'kanban_column' for full column support including 'blocked', 'archived', etc.\n\nNote: Use synergy_move_session() to move between columns as work progresses.",
+            "default": "in_progress"
+          },
+          "use_milestones": {
+            "type": "boolean",
+            "description": "ALWAYS SET TO TRUE (REQUIRED). Milestone structure is the recommended and fully-supported approach. Provides:\n\n✅ Multi-phase project organization\n✅ Task breakdown with subtasks\n✅ Progress tracking per phase\n✅ Dependencies between milestones\n✅ Phase-specific documents and links\n✅ Time estimates per milestone\n✅ Visual progress indicators\n\nFlat structure (next_steps) is DEPRECATED and not recommended for new projects.",
+            "default": true
+          },
+          "initial_milestones": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "milestone_name": {
+                  "type": "string",
+                  "description": "Milestone title (REQUIRED). Name the phase/stage clearly. Examples: 'Phase 1: Database Setup', 'Step 1: Form Creation', 'Stage 1: Initial Configuration'",
+                  "examples": [
+                    "Phase 1: Database Setup",
+                    "Step 1: Form Creation and Configuration",
+                    "Stage 1: Email Template Design"
+                  ]
+                },
+                "description": {
+                  "type": "string",
+                  "description": "What this milestone accomplishes (OPTIONAL but RECOMMENDED). Explain the goal and deliverables for this phase.",
+                  "examples": [
+                    "Create and configure the customer database with proper schema, validation rules, and initial data import",
+                    "Design responsive email templates for welcome, confirmation, and follow-up sequences"
+                  ]
+                },
+                "tasks": {
+                  "type": "array",
+                  "description": "List of tasks in this milestone (REQUIRED). Each task is a unit of work. Can be:\n\n1. Simple string: 'Create Google Sheet'\n2. Object with subtasks: { task: 'Import data', subtasks: ['Export from old system', 'Clean data', 'Import to new sheet'] }\n\nTasks appear in the UI with checkboxes for completion tracking.",
+                  "items": {
+                    "oneOf": [
+                      {
+                        "type": "string",
+                        "description": "Simple task without subtasks",
+                        "examples": [
+                          "Create Google Sheet for customer data",
+                          "Design email template",
+                          "Set up form validation"
+                        ]
+                      },
+                      {
+                        "type": "object",
+                        "properties": {
+                          "task": {
+                            "type": "string",
+                            "description": "Main task description"
+                          },
+                          "priority": {
+                            "type": "string",
+                            "enum": [
+                              "low",
+                              "medium",
+                              "high",
+                              "critical"
+                            ],
+                            "default": "medium",
+                            "description": "Task priority level: low (🟢), medium (🟡), high (🟠), critical (🔴)"
+                          },
+                          "subtasks": {
+                            "type": "array",
+                            "items": {
+                              "oneOf": [
+                                {
+                                  "type": "string",
+                                  "description": "Simple subtask without priority"
+                                },
+                                {
+                                  "type": "object",
+                                  "properties": {
+                                    "task": {
+                                      "type": "string",
+                                      "description": "Subtask description"
+                                    },
+                                    "priority": {
+                                      "type": "string",
+                                      "enum": [
+                                        "low",
+                                        "medium",
+                                        "high",
+                                        "critical"
+                                      ],
+                                      "default": "medium",
+                                      "description": "Subtask priority level"
+                                    },
+                                    "description": {
+                                      "type": "string",
+                                      "description": "Detailed subtask description (OPTIONAL)"
+                                    },
+                                    "estimated_hours": {
+                                      "type": "number",
+                                      "description": "Estimated hours for this subtask (OPTIONAL). Example: 2.5"
+                                    },
+                                    "actual_hours": {
+                                      "type": "number",
+                                      "description": "Actual hours spent (OPTIONAL). Example: 3.0"
+                                    },
+                                    "assigned_to": {
+                                      "type": "string",
+                                      "description": "Who is assigned to this subtask (OPTIONAL). Example: 'John Smith', 'DevOps Team'"
+                                    },
+                                    "tags": {
+                                      "type": "array",
+                                      "items": {
+                                        "type": "string"
+                                      },
+                                      "description": "Tags for this subtask (OPTIONAL). Example: ['backend', 'critical']"
+                                    },
+                                    "start_date": {
+                                      "type": "string",
+                                      "format": "date",
+                                      "description": "Start date (OPTIONAL). Format: YYYY-MM-DD"
+                                    },
+                                    "links": {
+                                      "type": "array",
+                                      "items": {
+                                        "type": "string"
+                                      },
+                                      "description": "Related links (OPTIONAL). URLs to resources. Example: ['https://...']"
+                                    },
+                                    "depends_on_subtask_id": {
+                                      "type": "string",
+                                      "description": "Dependency on another subtask (OPTIONAL). Subtask ID this depends on"
+                                    },
+                                    "archived": {
+                                      "type": "boolean",
+                                      "description": "Archive flag (OPTIONAL). Default: false",
+                                      "default": false
+                                    }
+                                  },
+                                  "required": [
+                                    "task"
+                                  ]
+                                }
+                              ]
+                            },
+                            "description": "Subtasks (smaller steps within this task). Can be strings or objects with priority."
+                          },
+                          "estimated_hours": {
+                            "type": "number",
+                            "description": "Estimated hours for this task (OPTIONAL). Example: 4.5"
+                          },
+                          "actual_hours": {
+                            "type": "number",
+                            "description": "Actual hours spent (OPTIONAL). Example: 5.0"
+                          },
+                          "assigned_to": {
+                            "type": "string",
+                            "description": "Who is assigned to this task (OPTIONAL). Example: 'Sarah Johnson', 'Frontend Team'"
+                          },
+                          "tags": {
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            },
+                            "description": "Tags for this task (OPTIONAL). Example: ['database', 'setup', 'critical']"
+                          },
+                          "blocked": {
+                            "type": "boolean",
+                            "description": "Blocked flag (OPTIONAL). Is this task blocked? Default: false",
+                            "default": false
+                          },
+                          "blocker_reason": {
+                            "type": "string",
+                            "description": "Blocker reason (OPTIONAL). Why is this task blocked? Example: 'Waiting for API credentials'"
+                          },
+                          "blocker_type": {
+                            "type": "string",
+                            "enum": [
+                              "internal",
+                              "external",
+                              "dependency",
+                              "approval"
+                            ],
+                            "description": "Type of blocker (OPTIONAL). internal/external/dependency/approval"
+                          },
+                          "blocked_since": {
+                            "type": "string",
+                            "format": "date-time",
+                            "description": "Blocked since timestamp (OPTIONAL). Example: '2025-12-10T14:30:00Z'"
+                          },
+                          "start_date": {
+                            "type": "string",
+                            "format": "date",
+                            "description": "Start date (OPTIONAL). Format: YYYY-MM-DD"
+                          },
+                          "depends_on_task_id": {
+                            "type": "string",
+                            "description": "Dependency on another task (OPTIONAL). Task ID this depends on"
+                          },
+                          "progress_percent": {
+                            "type": "integer",
+                            "description": "Progress percentage (OPTIONAL). 0-100. Example: 50",
+                            "minimum": 0,
+                            "maximum": 100
+                          },
+                          "links": {
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            },
+                            "description": "Related links (OPTIONAL). URLs to resources. Example: ['https://github.com/...', 'https://docs.google.com/...']"
+                          },
+                          "is_recurring": {
+                            "type": "boolean",
+                            "description": "Recurring task flag (OPTIONAL). Is this a recurring task? Default: false",
+                            "default": false
+                          },
+                          "recurrence_pattern": {
+                            "type": "string",
+                            "description": "Recurrence pattern (OPTIONAL). Example: 'daily', 'weekly', 'every Monday', 'first of month'"
+                          },
+                          "archived": {
+                            "type": "boolean",
+                            "description": "Archive flag (OPTIONAL). Default: false",
+                            "default": false
+                          }
+                        },
+                        "required": [
+                          "task",
+                          "subtasks"
+                        ]
+                      }
+                    ]
+                  },
+                  "examples": [
+                    [
+                      "Create Google Sheet",
+                      {
+                        "task": "Design database schema",
+                        "subtasks": [
+                          "Define customer fields (name, email, phone, etc.)",
+                          "Set up data validation rules",
+                          "Create formulas for calculations"
+                        ]
+                      },
+                      "Import test data"
+                    ]
+                  ]
+                },
+                "priority": {
+                  "type": "string",
+                  "enum": [
+                    "low",
+                    "medium",
+                    "high",
+                    "critical"
+                  ],
+                  "description": "Milestone priority (OPTIONAL, default: 'medium'). Use 'critical' for blocking work, 'high' for important phases.",
+                  "default": "medium"
+                },
+                "due_date": {
+                  "type": "string",
+                  "description": "Target completion date (OPTIONAL). Format: YYYY-MM-DD. Example: '2025-12-15'. Helps track deadlines and overdue milestones.",
+                  "format": "date",
+                  "examples": [
+                    "2025-12-15",
+                    "2025-11-30"
+                  ]
+                },
+                "estimated_hours": {
+                  "type": "number",
+                  "description": "Estimated time to complete milestone (OPTIONAL). Helps with time tracking and planning. Example: 8.5",
+                  "examples": [
+                    4,
+                    8.5,
+                    16,
+                    24
+                  ]
+                },
+                "tags": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  },
+                  "description": "Tags for this milestone (OPTIONAL). Examples: ['setup', 'critical'], ['frontend', 'ui']",
+                  "examples": [
+                    [
+                      "setup",
+                      "database",
+                      "critical"
+                    ],
+                    [
+                      "frontend",
+                      "design",
+                      "user-facing"
+                    ]
+                  ]
+                },
+                "start_date": {
+                  "type": "string",
+                  "format": "date",
+                  "description": "Start date (OPTIONAL). Format: YYYY-MM-DD. When this milestone begins. Example: '2025-12-01'"
+                },
+                "actual_hours": {
+                  "type": "number",
+                  "description": "Actual hours spent (OPTIONAL). Track actual time vs estimate. Example: 10.5"
+                },
+                "blocked": {
+                  "type": "boolean",
+                  "description": "Blocked flag (OPTIONAL). Set true if milestone is blocked/cannot proceed. Default: false",
+                  "default": false
+                },
+                "blocker_reason": {
+                  "type": "string",
+                  "description": "Blocker reason (OPTIONAL). Why is this milestone blocked? Example: 'Waiting for API access', 'Dependency on Phase 1'"
+                },
+                "blocked_since": {
+                  "type": "string",
+                  "format": "date-time",
+                  "description": "Blocked since timestamp (OPTIONAL). When did blocking start? Example: '2025-12-10T14:30:00Z'"
+                },
+                "documents": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "title": {
+                        "type": "string"
+                      },
+                      "url": {
+                        "type": "string"
+                      },
+                      "type": {
+                        "type": "string"
+                      }
+                    }
+                  },
+                  "description": "Linked documents for this milestone (OPTIONAL). Array of doc objects. Example: [{'title': 'Phase 1 Spec', 'url': 'https://...', 'type': 'synergy_doc'}]"
+                },
+                "links": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  },
+                  "description": "External links for this milestone (OPTIONAL). URLs to related resources. Example: ['https://github.com/...', 'https://figma.com/...']"
+                },
+                "archived": {
+                  "type": "boolean",
+                  "description": "Archive flag (OPTIONAL). Archive this milestone? Default: false",
+                  "default": false
+                },
+                "progress_percent": {
+                  "type": "integer",
+                  "description": "Progress percentage (OPTIONAL). 0-100. Example: 75",
+                  "minimum": 0,
+                  "maximum": 100
+                },
+                "color_hex": {
+                  "type": "string",
+                  "description": "Custom color for this milestone (OPTIONAL). Hex format. Example: '#FF5733', '#3498DB'"
+                },
+                "depends_on_milestone_id": {
+                  "type": "string",
+                  "description": "Dependency on another milestone (OPTIONAL). Milestone ID this depends on. Example: 'milestone_abc123'"
+                }
+              },
+              "required": [
+                "milestone_name",
+                "tasks"
+              ]
+            },
+            "description": "Initial milestones to create (REQUIRED if use_milestones=true). Define the phases/stages of your project. Each milestone contains tasks, and tasks can have subtasks.\n\n💡 PLANNING TIP:\nBreak your project into 3-5 major phases. Each phase should have a clear deliverable.\n\nExample structure:\n[\n  {\n    milestone_name: 'Phase 1: Setup',\n    description: 'Create and configure database',\n    tasks: [\n      'Create Google Sheet',\n      {\n        task: 'Design schema',\n        subtasks: ['Define fields', 'Set validation', 'Add formulas']\n      }\n    ],\n    priority: 'critical',\n    due_date: '2025-12-01',\n    estimated_hours: 8\n  },\n  {\n    milestone_name: 'Phase 2: Integration',\n    tasks: ['Create form', 'Connect to sheet', 'Test workflow']\n  }\n]",
+            "examples": [
+              [
+                {
+                  "milestone_name": "Phase 1: Database Setup",
+                  "description": "Create and configure customer database with Google Sheets",
+                  "tasks": [
+                    "Create Google Sheet with proper structure",
+                    {
+                      "task": "Design database schema",
+                      "subtasks": [
+                        "Define customer fields (name, email, phone, address)",
+                        "Set up data validation rules",
+                        "Create calculated columns and formulas",
+                        "Add conditional formatting"
+                      ]
+                    },
+                    "Import existing customer data from CSV",
+                    "Set up automated backups"
+                  ],
+                  "priority": "critical",
+                  "due_date": "2025-12-01",
+                  "estimated_hours": 8,
+                  "tags": [
+                    "database",
+                    "setup",
+                    "critical"
+                  ]
+                },
+                {
+                  "milestone_name": "Phase 2: Form Creation",
+                  "description": "Build Google Form for customer signup",
+                  "tasks": [
+                    {
+                      "task": "Design form fields and layout",
+                      "subtasks": [
+                        "Add personal information section",
+                        "Add contact preferences",
+                        "Add GDPR consent checkbox",
+                        "Configure validation"
+                      ]
+                    },
+                    "Connect form to Google Sheet",
+                    "Test form submission flow",
+                    "Create confirmation email template"
+                  ],
+                  "priority": "high",
+                  "due_date": "2025-12-08",
+                  "estimated_hours": 6,
+                  "tags": [
+                    "forms",
+                    "frontend"
+                  ]
+                },
+                {
+                  "milestone_name": "Phase 3: Email Automation",
+                  "description": "Set up automated welcome emails",
+                  "tasks": [
+                    "Create email template with branding",
+                    "Set up Gmail automation trigger",
+                    "Test email delivery",
+                    "Add tracking and analytics"
+                  ],
+                  "priority": "medium",
+                  "due_date": "2025-12-15",
+                  "estimated_hours": 4,
+                  "tags": [
+                    "email",
+                    "automation"
+                  ]
+                }
+              ]
+            ]
+          },
+          "due_date": {
+            "type": "string",
+            "description": "Overall project due date (OPTIONAL). Format: YYYY-MM-DD. This is separate from individual milestone due dates. Shows in the dashboard header.",
+            "format": "date",
+            "examples": [
+              "2025-12-31",
+              "2025-11-30"
+            ]
+          },
+          "tags": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Project-level tags (OPTIONAL). Use for categorization and filtering. Examples: ['automation', 'customer-facing', 'urgent'], ['internal', 'tools'], ['q4-2025', 'marketing']",
+            "examples": [
+              [
+                "automation",
+                "customer-experience",
+                "high-priority"
+              ],
+              [
+                "internal-tools",
+                "productivity",
+                "team-collaboration"
+              ],
+              [
+                "q4-2025",
+                "marketing",
+                "customer-acquisition"
+              ]
+            ]
+          },
+          "project_name": {
+            "type": "string",
+            "description": "Project group name (OPTIONAL). Use to group related sessions. Example: 'Customer Systems', 'Marketing Automation', 'Internal Tools'. Shows in dashboard footer.",
+            "examples": [
+              "Customer Systems",
+              "Marketing Automation",
+              "Sales Tools",
+              "Internal Infrastructure"
+            ]
+          },
+          "owner_user_id": {
+            "type": "integer",
+            "description": "Owner user ID (OPTIONAL). Sets who owns this session. Owner has full control including changing permissions. If not provided, session is created without specific owner.",
+            "examples": [
+              1,
+              14,
+              42
+            ]
+          },
+          "permission_level": {
+            "type": "string",
+            "enum": [
+              "private",
+              "shared",
+              "public_view",
+              "public_edit"
+            ],
+            "description": "Permission level (OPTIONAL, default: 'private'). Controls who can access this session:\n\n- 'private': Only the owner can view and edit (most secure)\n- 'shared': Owner + specified users in shared_with_users can access\n- 'public_view': Anyone can view (read-only), only owner can edit\n- 'public_edit': Anyone can view and edit (least secure)\n\nUse 'private' for personal projects, 'shared' for team collaboration, 'public_view' for showcasing work.",
+            "default": "private",
+            "examples": [
+              "private",
+              "shared",
+              "public_view"
+            ]
+          },
+          "shared_with_users": {
+            "type": "array",
+            "items": {
+              "type": "integer"
+            },
+            "description": "User IDs to share with (OPTIONAL). Only relevant when permission_level='shared'. List of user IDs who can access this session. Example: [14, 23, 45]",
+            "examples": [
+              [
+                14,
+                23
+              ],
+              [
+                1,
+                5,
+                9,
+                15
+              ]
+            ]
+          },
+          "allow_public_view": {
+            "type": "boolean",
+            "description": "Allow public viewing (OPTIONAL, default: false). If true and permission_level='public_view', anyone with the link can view (but not edit) the session. Useful for sharing progress with clients or stakeholders.",
+            "default": false
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "active",
+              "completed",
+              "blocked",
+              "archived",
+              "paused"
+            ],
+            "description": "Session status (OPTIONAL, default: 'active'). Controls session lifecycle:\n\n- 'active': Currently working on this project\n- 'blocked': Work stopped due to blocker/dependency\n- 'paused': Temporarily paused, will resume later\n- 'completed': All work finished\n- 'archived': Old project, kept for reference",
+            "default": "active"
+          },
+          "documents": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "title": {
+                  "type": "string"
+                },
+                "url": {
+                  "type": "string"
+                },
+                "type": {
+                  "type": "string"
+                }
+              }
+            },
+            "description": "Initial linked documents (OPTIONAL). Array of document objects with title, url, type. Example: [{'title': 'Project Spec', 'url': 'https://...', 'type': 'synergy_doc'}]"
+          },
+          "links": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Initial external links (OPTIONAL). Array of URLs for related resources. Example: ['https://github.com/user/repo', 'https://docs.google.com/...']"
+          },
+          "thread_ids": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Conversation thread IDs (OPTIONAL). Links this session to specific conversation threads for context. Example: ['thread_abc123', 'thread_def456']"
+          },
+          "assigned_agents": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "AI agent IDs assigned to this session (OPTIONAL). Track which AI agents are working on this project. Example: ['agent_alpha', 'agent_beta', 'claude-3-opus']"
+          },
+          "google_task_id": {
+            "type": "string",
+            "description": "Google Tasks task ID (OPTIONAL). Link to Google Tasks for integration. Use if you want this session synced with Google Tasks."
+          },
+          "google_calendar_id": {
+            "type": "string",
+            "description": "Google Calendar calendar ID (OPTIONAL). Calendar where events for this session should be created. Example: 'primary' or specific calendar ID"
+          },
+          "google_calendar_event_id": {
+            "type": "string",
+            "description": "Google Calendar event ID (OPTIONAL). Link to a specific calendar event for this session. Use if session represents a calendar event."
+          },
+          "microsoft_todo_id": {
+            "type": "string",
+            "description": "Microsoft To-Do task ID (OPTIONAL). Link to Microsoft To-Do for integration. Use if you want this session synced with Microsoft To-Do."
+          },
+          "column_position": {
+            "type": "integer",
+            "description": "Exact position within Kanban column (OPTIONAL, default: 0). Controls vertical ordering. Lower numbers appear higher. Use for precise positioning.",
+            "default": 0
+          },
+          "archived": {
+            "type": "boolean",
+            "description": "Archive flag (OPTIONAL, default: false). Archived sessions are hidden from main view but preserved. Use for completed projects you want to keep but not see daily.",
+            "default": false
+          },
+          "session_data": {
+            "type": "object",
+            "description": "Flexible metadata object (OPTIONAL). Store any custom data as JSON. Example: {'client': 'Acme Corp', 'budget': 5000, 'deadline_type': 'hard'}"
+          }
+        },
+        "required": [
+          "title",
+          "platforms_involved",
+          "use_milestones",
+          "initial_milestones"
+        ]
+      },
+      "returns": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "description": "Whether session was created successfully"
+          },
+          "session_id": {
+            "type": "string",
+            "description": "⚠️ CRITICAL: Save this ID! You need it for ALL future operations. Format: sess_YYYYMMDD_HHMM_slug. Example: sess_20251127_1430_customer_onboarding"
+          },
+          "dashboard_url": {
+            "type": "string",
+            "description": "URL to view this session in Synergy Dashboard. Share this with the user so they can see progress visually."
+          },
+          "milestones_created": {
+            "type": "number",
+            "description": "Number of milestones created"
+          },
+          "tasks_created": {
+            "type": "number",
+            "description": "Total number of tasks created across all milestones"
+          },
+          "message": {
+            "type": "string",
+            "description": "Confirmation message"
+          }
+        }
+      },
+      "examples": [
+        {
+          "description": "EXAMPLE 1: Simple 2-phase customer onboarding system",
+          "parameters": {
+            "title": "Customer Onboarding Automation",
+            "description": "Build an automated system that collects customer info via Google Form, stores in Google Sheets, and sends welcome email via Gmail",
+            "platforms_involved": [
+              "google_forms",
+              "google_sheets",
+              "gmail"
+            ],
+            "priority": "high",
+            "kanban_column": "in_progress",
+            "assignees": [
+              "AI Agent",
+              "DevOps Team"
+            ],
+            "use_milestones": true,
+            "initial_milestones": [
+              {
+                "milestone_name": "Phase 1: Data Collection Setup",
+                "description": "Create form and database for customer information",
+                "tasks": [
+                  "Create Google Form with customer fields (name, email, phone, preferences)",
+                  "Create Google Sheet to receive form responses",
+                  "Test form submission and data flow"
+                ],
+                "priority": "critical",
+                "due_date": "2025-12-01",
+                "estimated_hours": 4,
+                "tags": [
+                  "setup",
+                  "forms",
+                  "database"
+                ]
+              },
+              {
+                "milestone_name": "Phase 2: Email Automation",
+                "description": "Set up automated welcome emails",
+                "tasks": [
+                  {
+                    "task": "Create email template",
+                    "subtasks": [
+                      "Design welcome email with company branding",
+                      "Add personalization (customer name, preferences)",
+                      "Include next steps and support links"
+                    ]
+                  },
+                  "Set up Gmail automation trigger on form submission",
+                  "Test complete workflow (form → sheet → email)"
+                ],
+                "priority": "high",
+                "due_date": "2025-12-08",
+                "estimated_hours": 3,
+                "tags": [
+                  "email",
+                  "automation"
+                ]
+              }
+            ],
+            "due_date": "2025-12-10",
+            "tags": [
+              "automation",
+              "customer-experience"
+            ],
+            "project_name": "Customer Systems"
+          },
+          "expected_response": {
+            "success": true,
+            "session_id": "sess_20251127_1430_customer_onboarding",
+            "dashboard_url": "https://yourdomain.com/dashboard?session=sess_20251127_1430_customer_onboarding",
+            "milestones_created": 2,
+            "tasks_created": 6,
+            "message": "✅ Synergy session created! Next steps:\n1. Create your Google Form\n2. Call synergy_add_document() to link it\n3. Create your Google Sheet\n4. Call synergy_add_document() again\n5. Create email template\n6. Update progress as you complete tasks"
+          }
+        },
+        {
+          "description": "EXAMPLE 2: Complex 4-phase database migration project",
+          "parameters": {
+            "title": "Customer Database Migration to Google Sheets",
+            "description": "Migrate 5,000 customer records from legacy CRM to Google Sheets with data cleaning, validation, and automated backup system",
+            "platforms_involved": [
+              "google_sheets",
+              "google_drive",
+              "gmail",
+              "google_forms"
+            ],
+            "priority": "critical",
+            "kanban_column": "in_progress",
+            "assignees": [
+              "Data Team",
+              "Backend Lead"
+            ],
+            "color_hex": "#FF5733",
+            "notes": "CRITICAL: Must complete by end of Q4 for client demo",
+            "use_milestones": true,
+            "initial_milestones": [
+              {
+                "milestone_name": "Phase 1: Database Design",
+                "description": "Design new database structure and schema",
+                "tasks": [
+                  "Create main Google Sheet with proper structure",
+                  {
+                    "task": "Design comprehensive schema",
+                    "subtasks": [
+                      "Define all customer fields (name, email, phone, address, preferences)",
+                      "Set up data validation rules for each field",
+                      "Create calculated columns (full name, age from DOB, etc.)",
+                      "Add conditional formatting for status indicators",
+                      "Set up dropdown lists for standardized data"
+                    ]
+                  },
+                  "Create lookup tables for reference data",
+                  "Test schema with sample records"
+                ],
+                "priority": "critical",
+                "due_date": "2025-12-01",
+                "estimated_hours": 12,
+                "tags": [
+                  "database",
+                  "design",
+                  "critical"
+                ]
+              },
+              {
+                "milestone_name": "Phase 2: Data Export and Cleaning",
+                "description": "Extract data from old system and clean it",
+                "tasks": [
+                  {
+                    "task": "Export from legacy CRM",
+                    "subtasks": [
+                      "Connect to old CRM system",
+                      "Export customer table to CSV",
+                      "Export transaction history",
+                      "Export notes and communications log",
+                      "Verify data completeness"
+                    ]
+                  },
+                  {
+                    "task": "Clean and standardize data",
+                    "subtasks": [
+                      "Remove duplicate records",
+                      "Standardize phone number formats",
+                      "Validate email addresses",
+                      "Normalize address formats",
+                      "Handle missing data"
+                    ]
+                  },
+                  "Create data quality report"
+                ],
+                "priority": "critical",
+                "due_date": "2025-12-08",
+                "estimated_hours": 16,
+                "tags": [
+                  "migration",
+                  "data-cleaning"
+                ]
+              },
+              {
+                "milestone_name": "Phase 3: Data Import",
+                "description": "Import cleaned data to new Google Sheet",
+                "tasks": [
+                  "Import test batch (100 records) and verify",
+                  "Import full dataset (5,000 records)",
+                  "Verify data integrity (counts, checksums)",
+                  "Create import log with statistics",
+                  "Handle any import errors or edge cases"
+                ],
+                "priority": "high",
+                "due_date": "2025-12-12",
+                "estimated_hours": 8,
+                "tags": [
+                  "import",
+                  "testing"
+                ]
+              },
+              {
+                "milestone_name": "Phase 4: Integration and Automation",
+                "description": "Connect forms, set up backups, create documentation",
+                "tasks": [
+                  "Create Google Form for new customer additions",
+                  "Connect form to append to database sheet",
+                  {
+                    "task": "Set up automated systems",
+                    "subtasks": [
+                      "Create daily backup to Google Drive",
+                      "Set up email notifications for new entries",
+                      "Create weekly summary report",
+                      "Set up data validation alerts"
+                    ]
+                  },
+                  "Write user documentation",
+                  "Train team on new system"
+                ],
+                "priority": "medium",
+                "due_date": "2025-12-19",
+                "estimated_hours": 10,
+                "tags": [
+                  "automation",
+                  "documentation",
+                  "training"
+                ]
+              }
+            ],
+            "due_date": "2025-12-20",
+            "tags": [
+              "migration",
+              "database",
+              "critical",
+              "q4-2025"
+            ],
+            "project_name": "Customer Systems"
+          },
+          "expected_response": {
+            "success": true,
+            "session_id": "sess_20251127_1500_database_migration",
+            "dashboard_url": "https://yourdomain.com/dashboard?session=sess_20251127_1500_database_migration",
+            "milestones_created": 4,
+            "tasks_created": 19,
+            "message": "✅ Complex Synergy session created with 4 phases! Dashboard shows:\n- Phase 1: Database Design (12 hrs, 5 tasks)\n- Phase 2: Data Export and Cleaning (16 hrs, 8 tasks)\n- Phase 3: Data Import (8 hrs, 5 tasks)\n- Phase 4: Integration and Automation (10 hrs, 7 tasks)\n\nTotal: 46 hours estimated, 19 tasks\n\nNext: Start Phase 1 by creating your Google Sheet, then link it with synergy_add_document()"
+          }
+        }
+      ],
+      "critical_notes": [
+        "⚠️ ALWAYS use milestones (use_milestones=true) - flat structure is deprecated",
+        "⚠️ SAVE the returned session_id - you need it for ALL future updates",
+        "⚠️ Create resources FIRST, then link them with synergy_add_document()",
+        "⚠️ Tell user the dashboard_url so they can see visual progress",
+        "✅ Break projects into 3-5 clear phases (milestones)",
+        "✅ Use subtasks for complex tasks that need breakdown",
+        "✅ Set realistic due dates and time estimates",
+        "✅ Use priority to highlight critical/blocking work",
+        "✅ Add descriptive tags for filtering and organization"
+      ],
+      "usage_guide": {
+        "when_to_call": [
+          "User asks to 'create a system' involving multiple tools",
+          "Project requires coordination between 3+ platforms",
+          "Need visual tracking of multi-step workflow",
+          "Work will span multiple conversations",
+          "Building something with several related components"
+        ],
+        "before_calling": [
+          "Understand the full scope (what platforms, what phases)",
+          "Plan out 3-5 major phases/milestones",
+          "List tasks for first 1-2 milestones (can add more later)",
+          "Decide on priority and deadlines"
+        ],
+        "after_calling": [
+          "SAVE the session_id (you need it for everything else)",
+          "Tell user the dashboard URL",
+          "Create first resource (doc/sheet/form)",
+          "Call synergy_add_document() to link resource",
+          "Continue creating and linking resources",
+          "Update milestone progress as you complete tasks",
+          "Move session between columns as project progresses"
+        ],
+        "workflow_example": [
+          "1. User: 'Build me a customer onboarding system with forms and emails'",
+          "2. AI: Call synergy_create_session_complete() with milestones, assignees, platforms, ALL fields",
+          "3. AI: Save session_id (e.g., sess_20251127_1430_onboarding)",
+          "4. AI: Create Google Form",
+          "5. AI: Call synergy_add_document(session_id, form_url, form_title, 'google_form')",
+          "6. AI: Create Google Sheet",
+          "7. AI: Call synergy_add_document(session_id, sheet_url, sheet_title, 'google_sheet')",
+          "8. AI: Create email template",
+          "9. AI: Update milestone progress with synergy_update_milestone()",
+          "10. AI: Tell user: 'View progress at [dashboard_url]'"
+        ]
+      }
+    },
+    {
+      "name": "synergy_get_session",
+      "short_description": "Get complete session details with milestones, tasks, documents, status, dashboard URL",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Read session from Synergy Dashboard (ID: [session_id])'\n(3) Use EXACT [session_id] provided - NEVER substitute\n(4) If tool fails (404), say 'Session not found: [session_id]' and list available sessions\n(5) NEVER make up data if read fails\n\n📖 GET COMPLETE SESSION DETAILS\n\nRetrieves full session data including all milestones, tasks, subtasks, documents, links, and metadata. Use this to:\n- Check current project status\n- See what's been completed\n- Get document URLs for reference\n- View milestone progress\n- Check tags, priority, due dates\n\n💡 WHEN TO CALL:\n✅ Before updating session (to see current state)\n✅ User asks 'what's the status of [project]?'\n✅ Need to reference existing documents\n✅ Resuming work on existing project\n✅ Before adding more milestones/tasks",
+      "platform": "synergy",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "session_id": {
+            "type": "string",
+            "description": "Session ID to retrieve (REQUIRED). Format: sess_YYYYMMDD_HHMM_slug. Get this from:\n- synergy_create_session_complete() return value\n- synergy_list_sessions() results\n- User pasting session ID in chat\n\nExample: sess_20251127_1430_customer_onboarding"
+          }
+        },
+        "required": [
+          "session_id"
+        ]
+      },
+      "returns": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "session": {
+            "type": "object",
+            "description": "Complete session object with all fields"
+          },
+          "milestones": {
+            "type": "array",
+            "description": "Array of milestone objects with tasks and subtasks"
+          },
+          "documents": {
+            "type": "array",
+            "description": "All documents linked to this session"
+          },
+          "total_progress": {
+            "type": "object",
+            "description": "Overall completion statistics"
+          }
+        }
+      },
+      "examples": [
+        {
+          "description": "Get session details to check status",
+          "parameters": {
+            "session_id": "sess_20251127_1430_customer_onboarding"
+          }
+        }
+      ]
+    },
+    {
+      "name": "synergy_list_sessions",
+      "short_description": "List all Synergy sessions with filters for status, column, platform, priority",
+      "description": "📋 LIST ALL SYNERGY SESSIONS\n\nGet list of all sessions with optional filtering by status, column, or priority. Use to:\n- Find existing sessions\n- Check what projects are in progress\n- Resume work from previous conversations\n- Get session_id when you don't have it",
+      "platform": "synergy",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "column": {
+            "type": "string",
+            "enum": [
+              "backlog",
+              "in_progress",
+              "review",
+              "done"
+            ],
+            "description": "Filter by Kanban column (OPTIONAL)"
+          },
+          "priority": {
+            "type": "string",
+            "enum": [
+              "low",
+              "medium",
+              "high",
+              "critical"
+            ],
+            "description": "Filter by priority (OPTIONAL)"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "active",
+              "completed",
+              "archived"
+            ],
+            "description": "Filter by status (OPTIONAL, default: 'active')"
+          },
+          "limit": {
+            "type": "number",
+            "description": "Max sessions to return (OPTIONAL, default: 50)",
+            "default": 50
+          }
+        },
+        "required": []
+      },
+      "returns": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "sessions": {
+            "type": "array",
+            "description": "Array of session summary objects"
+          },
+          "total_count": {
+            "type": "number"
+          }
+        }
+      }
+    },
+    {
+      "name": "synergy_search_sessions",
+      "short_description": "Search Synergy sessions by title, description, tags, documents with filters",
+      "description": "🔍 SEARCH SYNERGY SESSIONS BY KEYWORDS\n\nSearch for sessions by title, description, tags, or platform name. Use this when:\n- You know keywords but not the session_id\n- Looking for projects related to specific platforms\n- Finding sessions with specific tags\n- User asks about 'email projects' or 'form-related work'\n\n🎯 SEARCH BEHAVIOR:\n- Searches across: title, description, tags fields\n- Case-insensitive partial matching\n- Returns up to 50 results ordered by last_active\n\n💡 EXAMPLES:\n- 'email automation' → Finds sessions with 'email' or 'automation' in title/description\n- platform='gmail' → All sessions involving Gmail\n- query='customer', priority='high' → High-priority customer projects",
+      "platform": "synergy",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "query": {
+            "type": "string",
+            "description": "Search term (OPTIONAL if platform provided). Searches in title, description, and tags. Examples: 'email automation', 'customer onboarding', 'dashboard'",
+            "examples": [
+              "email automation",
+              "customer database",
+              "sales pipeline"
+            ]
+          },
+          "platform": {
+            "type": "string",
+            "description": "Filter by specific platform (OPTIONAL). Examples: 'gmail', 'google_sheets', 'stripe', 'slack'",
+            "examples": [
+              "gmail",
+              "google_sheets",
+              "stripe",
+              "slack"
+            ]
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "active",
+              "completed",
+              "archived"
+            ],
+            "description": "Filter by status (OPTIONAL)"
+          },
+          "priority": {
+            "type": "string",
+            "enum": [
+              "low",
+              "medium",
+              "high",
+              "critical"
+            ],
+            "description": "Filter by priority (OPTIONAL)"
+          },
+          "column": {
+            "type": "string",
+            "enum": [
+              "backlog",
+              "in_progress",
+              "review",
+              "done"
+            ],
+            "description": "Filter by Kanban column (OPTIONAL)"
+          }
+        },
+        "required": []
+      },
+      "returns": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "count": {
+            "type": "number",
+            "description": "Number of matching sessions"
+          },
+          "sessions": {
+            "type": "array",
+            "description": "Array of matching sessions"
+          },
+          "query": {
+            "type": "string",
+            "description": "Search term that was used"
+          },
+          "filters_applied": {
+            "type": "object",
+            "description": "Filters that were active"
+          }
+        }
+      },
+      "examples": [
+        {
+          "description": "Search for email-related projects",
+          "parameters": {
+            "query": "email automation"
+          }
+        },
+        {
+          "description": "Find all Gmail projects currently in progress",
+          "parameters": {
+            "platform": "gmail",
+            "column": "in_progress"
+          }
+        },
+        {
+          "description": "Find high-priority dashboard projects",
+          "parameters": {
+            "query": "dashboard",
+            "priority": "high"
+          }
+        }
+      ]
+    },
+    {
+      "name": "synergy_add_document",
+      "short_description": "Add document/resource link to Synergy session with title, URL, type, description",
+      "description": "🔗 ADD CLICKABLE DOCUMENT/LINK TO SESSION\n\n⚠️ CRITICAL: Call this IMMEDIATELY after creating each resource!\n\nLinks a document or resource to a Synergy session. Documents become CLICKABLE links in the UI that open in new browser tabs or modal popups.\n\n📚 SUPPORTS:\n1. **Synergy Docs** (created with synergy_create_synergy_doc)\n   - Synergy Docs (type='internal_doc') - Opens in modal popup\n   - Synergy Sheets (type='internal_sheet') - Opens in modal popup\n   - Automatically linked when created, but can manually add if needed\n\n2. **Google Workspace**\n   - Google Docs, Sheets, Forms, Slides - Opens in new tab with full URL\n   - MUST use FULL URL from creation response\n\n3. **External Resources**\n   - Links to websites, dashboards, tools\n   - PDFs, Word docs, Excel files\n   - Any web URL\n\n🔗 URL REQUIREMENTS:\n✅ MUST use FULL URL from creation response (https://docs.google.com/...)\n✅ MUST include document type for proper icon (google_sheet, google_doc, etc.)\n✅ MUST use descriptive title (not \"Document 1\" - use actual resource name)\n✅ For Synergy Docs: use doc_id OR share_url as the URL\n\n💡 WORKFLOW:\n1. Create resource (Google doc/sheet/form OR Synergy Doc)\n2. Get the FULL URL or doc_id from creation response\n3. IMMEDIATELY call synergy_add_document(url=full_url, type=resource_type, title=descriptive_name)\n4. Repeat for each resource\n\n🎨 DISPLAY BEHAVIOR:\n- Synergy Docs (internal_doc/internal_sheet): Modal popup overlay\n- External resources (google_doc, google_sheet, etc): New browser tab\n- Links (type='link'): New browser tab",
+      "platform": "synergy",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "session_id": {
+            "type": "string",
+            "description": "Session ID (REQUIRED)",
+            "examples": [
+              "sess_20251127_1430_customer_onboarding"
+            ]
+          },
+          "title": {
+            "type": "string",
+            "description": "Document title/name (REQUIRED). Use descriptive names. Examples: 'Customer Database', 'Welcome Email Template', 'Signup Form'",
+            "examples": [
+              "Customer Database Spreadsheet",
+              "Welcome Email Template",
+              "Customer Signup Form"
+            ]
+          },
+          "url": {
+            "type": "string",
+            "description": "Document URL or ID (REQUIRED). For internal docs, use doc_id. For external, use full URL.",
+            "examples": [
+              "https://docs.google.com/spreadsheets/d/abc123",
+              "https://docs.google.com/document/d/def456",
+              "int_doc_1732728394"
+            ]
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "google_doc",
+              "google_sheet",
+              "google_form",
+              "google_slides",
+              "synergy_doc",
+              "synergy_sheet",
+              "pdf",
+              "word_doc",
+              "excel_sheet",
+              "link",
+              "other"
+            ],
+            "description": "Document type (REQUIRED). Choose the appropriate type for visual icons and categorization.",
+            "examples": [
+              "google_sheet",
+              "google_form",
+              "synergy_doc"
+            ]
+          },
+          "description": {
+            "type": "string",
+            "description": "Brief description (OPTIONAL). What is this document for?",
+            "examples": [
+              "Main customer database with all contact information",
+              "Form for collecting new customer signups"
+            ]
+          }
+        },
+        "required": [
+          "session_id",
+          "title",
+          "url",
+          "type"
+        ]
+      },
+      "returns": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "document_id": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          }
+        }
+      },
+      "examples": [
+        {
+          "description": "Add Google Sheet to session",
+          "parameters": {
+            "session_id": "sess_20251127_1430_customer_onboarding",
+            "title": "Customer Database",
+            "url": "https://docs.google.com/spreadsheets/d/abc123xyz",
+            "type": "google_sheet",
+            "description": "Main customer database with contact information and signup dates"
+          }
+        },
+        {
+          "description": "Add Synergy Doc to session",
+          "parameters": {
+            "session_id": "sess_20251127_1430_customer_onboarding",
+            "title": "Email Templates",
+            "url": "int_doc_1732728394",
+            "type": "synergy_doc",
+            "description": "Welcome, confirmation, and follow-up email templates"
+          }
+        }
+      ]
+    },
+    {
+      "name": "synergy_create_synergy_doc",
+      "short_description": "Create Synergy Doc/Sheet (rich-text or spreadsheet) for notes, specs, data within Synergy",
+      "description": "📄 CREATE Synergy Doc (aka Synergy Doc/Sheet)\n\n🆕 REBRANDED: Synergy Docs → Synergy Docs\nAliases: Synergy Docs (richtext), Synergy Sheets (spreadsheet)\n\nCreate a Synergy-native file stored in the platform database. These files are:\n✅ Automatically linked to Synergy sessions\n✅ Editable in popup window (no external app needed)\n✅ Version controlled and tracked\n✅ Searchable within Synergy\n✅ Support markdown, rich text, tables, formulas\n\n📊 TWO TYPES:\n1. **Synergy Docs** (richtext): Text documents with markdown, formatting, lists\n2. **Synergy Sheets** (spreadsheet): Tables with formulas, calculations, data\n\n💡 USE FOR:\n✅ Project documentation and planning notes\n✅ Meeting notes and action items\n✅ Email templates and copy drafts\n✅ Requirements checklists\n✅ Small data tables with calculations\n✅ Session-specific reference materials\n\n❌ DON'T USE FOR:\n❌ Large datasets >1000 rows (use Google Sheets instead)\n❌ Collaborative editing with external users (use Google Docs)\n❌ Files that need external sharing outside team\n❌ Binary files (PDFs, images, videos)\n\n🔗 SYNERGY SESSION INTEGRATION:\n- Files are automatically attached to the session\n- Appear in session's resources list\n- Clickable from Synergy dashboard\n- Can be linked to specific milestones\n- Tracked in session history",
+      "platform": "synergy",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "session_id": {
+            "type": "string",
+            "description": "Synergy session ID to attach this file to (REQUIRED). The file will be linked to this session and appear in its resources list.\n\nFormat: sess_YYYYMMDD_HHMM_slug\n\nGet from:\n- synergy_create_session_complete() return value\n- synergy_list_sessions() results",
+            "examples": [
+              "sess_20251127_1430_customer_onboarding",
+              "sess_20251208_0900_email_automation"
+            ]
+          },
+          "title": {
+            "type": "string",
+            "description": "Synergy Doc title (REQUIRED). Be descriptive - this appears in the session's resources list.\n\nGood examples:\n- 'Project Planning Notes - Phase 1'\n- 'Email Template Library - Customer Onboarding'\n- 'Requirements Checklist - Database Setup'\n\nAvoid generic names like 'Document 1' or 'Notes'",
+            "examples": [
+              "Project Planning Notes - Phase 1",
+              "Email Template Library - Customer Onboarding",
+              "Requirements Checklist - Database Setup",
+              "Meeting Notes - Dec 8 Standup",
+              "Budget Tracking Sheet"
+            ]
+          },
+          "doc_type": {
+            "type": "string",
+            "enum": [
+              "richtext",
+              "spreadsheet"
+            ],
+            "description": "Synergy Doc type (REQUIRED):\n\n- **'richtext'** → Creates a Synergy Doc\n  Text document with markdown, formatting, lists, headings\n  Use for: notes, documentation, templates, requirements\n\n- **'spreadsheet'** → Creates a Synergy Sheet\n  Table with rows, columns, formulas, calculations\n  Use for: data tracking, budgets, checklists, small datasets",
+            "default": "richtext"
+          },
+          "content": {
+            "type": "string",
+            "description": "Initial content for the Synergy Doc (OPTIONAL).\n\nFor Synergy Docs (richtext):\n- Use markdown format\n- Supports headings (#, ##), lists (-, *), bold (**text**), italic (*text*)\n- Can include tables, code blocks, links\n\nFor Synergy Sheets (spreadsheet):\n- Leave empty to create blank sheet\n- Or provide CSV data: 'Name,Email,Status\\nJohn,john@example.com,Active'\n- Can add formulas and formatting after creation",
+            "default": "",
+            "examples": [
+              "# Project Overview\\n\\n## Goals\\n- Goal 1\\n- Goal 2\\n\\n## Timeline\\nWeek 1-2: Planning",
+              "Task,Status,Priority\\nCreate form,Complete,High\\nSetup database,In Progress,High"
+            ]
+          },
+          "description": {
+            "type": "string",
+            "description": "Brief description of what this Synergy Doc contains (OPTIONAL). Helps team understand purpose.",
+            "examples": [
+              "Planning notes for customer onboarding system",
+              "Email templates for automated follow-ups",
+              "Budget tracking for Q1 2025"
+            ]
+          },
+          "tags": {
+            "type": "string",
+            "description": "Comma-separated tags for organizing Synergy Docs (OPTIONAL).\n\nUseful for filtering and searching. Examples: 'planning, notes, phase-1'",
+            "examples": [
+              "planning, documentation, phase-1",
+              "templates, email, customer-facing",
+              "budget, tracking, q1-2025"
+            ]
+          }
+        },
+        "required": [
+          "session_id",
+          "title",
+          "doc_type"
+        ]
+      },
+      "returns": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "doc_id": {
+            "type": "string",
+            "description": "Synergy Doc ID (format: int_doc_[timestamp]). SAVE THIS! Use it to:\n- Read file: synergy_get_synergy_doc(doc_id)\n- Update file: synergy_update_synergy_doc(doc_id, content)\n- Link to milestone: synergy_add_milestone_document(milestone_id, url=share_url)"
+          },
+          "share_url": {
+            "type": "string",
+            "description": "URL to view/edit this Synergy Doc. Clickable link in session resources. Opens in modal popup."
+          },
+          "message": {
+            "type": "string",
+            "description": "Success message with file details"
+          }
+        }
+      },
+      "examples": [
+        {
+          "description": "Create Synergy Doc (richtext) for project planning",
+          "parameters": {
+            "session_id": "sess_20251127_1430_customer_onboarding",
+            "title": "Project Planning and Requirements",
+            "doc_type": "richtext",
+            "content": "# Customer Onboarding System\n\n## Requirements\n- Google Form for signup\n- Google Sheet for database\n- Gmail for welcome emails\n\n## Timeline\n- Week 1: Form and database\n- Week 2: Email automation\n- Week 3: Testing and launch",
+            "description": "Planning notes and requirements for onboarding project",
+            "tags": "planning, requirements, documentation"
+          }
+        },
+        {
+          "description": "Create Synergy Sheet (spreadsheet) for task tracking",
+          "parameters": {
+            "session_id": "sess_20251208_0900_email_automation",
+            "title": "Task Tracking Sheet - Email Automation",
+            "doc_type": "spreadsheet",
+            "content": "Task,Status,Priority,Owner\nCreate templates,In Progress,High,AI\nTest flows,Not Started,Medium,Team\nDeploy,Not Started,Low,DevOps",
+            "description": "Track tasks and progress for email automation project",
+            "tags": "tracking, tasks, spreadsheet"
+          }
+        }
+      ]
+    },
+    {
+      "name": "synergy_update_milestone",
+      "short_description": "Update milestone title, description, status, due date, progress percentage",
+      "description": "✏️ UPDATE MILESTONE\n\nUpdate any field(s) of an existing milestone. Use to:\n- Mark milestone complete\n- Update description or priority\n- Change due date\n- Add/update documents\n- Set blocker status\n\n⚠️ CRITICAL: Only pass fields you want to UPDATE. Omitted fields stay unchanged.",
+      "platform": "synergy",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "milestone_id": {
+            "type": "string",
+            "description": "Milestone ID (REQUIRED). Get from synergy_get_session() response."
+          },
+          "milestone_name": {
+            "type": "string",
+            "description": "Update milestone title (OPTIONAL)"
+          },
+          "description": {
+            "type": "string",
+            "description": "Update description (OPTIONAL)"
+          },
+          "completed": {
+            "type": "boolean",
+            "description": "Mark complete/incomplete (OPTIONAL). When marked complete, all tasks are auto-completed."
+          },
+          "priority": {
+            "type": "string",
+            "enum": [
+              "low",
+              "medium",
+              "high",
+              "critical"
+            ],
+            "description": "Update priority (OPTIONAL)"
+          },
+          "due_date": {
+            "type": "string",
+            "description": "Update due date YYYY-MM-DD (OPTIONAL)"
+          },
+          "blocked": {
+            "type": "boolean",
+            "description": "Mark as blocked/unblocked (OPTIONAL)"
+          },
+          "blocker_reason": {
+            "type": "string",
+            "description": "Reason for block (OPTIONAL, required if blocked=true)"
+          }
+        },
+        "required": [
+          "milestone_id"
+        ]
+      }
+    },
+    {
+      "name": "synergy_create_milestone",
+      "short_description": "Add new milestone to existing project with tasks",
+      "description": "➕ ADD NEW MILESTONE TO EXISTING PROJECT\n\n📌 WHAT IT DOES:\nAdds a new milestone (phase/stage) to an EXISTING Synergy session. Creates the milestone + ALL its tasks + ALL subtasks in ONE atomic call.\n\n✅ WHEN TO USE:\n- Project already exists (you have session_id)\n- Need to add another phase/stage\n- Breaking down work further as project evolves\n- Adding follow-up work or new requirements\n- Expanding project scope with new phase\n\n❌ DON'T USE IF:\n- Starting a NEW project (use synergy_create_session_complete instead)\n- Don't have a session_id yet\n\n🎯 CREATES COMPLETE HIERARCHY:\n✅ Milestone record (with title, description, priority, dates)\n✅ All tasks in the milestone (with title, description, priorities, dates)\n✅ All subtasks under each task (with title, description, priorities, dates)\n✅ Documents array (if provided)\n✅ Links array (if provided)\n✅ Tags array (if provided)\n\n⚡ KEY FEATURES:\n- ✨ NEW: Separate title and description fields for clarity\n- ✅ Checkbox support (completed status)\n- 📅 Due dates for milestones, tasks, and subtasks\n- 🔥 Priority levels (low|medium|high|critical)\n- Atomic transaction (all or nothing - no partial milestones)\n- Returns tasks_created and subtasks_created counts\n- Handles both simple strings and complex objects\n- Auto-generates IDs and ordering\n- Rollback on errors\n\n💡 TIP: Can add milestones at ANY time - don't need to plan everything upfront! Add new phases as the project evolves.\n\n📝 TITLE vs DESCRIPTION:\n- title: Short name (e.g., \"Database Setup\")\n- description: Full context with requirements, acceptance criteria, notes",
+      "platform": "synergy",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "session_id": {
+            "type": "string",
+            "description": "Session ID (REQUIRED)"
+          },
+          "title": {
+            "type": "string",
+            "description": "Milestone title - Short name (REQUIRED). Example: \"Phase 1: Database Setup\""
+          },
+          "description": {
+            "type": "string",
+            "description": "Detailed milestone description (OPTIONAL). Full context, requirements, acceptance criteria. Line breaks preserved in UI."
+          },
+          "tasks": {
+            "type": "array",
+            "description": "List of tasks (REQUIRED). Can be strings or objects with title, description, subtasks.",
+            "items": {
+              "oneOf": [
+                {
+                  "type": "string",
+                  "description": "Simple task title (e.g., \"Setup database\")"
+                },
+                {
+                  "type": "object",
+                  "description": "Task with full metadata",
+                  "properties": {
+                    "title": {
+                      "type": "string",
+                      "description": "Task title - Short name (REQUIRED)"
+                    },
+                    "description": {
+                      "type": "string",
+                      "description": "Task description - Full context (OPTIONAL)"
+                    },
+                    "due_date": {
+                      "type": "string",
+                      "description": "Task due date in YYYY-MM-DD format (OPTIONAL)"
+                    },
+                    "priority": {
+                      "type": "string",
+                      "enum": [
+                        "low",
+                        "medium",
+                        "high",
+                        "critical"
+                      ],
+                      "default": "medium",
+                      "description": "Task priority level"
+                    },
+                    "subtasks": {
+                      "type": "array",
+                      "description": "List of subtasks",
+                      "items": {
+                        "oneOf": [
+                          {
+                            "type": "string",
+                            "description": "Simple subtask title"
+                          },
+                          {
+                            "type": "object",
+                            "description": "Subtask with full metadata",
+                            "properties": {
+                              "title": {
+                                "type": "string",
+                                "description": "Subtask title - Short name (REQUIRED)"
+                              },
+                              "description": {
+                                "type": "string",
+                                "description": "Subtask description - Full context (OPTIONAL)"
+                              },
+                              "due_date": {
+                                "type": "string",
+                                "description": "Subtask due date in YYYY-MM-DD format (OPTIONAL)"
+                              },
+                              "priority": {
+                                "type": "string",
+                                "enum": [
+                                  "low",
+                                  "medium",
+                                  "high",
+                                  "critical"
+                                ],
+                                "default": "medium",
+                                "description": "Subtask priority level"
+                              }
+                            },
+                            "required": [
+                              "title"
+                            ]
+                          }
+                        ]
+                      }
+                    }
+                  },
+                  "required": [
+                    "title"
+                  ]
+                }
+              ]
+            }
+          },
+          "priority": {
+            "type": "string",
+            "enum": [
+              "low",
+              "medium",
+              "high",
+              "critical"
+            ],
+            "default": "medium",
+            "description": "Milestone priority level"
+          },
+          "due_date": {
+            "type": "string",
+            "description": "Milestone due date in YYYY-MM-DD format (OPTIONAL)"
+          },
+          "estimated_hours": {
+            "type": "number",
+            "description": "Time estimate in hours (OPTIONAL)"
+          }
+        },
+        "required": [
+          "session_id",
+          "title",
+          "tasks"
+        ]
+      },
+      "returns": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "milestone_id": {
+            "type": "string",
+            "description": "New milestone ID - save this!"
+          },
+          "milestone_number": {
+            "type": "number",
+            "description": "Milestone sequence number (1, 2, 3...)"
+          },
+          "tasks_created": {
+            "type": "number",
+            "description": "Count of tasks created"
+          },
+          "subtasks_created": {
+            "type": "number",
+            "description": "Count of subtasks created"
+          },
+          "message": {
+            "type": "string"
+          }
+        }
+      },
+      "examples": [
+        {
+          "description": "Add new testing phase with simple task titles",
+          "parameters": {
+            "session_id": "sess_20251208_1400_customer_onboarding",
+            "title": "Phase 3: Testing & QA",
+            "description": "Test all components and fix bugs before production deployment",
+            "tasks": [
+              "Test form submission",
+              "Test email delivery",
+              "Test data validation",
+              "Fix any bugs found"
+            ],
+            "priority": "high",
+            "due_date": "2025-12-20",
+            "estimated_hours": 12
+          }
+        },
+        {
+          "description": "Add deployment phase with tasks and subtasks using title+description structure",
+          "parameters": {
+            "session_id": "sess_20251208_1400_customer_onboarding",
+            "title": "Phase 4: Production Deployment",
+            "description": "Deploy system to production and monitor stability\n\nThis phase includes:\n- Production environment setup\n- Deployment of all components\n- End-to-end testing\n- 24-hour monitoring for stability",
+            "tasks": [
+              {
+                "title": "Prepare production environment",
+                "description": "Set up all production infrastructure including Google Workspace, domain configuration, and monitoring tools. Ensure all credentials are secured with proper access controls.",
+                "due_date": "2025-12-22",
+                "priority": "critical",
+                "subtasks": [
+                  {
+                    "title": "Set up production Google Workspace",
+                    "description": "Create production Workspace account, configure SSO, and set up admin users with MFA enabled. Verify email routing and security policies.",
+                    "priority": "critical",
+                    "due_date": "2025-12-21"
+                  },
+                  {
+                    "title": "Configure domain settings",
+                    "description": "Update DNS records, configure SPF/DKIM/DMARC for email authentication, verify domain ownership, and set up SSL certificates.",
+                    "priority": "high",
+                    "due_date": "2025-12-21"
+                  },
+                  {
+                    "title": "Set up monitoring",
+                    "description": "Install monitoring agents, configure alerts for CPU/memory/disk usage, set up log aggregation, and create monitoring dashboards.",
+                    "priority": "medium",
+                    "due_date": "2025-12-22"
+                  }
+                ]
+              },
+              {
+                "title": "Deploy and test",
+                "description": "Deploy all components to production and run comprehensive end-to-end tests to verify functionality.",
+                "due_date": "2025-12-24",
+                "priority": "critical",
+                "subtasks": [
+                  {
+                    "title": "Deploy form to production",
+                    "description": "Deploy customer onboarding form with production credentials and verify all endpoints."
+                  },
+                  {
+                    "title": "Deploy sheet to production",
+                    "description": "Deploy sheet integration with proper permissions and test data flow."
+                  },
+                  "Test end-to-end workflow",
+                  {
+                    "title": "Monitor for 24 hours",
+                    "description": "Watch for errors, performance issues, or unexpected behavior during the first 24 hours post-deployment."
+                  }
+                ]
+              },
+              "Document deployment process"
+            ],
+            "priority": "critical",
+            "due_date": "2025-12-25",
+            "estimated_hours": 16
+          }
+        }
+      ]
+    },
+    {
+      "name": "synergy_create_task",
+      "short_description": "Create new task within milestone with title, description, assignee, priority, due date",
+      "description": "➕ ADD TASK TO MILESTONE\n\n📌 WHAT IT DOES:\nAdd a new task to an existing milestone.\n\n✅ WHEN TO USE:\n- Add work items as you discover them\n- Break down milestones further\n- Add follow-up tasks\n- Need structured task with title + description + metadata\n\n✨ NEW STRUCTURE:\n- ✅ Checkbox support (completed status)\n- 📋 Title: Short name (required)\n- 📝 Description: Full context (optional)\n- 🔥 Priority: low|medium|high|critical\n- 📅 Due date: YYYY-MM-DD format\n- 👤 Assigned to: Person/team name",
+      "platform": "synergy",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "milestone_id": {
+            "type": "string",
+            "description": "Parent milestone ID (REQUIRED)"
+          },
+          "title": {
+            "type": "string",
+            "description": "Task title - Short name (REQUIRED). Example: \"Configure database backups\""
+          },
+          "description": {
+            "type": "string",
+            "description": "Task description - Full context (OPTIONAL). Include requirements, acceptance criteria, notes. Line breaks preserved in UI."
+          },
+          "subtasks": {
+            "type": "array",
+            "items": {
+              "oneOf": [
+                {
+                  "type": "string",
+                  "description": "Simple subtask title"
+                },
+                {
+                  "type": "object",
+                  "description": "Subtask with full metadata",
+                  "properties": {
+                    "title": {
+                      "type": "string",
+                      "description": "Subtask title - Short name (REQUIRED)"
+                    },
+                    "description": {
+                      "type": "string",
+                      "description": "Subtask description - Full context (OPTIONAL)"
+                    },
+                    "due_date": {
+                      "type": "string",
+                      "description": "Subtask due date in YYYY-MM-DD format (OPTIONAL)"
+                    },
+                    "priority": {
+                      "type": "string",
+                      "enum": [
+                        "low",
+                        "medium",
+                        "high",
+                        "critical"
+                      ],
+                      "default": "medium",
+                      "description": "Subtask priority level"
+                    }
+                  },
+                  "required": [
+                    "title"
+                  ]
+                }
+              ]
+            },
+            "description": "List of subtasks (OPTIONAL). Can be strings or objects with title, description, priority, due_date."
+          },
+          "due_date": {
+            "type": "string",
+            "description": "Task due date in YYYY-MM-DD format (OPTIONAL)"
+          },
+          "priority": {
+            "type": "string",
+            "enum": [
+              "low",
+              "medium",
+              "high",
+              "critical"
+            ],
+            "default": "medium",
+            "description": "Task priority level"
+          },
+          "assigned_to": {
+            "type": "string",
+            "description": "Person or team assigned to this task (OPTIONAL)"
+          },
+          "estimated_hours": {
+            "type": "number",
+            "description": "Estimated hours to complete (OPTIONAL)"
+          }
+        },
+        "required": [
+          "milestone_id",
+          "title"
+        ]
+      },
+      "examples": [
+        {
+          "description": "Simple task with title only",
+          "parameters": {
+            "milestone_id": "ms_1732728394_001",
+            "title": "Configure database backup system",
+            "priority": "high",
+            "due_date": "2025-12-20"
+          }
+        },
+        {
+          "description": "Task with title and description (recommended for complex tasks)",
+          "parameters": {
+            "milestone_id": "ms_1732728394_001",
+            "title": "Configure database backup system",
+            "description": "Set up automated daily backups to AWS S3 with 30-day retention. Configure backup verification scripts and monitoring alerts. Ensure encryption at rest and in transit.",
+            "due_date": "2025-12-20",
+            "priority": "high",
+            "assigned_to": "DevOps Team",
+            "estimated_hours": 8,
+            "subtasks": [
+              {
+                "title": "Set up S3 bucket",
+                "description": "Create dedicated S3 bucket with versioning enabled and lifecycle policies for 30-day retention",
+                "due_date": "2025-12-18"
+              },
+              {
+                "title": "Configure backup scripts",
+                "description": "Write and test pg_dump scripts with compression and encryption"
+              },
+              {
+                "title": "Set up monitoring",
+                "description": "Configure CloudWatch alarms for failed backups and Slack notifications",
+                "due_date": "2025-12-19",
+                "priority": "critical"
+              }
+            ]
+          }
+        },
+        {
+          "description": "Task with mixed subtasks (some simple, some with full metadata)",
+          "parameters": {
+            "milestone_id": "ms_1732728394_002",
+            "title": "Deploy production environment",
+            "description": "Deploy all components to production and verify functionality",
+            "due_date": "2025-12-22",
+            "priority": "critical",
+            "assigned_to": "Platform Team",
+            "subtasks": [
+              "Review deployment checklist",
+              {
+                "title": "Update DNS records",
+                "description": "Point production domain to new load balancer. Update A records and verify propagation.",
+                "due_date": "2025-12-21",
+                "priority": "critical"
+              },
+              "Run smoke tests",
+              {
+                "title": "Monitor initial traffic",
+                "description": "Watch error rates, response times, and resource utilization for first hour",
+                "priority": "high"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "synergy_update_task",
+      "short_description": "Update task title, description, status, assignee, priority, due date",
+      "description": "✏️ UPDATE TASK\n\nUpdate task details or mark complete.",
+      "platform": "synergy",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "task_id": {
+            "type": "string",
+            "description": "Task ID (REQUIRED)"
+          },
+          "task": {
+            "type": "string",
+            "description": "Update task text (OPTIONAL)"
+          },
+          "completed": {
+            "type": "boolean",
+            "description": "Mark complete/incomplete (OPTIONAL)"
+          },
+          "priority": {
+            "type": "string",
+            "enum": [
+              "low",
+              "medium",
+              "high",
+              "critical"
+            ],
+            "description": "Update priority (OPTIONAL)"
+          },
+          "blocked": {
+            "type": "boolean",
+            "description": "Mark as blocked (OPTIONAL)"
+          },
+          "blocker_reason": {
+            "type": "string",
+            "description": "Reason for block (OPTIONAL)"
+          }
+        },
+        "required": [
+          "task_id"
+        ]
+      }
+    },
+    {
+      "name": "synergy_move_session",
+      "short_description": "Move session between Kanban columns: backlog, in_progress, review, done",
+      "description": "➡️ MOVE SESSION BETWEEN COLUMNS\n\nMove session to different Kanban column. Use to show progress:\n- backlog → in_progress (start work)\n- in_progress → review (ready for review)\n- review → done (completed)\n- Any column → backlog (deprioritize)",
+      "platform": "synergy",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "session_id": {
+            "type": "string",
+            "description": "Session ID (REQUIRED)"
+          },
+          "target_column": {
+            "type": "string",
+            "enum": [
+              "backlog",
+              "in_progress",
+              "review",
+              "done"
+            ],
+            "description": "Destination column (REQUIRED)"
+          }
+        },
+        "required": [
+          "session_id",
+          "target_column"
+        ]
+      }
+    },
+    {
+      "name": "synergy_resolve_reference",
+      "short_description": "Resolve milestone/task/subtask reference (M1, T1.2, S1.2.3) to full details and IDs",
+      "description": "🔍 RESOLVE SESSION REFERENCE\n\nGet details for a specific milestone, task, or document using reference codes. Use when:\n- User mentions 'M1' (Milestone 1)\n- User mentions 'T1.2' (Task 2 in Milestone 1)\n- User mentions 'S1.2.3' (Subtask 3 in Task 2 of Milestone 1)\n- User mentions 'D5' (Document 5)\n\n💡 REFERENCE FORMAT:\n- M[number]: Milestone (e.g., M1, M2, M3)\n- T[milestone].[task]: Task (e.g., T1.1, T2.3)\n- S[milestone].[task].[subtask]: Subtask (e.g., S1.1.1, S2.3.2)\n- D[number]: Document (e.g., D1, D2)\n\nReturns: Full details of the referenced item including IDs, status, content, and metadata.",
+      "platform": "synergy",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "session_id": {
+            "type": "string",
+            "description": "Session ID (REQUIRED)",
+            "examples": [
+              "sess_20251127_1430_customer_onboarding"
+            ]
+          },
+          "reference_code": {
+            "type": "string",
+            "description": "Reference code (REQUIRED). Format:\n- M[number] for milestone\n- T[milestone].[task] for task\n- S[milestone].[task].[subtask] for subtask\n- D[number] for document",
+            "examples": [
+              "M1",
+              "M2",
+              "T1.1",
+              "T2.3",
+              "S1.1.1",
+              "S2.3.2",
+              "D1",
+              "D5"
+            ]
+          }
+        },
+        "required": [
+          "session_id",
+          "reference_code"
+        ]
+      },
+      "returns": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "reference_type": {
+            "type": "string",
+            "enum": [
+              "milestone",
+              "task",
+              "subtask",
+              "document"
+            ],
+            "description": "Type of item found"
+          },
+          "item": {
+            "type": "object",
+            "description": "Full item details including IDs, content, status, metadata"
+          },
+          "parent_context": {
+            "type": "object",
+            "description": "Parent milestone/task context for tasks/subtasks"
+          }
+        }
+      },
+      "examples": [
+        {
+          "description": "Resolve milestone reference",
+          "parameters": {
+            "session_id": "sess_20251127_1430_customer_onboarding",
+            "reference_code": "M1"
+          },
+          "expected_response": {
+            "success": true,
+            "reference_type": "milestone",
+            "item": {
+              "milestone_id": "ms_1732728394_001",
+              "milestone_number": 1,
+              "milestone_name": "Phase 1: Database Setup",
+              "description": "Create and configure customer database",
+              "completed": false,
+              "tasks": 5,
+              "completed_tasks": 2,
+              "priority": "critical"
+            }
+          }
+        },
+        {
+          "description": "Resolve task reference",
+          "parameters": {
+            "session_id": "sess_20251127_1430_customer_onboarding",
+            "reference_code": "T1.2"
+          },
+          "expected_response": {
+            "success": true,
+            "reference_type": "task",
+            "item": {
+              "task_id": "task_1732728394_002",
+              "task": "Design database schema",
+              "completed": false,
+              "subtasks": 4,
+              "completed_subtasks": 1,
+              "priority": "high"
+            },
+            "parent_context": {
+              "milestone_number": 1,
+              "milestone_name": "Phase 1: Database Setup"
+            }
+          }
+        },
+        {
+          "description": "Resolve document reference",
+          "parameters": {
+            "session_id": "sess_20251127_1430_customer_onboarding",
+            "reference_code": "D1"
+          },
+          "expected_response": {
+            "success": true,
+            "reference_type": "document",
+            "item": {
+              "title": "Customer Database",
+              "url": "https://docs.google.com/spreadsheets/d/abc123",
+              "type": "google_sheet",
+              "description": "Main customer database"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "synergy_get_milestones",
+      "short_description": "Get all milestones for session with tasks, subtasks, progress, status",
+      "description": "📊 GET ALL MILESTONES FOR SESSION\n\nGet complete list of all milestones with full task/subtask hierarchy. Use to:\n- See overall project structure\n- Check completion status\n- Get milestone IDs for updates\n- Review all tasks and subtasks\n\nReturns: Array of milestone objects with complete nested structure (milestones → tasks → subtasks).",
+      "platform": "synergy",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "session_id": {
+            "type": "string",
+            "description": "Session ID (REQUIRED)",
+            "examples": [
+              "sess_20251127_1430_customer_onboarding"
+            ]
+          },
+          "include_completed": {
+            "type": "boolean",
+            "description": "Include completed milestones (OPTIONAL, default: true)",
+            "default": true
+          }
+        },
+        "required": [
+          "session_id"
+        ]
+      },
+      "returns": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "milestones": {
+            "type": "array",
+            "description": "Array of milestone objects with full hierarchy"
+          },
+          "total_milestones": {
+            "type": "number"
+          },
+          "completed_milestones": {
+            "type": "number"
+          },
+          "overall_progress": {
+            "type": "object",
+            "properties": {
+              "total_tasks": {
+                "type": "number"
+              },
+              "completed_tasks": {
+                "type": "number"
+              },
+              "percentage": {
+                "type": "number"
+              }
+            }
+          }
+        }
+      },
+      "examples": [
+        {
+          "description": "Get all milestones for session",
+          "parameters": {
+            "session_id": "sess_20251127_1430_customer_onboarding",
+            "include_completed": true
+          }
+        }
+      ]
+    },
+    {
+      "name": "synergy_link_thread",
+      "short_description": "Link conversation thread to Synergy session for cross-conversation context tracking",
+      "description": "🔗 LINK CONVERSATION THREAD TO SESSION\n\nLink the current conversation thread to a Synergy session. This enables:\n- Session shows which threads are related\n- Thread shows Synergy badge with session name\n- Easy navigation between conversation and project\n- Cross-conversation context\n\n💡 USE CASES:\n- User starts working on existing Synergy project\n- New conversation about same project\n- Multiple AI agents working on same session\n- Tracking which conversations relate to which projects\n\n⚠️ AUTOMATIC: Current thread is auto-linked when you create a session. Only call this to link additional threads.",
+      "platform": "synergy",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "session_id": {
+            "type": "string",
+            "description": "Session ID to link to (REQUIRED)",
+            "examples": [
+              "sess_20251127_1430_customer_onboarding"
+            ]
+          },
+          "thread_id": {
+            "type": "string",
+            "description": "Thread ID to link (OPTIONAL - current thread auto-detected if omitted). Only provide if linking a different thread.",
+            "examples": [
+              "thread_1732728394"
+            ]
+          }
+        },
+        "required": [
+          "session_id"
+        ]
+      },
+      "returns": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "thread_id": {
+            "type": "string",
+            "description": "Thread that was linked"
+          },
+          "message": {
+            "type": "string"
+          }
+        }
+      },
+      "examples": [
+        {
+          "description": "Link current thread to session",
+          "parameters": {
+            "session_id": "sess_20251127_1430_customer_onboarding"
+          }
+        }
+      ]
+    },
+    {
+      "name": "synergy_export_synergy_doc",
+      "short_description": "Export Synergy Doc/Sheet to Word, Google Doc, PDF, or email via Gmail",
+      "description": "📤 EXPORT Synergy Doc\n\nExport an Synergy Doc to various formats:\n- Word (.docx in OneDrive)\n- Google Doc (in Drive)\n- PDF (via Word conversion)\n- Email (send via Gmail)\n\nUse when:\n- User needs document in external format\n- Sharing with external users\n- Creating final deliverables\n- Email delivery required",
+      "platform": "synergy",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "doc_id": {
+            "type": "string",
+            "description": "Synergy Doc ID (REQUIRED). Format: int_doc_[timestamp]. Get from synergy_create_synergy_doc() or synergy_get_session().",
+            "examples": [
+              "int_doc_1732728394"
+            ]
+          },
+          "export_format": {
+            "type": "string",
+            "enum": [
+              "word",
+              "google_doc",
+              "pdf",
+              "email"
+            ],
+            "description": "Export format (REQUIRED):\n- 'word': Create .docx in OneDrive\n- 'google_doc': Create Google Doc in Drive\n- 'pdf': Create PDF (via Word conversion)\n- 'email': Send via Gmail",
+            "examples": [
+              "word",
+              "google_doc",
+              "pdf",
+              "email"
+            ]
+          },
+          "email_to": {
+            "type": "string",
+            "description": "Recipient email (REQUIRED if export_format='email')",
+            "examples": [
+              "customer@example.com",
+              "team@company.com"
+            ]
+          },
+          "email_subject": {
+            "type": "string",
+            "description": "Email subject (OPTIONAL, only for export_format='email'). Defaults to 'Document: [title]'",
+            "examples": [
+              "Customer Onboarding Plan",
+              "Project Documentation"
+            ]
+          }
+        },
+        "required": [
+          "doc_id",
+          "export_format"
+        ]
+      },
+      "returns": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "export_format": {
+            "type": "string"
+          },
+          "url": {
+            "type": "string",
+            "description": "URL to exported file (for word/google_doc/pdf)"
+          },
+          "file_id": {
+            "type": "string",
+            "description": "File ID in OneDrive/Drive"
+          },
+          "message": {
+            "type": "string"
+          }
+        }
+      },
+      "examples": [
+        {
+          "description": "Export to Google Doc",
+          "parameters": {
+            "doc_id": "int_doc_1732728394",
+            "export_format": "google_doc"
+          }
+        },
+        {
+          "description": "Send via email",
+          "parameters": {
+            "doc_id": "int_doc_1732728394",
+            "export_format": "email",
+            "email_to": "customer@example.com",
+            "email_subject": "Customer Onboarding Plan"
+          }
+        }
+      ]
+    },
+    {
+      "name": "synergy_get_synergy_doc",
+      "short_description": "Get Synergy Doc/Sheet content with markdown, metadata, version history",
+      "description": "📖 READ Synergy Doc CONTENT (Synergy Doc/Sheet)\n\n🆕 REBRANDED: Synergy Docs → Synergy Docs\n\n🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data\n(2) MUST cite resource: 'Read from **[title]** (Synergy Doc ID: `[doc_id]`)'\n(3) Use EXACT [doc_id] provided - NEVER substitute\n(4) If tool fails (404), say 'Synergy Doc not found: [doc_id]'\n(5) NEVER make up content if read fails\n\n📊 WHAT IT DOES:\nRetrieves full content and metadata from a Synergy Doc (Doc or Sheet). Returns:\n\n**For Synergy Docs (richtext):**\n- Markdown content\n- HTML version (formatted)\n- Plain text version\n\n**For Synergy Sheets (spreadsheet):**\n- JSON data (rows and columns)\n- Parsed table structure\n- Formula results\n\n**Metadata (both types):**\n- Title, description, tags\n- Version number (for tracking changes)\n- Created/updated timestamps\n- Share URL (for linking)\n- Attached session ID\n\n✅ USE WHEN:\n- User asks to read/view a Synergy Doc\n- Need content for processing or analysis\n- Summarizing file contents\n- Referencing data from Synergy Sheet\n- Checking current version before updating\n- Copying content to another location\n\n🔗 SESSION INTEGRATION:\n- Files are linked to specific Synergy sessions\n- Can retrieve session_id from file metadata\n- Access from session's resources list",
+      "platform": "synergy",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "doc_id": {
+            "type": "string",
+            "description": "Synergy Doc ID (REQUIRED). Format: int_doc_[timestamp]\n\nGet this from:\n- synergy_create_synergy_doc() return value\n- synergy_get_session() resources list\n- Session resources in Synergy dashboard",
+            "examples": [
+              "int_doc_1732728394",
+              "int_doc_1733672800"
+            ]
+          }
+        },
+        "required": [
+          "doc_id"
+        ]
+      },
+      "returns": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "doc_id": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "doc_type": {
+            "type": "string",
+            "enum": [
+              "richtext",
+              "spreadsheet"
+            ]
+          },
+          "content": {
+            "type": "string",
+            "description": "Document content (markdown for richtext, parsed table for spreadsheet)"
+          },
+          "content_html": {
+            "type": "string",
+            "description": "HTML version (richtext only)"
+          },
+          "content_json": {
+            "type": "string",
+            "description": "Structured data (spreadsheet only)"
+          },
+          "version": {
+            "type": "number"
+          },
+          "created_at": {
+            "type": "string"
+          },
+          "updated_at": {
+            "type": "string"
+          },
+          "share_url": {
+            "type": "string"
+          }
+        }
+      },
+      "examples": [
+        {
+          "description": "Get Synergy Doc content",
+          "parameters": {
+            "doc_id": "int_doc_1732728394"
+          }
+        }
+      ]
+    },
+    {
+      "name": "synergy_update_synergy_doc",
+      "short_description": "Update Synergy Doc/Sheet content, title, or metadata with version tracking",
+      "description": "✏️ UPDATE Synergy Doc (Synergy Doc/Sheet)\n\n🆕 REBRANDED: Synergy Docs → Synergy Docs\n\n🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER pretend to edit from memory\n(2) MUST cite: 'Updated **[title]** (Synergy Doc ID: `[doc_id]`)'\n(3) Use EXACT [doc_id] provided\n(4) If tool fails, say 'Failed to update Synergy Doc' and explain\n(5) Show before/after changes if applicable\n\n📊 WHAT IT DOES:\nUpdates content or metadata of a Synergy Doc (Doc or Sheet).\n\n✅ CAN UPDATE:\n- Content (markdown for Docs, data for Sheets)\n- Title\n- Description\n- Tags\n\n🔄 VERSION CONTROL:\n- Each update increments version number\n- Previous versions are tracked\n- Updated timestamp recorded\n\n⚠️ CONTENT REPLACEMENT:\nUpdating 'content' REPLACES existing content entirely.\n\n**To APPEND instead of replace:**\n1. First: synergy_get_synergy_doc(doc_id) to fetch existing\n2. Combine: old_content + new_content\n3. Then: synergy_update_synergy_doc(doc_id, content=combined)\n\n🔗 SESSION INTEGRATION:\n- File remains linked to same session\n- Updates visible in session history\n- Version tracking per file",
+      "platform": "synergy",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "doc_id": {
+            "type": "string",
+            "description": "Synergy Doc ID to update (REQUIRED). Format: int_doc_[timestamp]",
+            "examples": [
+              "int_doc_1732728394",
+              "int_doc_1733672800"
+            ]
+          },
+          "content": {
+            "type": "string",
+            "description": "New content (OPTIONAL). REPLACES existing content - fetch first to append!\n\nFor Synergy Docs (richtext):\n- Provide markdown text\n- Supports headings, lists, formatting\n\nFor Synergy Sheets (spreadsheet):\n- Provide JSON: {\"rows\": [[\"A1\", \"B1\"], [\"A2\", \"B2\"]]}\n- Or CSV format: \"Col1,Col2\\nVal1,Val2\"\n\n⚠️ WARNING: This REPLACES all content. To append, first get existing content."
+          },
+          "title": {
+            "type": "string",
+            "description": "New title for Synergy Doc (OPTIONAL). Updates how it appears in session resources."
+          },
+          "description": {
+            "type": "string",
+            "description": "New description (OPTIONAL). Updates document metadata."
+          }
+        },
+        "required": [
+          "doc_id"
+        ]
+      },
+      "returns": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "doc_id": {
+            "type": "string"
+          },
+          "version": {
+            "type": "number",
+            "description": "New version number (incremented)"
+          },
+          "updated_at": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          }
+        }
+      },
+      "examples": [
+        {
+          "description": "Update Synergy Doc content (richtext)",
+          "parameters": {
+            "doc_id": "int_doc_1732728394",
+            "content": "# Updated Planning Notes\n\n## Phase 1 Complete ✅\n- Database created\n- Schema configured\n- Test data imported\n\n## Next: Phase 2 🛠️\n- Create signup form\n- Connect to database\n- Test end-to-end flow"
+          }
+        },
+        {
+          "description": "Update Synergy Doc title and description",
+          "parameters": {
+            "doc_id": "int_doc_1732728394",
+            "title": "Project Planning Notes - Updated Dec 8, 2025",
+            "description": "Comprehensive planning doc with milestones, requirements, and timeline"
+          }
+        },
+        {
+          "description": "Update Synergy Sheet data (spreadsheet)",
+          "parameters": {
+            "doc_id": "int_doc_1733672800",
+            "content": "Task,Status,Priority,Completed\nSetup database,Complete,High,2025-12-01\nCreate forms,In Progress,High,\nTest workflows,Not Started,Medium,\nDeploy,Not Started,Low,"
+          }
+        }
+      ]
+    },
+    {
+      "name": "synergy_delete_session",
+      "short_description": "Permanently delete Synergy session and all associated data (cannot undo)",
+      "description": "🗑️ DELETE SESSION (PERMANENT)\n\n⚠️ CRITICAL WARNING: This PERMANENTLY deletes:\n- Session card from dashboard\n- All milestones, tasks, subtasks\n- All linked Synergy Docs\n- All metadata and history\n- Cannot be undone!\n\n💡 RECOMMENDED ALTERNATIVES:\n1. Archive instead: synergy_update_session(status='archived')\n2. Move to 'done': synergy_move_session(target_column='done')\n\nONLY use delete for:\n- Test sessions\n- Duplicate sessions\n- Abandoned projects user explicitly wants removed",
+      "platform": "synergy",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "session_id": {
+            "type": "string",
+            "description": "Session ID to delete (REQUIRED)",
+            "examples": [
+              "sess_20251127_1430_test_project"
+            ]
+          },
+          "confirm": {
+            "type": "boolean",
+            "description": "Confirmation flag (REQUIRED, must be true)",
+            "default": false
+          }
+        },
+        "required": [
+          "session_id",
+          "confirm"
+        ]
+      },
+      "returns": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "message": {
+            "type": "string"
+          }
+        }
+      },
+      "examples": [
+        {
+          "description": "Delete test session",
+          "parameters": {
+            "session_id": "sess_20251127_1430_test_project",
+            "confirm": true
+          }
+        }
+      ],
+      "critical_notes": [
+        "⚠️ ALWAYS ask user to confirm before deleting",
+        "⚠️ SUGGEST archiving or moving to 'done' instead",
+        "⚠️ Deletion is PERMANENT - cannot be recovered",
+        "⚠️ Deletes ALL associated data (milestones, tasks, documents)"
+      ]
+    },
+    {
+      "name": "synergy_update_session",
+      "short_description": "Update session title, description, priority, due date, status, platforms",
+      "description": "✏️ UPDATE SESSION METADATA\n\n🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER reference previous edits from memory\n(2) MUST cite: 'Updated session **[title]** (ID: `[session_id]`)'\n(3) Use EXACT [session_id] provided\n(4) If tool fails, say 'Failed to update' and explain\n(5) Show what was changed\n\n⚠️ MILESTONE STRUCTURE AWARENESS: If session uses milestones (uses_milestones=true), you CANNOT update next_steps or checklist fields - those are deprecated.\n\n📝 UPDATE SESSION-LEVEL FIELDS\n\nUpdate session metadata like title, description, priority, status, tags, etc. Use to:\n- Change project title or description\n- Update priority level\n- Change status (active/completed/archived)\n- Update due date\n- Add/update tags\n- Change project grouping\n\n⚠️ NOTE: For documents, use synergy_add_document(). For milestones/tasks, use milestone-specific tools.",
+      "platform": "synergy",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "session_id": {
+            "type": "string",
+            "description": "Session ID to update (REQUIRED)",
+            "examples": [
+              "sess_20251127_1430_customer_onboarding"
+            ]
+          },
+          "title": {
+            "type": "string",
+            "description": "Update session title (OPTIONAL)",
+            "examples": [
+              "Customer Onboarding System - Updated"
+            ]
+          },
+          "description": {
+            "type": "string",
+            "description": "Update session description (OPTIONAL)",
+            "examples": [
+              "Multi-platform automation system with forms, database, and email workflows"
+            ]
+          },
+          "priority": {
+            "type": "string",
+            "enum": [
+              "low",
+              "medium",
+              "high",
+              "critical"
+            ],
+            "description": "Update priority level (OPTIONAL)"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "active",
+              "completed",
+              "archived"
+            ],
+            "description": "Update status (OPTIONAL). Use 'archived' instead of deleting!"
+          },
+          "due_date": {
+            "type": "string",
+            "description": "Update due date YYYY-MM-DD (OPTIONAL)",
+            "examples": [
+              "2025-12-31"
+            ]
+          },
+          "tags": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Update tags - REPLACES all tags! Pass all tags you want to keep. (OPTIONAL)",
+            "examples": [
+              [
+                "automation",
+                "customer-facing",
+                "high-priority"
+              ]
+            ]
+          },
+          "project_name": {
+            "type": "string",
+            "description": "Update project group name (OPTIONAL)",
+            "examples": [
+              "Customer Systems",
+              "Marketing Automation"
+            ]
+          }
+        },
+        "required": [
+          "session_id"
+        ]
+      },
+      "returns": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "session_id": {
+            "type": "string"
+          },
+          "updated_fields": {
+            "type": "array",
+            "description": "List of fields that were updated"
+          },
+          "message": {
+            "type": "string"
+          }
+        }
+      },
+      "examples": [
+        {
+          "description": "Update priority to critical",
+          "parameters": {
+            "session_id": "sess_20251127_1430_customer_onboarding",
+            "priority": "critical"
+          }
+        },
+        {
+          "description": "Archive completed project",
+          "parameters": {
+            "session_id": "sess_20251127_1430_customer_onboarding",
+            "status": "archived"
+          }
+        },
+        {
+          "description": "Update multiple fields",
+          "parameters": {
+            "session_id": "sess_20251127_1430_customer_onboarding",
+            "title": "Customer Onboarding System - Phase 2",
+            "description": "Expanded to include SMS notifications and Slack integration",
+            "priority": "high",
+            "due_date": "2025-12-31",
+            "tags": [
+              "automation",
+              "customer-facing",
+              "multi-channel",
+              "phase-2"
+            ]
+          }
+        }
+      ],
+      "critical_notes": [
+        "⚠️ NEVER try to update next_steps or checklist - use milestones instead",
+        "⚠️ Tags array REPLACES all tags - include all tags you want to keep",
+        "⚠️ For documents, use synergy_add_document() instead",
+        "⚠️ For milestones/tasks, use synergy_update_milestone()/synergy_update_task()"
+      ]
+    },
+    {
+      "name": "synergy_update_session_permissions",
+      "short_description": "Update session permissions (private/shared/public)",
+      "description": "🔐 UPDATE SESSION PERMISSIONS & SHARING\n\n🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER reference previous edits from memory\n(2) MUST cite: 'Updated permissions for **[title]** (ID: `[session_id]`)'\n(3) Use EXACT [session_id] provided\n(4) Only session OWNER can change permissions\n(5) Show what permissions were changed\n\n🔒 PERMISSION SYSTEM OVERVIEW\n\nControl who can access and edit a Synergy session. Four permission levels:\n\n1️⃣ **private** (Default - Most Secure)\n   - Only the owner can view and edit\n   - Use for: Personal projects, confidential work\n   - Example: Private client work, sensitive business plans\n\n2️⃣ **shared** (Team Collaboration)\n   - Owner + specific users can view and edit\n   - Specify user IDs in shared_with_users array\n   - Use for: Team projects, collaborative work\n   - Example: Marketing team campaign, dev team sprint\n\n3️⃣ **public_view** (Read-Only Sharing)\n   - Anyone with link can VIEW, only owner can EDIT\n   - Use for: Portfolio showcases, public documentation\n   - Example: Project portfolio, public roadmap\n\n4️⃣ **public_edit** (Open Collaboration - Least Secure)\n   - Anyone with link can VIEW and EDIT\n   - Use for: Community projects, open wikis\n   - Example: Community knowledge base, hackathon project\n\n💡 COMMON USE CASES:\n- Make project private: permission_level='private'\n- Share with team: permission_level='shared', shared_with_users=[2, 5, 8]\n- Public portfolio: permission_level='public_view'\n- Remove sharing: permission_level='private', shared_with_users=[]\n\n⚠️ SECURITY NOTES:\n- Owner always has full access regardless of permission level\n- Only owner can change permissions\n- Changing to 'private' clears shared_with_users\n- public_edit allows ANYONE to modify - use with caution",
+      "platform": "synergy",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "session_id": {
+            "type": "string",
+            "description": "Session ID to update (REQUIRED)",
+            "examples": [
+              "sess_20251127_1430_customer_onboarding"
+            ]
+          },
+          "user_id": {
+            "type": "integer",
+            "description": "User ID of the person making the change (for ownership verification - REQUIRED)",
+            "examples": [
+              1
+            ]
+          },
+          "permission_level": {
+            "type": "string",
+            "enum": [
+              "private",
+              "shared",
+              "public_view",
+              "public_edit"
+            ],
+            "description": "New permission level (OPTIONAL). Default: 'private'\n\n- 'private': Owner only (most secure)\n- 'shared': Owner + specified users\n- 'public_view': Anyone can view, owner edits\n- 'public_edit': Anyone can view and edit (least secure)",
+            "examples": [
+              "shared",
+              "public_view"
+            ]
+          },
+          "shared_with_users": {
+            "type": "array",
+            "items": {
+              "type": "integer"
+            },
+            "description": "Array of user IDs to share with (OPTIONAL, only used with permission_level='shared'). Pass empty array [] to remove all shared users.",
+            "examples": [
+              [
+                2,
+                5,
+                8
+              ],
+              []
+            ]
+          },
+          "allow_public_view": {
+            "type": "boolean",
+            "description": "Enable public link sharing (OPTIONAL). When true, generates shareable link. Only relevant for public_view/public_edit levels.",
+            "examples": [
+              true,
+              false
+            ]
+          }
+        },
+        "required": [
+          "session_id",
+          "user_id"
+        ]
+      },
+      "returns": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "session_id": {
+            "type": "string"
+          },
+          "updated_permissions": {
+            "type": "object",
+            "description": "Object showing new permission settings"
+          },
+          "message": {
+            "type": "string"
+          }
+        }
+      },
+      "examples": [
+        {
+          "description": "Make session private (remove all sharing)",
+          "parameters": {
+            "session_id": "sess_20251127_1430_customer_onboarding",
+            "user_id": 1,
+            "permission_level": "private",
+            "shared_with_users": []
+          }
+        },
+        {
+          "description": "Share with team members",
+          "parameters": {
+            "session_id": "sess_20251127_1430_customer_onboarding",
+            "user_id": 1,
+            "permission_level": "shared",
+            "shared_with_users": [
+              2,
+              5,
+              8,
+              12
+            ]
+          }
+        },
+        {
+          "description": "Make publicly viewable (portfolio)",
+          "parameters": {
+            "session_id": "sess_20251127_1430_customer_onboarding",
+            "user_id": 1,
+            "permission_level": "public_view",
+            "allow_public_view": true
+          }
+        },
+        {
+          "description": "Open for community editing",
+          "parameters": {
+            "session_id": "sess_20251127_1430_customer_onboarding",
+            "user_id": 1,
+            "permission_level": "public_edit",
+            "allow_public_view": true
+          }
+        }
+      ],
+      "critical_notes": [
+        "⚠️ Only session OWNER can change permissions",
+        "⚠️ Owner always has full access regardless of permission_level",
+        "⚠️ Changing to 'private' automatically clears shared_with_users",
+        "⚠️ public_edit allows ANYONE to modify - use with extreme caution",
+        "⚠️ permission_level defaults to 'private' if not specified"
+      ]
+    },
+    {
+      "name": "synergy_add_link",
+      "short_description": "Add external link or reference URL to session with title and description",
+      "description": "🔗 ADD CLICKABLE EXTERNAL LINK TO SESSION\n\nAdd external link/reference to session (separate from documents). Links become CLICKABLE in the UI and open in new browser tabs.\n\nUse for:\n- API documentation URLs\n- Dashboard links (Stripe, Firebase, etc.)\n- Reference materials\n- External resources that aren't documents\n- Deployment URLs (production apps)\n- Admin panels\n- Web tools and services\n\n🔗 URL REQUIREMENTS:\n✅ MUST use FULL URL (https://...)\n✅ MUST use descriptive title (not \"Link 1\" - use actual resource name)\n✅ Opens in NEW TAB when clicked\n\n💡 DIFFERENCE FROM DOCUMENTS:\n- Documents: Files you CREATED (Google Docs, Sheets, internal docs)\n- Links: External resources/references (URLs to EXISTING sites/tools you didn't create)\n\nExample: Add link to Stripe dashboard, Firebase console, deployed app URL",
+      "platform": "synergy",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "session_id": {
+            "type": "string",
+            "description": "Session ID (REQUIRED)",
+            "examples": [
+              "sess_20251127_1430_customer_onboarding"
+            ]
+          },
+          "title": {
+            "type": "string",
+            "description": "Link title/description (REQUIRED)",
+            "examples": [
+              "Stripe Dashboard",
+              "Production App URL",
+              "API Documentation",
+              "Firebase Console"
+            ]
+          },
+          "url": {
+            "type": "string",
+            "description": "Link URL (REQUIRED)",
+            "examples": [
+              "https://dashboard.stripe.com",
+              "https://myapp.com/admin",
+              "https://api.docs.com/reference"
+            ]
+          }
+        },
+        "required": [
+          "session_id",
+          "title",
+          "url"
+        ]
+      },
+      "returns": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "link_id": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          }
+        }
+      },
+      "examples": [
+        {
+          "description": "Add Stripe dashboard link",
+          "parameters": {
+            "session_id": "sess_20251127_1430_customer_onboarding",
+            "title": "Stripe Dashboard - Customer Payments",
+            "url": "https://dashboard.stripe.com/customers"
+          }
+        },
+        {
+          "description": "Add production app URL",
+          "parameters": {
+            "session_id": "sess_20251127_1430_customer_onboarding",
+            "title": "Production App (Live)",
+            "url": "https://app.mycompany.com"
+          }
+        }
+      ]
+    },
+    {
+      "name": "synergy_add_tag",
+      "short_description": "Add tag to session for organization, filtering, and categorization",
+      "description": "🏷️ ADD TAG TO SESSION\n\nAdd a single tag to session without replacing existing tags. Use for:\n- Categorization\n- Filtering\n- Organization\n- Search optimization\n\n💡 TIP: Adds to existing tags, doesn't replace them (unlike synergy_update_session which replaces all tags).",
+      "platform": "synergy",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "session_id": {
+            "type": "string",
+            "description": "Session ID (REQUIRED)",
+            "examples": [
+              "sess_20251127_1430_customer_onboarding"
+            ]
+          },
+          "tag": {
+            "type": "string",
+            "description": "Tag to add (REQUIRED)",
+            "examples": [
+              "urgent",
+              "q4-2025",
+              "customer-facing",
+              "automation"
+            ]
+          }
+        },
+        "required": [
+          "session_id",
+          "tag"
+        ]
+      },
+      "returns": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "tags": {
+            "type": "array",
+            "description": "Updated tags array"
+          },
+          "message": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    {
+      "name": "synergy_create_subtask",
+      "short_description": "Create new subtask within task with title, description, priority, due date",
+      "description": "➕ ADD SUBTASK TO TASK\n\n📌 WHAT IT DOES:\nAdd a new subtask to an existing task.\n\n✅ WHEN TO USE:\n- Break down complex tasks further\n- Add granular steps\n- Track detailed progress\n- Need structured subtask with title + description + metadata\n\n✨ NEW STRUCTURE:\n- ✅ Checkbox support (completed status)\n- 📋 Title: Short name (required)\n- 📝 Description: Full context (optional)\n- 🔥 Priority: low|medium|high|critical\n- 📅 Due date: YYYY-MM-DD format\n- 👤 Assigned to: Person/team name\n\nSubtasks appear nested under their parent task in the UI with completion checkboxes.",
+      "platform": "synergy",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "task_id": {
+            "type": "string",
+            "description": "Parent task ID (REQUIRED). Get from synergy_get_milestones() or synergy_resolve_reference()",
+            "examples": [
+              "task_1732728394_002"
+            ]
+          },
+          "title": {
+            "type": "string",
+            "description": "Subtask title - Short name (REQUIRED). Example: \"Configure SSL certificate\"",
+            "examples": [
+              "Define customer fields",
+              "Set up data validation rules",
+              "Create calculated columns"
+            ]
+          },
+          "description": {
+            "type": "string",
+            "description": "Subtask description - Full context (OPTIONAL). Include technical details, requirements, acceptance criteria. Line breaks preserved in UI.",
+            "examples": [
+              "Implement regex patterns for email and phone validation. Add range checks for numeric fields.",
+              "Generate Let's Encrypt certificate and configure nginx with HTTPS redirect. Verify A+ SSL Labs rating."
+            ]
+          },
+          "due_date": {
+            "type": "string",
+            "description": "Subtask due date in YYYY-MM-DD format (OPTIONAL)"
+          },
+          "priority": {
+            "type": "string",
+            "enum": [
+              "low",
+              "medium",
+              "high",
+              "critical"
+            ],
+            "description": "Subtask priority (OPTIONAL, default: medium)",
+            "default": "medium"
+          },
+          "assigned_to": {
+            "type": "string",
+            "description": "Person or team assigned to this subtask (OPTIONAL)"
+          },
+          "estimated_hours": {
+            "type": "number",
+            "description": "Estimated hours to complete (OPTIONAL)"
+          }
+        },
+        "required": [
+          "task_id",
+          "title"
+        ]
+      },
+      "returns": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "subtask_id": {
+            "type": "string",
+            "description": "Created subtask ID"
+          },
+          "message": {
+            "type": "string"
+          }
+        }
+      },
+      "examples": [
+        {
+          "description": "Simple subtask with title only",
+          "parameters": {
+            "task_id": "task_1732728394_002",
+            "title": "Add conditional formatting for status indicators",
+            "priority": "medium"
+          }
+        },
+        {
+          "description": "Subtask with title and detailed description (recommended for complex steps)",
+          "parameters": {
+            "task_id": "task_1732728394_005",
+            "title": "Configure SSL certificate",
+            "description": "Generate Let's Encrypt certificate for production domain. Set up auto-renewal cron job and configure nginx to use the certificate. Test HTTPS redirect and verify A+ rating on SSL Labs.",
+            "due_date": "2025-12-18",
+            "priority": "critical",
+            "assigned_to": "DevOps Team"
+          }
+        },
+        {
+          "description": "Subtask with technical implementation details",
+          "parameters": {
+            "task_id": "task_1732728394_008",
+            "title": "Implement rate limiting middleware",
+            "description": "Add express-rate-limit middleware to API routes. Configure 100 requests per 15 minutes per IP. Set up Redis for distributed rate limiting across instances. Add custom error responses with Retry-After headers.",
+            "due_date": "2025-12-19",
+            "priority": "high",
+            "assigned_to": "Backend Team",
+            "estimated_hours": 3
+          }
+        }
+      ]
+    },
+    {
+      "name": "synergy_update_subtask",
+      "short_description": "Update subtask title, description, status, or completion",
+      "description": "✏️ UPDATE SUBTASK\n\nUpdate subtask details or mark complete. Use to:\n- Mark subtask complete/incomplete\n- Update subtask text\n- Change priority\n\n⚠️ AUTO-COMPLETION CASCADE: When ALL subtasks in a task are completed, the parent task auto-completes. When ALL tasks in a milestone are completed, the milestone auto-completes.",
+      "platform": "synergy",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "subtask_id": {
+            "type": "string",
+            "description": "Subtask ID (REQUIRED)",
+            "examples": [
+              "subtask_1732728394_003"
+            ]
+          },
+          "subtask": {
+            "type": "string",
+            "description": "Update subtask text (OPTIONAL)"
+          },
+          "completed": {
+            "type": "boolean",
+            "description": "Mark complete/incomplete (OPTIONAL). Triggers auto-completion cascade if all subtasks complete."
+          },
+          "priority": {
+            "type": "string",
+            "enum": [
+              "low",
+              "medium",
+              "high",
+              "critical"
+            ],
+            "description": "Update priority (OPTIONAL)"
+          }
+        },
+        "required": [
+          "subtask_id"
+        ]
+      },
+      "returns": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "subtask_id": {
+            "type": "string"
+          },
+          "task_auto_completed": {
+            "type": "boolean",
+            "description": "True if parent task was auto-completed"
+          },
+          "milestone_auto_completed": {
+            "type": "boolean",
+            "description": "True if parent milestone was auto-completed"
+          },
+          "message": {
+            "type": "string"
+          }
+        }
+      },
+      "examples": [
+        {
+          "description": "Mark subtask complete",
+          "parameters": {
+            "subtask_id": "subtask_1732728394_003",
+            "completed": true
+          }
+        }
+      ]
+    },
+    {
+      "name": "synergy_delete_milestone",
+      "short_description": "Delete milestone and all its tasks and subtasks (permanent)",
+      "description": "🗑️ DELETE MILESTONE (PERMANENT)\n\n⚠️ WARNING: This PERMANENTLY deletes:\n- Milestone\n- All tasks in milestone\n- All subtasks\n- Cannot be undone!\n\n💡 RECOMMENDED: Mark milestone as complete instead of deleting, or move it to a 'cancelled' state.\n\nONLY use for:\n- Accidentally created duplicate milestones\n- Test milestones\n- User explicitly requests deletion",
+      "platform": "synergy",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "milestone_id": {
+            "type": "string",
+            "description": "Milestone ID to delete (REQUIRED)",
+            "examples": [
+              "ms_1732728394_001"
+            ]
+          },
+          "confirm": {
+            "type": "boolean",
+            "description": "Confirmation flag (REQUIRED, must be true)",
+            "default": false
+          }
+        },
+        "required": [
+          "milestone_id",
+          "confirm"
+        ]
+      },
+      "returns": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "message": {
+            "type": "string"
+          }
+        }
+      },
+      "critical_notes": [
+        "⚠️ ALWAYS ask user to confirm before deleting",
+        "⚠️ SUGGEST marking complete instead",
+        "⚠️ Deletion is PERMANENT",
+        "⚠️ Deletes ALL tasks and subtasks in milestone"
+      ]
+    },
+    {
+      "name": "synergy_delete_task",
+      "short_description": "Delete task permanently (cannot be undone)",
+      "description": "🗑️ DELETE TASK (PERMANENT)\n\n⚠️ WARNING: Permanently deletes task and all subtasks. Cannot be undone!\n\n💡 RECOMMENDED: Mark task as complete instead.\n\nONLY use for:\n- Duplicate tasks\n- Incorrectly created tasks\n- User explicitly requests deletion",
+      "platform": "synergy",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "task_id": {
+            "type": "string",
+            "description": "Task ID to delete (REQUIRED)",
+            "examples": [
+              "task_1732728394_002"
+            ]
+          },
+          "confirm": {
+            "type": "boolean",
+            "description": "Confirmation flag (REQUIRED, must be true)",
+            "default": false
+          }
+        },
+        "required": [
+          "task_id",
+          "confirm"
+        ]
+      },
+      "returns": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "message": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    {
+      "name": "synergy_delete_subtask",
+      "short_description": "Delete subtask from task (permanent)",
+      "description": "🗑️ DELETE SUBTASK (PERMANENT)\n\n⚠️ WARNING: Permanently deletes subtask. Cannot be undone!\n\n💡 RECOMMENDED: Mark subtask as complete instead.",
+      "platform": "synergy",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "subtask_id": {
+            "type": "string",
+            "description": "Subtask ID to delete (REQUIRED)",
+            "examples": [
+              "subtask_1732728394_003"
+            ]
+          },
+          "confirm": {
+            "type": "boolean",
+            "description": "Confirmation flag (REQUIRED, must be true)",
+            "default": false
+          }
+        },
+        "required": [
+          "subtask_id",
+          "confirm"
+        ]
+      },
+      "returns": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "message": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    {
+      "name": "synergy_set_milestone_blocker",
+      "short_description": "Mark milestone as blocked with reason",
+      "description": "🚫 MARK MILESTONE AS BLOCKED\n\nSet blocker status on milestone when work is blocked by:\n- External dependency (waiting on vendor, client, approval)\n- Technical blocker (API down, bug, missing access)\n- Resource blocker (waiting on team member, budget)\n- Dependency blocker (waiting on another milestone/task)\n\nVisual indicator appears in dashboard showing milestone is blocked with reason.",
+      "platform": "synergy",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "milestone_id": {
+            "type": "string",
+            "description": "Milestone ID (REQUIRED)",
+            "examples": [
+              "ms_1732728394_001"
+            ]
+          },
+          "blocked": {
+            "type": "boolean",
+            "description": "Set blocked (true) or unblocked (false) (REQUIRED)"
+          },
+          "blocker_reason": {
+            "type": "string",
+            "description": "Why is this blocked? (REQUIRED if blocked=true)",
+            "examples": [
+              "Waiting for client approval on design",
+              "API credentials not yet provided",
+              "Depends on completion of Milestone 1",
+              "Team member on vacation until next week"
+            ]
+          },
+          "blocker_type": {
+            "type": "string",
+            "enum": [
+              "external",
+              "technical",
+              "resource",
+              "dependency"
+            ],
+            "description": "Type of blocker (OPTIONAL)",
+            "examples": [
+              "external",
+              "technical"
+            ]
+          }
+        },
+        "required": [
+          "milestone_id",
+          "blocked"
+        ]
+      },
+      "returns": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "milestone_id": {
+            "type": "string"
+          },
+          "blocked": {
+            "type": "boolean"
+          },
+          "message": {
+            "type": "string"
+          }
+        }
+      },
+      "examples": [
+        {
+          "description": "Mark milestone as blocked",
+          "parameters": {
+            "milestone_id": "ms_1732728394_001",
+            "blocked": true,
+            "blocker_reason": "Waiting for client to provide API credentials",
+            "blocker_type": "external"
+          }
+        },
+        {
+          "description": "Unblock milestone",
+          "parameters": {
+            "milestone_id": "ms_1732728394_001",
+            "blocked": false
+          }
+        }
+      ]
+    },
+    {
+      "name": "synergy_set_task_blocker",
+      "short_description": "Mark task as blocked with reason",
+      "description": "🚫 MARK TASK AS BLOCKED\n\nSet blocker status on task. Blocked tasks show visual indicator and cannot be completed until unblocked.\n\nUse when task is blocked by:\n- External dependency\n- Technical issue\n- Resource unavailability\n- Another task/milestone",
+      "platform": "synergy",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "task_id": {
+            "type": "string",
+            "description": "Task ID (REQUIRED)",
+            "examples": [
+              "task_1732728394_002"
+            ]
+          },
+          "blocked": {
+            "type": "boolean",
+            "description": "Set blocked (true) or unblocked (false) (REQUIRED)"
+          },
+          "blocker_reason": {
+            "type": "string",
+            "description": "Why is this blocked? (REQUIRED if blocked=true)",
+            "examples": [
+              "Waiting for database schema approval",
+              "Bug in API preventing data import",
+              "Need admin access to complete"
+            ]
+          },
+          "blocker_type": {
+            "type": "string",
+            "enum": [
+              "external",
+              "technical",
+              "resource",
+              "dependency"
+            ],
+            "description": "Type of blocker (OPTIONAL)"
+          }
+        },
+        "required": [
+          "task_id",
+          "blocked"
+        ]
+      },
+      "returns": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "task_id": {
+            "type": "string"
+          },
+          "blocked": {
+            "type": "boolean"
+          },
+          "message": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    {
+      "name": "synergy_get_dashboard_url",
+      "short_description": "Get direct URL to session dashboard",
+      "description": "🔗 GET DASHBOARD URL FOR SESSION\n\nGet the direct URL to view this session in the Synergy Dashboard. Use to:\n- Share dashboard link with user\n- Provide visual progress tracking\n- Let user see Kanban board\n\n💡 TIP: Always tell user this URL after creating or updating a session so they can see visual progress!",
+      "platform": "synergy",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "session_id": {
+            "type": "string",
+            "description": "Session ID (REQUIRED)",
+            "examples": [
+              "sess_20251127_1430_customer_onboarding"
+            ]
+          }
+        },
+        "required": [
+          "session_id"
+        ]
+      },
+      "returns": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "dashboard_url": {
+            "type": "string",
+            "description": "Full URL to dashboard with session focused"
+          },
+          "session_id": {
+            "type": "string"
+          }
+        }
+      },
+      "examples": [
+        {
+          "description": "Get dashboard URL",
+          "parameters": {
+            "session_id": "sess_20251127_1430_customer_onboarding"
+          },
+          "expected_response": {
+            "success": true,
+            "dashboard_url": "https://yourdomain.com/dashboard?session=sess_20251127_1430_customer_onboarding",
+            "session_id": "sess_20251127_1430_customer_onboarding"
+          }
+        }
+      ]
+    },
+    {
+      "name": "synergy_search_sessions",
+      "description": "🔍 SEARCH SESSIONS BY KEYWORD\n\nSearch across all sessions by keyword, tag, or platform. Use to:\n- Find sessions matching criteria\n- Locate sessions by platform\n- Search by tag or keyword\n- Filter by date range\n\nSearches: title, description, tags, platform names, document titles",
+      "platform": "synergy",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "query": {
+            "type": "string",
+            "description": "Search query (REQUIRED). Searches title, description, tags, platforms",
+            "examples": [
+              "customer",
+              "email automation",
+              "database"
+            ]
+          },
+          "platforms": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Filter by platforms (OPTIONAL)",
+            "examples": [
+              [
+                "gmail",
+                "google_sheets"
+              ]
+            ]
+          },
+          "tags": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Filter by tags (OPTIONAL)",
+            "examples": [
+              [
+                "automation",
+                "customer-facing"
+              ]
+            ]
+          },
+          "date_from": {
+            "type": "string",
+            "description": "Start date YYYY-MM-DD (OPTIONAL)",
+            "examples": [
+              "2025-11-01"
+            ]
+          },
+          "date_to": {
+            "type": "string",
+            "description": "End date YYYY-MM-DD (OPTIONAL)",
+            "examples": [
+              "2025-12-31"
+            ]
+          },
+          "limit": {
+            "type": "number",
+            "description": "Max results (OPTIONAL, default: 50)",
+            "default": 50
+          }
+        },
+        "required": [
+          "query"
+        ]
+      },
+      "returns": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "results": {
+            "type": "array",
+            "description": "Array of matching sessions"
+          },
+          "total_count": {
+            "type": "number"
+          },
+          "query": {
+            "type": "string"
+          }
+        }
+      },
+      "examples": [
+        {
+          "description": "Search for customer-related projects",
+          "parameters": {
+            "query": "customer",
+            "limit": 10
+          }
+        },
+        {
+          "description": "Find automation projects using Gmail",
+          "parameters": {
+            "query": "automation",
+            "platforms": [
+              "gmail"
+            ],
+            "tags": [
+              "automation"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "synergy_add_milestone_document",
+      "short_description": "Add document to milestone (Google Docs, PDFs, Figma)",
+      "description": "🆕 SURGICAL ADD - Add ONE document to a milestone without touching existing documents\n\n📌 WHAT IT DOES:\nAppends a single document to a milestone's document list without fetching, modifying, or rewriting the entire array.\n\n✅ WHEN TO USE:\n- Adding reference documentation to a milestone\n- Linking Google Docs, Sheets, PDFs, Figma designs\n- Adding multiple documents one at a time\n- No need to know existing documents\n\n⚡ WHY IT'S BETTER:\n- No race conditions (no fetch-modify-update cycle)\n- Faster (only sends new document)\n- Safer (can't accidentally delete existing documents)\n- Simpler (no array manipulation needed)\n\n📋 DOCUMENT TYPES:\n- 'google_doc' - Google Docs\n- 'google_sheet' - Google Sheets\n- 'figma' - Figma designs\n- 'pdf' - PDF files\n- 'other' - Other document types",
+      "platform": "synergy",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "milestone_id": {
+            "type": "string",
+            "description": "Milestone ID (REQUIRED). Format: ms_YYYYMMDDHHMMSS\n\nGet from:\n- synergy_create_milestone() response\n- synergy_get_milestones() results\n- synergy_get_session() milestone list"
+          },
+          "title": {
+            "type": "string",
+            "description": "Document title (REQUIRED). Be descriptive.\n\nExamples:\n- 'API Documentation'\n- 'Database Schema Design'\n- 'UI Wireframes'\n- 'Security Audit Report'"
+          },
+          "url": {
+            "type": "string",
+            "description": "Full URL to document (REQUIRED).\n\nExamples:\n- 'https://docs.google.com/document/d/abc123/edit'\n- 'https://docs.google.com/spreadsheets/d/xyz789/edit'\n- 'https://www.figma.com/file/abc123/Design'\n- 'https://drive.google.com/file/d/pdf123/view'"
+          },
+          "doc_type": {
+            "type": "string",
+            "enum": [
+              "google_doc",
+              "google_sheet",
+              "figma",
+              "pdf",
+              "other"
+            ],
+            "default": "other",
+            "description": "Document type (OPTIONAL, default: 'other').\n\nChoose the appropriate type for visual icons and categorization."
+          }
+        },
+        "required": [
+          "milestone_id",
+          "title",
+          "url"
+        ]
+      },
+      "returns": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "document_added": {
+            "type": "object",
+            "properties": {
+              "title": {
+                "type": "string"
+              },
+              "url": {
+                "type": "string"
+              },
+              "type": {
+                "type": "string"
+              }
+            }
+          },
+          "total_documents": {
+            "type": "number",
+            "description": "New total count after addition"
+          }
+        }
+      },
+      "examples": [
+        {
+          "description": "Add API documentation to milestone",
+          "parameters": {
+            "milestone_id": "ms_20251208120000",
+            "title": "API Documentation",
+            "url": "https://docs.google.com/document/d/abc123/edit",
+            "doc_type": "google_doc"
+          }
+        },
+        {
+          "description": "Add Figma wireframes",
+          "parameters": {
+            "milestone_id": "ms_20251208120000",
+            "title": "UI Wireframes - User Dashboard",
+            "url": "https://www.figma.com/file/xyz789/Dashboard",
+            "doc_type": "figma"
+          }
+        }
+      ]
+    },
+    {
+      "name": "synergy_add_milestone_link",
+      "short_description": "Add link to milestone (dashboards, PRs, tools)",
+      "description": "🆕 SURGICAL ADD - Add ONE link to a milestone without touching existing links\n\n📌 WHAT IT DOES:\nAppends a single link to a milestone's link list without fetching, modifying, or rewriting the entire array.\n\n✅ WHEN TO USE:\n- Adding dashboard URLs\n- Linking production/staging environments\n- Adding GitHub PRs or Issues\n- Linking monitoring tools, admin panels\n- No need to know existing links\n\n⚡ WHY IT'S BETTER:\n- No race conditions\n- Faster (only sends new link)\n- Safer (can't accidentally delete existing links)\n- Simpler (no array manipulation)",
+      "platform": "synergy",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "milestone_id": {
+            "type": "string",
+            "description": "Milestone ID (REQUIRED). Format: ms_YYYYMMDDHHMMSS"
+          },
+          "title": {
+            "type": "string",
+            "description": "Link title (REQUIRED). Be descriptive.\n\nExamples:\n- 'Production Dashboard'\n- 'Staging Environment'\n- 'GitHub PR #123'\n- 'Monitoring Dashboard'"
+          },
+          "url": {
+            "type": "string",
+            "description": "Full URL (REQUIRED).\n\nExamples:\n- 'https://dashboard.example.com'\n- 'https://staging.myapp.com'\n- 'https://github.com/user/repo/pull/123'\n- 'https://grafana.example.com/dashboards'"
+          }
+        },
+        "required": [
+          "milestone_id",
+          "title",
+          "url"
+        ]
+      },
+      "returns": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "link_added": {
+            "type": "object",
+            "properties": {
+              "title": {
+                "type": "string"
+              },
+              "url": {
+                "type": "string"
+              }
+            }
+          },
+          "total_links": {
+            "type": "number",
+            "description": "New total count after addition"
+          }
+        }
+      },
+      "examples": [
+        {
+          "description": "Add production dashboard link",
+          "parameters": {
+            "milestone_id": "ms_20251208120000",
+            "title": "Production Dashboard",
+            "url": "https://dashboard.example.com"
+          }
+        },
+        {
+          "description": "Add GitHub PR",
+          "parameters": {
+            "milestone_id": "ms_20251208120000",
+            "title": "GitHub PR #456 - Add Authentication",
+            "url": "https://github.com/myorg/myrepo/pull/456"
+          }
+        }
+      ]
+    },
+    {
+      "name": "synergy_update_task_field",
+      "short_description": "Update single task field (description, priority, status)",
+      "description": "🆕 SURGICAL UPDATE - Update ONE field of a task without touching other fields\n\n📌 WHAT IT DOES:\nUpdates a SINGLE field on a task. No other fields are touched, no arrays are rewritten.\n\n✅ WHEN TO USE:\n- Change task description\n- Update priority (low/medium/high/critical)\n- Mark task complete/incomplete\n- Update time estimates or actuals\n- Block/unblock a task\n- Add blocker reason\n\n⚡ WHY IT'S BETTER:\n- Atomic operation (no race conditions)\n- Much faster than fetch-modify-update\n- Safer (can't accidentally change other fields)\n- Cleaner code (no JSON manipulation)\n\n🔧 ALLOWED FIELDS:\n1. 'task' - Task description text\n2. 'priority' - Priority level (low/medium/high/critical)\n3. 'completed' - Completion status (true/false)\n4. 'estimated_hours' - Time estimate (number)\n5. 'actual_hours' - Actual time spent (number)\n6. 'blocked' - Block status (true/false)\n7. 'blocker_reason' - Why task is blocked (string)",
+      "platform": "synergy",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "task_id": {
+            "type": "string",
+            "description": "Task ID (REQUIRED). Format: task_YYYYMMDDHHMMSS\n\nGet from:\n- synergy_get_milestones() task list\n- synergy_get_session() tasks array\n- synergy_create_milestone() response"
+          },
+          "field": {
+            "type": "string",
+            "enum": [
+              "task",
+              "priority",
+              "completed",
+              "estimated_hours",
+              "actual_hours",
+              "blocked",
+              "blocker_reason"
+            ],
+            "description": "Field name to update (REQUIRED).\n\nChoose from:\n- 'task' = Task description\n- 'priority' = Priority level\n- 'completed' = Completion status\n- 'estimated_hours' = Time estimate\n- 'actual_hours' = Actual time\n- 'blocked' = Block status\n- 'blocker_reason' = Blocker description"
+          },
+          "value": {
+            "description": "New value for the field (REQUIRED).\n\nType depends on field:\n- task: string\n- priority: 'low'|'medium'|'high'|'critical'\n- completed: true|false\n- estimated_hours: number\n- actual_hours: number\n- blocked: true|false\n- blocker_reason: string"
+          }
+        },
+        "required": [
+          "task_id",
+          "field",
+          "value"
+        ]
+      },
+      "returns": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "task_id": {
+            "type": "string"
+          },
+          "field_updated": {
+            "type": "string"
+          },
+          "new_value": {
+            "description": "The new value that was set"
+          }
+        }
+      },
+      "examples": [
+        {
+          "description": "Update task description",
+          "parameters": {
+            "task_id": "task_20251208120000",
+            "field": "task",
+            "value": "Implement OAuth2 authentication with Google"
+          }
+        },
+        {
+          "description": "Change priority to urgent",
+          "parameters": {
+            "task_id": "task_20251208120000",
+            "field": "priority",
+            "value": "critical"
+          }
+        },
+        {
+          "description": "Mark task complete",
+          "parameters": {
+            "task_id": "task_20251208120000",
+            "field": "completed",
+            "value": true
+          }
+        },
+        {
+          "description": "Block a task",
+          "parameters": {
+            "task_id": "task_20251208120000",
+            "field": "blocked",
+            "value": true
+          }
+        },
+        {
+          "description": "Add blocker reason",
+          "parameters": {
+            "task_id": "task_20251208120000",
+            "field": "blocker_reason",
+            "value": "Waiting for API credentials from customer"
+          }
+        }
+      ]
+    },
+    {
+      "name": "synergy_update_subtask_field",
+      "short_description": "Update single subtask field (description, priority, status)",
+      "description": "🆕 SURGICAL UPDATE - Update ONE field of a subtask without touching other fields\n\n📌 WHAT IT DOES:\nUpdates a SINGLE field on a subtask. No other fields are touched, no arrays are rewritten.\n\n✅ WHEN TO USE:\n- Change subtask description\n- Update priority\n- Mark subtask complete/incomplete\n- Update time estimates or actuals\n\n⚡ WHY IT'S BETTER:\n- Atomic operation (no race conditions)\n- Much faster than fetch-modify-update\n- Safer (can't accidentally change other fields)\n- Cleaner code (no JSON manipulation)\n\n🔧 ALLOWED FIELDS:\n1. 'task' - Subtask description text\n2. 'priority' - Priority level (low/medium/high/critical)\n3. 'completed' - Completion status (true/false)\n4. 'estimated_hours' - Time estimate (number)\n5. 'actual_hours' - Actual time spent (number)",
+      "platform": "synergy",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "subtask_id": {
+            "type": "string",
+            "description": "Subtask ID (REQUIRED). Format: subtask_YYYYMMDDHHMMSS\n\nGet from:\n- synergy_get_milestones() subtask list\n- synergy_get_session() subtasks array\n- synergy_create_milestone() response"
+          },
+          "field": {
+            "type": "string",
+            "enum": [
+              "task",
+              "priority",
+              "completed",
+              "estimated_hours",
+              "actual_hours"
+            ],
+            "description": "Field name to update (REQUIRED).\n\nChoose from:\n- 'task' = Subtask description\n- 'priority' = Priority level\n- 'completed' = Completion status\n- 'estimated_hours' = Time estimate\n- 'actual_hours' = Actual time"
+          },
+          "value": {
+            "description": "New value for the field (REQUIRED).\n\nType depends on field:\n- task: string\n- priority: 'low'|'medium'|'high'|'critical'\n- completed: true|false\n- estimated_hours: number\n- actual_hours: number"
+          }
+        },
+        "required": [
+          "subtask_id",
+          "field",
+          "value"
+        ]
+      },
+      "returns": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "subtask_id": {
+            "type": "string"
+          },
+          "field_updated": {
+            "type": "string"
+          },
+          "new_value": {
+            "description": "The new value that was set"
+          }
+        }
+      },
+      "examples": [
+        {
+          "description": "Update subtask description",
+          "parameters": {
+            "subtask_id": "subtask_20251208120000",
+            "field": "task",
+            "value": "Test OAuth flow with test Google account"
+          }
+        },
+        {
+          "description": "Change priority",
+          "parameters": {
+            "subtask_id": "subtask_20251208120000",
+            "field": "priority",
+            "value": "high"
+          }
+        },
+        {
+          "description": "Mark subtask complete",
+          "parameters": {
+            "subtask_id": "subtask_20251208120000",
+            "field": "completed",
+            "value": true
+          }
+        },
+        {
+          "description": "Update time estimate",
+          "parameters": {
+            "subtask_id": "subtask_20251208120000",
+            "field": "estimated_hours",
+            "value": 2.5
+          }
+        }
+      ]
+    },
+    {
+      "name": "synergy_remove_document",
+      "short_description": "Remove document from session by index",
+      "description": "Remove a document from a Synergy session by index position. More efficient than synergy_update_session for removing a single document.",
+      "platform": "synergy",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "session_id": {
+            "type": "string",
+            "description": "Session ID (REQUIRED)"
+          },
+          "doc_index": {
+            "type": "number",
+            "description": "Index of document to remove (0-based). First document = 0, second = 1, etc."
+          }
+        },
+        "required": [
+          "session_id",
+          "doc_index"
+        ]
+      },
+      "returns": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "documents": {
+            "type": "array"
+          },
+          "count": {
+            "type": "number"
+          },
+          "removed": {
+            "type": "object"
+          }
+        }
+      }
+    },
+    {
+      "name": "synergy_remove_link",
+      "short_description": "Remove link from session by index",
+      "description": "Remove a link from a Synergy session by index position.",
+      "platform": "synergy",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "session_id": {
+            "type": "string",
+            "description": "Session ID (REQUIRED)"
+          },
+          "link_index": {
+            "type": "number",
+            "description": "Index of link to remove (0-based)"
+          }
+        },
+        "required": [
+          "session_id",
+          "link_index"
+        ]
+      },
+      "returns": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "links": {
+            "type": "array"
+          },
+          "count": {
+            "type": "number"
+          },
+          "removed": {
+            "type": "object"
+          }
+        }
+      }
+    },
+    {
+      "name": "synergy_remove_tag",
+      "short_description": "Remove tag from session by name",
+      "description": "Remove a tag from a Synergy session by name (case-insensitive).",
+      "platform": "synergy",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "session_id": {
+            "type": "string",
+            "description": "Session ID (REQUIRED)"
+          },
+          "tag_name": {
+            "type": "string",
+            "description": "Tag name to remove"
+          }
+        },
+        "required": [
+          "session_id",
+          "tag_name"
+        ]
+      },
+      "returns": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "tags": {
+            "type": "array"
+          },
+          "count": {
+            "type": "number"
+          },
+          "removed": {
+            "type": "string"
+          }
+        }
+      }
+    }
+  ]
+}

@@ -1,0 +1,1911 @@
+{
+  "platform": "google_apps_script",
+  "description": "Google Apps Script API - Programmatically manage Apps Script projects (read code, execute functions, debug errors, manage deployments). Apps Script extends Google Workspace with JavaScript automation. These tools enable reading script source code, diagnosing execution failures, modifying implementations, running functions remotely, and managing versions/deployments - essential for automated debugging and self-healing script maintenance.",
+  "tools": [
+    {
+      "name": "google_apps_script_list_projects",
+      "short_description": "List all Apps Script projects with script IDs, titles, and parent container metadata",
+      "description": "List all Apps Script projects accessible to authenticated user. Returns script IDs, titles, parent containers (if bound to Sheets/Docs), and timestamps. Use this as the first step to discover available scripts before performing operations. Supports pagination for users with many projects.\n\nUse when: User asks 'What scripts do I have?', finding script by name, building script inventory, starting debugging workflow.\n\nReturns: Array of {scriptId, title, parentId, createTime, updateTime} with pagination support.",
+      "platform": "google_apps_script",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "page_size": {
+            "type": "integer",
+            "description": "Projects per page (1-100, default 50). Larger sizes reduce API calls.",
+            "default": 50
+          },
+          "page_token": {
+            "type": "string",
+            "description": "Pagination token from previous response. Use when has_more=true.",
+            "default": null
+          }
+        },
+        "required": []
+      },
+      "returns": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "projects": {
+            "type": "array",
+            "items": {
+              "type": "object"
+            }
+          },
+          "next_page_token": {
+            "type": "string"
+          },
+          "has_more": {
+            "type": "boolean"
+          },
+          "error": {
+            "type": "string"
+          }
+        }
+      },
+      "examples": [
+        {
+          "description": "List first 50 projects",
+          "parameters": {
+            "page_size": 50
+          },
+          "expected_result": {
+            "success": true,
+            "projects": [
+              {
+                "scriptId": "1a2b3c",
+                "title": "Email Automation"
+              }
+            ],
+            "has_more": false
+          }
+        }
+      ],
+      "usage_guide": {
+        "when_to_use": [
+          "Find scripts by name",
+          "Build script inventory",
+          "Start debugging workflow"
+        ],
+        "workflow": [
+          "Call list_projects",
+          "Find target by title",
+          "Extract scriptId",
+          "Use in other operations"
+        ],
+        "best_practices": [
+          "Cache results 5-10 min",
+          "Search titles client-side",
+          "Present results to user"
+        ],
+        "error_handling": [
+          "401: Re-authenticate",
+          "403: Missing script.projects.readonly scope"
+        ],
+        "related_tools": [
+          "google_apps_script_get_content",
+          "google_apps_script_get_project"
+        ]
+      },
+      "tool_intelligence": {
+        "category": "content_management",
+        "typical_workflow_patterns": [
+          "google_apps_script_list_projects → google_apps_script_get_content"
+        ],
+        "success_indicators": {
+          "keywords": [
+            "found script",
+            "showing X projects"
+          ],
+          "behavioral": [
+            "User selects project"
+          ]
+        },
+        "failure_indicators": {
+          "keywords": [
+            "no projects",
+            "access denied"
+          ],
+          "behavioral": [
+            "User re-authenticates"
+          ]
+        },
+        "performance_expectations": {
+          "typical_duration_ms": 500,
+          "rate_limit_per_minute": 60,
+          "max_retries": 3
+        }
+      },
+      "memory_context": {
+        "vectorization_fields": [
+          "title",
+          "scriptId"
+        ],
+        "search_keywords": [
+          "apps script",
+          "automation",
+          "google workspace"
+        ],
+        "typical_use_cases": [
+          "User debugging failing script",
+          "User managing automation inventory"
+        ],
+        "conversation_memory_hints": {
+          "what_to_remember": "Script titles and IDs",
+          "search_context": "When user mentions script names"
+        }
+      }
+    },
+    {
+      "name": "google_apps_script_get_content",
+      "short_description": "Get complete source code, HTML files, and manifest from Apps Script project by ID",
+      "description": "Get complete source code and files from Apps Script project. Returns all .gs files (JavaScript), .html files, and appsscript.json manifest. Essential for debugging - read actual code to understand functionality and identify bugs. Manifest shows OAuth scopes (critical for permission errors).\n\nUse when: User says 'Why is script failing?', debugging errors, preparing to modify script, analyzing dependencies.\n\nReturns: Array of files with {name, type, source} plus parsed manifest with oauthScopes.",
+      "platform": "google_apps_script",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "script_id": {
+            "type": "string",
+            "description": "Unique script project ID from list_projects. Format: 20-char alphanumeric."
+          },
+          "version_number": {
+            "type": "integer",
+            "description": "Specific version (optional). null = HEAD (latest). Use for historical versions.",
+            "default": null
+          }
+        },
+        "required": [
+          "script_id"
+        ]
+      },
+      "returns": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "files": {
+            "type": "array"
+          },
+          "scriptId": {
+            "type": "string"
+          },
+          "manifest": {
+            "type": "object"
+          },
+          "error": {
+            "type": "string"
+          }
+        }
+      },
+      "examples": [
+        {
+          "description": "Get current code",
+          "parameters": {
+            "script_id": "1a2b3c4d5e6f"
+          },
+          "expected_result": {
+            "success": true,
+            "files": [
+              {
+                "name": "Code",
+                "type": "SERVER_JS",
+                "source": "function myFunction() {...}"
+              }
+            ]
+          }
+        }
+      ],
+      "usage_guide": {
+        "when_to_use": [
+          "Debug failing script",
+          "Read code to explain functionality",
+          "Check OAuth scopes for permissions"
+        ],
+        "workflow": [
+          "Get script_id",
+          "Call get_content",
+          "Parse files and manifest",
+          "Analyze code",
+          "Check scopes"
+        ],
+        "best_practices": [
+          "Read before modifying",
+          "Check manifest for permission errors",
+          "Look for hardcoded credentials"
+        ],
+        "error_handling": [
+          "404: Invalid script_id",
+          "403: Missing readonly scope"
+        ],
+        "related_tools": [
+          "google_apps_script_update_content",
+          "google_apps_script_analyze_errors"
+        ]
+      },
+      "tool_intelligence": {
+        "category": "content_management",
+        "typical_workflow_patterns": [
+          "google_apps_script_get_content → google_apps_script_update_content"
+        ],
+        "success_indicators": {
+          "keywords": [
+            "retrieved code",
+            "found X files"
+          ],
+          "behavioral": [
+            "User asks to fix code"
+          ]
+        },
+        "failure_indicators": {
+          "keywords": [
+            "no access",
+            "not found"
+          ],
+          "behavioral": [
+            "User asks for different script"
+          ]
+        },
+        "performance_expectations": {
+          "typical_duration_ms": 800,
+          "rate_limit_per_minute": 60,
+          "max_retries": 3
+        }
+      },
+      "memory_context": {
+        "vectorization_fields": [
+          "scriptId",
+          "function_names"
+        ],
+        "search_keywords": [
+          "script code",
+          "source code",
+          "debugging",
+          "manifest"
+        ],
+        "typical_use_cases": [
+          "User debugging permission errors",
+          "User understanding script functionality"
+        ],
+        "conversation_memory_hints": {
+          "what_to_remember": "Function names, OAuth scopes",
+          "search_context": "When debugging"
+        }
+      }
+    },
+    {
+      "name": "google_apps_script_update_content",
+      "short_description": "Update Apps Script source code files, HTML templates, or manifest configuration",
+      "description": "Update script source code. Modifies .gs files, .html files, or manifest. Use to fix bugs, add features, update OAuth scopes, or refactor code. Always call get_content first to read current code before updating.\n\nUse when: Fixing script bugs, adding features, updating OAuth scopes, refactoring code.\n\nReturns: Updated project with new content.",
+      "platform": "google_apps_script",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "script_id": {
+            "type": "string",
+            "description": "Script project ID"
+          },
+          "files": {
+            "type": "array",
+            "description": "Array of file objects with {name, type, source}. Include ALL files (unchanged + modified).",
+            "items": {
+              "type": "object"
+            }
+          }
+        },
+        "required": [
+          "script_id",
+          "files"
+        ]
+      },
+      "returns": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "scriptId": {
+            "type": "string"
+          },
+          "error": {
+            "type": "string"
+          }
+        }
+      },
+      "examples": [
+        {
+          "description": "Fix bug in Code.gs",
+          "parameters": {
+            "script_id": "1a2b3c",
+            "files": [
+              {
+                "name": "Code",
+                "type": "SERVER_JS",
+                "source": "function fixed() {...}"
+              }
+            ]
+          },
+          "expected_result": {
+            "success": true,
+            "scriptId": "1a2b3c"
+          }
+        }
+      ],
+      "usage_guide": {
+        "when_to_use": [
+          "Fix bugs",
+          "Add OAuth scopes",
+          "Refactor code"
+        ],
+        "workflow": [
+          "get_content first",
+          "Modify specific files",
+          "Include ALL files in update",
+          "Call update_content"
+        ],
+        "best_practices": [
+          "Always read before write",
+          "Include ALL files",
+          "Test with run_function after"
+        ],
+        "error_handling": [
+          "400: Invalid file format",
+          "403: Missing script.projects scope"
+        ],
+        "related_tools": [
+          "google_apps_script_get_content",
+          "google_apps_script_run_function"
+        ]
+      },
+      "tool_intelligence": {
+        "category": "content_management",
+        "typical_workflow_patterns": [
+          "google_apps_script_get_content → google_apps_script_update_content → google_apps_script_run_function"
+        ],
+        "success_indicators": {
+          "keywords": [
+            "updated successfully",
+            "code modified"
+          ],
+          "behavioral": [
+            "User tests script"
+          ]
+        },
+        "failure_indicators": {
+          "keywords": [
+            "update failed",
+            "invalid syntax"
+          ],
+          "behavioral": [
+            "User reverts changes"
+          ]
+        },
+        "performance_expectations": {
+          "typical_duration_ms": 1000,
+          "rate_limit_per_minute": 60,
+          "max_retries": 3
+        }
+      },
+      "memory_context": {
+        "vectorization_fields": [
+          "scriptId",
+          "modified_functions"
+        ],
+        "search_keywords": [
+          "code update",
+          "bug fix",
+          "script modification"
+        ],
+        "typical_use_cases": [
+          "Fixing failing automation",
+          "Adding OAuth scopes",
+          "Refactoring legacy code"
+        ],
+        "conversation_memory_hints": {
+          "what_to_remember": "Changes made, files modified",
+          "search_context": "When user asks about recent updates"
+        }
+      }
+    },
+    {
+      "name": "google_apps_script_run_function",
+      "short_description": "Execute Apps Script function remotely by name with parameters and return value",
+      "description": "Execute a function in Apps Script project remotely. Runs specified function with parameters and returns result. Requires script deployed as API executable. Use to test fixes, trigger automation, or extract data programmatically. Max execution: 6 minutes.\n\nUse when: Testing after code changes, running automation on demand, extracting data.\n\nReturns: Function result (strings, numbers, arrays, objects only - no Apps Script objects).",
+      "platform": "google_apps_script",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "script_id": {
+            "type": "string",
+            "description": "Script project ID"
+          },
+          "function_name": {
+            "type": "string",
+            "description": "Name of function to execute"
+          },
+          "parameters": {
+            "type": "array",
+            "description": "Function parameters (optional). Basic types only: string, number, boolean, array, object.",
+            "default": []
+          },
+          "dev_mode": {
+            "type": "boolean",
+            "description": "Run latest saved code (true) or deployed version (false). Only owner can use dev_mode.",
+            "default": false
+          }
+        },
+        "required": [
+          "script_id",
+          "function_name"
+        ]
+      },
+      "returns": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "result": {
+            "description": "Function return value"
+          },
+          "execution_time_ms": {
+            "type": "integer"
+          },
+          "error": {
+            "type": "string"
+          }
+        }
+      },
+      "examples": [
+        {
+          "description": "Run function with parameters",
+          "parameters": {
+            "script_id": "1a2b3c",
+            "function_name": "processData",
+            "parameters": [
+              "testInput",
+              123
+            ]
+          },
+          "expected_result": {
+            "success": true,
+            "result": {
+              "processed": true,
+              "count": 5
+            },
+            "execution_time_ms": 1200
+          }
+        }
+      ],
+      "usage_guide": {
+        "when_to_use": [
+          "Test after fixing bugs",
+          "Trigger automation",
+          "Extract data programmatically"
+        ],
+        "workflow": [
+          "Ensure script deployed as API executable",
+          "Call run_function",
+          "Check result",
+          "Handle errors"
+        ],
+        "best_practices": [
+          "Use dev_mode for testing",
+          "Set timeout for long operations",
+          "Check OAuth scopes cover all needs"
+        ],
+        "error_handling": [
+          "401: Access token expired",
+          "403: Not deployed as API executable",
+          "Timeout: Function exceeded 6 min"
+        ],
+        "related_tools": [
+          "google_apps_script_create_deployment",
+          "google_apps_script_list_processes"
+        ]
+      },
+      "tool_intelligence": {
+        "category": "automation",
+        "typical_workflow_patterns": [
+          "google_apps_script_update_content → google_apps_script_run_function"
+        ],
+        "success_indicators": {
+          "keywords": [
+            "executed successfully",
+            "result returned"
+          ],
+          "behavioral": [
+            "User reviews result"
+          ]
+        },
+        "failure_indicators": {
+          "keywords": [
+            "execution failed",
+            "timeout",
+            "error"
+          ],
+          "behavioral": [
+            "User checks logs"
+          ]
+        },
+        "performance_expectations": {
+          "typical_duration_ms": 2000,
+          "rate_limit_per_minute": 60,
+          "max_retries": 2
+        }
+      },
+      "memory_context": {
+        "vectorization_fields": [
+          "function_name",
+          "result"
+        ],
+        "search_keywords": [
+          "execute function",
+          "run script",
+          "test automation"
+        ],
+        "typical_use_cases": [
+          "Testing bug fixes",
+          "Running automation on demand",
+          "Extracting spreadsheet data"
+        ],
+        "conversation_memory_hints": {
+          "what_to_remember": "Execution results, function names",
+          "search_context": "When discussing script execution"
+        }
+      }
+    },
+    {
+      "name": "google_apps_script_list_processes",
+      "short_description": "List recent Apps Script execution processes with status, duration, and error logs",
+      "description": "List execution history for user's Apps Scripts. Shows recent function executions, status (SUCCESS/FAILED), duration, error messages, and timestamps. Essential for debugging - see what failed and when. Filter by script or view all.\n\nUse when: User reports 'script is failing', investigating error patterns, monitoring execution health.\n\nReturns: Array of {processId, scriptId, functionName, status, duration, startTime, error}.",
+      "platform": "google_apps_script",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "page_size": {
+            "type": "integer",
+            "description": "Results per page (1-100, default 50)",
+            "default": 50
+          },
+          "page_token": {
+            "type": "string",
+            "description": "Pagination token",
+            "default": null
+          },
+          "script_id": {
+            "type": "string",
+            "description": "Filter by specific script (optional). Omit to see all scripts.",
+            "default": null
+          }
+        },
+        "required": []
+      },
+      "returns": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "processes": {
+            "type": "array"
+          },
+          "next_page_token": {
+            "type": "string"
+          },
+          "error": {
+            "type": "string"
+          }
+        }
+      },
+      "examples": [
+        {
+          "description": "Get recent executions",
+          "parameters": {
+            "page_size": 20
+          },
+          "expected_result": {
+            "success": true,
+            "processes": [
+              {
+                "processId": "abc123",
+                "status": "FAILED",
+                "error": "DriveApp permission denied"
+              }
+            ]
+          }
+        }
+      ],
+      "usage_guide": {
+        "when_to_use": [
+          "Script failing",
+          "Investigating errors",
+          "Monitoring execution health"
+        ],
+        "workflow": [
+          "Call list_processes",
+          "Filter FAILED status",
+          "Extract error messages",
+          "Analyze patterns"
+        ],
+        "best_practices": [
+          "Focus on recent FAILED processes",
+          "Look for repeated errors",
+          "Check error messages for clues"
+        ],
+        "error_handling": [
+          "403: Missing script.processes scope"
+        ],
+        "related_tools": [
+          "google_apps_script_analyze_errors",
+          "google_apps_script_debug_script"
+        ]
+      },
+      "tool_intelligence": {
+        "category": "monitoring",
+        "typical_workflow_patterns": [
+          "google_apps_script_list_processes → google_apps_script_analyze_errors"
+        ],
+        "success_indicators": {
+          "keywords": [
+            "found errors",
+            "X failed executions"
+          ],
+          "behavioral": [
+            "User analyzes errors"
+          ]
+        },
+        "failure_indicators": {
+          "keywords": [
+            "no processes",
+            "access denied"
+          ],
+          "behavioral": [
+            "User checks permissions"
+          ]
+        },
+        "performance_expectations": {
+          "typical_duration_ms": 600,
+          "rate_limit_per_minute": 60,
+          "max_retries": 3
+        }
+      },
+      "memory_context": {
+        "vectorization_fields": [
+          "error_messages",
+          "scriptId"
+        ],
+        "search_keywords": [
+          "execution logs",
+          "errors",
+          "failures"
+        ],
+        "typical_use_cases": [
+          "Debugging failing automation",
+          "Monitoring script health"
+        ],
+        "conversation_memory_hints": {
+          "what_to_remember": "Error patterns, failure rates",
+          "search_context": "When troubleshooting"
+        }
+      }
+    },
+    {
+      "name": "google_apps_script_create_deployment",
+      "short_description": "Create new Apps Script deployment with version and access configuration for production",
+      "description": "Deploy Apps Script project as API executable or web app. Creates new deployment with version and access controls. Required for run_function to work. Configure who can access (owner only, domain, anyone).\n\nUse when: Making script executable via API, deploying web app, setting up automation.\n\nReturns: Deployment ID and URL.",
+      "platform": "google_apps_script",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "script_id": {
+            "type": "string",
+            "description": "Script project ID"
+          },
+          "version_number": {
+            "type": "integer",
+            "description": "Version to deploy. Use create_version first or omit for HEAD.",
+            "default": null
+          },
+          "description": {
+            "type": "string",
+            "description": "Deployment description",
+            "default": ""
+          },
+          "access": {
+            "type": "string",
+            "description": "Access level: MYSELF, DOMAIN, ANYONE",
+            "default": "MYSELF"
+          }
+        },
+        "required": [
+          "script_id"
+        ]
+      },
+      "returns": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "deploymentId": {
+            "type": "string"
+          },
+          "error": {
+            "type": "string"
+          }
+        }
+      },
+      "examples": [
+        {
+          "description": "Deploy as API executable",
+          "parameters": {
+            "script_id": "1a2b3c",
+            "description": "Production deployment"
+          },
+          "expected_result": {
+            "success": true,
+            "deploymentId": "AKfycby..."
+          }
+        }
+      ],
+      "usage_guide": {
+        "when_to_use": [
+          "Enable run_function",
+          "Deploy web app",
+          "Production release"
+        ],
+        "workflow": [
+          "Create version (optional)",
+          "Call create_deployment",
+          "Test with run_function"
+        ],
+        "best_practices": [
+          "Use versions for production",
+          "Set appropriate access level",
+          "Document deployments"
+        ],
+        "error_handling": [
+          "403: Not project owner"
+        ],
+        "related_tools": [
+          "google_apps_script_create_version",
+          "google_apps_script_run_function"
+        ]
+      },
+      "tool_intelligence": {
+        "category": "automation",
+        "typical_workflow_patterns": [
+          "google_apps_script_update_content → google_apps_script_create_deployment"
+        ],
+        "success_indicators": {
+          "keywords": [
+            "deployed successfully",
+            "deployment ID"
+          ],
+          "behavioral": [
+            "User tests deployment"
+          ]
+        },
+        "failure_indicators": {
+          "keywords": [
+            "deployment failed"
+          ],
+          "behavioral": [
+            "User checks permissions"
+          ]
+        },
+        "performance_expectations": {
+          "typical_duration_ms": 1500,
+          "rate_limit_per_minute": 30,
+          "max_retries": 3
+        }
+      },
+      "memory_context": {
+        "vectorization_fields": [
+          "deploymentId",
+          "scriptId"
+        ],
+        "search_keywords": [
+          "deployment",
+          "production",
+          "api executable"
+        ],
+        "typical_use_cases": [
+          "Deploying fixed automation",
+          "Setting up new workflow"
+        ],
+        "conversation_memory_hints": {
+          "what_to_remember": "Deployment IDs",
+          "search_context": "When managing deployments"
+        }
+      }
+    },
+    {
+      "name": "google_apps_script_create_version",
+      "short_description": "Save current Apps Script code as versioned snapshot with description for rollback",
+      "description": "Create immutable snapshot of script project. Captures current code state with version number. Use before deploying to production or when creating stable releases. Versions cannot be modified (guarantees stability).\n\nUse when: Creating stable release, before production deployment, milestone checkpoints.\n\nReturns: Version number and metadata.",
+      "platform": "google_apps_script",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "script_id": {
+            "type": "string",
+            "description": "Script project ID"
+          },
+          "description": {
+            "type": "string",
+            "description": "Version description (what changed)",
+            "default": ""
+          }
+        },
+        "required": [
+          "script_id"
+        ]
+      },
+      "returns": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "versionNumber": {
+            "type": "integer"
+          },
+          "error": {
+            "type": "string"
+          }
+        }
+      },
+      "examples": [
+        {
+          "description": "Create version with description",
+          "parameters": {
+            "script_id": "1a2b3c",
+            "description": "Fixed permission error"
+          },
+          "expected_result": {
+            "success": true,
+            "versionNumber": 5
+          }
+        }
+      ],
+      "usage_guide": {
+        "when_to_use": [
+          "Before production deployment",
+          "After major fixes",
+          "Milestone checkpoints"
+        ],
+        "workflow": [
+          "Update code",
+          "Test thoroughly",
+          "Create version",
+          "Deploy version"
+        ],
+        "best_practices": [
+          "Descriptive version messages",
+          "Version before deploying",
+          "Keep versions for rollback"
+        ],
+        "error_handling": [
+          "403: Not project owner"
+        ],
+        "related_tools": [
+          "google_apps_script_create_deployment",
+          "google_apps_script_list_versions"
+        ]
+      },
+      "tool_intelligence": {
+        "category": "content_management",
+        "typical_workflow_patterns": [
+          "google_apps_script_update_content → google_apps_script_create_version → google_apps_script_create_deployment"
+        ],
+        "success_indicators": {
+          "keywords": [
+            "version created",
+            "version X"
+          ],
+          "behavioral": [
+            "User deploys version"
+          ]
+        },
+        "failure_indicators": {
+          "keywords": [
+            "version failed"
+          ],
+          "behavioral": [
+            "User retries"
+          ]
+        },
+        "performance_expectations": {
+          "typical_duration_ms": 800,
+          "rate_limit_per_minute": 60,
+          "max_retries": 3
+        }
+      },
+      "memory_context": {
+        "vectorization_fields": [
+          "versionNumber",
+          "description"
+        ],
+        "search_keywords": [
+          "version",
+          "release",
+          "snapshot"
+        ],
+        "typical_use_cases": [
+          "Creating stable releases",
+          "Checkpoint before changes"
+        ],
+        "conversation_memory_hints": {
+          "what_to_remember": "Version numbers and descriptions",
+          "search_context": "When managing versions"
+        }
+      }
+    },
+    {
+      "name": "google_apps_script_list_versions",
+      "short_description": "List all saved Apps Script versions with version numbers, descriptions, and timestamps",
+      "description": "List all versions of script project. Shows version numbers, creation dates, and descriptions. Use to see version history, find versions to deploy, or identify when code changed.\n\nUse when: Finding version to deploy, viewing history, identifying when changes occurred.\n\nReturns: Array of {versionNumber, createTime, description}.",
+      "platform": "google_apps_script",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "script_id": {
+            "type": "string",
+            "description": "Script project ID"
+          },
+          "page_size": {
+            "type": "integer",
+            "description": "Versions per page (1-100)",
+            "default": 50
+          }
+        },
+        "required": [
+          "script_id"
+        ]
+      },
+      "returns": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "versions": {
+            "type": "array"
+          },
+          "error": {
+            "type": "string"
+          }
+        }
+      },
+      "examples": [
+        {
+          "description": "List versions",
+          "parameters": {
+            "script_id": "1a2b3c"
+          },
+          "expected_result": {
+            "success": true,
+            "versions": [
+              {
+                "versionNumber": 5,
+                "description": "Fixed bug"
+              }
+            ]
+          }
+        }
+      ],
+      "usage_guide": {
+        "when_to_use": [
+          "View version history",
+          "Find version to deploy",
+          "Audit changes"
+        ],
+        "workflow": [
+          "Call list_versions",
+          "Review descriptions",
+          "Select version for get_content or deployment"
+        ],
+        "best_practices": [
+          "Use with get_content to compare versions",
+          "Check before rollback"
+        ],
+        "error_handling": [
+          "404: No versions exist"
+        ],
+        "related_tools": [
+          "google_apps_script_get_content",
+          "google_apps_script_create_version"
+        ]
+      },
+      "tool_intelligence": {
+        "category": "content_management",
+        "typical_workflow_patterns": [
+          "google_apps_script_list_versions → google_apps_script_get_content"
+        ],
+        "success_indicators": {
+          "keywords": [
+            "found X versions"
+          ],
+          "behavioral": [
+            "User selects version"
+          ]
+        },
+        "failure_indicators": {
+          "keywords": [
+            "no versions"
+          ],
+          "behavioral": [
+            "User creates first version"
+          ]
+        },
+        "performance_expectations": {
+          "typical_duration_ms": 500,
+          "rate_limit_per_minute": 60,
+          "max_retries": 3
+        }
+      },
+      "memory_context": {
+        "vectorization_fields": [
+          "versionNumber",
+          "description"
+        ],
+        "search_keywords": [
+          "version history",
+          "releases"
+        ],
+        "typical_use_cases": [
+          "Finding stable version",
+          "Auditing changes"
+        ],
+        "conversation_memory_hints": {
+          "what_to_remember": "Version numbers",
+          "search_context": "When rolling back"
+        }
+      }
+    },
+    {
+      "name": "google_apps_script_get_metrics",
+      "short_description": "Get Apps Script execution metrics with performance data, quota usage, and error rates",
+      "description": "Get usage metrics for script project. Shows execution counts, active users, failure rates over time periods (7 days, 30 days). Use for monitoring script health and usage patterns.\n\nUse when: Monitoring script usage, analyzing failure patterns, capacity planning.\n\nReturns: Metrics with {totalExecutions, failedExecutions, activeUsers, executionsByDay}.",
+      "platform": "google_apps_script",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "script_id": {
+            "type": "string",
+            "description": "Script project ID"
+          },
+          "metrics_filter": {
+            "type": "string",
+            "description": "Time period: LAST_7_DAYS, LAST_30_DAYS",
+            "default": "LAST_7_DAYS"
+          }
+        },
+        "required": [
+          "script_id"
+        ]
+      },
+      "returns": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "metrics": {
+            "type": "object"
+          },
+          "error": {
+            "type": "string"
+          }
+        }
+      },
+      "examples": [
+        {
+          "description": "Get 7-day metrics",
+          "parameters": {
+            "script_id": "1a2b3c"
+          },
+          "expected_result": {
+            "success": true,
+            "metrics": {
+              "totalExecutions": 450,
+              "failedExecutions": 12
+            }
+          }
+        }
+      ],
+      "usage_guide": {
+        "when_to_use": [
+          "Monitor usage",
+          "Analyze failures",
+          "Capacity planning"
+        ],
+        "workflow": [
+          "Call get_metrics",
+          "Analyze failure rate",
+          "Check usage trends"
+        ],
+        "best_practices": [
+          "Check regularly",
+          "Alert on high failure rates",
+          "Trend analysis"
+        ],
+        "error_handling": [
+          "403: Missing scope"
+        ],
+        "related_tools": [
+          "google_apps_script_list_processes"
+        ]
+      },
+      "tool_intelligence": {
+        "category": "monitoring",
+        "typical_workflow_patterns": [
+          "google_apps_script_get_metrics → google_apps_script_list_processes"
+        ],
+        "success_indicators": {
+          "keywords": [
+            "metrics retrieved",
+            "X executions"
+          ],
+          "behavioral": [
+            "User analyzes trends"
+          ]
+        },
+        "failure_indicators": {
+          "keywords": [
+            "no metrics"
+          ],
+          "behavioral": [
+            "User checks if script used"
+          ]
+        },
+        "performance_expectations": {
+          "typical_duration_ms": 600,
+          "rate_limit_per_minute": 60,
+          "max_retries": 3
+        }
+      },
+      "memory_context": {
+        "vectorization_fields": [
+          "totalExecutions",
+          "failedExecutions"
+        ],
+        "search_keywords": [
+          "metrics",
+          "usage",
+          "statistics"
+        ],
+        "typical_use_cases": [
+          "Monitoring automation health",
+          "Usage analysis"
+        ],
+        "conversation_memory_hints": {
+          "what_to_remember": "Failure rates",
+          "search_context": "When monitoring"
+        }
+      }
+    },
+    {
+      "name": "google_apps_script_analyze_errors",
+      "short_description": "Analyze Apps Script execution errors with stack traces, patterns, and diagnostic suggestions",
+      "description": "SMART TOOL: Analyze execution errors from process logs. Parses error messages, identifies common patterns (permission errors, quota exceeded, deprecated APIs), extracts actionable insights, and suggests fixes. Aggregates multiple errors to find root causes.\n\nUse when: Multiple script failures, recurring errors, need diagnostic summary.\n\nReturns: {errorPatterns, rootCauses, suggestedFixes, affectedFunctions}.",
+      "platform": "google_apps_script",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "processes": {
+            "type": "array",
+            "description": "Array of process objects from list_processes (FAILED status)",
+            "items": {
+              "type": "object"
+            }
+          }
+        },
+        "required": [
+          "processes"
+        ]
+      },
+      "returns": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "errorPatterns": {
+            "type": "array",
+            "description": "Grouped error types"
+          },
+          "rootCauses": {
+            "type": "array",
+            "description": "Identified root causes"
+          },
+          "suggestedFixes": {
+            "type": "array",
+            "description": "Recommended actions"
+          },
+          "affectedFunctions": {
+            "type": "array"
+          },
+          "error": {
+            "type": "string"
+          }
+        }
+      },
+      "examples": [
+        {
+          "description": "Analyze permission errors",
+          "parameters": {
+            "processes": [
+              {
+                "error": "DriveApp.getFileById permission denied"
+              }
+            ]
+          },
+          "expected_result": {
+            "success": true,
+            "rootCauses": [
+              "Missing Drive API scope in manifest"
+            ],
+            "suggestedFixes": [
+              "Add https://www.googleapis.com/auth/drive to oauthScopes"
+            ]
+          }
+        }
+      ],
+      "usage_guide": {
+        "when_to_use": [
+          "Multiple failures",
+          "Recurring errors",
+          "Need diagnostic summary"
+        ],
+        "workflow": [
+          "Get processes with list_processes",
+          "Filter FAILED",
+          "Call analyze_errors",
+          "Review suggestions"
+        ],
+        "best_practices": [
+          "Analyze recent errors (last 7 days)",
+          "Group by error type",
+          "Check suggested fixes"
+        ],
+        "error_handling": [
+          "Empty processes: No errors to analyze"
+        ],
+        "related_tools": [
+          "google_apps_script_list_processes",
+          "google_apps_script_debug_script"
+        ]
+      },
+      "tool_intelligence": {
+        "category": "automation",
+        "typical_workflow_patterns": [
+          "google_apps_script_list_processes → google_apps_script_analyze_errors → google_apps_script_update_content"
+        ],
+        "success_indicators": {
+          "keywords": [
+            "identified root cause",
+            "suggested fix"
+          ],
+          "behavioral": [
+            "User applies fix"
+          ]
+        },
+        "failure_indicators": {
+          "keywords": [
+            "no patterns"
+          ],
+          "behavioral": [
+            "User needs manual analysis"
+          ]
+        },
+        "performance_expectations": {
+          "typical_duration_ms": 400,
+          "rate_limit_per_minute": 60,
+          "max_retries": 3
+        }
+      },
+      "memory_context": {
+        "vectorization_fields": [
+          "errorPatterns",
+          "rootCauses"
+        ],
+        "search_keywords": [
+          "error analysis",
+          "diagnostics",
+          "troubleshooting"
+        ],
+        "typical_use_cases": [
+          "Diagnosing script failures",
+          "Root cause analysis"
+        ],
+        "conversation_memory_hints": {
+          "what_to_remember": "Error patterns, fixes applied",
+          "search_context": "When troubleshooting"
+        }
+      }
+    },
+    {
+      "name": "google_apps_script_debug_script",
+      "short_description": "Debug Apps Script by analyzing code, execution logs, and error patterns with AI insights",
+      "description": "SMART TOOL: Complete debugging workflow. Combines multiple operations: list projects (find script), get content (read code), list processes (get errors), analyze errors (diagnose), suggest fixes. Returns comprehensive diagnostic report with code snippets, error analysis, and action plan.\n\nUse when: User says 'fix my script', comprehensive debugging needed, first-time troubleshooting.\n\nReturns: {scriptInfo, codeAnalysis, errorSummary, diagnosticReport, recommendedActions}.",
+      "platform": "google_apps_script",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "script_id": {
+            "type": "string",
+            "description": "Script ID (optional). If omitted, searches by script_name.",
+            "default": null
+          },
+          "script_name": {
+            "type": "string",
+            "description": "Script name to search for (optional). Used if script_id not provided.",
+            "default": null
+          },
+          "include_code_review": {
+            "type": "boolean",
+            "description": "Include code quality analysis (deprecated APIs, missing error handling)",
+            "default": true
+          }
+        },
+        "required": []
+      },
+      "returns": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "scriptInfo": {
+            "type": "object",
+            "description": "Basic script metadata"
+          },
+          "codeAnalysis": {
+            "type": "object",
+            "description": "Code quality findings"
+          },
+          "errorSummary": {
+            "type": "object",
+            "description": "Error patterns from recent executions"
+          },
+          "diagnosticReport": {
+            "type": "string",
+            "description": "Human-readable diagnostic summary"
+          },
+          "recommendedActions": {
+            "type": "array",
+            "description": "Prioritized fix actions"
+          },
+          "error": {
+            "type": "string"
+          }
+        }
+      },
+      "examples": [
+        {
+          "description": "Debug by script name",
+          "parameters": {
+            "script_name": "Northecote File Extractor"
+          },
+          "expected_result": {
+            "success": true,
+            "diagnosticReport": "Found 12 failures in last 7 days. Root cause: Missing Drive API scope.",
+            "recommendedActions": [
+              "Add drive.readonly scope to manifest",
+              "Redeploy script"
+            ]
+          }
+        }
+      ],
+      "usage_guide": {
+        "when_to_use": [
+          "User says 'fix my script'",
+          "Comprehensive debugging",
+          "First troubleshooting step"
+        ],
+        "workflow": [
+          "Call debug_script with name or ID",
+          "Review diagnostic report",
+          "Apply recommended actions",
+          "Test with run_function"
+        ],
+        "best_practices": [
+          "Use when starting from scratch",
+          "Review all recommendations",
+          "Apply fixes in order"
+        ],
+        "error_handling": [
+          "Script not found: Check name spelling",
+          "No errors: Check if script executed recently"
+        ],
+        "related_tools": [
+          "google_apps_script_update_content",
+          "google_apps_script_run_function"
+        ]
+      },
+      "tool_intelligence": {
+        "category": "automation",
+        "typical_workflow_patterns": [
+          "google_apps_script_debug_script → google_apps_script_update_content → google_apps_script_run_function"
+        ],
+        "success_indicators": {
+          "keywords": [
+            "diagnostic complete",
+            "found X issues"
+          ],
+          "behavioral": [
+            "User applies fixes"
+          ]
+        },
+        "failure_indicators": {
+          "keywords": [
+            "script not found",
+            "no errors"
+          ],
+          "behavioral": [
+            "User provides more context"
+          ]
+        },
+        "performance_expectations": {
+          "typical_duration_ms": 3000,
+          "rate_limit_per_minute": 30,
+          "max_retries": 2
+        }
+      },
+      "memory_context": {
+        "vectorization_fields": [
+          "scriptInfo",
+          "errorSummary"
+        ],
+        "search_keywords": [
+          "debug",
+          "troubleshoot",
+          "diagnose",
+          "fix script"
+        ],
+        "typical_use_cases": [
+          "User reports failing automation",
+          "Comprehensive script health check"
+        ],
+        "conversation_memory_hints": {
+          "what_to_remember": "Diagnostic findings, actions taken",
+          "search_context": "When following up on fixes"
+        }
+      }
+    },
+    {
+      "name": "google_apps_script_fix_common_issues",
+      "short_description": "Automatically fix common Apps Script issues like permissions, quotas, and deprecated APIs",
+      "description": "SMART TOOL: Auto-fix common script issues. Detects and repairs: missing OAuth scopes, deprecated API calls, missing error handling, hardcoded credentials. Generates updated code with fixes applied. Returns before/after comparison and explanation of changes.\n\nUse when: Common error patterns detected, user wants automatic fixes, after error analysis.\n\nReturns: {fixesApplied, updatedFiles, changesSummary, requiresManualReview}.",
+      "platform": "google_apps_script",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "script_id": {
+            "type": "string",
+            "description": "Script project ID"
+          },
+          "fix_types": {
+            "type": "array",
+            "description": "Types of fixes to apply: oauth_scopes, deprecated_apis, error_handling, hardcoded_credentials",
+            "items": {
+              "type": "string"
+            },
+            "default": [
+              "oauth_scopes",
+              "deprecated_apis",
+              "error_handling"
+            ]
+          },
+          "auto_apply": {
+            "type": "boolean",
+            "description": "Automatically apply fixes (true) or return for review (false)",
+            "default": false
+          }
+        },
+        "required": [
+          "script_id"
+        ]
+      },
+      "returns": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "fixesApplied": {
+            "type": "array"
+          },
+          "updatedFiles": {
+            "type": "array"
+          },
+          "changesSummary": {
+            "type": "string"
+          },
+          "requiresManualReview": {
+            "type": "array"
+          },
+          "error": {
+            "type": "string"
+          }
+        }
+      },
+      "examples": [
+        {
+          "description": "Auto-fix OAuth scopes",
+          "parameters": {
+            "script_id": "1a2b3c",
+            "fix_types": [
+              "oauth_scopes"
+            ],
+            "auto_apply": true
+          },
+          "expected_result": {
+            "success": true,
+            "fixesApplied": [
+              "Added drive.readonly scope"
+            ],
+            "changesSummary": "Added 1 missing OAuth scope to manifest"
+          }
+        }
+      ],
+      "usage_guide": {
+        "when_to_use": [
+          "Common errors detected",
+          "After error analysis",
+          "Quick fixes needed"
+        ],
+        "workflow": [
+          "Run analyze_errors first",
+          "Call fix_common_issues",
+          "Review changes",
+          "Test with run_function"
+        ],
+        "best_practices": [
+          "Review before auto-apply",
+          "Test after fixes",
+          "Combine with debug_script"
+        ],
+        "error_handling": [
+          "No issues found: Script may be correct"
+        ],
+        "related_tools": [
+          "google_apps_script_analyze_errors",
+          "google_apps_script_update_content"
+        ]
+      },
+      "tool_intelligence": {
+        "category": "automation",
+        "typical_workflow_patterns": [
+          "google_apps_script_analyze_errors → google_apps_script_fix_common_issues → google_apps_script_run_function"
+        ],
+        "success_indicators": {
+          "keywords": [
+            "fixed X issues",
+            "applied changes"
+          ],
+          "behavioral": [
+            "User tests script"
+          ]
+        },
+        "failure_indicators": {
+          "keywords": [
+            "no fixes found",
+            "manual review needed"
+          ],
+          "behavioral": [
+            "User provides more context"
+          ]
+        },
+        "performance_expectations": {
+          "typical_duration_ms": 2000,
+          "rate_limit_per_minute": 30,
+          "max_retries": 3
+        }
+      },
+      "memory_context": {
+        "vectorization_fields": [
+          "fixesApplied",
+          "changesSummary"
+        ],
+        "search_keywords": [
+          "auto-fix",
+          "repair",
+          "common issues"
+        ],
+        "typical_use_cases": [
+          "Quick fixes for permission errors",
+          "Updating deprecated code"
+        ],
+        "conversation_memory_hints": {
+          "what_to_remember": "Fixes applied, success rate",
+          "search_context": "When following up"
+        }
+      }
+    },
+    {
+      "name": "google_apps_script_backup_project",
+      "short_description": "Create complete backup of Apps Script project with code, files, and manifest for recovery",
+      "description": "SMART TOOL: Export complete script project backup. Downloads all files (.gs, .html, manifest), creates JSON export with metadata (version history, deployments, recent executions). Use before major changes or for disaster recovery.\n\nUse when: Before major changes, disaster recovery prep, migrating scripts.\n\nReturns: {backupData, files, metadata, exportTimestamp}.",
+      "platform": "google_apps_script",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "script_id": {
+            "type": "string",
+            "description": "Script project ID"
+          },
+          "include_versions": {
+            "type": "boolean",
+            "description": "Include all version history",
+            "default": true
+          },
+          "include_executions": {
+            "type": "boolean",
+            "description": "Include recent execution logs",
+            "default": true
+          }
+        },
+        "required": [
+          "script_id"
+        ]
+      },
+      "returns": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "backupData": {
+            "type": "object"
+          },
+          "files": {
+            "type": "array"
+          },
+          "metadata": {
+            "type": "object"
+          },
+          "exportTimestamp": {
+            "type": "string"
+          },
+          "error": {
+            "type": "string"
+          }
+        }
+      },
+      "examples": [
+        {
+          "description": "Full backup",
+          "parameters": {
+            "script_id": "1a2b3c"
+          },
+          "expected_result": {
+            "success": true,
+            "files": [],
+            "metadata": {
+              "versions": 5,
+              "deployments": 2
+            }
+          }
+        }
+      ],
+      "usage_guide": {
+        "when_to_use": [
+          "Before major changes",
+          "Disaster recovery",
+          "Migration"
+        ],
+        "workflow": [
+          "Call backup_project",
+          "Store backup data",
+          "Make changes",
+          "Restore if needed"
+        ],
+        "best_practices": [
+          "Backup before updates",
+          "Store backups securely",
+          "Regular backups for critical scripts"
+        ],
+        "error_handling": [
+          "403: Missing permissions"
+        ],
+        "related_tools": [
+          "google_apps_script_restore_version"
+        ]
+      },
+      "tool_intelligence": {
+        "category": "content_management",
+        "typical_workflow_patterns": [
+          "google_apps_script_backup_project → google_apps_script_update_content"
+        ],
+        "success_indicators": {
+          "keywords": [
+            "backup complete"
+          ],
+          "behavioral": [
+            "User proceeds with changes"
+          ]
+        },
+        "failure_indicators": {
+          "keywords": [
+            "backup failed"
+          ],
+          "behavioral": [
+            "User retries"
+          ]
+        },
+        "performance_expectations": {
+          "typical_duration_ms": 1500,
+          "rate_limit_per_minute": 30,
+          "max_retries": 3
+        }
+      },
+      "memory_context": {
+        "vectorization_fields": [
+          "scriptId",
+          "backupData"
+        ],
+        "search_keywords": [
+          "backup",
+          "export",
+          "disaster recovery"
+        ],
+        "typical_use_cases": [
+          "Pre-update backup",
+          "Migration preparation"
+        ],
+        "conversation_memory_hints": {
+          "what_to_remember": "Backup timestamps",
+          "search_context": "When restoring"
+        }
+      }
+    },
+    {
+      "name": "google_apps_script_restore_version",
+      "short_description": "Restore Apps Script project to previous saved version by version number for rollback",
+      "description": "SMART TOOL: Restore script to previous version. Combines get_content (for specified version) + update_content (to apply) + create_deployment (if needed). Use for rollback after bad deployment or recovering from broken changes.\n\nUse when: Rollback needed, script broken after update, recover previous working state.\n\nReturns: {restoredVersion, deploymentStatus, restorationSummary}.",
+      "platform": "google_apps_script",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "script_id": {
+            "type": "string",
+            "description": "Script project ID"
+          },
+          "version_number": {
+            "type": "integer",
+            "description": "Version to restore to"
+          },
+          "create_backup": {
+            "type": "boolean",
+            "description": "Backup current state before restoring",
+            "default": true
+          },
+          "redeploy": {
+            "type": "boolean",
+            "description": "Redeploy after restoring",
+            "default": false
+          }
+        },
+        "required": [
+          "script_id",
+          "version_number"
+        ]
+      },
+      "returns": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "restoredVersion": {
+            "type": "integer"
+          },
+          "backupCreated": {
+            "type": "boolean"
+          },
+          "deploymentStatus": {
+            "type": "string"
+          },
+          "restorationSummary": {
+            "type": "string"
+          },
+          "error": {
+            "type": "string"
+          }
+        }
+      },
+      "examples": [
+        {
+          "description": "Rollback to version 3",
+          "parameters": {
+            "script_id": "1a2b3c",
+            "version_number": 3,
+            "redeploy": true
+          },
+          "expected_result": {
+            "success": true,
+            "restoredVersion": 3,
+            "deploymentStatus": "Deployed"
+          }
+        }
+      ],
+      "usage_guide": {
+        "when_to_use": [
+          "Rollback after bad update",
+          "Recover working state",
+          "Undo changes"
+        ],
+        "workflow": [
+          "List versions to find target",
+          "Call restore_version",
+          "Test restored script"
+        ],
+        "best_practices": [
+          "Always create backup first",
+          "Test before redeploying",
+          "Document rollback reason"
+        ],
+        "error_handling": [
+          "404: Version doesn't exist"
+        ],
+        "related_tools": [
+          "google_apps_script_list_versions",
+          "google_apps_script_backup_project"
+        ]
+      },
+      "tool_intelligence": {
+        "category": "content_management",
+        "typical_workflow_patterns": [
+          "google_apps_script_list_versions → google_apps_script_restore_version → google_apps_script_run_function"
+        ],
+        "success_indicators": {
+          "keywords": [
+            "restored successfully"
+          ],
+          "behavioral": [
+            "User tests restored version"
+          ]
+        },
+        "failure_indicators": {
+          "keywords": [
+            "restore failed"
+          ],
+          "behavioral": [
+            "User tries different version"
+          ]
+        },
+        "performance_expectations": {
+          "typical_duration_ms": 2000,
+          "rate_limit_per_minute": 30,
+          "max_retries": 3
+        }
+      },
+      "memory_context": {
+        "vectorization_fields": [
+          "restoredVersion",
+          "scriptId"
+        ],
+        "search_keywords": [
+          "rollback",
+          "restore",
+          "undo"
+        ],
+        "typical_use_cases": [
+          "Emergency rollback",
+          "Recovering from bad update"
+        ],
+        "conversation_memory_hints": {
+          "what_to_remember": "Rollback reasons, success",
+          "search_context": "When discussing changes"
+        }
+      }
+    }
+  ]
+}

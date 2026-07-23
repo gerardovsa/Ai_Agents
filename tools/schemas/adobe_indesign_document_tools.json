@@ -1,0 +1,1612 @@
+{
+    "platform": "adobe_indesign",
+    "description": "Document creation and assembly tools for Adobe InDesign. Create new documents, apply templates, assemble multi-page documents, manage pages and spreads, and control document structure.",
+    "tools": [
+        {
+            "name": "indesign_create_document",
+            "short_description": "Create new blank InDesign document with custom page size, margins, and bleed settings",
+            "description": "Create a new blank InDesign document (.indd file) with specified page settings.\n\nCreates fresh document with:\n- Custom page dimensions and orientation\n- Specified page count\n- Margin and column settings\n- Facing pages or single pages\n- Bleed and slug areas for print\n\nUse this tool when:\n- User wants to start new document from scratch\n- User needs custom page size not in templates\n- User is creating one-off design not based on template\n- User wants full control over document setup\n\nCommon scenarios:\n1. 'Create a blank 8.5x11 document' → Letter-size document\n2. 'Make a new brochure with 6 pages' → Multi-page document\n3. 'Create A4 document with bleed' → European size with print bleed\n4. 'Start new catalog with 50 pages' → Large document structure\n\nImportant notes:\n- Returns document_id for subsequent operations\n- Document starts blank (use other tools to add content)\n- Page numbering starts at 1 by default\n- Facing pages create left/right spreads\n- Bleed extends beyond page for print trimming\n\nBest practices:\n- Set proper bleed (0.125in standard) for printed documents\n- Use facing pages for books/magazines\n- Add margins appropriate to content type\n- Save frequently during document creation",
+            "platform": "adobe_indesign",
+            "category": "document_creation",
+            "backend": "soap",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "document_name": {
+                        "type": "string",
+                        "description": "Document filename (without .indd extension). Example: 'product_catalog_2024'"
+                    },
+                    "page_size": {
+                        "type": "object",
+                        "properties": {
+                            "width": {
+                                "type": "string",
+                                "description": "Page width with units (e.g., '8.5in', '210mm', '612pt'). Common: Letter=8.5in, A4=210mm"
+                            },
+                            "height": {
+                                "type": "string",
+                                "description": "Page height with units. Common: Letter=11in, A4=297mm, Tabloid=17in"
+                            }
+                        },
+                        "required": [
+                            "width",
+                            "height"
+                        ],
+                        "description": "Page dimensions. Standard sizes: Letter (8.5x11in), A4 (210x297mm), Legal (8.5x14in), Tabloid (11x17in)"
+                    },
+                    "page_count": {
+                        "type": "integer",
+                        "default": 1,
+                        "description": "Initial number of pages to create (1-9999). Can add more pages later."
+                    },
+                    "facing_pages": {
+                        "type": "boolean",
+                        "default": false,
+                        "description": "True for spreads with left/right pages (books, magazines). False for single pages (flyers, posters)."
+                    },
+                    "orientation": {
+                        "type": "string",
+                        "enum": [
+                            "portrait",
+                            "landscape"
+                        ],
+                        "default": "portrait",
+                        "description": "Page orientation. Portrait = tall, Landscape = wide."
+                    },
+                    "margins": {
+                        "type": "object",
+                        "properties": {
+                            "top": {
+                                "type": "string",
+                                "description": "Top margin with units (e.g., '0.5in')"
+                            },
+                            "bottom": {
+                                "type": "string"
+                            },
+                            "left": {
+                                "type": "string"
+                            },
+                            "right": {
+                                "type": "string"
+                            },
+                            "inside": {
+                                "type": "string",
+                                "description": "For facing pages - inside/gutter margin"
+                            },
+                            "outside": {
+                                "type": "string",
+                                "description": "For facing pages - outside margin"
+                            }
+                        },
+                        "description": "Page margins. Use inside/outside for facing pages, or top/bottom/left/right for single pages."
+                    },
+                    "columns": {
+                        "type": "object",
+                        "properties": {
+                            "count": {
+                                "type": "integer",
+                                "description": "Number of columns (1-40)"
+                            },
+                            "gutter": {
+                                "type": "string",
+                                "description": "Space between columns (e.g., '0.167in')"
+                            }
+                        },
+                        "description": "Column grid settings for text layout"
+                    },
+                    "bleed": {
+                        "type": "object",
+                        "properties": {
+                            "top": {
+                                "type": "string",
+                                "default": "0in"
+                            },
+                            "bottom": {
+                                "type": "string",
+                                "default": "0in"
+                            },
+                            "left": {
+                                "type": "string",
+                                "default": "0in"
+                            },
+                            "right": {
+                                "type": "string",
+                                "default": "0in"
+                            }
+                        },
+                        "description": "Bleed area (extends beyond page for print trimming). Standard: 0.125in all sides."
+                    },
+                    "slug": {
+                        "type": "object",
+                        "properties": {
+                            "top": {
+                                "type": "string",
+                                "default": "0in"
+                            },
+                            "bottom": {
+                                "type": "string",
+                                "default": "0in"
+                            }
+                        },
+                        "description": "Slug area for print notes (outside bleed, trimmed off). Typically 0.5in bottom."
+                    },
+                    "output_path": {
+                        "type": "string",
+                        "description": "Full path where document will be saved (e.g., 'C:/Projects/catalog.indd'). If omitted, saves to temp folder."
+                    }
+                },
+                "required": [
+                    "document_name",
+                    "page_size"
+                ]
+            },
+            "returns": {
+                "type": "object",
+                "properties": {
+                    "success": {
+                        "type": "boolean"
+                    },
+                    "document_id": {
+                        "type": "string",
+                        "description": "Unique document identifier for subsequent operations"
+                    },
+                    "document_path": {
+                        "type": "string",
+                        "description": "Full path to saved .indd file"
+                    },
+                    "pages_created": {
+                        "type": "integer"
+                    },
+                    "page_size": {
+                        "type": "object"
+                    },
+                    "error": {
+                        "type": "string"
+                    }
+                }
+            },
+            "examples": [
+                {
+                    "description": "Simple letter-size document",
+                    "parameters": {
+                        "document_name": "meeting_agenda",
+                        "page_size": {
+                            "width": "8.5in",
+                            "height": "11in"
+                        },
+                        "page_count": 1,
+                        "margins": {
+                            "top": "0.5in",
+                            "bottom": "0.5in",
+                            "left": "0.75in",
+                            "right": "0.75in"
+                        }
+                    },
+                    "expected_result": {
+                        "success": true,
+                        "document_id": "doc_abc123",
+                        "document_path": "C:/Temp/meeting_agenda.indd",
+                        "pages_created": 1
+                    }
+                },
+                {
+                    "description": "Catalog with facing pages and bleed",
+                    "parameters": {
+                        "document_name": "product_catalog_2024",
+                        "page_size": {
+                            "width": "8.5in",
+                            "height": "11in"
+                        },
+                        "page_count": 24,
+                        "facing_pages": true,
+                        "margins": {
+                            "inside": "0.75in",
+                            "outside": "0.5in",
+                            "top": "0.5in",
+                            "bottom": "0.5in"
+                        },
+                        "columns": {
+                            "count": 3,
+                            "gutter": "0.167in"
+                        },
+                        "bleed": {
+                            "top": "0.125in",
+                            "bottom": "0.125in",
+                            "left": "0.125in",
+                            "right": "0.125in"
+                        }
+                    },
+                    "expected_result": {
+                        "success": true,
+                        "document_id": "doc_xyz789",
+                        "pages_created": 24,
+                        "page_size": {
+                            "width": "8.5in",
+                            "height": "11in"
+                        }
+                    }
+                },
+                {
+                    "description": "Business card landscape",
+                    "parameters": {
+                        "document_name": "business_card",
+                        "page_size": {
+                            "width": "3.5in",
+                            "height": "2in"
+                        },
+                        "orientation": "landscape",
+                        "bleed": {
+                            "top": "0.125in",
+                            "bottom": "0.125in",
+                            "left": "0.125in",
+                            "right": "0.125in"
+                        }
+                    },
+                    "expected_result": {
+                        "success": true,
+                        "document_id": "doc_card001",
+                        "pages_created": 1
+                    }
+                }
+            ],
+            "usage_guide": {
+                "when_to_use": [
+                    "User wants to create new document from scratch (not from template)",
+                    "User needs custom page size not available in templates",
+                    "User is creating one-off design without reusable structure",
+                    "User wants full control over document setup parameters"
+                ],
+                "when_not_to_use": [
+                    "User has template to use (call indesign_create_document_from_template instead)",
+                    "User wants pre-defined styles and layouts (use templates)",
+                    "User is creating standardized document (templates are better)"
+                ],
+                "workflow": [
+                    "Step 1: Determine page size, count, and layout requirements",
+                    "Step 2: Call indesign_create_document() with specifications",
+                    "Step 3: Store returned document_id for subsequent operations",
+                    "Step 4: Add content with indesign_add_text_frame(), indesign_place_image(), etc.",
+                    "Step 5: Apply styles with indesign_apply_paragraph_style()",
+                    "Step 6: Export with indesign_export_pdf() when complete"
+                ],
+                "best_practices": [
+                    "Set bleed to 0.125in for printed documents (standard trim allowance)",
+                    "Use facing pages for books, magazines, catalogs (enables spreads)",
+                    "Add appropriate margins: wider inside margins for binding",
+                    "Use column grids for text-heavy layouts (easier alignment)",
+                    "Save document_id immediately - you'll need it for all subsequent operations",
+                    "Start with fewer pages, add more as needed (easier than deleting)",
+                    "Use slug area for print notes, crop marks (trimmed off in final print)"
+                ],
+                "error_handling": [
+                    "Error 'Invalid page size' → Must include units (8.5in, not 8.5)",
+                    "Error 'Page count exceeds limit' → Max 9999 pages per document",
+                    "Error 'Invalid margin' → Margins can't be larger than page dimensions",
+                    "Error 'Bleed extends beyond page' → Bleed should be 0.125in-0.25in typically",
+                    "Error 'Output path not accessible' → Verify folder exists and has write permissions",
+                    "Error 'Document name conflict' → File already exists at output_path"
+                ],
+                "related_tools": [
+                    "indesign_create_document_from_template - Use template instead of blank doc",
+                    "indesign_add_pages - Add more pages after document creation",
+                    "indesign_set_document_margins - Modify margins after creation",
+                    "indesign_add_text_frame - Add content to created document",
+                    "indesign_place_image - Insert images into document",
+                    "indesign_export_pdf - Export finished document"
+                ]
+            },
+            "tool_intelligence": {
+                "category": "content_management",
+                "typical_workflow_patterns": [
+                    "indesign_create_document → indesign_add_pages → indesign_add_text_frame",
+                    "indesign_create_document → indesign_place_image → indesign_export_pdf"
+                ],
+                "success_indicators": {
+                    "keywords": [
+                        "document created",
+                        "doc_id returned",
+                        "pages created"
+                    ],
+                    "behavioral": [
+                        "User adds content to document",
+                        "User continues workflow"
+                    ]
+                },
+                "failure_indicators": {
+                    "keywords": [
+                        "failed to create",
+                        "invalid page size",
+                        "error"
+                    ],
+                    "behavioral": [
+                        "User retries with different parameters",
+                        "User asks for help"
+                    ]
+                },
+                "performance_expectations": {
+                    "typical_duration_ms": 1500,
+                    "rate_limit_per_minute": 20,
+                    "max_retries": 3
+                }
+            },
+            "memory_context": {
+                "vectorization_fields": [
+                    "document_name",
+                    "page_size",
+                    "page_count"
+                ],
+                "search_keywords": [
+                    "document",
+                    "create",
+                    "blank",
+                    "new",
+                    "indesign"
+                ],
+                "related_synergy_platforms": [
+                    "indesign"
+                ],
+                "typical_use_cases": [
+                    "Creating product catalogs with multi-page layout",
+                    "Designing business cards with bleed for print",
+                    "Building brochures with facing pages",
+                    "Creating flyers with custom dimensions"
+                ],
+                "conversation_memory_hints": {
+                    "what_to_remember": "Document name, page count, page size, document_id",
+                    "search_context": "When user refers back to 'that catalog I started' or 'the document we created'"
+                }
+            }
+        },
+        {
+            "name": "indesign_create_document_from_template",
+            "description": "Create a new InDesign document from an existing template (.indt file).\n\nCreates document by:\n- Loading template structure (master pages, styles, placeholders)\n- Creating new .indd file\n- Preserving template formatting\n- Optionally pre-filling data merge placeholders\n- Maintaining all template styles and assets\n\nUse this tool when:\n- User wants to create document from template\n- User needs consistent formatting from template\n- User is starting data merge workflow\n- User wants to reuse existing design structure\n\nCommon scenarios:\n1. 'Create catalog from template' → Load template, ready for data\n2. 'Use business card template for new client' → New doc with template structure\n3. 'Generate 50 brochures from template' → Batch document creation\n4. 'Start new project with brand template' → Consistent brand application\n\nAdvantages over blank document:\n- Pre-defined styles save formatting time\n- Master pages ensure consistency\n- Placeholders ready for data merge\n- Brand elements already positioned\n- Faster than recreating layout\n\nThis is the recommended way to create documents when templates exist.",
+            "platform": "adobe_indesign",
+            "category": "document_creation",
+            "backend": "hybrid",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "template_id": {
+                        "type": "string",
+                        "description": "Template identifier (from indesign_list_templates) or path to .indt file"
+                    },
+                    "document_name": {
+                        "type": "string",
+                        "description": "Name for new document (without .indd extension)"
+                    },
+                    "data_source": {
+                        "type": "object",
+                        "properties": {
+                            "type": {
+                                "type": "string",
+                                "enum": [
+                                    "csv",
+                                    "json",
+                                    "database"
+                                ],
+                                "description": "Data source type"
+                            },
+                            "path": {
+                                "type": "string",
+                                "description": "Path to data file or database connection string"
+                            },
+                            "mapping": {
+                                "type": "object",
+                                "description": "Map data fields to template placeholders"
+                            }
+                        },
+                        "description": "Optional data source to pre-fill template placeholders"
+                    },
+                    "output_path": {
+                        "type": "string",
+                        "description": "Where to save new document. If omitted, uses default location."
+                    }
+                },
+                "required": [
+                    "template_id",
+                    "document_name"
+                ]
+            },
+            "returns": {
+                "type": "object",
+                "properties": {
+                    "success": {
+                        "type": "boolean"
+                    },
+                    "document_id": {
+                        "type": "string"
+                    },
+                    "document_path": {
+                        "type": "string"
+                    },
+                    "template_used": {
+                        "type": "string"
+                    },
+                    "placeholders_filled": {
+                        "type": "integer",
+                        "description": "Count of placeholders populated with data"
+                    },
+                    "pages_created": {
+                        "type": "integer"
+                    },
+                    "error": {
+                        "type": "string"
+                    }
+                }
+            },
+            "examples": [
+                {
+                    "description": "Create document from catalog template",
+                    "parameters": {
+                        "template_id": "catalog_template_2024",
+                        "document_name": "spring_catalog_2024"
+                    },
+                    "expected_result": {
+                        "success": true,
+                        "document_id": "doc_spring2024",
+                        "document_path": "spring_catalog_2024.indd",
+                        "template_used": "catalog_template_2024.indt",
+                        "pages_created": 8
+                    }
+                },
+                {
+                    "description": "Create from template with data merge",
+                    "parameters": {
+                        "template_id": "business_card_template",
+                        "document_name": "john_doe_card",
+                        "data_source": {
+                            "type": "json",
+                            "path": "contacts.json",
+                            "mapping": {
+                                "Name": "full_name",
+                                "Title": "job_title",
+                                "Phone": "phone_number",
+                                "Email": "email_address"
+                            }
+                        }
+                    },
+                    "expected_result": {
+                        "success": true,
+                        "document_id": "doc_johndoe",
+                        "placeholders_filled": 4
+                    }
+                }
+            ],
+            "usage_guide": {
+                "when_to_use": [
+                    "User has template and wants to create document from it",
+                    "User needs consistent formatting across multiple documents",
+                    "User is running data merge workflow with placeholders",
+                    "User wants to save time by using pre-built structure"
+                ],
+                "when_not_to_use": [
+                    "No template exists (use indesign_create_document instead)",
+                    "User needs completely custom layout",
+                    "Template doesn't match requirements"
+                ],
+                "workflow": [
+                    "Step 1: Call indesign_list_templates() to find available templates",
+                    "Step 2: Optionally call indesign_get_template_details() to see placeholders",
+                    "Step 3: Call indesign_create_document_from_template() with template_id",
+                    "Step 4: If data_source provided, placeholders auto-fill",
+                    "Step 5: Add additional content with other tools if needed",
+                    "Step 6: Export with indesign_export_pdf()"
+                ],
+                "best_practices": [
+                    "Always check template placeholders before data merge",
+                    "Use templates for consistent brand application",
+                    "Map data fields exactly to placeholder names",
+                    "Test template with sample data first",
+                    "Keep template and documents in separate folders",
+                    "Version document names (spring_catalog_v1, spring_catalog_v2)"
+                ],
+                "error_handling": [
+                    "Error 'Template not found' → Verify template_id or path, call indesign_list_templates()",
+                    "Error 'Placeholder mismatch' → Check data_source.mapping matches template placeholders",
+                    "Error 'Data source invalid' → Verify file path and format (CSV, JSON)",
+                    "Error 'Template locked' → Template file is open, close it first",
+                    "Error 'Document name conflict' → File already exists, choose different name"
+                ],
+                "related_tools": [
+                    "indesign_list_templates - Find available templates first",
+                    "indesign_get_template_details - See template structure and placeholders",
+                    "indesign_validate_data_source - Check data before merge",
+                    "indesign_create_product_catalog - Smart tool that includes this step",
+                    "indesign_batch_create_from_template - Create multiple docs at once",
+                    "indesign_export_pdf - Export finished document"
+                ]
+            },
+            "tool_intelligence": {
+                "category": "content_management",
+                "typical_workflow_patterns": [
+                    "indesign_list_templates → indesign_create_document_from_template → indesign_export_pdf",
+                    "indesign_create_document_from_template → indesign_place_image → indesign_run_preflight"
+                ],
+                "success_indicators": {
+                    "keywords": [
+                        "document created from template",
+                        "placeholders filled"
+                    ],
+                    "behavioral": [
+                        "User exports document",
+                        "User continues adding content"
+                    ]
+                }
+            },
+            "memory_context": {
+                "vectorization_fields": [
+                    "template_id",
+                    "document_name",
+                    "data_source"
+                ],
+                "search_keywords": [
+                    "template",
+                    "create from template",
+                    "data merge"
+                ],
+                "typical_use_cases": [
+                    "Creating product catalogs from template with product data",
+                    "Generating personalized business cards from template",
+                    "Building branded brochures using company template"
+                ]
+            }
+        },
+        {
+            "name": "indesign_add_pages",
+            "description": "Add pages to existing InDesign document.\n\nInserts pages:\n- At specific position (beginning, end, or after specific page)\n- With specified master page applied\n- Single pages or page spreads\n- Optionally copies content from existing page\n\nUse this when:\n- User needs to expand document\n- User wants to add sections\n- User is building document dynamically\n- User needs more pages for content\n\nCommon scenarios:\n1. 'Add 5 pages to catalog' → Expand document\n2. 'Insert page after page 3' → Specific position\n3. 'Add blank page at end' → Append page\n4. 'Duplicate page 5' → Copy existing page",
+            "platform": "adobe_indesign",
+            "category": "document_creation",
+            "backend": "soap",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "document_id": {
+                        "type": "string",
+                        "description": "Document identifier (from document creation)"
+                    },
+                    "page_count": {
+                        "type": "integer",
+                        "default": 1,
+                        "description": "Number of pages to add (1-100)"
+                    },
+                    "position": {
+                        "type": "string",
+                        "enum": [
+                            "beginning",
+                            "end",
+                            "after"
+                        ],
+                        "default": "end",
+                        "description": "Where to insert pages"
+                    },
+                    "after_page": {
+                        "type": "integer",
+                        "description": "Page number to insert after (required if position='after')"
+                    },
+                    "master_page": {
+                        "type": "string",
+                        "description": "Master page name to apply (e.g., 'Content', 'Cover'). If omitted, uses default."
+                    },
+                    "copy_from_page": {
+                        "type": "integer",
+                        "description": "Page number to copy content from (optional)"
+                    }
+                },
+                "required": [
+                    "document_id"
+                ]
+            },
+            "returns": {
+                "type": "object",
+                "properties": {
+                    "success": {
+                        "type": "boolean"
+                    },
+                    "pages_added": {
+                        "type": "integer"
+                    },
+                    "new_page_numbers": {
+                        "type": "array",
+                        "items": {
+                            "type": "integer"
+                        }
+                    },
+                    "total_pages": {
+                        "type": "integer",
+                        "description": "Document page count after addition"
+                    },
+                    "error": {
+                        "type": "string"
+                    }
+                }
+            },
+            "examples": [
+                {
+                    "description": "Add 3 pages to end of document",
+                    "parameters": {
+                        "document_id": "doc_catalog2024",
+                        "page_count": 3,
+                        "position": "end"
+                    },
+                    "expected_result": {
+                        "success": true,
+                        "pages_added": 3,
+                        "new_page_numbers": [
+                            25,
+                            26,
+                            27
+                        ],
+                        "total_pages": 27
+                    }
+                }
+            ],
+            "usage_guide": {
+                "when_to_use": [
+                    "Document needs more pages for content",
+                    "User is expanding catalog or brochure",
+                    "User wants to add section to document",
+                    "User needs to duplicate existing page"
+                ],
+                "workflow": [
+                    "Step 1: Have document_id from indesign_create_document()",
+                    "Step 2: Call indesign_add_pages() with position and count",
+                    "Step 3: Note new_page_numbers for adding content",
+                    "Step 4: Add content to new pages with other tools"
+                ],
+                "best_practices": [
+                    "Add pages in batches rather than one at a time",
+                    "Apply appropriate master pages for consistency",
+                    "Use copy_from_page to duplicate layouts",
+                    "Consider page spreads for facing page documents"
+                ],
+                "error_handling": [
+                    "Error 'Document not found' → Verify document_id is correct",
+                    "Error 'Invalid after_page' → Page number doesn't exist",
+                    "Error 'Master page not found' → Check master page names with indesign_list_master_pages()",
+                    "Error 'Exceeds page limit' → Documents limited to 9999 pages"
+                ],
+                "related_tools": [
+                    "indesign_delete_pages - Remove pages",
+                    "indesign_move_pages - Reorder pages",
+                    "indesign_duplicate_page - Copy single page",
+                    "indesign_apply_master_page - Change master page on existing pages"
+                ]
+            }
+        },
+        {
+            "name": "indesign_delete_pages",
+            "description": "Remove specified pages from InDesign document.\n\nDeletes pages with options to:\n- Delete single page or page range\n- Preserve or delete content\n- Adjust page numbering\n- Handle master page overrides\n\nUse when:\n- Removing unnecessary pages\n- Restructuring document\n- Cleaning up document\n- Adjusting page count\n\nContent on deleted pages is permanently removed unless backed up.",
+            "platform": "adobe_indesign",
+            "category": "document_creation",
+            "backend": "soap",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "document_id": {
+                        "type": "string"
+                    },
+                    "page_numbers": {
+                        "type": "array",
+                        "items": {
+                            "type": "integer"
+                        },
+                        "description": "Page numbers to delete (e.g., [3, 5, 7] or [10] for single page)"
+                    },
+                    "create_backup": {
+                        "type": "boolean",
+                        "default": true
+                    }
+                },
+                "required": [
+                    "document_id",
+                    "page_numbers"
+                ]
+            },
+            "returns": {
+                "type": "object",
+                "properties": {
+                    "success": {
+                        "type": "boolean"
+                    },
+                    "pages_deleted": {
+                        "type": "integer"
+                    },
+                    "new_page_count": {
+                        "type": "integer"
+                    },
+                    "backup_path": {
+                        "type": "string"
+                    },
+                    "error": {
+                        "type": "string"
+                    }
+                }
+            },
+            "examples": [
+                {
+                    "description": "Delete pages 5 and 6",
+                    "parameters": {
+                        "document_id": "doc_catalog",
+                        "page_numbers": [
+                            5,
+                            6
+                        ]
+                    },
+                    "expected_result": {
+                        "success": true,
+                        "pages_deleted": 2,
+                        "new_page_count": 22
+                    }
+                }
+            ],
+            "usage_guide": {
+                "when_to_use": [
+                    "Removing blank pages",
+                    "Restructuring document",
+                    "Reducing page count",
+                    "Cleaning up layout"
+                ],
+                "workflow": [
+                    "Step 1: Backup document",
+                    "Step 2: Call indesign_delete_pages()",
+                    "Step 3: Verify with indesign_get_document_info()"
+                ],
+                "best_practices": [
+                    "Always create backup before deletion",
+                    "Delete pages in descending order",
+                    "Check content before deleting",
+                    "Update page numbering after deletion"
+                ],
+                "error_handling": [
+                    "Error 'Page not found' → Page number doesn't exist",
+                    "Error 'Cannot delete last page' → Document must have at least 1 page"
+                ],
+                "related_tools": [
+                    "indesign_add_pages - Add pages back if needed",
+                    "indesign_move_pages - Reorder instead of delete"
+                ]
+            }
+        },
+        {
+            "name": "indesign_move_pages",
+            "description": "Reorder pages within InDesign document.\n\nMove pages:\n- Single page or page ranges\n- To specific position\n- Before or after target page\n- Preserving page content and formatting\n\nUse for document reorganization and page sequencing.",
+            "platform": "adobe_indesign",
+            "category": "document_creation",
+            "backend": "soap",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "document_id": {
+                        "type": "string"
+                    },
+                    "source_pages": {
+                        "type": "array",
+                        "items": {
+                            "type": "integer"
+                        }
+                    },
+                    "target_position": {
+                        "type": "integer"
+                    },
+                    "insert_before": {
+                        "type": "boolean",
+                        "default": true
+                    }
+                },
+                "required": [
+                    "document_id",
+                    "source_pages",
+                    "target_position"
+                ]
+            },
+            "returns": {
+                "type": "object",
+                "properties": {
+                    "success": {
+                        "type": "boolean"
+                    },
+                    "pages_moved": {
+                        "type": "integer"
+                    },
+                    "new_positions": {
+                        "type": "array"
+                    },
+                    "error": {
+                        "type": "string"
+                    }
+                }
+            },
+            "examples": [
+                {
+                    "description": "Move page 10 before page 5",
+                    "parameters": {
+                        "document_id": "doc_brochure",
+                        "source_pages": [
+                            10
+                        ],
+                        "target_position": 5,
+                        "insert_before": true
+                    },
+                    "expected_result": {
+                        "success": true,
+                        "pages_moved": 1,
+                        "new_positions": [
+                            5
+                        ]
+                    }
+                }
+            ],
+            "usage_guide": {
+                "when_to_use": [
+                    "Reorganizing document structure",
+                    "Fixing page order",
+                    "Moving sections",
+                    "Rearranging content"
+                ],
+                "workflow": [
+                    "Step 1: Identify source and target pages",
+                    "Step 2: Call indesign_move_pages()",
+                    "Step 3: Verify new order"
+                ],
+                "best_practices": [
+                    "Move pages before adding content",
+                    "Update cross-references after moving",
+                    "Check page numbering",
+                    "Preserve spreads for facing pages"
+                ],
+                "error_handling": [
+                    "Error 'Invalid page number' → Check page exists",
+                    "Error 'Cannot move to same position' → Source equals target"
+                ],
+                "related_tools": [
+                    "indesign_duplicate_page - Copy instead of move",
+                    "indesign_delete_pages - Remove pages"
+                ]
+            }
+        },
+        {
+            "name": "indesign_duplicate_page",
+            "description": "Create exact copy of page within document.\n\nDuplicates page with:\n- All content and formatting\n- Master page assignments\n- Overrides preserved\n- Insert at specified position\n\nFaster than recreating page layout manually.",
+            "platform": "adobe_indesign",
+            "category": "document_creation",
+            "backend": "soap",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "document_id": {
+                        "type": "string"
+                    },
+                    "source_page": {
+                        "type": "integer"
+                    },
+                    "insert_after": {
+                        "type": "integer"
+                    }
+                },
+                "required": [
+                    "document_id",
+                    "source_page"
+                ]
+            },
+            "returns": {
+                "type": "object",
+                "properties": {
+                    "success": {
+                        "type": "boolean"
+                    },
+                    "new_page_number": {
+                        "type": "integer"
+                    },
+                    "error": {
+                        "type": "string"
+                    }
+                }
+            },
+            "examples": [
+                {
+                    "description": "Duplicate page 5 and insert after page 10",
+                    "parameters": {
+                        "document_id": "doc_catalog",
+                        "source_page": 5,
+                        "insert_after": 10
+                    },
+                    "expected_result": {
+                        "success": true,
+                        "new_page_number": 11
+                    }
+                }
+            ],
+            "usage_guide": {
+                "when_to_use": [
+                    "Reusing page layout",
+                    "Creating similar pages",
+                    "Building document sections",
+                    "Testing layout variations"
+                ],
+                "workflow": [
+                    "Step 1: Identify page to duplicate",
+                    "Step 2: Call indesign_duplicate_page()",
+                    "Step 3: Modify duplicated content as needed"
+                ],
+                "best_practices": [
+                    "Duplicate before modifying",
+                    "Check master page overrides",
+                    "Update variable content after duplication"
+                ],
+                "error_handling": [
+                    "Error 'Page not found' → Source page doesn't exist"
+                ],
+                "related_tools": [
+                    "indesign_add_pages - Add blank pages",
+                    "indesign_move_pages - Reposition duplicated page"
+                ]
+            }
+        },
+        {
+            "name": "indesign_set_page_size",
+            "description": "Change page dimensions of existing document.\n\nModifies:\n- Page width and height\n- Orientation\n- All pages or specific pages\n- Preserves content positioning option\n\nUse when page size needs adjustment after creation.",
+            "platform": "adobe_indesign",
+            "category": "document_creation",
+            "backend": "soap",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "document_id": {
+                        "type": "string"
+                    },
+                    "page_size": {
+                        "type": "object",
+                        "properties": {
+                            "width": {
+                                "type": "string"
+                            },
+                            "height": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "apply_to_pages": {
+                        "type": "array",
+                        "items": {
+                            "type": "integer"
+                        }
+                    },
+                    "resize_content": {
+                        "type": "boolean",
+                        "default": false
+                    }
+                },
+                "required": [
+                    "document_id",
+                    "page_size"
+                ]
+            },
+            "returns": {
+                "type": "object",
+                "properties": {
+                    "success": {
+                        "type": "boolean"
+                    },
+                    "pages_affected": {
+                        "type": "integer"
+                    },
+                    "error": {
+                        "type": "string"
+                    }
+                }
+            },
+            "examples": [
+                {
+                    "description": "Change document to A4 size",
+                    "parameters": {
+                        "document_id": "doc_report",
+                        "page_size": {
+                            "width": "210mm",
+                            "height": "297mm"
+                        }
+                    },
+                    "expected_result": {
+                        "success": true,
+                        "pages_affected": 24
+                    }
+                }
+            ],
+            "usage_guide": {
+                "when_to_use": [
+                    "Changing document format",
+                    "Converting between sizes",
+                    "Adjusting for print requirements"
+                ],
+                "workflow": [
+                    "Step 1: Backup document",
+                    "Step 2: Call indesign_set_page_size()",
+                    "Step 3: Check content positioning"
+                ],
+                "best_practices": [
+                    "Backup before resizing",
+                    "Review content after resize",
+                    "Adjust margins if needed"
+                ],
+                "error_handling": [
+                    "Error 'Content overflow' → Content doesn't fit new size",
+                    "Error 'Invalid size' → Check dimensions"
+                ],
+                "related_tools": [
+                    "indesign_set_document_margins - Adjust margins after resize"
+                ]
+            }
+        },
+        {
+            "name": "indesign_set_document_margins",
+            "description": "Modify margin settings for document pages.\n\nAdjusts:\n- Top, bottom, left, right margins\n- Inside/outside for facing pages\n- Apply to all pages or specific pages\n- Column gutter settings\n\nMargins guide content placement and maintain consistency.",
+            "platform": "adobe_indesign",
+            "category": "document_creation",
+            "backend": "soap",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "document_id": {
+                        "type": "string"
+                    },
+                    "margins": {
+                        "type": "object",
+                        "properties": {
+                            "top": {
+                                "type": "string"
+                            },
+                            "bottom": {
+                                "type": "string"
+                            },
+                            "left": {
+                                "type": "string"
+                            },
+                            "right": {
+                                "type": "string"
+                            },
+                            "inside": {
+                                "type": "string"
+                            },
+                            "outside": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "apply_to_pages": {
+                        "type": "array",
+                        "items": {
+                            "type": "integer"
+                        }
+                    }
+                },
+                "required": [
+                    "document_id",
+                    "margins"
+                ]
+            },
+            "returns": {
+                "type": "object",
+                "properties": {
+                    "success": {
+                        "type": "boolean"
+                    },
+                    "pages_updated": {
+                        "type": "integer"
+                    },
+                    "error": {
+                        "type": "string"
+                    }
+                }
+            },
+            "examples": [
+                {
+                    "description": "Set 1 inch margins on all pages",
+                    "parameters": {
+                        "document_id": "doc_book",
+                        "margins": {
+                            "top": "1in",
+                            "bottom": "1in",
+                            "left": "1in",
+                            "right": "1in"
+                        }
+                    },
+                    "expected_result": {
+                        "success": true,
+                        "pages_updated": 150
+                    }
+                }
+            ],
+            "usage_guide": {
+                "when_to_use": [
+                    "Adjusting layout spacing",
+                    "Meeting print requirements",
+                    "Changing document margins",
+                    "Setting binding margins"
+                ],
+                "workflow": [
+                    "Step 1: Determine margin requirements",
+                    "Step 2: Call indesign_set_document_margins()",
+                    "Step 3: Check content positioning"
+                ],
+                "best_practices": [
+                    "Use inside/outside for facing pages",
+                    "Account for binding with larger inside margin",
+                    "Check content doesn't overflow new margins"
+                ],
+                "error_handling": [
+                    "Error 'Margins too large' → Margins exceed page size"
+                ],
+                "related_tools": [
+                    "indesign_create_document - Set margins at creation",
+                    "indesign_set_page_size - Resize pages"
+                ]
+            }
+        },
+        {
+            "name": "indesign_create_master_page",
+            "description": "Create new master page for document.\n\nMaster pages define:\n- Consistent page layouts\n- Headers and footers\n- Page numbers\n- Repeating elements\n- Grid and guide structures\n\nEssential for multi-page document consistency.",
+            "platform": "adobe_indesign",
+            "category": "document_creation",
+            "backend": "soap",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "document_id": {
+                        "type": "string"
+                    },
+                    "master_name": {
+                        "type": "string"
+                    },
+                    "based_on_master": {
+                        "type": "string"
+                    },
+                    "layout": {
+                        "type": "object"
+                    }
+                },
+                "required": [
+                    "document_id",
+                    "master_name"
+                ]
+            },
+            "returns": {
+                "type": "object",
+                "properties": {
+                    "success": {
+                        "type": "boolean"
+                    },
+                    "master_page_id": {
+                        "type": "string"
+                    },
+                    "error": {
+                        "type": "string"
+                    }
+                }
+            },
+            "examples": [
+                {
+                    "description": "Create content master page",
+                    "parameters": {
+                        "document_id": "doc_magazine",
+                        "master_name": "Content"
+                    },
+                    "expected_result": {
+                        "success": true,
+                        "master_page_id": "master_content"
+                    }
+                }
+            ],
+            "usage_guide": {
+                "when_to_use": [
+                    "Creating consistent page layouts",
+                    "Setting up headers/footers",
+                    "Defining page templates",
+                    "Building document structure"
+                ],
+                "workflow": [
+                    "Step 1: Design master page layout",
+                    "Step 2: Call indesign_create_master_page()",
+                    "Step 3: Apply to pages with indesign_apply_master_page()"
+                ],
+                "best_practices": [
+                    "Create master pages early",
+                    "Use descriptive names",
+                    "Base masters on existing for hierarchy",
+                    "Include page numbers"
+                ],
+                "error_handling": [
+                    "Error 'Master name exists' → Choose unique name"
+                ],
+                "related_tools": [
+                    "indesign_apply_master_page - Apply to document pages",
+                    "indesign_edit_master_page - Modify master"
+                ]
+            }
+        },
+        {
+            "name": "indesign_apply_master_page",
+            "short_description": "Apply master page template to document pages for consistent layout",
+            "description": "Apply master page to document pages.\n\nApplies master:\n- To single page or page range\n- Overrides previous master\n- Preserves or removes overrides\n- Updates page layout\n\nChanges page structure based on master template.",
+            "platform": "adobe_indesign",
+            "category": "document_creation",
+            "backend": "soap",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "document_id": {
+                        "type": "string"
+                    },
+                    "master_page_id": {
+                        "type": "string"
+                    },
+                    "page_numbers": {
+                        "type": "array",
+                        "items": {
+                            "type": "integer"
+                        }
+                    },
+                    "remove_overrides": {
+                        "type": "boolean",
+                        "default": false
+                    }
+                },
+                "required": [
+                    "document_id",
+                    "master_page_id",
+                    "page_numbers"
+                ]
+            },
+            "returns": {
+                "type": "object",
+                "properties": {
+                    "success": {
+                        "type": "boolean"
+                    },
+                    "pages_updated": {
+                        "type": "integer"
+                    },
+                    "error": {
+                        "type": "string"
+                    }
+                }
+            },
+            "examples": [
+                {
+                    "description": "Apply content master to pages 5-10",
+                    "parameters": {
+                        "document_id": "doc_catalog",
+                        "master_page_id": "master_content",
+                        "page_numbers": [
+                            5,
+                            6,
+                            7,
+                            8,
+                            9,
+                            10
+                        ]
+                    },
+                    "expected_result": {
+                        "success": true,
+                        "pages_updated": 6
+                    }
+                }
+            ],
+            "usage_guide": {
+                "when_to_use": [
+                    "Applying consistent layouts",
+                    "Changing page structure",
+                    "Setting up document sections",
+                    "Updating page templates"
+                ],
+                "workflow": [
+                    "Step 1: Create master with indesign_create_master_page()",
+                    "Step 2: Call indesign_apply_master_page()",
+                    "Step 3: Add page-specific content"
+                ],
+                "best_practices": [
+                    "Apply masters before adding content",
+                    "Use different masters for different sections",
+                    "Preserve important overrides"
+                ],
+                "error_handling": [
+                    "Error 'Master not found' → Check master_page_id",
+                    "Error 'Page not found' → Verify page numbers"
+                ],
+                "related_tools": [
+                    "indesign_create_master_page - Create master first",
+                    "indesign_override_master_items - Modify master elements on page"
+                ]
+            }
+        },
+        {
+            "name": "indesign_list_master_pages",
+            "short_description": "List all master pages in InDesign document with names and properties",
+            "description": "List all master pages in document.\n\nReturns master page details:\n- Master page names\n- Applied page count\n- Parent master relationships\n- Master page structure\n\nUse to discover available masters before applying.",
+            "platform": "adobe_indesign",
+            "category": "document_creation",
+            "backend": "soap",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "document_id": {
+                        "type": "string"
+                    }
+                },
+                "required": [
+                    "document_id"
+                ]
+            },
+            "returns": {
+                "type": "object",
+                "properties": {
+                    "success": {
+                        "type": "boolean"
+                    },
+                    "master_pages": {
+                        "type": "array",
+                        "items": {
+                            "type": "object",
+                            "properties": {
+                                "id": {
+                                    "type": "string"
+                                },
+                                "name": {
+                                    "type": "string"
+                                },
+                                "pages_applied": {
+                                    "type": "integer"
+                                }
+                            }
+                        }
+                    },
+                    "error": {
+                        "type": "string"
+                    }
+                }
+            },
+            "examples": [
+                {
+                    "description": "List all masters",
+                    "parameters": {
+                        "document_id": "doc_magazine"
+                    },
+                    "expected_result": {
+                        "success": true,
+                        "master_pages": [
+                            {
+                                "id": "master_cover",
+                                "name": "Cover",
+                                "pages_applied": 2
+                            },
+                            {
+                                "id": "master_content",
+                                "name": "Content",
+                                "pages_applied": 48
+                            }
+                        ]
+                    }
+                }
+            ],
+            "usage_guide": {
+                "when_to_use": [
+                    "Discovering available masters",
+                    "Before applying master pages",
+                    "Auditing document structure"
+                ],
+                "workflow": [
+                    "Step 1: Call indesign_list_master_pages()",
+                    "Step 2: Choose appropriate master",
+                    "Step 3: Apply with indesign_apply_master_page()"
+                ],
+                "best_practices": [
+                    "Check masters before applying",
+                    "Review pages_applied for usage patterns"
+                ],
+                "error_handling": [
+                    "Error 'Document not found' → Verify document_id"
+                ],
+                "related_tools": [
+                    "indesign_create_master_page - Create new master",
+                    "indesign_apply_master_page - Apply master to pages"
+                ]
+            }
+        },
+        {
+            "name": "indesign_create_section",
+            "description": "Create document section with custom page numbering.\n\nSections enable:\n- Custom page numbering styles\n- Different numbering per section\n- Roman numerals, letters, numbers\n- Section markers and prefixes\n\nEssential for books with front matter, body, and appendices.",
+            "platform": "adobe_indesign",
+            "category": "document_creation",
+            "backend": "soap",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "document_id": {
+                        "type": "string"
+                    },
+                    "start_page": {
+                        "type": "integer"
+                    },
+                    "section_marker": {
+                        "type": "string"
+                    },
+                    "numbering_style": {
+                        "type": "string",
+                        "enum": [
+                            "1, 2, 3",
+                            "i, ii, iii",
+                            "I, II, III",
+                            "a, b, c",
+                            "A, B, C"
+                        ]
+                    },
+                    "start_number": {
+                        "type": "integer",
+                        "default": 1
+                    }
+                },
+                "required": [
+                    "document_id",
+                    "start_page"
+                ]
+            },
+            "returns": {
+                "type": "object",
+                "properties": {
+                    "success": {
+                        "type": "boolean"
+                    },
+                    "section_id": {
+                        "type": "string"
+                    },
+                    "error": {
+                        "type": "string"
+                    }
+                }
+            },
+            "examples": [
+                {
+                    "description": "Create front matter section with roman numerals",
+                    "parameters": {
+                        "document_id": "doc_book",
+                        "start_page": 1,
+                        "section_marker": "Front Matter",
+                        "numbering_style": "i, ii, iii"
+                    },
+                    "expected_result": {
+                        "success": true,
+                        "section_id": "section_front"
+                    }
+                }
+            ],
+            "usage_guide": {
+                "when_to_use": [
+                    "Creating book sections",
+                    "Different numbering styles",
+                    "Front matter and appendices",
+                    "Multi-part documents"
+                ],
+                "workflow": [
+                    "Step 1: Plan section structure",
+                    "Step 2: Call indesign_create_section() for each section",
+                    "Step 3: Set page numbering with indesign_set_page_numbering()"
+                ],
+                "best_practices": [
+                    "Use roman numerals for front matter",
+                    "Standard numbers for main content",
+                    "Letters or roman for appendices"
+                ],
+                "error_handling": [
+                    "Error 'Page already in section' → Delete existing section first"
+                ],
+                "related_tools": [
+                    "indesign_set_page_numbering - Configure numbering",
+                    "indesign_create_master_page - Include page numbers in master"
+                ]
+            }
+        },
+        {
+            "name": "indesign_merge_documents",
+            "description": "Combine multiple InDesign documents into single document.\n\nMerges documents:\n- Preserves all content and formatting\n- Combines master pages\n- Merges styles and swatches\n- Maintains page order\n- Resolves naming conflicts\n\nEssential for assembling multi-part projects.",
+            "platform": "adobe_indesign",
+            "category": "document_creation",
+            "backend": "soap",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "source_documents": {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        },
+                        "description": "Array of document paths to merge"
+                    },
+                    "output_document": {
+                        "type": "string"
+                    },
+                    "merge_styles": {
+                        "type": "boolean",
+                        "default": true
+                    },
+                    "resolve_conflicts": {
+                        "type": "string",
+                        "enum": [
+                            "rename",
+                            "skip",
+                            "overwrite"
+                        ],
+                        "default": "rename"
+                    }
+                },
+                "required": [
+                    "source_documents",
+                    "output_document"
+                ]
+            },
+            "returns": {
+                "type": "object",
+                "properties": {
+                    "success": {
+                        "type": "boolean"
+                    },
+                    "merged_document_id": {
+                        "type": "string"
+                    },
+                    "total_pages": {
+                        "type": "integer"
+                    },
+                    "conflicts_resolved": {
+                        "type": "integer"
+                    },
+                    "error": {
+                        "type": "string"
+                    }
+                }
+            },
+            "examples": [
+                {
+                    "description": "Merge 3 documents into one",
+                    "parameters": {
+                        "source_documents": [
+                            "part1.indd",
+                            "part2.indd",
+                            "part3.indd"
+                        ],
+                        "output_document": "complete_document.indd"
+                    },
+                    "expected_result": {
+                        "success": true,
+                        "merged_document_id": "doc_complete",
+                        "total_pages": 75
+                    }
+                }
+            ],
+            "usage_guide": {
+                "when_to_use": [
+                    "Combining document sections",
+                    "Assembling multi-part projects",
+                    "Merging team contributions",
+                    "Creating final document"
+                ],
+                "workflow": [
+                    "Step 1: Prepare source documents",
+                    "Step 2: Call indesign_merge_documents()",
+                    "Step 3: Review merged document",
+                    "Step 4: Resolve any issues"
+                ],
+                "best_practices": [
+                    "Backup source documents",
+                    "Use consistent naming",
+                    "Review merged styles",
+                    "Check page numbering"
+                ],
+                "error_handling": [
+                    "Error 'Source not found' → Verify all paths",
+                    "Error 'Style conflict' → Use resolve_conflicts parameter"
+                ],
+                "related_tools": [
+                    "indesign_create_section - Add sections after merge",
+                    "indesign_apply_master_page - Apply consistent masters"
+                ]
+            }
+        }
+    ]
+}

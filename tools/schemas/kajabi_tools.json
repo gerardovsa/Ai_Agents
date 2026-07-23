@@ -1,0 +1,506 @@
+{
+  "platform": "kajabi",
+  "description": "Kajabi Knowledge Commerce Platform - Manage online courses, memberships, coaching programs, and digital products",
+  "tools": [
+    {
+      "name": "kajabi_list_products",
+      "short_description": "List Kajabi products - courses, memberships, coaching with ID, name, type, pricing",
+      "description": "List all products (courses, memberships, coaching programs). Returns product details including ID, name, type, and pricing.",
+      "platform": "kajabi",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "page": {
+            "type": "integer",
+            "description": "Page number for pagination (default: 1)",
+            "default": 1
+          },
+          "per_page": {
+            "type": "integer",
+            "description": "Results per page (default: 25, max: 100)",
+            "default": 25
+          },
+          "type": {
+            "type": "string",
+            "description": "Filter by product type: 'course', 'membership', 'coaching', or null for all",
+            "enum": [
+              "course",
+              "membership",
+              "coaching",
+              null
+            ]
+          }
+        },
+        "required": []
+      },
+      "returns": {
+        "type": "object",
+        "description": "List of products with pagination info"
+      }
+    },
+    {
+      "name": "kajabi_get_product",
+      "short_description": "Get Kajabi product details by ID - offerings, pricing, content, full specs",
+      "description": "Get detailed information about a specific product by ID. Returns complete product details including offerings, pricing, and content.",
+      "platform": "kajabi",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "product_id": {
+            "type": "string",
+            "description": "Product ID (numeric string)"
+          }
+        },
+        "required": [
+          "product_id"
+        ]
+      },
+      "returns": {
+        "type": "object",
+        "description": "Product details"
+      }
+    },
+    {
+      "name": "kajabi_list_offers",
+      "short_description": "List Kajabi payment offers - pricing plans, payment options, product links",
+      "description": "List all offers (payment plans). Returns offer details including pricing, payment options, and product associations.",
+      "platform": "kajabi",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "page": {
+            "type": "integer",
+            "description": "Page number for pagination (default: 1)",
+            "default": 1
+          },
+          "per_page": {
+            "type": "integer",
+            "description": "Results per page (default: 25, max: 100)",
+            "default": 25
+          },
+          "product_id": {
+            "type": "string",
+            "description": "Filter by product ID (optional)"
+          }
+        },
+        "required": []
+      },
+      "returns": {
+        "type": "object",
+        "description": "List of offers with pagination info"
+      }
+    },
+    {
+      "name": "kajabi_get_offer",
+      "short_description": "Get Kajabi offer by ID - pricing details, payment plans, availability",
+      "description": "Get detailed information about a specific offer by ID. Returns pricing, payment plans, and availability.",
+      "platform": "kajabi",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "offer_id": {
+            "type": "string",
+            "description": "Offer ID (numeric string)"
+          }
+        },
+        "required": [
+          "offer_id"
+        ]
+      },
+      "returns": {
+        "type": "object",
+        "description": "Offer details"
+      }
+    },
+    {
+      "name": "kajabi_list_members",
+      "short_description": "List Kajabi members/students - email, status, product access, filter by status",
+      "description": "List all members (customers/students). Returns member details including email, status, and product access.",
+      "platform": "kajabi",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "page": {
+            "type": "integer",
+            "description": "Page number for pagination (default: 1)",
+            "default": 1
+          },
+          "per_page": {
+            "type": "integer",
+            "description": "Results per page (default: 25, max: 100)",
+            "default": 25
+          },
+          "email": {
+            "type": "string",
+            "description": "Filter by email address (optional)"
+          },
+          "status": {
+            "type": "string",
+            "description": "Filter by status: 'active', 'inactive', 'trialing'",
+            "enum": [
+              "active",
+              "inactive",
+              "trialing",
+              null
+            ]
+          }
+        },
+        "required": []
+      },
+      "returns": {
+        "type": "object",
+        "description": "List of members with pagination info"
+      }
+    },
+    {
+      "name": "kajabi_get_member",
+      "short_description": "Get Kajabi member by ID - profile, subscriptions, product access details",
+      "description": "Get detailed information about a specific member by ID. Returns member profile, subscriptions, and product access.",
+      "platform": "kajabi",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "member_id": {
+            "type": "string",
+            "description": "Member ID (numeric string)"
+          }
+        },
+        "required": [
+          "member_id"
+        ]
+      },
+      "returns": {
+        "type": "object",
+        "description": "Member details"
+      }
+    },
+    {
+      "name": "kajabi_search_members",
+      "short_description": "Search Kajabi members by email, name, custom fields - find matching profiles",
+      "description": "Search members by email, name, or custom fields. Returns matching member profiles.",
+      "platform": "kajabi",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "query": {
+            "type": "string",
+            "description": "Search query (email, name, or keyword)"
+          },
+          "page": {
+            "type": "integer",
+            "description": "Page number for pagination (default: 1)",
+            "default": 1
+          },
+          "per_page": {
+            "type": "integer",
+            "description": "Results per page (default: 25, max: 100)",
+            "default": 25
+          }
+        },
+        "required": [
+          "query"
+        ]
+      },
+      "returns": {
+        "type": "object",
+        "description": "Search results with pagination"
+      }
+    },
+    {
+      "name": "kajabi_grant_product_access",
+      "short_description": "Grant Kajabi member access to product - manual enrollment, promotions",
+      "description": "Grant a member access to a specific product. Used for manual enrollments or promotions.",
+      "platform": "kajabi",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "member_id": {
+            "type": "string",
+            "description": "Member ID (numeric string)"
+          },
+          "product_id": {
+            "type": "string",
+            "description": "Product ID (numeric string)"
+          },
+          "offer_id": {
+            "type": "string",
+            "description": "Optional offer ID to use for enrollment"
+          }
+        },
+        "required": [
+          "member_id",
+          "product_id"
+        ]
+      },
+      "returns": {
+        "type": "object",
+        "description": "Access grant confirmation"
+      }
+    },
+    {
+      "name": "kajabi_revoke_product_access",
+      "short_description": "Revoke Kajabi member product access - cancellations, suspensions",
+      "description": "Revoke a member's access to a specific product. Used for cancellations or suspensions.",
+      "platform": "kajabi",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "member_id": {
+            "type": "string",
+            "description": "Member ID (numeric string)"
+          },
+          "product_id": {
+            "type": "string",
+            "description": "Product ID (numeric string)"
+          }
+        },
+        "required": [
+          "member_id",
+          "product_id"
+        ]
+      },
+      "returns": {
+        "type": "object",
+        "description": "Access revocation confirmation"
+      }
+    },
+    {
+      "name": "kajabi_list_webhooks",
+      "short_description": "List Kajabi webhooks - URLs, event subscriptions, active status",
+      "description": "List all configured webhooks. Returns webhook URLs, events, and status.",
+      "platform": "kajabi",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "page": {
+            "type": "integer",
+            "description": "Page number for pagination (default: 1)",
+            "default": 1
+          },
+          "per_page": {
+            "type": "integer",
+            "description": "Results per page (default: 25, max: 100)",
+            "default": 25
+          }
+        },
+        "required": []
+      },
+      "returns": {
+        "type": "object",
+        "description": "List of webhooks with pagination info"
+      }
+    },
+    {
+      "name": "kajabi_create_webhook",
+      "short_description": "Create Kajabi webhook - real-time events, configure URL and event triggers",
+      "description": "Create a new webhook to receive real-time events. Configure URL and events to monitor.",
+      "platform": "kajabi",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "url": {
+            "type": "string",
+            "description": "Webhook URL to receive POST requests"
+          },
+          "events": {
+            "type": "array",
+            "description": "Events to subscribe to (e.g., ['member.created', 'purchase.completed'])",
+            "items": {
+              "type": "string"
+            }
+          },
+          "active": {
+            "type": "boolean",
+            "description": "Whether webhook is active (default: true)",
+            "default": true
+          }
+        },
+        "required": [
+          "url",
+          "events"
+        ]
+      },
+      "returns": {
+        "type": "object",
+        "description": "Webhook creation confirmation"
+      }
+    },
+    {
+      "name": "kajabi_delete_webhook",
+      "short_description": "Delete Kajabi webhook by ID - stop receiving events to URL",
+      "description": "Delete a webhook by ID. Stops receiving events to the specified URL.",
+      "platform": "kajabi",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "webhook_id": {
+            "type": "string",
+            "description": "Webhook ID (numeric string)"
+          }
+        },
+        "required": [
+          "webhook_id"
+        ]
+      },
+      "returns": {
+        "type": "object",
+        "description": "Deletion confirmation"
+      }
+    },
+    {
+      "name": "kajabi_list_form_submissions",
+      "short_description": "List Kajabi form submissions - opt-ins, contact forms with timestamps",
+      "description": "List form submissions (opt-ins, contact forms). Returns submission data and timestamps.",
+      "platform": "kajabi",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "form_id": {
+            "type": "string",
+            "description": "Filter by form ID (optional)"
+          },
+          "page": {
+            "type": "integer",
+            "description": "Page number for pagination (default: 1)",
+            "default": 1
+          },
+          "per_page": {
+            "type": "integer",
+            "description": "Results per page (default: 25, max: 100)",
+            "default": 25
+          },
+          "start_date": {
+            "type": "string",
+            "description": "Filter submissions after this date (ISO 8601 format)"
+          },
+          "end_date": {
+            "type": "string",
+            "description": "Filter submissions before this date (ISO 8601 format)"
+          }
+        },
+        "required": []
+      },
+      "returns": {
+        "type": "object",
+        "description": "List of form submissions with pagination"
+      }
+    },
+    {
+      "name": "kajabi_get_form_submission",
+      "short_description": "Get Kajabi form submission by ID - detailed submission data",
+      "description": "Get detailed information about a specific form submission by ID.",
+      "platform": "kajabi",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "submission_id": {
+            "type": "string",
+            "description": "Submission ID (numeric string)"
+          }
+        },
+        "required": [
+          "submission_id"
+        ]
+      },
+      "returns": {
+        "type": "object",
+        "description": "Form submission details"
+      }
+    },
+    {
+      "name": "kajabi_get_site_details",
+      "short_description": "Get Kajabi site details - account info, site name, domain, configuration",
+      "description": "Get details about the Kajabi site (account info). Returns site name, domain, and configuration.",
+      "platform": "kajabi",
+      "parameters": {
+        "type": "object",
+        "properties": {},
+        "required": []
+      },
+      "returns": {
+        "type": "object",
+        "description": "Site details and configuration"
+      }
+    },
+    {
+      "name": "kajabi_list_tags",
+      "short_description": "List Kajabi member tags - tag names with usage counts for segmentation",
+      "description": "List all member tags. Returns tag names and usage counts.",
+      "platform": "kajabi",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "page": {
+            "type": "integer",
+            "description": "Page number for pagination (default: 1)",
+            "default": 1
+          },
+          "per_page": {
+            "type": "integer",
+            "description": "Results per page (default: 25, max: 100)",
+            "default": 25
+          }
+        },
+        "required": []
+      },
+      "returns": {
+        "type": "object",
+        "description": "List of tags with usage stats"
+      }
+    },
+    {
+      "name": "kajabi_add_member_tag",
+      "short_description": "Add tag to Kajabi member - segmentation, automation triggers",
+      "description": "Add a tag to a member. Used for segmentation and automation triggers.",
+      "platform": "kajabi",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "member_id": {
+            "type": "string",
+            "description": "Member ID (numeric string)"
+          },
+          "tag": {
+            "type": "string",
+            "description": "Tag name to add"
+          }
+        },
+        "required": [
+          "member_id",
+          "tag"
+        ]
+      },
+      "returns": {
+        "type": "object",
+        "description": "Tag addition confirmation"
+      }
+    },
+    {
+      "name": "kajabi_remove_member_tag",
+      "short_description": "Remove tag from Kajabi member - update segmentation",
+      "description": "Remove a tag from a member. Updates member segmentation.",
+      "platform": "kajabi",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "member_id": {
+            "type": "string",
+            "description": "Member ID (numeric string)"
+          },
+          "tag": {
+            "type": "string",
+            "description": "Tag name to remove"
+          }
+        },
+        "required": [
+          "member_id",
+          "tag"
+        ]
+      },
+      "returns": {
+        "type": "object",
+        "description": "Tag removal confirmation"
+      }
+    }
+  ]
+}

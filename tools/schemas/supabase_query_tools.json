@@ -1,0 +1,516 @@
+{
+    "supabase_execute_query": {
+        "name": "supabase_execute_query",
+        "description": "Execute custom SQL queries on Supabase PostgreSQL. Query any of 4 schemas: ai_infrastructure (users, OAuth, workspaces), sessions (chats, threads, messages), synergy_sessions (kanban, tasks), stock_data (inventory, orders, 40+ tables). Use %s for parameter placeholders. Read-only by default for safety.",
+        "category": "database",
+        "subcategory": "supabase",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "schema_name": {
+                    "type": "string",
+                    "enum": [
+                        "ai_infrastructure",
+                        "sessions",
+                        "synergy_sessions",
+                        "stock_data"
+                    ],
+                    "description": "Supabase schema to query: ai_infrastructure (users, OAuth, workspaces), sessions (messages, threads), synergy_sessions (kanban, tasks), stock_data (inventory, orders)"
+                },
+                "query": {
+                    "type": "string",
+                    "description": "SQL query to execute. Use %s for parameter placeholders. Examples: 'SELECT * FROM users WHERE email = %s', 'SELECT * FROM messages WHERE thread_id = %s ORDER BY created_at DESC LIMIT 10'"
+                },
+                "params": {
+                    "type": "array",
+                    "items": {
+                        "type": [
+                            "string",
+                            "number",
+                            "boolean",
+                            "null"
+                        ]
+                    },
+                    "description": "Parameter values for %s placeholders in query. Order must match placeholder order. Example: ['user@example.com'] or ['thread-123', 10]",
+                    "default": null
+                },
+                "max_rows": {
+                    "type": "integer",
+                    "description": "Maximum rows to return. Prevents token overflow. Default 100. Increase for larger datasets.",
+                    "default": 100,
+                    "minimum": 1,
+                    "maximum": 1000
+                },
+                "read_only": {
+                    "type": "boolean",
+                    "description": "If true, only SELECT queries allowed (default). Set false to enable INSERT/UPDATE/DELETE. Write operations require user confirmation.",
+                    "default": true
+                }
+            },
+            "required": [
+                "schema_name",
+                "query"
+            ]
+        },
+        "returns": {
+            "type": "object",
+            "properties": {
+                "success": {
+                    "type": "boolean"
+                },
+                "rows": {
+                    "type": "array",
+                    "description": "Query results (SELECT queries)"
+                },
+                "row_count": {
+                    "type": "integer",
+                    "description": "Number of rows returned"
+                },
+                "columns": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    },
+                    "description": "Column names"
+                },
+                "rows_affected": {
+                    "type": "integer",
+                    "description": "Rows modified (INSERT/UPDATE/DELETE)"
+                },
+                "query_type": {
+                    "type": "string",
+                    "description": "Query type (SELECT, INSERT, etc.)"
+                },
+                "schema_name": {
+                    "type": "string",
+                    "description": "Schema queried"
+                },
+                "message": {
+                    "type": "string"
+                },
+                "has_more": {
+                    "type": "boolean",
+                    "description": "True if results limited by max_rows"
+                },
+                "error": {
+                    "type": "string",
+                    "description": "Error message if failed"
+                },
+                "hint": {
+                    "type": "string",
+                    "description": "Helpful hint for fixing errors"
+                }
+            }
+        },
+        "examples": [
+            {
+                "title": "Find user by email",
+                "input": {
+                    "schema_name": "ai_infrastructure",
+                    "query": "SELECT id, username, email, role FROM users WHERE email = %s",
+                    "params": [
+                        "user@example.com"
+                    ]
+                },
+                "output": {
+                    "success": true,
+                    "rows": [
+                        {
+                            "id": 1,
+                            "username": "john",
+                            "email": "user@example.com",
+                            "role": "user"
+                        }
+                    ],
+                    "row_count": 1,
+                    "columns": [
+                        "id",
+                        "username",
+                        "email",
+                        "role"
+                    ]
+                }
+            },
+            {
+                "title": "Get recent chat messages for a thread",
+                "input": {
+                    "schema_name": "sessions",
+                    "query": "SELECT thread_id, role, content, created_at FROM messages WHERE thread_id = %s ORDER BY created_at DESC LIMIT %s",
+                    "params": [
+                        "thread-abc-123",
+                        10
+                    ]
+                },
+                "output": {
+                    "success": true,
+                    "rows": [
+                        {
+                            "thread_id": "thread-abc-123",
+                            "role": "user",
+                            "content": "Hello",
+                            "created_at": "2025-12-08T10:00:00Z"
+                        }
+                    ],
+                    "row_count": 10
+                }
+            },
+            {
+                "title": "Search stock by description (case-insensitive)",
+                "input": {
+                    "schema_name": "stock_data",
+                    "query": "SELECT stock_id, stock_type_name, gsm, cost_per_thousand FROM unified_stocks WHERE stock_description ILIKE %s LIMIT %s",
+                    "params": [
+                        "%business cards%",
+                        20
+                    ],
+                    "max_rows": 50
+                },
+                "output": {
+                    "success": true,
+                    "rows": [
+                        {
+                            "stock_id": "BC-350-GLOSS",
+                            "stock_type_name": "Business Cards",
+                            "gsm": "350",
+                            "cost_per_thousand": 45.5
+                        }
+                    ],
+                    "row_count": 20
+                }
+            },
+            {
+                "title": "Get user's active kanban tasks",
+                "input": {
+                    "schema_name": "synergy_sessions",
+                    "query": "SELECT session_id, title, status, priority, created_at FROM sessions WHERE user_id = %s AND status != %s ORDER BY priority DESC, created_at DESC",
+                    "params": [
+                        1,
+                        "completed"
+                    ]
+                },
+                "output": {
+                    "success": true,
+                    "rows": [
+                        {
+                            "session_id": "task-123",
+                            "title": "Design business cards",
+                            "status": "in_progress",
+                            "priority": "high"
+                        }
+                    ],
+                    "row_count": 5
+                }
+            },
+            {
+                "title": "Count total messages by user",
+                "input": {
+                    "schema_name": "sessions",
+                    "query": "SELECT COUNT(*) as total_messages, role FROM messages WHERE thread_id LIKE %s GROUP BY role",
+                    "params": [
+                        "thread-%"
+                    ]
+                },
+                "output": {
+                    "success": true,
+                    "rows": [
+                        {
+                            "total_messages": 150,
+                            "role": "user"
+                        },
+                        {
+                            "total_messages": 145,
+                            "role": "assistant"
+                        }
+                    ],
+                    "row_count": 2
+                }
+            },
+            {
+                "title": "Get workspaces with member counts",
+                "input": {
+                    "schema_name": "ai_infrastructure",
+                    "query": "SELECT w.id, w.name, w.description, COUNT(wu.user_id) as member_count FROM workspaces w LEFT JOIN workspace_users wu ON w.id = wu.workspace_id WHERE w.status = %s GROUP BY w.id, w.name, w.description",
+                    "params": [
+                        "active"
+                    ]
+                },
+                "output": {
+                    "success": true,
+                    "rows": [
+                        {
+                            "id": 1,
+                            "name": "Team Workspace",
+                            "description": "Main workspace",
+                            "member_count": 5
+                        }
+                    ],
+                    "row_count": 3
+                }
+            }
+        ],
+        "common_queries": {
+            "ai_infrastructure_schema": [
+                "Find user: SELECT * FROM users WHERE email = %s",
+                "List workspaces: SELECT * FROM workspaces WHERE user_id = %s",
+                "Get OAuth tokens: SELECT platform, email, is_valid FROM oauth_tokens WHERE user_id = %s",
+                "User preferences: SELECT * FROM user_preferences WHERE user_id = %s",
+                "Saved threads: SELECT thread_id, thread_name, created_at FROM saved_threads WHERE user_id = %s ORDER BY created_at DESC LIMIT 20"
+            ],
+            "sessions_schema": [
+                "List messages: SELECT id, thread_id, role, content, created_at FROM messages WHERE thread_id = %s ORDER BY created_at DESC LIMIT 50",
+                "Get messages: SELECT * FROM messages WHERE thread_id = %s ORDER BY created_at",
+                "Search messages: SELECT thread_id, content FROM messages WHERE content ILIKE %s LIMIT 50",
+                "Thread metadata: SELECT * FROM saved_threads WHERE thread_id = %s"
+            ],
+            "synergy_sessions_schema": [
+                "List kanban tasks: SELECT session_id, title, status, priority FROM sessions WHERE user_id = %s",
+                "Get task details: SELECT * FROM sessions WHERE session_id = %s",
+                "Filter by status: SELECT * FROM sessions WHERE status = %s AND user_id = %s",
+                "Search tasks: SELECT session_id, title, content FROM sessions WHERE title ILIKE %s OR content ILIKE %s"
+            ],
+            "stock_data_schema": [
+                "Search stock: SELECT * FROM unified_stocks WHERE stock_description ILIKE %s LIMIT 50",
+                "Get stock by ID: SELECT * FROM unified_stocks WHERE stock_id = %s",
+                "List jobs: SELECT * FROM extracted_jobs WHERE client_name ILIKE %s LIMIT 50",
+                "Shopify orders: SELECT order_number, customer_name, total_price FROM shopify_orders WHERE email = %s",
+                "Stock levels: SELECT stock_id, StockTypeDesc, CurrentStockLevel FROM stocklevels WHERE CurrentStockLevel < ReorderPoint"
+            ]
+        },
+        "tips": [
+            "Use ILIKE for case-insensitive text search: WHERE email ILIKE '%example.com'",
+            "Use %s placeholders, NOT string concatenation (prevents SQL injection)",
+            "Add LIMIT to prevent large result sets: LIMIT 100",
+            "Use ORDER BY for sorted results: ORDER BY created_at DESC",
+            "Join tables for related data: FROM users u JOIN workspaces w ON u.id = w.user_id",
+            "Count rows: SELECT COUNT(*) FROM table_name WHERE condition",
+            "Group by: SELECT status, COUNT(*) FROM table_name GROUP BY status",
+            "Date filtering: WHERE created_at >= %s AND created_at < %s",
+            "Check null values: WHERE field IS NULL or WHERE field IS NOT NULL",
+            "Increase max_rows for larger datasets (default 100, max 1000)"
+        ]
+    },
+    "supabase_search_database": {
+        "name": "supabase_search_database",
+        "description": "Search across entire Supabase database for text/keywords. Automatically searches common tables in ai_infrastructure (users, workspaces, threads), sessions (chats, messages), synergy_sessions (kanban tasks), and stock_data (inventory, orders). Use when you don't know exact table location. Supports wildcard search with %.",
+        "category": "database",
+        "subcategory": "supabase",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "search_text": {
+                    "type": "string",
+                    "description": "Text to search for. Supports % wildcards. Examples: 'user@example.com', 'QU-0123', '%printing%', '%business cards%'. Automatically adds wildcards if not present."
+                },
+                "schemas": {
+                    "type": "array",
+                    "items": {
+                        "type": "string",
+                        "enum": [
+                            "ai_infrastructure",
+                            "sessions",
+                            "synergy_sessions",
+                            "stock_data"
+                        ]
+                    },
+                    "description": "Schemas to search. Default: all schemas. Narrow search to specific schemas for better performance.",
+                    "default": null
+                },
+                "tables": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    },
+                    "description": "Specific tables to search. Default: common tables in each schema. Use for targeted search.",
+                    "default": null
+                },
+                "limit_per_table": {
+                    "type": "integer",
+                    "description": "Maximum results per table. Default 10. Prevents overwhelming results.",
+                    "default": 10,
+                    "minimum": 1,
+                    "maximum": 100
+                }
+            },
+            "required": [
+                "search_text"
+            ]
+        },
+        "returns": {
+            "type": "object",
+            "properties": {
+                "success": {
+                    "type": "boolean"
+                },
+                "results": {
+                    "type": "object",
+                    "description": "Results grouped by schema.table. Key: 'schema.table', Value: array of matching rows"
+                },
+                "total_matches": {
+                    "type": "integer",
+                    "description": "Total rows found across all tables"
+                },
+                "searched_locations": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    },
+                    "description": "Tables searched (schema.table format)"
+                },
+                "search_text": {
+                    "type": "string",
+                    "description": "Search text used"
+                },
+                "message": {
+                    "type": "string"
+                },
+                "error": {
+                    "type": "string"
+                }
+            }
+        },
+        "examples": [
+            {
+                "title": "Find user by email across all schemas",
+                "input": {
+                    "search_text": "user@example.com"
+                },
+                "output": {
+                    "success": true,
+                    "results": {
+                        "ai_infrastructure.users": [
+                            {
+                                "id": 1,
+                                "email": "user@example.com",
+                                "username": "john"
+                            }
+                        ],
+                        "ai_infrastructure.oauth_tokens": [
+                            {
+                                "email": "user@example.com",
+                                "platform": "google"
+                            }
+                        ]
+                    },
+                    "total_matches": 2,
+                    "searched_locations": [
+                        "ai_infrastructure.users",
+                        "ai_infrastructure.oauth_tokens",
+                        "sessions.messages",
+                        "sessions.threads"
+                    ]
+                }
+            },
+            {
+                "title": "Search for quote number in stock data",
+                "input": {
+                    "search_text": "QU-0123",
+                    "schemas": [
+                        "stock_data"
+                    ]
+                },
+                "output": {
+                    "success": true,
+                    "results": {
+                        "stock_data.shopify_orders": [
+                            {
+                                "order_number": "QU-0123",
+                                "customer_name": "ABC Corp",
+                                "total_price": 250.0
+                            }
+                        ]
+                    },
+                    "total_matches": 1
+                }
+            },
+            {
+                "title": "Search for content about printing",
+                "input": {
+                    "search_text": "%printing%",
+                    "schemas": [
+                        "sessions",
+                        "synergy_sessions"
+                    ],
+                    "limit_per_table": 5
+                },
+                "output": {
+                    "success": true,
+                    "results": {
+                        "sessions.messages": [
+                            {
+                                "content": "I need a printing quote",
+                                "thread_id": "thread-123"
+                            }
+                        ],
+                        "synergy_sessions.sessions": [
+                            {
+                                "title": "Printing project",
+                                "content": "Design and printing"
+                            }
+                        ]
+                    },
+                    "total_matches": 7
+                }
+            },
+            {
+                "title": "Find workspace by name",
+                "input": {
+                    "search_text": "Team Workspace",
+                    "schemas": [
+                        "ai_infrastructure"
+                    ],
+                    "tables": [
+                        "workspaces"
+                    ]
+                },
+                "output": {
+                    "success": true,
+                    "results": {
+                        "ai_infrastructure.workspaces": [
+                            {
+                                "id": 1,
+                                "name": "Team Workspace",
+                                "slug": "team-workspace"
+                            }
+                        ]
+                    },
+                    "total_matches": 1
+                }
+            }
+        ],
+        "searchable_tables": {
+            "ai_infrastructure": [
+                "users (username, email)",
+                "oauth_tokens (email, account_name)",
+                "workspaces (name, description)",
+                "saved_threads (thread_name, conversation)",
+                "user_preferences (nickname, ai_memories)"
+            ],
+            "sessions": [
+                "messages (id, thread_id, role, content, created_at) - All chat messages",
+                "threads (id, thread_slug, name, workspace_id, user_id) - Chat threads/conversations",
+                "saved_threads (thread_name, conversation)",
+                "messages (content)"
+            ],
+            "synergy_sessions": [
+                "sessions (title, content, tags)",
+                "kanban_cards (title, description)"
+            ],
+            "stock_data": [
+                "unified_stocks (stock_id, stock_type_name, stock_description)",
+                "extracted_jobs (client_name, job_description)",
+                "shopify_orders (order_number, customer_name)",
+                "shopify_products (title, body_html)"
+            ]
+        },
+        "tips": [
+            "Use % wildcards for partial matches: '%business cards%' finds 'Professional Business Cards'",
+            "Search is case-insensitive (uses ILIKE)",
+            "Narrow search with schemas parameter for better performance",
+            "Use tables parameter to search specific tables only",
+            "Increase limit_per_table if you need more results per table",
+            "For exact matches, don't use wildcards: 'user@example.com' (not '%user@example.com%')",
+            "Search works on text/string columns only (not numbers/dates)",
+            "For structured queries, use supabase_execute_query instead"
+        ]
+    }
+}

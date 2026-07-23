@@ -1,0 +1,1037 @@
+{
+    "platform": "phone_system",
+    "version": "2.0.0",
+    "description": "Veterinary phone system AI tools with embedded prompts, variable-driven data retrieval, and SQL query library. Each tool follows naming convention: phone_prompt_* (AI instructions), phone_get_* (data retrieval), phone_query_* (SQL operations), phone_*_analysis (analytics)",
+    "database": {
+        "provider": "Supabase",
+        "url": "https://wuwmvtslltqhaycyukxk.supabase.co",
+        "note": "Separate VSA database (veterinary phone system)",
+        "tables": [
+            "veterinary_calls",
+            "call_manager_alerts",
+            "call_full_transcript_and_full_analysis"
+        ]
+    },
+    "tool_categories": {
+        "phone_prompts": {
+            "description": "AI prompt tools with embedded coaching/analysis instructions",
+            "count": 5
+        },
+        "phone_data": {
+            "description": "Variable-driven data retrieval tools",
+            "count": 4
+        },
+        "phone_analysis": {
+            "description": "Analysis tools (data output, no prompts)",
+            "count": 4
+        },
+        "phone_queries": {
+            "description": "SQL query tools (library + custom)",
+            "count": 2
+        },
+        "phone_management": {
+            "description": "Management actions (update, export, schedule)",
+            "count": 5
+        }
+    },
+    "tools": [
+        {
+            "name": "phone_prompt_alert_coaching",
+            "short_description": "Generate personalized veterinary staff coaching from call transcript with AI analysis",
+            "description": "Generate personalized veterinary staff coaching using embedded coaching prompt. Analyzes phone call transcript and creates constructive feedback with examples, action items, and practice scenarios. ALL parameters optional with smart defaults.",
+            "category": "phone_prompts",
+            "input_schema": {
+                "type": "object",
+                "properties": {
+                    "call_id": {
+                        "type": "string",
+                        "required": true,
+                        "description": "Call ID to generate coaching for",
+                        "example": "VET-Smith-12-10-2024_14:30"
+                    },
+                    "staff_name": {
+                        "type": "string",
+                        "required": true,
+                        "description": "Staff member to coach"
+                    },
+                    "alert_type": {
+                        "type": "string",
+                        "required": true,
+                        "enum": [
+                            "REVENUE_LEAKAGE",
+                            "MISSED_OPPORTUNITY",
+                            "POOR_COMMUNICATION",
+                            "BOOKING_FAILURE",
+                            "CLIENT_DISSATISFACTION",
+                            "FOLLOW_UP_MISSING",
+                            "UPSELL_FAILURE"
+                        ],
+                        "description": "Alert code that triggered coaching need"
+                    },
+                    "coaching_focus": {
+                        "type": "string",
+                        "required": false,
+                        "description": "Specific skill area to emphasize (e.g., 'dental_upselling', 'active_listening', 'appointment_booking')"
+                    },
+                    "coaching_tone": {
+                        "type": "string",
+                        "enum": [
+                            "constructive",
+                            "direct",
+                            "encouraging",
+                            "developmental",
+                            "corrective"
+                        ],
+                        "default": "constructive"
+                    },
+                    "detail_level": {
+                        "type": "string",
+                        "enum": [
+                            "brief",
+                            "standard",
+                            "comprehensive",
+                            "executive_summary"
+                        ],
+                        "default": "standard"
+                    },
+                    "include_role_play": {
+                        "type": "boolean",
+                        "default": true,
+                        "description": "Include practice scenario based on this call"
+                    },
+                    "include_metrics": {
+                        "type": "boolean",
+                        "default": true,
+                        "description": "Include performance metrics and benchmarks"
+                    },
+                    "compare_to_peers": {
+                        "type": "boolean",
+                        "default": false,
+                        "description": "Compare to team average"
+                    },
+                    "output_format": {
+                        "type": "string",
+                        "enum": [
+                            "markdown",
+                            "html",
+                            "pdf",
+                            "plain_text",
+                            "email_ready"
+                        ],
+                        "default": "markdown"
+                    },
+                    "max_words": {
+                        "type": "integer",
+                        "default": 1500,
+                        "description": "Maximum word count for coaching document"
+                    }
+                },
+                "required": [
+                    "call_id",
+                    "staff_name",
+                    "alert_type"
+                ]
+            },
+            "output_schema": {
+                "type": "object",
+                "properties": {
+                    "success": {
+                        "type": "boolean"
+                    },
+                    "coaching_document": {
+                        "type": "object",
+                        "properties": {
+                            "sections": {
+                                "type": "array",
+                                "items": "string"
+                            },
+                            "word_count": "integer",
+                            "estimated_review_time": "string"
+                        }
+                    },
+                    "metadata": {
+                        "type": "object",
+                        "properties": {
+                            "generated_at": "datetime",
+                            "coaching_id": "string",
+                            "ai_model_used": "string"
+                        }
+                    }
+                }
+            },
+            "platform": "phone_system"
+        },
+        {
+            "name": "phone_get_full_call",
+            "short_description": "Master retrieval tool - complete call data with transcript, analysis, alerts, 70+ filters",
+            "description": "Master retrieval tool with 70+ optional parameters. Get complete phone call data with transcript, analysis, alerts, and metadata. ALL parameters optional - defaults to today's calls if no filters provided. Smart matching for staff names, preset date ranges supported.",
+            "category": "phone_data",
+            "input_schema": {
+                "type": "object",
+                "properties": {
+                    "call_id": {
+                        "type": "string",
+                        "required": false,
+                        "description": "If provided, returns ONLY this call (ignores other filters)"
+                    },
+                    "staff_name": {
+                        "type": "string",
+                        "required": false,
+                        "description": "Filter by staff (supports partial matching, e.g., 'Sarah' matches 'Sarah Thompson')"
+                    },
+                    "date_range": {
+                        "type": "object",
+                        "required": false,
+                        "properties": {
+                            "preset": {
+                                "type": "string",
+                                "enum": [
+                                    "today",
+                                    "yesterday",
+                                    "this_week",
+                                    "last_week",
+                                    "this_month",
+                                    "last_month",
+                                    "last_7_days",
+                                    "last_30_days"
+                                ],
+                                "description": "Quick preset (overrides from/to)"
+                            },
+                            "from": {
+                                "type": "string",
+                                "format": "date"
+                            },
+                            "to": {
+                                "type": "string",
+                                "format": "date"
+                            }
+                        },
+                        "default": {
+                            "preset": "today"
+                        }
+                    },
+                    "has_alerts": {
+                        "type": "boolean",
+                        "required": false,
+                        "description": "true = only calls with alerts, false = only calls without alerts, null = all"
+                    },
+                    "alert_severity": {
+                        "type": "array",
+                        "items": {
+                            "enum": [
+                                "HIGH",
+                                "MED",
+                                "LOW"
+                            ]
+                        },
+                        "default": [
+                            "HIGH",
+                            "MED",
+                            "LOW"
+                        ]
+                    },
+                    "alert_types": {
+                        "type": "array",
+                        "items": "string",
+                        "description": "Filter by specific alert codes"
+                    },
+                    "call_direction": {
+                        "type": "string",
+                        "enum": [
+                            "inbound",
+                            "outbound",
+                            "both"
+                        ],
+                        "default": "both"
+                    },
+                    "min_duration_seconds": {
+                        "type": "integer",
+                        "default": 0
+                    },
+                    "max_duration_seconds": {
+                        "type": "integer",
+                        "required": false
+                    },
+                    "days_of_week": {
+                        "type": "array",
+                        "items": {
+                            "enum": [
+                                "Monday",
+                                "Tuesday",
+                                "Wednesday",
+                                "Thursday",
+                                "Friday",
+                                "Saturday",
+                                "Sunday"
+                            ]
+                        }
+                    },
+                    "time_of_day_range": {
+                        "type": "object",
+                        "properties": {
+                            "start_hour": {
+                                "type": "integer",
+                                "minimum": 0,
+                                "maximum": 23
+                            },
+                            "end_hour": {
+                                "type": "integer",
+                                "minimum": 0,
+                                "maximum": 23
+                            }
+                        }
+                    },
+                    "min_revenue_loss": {
+                        "type": "number",
+                        "default": 0
+                    },
+                    "transcript_contains": {
+                        "type": "string",
+                        "description": "Search for keywords/phrases in transcript"
+                    },
+                    "include_transcript": {
+                        "type": "boolean",
+                        "default": true
+                    },
+                    "transcript_format": {
+                        "type": "string",
+                        "enum": [
+                            "full",
+                            "summary",
+                            "timestamped",
+                            "speaker_separated"
+                        ],
+                        "default": "full"
+                    },
+                    "include_analysis": {
+                        "type": "boolean",
+                        "default": false
+                    },
+                    "include_metadata": {
+                        "type": "boolean",
+                        "default": true
+                    },
+                    "max_results": {
+                        "type": "integer",
+                        "default": 50,
+                        "minimum": 1,
+                        "maximum": 1000
+                    },
+                    "sort_by": {
+                        "type": "string",
+                        "enum": [
+                            "date_desc",
+                            "date_asc",
+                            "duration",
+                            "alert_severity",
+                            "revenue_impact"
+                        ],
+                        "default": "date_desc"
+                    },
+                    "output_format": {
+                        "type": "string",
+                        "enum": [
+                            "json",
+                            "csv",
+                            "table",
+                            "summary",
+                            "detailed"
+                        ],
+                        "default": "json"
+                    }
+                },
+                "required": [],
+                "default_behavior": "Returns today's calls (max 50) sorted by date descending with transcripts and metadata"
+            },
+            "output_schema": {
+                "type": "object",
+                "properties": {
+                    "success": {
+                        "type": "boolean"
+                    },
+                    "query_info": {
+                        "type": "object",
+                        "properties": {
+                            "total_matches": "integer",
+                            "returned_count": "integer",
+                            "filters_applied": "array",
+                            "defaults_used": "array"
+                        }
+                    },
+                    "summary_stats": {
+                        "type": "object",
+                        "properties": {
+                            "total_calls": "integer",
+                            "calls_with_alerts": "integer",
+                            "total_revenue_loss": "number",
+                            "avg_duration": "number"
+                        }
+                    },
+                    "calls": {
+                        "type": "array",
+                        "items": {
+                            "type": "object",
+                            "properties": {
+                                "call_id": "string",
+                                "metadata": "object",
+                                "transcript": "string",
+                                "analysis": "object",
+                                "alerts": "array"
+                            }
+                        }
+                    }
+                }
+            },
+            "platform": "phone_system"
+        },
+        {
+            "name": "phone_get_calls",
+            "short_description": "Fast metadata-only retrieval - list/filter calls without transcripts or analysis",
+            "description": "Fast metadata-only retrieval. Get phone call metadata WITHOUT transcripts/analysis. Use for listing/filtering large numbers of calls quickly.",
+            "category": "phone_data",
+            "input_schema": {
+                "type": "object",
+                "properties": {
+                    "date_range": {
+                        "type": "object",
+                        "properties": {
+                            "preset": {
+                                "enum": [
+                                    "today",
+                                    "yesterday",
+                                    "this_week",
+                                    "last_week",
+                                    "this_month"
+                                ]
+                            },
+                            "from": "string",
+                            "to": "string"
+                        },
+                        "default": {
+                            "preset": "today"
+                        }
+                    },
+                    "staff_name": {
+                        "type": "string"
+                    },
+                    "has_alerts": {
+                        "type": "boolean"
+                    },
+                    "max_results": {
+                        "type": "integer",
+                        "default": 100
+                    },
+                    "fields_to_return": {
+                        "type": "array",
+                        "items": "string",
+                        "description": "Specific fields (e.g., ['call_id', 'call_date', 'staff_name', 'duration', 'alert_count'])"
+                    }
+                },
+                "required": []
+            },
+            "platform": "phone_system"
+        },
+        {
+            "name": "phone_get_transcript",
+            "short_description": "Get only call transcript text without alerts/metadata for conversation analysis",
+            "description": "Get ONLY call transcript text without alerts/metadata. Use when you only need conversation content.",
+            "category": "phone_data",
+            "input_schema": {
+                "type": "object",
+                "properties": {
+                    "call_id": {
+                        "type": "string",
+                        "required": true
+                    },
+                    "format": {
+                        "type": "string",
+                        "enum": [
+                            "full",
+                            "summary",
+                            "timestamped"
+                        ],
+                        "default": "full"
+                    },
+                    "include_speaker_labels": {
+                        "type": "boolean",
+                        "default": true
+                    }
+                },
+                "required": [
+                    "call_id"
+                ]
+            },
+            "platform": "phone_system"
+        },
+        {
+            "name": "phone_get_alerts",
+            "short_description": "Get call alerts without loading full transcripts - fast alert analysis and filtering",
+            "description": "Get phone call alerts without loading full transcripts. Fast for alert analysis and filtering.",
+            "category": "phone_data",
+            "input_schema": {
+                "type": "object",
+                "properties": {
+                    "date_range": {
+                        "type": "object",
+                        "properties": {
+                            "preset": {
+                                "enum": [
+                                    "today",
+                                    "this_week",
+                                    "last_week",
+                                    "this_month"
+                                ]
+                            },
+                            "from": "string",
+                            "to": "string"
+                        }
+                    },
+                    "staff_name": {
+                        "type": "string"
+                    },
+                    "alert_types": {
+                        "type": "array",
+                        "items": "string"
+                    },
+                    "severity": {
+                        "type": "string",
+                        "enum": [
+                            "HIGH",
+                            "MED",
+                            "LOW",
+                            "ALL"
+                        ],
+                        "default": "ALL"
+                    },
+                    "priority": {
+                        "type": "integer",
+                        "enum": [
+                            1,
+                            2,
+                            3,
+                            "ALL"
+                        ],
+                        "default": "ALL"
+                    },
+                    "status": {
+                        "type": "string",
+                        "enum": [
+                            "Open",
+                            "In Progress",
+                            "Completed",
+                            "Ignored",
+                            "ALL"
+                        ],
+                        "default": "Open"
+                    },
+                    "max_results": {
+                        "type": "integer",
+                        "default": 100
+                    }
+                },
+                "required": []
+            },
+            "platform": "phone_system"
+        },
+        {
+            "name": "phone_query_library",
+            "short_description": "Execute pre-built SQL queries - 50+ optimized queries for trends, staff, revenue analysis",
+            "description": "Execute pre-built SQL queries from library of 50+ optimized queries for common analysis tasks. Read-only, safe queries for trends, staff performance, revenue analysis.",
+            "category": "phone_queries",
+            "input_schema": {
+                "type": "object",
+                "properties": {
+                    "query_id": {
+                        "type": "string",
+                        "required": true,
+                        "enum": [
+                            "top_staff_by_alerts",
+                            "revenue_loss_by_day",
+                            "alert_frequency_by_hour",
+                            "repeat_client_issues",
+                            "staff_improvement_tracking",
+                            "booking_success_rates",
+                            "call_duration_analysis",
+                            "alert_correlation_analysis"
+                        ],
+                        "description": "Pre-built query ID to execute"
+                    },
+                    "parameters": {
+                        "type": "object",
+                        "description": "Dynamic parameters (e.g., {date_from: '2025-12-01', staff_name: 'Sarah', limit: 20})"
+                    },
+                    "format": {
+                        "type": "string",
+                        "enum": [
+                            "json",
+                            "csv",
+                            "table"
+                        ],
+                        "default": "json"
+                    }
+                },
+                "required": [
+                    "query_id"
+                ]
+            },
+            "platform": "phone_system"
+        },
+        {
+            "name": "phone_query_custom",
+            "short_description": "Execute custom SQL query - read-only with safety constraints, AI-constructed queries",
+            "description": "Execute custom SQL query with safety constraints. AI can construct complex queries for unique analysis needs. Read-only, validates for forbidden operations (DROP, DELETE, UPDATE, INSERT, ALTER).",
+            "category": "phone_queries",
+            "input_schema": {
+                "type": "object",
+                "properties": {
+                    "sql": {
+                        "type": "string",
+                        "required": true,
+                        "description": "SQL query to execute (SELECT only, no modifications)"
+                    },
+                    "parameters": {
+                        "type": "object",
+                        "description": "Parameterized values for query"
+                    },
+                    "explain_query": {
+                        "type": "boolean",
+                        "default": false,
+                        "description": "Return query execution plan"
+                    }
+                },
+                "required": [
+                    "sql"
+                ]
+            },
+            "platform": "phone_system"
+        },
+        {
+            "name": "phone_alert_trends",
+            "short_description": "Get alert trend data - daily/weekly/monthly aggregations with period comparisons",
+            "description": "Get phone alert trend data (daily/weekly/monthly aggregations). Returns data for charting/analysis with comparison to previous periods.",
+            "category": "phone_analysis",
+            "input_schema": {
+                "type": "object",
+                "properties": {
+                    "trend_type": {
+                        "type": "string",
+                        "enum": [
+                            "daily",
+                            "weekly",
+                            "monthly"
+                        ],
+                        "default": "weekly"
+                    },
+                    "date_range": {
+                        "type": "object",
+                        "properties": {
+                            "from": "string",
+                            "to": "string"
+                        },
+                        "required": true
+                    },
+                    "group_by": {
+                        "type": "string",
+                        "enum": [
+                            "staff",
+                            "alert_type",
+                            "severity",
+                            "day_of_week"
+                        ],
+                        "description": "How to group trend data"
+                    },
+                    "include_comparison": {
+                        "type": "boolean",
+                        "default": true,
+                        "description": "Compare to previous period"
+                    }
+                },
+                "required": [
+                    "date_range"
+                ]
+            },
+            "platform": "phone_system"
+        },
+        {
+            "name": "phone_revenue_analysis",
+            "short_description": "Calculate revenue impact from alerts - $ estimates for missed opportunities breakdown",
+            "description": "Calculate revenue impact from phone alerts. Provides $ estimates for missed opportunities with breakdown by service type, staff, or alert category.",
+            "category": "phone_analysis",
+            "input_schema": {
+                "type": "object",
+                "properties": {
+                    "call_ids": {
+                        "type": "array",
+                        "items": "string"
+                    },
+                    "date_range": {
+                        "type": "object",
+                        "properties": {
+                            "from": "string",
+                            "to": "string"
+                        }
+                    },
+                    "breakdown_by": {
+                        "type": "string",
+                        "enum": [
+                            "service_type",
+                            "staff",
+                            "alert_type"
+                        ],
+                        "default": "service_type"
+                    }
+                },
+                "required": []
+            },
+            "platform": "phone_system"
+        },
+        {
+            "name": "phone_staff_performance",
+            "short_description": "Get staff performance metrics - alert rate, call count, duration, booking rate stats",
+            "description": "Get staff performance metrics from phone calls. Returns data only (no AI analysis) - metrics like alert rate, call count, avg duration, booking rate.",
+            "category": "phone_analysis",
+            "input_schema": {
+                "type": "object",
+                "properties": {
+                    "staff_name": {
+                        "type": "string",
+                        "required": true
+                    },
+                    "time_period": {
+                        "type": "string",
+                        "enum": [
+                            "week",
+                            "month",
+                            "quarter"
+                        ],
+                        "default": "month"
+                    },
+                    "compare_to": {
+                        "type": "string",
+                        "enum": [
+                            "peers",
+                            "previous_period",
+                            "none"
+                        ],
+                        "default": "none"
+                    },
+                    "metrics_to_include": {
+                        "type": "array",
+                        "items": {
+                            "enum": [
+                                "alert_rate",
+                                "call_count",
+                                "avg_duration",
+                                "booking_rate"
+                            ]
+                        },
+                        "default": [
+                            "alert_rate",
+                            "call_count"
+                        ]
+                    }
+                },
+                "required": [
+                    "staff_name"
+                ]
+            },
+            "platform": "phone_system"
+        },
+        {
+            "name": "phone_pattern_detection",
+            "short_description": "Detect patterns in calls/alerts - statistical analysis finds recurring issues, correlations",
+            "description": "Detect patterns in phone calls/alerts using statistical analysis. Finds recurring issues, time patterns, correlations (e.g., 'REVENUE_LEAKAGE alerts 3x higher between 2-4pm').",
+            "category": "phone_analysis",
+            "input_schema": {
+                "type": "object",
+                "properties": {
+                    "date_range": {
+                        "type": "object",
+                        "properties": {
+                            "from": "string",
+                            "to": "string"
+                        },
+                        "required": true
+                    },
+                    "pattern_types": {
+                        "type": "array",
+                        "items": {
+                            "enum": [
+                                "time_of_day",
+                                "day_of_week",
+                                "staff_correlations",
+                                "alert_sequences",
+                                "client_patterns"
+                            ]
+                        },
+                        "default": [
+                            "time_of_day",
+                            "day_of_week"
+                        ]
+                    },
+                    "min_confidence": {
+                        "type": "number",
+                        "minimum": 0.5,
+                        "maximum": 0.99,
+                        "default": 0.7
+                    }
+                },
+                "required": [
+                    "date_range"
+                ]
+            },
+            "platform": "phone_system"
+        },
+        {
+            "name": "phone_update_alert_status",
+            "short_description": "Update alert status, notes, or actions - save manager follow-up info to database",
+            "description": "Update phone alert status, notes, or actions. Saves manager follow-up information to database.",
+            "category": "phone_management",
+            "input_schema": {
+                "type": "object",
+                "properties": {
+                    "call_id": {
+                        "type": "string",
+                        "required": true
+                    },
+                    "status": {
+                        "type": "string",
+                        "enum": [
+                            "Open",
+                            "In Progress",
+                            "Actioned & Completed",
+                            "Ignored & No Action"
+                        ]
+                    },
+                    "notes": {
+                        "type": "string"
+                    },
+                    "actions": {
+                        "type": "string"
+                    }
+                },
+                "required": [
+                    "call_id"
+                ]
+            },
+            "platform": "phone_system"
+        },
+        {
+            "name": "phone_add_notes",
+            "short_description": "VETERINARY CLINIC ONLY: Add notes to vet clinic phone call record in VSA veterinary phone system",
+            "description": "Add manager notes to phone call. Can append to existing notes or replace them.",
+            "category": "phone_management",
+            "input_schema": {
+                "type": "object",
+                "properties": {
+                    "call_id": {
+                        "type": "string",
+                        "required": true
+                    },
+                    "notes": {
+                        "type": "string",
+                        "required": true
+                    },
+                    "mode": {
+                        "type": "string",
+                        "enum": [
+                            "append",
+                            "replace"
+                        ],
+                        "default": "append"
+                    }
+                },
+                "required": [
+                    "call_id",
+                    "notes"
+                ]
+            },
+            "platform": "phone_system"
+        },
+        {
+            "name": "phone_export_report",
+            "short_description": "Generate formatted report from phone data - PDF, CSV, Excel, HTML export formats",
+            "description": "Generate formatted report from phone data (daily, weekly, staff, alert summary). Exports to PDF, CSV, Excel, or HTML.",
+            "category": "phone_management",
+            "input_schema": {
+                "type": "object",
+                "properties": {
+                    "report_type": {
+                        "type": "string",
+                        "enum": [
+                            "daily",
+                            "weekly",
+                            "staff",
+                            "alert_summary"
+                        ],
+                        "required": true
+                    },
+                    "date_range": {
+                        "type": "object",
+                        "properties": {
+                            "from": "string",
+                            "to": "string"
+                        }
+                    },
+                    "format": {
+                        "type": "string",
+                        "enum": [
+                            "pdf",
+                            "csv",
+                            "excel",
+                            "html"
+                        ],
+                        "default": "pdf"
+                    },
+                    "email_to": {
+                        "type": "string"
+                    },
+                    "include_charts": {
+                        "type": "boolean",
+                        "default": true
+                    }
+                },
+                "required": [
+                    "report_type"
+                ]
+            },
+            "platform": "phone_system"
+        },
+        {
+            "name": "phone_schedule_follow_up",
+            "short_description": "VETERINARY CLINIC ONLY: Schedule vet clinic callback task after phone alert in VSA system (not general meetings)",
+            "description": "Create follow-up task from phone alert (coaching session, client callback, process review).",
+            "category": "phone_management",
+            "input_schema": {
+                "type": "object",
+                "properties": {
+                    "call_id": {
+                        "type": "string",
+                        "required": true
+                    },
+                    "follow_up_type": {
+                        "type": "string",
+                        "enum": [
+                            "coaching",
+                            "client_callback",
+                            "process_review"
+                        ],
+                        "required": true
+                    },
+                    "due_date": {
+                        "type": "string",
+                        "format": "date"
+                    },
+                    "assigned_to": {
+                        "type": "string"
+                    },
+                    "notes": {
+                        "type": "string"
+                    }
+                },
+                "required": [
+                    "call_id",
+                    "follow_up_type"
+                ]
+            },
+            "platform": "phone_system"
+        },
+        {
+            "name": "phone_search_similar",
+            "short_description": "Find similar calls/alerts using pattern matching - staff, alert type, keywords, duration",
+            "description": "Find similar phone calls/alerts using pattern matching. Search by staff, alert type, keywords, or duration to identify recurring issues.",
+            "category": "phone_management",
+            "input_schema": {
+                "type": "object",
+                "properties": {
+                    "reference_call_id": {
+                        "type": "string",
+                        "required": true
+                    },
+                    "similarity_criteria": {
+                        "type": "array",
+                        "items": {
+                            "enum": [
+                                "staff",
+                                "alert_type",
+                                "keywords",
+                                "duration"
+                            ]
+                        },
+                        "default": [
+                            "staff",
+                            "alert_type"
+                        ]
+                    },
+                    "date_range_days": {
+                        "type": "integer",
+                        "default": 30
+                    },
+                    "max_results": {
+                        "type": "integer",
+                        "default": 10
+                    }
+                },
+                "required": [
+                    "reference_call_id"
+                ]
+            },
+            "platform": "phone_system"
+        }
+    ],
+    "usage_examples": [
+        {
+            "scenario": "Simple: Get today's calls",
+            "tool": "phone_get_full_call",
+            "input": {},
+            "description": "No params needed - returns today's calls with defaults"
+        },
+        {
+            "scenario": "Coaching: Generate coaching for specific call",
+            "tool": "phone_prompt_alert_coaching",
+            "input": {
+                "call_id": "VET-Smith-12-10-2024_14:30",
+                "staff_name": "Sarah Thompson",
+                "alert_type": "REVENUE_LEAKAGE"
+            },
+            "description": "3 required params - rest use defaults"
+        },
+        {
+            "scenario": "Filtered search: High severity alerts this week",
+            "tool": "phone_get_full_call",
+            "input": {
+                "date_range": {
+                    "preset": "this_week"
+                },
+                "has_alerts": true,
+                "alert_severity": [
+                    "HIGH"
+                ],
+                "sort_by": "revenue_impact"
+            },
+            "description": "4 params - highly targeted query"
+        },
+        {
+            "scenario": "Analysis: Staff performance metrics",
+            "tool": "phone_staff_performance",
+            "input": {
+                "staff_name": "Sarah Thompson",
+                "time_period": "month",
+                "compare_to": "peers"
+            },
+            "description": "Compare staff to peers over last month"
+        },
+        {
+            "scenario": "SQL: Custom query from library",
+            "tool": "phone_query_library",
+            "input": {
+                "query_id": "top_staff_by_alerts",
+                "parameters": {
+                    "date_from": "2025-12-01",
+                    "limit": 10
+                }
+            },
+            "description": "Execute pre-built query with params"
+        }
+    ]
+}

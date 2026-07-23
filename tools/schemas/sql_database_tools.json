@@ -1,0 +1,230 @@
+{
+  "platform": "inhouse_database",
+  "description": "InHouse Print SQL Server database operations with QueryLibrary integration. Provides access to business intelligence queries, stock management, and quote calculations.",
+  "tools": [
+    {
+      "name": "db_execute_query",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Read X from **[Resource Name]** (ID: `[id]` | URL: [url])'\n(3) Use EXACT [id] provided - NEVER substitute with different ID\n(4) If tool fails (404/403), say 'Failed to read [resource] ID: [id]' and explain error\n(5) NEVER make up data if read fails - acknowledge the failure clearly\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nExecute a pre-built SQL query from QueryLibrary by name with parameters. The QueryLibrary contains 100+ optimized queries for sales analysis, client intelligence, stock management, and production tracking. Returns structured DataFrame results with metadata. Use db_get_available_queries first to see all available queries.",
+      "platform": "inhouse_database",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "query_name": {
+            "type": "string",
+            "description": "Name of query from QueryLibrary. Examples: 'monthly_revenue_trend' (revenue analysis), 'stock_levels' (inventory status), 'client_preferences' (client analysis), 'product_mix' (product performance). Use db_get_available_queries to see full list."
+          },
+          "params": {
+            "type": "object",
+            "description": "Query parameters as key-value pairs. Common parameters: 'months' (int, time period), 'client_id' (int, specific client), 'stock_id' (int, specific stock), 'product_type' (string, product filter), 'min_revenue' (float, revenue threshold). Each query has different required/optional parameters.",
+            "additionalProperties": true
+          }
+        },
+        "required": [
+          "query_name"
+        ]
+      },
+      "returns": {
+        "type": "object",
+        "description": "Query result with 'success' (bool), 'query_name' (string), 'data' (array of row dicts), 'rows' (int, row count), 'columns' (array of column names), 'metadata' (dict with query info)"
+      },
+      "examples": [
+        {
+          "description": "Get 6-month revenue trend",
+          "parameters": {
+            "query_name": "monthly_revenue_trend",
+            "params": {
+              "months": 6
+            }
+          }
+        },
+        {
+          "description": "Check low stock items",
+          "parameters": {
+            "query_name": "stock_levels",
+            "params": {
+              "low_stock_only": true
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "db_get_available_queries",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Read X from **[Resource Name]** (ID: `[id]` | URL: [url])'\n(3) Use EXACT [id] provided - NEVER substitute with different ID\n(4) If tool fails (404/403), say 'Failed to read [resource] ID: [id]' and explain error\n(5) NEVER make up data if read fails - acknowledge the failure clearly\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nList all available queries in QueryLibrary with full metadata including descriptions, parameters, return types, and best use cases. Use this FIRST to discover what queries are available before calling db_execute_query. Returns categorized list of queries organized by: Sales & Revenue, Client Analysis, Stock Management, Production Tracking, Product Performance.",
+      "platform": "inhouse_database",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "category": {
+            "type": "string",
+            "description": "Optional filter by category. Available categories: 'Sales & Revenue', 'Client Analysis', 'Stock Management', 'Production Tracking', 'Product Performance'. Omit to see all queries.",
+            "enum": [
+              "Sales & Revenue",
+              "Client Analysis",
+              "Stock Management",
+              "Production Tracking",
+              "Product Performance"
+            ]
+          }
+        },
+        "required": []
+      },
+      "returns": {
+        "type": "object",
+        "description": "Object with 'success' (bool), 'total_queries' (int), 'queries' (array of query definitions with name, category, description, parameters, returns, best_for fields)"
+      },
+      "examples": [
+        {
+          "description": "List all available queries",
+          "parameters": {}
+        },
+        {
+          "description": "Show only sales queries",
+          "parameters": {
+            "category": "Sales & Revenue"
+          }
+        }
+      ]
+    },
+    {
+      "name": "db_get_business_summary",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Read X from **[Resource Name]** (ID: `[id]` | URL: [url])'\n(3) Use EXACT [id] provided - NEVER substitute with different ID\n(4) If tool fails (404/403), say 'Failed to read [resource] ID: [id]' and explain error\n(5) NEVER make up data if read fails - acknowledge the failure clearly\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nGet high-level business summary with key performance indicators. Returns total revenue, order count, client count, average order value, top products, and growth trends for specified time period. Quick overview of business health.",
+      "platform": "inhouse_database",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "months": {
+            "type": "integer",
+            "description": "Number of months to analyze (default: 12, min: 1, max: 36)",
+            "default": 12,
+            "minimum": 1,
+            "maximum": 36
+          }
+        },
+        "required": []
+      },
+      "returns": {
+        "type": "object",
+        "description": "Object with 'success' (bool) and 'summary' (dict containing total_revenue, order_count, client_count, avg_order_value, top_products array, growth_rate, period_start, period_end)"
+      },
+      "examples": [
+        {
+          "description": "Get 12-month business summary",
+          "parameters": {}
+        },
+        {
+          "description": "Get quarterly summary",
+          "parameters": {
+            "months": 3
+          }
+        }
+      ]
+    },
+    {
+      "name": "db_calculate_quote",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Read X from **[Resource Name]** (ID: `[id]` | URL: [url])'\n(3) Use EXACT [id] provided - NEVER substitute with different ID\n(4) If tool fails (404/403), say 'Failed to read [resource] ID: [id]' and explain error\n(5) NEVER make up data if read fails - acknowledge the failure clearly\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nCalculate accurate quote for printing products using ComprehensiveQuoteCalculator. Supports business cards, flyers, perfect bound books, corflute signs, and booklets. Returns detailed pricing breakdown with material costs, labor, markup, and total price. Uses real database pricing from Quote_* tables.",
+      "platform": "inhouse_database",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "product_type": {
+            "type": "string",
+            "description": "Product type to quote. Available types: 'business_cards', 'flyers', 'perfect_bound_books', 'corflute_signs', 'booklets'",
+            "enum": [
+              "business_cards",
+              "flyers",
+              "perfect_bound_books",
+              "corflute_signs",
+              "booklets"
+            ]
+          },
+          "quantity": {
+            "type": "integer",
+            "description": "Quantity to quote (e.g., 1000 cards, 500 flyers). Must be positive integer.",
+            "minimum": 1
+          },
+          "options": {
+            "type": "object",
+            "description": "Product-specific options as key-value pairs. Common options: 'stock_type' (string), 'size' (string), 'pages' (int for books), 'finishing' (string), 'sides' (int, 1 or 2), 'thickness' (string for corflute). Options vary by product_type.",
+            "additionalProperties": true
+          }
+        },
+        "required": [
+          "product_type",
+          "quantity"
+        ]
+      },
+      "returns": {
+        "type": "object",
+        "description": "Object with 'success' (bool), 'product_type' (string), 'quantity' (int), 'quote' (dict containing total_price, unit_price, breakdown with material_cost, labor_cost, markup, stock_details, turnaround_days)"
+      },
+      "examples": [
+        {
+          "description": "Quote 1000 business cards",
+          "parameters": {
+            "product_type": "business_cards",
+            "quantity": 1000,
+            "options": {
+              "stock_type": "350gsm_satin",
+              "sides": 2
+            }
+          }
+        },
+        {
+          "description": "Quote corflute sign",
+          "parameters": {
+            "product_type": "corflute_signs",
+            "quantity": 1,
+            "options": {
+              "size": "900x600mm",
+              "thickness": "5mm"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "db_get_stock_levels",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Read X from **[Resource Name]** (ID: `[id]` | URL: [url])'\n(3) Use EXACT [id] provided - NEVER substitute with different ID\n(4) If tool fails (404/403), say 'Failed to read [resource] ID: [id]' and explain error\n(5) NEVER make up data if read fails - acknowledge the failure clearly\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nGet current stock inventory levels and status. Returns stock details with current quantities, costs, suppliers, reorder points, and critical level alerts. Useful for inventory management and production planning. Can filter by specific stock ID or show only low stock items.",
+      "platform": "inhouse_database",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "stock_id": {
+            "type": "integer",
+            "description": "Optional specific stock ID to query (e.g., 44 for Satin 350gsm). Omit to show all stocks.",
+            "minimum": 1
+          },
+          "low_stock_only": {
+            "type": "boolean",
+            "description": "If true, only show stocks below reorder point (critical inventory). If false, show all stocks.",
+            "default": false
+          }
+        },
+        "required": []
+      },
+      "returns": {
+        "type": "object",
+        "description": "Object with 'success' (bool) and 'stocks' (array of stock objects with stock_id, stock_name, current_level, reorder_point, critical_level, cost_per_unit, supplier_name, last_order_date, is_low_stock boolean)"
+      },
+      "examples": [
+        {
+          "description": "Show all stock levels",
+          "parameters": {}
+        },
+        {
+          "description": "Show only low stock items",
+          "parameters": {
+            "low_stock_only": true
+          }
+        },
+        {
+          "description": "Check specific stock",
+          "parameters": {
+            "stock_id": 44
+          }
+        }
+      ]
+    }
+  ]
+}

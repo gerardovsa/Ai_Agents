@@ -1,0 +1,39 @@
+{
+  "platform": "tavily",
+  "description": "Tavily site structure mapping. Given a starting URL, returns a flat list of URLs that describe the site's structure (no page content). Use to discover which pages exist on a site before deciding which to extract.",
+  "tools": [
+    {
+      "name": "tavily_map",
+      "short_description": "Map a website's structure - returns a list of URLs without reading page content",
+      "description": "Return a list of URLs discovered by following links from the starting URL. Use this BEFORE tavily_extract or tavily_crawl when you want to know what pages a site has, or to narrow down which pages are worth reading. Fast and cheap (no page content extracted). For actually reading the pages, use tavily_extract on the URLs you select.",
+      "platform": "tavily",
+      "parameters": {
+        "url": {
+          "type": "string",
+          "description": "The starting URL to map. Must be http or https."
+        },
+        "max_depth": {
+          "type": "integer",
+          "description": "How many link-hops to follow when discovering URLs (1-5).",
+          "required": false,
+          "default": 2
+        },
+        "limit": {
+          "type": "integer",
+          "description": "Maximum number of URLs to return (1-100).",
+          "required": false,
+          "default": 25
+        },
+        "instructions": {
+          "type": "string",
+          "description": "Optional natural-language guidance for the mapper (e.g. 'focus on documentation', 'exclude the blog').",
+          "required": false
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "Map results with a list of discovered URLs"
+      }
+    }
+  ]
+}

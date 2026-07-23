@@ -1,0 +1,138 @@
+{
+  "platform": "gmail_smart",
+  "description": "Intelligent Gmail operations with automatic confirmation for expensive operations. These tools analyze email complexity BEFORE fetching full content and request user confirmation when needed.",
+  "tools": [
+    {
+      "name": "gmail_analyze_email_smart",
+      "short_description": "Smart Gmail email analysis - auto-confirmation for large emails, token-aware",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Read X from **[Resource Name]** (ID: `[id]` | URL: [url])'\n(3) Use EXACT [id] provided - NEVER substitute with different ID\n(4) If tool fails (404/403), say 'Failed to read [resource] ID: [id]' and explain error\n(5) NEVER make up data if read fails - acknowledge the failure clearly\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nSMART email analysis with automatic user confirmation for large/expensive content.\n\nThis is the RECOMMENDED way to read emails. It:\n1. Checks email size and attachments first (lightweight)\n2. Requests user confirmation if content is large (>10k tokens)\n3. Returns parsed content directly if small\n\nUSE THIS when user asks to:\n- 'Read my email'\n- 'What does this email say?'\n- 'Analyze email from X'\n\nThe tool will handle confirmation automatically via multi-turn conversation.",
+      "platform": "gmail_smart",
+      "category": "smart",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "message_id": {
+            "type": "string",
+            "description": "Gmail message ID to analyze"
+          }
+        },
+        "required": [
+          "message_id"
+        ]
+      },
+      "returns": {
+        "type": "object",
+        "description": "Either parsed email content OR confirmation request",
+        "properties": {
+          "status": "string ('confirmation_required' if large, omitted if small)",
+          "confirmation_prompt": "string (user-friendly prompt if confirmation needed)",
+          "estimated_tokens": "int (token estimate)",
+          "estimated_cost_usd": "float (cost estimate)",
+          "options": "array (user choices: Read Full/Metadata/Cancel)",
+          "...or parsed email content if small": "object"
+        }
+      },
+      "examples": [
+        {
+          "description": "Analyze email (auto-confirms if needed)",
+          "parameters": {
+            "message_id": "msg_abc123"
+          }
+        }
+      ]
+    },
+    {
+      "name": "gmail_analyze_thread_smart",
+      "short_description": "Smart Gmail thread analysis - auto-confirmation for large threads, timeline view",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Read X from **[Resource Name]** (ID: `[id]` | URL: [url])'\n(3) Use EXACT [id] provided - NEVER substitute with different ID\n(4) If tool fails (404/403), say 'Failed to read [resource] ID: [id]' and explain error\n(5) NEVER make up data if read fails - acknowledge the failure clearly\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nSMART thread analysis with automatic confirmation for large threads.\n\nThis tool:\n1. Fetches thread timeline first (lightweight)\n2. Analyzes complexity (message count, attachments)\n3. Requests confirmation if thread is large (>5 messages or >10k tokens)\n4. Returns timeline directly if small\n\nUSE THIS when user asks to:\n- 'Show me the conversation about X'\n- 'What's this email thread about?'\n- 'Read the email chain'\n\nThe tool handles confirmation via multi-turn conversation.",
+      "platform": "gmail_smart",
+      "category": "smart",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "thread_id": {
+            "type": "string",
+            "description": "Gmail thread ID to analyze"
+          },
+          "max_messages": {
+            "type": "integer",
+            "description": "Maximum messages to analyze (default: 20)",
+            "default": 20
+          }
+        },
+        "required": [
+          "thread_id"
+        ]
+      },
+      "returns": {
+        "type": "object",
+        "description": "Either thread timeline OR confirmation request",
+        "properties": {
+          "status": "string ('confirmation_required' if large)",
+          "confirmation_prompt": "string (if confirmation needed)",
+          "options": "array (PDF/Timeline/Cancel)",
+          "...or thread timeline if small": "object"
+        }
+      },
+      "examples": [
+        {
+          "description": "Analyze thread with auto-confirmation",
+          "parameters": {
+            "thread_id": "thread_12345",
+            "max_messages": 20
+          }
+        }
+      ]
+    },
+    {
+      "name": "gmail_search_smart",
+      "short_description": "Smart Gmail search - intelligent result analysis with next-step suggestions",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Read X from **[Resource Name]** (ID: `[id]` | URL: [url])'\n(3) Use EXACT [id] provided - NEVER substitute with different ID\n(4) If tool fails (404/403), say 'Failed to read [resource] ID: [id]' and explain error\n(5) NEVER make up data if read fails - acknowledge the failure clearly\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nSMART search with intelligent result analysis and suggestions.\n\nThis tool:\n1. Performs Gmail search\n2. Analyzes result complexity\n3. Provides intelligent next-step suggestions\n4. Helps user navigate large result sets\n\nUSE THIS when user asks to:\n- 'Search for emails about X'\n- 'Find messages from Y'\n- 'Show emails with attachment Z'\n\nReturns results plus suggestions for next actions.",
+      "platform": "gmail_smart",
+      "category": "smart",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "query": {
+            "type": "string",
+            "description": "Gmail search query (same syntax as Gmail search box)"
+          },
+          "max_results": {
+            "type": "integer",
+            "description": "Maximum results to return (default: 10)",
+            "default": 10
+          }
+        },
+        "required": [
+          "query"
+        ]
+      },
+      "returns": {
+        "type": "object",
+        "description": "Search results with intelligent suggestions",
+        "properties": {
+          "messages": "array (search results)",
+          "resultSizeEstimate": "int (total matches)",
+          "suggestion": "string (intelligent next-step suggestion)",
+          "next_actions": "array (suggested tool calls)"
+        }
+      },
+      "examples": [
+        {
+          "description": "Search with smart suggestions",
+          "parameters": {
+            "query": "subject:contract from:john@example.com",
+            "max_results": 10
+          }
+        },
+        {
+          "description": "Find emails with attachments",
+          "parameters": {
+            "query": "has:attachment filename:pdf",
+            "max_results": 5
+          }
+        }
+      ]
+    }
+  ]
+}

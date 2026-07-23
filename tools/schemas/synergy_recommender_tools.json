@@ -1,0 +1,191 @@
+{
+  "platform": "synergy",
+  "description": "Intelligent tool recommendation system for Synergy Dashboard - helps AI agents select the right tool based on their current situation with complete usage instructions",
+  "tools": [
+    {
+      "name": "synergy_recommend_next_tool",
+      "short_description": "Get intelligent recommendation for which Synergy tool to use next with complete instructions",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Read X from **[Resource Name]** (ID: `[id]` | URL: [url])'\n(3) Use EXACT [id] provided - NEVER substitute with different ID\n(4) If tool fails (404/403), say 'Failed to read [resource] ID: [id]' and explain error\n(5) NEVER make up data if read fails - acknowledge the failure clearly\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nGet intelligent, personalized recommendation for which Synergy tool to use next based on your current situation. Returns complete instructions including: which tool to call, why it's appropriate, all parameters with examples, working code, next steps after success, and critical warnings. USE THIS when you're unsure which Synergy tool to use or how to proceed. This is your GPS for navigating Synergy workflows.",
+      "platform": "synergy",
+      "guidance": {
+        "when_to_use": [
+          "First time using Synergy and need to know where to start",
+          "Created resources but unsure how to update Synergy",
+          "Have session_id but don't know which tool to call next",
+          "Want to move card or check status but need guidance",
+          "Something went wrong and need troubleshooting direction",
+          "Unsure about parameter requirements or usage patterns"
+        ],
+        "benefits": [
+          "Eliminates guesswork - tells you exactly what to do",
+          "Provides complete working code examples",
+          "Shows critical warnings to avoid data loss",
+          "Explains the 'why' behind each recommendation",
+          "Gives clear next steps after tool succeeds"
+        ],
+        "workflow_pattern": [
+          "Call synergy_recommend_next_tool() with your situation",
+          "Read the recommendation and reason",
+          "Get schemas: get_tool_schema(recommended_tool)",
+          "Execute the recommended tool with example as guide",
+          "Follow the next_steps from recommendation",
+          "Call synergy_recommend_next_tool() again for next phase"
+        ]
+      },
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "current_situation": {
+            "type": "string",
+            "enum": [
+              "just_starting",
+              "project_created",
+              "adding_resources",
+              "need_to_update",
+              "moving_card",
+              "checking_status",
+              "listing_projects",
+              "troubleshooting",
+              "learning"
+            ],
+            "description": "Your current state in the Synergy workflow:\n\n- 'just_starting': First time using Synergy, need to create project. Use when user asks to build multi-platform system and you haven't created Synergy session yet.\n\n- 'project_created': Created Synergy project, have session_id, just created FIRST resource. Use when you called synergy_create_session_complete() and now need to add first document.\n\n- 'adding_resources': Adding MORE resources to existing project. Use when you've already updated Synergy with 1+ resources and need to add another.\n\n- 'need_to_update': Have session_id and resources, need to update Synergy but unsure how. Use when you have documents/links to add but haven't started the update process.\n\n- 'moving_card': Want to change Kanban column (backlog/in_progress/review/done). Use when project phase changes.\n\n- 'checking_status': Want to see current state of project. Use when user asks 'what's the status?' or you need current information.\n\n- 'listing_projects': Want to see all Synergy projects or filter by criteria. Use when user asks 'what projects do I have?' or need to find a project.\n\n- 'troubleshooting': Something went wrong (documents disappeared, errors, data loss). Use when you encounter errors or unexpected behavior.\n\n- 'learning': Need to understand Synergy concepts, patterns, best practices. Use when you're new to Synergy or need to understand specific aspects."
+          },
+          "have_session_id": {
+            "type": "boolean",
+            "description": "Do you have a session_id saved from previous synergy_create_session_complete() or synergy_create_session() call? True if you have it, False if you don't. CRITICAL: If you lost session_id, set to False and use 'listing_projects' situation to find it.",
+            "default": false
+          },
+          "resources_created": {
+            "type": "integer",
+            "description": "How many resources (docs, sheets, forms, emails) have you created so far for this project? 0 = none yet, 1-2 = some, 3+ = multiple. Used to provide context-appropriate guidance. If you've created resources but haven't updated Synergy yet, count them here.",
+            "default": 0
+          },
+          "task_type": {
+            "type": "string",
+            "enum": [
+              "multi_platform",
+              "automation",
+              "data_pipeline",
+              "customer_system",
+              "internal_tool"
+            ],
+            "description": "Optional: What kind of project are you building? Helps tailor recommendations.\n\n- 'multi_platform': Using 3+ different platforms (gmail + sheets + forms + docs)\n- 'automation': Building automated workflow or system\n- 'data_pipeline': Data collection, processing, or analysis system\n- 'customer_system': Customer-facing system (forms, emails, tracking)\n- 'internal_tool': Internal business tool or process"
+          }
+        },
+        "required": [
+          "current_situation"
+        ]
+      },
+      "returns": {
+        "type": "object",
+        "description": "Complete recommendation package with tool name, reason, parameters with examples, working code, next steps, warnings, and schemas to fetch"
+      },
+      "examples": [
+        {
+          "description": "Starting a new multi-platform project - need to know what to do first",
+          "parameters": {
+            "current_situation": "just_starting",
+            "have_session_id": false,
+            "resources_created": 0,
+            "task_type": "multi_platform"
+          },
+          "expected_output": {
+            "recommended_tool": "synergy_create_session_complete",
+            "reason": "You're starting a NEW multi-platform project...",
+            "example": "Complete working code for synergy_create_session_complete()",
+            "next_steps": "1. Save session_id, 2. Create first resource, 3. Update Synergy..."
+          }
+        },
+        {
+          "description": "Created Synergy project and first resource - need to update dashboard",
+          "parameters": {
+            "current_situation": "project_created",
+            "have_session_id": true,
+            "resources_created": 1
+          },
+          "expected_output": {
+            "recommended_tool": "synergy_get_session",
+            "reason": "Before adding resource to Synergy, MUST fetch current state...",
+            "example": "Complete FETCH → COMBINE → UPDATE pattern",
+            "warning": "Always fetch before updating arrays!"
+          }
+        },
+        {
+          "description": "Adding third resource to project - need update guidance",
+          "parameters": {
+            "current_situation": "adding_resources",
+            "have_session_id": true,
+            "resources_created": 2
+          },
+          "expected_output": {
+            "recommended_tool": "synergy_get_session → synergy_update_session",
+            "reason": "Adding resource #3, must fetch again before updating...",
+            "example": "Complete pattern for adding to existing documents"
+          }
+        },
+        {
+          "description": "Something went wrong - documents disappeared from dashboard",
+          "parameters": {
+            "current_situation": "troubleshooting",
+            "have_session_id": true,
+            "resources_created": 3
+          },
+          "expected_output": {
+            "recommended_tool": "synergy_agent_instructions",
+            "reason": "Get troubleshooting guide for common errors...",
+            "warning": "Most common: Updated without fetching first (data loss)"
+          }
+        },
+        {
+          "description": "Ready to move project from in_progress to review",
+          "parameters": {
+            "current_situation": "moving_card",
+            "have_session_id": true,
+            "resources_created": 5
+          },
+          "expected_output": {
+            "recommended_tool": "synergy_move_session",
+            "example": "synergy_move_session(session_id, 'review')",
+            "next_steps": "Tell user about status change"
+          }
+        },
+        {
+          "description": "User asks 'what projects do I have?' - need to list all",
+          "parameters": {
+            "current_situation": "listing_projects",
+            "have_session_id": false,
+            "resources_created": 0
+          },
+          "expected_output": {
+            "recommended_tool": "synergy_list_sessions",
+            "example": "synergy_list_sessions(status='active')",
+            "next_steps": "Show user the list, offer to work on one"
+          }
+        },
+        {
+          "description": "First time hearing about Synergy - need to understand concepts",
+          "parameters": {
+            "current_situation": "learning",
+            "have_session_id": false,
+            "resources_created": 0
+          },
+          "expected_output": {
+            "recommended_tool": "synergy_agent_instructions",
+            "parameters": {
+              "topic": "overview"
+            },
+            "next_steps": "Read overview, then call with topic='quickstart'"
+          }
+        }
+      ],
+      "critical_notes": [
+        "ALWAYS call this tool when unsure about next Synergy step",
+        "Provides complete working code - no guesswork needed",
+        "Shows warnings to prevent data loss from wrong patterns",
+        "Can be called multiple times as you progress through workflow",
+        "Each recommendation includes 'next_steps' to guide continuous progress",
+        "If recommendation says 'fetch first', you MUST do it to prevent data loss"
+      ]
+    }
+  ]
+}

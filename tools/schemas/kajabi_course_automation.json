@@ -1,0 +1,248 @@
+{
+  "platform": "kajabi",
+  "description": "Kajabi Course Automation - Workarounds for course creation using blueprints, webhooks, and bulk operations. Note: Kajabi API v1 does not support direct course creation.",
+  "tools": [
+    {
+      "name": "kajabi_generate_course_blueprint",
+      "short_description": "Generate detailed course blueprint with modules, lessons, assessments, pricing structure",
+      "description": "📋 COURSE BLUEPRINT GENERATOR: Creates detailed course structure blueprint that can be used as a guide to manually create courses in Kajabi. Generates comprehensive JSON with modules, lessons, assessments, pricing, and step-by-step implementation instructions. Perfect for planning course structure before creation or sharing templates with team members.",
+      "platform": "kajabi",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "course_title": {
+            "type": "string",
+            "description": "Course name/title (required)"
+          },
+          "course_description": {
+            "type": "string",
+            "description": "Brief course overview describing what students will learn (required)"
+          },
+          "num_modules": {
+            "type": "integer",
+            "description": "Number of course modules to create (default: 5, range: 1-20)",
+            "default": 5
+          },
+          "lessons_per_module": {
+            "type": "integer",
+            "description": "Number of lessons in each module (default: 3, range: 1-10)",
+            "default": 3
+          },
+          "include_assessments": {
+            "type": "boolean",
+            "description": "Add quizzes/assessments after each module (default: true)",
+            "default": true
+          },
+          "course_type": {
+            "type": "string",
+            "description": "Course format type (default: 'online_course')",
+            "enum": [
+              "online_course",
+              "coaching",
+              "membership"
+            ],
+            "default": "online_course"
+          },
+          "pricing_model": {
+            "type": "string",
+            "description": "Pricing structure (default: 'one_time')",
+            "enum": [
+              "one_time",
+              "subscription",
+              "payment_plan"
+            ],
+            "default": "one_time"
+          }
+        },
+        "required": [
+          "course_title",
+          "course_description"
+        ]
+      },
+      "returns": {
+        "type": "object",
+        "description": "Course blueprint with structure, modules, lessons, implementation instructions, and checklist"
+      },
+      "examples": [
+        {
+          "description": "Generate blueprint for beginner course",
+          "parameters": {
+            "course_title": "Complete Digital Marketing Course",
+            "course_description": "Master SEO, social media, email marketing, and paid ads",
+            "num_modules": 6,
+            "lessons_per_module": 4,
+            "include_assessments": true,
+            "course_type": "online_course",
+            "pricing_model": "one_time"
+          }
+        },
+        {
+          "description": "Generate membership blueprint",
+          "parameters": {
+            "course_title": "Monthly Business Growth Membership",
+            "course_description": "Weekly training, monthly workshops, and community support",
+            "num_modules": 12,
+            "lessons_per_module": 4,
+            "course_type": "membership",
+            "pricing_model": "subscription"
+          }
+        }
+      ]
+    },
+    {
+      "name": "kajabi_setup_course_webhook",
+      "short_description": "Create webhook for course automation: enrollment, emails, certificate delivery",
+      "description": "🔗 WEBHOOK AUTOMATION: Creates webhook to automate course-related actions like auto-enrollment, welcome emails, certificate delivery, and integration with Zapier/Make.com. Essential for automating workflows that Kajabi API doesn't support directly. Enables real-time automation when students purchase, complete lessons, or finish courses.",
+      "platform": "kajabi",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "webhook_url": {
+            "type": "string",
+            "description": "Your webhook endpoint URL that will receive events (required)"
+          },
+          "events": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "List of events to monitor (optional, defaults to purchase/completion events)",
+            "default": [
+              "offer.purchased",
+              "member.created",
+              "assessment.completed",
+              "course.completed"
+            ]
+          },
+          "course_id": {
+            "type": "string",
+            "description": "Specific course ID to monitor (optional, monitors all courses if not specified)"
+          }
+        },
+        "required": [
+          "webhook_url"
+        ]
+      },
+      "returns": {
+        "type": "object",
+        "description": "Webhook configuration with automation examples and integration options"
+      },
+      "examples": [
+        {
+          "description": "Setup webhook for course purchases",
+          "parameters": {
+            "webhook_url": "https://hooks.zapier.com/hooks/catch/123456/abcdef",
+            "events": [
+              "offer.purchased",
+              "member.created"
+            ]
+          }
+        },
+        {
+          "description": "Monitor specific course completions",
+          "parameters": {
+            "webhook_url": "https://myapp.com/webhooks/kajabi",
+            "events": [
+              "course.completed",
+              "assessment.completed"
+            ],
+            "course_id": "course_123"
+          }
+        }
+      ]
+    },
+    {
+      "name": "kajabi_bulk_enroll_from_csv",
+      "short_description": "Bulk enroll multiple members into course from CSV data with dry-run preview",
+      "description": "📊 BULK ENROLLMENT: Enrolls multiple members into a course from CSV data. Perfect for course launches, migrations, or promotional giveaways. Includes dry-run mode to preview before executing. CSV format: email,name,custom_field1,custom_field2. Automatically finds members by email and grants course access.",
+      "platform": "kajabi",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "course_id": {
+            "type": "string",
+            "description": "Target course ID to enroll members into (required)"
+          },
+          "csv_data": {
+            "type": "string",
+            "description": "CSV string with member data. First row must be headers. Must include 'email' column (required)"
+          },
+          "offer_id": {
+            "type": "string",
+            "description": "Specific offer/payment plan to associate with enrollment (optional)"
+          },
+          "dry_run": {
+            "type": "boolean",
+            "description": "Preview mode - shows what would happen without executing (default: true)",
+            "default": true
+          }
+        },
+        "required": [
+          "course_id",
+          "csv_data"
+        ]
+      },
+      "returns": {
+        "type": "object",
+        "description": "Enrollment summary with success/failure counts and details"
+      },
+      "examples": [
+        {
+          "description": "Preview bulk enrollment (dry run)",
+          "parameters": {
+            "course_id": "course_123",
+            "csv_data": "email,name\njohn@example.com,John Doe\njane@example.com,Jane Smith",
+            "dry_run": true
+          }
+        },
+        {
+          "description": "Execute bulk enrollment",
+          "parameters": {
+            "course_id": "course_123",
+            "csv_data": "email,name\njohn@example.com,John Doe\njane@example.com,Jane Smith",
+            "offer_id": "offer_456",
+            "dry_run": false
+          }
+        }
+      ]
+    },
+    {
+      "name": "kajabi_get_course_templates",
+      "short_description": "Get pre-built course templates with structure, modules, lessons, pricing recommendations",
+      "description": "📚 TEMPLATE LIBRARY: Returns pre-built course templates for common course types (online courses, memberships, coaching programs, mini-courses). Each template includes recommended structure, module count, lesson plans, pricing models, and content ideas. Use these as starting points for generate_course_blueprint.",
+      "platform": "kajabi",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "category": {
+            "type": "string",
+            "description": "Filter by template category (optional, returns all if not specified)",
+            "enum": [
+              "online_course",
+              "membership",
+              "coaching",
+              "mini_course"
+            ]
+          }
+        },
+        "required": []
+      },
+      "returns": {
+        "type": "object",
+        "description": "Course templates with structure recommendations and usage instructions"
+      },
+      "examples": [
+        {
+          "description": "Get all course templates",
+          "parameters": {}
+        },
+        {
+          "description": "Get membership template only",
+          "parameters": {
+            "category": "membership"
+          }
+        }
+      ]
+    }
+  ]
+}

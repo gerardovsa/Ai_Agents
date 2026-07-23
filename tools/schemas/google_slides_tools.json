@@ -1,0 +1,1208 @@
+{
+  "platform": "google_slides",
+  "description": "Google Slides API - Create and manage presentations\n\n⚠️ CRITICAL: ALL tools in this platform MUST be called through the execute_tool meta-tool for proper OAuth credential injection. DO NOT call these tools directly. Always use: execute_tool(tool_name='toolname', ...parameters)",
+  "tools": [
+    {
+      "name": "google_slides_create_presentation",
+      "short_description": "Create blank Google Slides presentation by title for manual slide design and content",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) ALWAYS execute THIS tool NOW - NEVER reference 'I created earlier' or use conversation history\n(2) MUST return format: **[Name]** | ID: `[id]` | URL: [full_url] | Link: [title](url)\n(3) Use EXACT values from tool response - NEVER make up fake URLs/IDs\n(4) If tool fails, say 'Failed to create' - NEVER pretend it succeeded\n\nExample response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\nExample response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\nCreate a new Google Slides presentation (blank or from template)",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": "string",
+            "description": "Presentation title"
+          },
+          "template_id": {
+            "type": "string",
+            "description": "Optional: Template presentation ID to copy from"
+          }
+        },
+        "required": [
+          "title"
+        ]
+      },
+      "returns": {
+        "type": "object",
+        "properties": {
+          "presentation_id": {
+            "type": "string"
+          },
+          "url": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "slide_count": {
+            "type": "integer"
+          }
+        }
+      }
+    },
+    {
+      "name": "google_slides_get_presentation",
+      "short_description": "Get Google Slides presentation details by ID with slides, layout, and metadata",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Read X from **[Resource Name]** (ID: `[id]` | URL: [url])'\n(3) Use EXACT [id] provided - NEVER substitute with different ID\n(4) If tool fails (404/403), say 'Failed to read [resource] ID: [id]' and explain error\n(5) NEVER make up data if read fails - acknowledge the failure clearly\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\n⚠️ ENHANCED - Multi-format Google Slides reader with 99.6% token reduction!\n\nAvoids token overflow with progressive format disclosure:\n- summary (1K tokens): Slide titles, layouts, speaker notes preview, slide count\n- text (80K tokens): All text content + complete speaker notes\n- markdown (90K tokens): Slides as markdown sections with ##/### headings, bold/italic formatting\n- full (280K+ tokens): Complete JSON with positioning/transforms (AVOID unless necessary)\n\nExample responses:\n✅ format='summary' (99.6% reduction for 24-slide deck):\n\"Presentation: **Q4 Sales Review** (24 slides)\nSlides:\n1. Title: 'Q4 Sales Review' | Layout: TITLE | Speaker Notes: 'Welcome everyone...'\n2. Title: 'Agenda' | Layout: TITLE_AND_BODY | Notes: 'Cover 3 topics...'\n...\" (~1K tokens)\n\n✅ format='text' (71% reduction):\n\"=== Slide 1: Q4 Sales Review ===\nSubtitle: John Smith, VP Sales\nSpeaker Notes: Welcome everyone to our quarterly review...\" (~80K tokens)\n\n✅ format='markdown' (68% reduction):\n\"## Q4 Sales Review\\n**John Smith, VP Sales**\\n\\n> Speaker Notes: Welcome everyone...\" (~90K tokens)\n\n❌ format='full' (AVOID - 280K+ tokens for 24 slides)\n\n---\n\nGet presentation details with format options. Prevents token overflow by defaulting to summary format. Font sizes determine heading levels in markdown (>=24pt = ##, >=18pt = ###).",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "presentation_id": {
+            "type": "string",
+            "description": "Presentation ID (required)"
+          },
+          "format": {
+            "type": "string",
+            "description": "Response format (CRITICAL for token management):\n- 'summary' (DEFAULT, 1K tokens): Slide titles, layout types, speaker notes preview, slide count. Use for quick overview or finding specific slides.\n- 'text' (80K tokens): All text content from all slides + complete speaker notes. Use for full-text search or content analysis.\n- 'markdown' (90K tokens): Slides as markdown sections with ## headings (font >=24pt), ### subheadings (font >=18pt), **bold**, *italic*. Speaker notes as blockquotes. Use for AI content processing or readable exports.\n- 'full' (280K+ tokens): Complete JSON with shapes, positioning, transforms, images. AVOID unless you need layout metadata.\n\nDefault: 'summary'",
+            "enum": [
+              "summary",
+              "text",
+              "markdown",
+              "full"
+            ],
+            "default": "summary"
+          }
+        },
+        "required": [
+          "presentation_id"
+        ]
+      },
+      "returns": {
+        "type": "object",
+        "description": "Presentation data in requested format with token counts:\n- summary: {title, slide_count, slides: [{title, layout, notes_preview}], tokens: ~1K}\n- text: {text_content: string, slide_count, tokens: ~80K}\n- markdown: {markdown_content: string, slide_count, tokens: ~90K}\n- full: {complete JSON structure, tokens: 280K+}"
+      },
+      "examples": [
+        {
+          "description": "Get presentation overview (recommended default)",
+          "parameters": {
+            "presentation_id": "1a2b3c4d5e6f",
+            "format": "summary"
+          },
+          "expected_tokens": 1000
+        },
+        {
+          "description": "Get full text for content search",
+          "parameters": {
+            "presentation_id": "1a2b3c4d5e6f",
+            "format": "text"
+          },
+          "expected_tokens": 80000
+        },
+        {
+          "description": "Get markdown for AI processing",
+          "parameters": {
+            "presentation_id": "1a2b3c4d5e6f",
+            "format": "markdown"
+          },
+          "expected_tokens": 90000
+        }
+      ]
+    },
+    {
+      "name": "google_slides_get_slide",
+      "short_description": "Get specific slide from Google Slides presentation by slide ID for content review",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Read X from **[Resource Name]** (ID: `[id]` | URL: [url])'\n(3) Use EXACT [id] provided - NEVER substitute with different ID\n(4) If tool fails (404/403), say 'Failed to read [resource] ID: [id]' and explain error\n(5) NEVER make up data if read fails - acknowledge the failure clearly\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nGet content from a specific slide by number. Returns text content, speaker notes, and element counts for a single slide.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "presentation_id": {
+            "type": "string",
+            "description": "Presentation ID (required)"
+          },
+          "slide_number": {
+            "type": "integer",
+            "description": "Slide number to retrieve (1-indexed, required)"
+          }
+        },
+        "required": [
+          "presentation_id",
+          "slide_number"
+        ]
+      },
+      "returns": {
+        "type": "object",
+        "description": "Single slide data with: slide_number, slide_id, text_content, speaker_notes, element_counts (text_boxes, images, shapes, tables, charts), image_metadata"
+      },
+      "examples": [
+        {
+          "description": "Get slide 3 content",
+          "parameters": {
+            "presentation_id": "1a2b3c4d5e6f",
+            "slide_number": 3
+          }
+        }
+      ]
+    },
+    {
+      "name": "google_slides_search_presentation",
+      "short_description": "Search text within Google Slides presentation to find keywords across all slides",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Read X from **[Resource Name]** (ID: `[id]` | URL: [url])'\n(3) Use EXACT [id] provided - NEVER substitute with different ID\n(4) If tool fails (404/403), say 'Failed to read [resource] ID: [id]' and explain error\n(5) NEVER make up data if read fails - acknowledge the failure clearly\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nSearch all slides in a presentation for text query. Returns matching slides with context.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "presentation_id": {
+            "type": "string",
+            "description": "Presentation ID (required)"
+          },
+          "query": {
+            "type": "string",
+            "description": "Text to search for (case-insensitive, required)"
+          }
+        },
+        "required": [
+          "presentation_id",
+          "query"
+        ]
+      },
+      "returns": {
+        "type": "object",
+        "description": "Search results with: matched_slides (list of slides containing query with slide_number, title, matched_text preview, speaker_notes), total_matches, query"
+      },
+      "examples": [
+        {
+          "description": "Search for 'revenue' in presentation",
+          "parameters": {
+            "presentation_id": "1a2b3c4d5e6f",
+            "query": "revenue"
+          }
+        }
+      ]
+    },
+    {
+      "name": "google_slides_add_slide",
+      "short_description": "Add new blank slide to Google Slides presentation at position with layout template",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) ALWAYS execute THIS tool NOW - NEVER reference 'I created earlier' or use conversation history\n(2) MUST return format: **[Name]** | ID: `[id]` | URL: [full_url] | Link: [title](url)\n(3) Use EXACT values from tool response - NEVER make up fake URLs/IDs\n(4) If tool fails, say 'Failed to create' - NEVER pretend it succeeded\n\nExample response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\nExample response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\nAdd a new slide to presentation with specific layout",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "presentation_id": {
+            "type": "string",
+            "description": "Presentation ID"
+          },
+          "layout": {
+            "type": "string",
+            "description": "Layout type: BLANK, TITLE, TITLE_AND_BODY, TITLE_AND_TWO_COLUMNS, TITLE_ONLY, SECTION_HEADER, SECTION_TITLE_AND_DESCRIPTION, ONE_COLUMN_TEXT, MAIN_POINT, BIG_NUMBER",
+            "default": "BLANK"
+          },
+          "index": {
+            "type": "integer",
+            "description": "Position to insert slide (null = end)"
+          }
+        },
+        "required": [
+          "presentation_id"
+        ]
+      },
+      "returns": {
+        "type": "object",
+        "properties": {
+          "slide_id": {
+            "type": "string"
+          },
+          "page_index": {
+            "type": "integer"
+          },
+          "layout": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    {
+      "name": "google_slides_delete_slide",
+      "short_description": "Delete slide from Google Slides presentation by slide ID to remove content",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER pretend to delete from memory\n(2) MUST cite what was deleted: 'Deleted **[Resource Name]** (ID: `[id]`)'\n(3) CONFIRM deletion happened - don't assume success\n(4) If tool fails, say 'Failed to delete' and explain why\n\nExample response:\n✅ Deleted: **Old File**\n- ID: `abc123`\n- URL: https://example.com/file/abc123 (no longer accessible)\n\nExample response:\n✅ Deleted: **Old File**\n- ID: `abc123`\n- URL: https://example.com/file/abc123 (no longer accessible)\n\nDelete a slide from presentation",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "presentation_id": {
+            "type": "string",
+            "description": "Presentation ID"
+          },
+          "slide_id": {
+            "type": "string",
+            "description": "Slide ID to delete"
+          }
+        },
+        "required": [
+          "presentation_id",
+          "slide_id"
+        ]
+      },
+      "returns": {
+        "type": "object",
+        "properties": {
+          "deleted": {
+            "type": "boolean"
+          },
+          "slide_id": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    {
+      "name": "google_slides_duplicate_slide",
+      "short_description": "Duplicate existing slide in Google Slides presentation to reuse layout and content",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Read X from **[Resource Name]** (ID: `[id]` | URL: [url])'\n(3) Use EXACT [id] provided - NEVER substitute with different ID\n(4) If tool fails (404/403), say 'Failed to read [resource] ID: [id]' and explain error\n(5) NEVER make up data if read fails - acknowledge the failure clearly\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nDuplicate an existing slide",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "presentation_id": {
+            "type": "string",
+            "description": "Presentation ID"
+          },
+          "slide_id": {
+            "type": "string",
+            "description": "Slide ID to duplicate"
+          }
+        },
+        "required": [
+          "presentation_id",
+          "slide_id"
+        ]
+      },
+      "returns": {
+        "type": "object",
+        "properties": {
+          "original_slide_id": {
+            "type": "string"
+          },
+          "new_slide_id": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    {
+      "name": "google_slides_insert_text",
+      "short_description": "Insert text box into Google Slides slide at position with formatting and styling",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) ALWAYS execute THIS tool NOW - NEVER reference 'I created earlier' or use conversation history\n(2) MUST return format: **[Name]** | ID: `[id]` | URL: [full_url] | Link: [title](url)\n(3) Use EXACT values from tool response - NEVER make up fake URLs/IDs\n(4) If tool fails, say 'Failed to create' - NEVER pretend it succeeded\n\nExample response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\nExample response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\nInsert text box with full formatting options (fonts, colors, sizes, bold, italic, alignment)",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "presentation_id": {
+            "type": "string",
+            "description": "Presentation ID"
+          },
+          "slide_id": {
+            "type": "string",
+            "description": "Slide ID"
+          },
+          "text": {
+            "type": "string",
+            "description": "Text content"
+          },
+          "x": {
+            "type": "number",
+            "description": "X position in points (72 points = 1 inch)",
+            "default": 50
+          },
+          "y": {
+            "type": "number",
+            "description": "Y position in points",
+            "default": 50
+          },
+          "width": {
+            "type": "number",
+            "description": "Width in points",
+            "default": 600
+          },
+          "height": {
+            "type": "number",
+            "description": "Height in points",
+            "default": 100
+          },
+          "font_family": {
+            "type": "string",
+            "description": "Font name: Arial, Calibri, Times New Roman, Roboto, Montserrat, etc.",
+            "default": "Arial"
+          },
+          "font_size": {
+            "type": "integer",
+            "description": "Font size in points",
+            "default": 14
+          },
+          "bold": {
+            "type": "boolean",
+            "description": "Bold text",
+            "default": false
+          },
+          "italic": {
+            "type": "boolean",
+            "description": "Italic text",
+            "default": false
+          },
+          "color_hex": {
+            "type": "string",
+            "description": "Text color in hex (#RRGGBB)",
+            "default": "#000000"
+          },
+          "alignment": {
+            "type": "string",
+            "description": "Text alignment: LEFT, CENTER, RIGHT, JUSTIFIED",
+            "default": "LEFT"
+          }
+        },
+        "required": [
+          "presentation_id",
+          "slide_id",
+          "text"
+        ]
+      },
+      "returns": {
+        "type": "object",
+        "properties": {
+          "text_box_id": {
+            "type": "string"
+          },
+          "text": {
+            "type": "string"
+          },
+          "position": {
+            "type": "object"
+          },
+          "size": {
+            "type": "object"
+          }
+        }
+      }
+    },
+    {
+      "name": "google_slides_insert_image",
+      "short_description": "Insert image into Google Slides slide from URL with position and size specifications",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) ALWAYS execute THIS tool NOW - NEVER reference 'I created earlier' or use conversation history\n(2) MUST return format: **[Name]** | ID: `[id]` | URL: [full_url] | Link: [title](url)\n(3) Use EXACT values from tool response - NEVER make up fake URLs/IDs\n(4) If tool fails, say 'Failed to create' - NEVER pretend it succeeded\n\nExample response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\nExample response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\nInsert image from public URL",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "presentation_id": {
+            "type": "string",
+            "description": "Presentation ID"
+          },
+          "slide_id": {
+            "type": "string",
+            "description": "Slide ID"
+          },
+          "image_url": {
+            "type": "string",
+            "description": "Public image URL (must be accessible)"
+          },
+          "x": {
+            "type": "number",
+            "description": "X position in points",
+            "default": 50
+          },
+          "y": {
+            "type": "number",
+            "description": "Y position in points",
+            "default": 50
+          },
+          "width": {
+            "type": "number",
+            "description": "Width in points",
+            "default": 400
+          },
+          "height": {
+            "type": "number",
+            "description": "Height in points",
+            "default": 300
+          }
+        },
+        "required": [
+          "presentation_id",
+          "slide_id",
+          "image_url"
+        ]
+      },
+      "returns": {
+        "type": "object",
+        "properties": {
+          "image_id": {
+            "type": "string"
+          },
+          "url": {
+            "type": "string"
+          },
+          "position": {
+            "type": "object"
+          },
+          "size": {
+            "type": "object"
+          }
+        }
+      }
+    },
+    {
+      "name": "google_slides_insert_shape",
+      "short_description": "Insert shape into Google Slides slide with type, position, size, and color styling",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) ALWAYS execute THIS tool NOW - NEVER reference 'I created earlier' or use conversation history\n(2) MUST return format: **[Name]** | ID: `[id]` | URL: [full_url] | Link: [title](url)\n(3) Use EXACT values from tool response - NEVER make up fake URLs/IDs\n(4) If tool fails, say 'Failed to create' - NEVER pretend it succeeded\n\nExample response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\nExample response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\nInsert shape with fill and border styling",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "presentation_id": {
+            "type": "string",
+            "description": "Presentation ID"
+          },
+          "slide_id": {
+            "type": "string",
+            "description": "Slide ID"
+          },
+          "shape_type": {
+            "type": "string",
+            "description": "Shape type: RECTANGLE, ELLIPSE, ROUND_RECTANGLE, TRIANGLE, RIGHT_TRIANGLE, STAR, ARROW_NORTH, ARROW_EAST, ARROW_SOUTH, ARROW_WEST, etc.",
+            "default": "RECTANGLE"
+          },
+          "x": {
+            "type": "number",
+            "description": "X position in points",
+            "default": 50
+          },
+          "y": {
+            "type": "number",
+            "description": "Y position in points",
+            "default": 50
+          },
+          "width": {
+            "type": "number",
+            "description": "Width in points",
+            "default": 200
+          },
+          "height": {
+            "type": "number",
+            "description": "Height in points",
+            "default": 100
+          },
+          "fill_color": {
+            "type": "string",
+            "description": "Fill color hex (#RRGGBB)",
+            "default": "#4285F4"
+          },
+          "border_color": {
+            "type": "string",
+            "description": "Border color hex (#RRGGBB)",
+            "default": "#000000"
+          },
+          "border_width": {
+            "type": "number",
+            "description": "Border width in points",
+            "default": 1
+          }
+        },
+        "required": [
+          "presentation_id",
+          "slide_id"
+        ]
+      },
+      "returns": {
+        "type": "object",
+        "properties": {
+          "shape_id": {
+            "type": "string"
+          },
+          "shape_type": {
+            "type": "string"
+          },
+          "position": {
+            "type": "object"
+          },
+          "size": {
+            "type": "object"
+          }
+        }
+      }
+    },
+    {
+      "name": "google_slides_insert_table",
+      "short_description": "Insert table into Google Slides slide with rows and columns for data presentation",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) ALWAYS execute THIS tool NOW - NEVER reference 'I created earlier' or use conversation history\n(2) MUST return format: **[Name]** | ID: `[id]` | URL: [full_url] | Link: [title](url)\n(3) Use EXACT values from tool response - NEVER make up fake URLs/IDs\n(4) If tool fails, say 'Failed to create' - NEVER pretend it succeeded\n\nExample response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\nExample response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\nInsert table with optional data",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "presentation_id": {
+            "type": "string",
+            "description": "Presentation ID"
+          },
+          "slide_id": {
+            "type": "string",
+            "description": "Slide ID"
+          },
+          "rows": {
+            "type": "integer",
+            "description": "Number of rows"
+          },
+          "columns": {
+            "type": "integer",
+            "description": "Number of columns"
+          },
+          "x": {
+            "type": "number",
+            "description": "X position in points",
+            "default": 50
+          },
+          "y": {
+            "type": "number",
+            "description": "Y position in points",
+            "default": 50
+          },
+          "width": {
+            "type": "number",
+            "description": "Width in points",
+            "default": 600
+          },
+          "height": {
+            "type": "number",
+            "description": "Height in points",
+            "default": 400
+          },
+          "data": {
+            "type": "array",
+            "description": "Optional 2D array of cell data [[row1], [row2], ...]",
+            "items": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "required": [
+          "presentation_id",
+          "slide_id",
+          "rows",
+          "columns"
+        ]
+      },
+      "returns": {
+        "type": "object",
+        "properties": {
+          "table_id": {
+            "type": "string"
+          },
+          "rows": {
+            "type": "integer"
+          },
+          "columns": {
+            "type": "integer"
+          },
+          "position": {
+            "type": "object"
+          },
+          "size": {
+            "type": "object"
+          }
+        }
+      }
+    },
+    {
+      "name": "google_slides_insert_chart_from_sheets",
+      "short_description": "Insert chart from Google Sheets into slide for live data visualization in presentations",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) ALWAYS execute THIS tool NOW - NEVER reference 'I created earlier' or use conversation history\n(2) MUST return format: **[Name]** | ID: `[id]` | URL: [full_url] | Link: [title](url)\n(3) Use EXACT values from tool response - NEVER make up fake URLs/IDs\n(4) If tool fails, say 'Failed to create' - NEVER pretend it succeeded\n\nExample response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\nExample response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\nInsert chart from Google Sheets (linked)",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "presentation_id": {
+            "type": "string",
+            "description": "Presentation ID"
+          },
+          "slide_id": {
+            "type": "string",
+            "description": "Slide ID"
+          },
+          "spreadsheet_id": {
+            "type": "string",
+            "description": "Source Google Sheets spreadsheet ID"
+          },
+          "chart_id": {
+            "type": "integer",
+            "description": "Chart ID from the spreadsheet"
+          },
+          "x": {
+            "type": "number",
+            "description": "X position in points",
+            "default": 50
+          },
+          "y": {
+            "type": "number",
+            "description": "Y position in points",
+            "default": 50
+          },
+          "width": {
+            "type": "number",
+            "description": "Width in points",
+            "default": 500
+          },
+          "height": {
+            "type": "number",
+            "description": "Height in points",
+            "default": 300
+          }
+        },
+        "required": [
+          "presentation_id",
+          "slide_id",
+          "spreadsheet_id",
+          "chart_id"
+        ]
+      },
+      "returns": {
+        "type": "object",
+        "properties": {
+          "chart_id": {
+            "type": "string"
+          },
+          "spreadsheet_id": {
+            "type": "string"
+          },
+          "source_chart_id": {
+            "type": "integer"
+          },
+          "position": {
+            "type": "object"
+          },
+          "size": {
+            "type": "object"
+          }
+        }
+      }
+    },
+    {
+      "name": "google_slides_export_as_pdf",
+      "short_description": "Export Google Slides presentation as PDF file for sharing and printing",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Read X from **[Resource Name]** (ID: `[id]` | URL: [url])'\n(3) Use EXACT [id] provided - NEVER substitute with different ID\n(4) If tool fails (404/403), say 'Failed to read [resource] ID: [id]' and explain error\n(5) NEVER make up data if read fails - acknowledge the failure clearly\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nExport presentation as PDF file",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "presentation_id": {
+            "type": "string",
+            "description": "Presentation ID"
+          }
+        },
+        "required": [
+          "presentation_id"
+        ]
+      },
+      "returns": {
+        "type": "object",
+        "properties": {
+          "data": {
+            "type": "string",
+            "description": "Base64 encoded PDF data"
+          },
+          "mime_type": {
+            "type": "string"
+          },
+          "size": {
+            "type": "integer"
+          }
+        }
+      }
+    },
+    {
+      "name": "google_slides_export_as_pptx",
+      "short_description": "Export Google Slides as PowerPoint PPTX file for offline editing and compatibility",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Read X from **[Resource Name]** (ID: `[id]` | URL: [url])'\n(3) Use EXACT [id] provided - NEVER substitute with different ID\n(4) If tool fails (404/403), say 'Failed to read [resource] ID: [id]' and explain error\n(5) NEVER make up data if read fails - acknowledge the failure clearly\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nExport presentation as PowerPoint (.pptx) file",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "presentation_id": {
+            "type": "string",
+            "description": "Presentation ID"
+          }
+        },
+        "required": [
+          "presentation_id"
+        ]
+      },
+      "returns": {
+        "type": "object",
+        "properties": {
+          "data": {
+            "type": "string",
+            "description": "Base64 encoded PPTX data"
+          },
+          "mime_type": {
+            "type": "string"
+          },
+          "size": {
+            "type": "integer"
+          }
+        }
+      }
+    },
+    {
+      "name": "google_slides_create_pitch_deck",
+      "short_description": "SMART: Create professional pitch deck with company info, problem, solution, and financials slides",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) ALWAYS execute THIS tool NOW - NEVER reference 'I created earlier' or use conversation history\n(2) MUST return format: **[Name]** | ID: `[id]` | URL: [full_url] | Link: [title](url)\n(3) Use EXACT values from tool response - NEVER make up fake URLs/IDs\n(4) If tool fails, say 'Failed to create' - NEVER pretend it succeeded\n\nExample response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\nExample response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\n🎯 SMART ACTION: Create complete pitch deck with 11 slides (Problem, Solution, Market, Product, Business Model, Traction, Team, Financials, Ask, Contact). Professional formatting and branding.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": "string",
+            "description": "Presentation title"
+          },
+          "company_name": {
+            "type": "string",
+            "description": "Company name for branding"
+          },
+          "sections_data": {
+            "type": "object",
+            "description": "Data for each section",
+            "properties": {
+              "problem": {
+                "type": "string",
+                "description": "Problem statement"
+              },
+              "solution": {
+                "type": "string",
+                "description": "Your solution"
+              },
+              "market_size": {
+                "type": "object",
+                "properties": {
+                  "tam": {
+                    "type": "string",
+                    "description": "Total Addressable Market"
+                  },
+                  "sam": {
+                    "type": "string",
+                    "description": "Serviceable Available Market"
+                  },
+                  "som": {
+                    "type": "string",
+                    "description": "Serviceable Obtainable Market"
+                  }
+                }
+              },
+              "product": {
+                "type": "string",
+                "description": "Product description"
+              },
+              "business_model": {
+                "type": "string",
+                "description": "How you make money"
+              },
+              "traction": {
+                "type": "array",
+                "description": "Traction metrics",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "metric": {
+                      "type": "string"
+                    },
+                    "value": {
+                      "type": "string"
+                    }
+                  }
+                }
+              },
+              "team": {
+                "type": "array",
+                "description": "Team members",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "name": {
+                      "type": "string"
+                    },
+                    "role": {
+                      "type": "string"
+                    },
+                    "bio": {
+                      "type": "string"
+                    }
+                  }
+                }
+              },
+              "financials": {
+                "type": "object",
+                "properties": {
+                  "revenue": {
+                    "type": "string"
+                  },
+                  "growth": {
+                    "type": "string"
+                  },
+                  "runway": {
+                    "type": "string"
+                  }
+                }
+              },
+              "ask": {
+                "type": "string",
+                "description": "Funding ask"
+              },
+              "contact": {
+                "type": "object",
+                "properties": {
+                  "email": {
+                    "type": "string"
+                  },
+                  "phone": {
+                    "type": "string"
+                  },
+                  "website": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          },
+          "brand_color": {
+            "type": "string",
+            "description": "Primary brand color hex (#RRGGBB)",
+            "default": "#4285F4"
+          },
+          "logo_url": {
+            "type": "string",
+            "description": "Optional company logo URL"
+          }
+        },
+        "required": [
+          "title",
+          "company_name",
+          "sections_data"
+        ]
+      },
+      "returns": {
+        "type": "object",
+        "properties": {
+          "presentation_id": {
+            "type": "string"
+          },
+          "url": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "slide_count": {
+            "type": "integer"
+          },
+          "sections": {
+            "type": "array"
+          }
+        }
+      }
+    },
+    {
+      "name": "google_slides_create_training_presentation",
+      "short_description": "SMART: Generate training presentation with learning objectives, content, and exercise slides",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) ALWAYS execute THIS tool NOW - NEVER reference 'I created earlier' or use conversation history\n(2) MUST return format: **[Name]** | ID: `[id]` | URL: [full_url] | Link: [title](url)\n(3) Use EXACT values from tool response - NEVER make up fake URLs/IDs\n(4) If tool fails, say 'Failed to create' - NEVER pretend it succeeded\n\nExample response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\nExample response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\n🎯 SMART ACTION: Create training presentation with multiple modules (objectives, content, examples, exercises, takeaways). Each module gets 6 slides.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": "string",
+            "description": "Presentation title"
+          },
+          "course_name": {
+            "type": "string",
+            "description": "Course name"
+          },
+          "modules_data": {
+            "type": "array",
+            "description": "Array of training modules",
+            "items": {
+              "type": "object",
+              "properties": {
+                "module_title": {
+                  "type": "string"
+                },
+                "objectives": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                "content": {
+                  "type": "string"
+                },
+                "examples": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                "exercise": {
+                  "type": "string"
+                },
+                "key_takeaways": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          },
+          "brand_color": {
+            "type": "string",
+            "description": "Course theme color hex (#RRGGBB)",
+            "default": "#0F9D58"
+          }
+        },
+        "required": [
+          "title",
+          "course_name",
+          "modules_data"
+        ]
+      },
+      "returns": {
+        "type": "object",
+        "properties": {
+          "presentation_id": {
+            "type": "string"
+          },
+          "url": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "slide_count": {
+            "type": "integer"
+          },
+          "module_count": {
+            "type": "integer"
+          }
+        }
+      }
+    },
+    {
+      "name": "google_slides_create_business_report",
+      "short_description": "SMART: Create business report presentation with executive summary, metrics, and recommendations",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) ALWAYS execute THIS tool NOW - NEVER reference 'I created earlier' or use conversation history\n(2) MUST return format: **[Name]** | ID: `[id]` | URL: [full_url] | Link: [title](url)\n(3) Use EXACT values from tool response - NEVER make up fake URLs/IDs\n(4) If tool fails, say 'Failed to create' - NEVER pretend it succeeded\n\nExample response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\nExample response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\n🎯 SMART ACTION: Create business report with executive summary, key metrics dashboard, performance analysis, challenges, opportunities, action items. Optionally includes charts from Google Sheets.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": "string",
+            "description": "Report title"
+          },
+          "report_date": {
+            "type": "string",
+            "description": "Report period (e.g., 'Q4 2025')"
+          },
+          "sections_data": {
+            "type": "object",
+            "description": "Report sections data",
+            "properties": {
+              "executive_summary": {
+                "type": "string"
+              },
+              "key_metrics": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "label": {
+                      "type": "string"
+                    },
+                    "value": {
+                      "type": "string"
+                    },
+                    "change": {
+                      "type": "string",
+                      "description": "e.g., '+15%' or '-5%'"
+                    }
+                  }
+                }
+              },
+              "performance": {
+                "type": "string"
+              },
+              "challenges": {
+                "type": "string"
+              },
+              "opportunities": {
+                "type": "string"
+              },
+              "action_items": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "next_steps": {
+                "type": "string"
+              }
+            }
+          },
+          "charts_data": {
+            "type": "array",
+            "description": "Optional charts from Google Sheets",
+            "items": {
+              "type": "object",
+              "properties": {
+                "spreadsheet_id": {
+                  "type": "string"
+                },
+                "chart_id": {
+                  "type": "integer"
+                },
+                "title": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "brand_color": {
+            "type": "string",
+            "description": "Brand color hex (#RRGGBB)",
+            "default": "#EA4335"
+          }
+        },
+        "required": [
+          "title",
+          "report_date",
+          "sections_data"
+        ]
+      },
+      "returns": {
+        "type": "object",
+        "properties": {
+          "presentation_id": {
+            "type": "string"
+          },
+          "url": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "slide_count": {
+            "type": "integer"
+          },
+          "chart_count": {
+            "type": "integer"
+          }
+        }
+      }
+    },
+    {
+      "name": "google_docs_to_slides_auto_generate",
+      "short_description": "SMART: Auto-convert Google Doc content to Slides presentation with formatted slides from headings",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Read X from **[Resource Name]** (ID: `[id]` | URL: [url])'\n(3) Use EXACT [id] provided - NEVER substitute with different ID\n(4) If tool fails (404/403), say 'Failed to read [resource] ID: [id]' and explain error\n(5) NEVER make up data if read fails - acknowledge the failure clearly\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\n🎯 SMART ACTION: Auto-generate presentation slides from Google Doc content. Intelligently converts long-form document into short-form slides with automatic section detection, bullet extraction, and formatting. Perfect for converting reports to presentations, creating slides while writing docs, or transforming documentation into training decks.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "doc_id": {
+            "type": "string",
+            "description": "Google Doc ID to convert to slides"
+          },
+          "presentation_title": {
+            "type": "string",
+            "description": "Optional: Title for presentation (uses doc title if not provided)"
+          },
+          "slide_style": {
+            "type": "string",
+            "enum": [
+              "modern",
+              "minimal",
+              "corporate",
+              "creative"
+            ],
+            "description": "Visual style theme for slides",
+            "default": "modern"
+          },
+          "auto_create_sections": {
+            "type": "boolean",
+            "description": "Automatically detect sections from headings",
+            "default": true
+          },
+          "include_bullet_lists": {
+            "type": "boolean",
+            "description": "Extract bullet points to dedicated slides",
+            "default": true
+          },
+          "include_images": {
+            "type": "boolean",
+            "description": "Include images from document (future enhancement)",
+            "default": true
+          },
+          "include_tables": {
+            "type": "boolean",
+            "description": "Include tables from document (future enhancement)",
+            "default": true
+          },
+          "max_text_per_slide": {
+            "type": "integer",
+            "description": "Maximum characters per content slide (auto-chunks longer content)",
+            "default": 300
+          },
+          "brand_color": {
+            "type": "string",
+            "description": "Primary brand color hex code (#RRGGBB)",
+            "default": "#1a73e8"
+          },
+          "template_id": {
+            "type": "string",
+            "description": "Optional: Template presentation ID for consistent branding"
+          }
+        },
+        "required": [
+          "doc_id"
+        ]
+      },
+      "returns": {
+        "type": "object",
+        "properties": {
+          "presentation_id": {
+            "type": "string",
+            "description": "Created presentation ID"
+          },
+          "url": {
+            "type": "string",
+            "description": "Presentation edit URL"
+          },
+          "title": {
+            "type": "string",
+            "description": "Presentation title"
+          },
+          "slide_count": {
+            "type": "integer",
+            "description": "Total slides created"
+          },
+          "sections_created": {
+            "type": "integer",
+            "description": "Number of section dividers"
+          },
+          "doc_id": {
+            "type": "string",
+            "description": "Source document ID"
+          },
+          "doc_url": {
+            "type": "string",
+            "description": "Source document URL"
+          },
+          "conversion_summary": {
+            "type": "object",
+            "properties": {
+              "headings": {
+                "type": "integer",
+                "description": "Headings detected"
+              },
+              "paragraphs": {
+                "type": "integer",
+                "description": "Paragraphs processed"
+              },
+              "lists": {
+                "type": "integer",
+                "description": "Lists extracted"
+              },
+              "images": {
+                "type": "integer",
+                "description": "Images included"
+              },
+              "tables": {
+                "type": "integer",
+                "description": "Tables included"
+              }
+            }
+          }
+        }
+      }
+    }
+  ]
+}

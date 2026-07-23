@@ -1,0 +1,323 @@
+{
+  "platform": "synergy",
+  "tools": [
+    {
+      "name": "synergy_update_visibility",
+      "short_description": "Set who can access a Synergy session (private / shared / team).",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n- ALWAYS call synergy_get_session first to confirm you have the correct session_id.\n- Only the session OWNER can change visibility. If the user is not the owner, explain this and stop.\n- Changing to 'private' removes access for all previously invited members — warn the user if the session has members.\n- After changing to 'shared', remind the user to add members via synergy_invite_member.\n- 'team' means everyone in the organisation can see the session — only use when the user explicitly requests this.\n\nSets the visibility of a Synergy session. Three levels:\n• 'private'  — only you (the owner) can see it\n• 'shared'   — you + anyone you explicitly invite via synergy_invite_member\n• 'team'     — all members of your organisation",
+      "platform": "synergy",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "session_id": {
+            "type": "string",
+            "description": "The session ID to update visibility for."
+          },
+          "visibility": {
+            "type": "string",
+            "enum": ["private", "shared", "team"],
+            "description": "New visibility level: 'private' (only owner), 'shared' (owner + invited), or 'team' (whole org)."
+          }
+        },
+        "required": ["session_id", "visibility"]
+      }
+    },
+    {
+      "name": "synergy_invite_member",
+      "short_description": "Invite a user by email to access a shared Synergy session.",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n- BEFORE calling this, confirm the session exists with synergy_get_session.\n- The session must have visibility='shared'. If it's 'private', call synergy_update_visibility(visibility='shared') first, then invite.\n- The email must belong to a registered user on the platform. If the invite fails, ask the user to check the email address.\n- Only the session owner can invite members.\n\nInvites a user to a Synergy session by their email address. The user gains read and comment access to the session. Use synergy_list_members to verify the invite was successful.",
+      "platform": "synergy",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "session_id": {
+            "type": "string",
+            "description": "Session ID to invite the user into."
+          },
+          "email": {
+            "type": "string",
+            "description": "Email address of the user to invite. Must be a registered account on the platform."
+          }
+        },
+        "required": ["session_id", "email"]
+      }
+    },
+    {
+      "name": "synergy_list_members",
+      "short_description": "List all users who have access to a shared Synergy session.",
+      "description": "Returns the owner and all invited members for a Synergy session, including their usernames, emails, and roles.\n\nUse this BEFORE inviting or removing members to see the current access list and avoid duplicates.\n\n🚨 CRITICAL EXECUTION RULES:\n- Call synergy_get_session first if you are unsure whether the session is 'shared'.\n- Results include a 'role' field: 'owner' for the creator, 'member' for invited users.\n- If the session is 'private', this returns only the owner.\n- If the session is 'team', all org members can access but only the owner appears in the explicit list.",
+      "platform": "synergy",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "session_id": {
+            "type": "string",
+            "description": "Session ID whose member list to retrieve."
+          }
+        },
+        "required": ["session_id"]
+      }
+    },
+    {
+      "name": "synergy_remove_member",
+      "short_description": "Remove a user's access from a shared Synergy session.",
+      "description": "Removes an invited member from a Synergy session's access list.\n\n🚨 CRITICAL EXECUTION RULES:\n- ALWAYS call synergy_list_members first to get the correct numeric member_user_id.\n- Never guess the member_user_id — always look it up.\n- Only the session owner can remove members.\n- Removing a member does NOT delete their existing contributions to the session — it only removes their ability to view or edit it going forward.\n- You cannot remove the owner (yourself) this way — use synergy_update_visibility to set 'private' instead.",
+      "platform": "synergy",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "session_id": {
+            "type": "string",
+            "description": "Session ID to remove the member from."
+          },
+          "member_user_id": {
+            "type": "integer",
+            "description": "Numeric user ID to remove. Get this from synergy_list_members — never guess it."
+          }
+        },
+        "required": ["session_id", "member_user_id"]
+      }
+    },
+    {
+      "name": "synergy_list_internal_docs",
+      "short_description": "List all internal documents attached to a Synergy session.",
+      "description": "Returns a list of all internal documents (richtext notes, specs, briefs, reports) attached to a Synergy session.\n\nEach document entry includes: doc_id, title, doc_type, version, created_at, updated_at.\n\nUse this BEFORE calling synergy_get_internal_doc when you don't already have the doc_id.\n\n🚨 CRITICAL EXECUTION RULES:\n- Call this to discover doc_ids before reading or editing a document.\n- If the user asks to 'read my notes' or 'check the document in this session', call this first to list available docs.\n- If there are zero docs, inform the user and offer to create one with synergy_create_internal_doc.",
+      "platform": "synergy",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "session_id": {
+            "type": "string",
+            "description": "Session ID whose internal documents to list."
+          }
+        },
+        "required": ["session_id"]
+      }
+    },
+    {
+      "name": "synergy_add_comment",
+      "short_description": "Add a comment to a milestone in a Synergy session.",
+      "description": "Adds a threaded discussion comment to a specific milestone.\n\nComments are best used for:\n• Status updates ('Completed the first draft')\n• Blockers ('Waiting on client approval before proceeding')\n• Decisions ('Team agreed to push the deadline by one week')\n• Progress notes that aren't discrete tasks\n\nFor adding checklist items or action tasks, use synergy_add_task_to_milestone instead.\nFor session-level notes, use synergy_create_internal_doc instead.\n\n🚨 CRITICAL EXECUTION RULES:\n- ALWAYS call synergy_get_session first to get the correct milestone_id — never guess it.\n- Milestone IDs typically have the format ms_<timestamp> (e.g. ms_1714857600).\n- Keep comments concise and factual. If the user provides a long block of text, summarise it first.",
+      "platform": "synergy",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "session_id": {
+            "type": "string",
+            "description": "Session ID that contains the milestone."
+          },
+          "milestone_id": {
+            "type": "string",
+            "description": "Milestone ID to add the comment to (format: ms_<timestamp>). Get from synergy_get_session."
+          },
+          "comment": {
+            "type": "string",
+            "description": "Comment text. Plain text or markdown supported."
+          }
+        },
+        "required": ["session_id", "milestone_id", "comment"]
+      }
+    },
+    {
+      "name": "synergy_attach_platform_file",
+      "short_description": "Attach a OneDrive / SharePoint / Google Drive file to a Synergy session in one step.",
+      "description": "One-step bridge that generates a shareable link from OneDrive, SharePoint, or Google Drive and attaches it to a Synergy session or milestone — no manual link generation needed.\n\nThis tool makes two calls internally:\n1. Generates a shareable link from the specified platform\n2. Attaches that link to the Synergy session (or milestone)\n\nSupported platforms:\n• 'onedrive'     — Microsoft OneDrive files and folders\n• 'sharepoint'   — SharePoint document libraries\n• 'google_drive' — Google Drive files, Docs, Sheets, Slides\n\n🚨 CRITICAL EXECUTION RULES:\n- The platform credentials (OneDrive/SharePoint or Google Drive) must be configured for the org in the credentials vault first. If the platform tool returns an auth error, tell the user to add credentials in Settings → Organisation → Connections.\n- The file_id must be the platform's native ID (not a URL). For OneDrive: the item ID from microsoft_onedrive_list_files. For Google Drive: the file ID from google_drive_list_files.\n- For 'edit' link_type, warn the user that anyone with the link can edit the file.\n- If target='milestone', milestone_id is required — call synergy_get_session first to find it.",
+      "platform": "synergy",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "session_id": {
+            "type": "string",
+            "description": "Target Synergy session ID."
+          },
+          "platform": {
+            "type": "string",
+            "enum": ["onedrive", "sharepoint", "google_drive"],
+            "description": "Platform the file lives on."
+          },
+          "file_id": {
+            "type": "string",
+            "description": "Native file/item ID from the platform. Use the relevant list tool to find this if not known."
+          },
+          "display_name": {
+            "type": "string",
+            "description": "Human-readable label shown in Synergy (e.g. 'Q4 Budget.xlsx')."
+          },
+          "link_type": {
+            "type": "string",
+            "enum": ["view", "edit"],
+            "default": "view",
+            "description": "Type of share link to generate. Default is 'view' (read-only)."
+          },
+          "target": {
+            "type": "string",
+            "enum": ["session", "milestone"],
+            "default": "session",
+            "description": "Where to attach: 'session' (default) adds to session docs, 'milestone' adds to a specific milestone."
+          },
+          "milestone_id": {
+            "type": "string",
+            "description": "Required when target='milestone'. Milestone ID (format: ms_<timestamp>)."
+          }
+        },
+        "required": ["session_id", "platform", "file_id", "display_name"]
+      }
+    },
+    {
+      "name": "synergy_attach_platform_file_to_doc",
+      "short_description": "Append a OneDrive / SharePoint / Google Drive file link into a Synergy internal document.",
+      "description": "Generates a shareable link from OneDrive, SharePoint, or Google Drive and appends a markdown hyperlink to an existing Synergy internal document.\n\nUseful for building reference docs that consolidate links to external files — e.g. a brief that pulls together proposal, scope doc, and budget spreadsheet.\n\n🚨 CRITICAL EXECUTION RULES:\n- Call synergy_list_internal_docs to find the doc_id first — never guess it.\n- The link is appended to the END of the document content. If the user wants it inserted elsewhere, use synergy_get_internal_doc + synergy_update_internal_doc with manual content editing.\n- The platform credentials must be configured in the org credentials vault.",
+      "platform": "synergy",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "doc_id": {
+            "type": "string",
+            "description": "Internal doc ID to append the link to. Get from synergy_list_internal_docs."
+          },
+          "platform": {
+            "type": "string",
+            "enum": ["onedrive", "sharepoint", "google_drive"],
+            "description": "Platform the file is on."
+          },
+          "file_id": {
+            "type": "string",
+            "description": "Native file/item ID from the platform."
+          },
+          "display_name": {
+            "type": "string",
+            "description": "Link text shown in the document (e.g. 'Budget Spreadsheet')."
+          },
+          "link_type": {
+            "type": "string",
+            "enum": ["view", "edit"],
+            "default": "view",
+            "description": "Type of share link. Default is 'view'."
+          }
+        },
+        "required": ["doc_id", "platform", "file_id", "display_name"]
+      }
+    },
+    {
+      "name": "synergy_sync_to_google",
+      "short_description": "Sync a Synergy session to Google Tasks and/or Google Calendar.",
+      "description": "Syncs a Synergy session to Google Workspace services:\n• Google Tasks    — creates tasks from the session's milestones/tasks\n• Google Calendar — creates a calendar event for the session's due date\n\nThe org must have Google credentials configured in Settings → Organisation → Connections.\n\n🚨 CRITICAL EXECUTION RULES:\n- ALWAYS call synergy_get_session first to confirm the session exists and has a due date (required for Google Calendar sync).\n- At least one of sync_tasks or sync_calendar must be true.\n- Existing Google Tasks or Calendar events from a previous sync are NOT automatically removed — advise the user to clean up manually if re-syncing.\n- If the user says 'add to my Google calendar' or 'put this in Tasks', use this tool.",
+      "platform": "synergy",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "session_id": {
+            "type": "string",
+            "description": "Session ID to sync to Google."
+          },
+          "sync_tasks": {
+            "type": "boolean",
+            "default": false,
+            "description": "Create Google Tasks from the session's milestones and tasks."
+          },
+          "sync_calendar": {
+            "type": "boolean",
+            "default": false,
+            "description": "Create a Google Calendar event for the session's due date."
+          }
+        },
+        "required": ["session_id"]
+      }
+    },
+    {
+      "name": "synergy_sync_to_microsoft",
+      "short_description": "Sync a Synergy session to Microsoft Planner, Outlook Calendar, and/or To Do.",
+      "description": "Syncs a Synergy session to Microsoft 365 services — the Microsoft counterpart of synergy_sync_to_google.\n\nSupported targets:\n• Microsoft Planner — creates tasks from each milestone/task in the session\n• Outlook Calendar  — creates a calendar event for the session's due date\n• Microsoft To Do   — creates to-do items from the session's next_steps\n\nThe org must have Microsoft 365 credentials configured in Settings → Organisation → Connections.\n\n🚨 CRITICAL EXECUTION RULES:\n- ALWAYS call synergy_get_session first to confirm the session exists and has a due date (required for Outlook Calendar sync).\n- At least one of sync_planner, sync_calendar, or sync_todo must be true — do not call with all false.\n- If the user says 'sync to Teams' they likely want sync_planner=True (tasks show in Teams Planner app).\n- Existing Planner tasks, calendar events, or To Do items from a previous sync are NOT automatically deleted — advise the user to clean up if re-syncing.",
+      "platform": "synergy",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "session_id": {
+            "type": "string",
+            "description": "Session ID to sync to Microsoft 365."
+          },
+          "sync_planner": {
+            "type": "boolean",
+            "default": false,
+            "description": "Create Microsoft Planner tasks from milestones and tasks."
+          },
+          "sync_calendar": {
+            "type": "boolean",
+            "default": false,
+            "description": "Create an Outlook Calendar event for the session due date."
+          },
+          "sync_todo": {
+            "type": "boolean",
+            "default": false,
+            "description": "Create Microsoft To Do items from the session's next_steps."
+          }
+        },
+        "required": ["session_id"]
+      }
+    },
+    {
+      "name": "synergy_import_from_sharepoint",
+      "short_description": "Import a SharePoint list or document into a Synergy internal doc.",
+      "description": "Imports content from SharePoint into a Synergy session:\n• SharePoint Lists → formatted as a markdown table in a new internal document\n• SharePoint document files → share link attached to the session\n\nUseful for pulling project data, task lists, or reference documents from SharePoint directly into Synergy without leaving the platform.\n\n🚨 CRITICAL EXECUTION RULES:\n- The org must have SharePoint credentials configured in Settings → Organisation → Connections.\n- For SharePoint Lists: provide the site_id and list_id_or_file_id must be the List ID (get via Microsoft SharePoint tools).\n- For document files: provide the file item ID from the SharePoint document library.\n- Import caps at 50 rows for Lists — if the user needs more, suggest they export to Excel and attach that instead.\n- If import_as='link', the tool attaches a share link rather than importing content.",
+      "platform": "synergy",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "session_id": {
+            "type": "string",
+            "description": "Target Synergy session ID."
+          },
+          "site_id": {
+            "type": "string",
+            "description": "SharePoint site ID or site URL."
+          },
+          "list_id_or_file_id": {
+            "type": "string",
+            "description": "SharePoint List ID (for list import) or file item ID (for document attach)."
+          },
+          "import_as": {
+            "type": "string",
+            "enum": ["doc", "link"],
+            "default": "doc",
+            "description": "'doc' creates a Synergy internal document with the content. 'link' attaches a share link to the session."
+          },
+          "doc_title": {
+            "type": "string",
+            "description": "Title for the new internal doc or link. Auto-generated if omitted."
+          }
+        },
+        "required": ["session_id", "site_id", "list_id_or_file_id"]
+      }
+    },
+    {
+      "name": "synergy_import_from_drive",
+      "short_description": "Import a Google Drive document or file into a Synergy internal doc.",
+      "description": "Imports content from Google Drive into a Synergy session:\n• Google Docs / Sheets / Slides → content exported as text and stored in a new Synergy internal document\n• Other file types → share link attached to the session\n\nUseful for bringing Google Workspace documents, spreadsheets, or presentations into Synergy for AI processing and collaboration.\n\n🚨 CRITICAL EXECUTION RULES:\n- The org must have Google Drive credentials configured in Settings → Organisation → Connections.\n- For Google Workspace file types (Docs/Sheets/Slides), content is exported as plain text — formatting may be simplified.\n- Content is capped at 50,000 characters on import — very large documents will be truncated.\n- If import_as='link', the tool attaches a viewable share link rather than importing content.\n- For binary files (PDFs, images), import_as='link' is used automatically regardless of the import_as parameter.",
+      "platform": "synergy",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "session_id": {
+            "type": "string",
+            "description": "Target Synergy session ID."
+          },
+          "file_id": {
+            "type": "string",
+            "description": "Google Drive file ID. Get this from google_drive_list_files or from the file URL."
+          },
+          "import_as": {
+            "type": "string",
+            "enum": ["doc", "link"],
+            "default": "doc",
+            "description": "'doc' imports content as a Synergy internal document. 'link' attaches a share link to the session."
+          },
+          "doc_title": {
+            "type": "string",
+            "description": "Title for the new internal doc. Uses the Drive file name if omitted."
+          }
+        },
+        "required": ["session_id", "file_id"]
+      }
+    }
+  ]
+}

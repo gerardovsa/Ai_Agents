@@ -1,4 +1,4 @@
-﻿"""
+"""
 Module Plugin Loader - Auto-discovers and loads tools from UI/external/modules
 
 This loader enables plug-and-play architecture:
@@ -77,19 +77,35 @@ class ModulePluginLoader:
         for module_dir in self.modules_dir.iterdir():
             if not module_dir.is_dir():
                 continue
-            
+
             # Skip hidden folders and node_modules
             if module_dir.name.startswith('.') or module_dir.name == 'node_modules':
                 continue
-            
+
+            # FIX (July 23, 2026): Honour deployment_config.is_module_enabled().
+            # Without this guard, the loader would discover every module with
+            # schema/ + implementations/ folders even on Render, where most
+            # external modules are explicitly disabled (see RENDER_DISABLED_MODULES).
+            # Falling through to always-load would crash the worker at startup
+            # by importing quote-calculator's 5,958-line query_library, cadquery,
+            # and other heavy modules that the user has not opted into.
+            try:
+                from AI_infrastructure.config.deployment_config import is_module_enabled
+                if not is_module_enabled(module_dir.name):
+                    cprint(f"   [Module Plugin] Skipped disabled module: {module_dir.name}", Colors.YELLOW)
+                    continue
+            except ImportError:
+                # deployment_config not available (e.g. unit test) — fall back to default behaviour
+                pass
+
             # Check if module has schema/ and implementations/
             schema_dir = module_dir / "schema"
             impl_dir = module_dir / "implementations"
-            
+
             if schema_dir.exists() and impl_dir.exists():
                 modules_with_tools.append(module_dir.name)
                 cprint(f"[OK] [Module Plugin] Discovered module: {module_dir.name}", Colors.GREEN)
-        
+
         return modules_with_tools
     
     def load_module_schemas(self, module_id: str) -> List[Dict[str, Any]]:

@@ -1,0 +1,136 @@
+{
+    "platform": "python_execution",
+    "description": "Python Code Execution Guide - Complete documentation for sandboxed Python execution with data analysis, visualization, and computation capabilities. ALWAYS call python_exec_get_guide when user needs custom calculations, data analysis, or Python code execution.",
+    "tools": [
+        {
+            "name": "python_exec_get_guide",
+            "short_description": "GET THIS FIRST! Complete guide for Python execution tools (3 tools, sandboxed environment, pandas/numpy/matplotlib)",
+            "description": "CALL THIS FIRST when user needs Python code execution, data analysis, calculations, or custom logic! Returns comprehensive guide for the Python execution system with 3 specialized tools (python_exec, python_exec_with_dataframe, python_exec_analysis). Explains: (1) Security model and sandbox restrictions (RestrictedPython with 30-second timeout), (2) Available libraries (pandas, numpy, matplotlib, seaborn, datetime, math, json, re), (3) Tool selection guide (which tool for which scenario), (4) Code patterns and examples (20+ copy-paste ready snippets), (5) Common use cases (data analysis, visualization, calculation, transformation), (6) Error handling and troubleshooting, (7) Best practices for code generation, (8) Integration patterns with other tools. Use this to understand capabilities, choose the right tool, and write effective Python code.",
+            "platform": "python_execution",
+            "parameters": {
+                "type": "object",
+                "properties": {},
+                "required": []
+            },
+            "returns": {
+                "type": "object",
+                "description": "Complete guide with tool comparison, security model, available libraries, code patterns, 20+ examples, use cases, error handling, best practices, and integration patterns"
+            },
+            "examples": [
+                {
+                    "description": "Get complete Python execution guide (no parameters needed)",
+                    "parameters": {},
+                    "expected_result": "Returns guide object with tool overview, security model, library reference, code patterns, examples, use cases, and best practices"
+                }
+            ],
+            "usage_guide": {
+                "when_to_use": [
+                    "FIRST TIME user asks for custom calculations or data analysis",
+                    "User needs to analyze data with pandas/numpy",
+                    "User wants to create charts or visualizations",
+                    "User requests statistical analysis or computations",
+                    "Need to understand which python_exec tool to use",
+                    "Want to see code examples for common tasks",
+                    "Need to understand security restrictions and capabilities"
+                ],
+                "workflow": [
+                    "Step 1: Call python_exec_get_guide() to understand available tools and capabilities",
+                    "Step 2: Review tool_comparison section to choose the right tool",
+                    "Step 3: Check code_patterns section for relevant examples",
+                    "Step 4: Review security_model to understand what can/cannot be done",
+                    "Step 5: Use python_exec() for general code execution",
+                    "Step 6: Use python_exec_with_dataframe() when passing data directly",
+                    "Step 7: Use python_exec_analysis() when loading data from CSV files",
+                    "Step 8: Follow best_practices for code generation and error handling"
+                ],
+                "best_practices": [
+                    "ALWAYS call this guide FIRST when user needs Python execution",
+                    "Choose the right tool based on data source (memory vs file vs code-only)",
+                    "Use code_patterns as templates for your generated code",
+                    "Always include print statements for user feedback",
+                    "Handle errors gracefully and provide clear messages",
+                    "Keep execution time under 30 seconds (timeout limit)",
+                    "Use pandas for data operations, matplotlib for charts",
+                    "Import libraries at start of code block",
+                    "Test with small data before scaling up",
+                    "Document complex calculations with comments"
+                ],
+                "error_handling": [
+                    "Tool always succeeds and returns guide object",
+                    "Guide explains common errors and how to avoid them",
+                    "Security violations return clear error messages"
+                ],
+                "related_tools": [
+                    "python_exec",
+                    "python_exec_with_dataframe",
+                    "python_exec_analysis"
+                ]
+            },
+            "tool_intelligence": {
+                "category": "code_execution",
+                "typical_workflow_patterns": [
+                    "python_exec_get_guide -> python_exec",
+                    "python_exec_get_guide -> python_exec_with_dataframe",
+                    "python_exec_get_guide -> python_exec_analysis"
+                ],
+                "success_indicators": {
+                    "keywords": [
+                        "success: true",
+                        "guide",
+                        "3 tools",
+                        "pandas",
+                        "matplotlib"
+                    ],
+                    "behavioral": [
+                        "User proceeds to execute Python code",
+                        "User references libraries or patterns from guide"
+                    ]
+                },
+                "failure_indicators": {
+                    "keywords": [],
+                    "behavioral": [
+                        "User asks for Python capabilities again",
+                        "User writes code with blocked imports"
+                    ]
+                },
+                "performance_expectations": {
+                    "typical_duration_ms": 50,
+                    "rate_limit_per_minute": null,
+                    "max_retries": 1
+                }
+            },
+            "memory_context": {
+                "vectorization_fields": [
+                    "python_execution_guide",
+                    "data_analysis",
+                    "code_execution"
+                ],
+                "search_keywords": [
+                    "python execution",
+                    "data analysis",
+                    "pandas",
+                    "numpy",
+                    "matplotlib",
+                    "calculations",
+                    "visualization"
+                ],
+                "related_synergy_platforms": [
+                    "python_execution",
+                    "data_analysis",
+                    "visualization"
+                ],
+                "typical_use_cases": [
+                    "Data analyst needs to analyze CSV data with pandas",
+                    "User wants to create charts and visualizations",
+                    "Developer needs custom calculations or transformations",
+                    "AI agent writing Python code for first time",
+                    "User requests statistical analysis or computations"
+                ],
+                "conversation_memory_hints": {
+                    "what_to_remember": "Available libraries, security restrictions, tool capabilities, code patterns, use cases",
+                    "search_context": "When user asks about Python, data analysis, calculations, charts, pandas, numpy, or custom code execution"
+                }
+            }
+        }
+    ]
+}

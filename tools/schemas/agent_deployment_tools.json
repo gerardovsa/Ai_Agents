@@ -1,0 +1,128 @@
+{
+    "platform": "agent_deployment",
+    "tools": [
+        {
+            "name": "deploy_agent",
+            "short_description": "Deploy specialized AI worker agent - data analysis, documents, research in sandbox",
+            "description": "🤖 DEPLOY SPECIALIZED WORKER AI AGENTS\n\nSpawn temporary worker AI agents to handle complex, multi-step tasks autonomously. Workers execute in isolated sandboxes with filtered tool access and return structured results.\n\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n## WHEN TO USE\n\n✅ USE FOR:\n• Complex data analysis requiring multiple pandas operations\n• Processing large datasets (>1000 rows) with transformations\n• Multi-step document generation (research → outline → write → format)\n• Specialized tasks needing focused tool access (only sheets, only analysis)\n• Isolated execution (separate workspace, filtered tools)\n• Background processing while handling other user requests\n\n❌ DON'T USE FOR:\n• Simple single-tool operations (just call the tool yourself!)\n• Quick data lookups or searches\n• Direct user conversation (that's YOUR job)\n• Tasks you can complete in 1-2 tool calls\n• When user wants to see step-by-step progress (they won't see worker's process)\n\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n## DECISION TREE\n\n```\nUser request requires:\n        ↓\n  Multiple tools (3+)?\n        ↓\n    ┌───────┴───────┐\n   NO              YES\n    ↓               ↓\nJust execute    Is it specialized work?\n tools           (data analysis, docs, research)\nyourself            ↓\n                ┌───────┴───────┐\n               NO              YES\n                ↓               ↓\n          Just execute    deploy_agent()!\n           yourself\n```\n\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n## AGENT TYPES\n\n**'data_analyst'** - Pandas, numpy, statistical analysis\n  Tools: python_exec, read_file, write_file, data tools\n  Best for: CSV analysis, correlations, statistical computations\n\n**'document_creator'** - Google Docs/Sheets creation, formatting\n  Tools: google_docs_*, google_sheets_*, formatting tools\n  Best for: Reports, proposals, formatted documents\n\n**'researcher'** - Web search, content fetching, synthesis\n  Tools: web_search, web_fetch, write_file\n  Best for: Market research, competitive analysis, information gathering\n\n**'report_generator'** - Analysis + visualization + document creation\n  Tools: python_exec, google_docs_*, matplotlib, pandas\n  Best for: Complete analytical reports with charts and insights\n\n**'general'** - Broad tool access for multi-domain tasks\n  Tools: All tools matching tool_filter\n  Best for: Complex workflows spanning multiple platforms\n\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n## SECURITY & SANDBOXING\n\n**File System Isolation:**\n• Each worker gets isolated directory: /tmp/valor_ai_agents/job_{uuid}/\n• Cannot access parent directories or other jobs\n• Cleaned up after completion\n\n**Tool Filtering:**\n• Workers only get tools matching tool_filter patterns\n• Example: ['python_exec', 'google_sheets_*'] = only python + sheets\n• Cannot access tools you didn't grant\n\n**Code Execution (RestrictedPython):**\n• ✅ Can use: pandas, numpy, matplotlib, seaborn\n• ❌ Cannot use: os, sys, subprocess, requests, open()\n• ❌ Cannot: Make network calls, run system commands, access files outside workspace\n• ✅ 30-second timeout on code execution\n\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n## WORKFLOW BEHIND THE SCENES\n\nWhen you call deploy_agent():\n1. ✅ Worker spawned with filtered tools\n2. ✅ Isolated workspace created: /tmp/valor_ai_agents/job_{uuid}/\n3. ✅ Files prepared as markdown (token-efficient, 90% reduction!)\n4. ✅ Dynamic prompt generated based on agent_type\n5. ✅ Worker executes task with RestrictedPython sandbox\n6. ✅ Results collected from workspace\n7. ✅ Outputs uploaded to Google Drive/Docs (if requested)\n8. ✅ Summary returned to you (orchestrator)\n\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n## RETURN VALUE\n\n```json\n{\n  \"success\": true,\n  \"job_id\": \"job_a1b2c3d4\",\n  \"workspace\": \"/tmp/valor_ai_agents/job_a1b2c3d4/\",\n  \"outputs\": {\n    \"analysis_results.csv\": {\n      \"path\": \"/tmp/.../analysis_results.csv\",\n      \"size\": 15234,\n      \"uploaded_to\": \"https://drive.google.com/file/d/xyz789\"\n    },\n    \"sales_chart.png\": {\n      \"path\": \"/tmp/.../sales_chart.png\",\n      \"uploaded_to\": \"https://drive.google.com/file/d/abc123\"\n    }\n  },\n  \"execution_log\": \"Worker completed 5 steps...\",\n  \"execution_time\": 12.5\n}\n```\n\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n## EXAMPLES\n\n### Example 1: Data Analysis\n```python\ndeploy_agent(\n    agent_type=\"data_analyst\",\n    task_description=\"\"\"\n    Analyze customer_data.csv:\n    1. Calculate customer lifetime value by segment\n    2. Identify churn patterns\n    3. Generate cohort analysis\n    4. Create visualizations\n    5. Write executive summary\n    \"\"\",\n    files=[{\"id\": \"1customer123\", \"type\": \"sheet\", \"name\": \"customer_data\"}],\n    output_requirements={\n        \"files\": [\"analysis.csv\", \"charts.png\", \"summary.md\"],\n        \"upload_to\": \"google_drive\"\n    },\n    tool_filter=[\"python_exec\", \"read_file\", \"write_file\"],\n    execution_mode=\"sync\"\n)\n```\n\n### Example 2: Document Generation (Multi-Stage)\n```python\n# Stage 1: Research\nresearcher_result = deploy_agent(\n    agent_type=\"researcher\",\n    task_description=\"Research AI market trends 2025, compile findings\",\n    tool_filter=[\"web_search\", \"web_fetch\", \"write_file\"],\n    output_requirements={\"files\": [\"research_findings.md\"]}\n)\n\n# Stage 2: Document Creation\ndeploy_agent(\n    agent_type=\"document_creator\",\n    task_description=\"\"\"\n    Create project proposal document:\n    1. Use research_findings.md as reference\n    2. Write executive summary\n    3. Add market analysis section\n    4. Include financial projections\n    5. Format professionally\n    \"\"\",\n    files=[{\"path\": researcher_result[\"outputs\"][\"research_findings.md\"][\"path\"]}],\n    output_requirements={\n        \"upload_to\": \"google_docs\",\n        \"share_with\": [\"team@company.com\"]\n    },\n    tool_filter=[\"google_docs_*\", \"read_file\"]\n)\n```\n\n### Example 3: Background Execution\n```python\ndeploy_agent(\n    agent_type=\"report_generator\",\n    task_description=\"Monthly sales report: fetch data, analyze, visualize, document\",\n    files=[{\"id\": \"1sales_sheet\", \"type\": \"sheet\"}],\n    execution_mode=\"async\"  # Runs in background!\n)\n\n# You continue chatting with user\n\"I've started generating your monthly sales report in the background.\nI'll notify you when it's complete. What else can I help with?\"\n```\n\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n## COMMON MISTAKES\n\n❌ MISTAKE 1: Using for Simple Tasks\n```python\n# Wrong - overkill!\ndeploy_agent(agent_type=\"data_analyst\", task_description=\"Read one cell\")\n```\n```python\n# Right - just do it yourself\ngoogle_sheets_read_data(spreadsheet_id=\"...\", range=\"A1\")\n```\n\n❌ MISTAKE 2: Vague Task Descriptions\n```python\n# Wrong - too vague\ndeploy_agent(agent_type=\"data_analyst\", task_description=\"Analyze data\")\n```\n```python\n# Right - specific steps\ndeploy_agent(\n    agent_type=\"data_analyst\",\n    task_description=\"\"\"\n    1. Load sales_data.csv\n    2. Calculate monthly revenue trends\n    3. Identify top 10 products by margin\n    4. Create bar chart of results\n    5. Save to monthly_analysis.csv\n    \"\"\"\n)\n```\n\n❌ MISTAKE 3: Not Specifying Output Requirements\n```python\n# Wrong - worker doesn't know what to produce\ndeploy_agent(agent_type=\"data_analyst\", task_description=\"Analyze sales\")\n```\n```python\n# Right - clear expectations\ndeploy_agent(\n    agent_type=\"data_analyst\",\n    task_description=\"Analyze sales\",\n    output_requirements={\n        \"files\": [\"analysis.csv\", \"chart.png\", \"summary.md\"],\n        \"upload_to\": \"google_drive\"\n    }\n)\n```\n\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n## PERFORMANCE TIPS\n\n**Tip 1: Use Markdown for Large Data**\n• Worker receives data in markdown format (90% smaller than JSON)\n• Faster processing, less tokens, more context available\n\n**Tip 2: Filter Tools Aggressively**\n• Only give tools worker actually needs\n• Reduces confusion, improves focus, faster execution\n• Example: Data analysis = ['python_exec', 'read_file', 'write_file']\n\n**Tip 3: Batch Related Tasks**\n• Instead of 3 separate workers, give one worker 3 related tasks\n• Shares context, avoids file transfers, faster overall\n\n**Tip 4: Use Async for Long Tasks**\n• execution_mode='async' runs in background\n• You can continue helping user while worker processes\n\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n## YOUR ROLE AS ORCHESTRATOR\n\n**You DO:**\n1. 🎯 Understand user's complex request\n2. 🧠 Decide if deploy_agent() is appropriate (multi-step? specialized?)\n3. 📋 Prepare parameters (agent_type, files, tool_filter)\n4. 🚀 Launch worker with clear instructions\n5. ⏳ Wait for results (or continue helping user if async)\n6. 📊 Present results to user with links\n\n**You DON'T:**\n• Execute the worker's task yourself (that's their job!)\n• Micromanage the worker's tool choices\n• Re-implement what the worker already did\n\n**Worker's Role:**\n• Execute specific task autonomously\n• Use filtered tool access\n• Work in isolated sandbox\n• Return results to you\n\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\nSee full parameter details below ↓",
+            "input_schema": {
+                "type": "object",
+                "properties": {
+                    "agent_type": {
+                        "type": "string",
+                        "enum": [
+                            "data_analysis",
+                            "report_generation",
+                            "automation",
+                            "research",
+                            "content_creation",
+                            "custom"
+                        ],
+                        "description": "Type of agent to deploy. Influences the system prompt and suggested tools. 'data_analysis' for statistical work with Python, 'report_generation' for document creation, 'automation' for multi-step workflows, 'custom' for general tasks."
+                    },
+                    "task_description": {
+                        "type": "string",
+                        "description": "Detailed natural language description of the task. Be specific about what analysis to perform, what outputs to create, what patterns to look for, etc. This becomes the agent's primary objective. Example: 'Analyze veterinary consultation data from the past 12 months. Find patterns in revisit rates grouped by species and month. Identify unusual spikes. Create summary statistics and trend visualizations.'"
+                    },
+                    "files": {
+                        "type": "array",
+                        "description": "List of files to prepare as context for the agent. Files are automatically converted to token-efficient markdown format (reducing tokens by 90% compared to JSON). The agent receives these files in its isolated workspace.",
+                        "items": {
+                            "type": "object",
+                            "properties": {
+                                "type": {
+                                    "type": "string",
+                                    "enum": [
+                                        "google_sheet",
+                                        "google_doc",
+                                        "local_file"
+                                    ],
+                                    "description": "Type of file to prepare. 'google_sheet' for spreadsheets, 'google_doc' for documents, 'local_file' for files already on the server."
+                                },
+                                "url": {
+                                    "type": "string",
+                                    "description": "Full URL for Google files. Example: 'https://docs.google.com/spreadsheets/d/1abc123xyz.../edit'. The system will extract the file ID and fetch the content."
+                                },
+                                "path": {
+                                    "type": "string",
+                                    "description": "Local file path (for local_file type). Must be absolute path accessible to the backend."
+                                },
+                                "range": {
+                                    "type": "string",
+                                    "description": "For Google Sheets only: the range to export. Examples: 'A:Z' (all columns), 'Sheet1!A1:D100' (specific range). Default is 'A:Z'."
+                                },
+                                "export_as": {
+                                    "type": "string",
+                                    "enum": [
+                                        "markdown",
+                                        "csv",
+                                        "json"
+                                    ],
+                                    "default": "markdown",
+                                    "description": "Export format. 'markdown' is STRONGLY RECOMMENDED for token efficiency (90% reduction vs JSON). CSV is also efficient but less readable for AI."
+                                }
+                            },
+                            "required": [
+                                "type"
+                            ]
+                        }
+                    },
+                    "output_requirements": {
+                        "type": "object",
+                        "description": "Specification of required outputs. Each key is an output name, each value defines format and filename. The agent will be instructed to create these specific files in its workspace.",
+                        "additionalProperties": {
+                            "type": "object",
+                            "properties": {
+                                "format": {
+                                    "type": "string",
+                                    "enum": [
+                                        "markdown",
+                                        "json",
+                                        "csv",
+                                        "png",
+                                        "text"
+                                    ],
+                                    "description": "Format of the output file. 'markdown' for reports, 'json' for structured data, 'png' for charts/images."
+                                },
+                                "filename": {
+                                    "type": "string",
+                                    "description": "Filename to create in the job workspace. Examples: 'report.md', 'metrics.json', 'chart.png'"
+                                },
+                                "description": {
+                                    "type": "string",
+                                    "description": "Human-readable description of what this output should contain. Helps guide the agent. Example: 'Comprehensive analysis report with findings, insights, and recommendations'"
+                                }
+                            },
+                            "required": [
+                                "format",
+                                "filename"
+                            ]
+                        }
+                    },
+                    "tool_filter": {
+                        "type": "array",
+                        "description": "Tool patterns to allow the agent to use. Supports wildcards. If omitted, agent has access to ALL 600+ tools (may be overwhelming). Recommended to filter for security and focus. Examples: ['google_*'] for all Google tools, ['python_exec', 'read_file', 'write_file'] for analysis work, ['microsoft_*', 'google_*'] for cross-platform automation.",
+                        "items": {
+                            "type": "string",
+                            "description": "Tool name pattern with optional wildcards. Examples: 'google_*' (all Google tools), 'python_exec' (exact match), 'microsoft_word_*' (all Word tools)"
+                        }
+                    },
+                    "execution_mode": {
+                        "type": "string",
+                        "enum": [
+                            "hybrid",
+                            "guided",
+                            "autonomous"
+                        ],
+                        "default": "hybrid",
+                        "description": "How the agent should execute. 'hybrid' (recommended): AI decides when to use tools vs direct action - balances efficiency and autonomy. 'guided': System provides tool suggestions - more structured approach. 'autonomous': Full freedom - agent chooses all tools and approaches independently."
+                    }
+                },
+                "required": [
+                    "agent_type",
+                    "task_description"
+                ]
+            }
+        }
+    ]
+}

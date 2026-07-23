@@ -1,0 +1,934 @@
+{
+  "platform": "google_docs",
+  "description": "Google Docs API - Create, edit, format documents, manage content, collaborate\n\nCRITICAL: ALL tools in this platform MUST be called through the execute_tool meta-tool for proper OAuth credential injection. DO NOT call these tools directly. Always use: execute_tool(tool_name='toolname', ...parameters)",
+  "tools": [
+    {
+      "name": "google_docs_smart_create_from_markdown",
+      "short_description": "Create formatted document from markdown: meeting notes, reports, documentation with headings, lists, tables",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) ALWAYS execute THIS tool NOW - NEVER reference 'I created earlier' or use conversation history\n(2) MUST return format: **[Name]** | ID: `[id]` | URL: [full_url] | Link: [title](url)\n(3) Use EXACT values from tool response - NEVER make up fake URLs/IDs\n(4) If tool fails, say 'Failed to create' - NEVER pretend it succeeded\n\nExample response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\n⚠️ MUST USE: execute_tool(tool_name='google_docs_smart_create_from_markdown', ...) - DO NOT call directly!\n\nCRITICAL: DO NOT include emojis in the markdown_content parameter. Use plain text only. Emojis cause formatting errors and encoding issues.\n\nSMART TOOL: Create fully formatted Google Docs from markdown. HEADING HIERARCHY: H1-H3 (####) for document structure, H4 (####) ONLY titles above paragraphs and titles of nummbered or bulleted lists (11pt bold). Supports: # headings (H1-H6, always black), **bold**, *italic*, ~~strikethrough~~, ==highlight==, `code`, ```blocks```, [links](url), ![images](url), nested bullets/numbers (indent 2 spaces), > blockquotes, --- lines, <<NEW-PAGE>>, <<BOOKMARK:name>> (creates named range for navigation), TEXT ALIGNMENT: <text< (left), >text< (center), >text> (right), and | tables |. Use H4 directly above bulleted/numbered lists.\n\nBOOKMARK SYNTAX: <<BOOKMARK:section_name>> creates a named range that can be linked directly: document_url#bookmark=section_name. Use for table of contents, section navigation, or external references.",
+      "platform": "google_docs",
+      "parameters": {
+        "title": {
+          "type": "string",
+          "description": "Document title"
+        },
+        "markdown_content": {
+          "type": "string",
+          "description": "Markdown content (NO EMOJIS - plain text only). HEADING HIERARCHY: H1-H3 for main sections, H4 ONLY for list titles (body text size 11pt bold). Supports: # H1-H6, **bold**, *italic*, ~~strikethrough~~, ==highlight==, `code`, ```blocks```, [links](url), ![images](url), nested lists (2 spaces), > blockquotes, TEXT ALIGNMENT: <text< (left), >text< (center), >text> (right), | tables |"
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "Created document with ID, shareable URL, and formatting applied (always BLACK headings, H4=11pt bold for list titles)"
+      }
+    },
+    {
+      "name": "google_docs_smart_update",
+      "short_description": "SMART: Add formatted markdown content to existing Google Doc with automatic positioning and formatting",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER reference previous edits from conversation history\n(2) MUST cite what was updated: 'Updated **[Resource Name]** (ID: `[id]`)'\n(3) Use EXACT [id] provided - NEVER make up IDs\n(4) If tool fails, say 'Failed to update' and explain why\n(5) Show before/after if applicable\n\nExample response:\nUpdated: **Document Title**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Changed: [what was changed]\n\n⚠️ MUST USE: execute_tool(tool_name='google_docs_smart_update', ...) - DO NOT call directly!\n\nCRITICAL: DO NOT include emojis in the markdown_content parameter. Use plain text only. Emojis cause formatting errors and encoding issues.\n\nSMART UPDATE: Add formatted markdown to EXISTING Google Docs with only 2 API calls (vs 20+). HEADING HIERARCHY: H1-H3 for document sections, H4 (11pt bold) ONLY for list titles. Supports: # headings (always black), **bold**, *italic*, ~~strikethrough~~, ==highlight==, `code`, [links](url), <<BOOKMARK:name>> (creates named range), TEXT ALIGNMENT: <text< (left), >text< (center), >text> (right), nested lists, > blockquotes, --- lines, | tables |. Returns end_index for chaining updates.",
+      "platform": "google_docs",
+      "parameters": {
+        "document_id": {
+          "type": "string",
+          "description": "ID of EXISTING Google Doc to update"
+        },
+        "markdown_content": {
+          "type": "string",
+          "description": "Markdown content to insert (NO EMOJIS - plain text only). HEADING HIERARCHY: H1-H3 for sections, H4 ONLY for list titles at 11pt bold. Includes TEXT ALIGNMENT: <text< (left), >text< (center), >text> (right). Same features as smart_create_from_markdown"
+        },
+        "insertion_position": {
+          "type": "string",
+          "description": "Where to insert: 'end' (append - default), 'start' (beginning), or specific index number",
+          "required": false,
+          "default": "end"
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "Result with start_index, end_index (for chaining!), operations count, and URL"
+      }
+    },
+    {
+      "name": "google_docs_smart_create_from_markdown_v2",
+      "short_description": "SMART: Enhanced Google Doc creation from markdown with advanced formatting, bookmarks, and page breaks",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) ALWAYS execute THIS tool NOW - NEVER reference 'I created earlier' or use conversation history\n(2) MUST return format: **[Name]** | ID: `[id]` | URL: [full_url] | Link: [title](url)\n(3) Use EXACT values from tool response - NEVER make up fake URLs/IDs\n(4) If tool fails, say 'Failed to create' - NEVER pretend it succeeded\n\nExample response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\nMUST USE: execute_tool(tool_name='google_docs_smart_create_from_markdown_v2', ...) - DO NOT call directly.\n\nCRITICAL: DO NOT include emojis in the markdown_content parameter. Use plain text only. Emojis cause formatting errors and encoding issues.\n\nSMART TOOL v2.0 (ENHANCED): Create Google Docs from markdown using DOCX conversion with FULL FORMATTING (30+ features). Default font: Arial 11pt (matching Google Docs default - NOT Times New Roman). Faster than API method, much less code, high success rate. Uses python-docx and Drive auto-conversion.\n\nDEFAULT FONT: Arial 11pt (matches Google Docs, NOT Times New Roman)\nHEADING SIZES: H1=20pt, H2=18pt, H3=16pt, H4-H6=11pt (matches Smart V1)\n\nCOMPLETE MARKDOWN SUPPORT:\n\nTEXT FORMATTING:\n- **bold** or __bold__ -> Bold text\n- *italic* or _italic_ -> Italic text\n- __underline__ -> Underlined text (double underscore)\n- ~~strikethrough~~ -> Strikethrough text\n- ==highlight== -> Yellow highlighted text\n- `inline code` -> Monospace code\n- H~2~O -> Subscript (H2O)\n- x^2^ -> Superscript (x2)\n\nSTRUCTURE:\n- # to ###### -> 6 heading levels (H1-H6)\n- - or * -> Bullet lists\n- 1. 2. 3. -> Numbered lists\n-   - (2 spaces) -> Nested lists (unlimited levels)\n- | Tables | -> Professional tables\n- ```code blocks``` -> Monospace code blocks\n- > Blockquotes -> Indented quotes\n\nSPECIAL ELEMENTS:\n- --- or *** -> Horizontal line\n- <<PAGE-BREAK>> or <<< -> Page break\n- <<BOOKMARK:name>> -> Create Word bookmark for navigation\n- <<TOC>> -> Auto-generate table of contents (update in Word)\n- ![alt](url) -> Images from URLs\n- [Link](url) -> Hyperlinks\n\nNAVIGATION FEATURES:\n- Bookmarks: <<BOOKMARK:section_name>> creates Word bookmark\n- TOC: <<TOC>> generates table of contents from headings (requires Word to update page numbers)\n\nALIGNMENT:\n- <text< -> Left aligned\n- >text< or |>text<| -> Center aligned\n- >text> -> Right aligned\n- Can combine with headings: ># Centered Heading<\n\nADVANTAGES OVER V1:\n- Faster (0.5-2s vs 2-8s)\n- Much less code\n- High success rate\n- Automatic shareability\n- Simpler to use and debug\n\nAUTO-SHAREABLE: Documents automatically shareable with edit permissions.\n\nComplementary to v1 (API-based) - both tools available.",
+      "platform": "google_docs",
+      "parameters": {
+        "title": {
+          "type": "string",
+          "description": "Document title"
+        },
+        "markdown_content": {
+          "type": "string",
+          "description": "Markdown content (NO EMOJIS - plain text only). FULL support: **bold**, *italic*, __underline__, ~~strike~~, ==highlight==, H~2~O, x^2^, ![img](url), <<PAGE-BREAK>>, <<BOOKMARK:name>>, <<TOC>>, ->center<-, tables, nested lists, code blocks"
+        },
+        "folder_id": {
+          "type": "string",
+          "description": "Optional Google Drive folder ID to create document in",
+          "required": false
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "Created document with ID, web_url, shareable status, and share_link (automatically shareable with edit access)"
+      },
+      "examples": [
+        {
+          "description": "Create formatted business report with advanced features",
+          "parameters": {
+            "title": "Q4 Business Report",
+            "markdown_content": "->**Q4 2024 Sales Report**<-\n\n---\n\n# Executive Summary\n\nOur Q4 performance exceeded expectations with ==**40% growth**==.\n\n<<PAGE-BREAK>>\n\n## Financial Performance\n\n| Metric | Q3 | Q4 | Change |\n|--------|-----|-----|--------|\n| Revenue | $1.2M | $1.5M | +25% |\n| Customers | 450 | 520 | +15% |\n\n> Important: ~~Target was 30%~~ **Exceeded target by 10%**\n\n## Technical Details\n\nWater formula: H~2~O\nEnergy: E=mc^2^\n\n```python\ndef growth(old, new):\n    return ((new - old) / old) * 100\n```\n\n## Recommendations\n\n1. **Immediate Actions**\n   - Expand marketing budget\n   - Hire 2 sales reps\n2. **Long-term Goals**\n   - Launch new product\n   - Enter Asian market\n\n---\n\n->*Report generated automatically*<-"
+          }
+        }
+      ]
+    },
+    {
+      "name": "google_docs_create_document",
+      "short_description": "Create new document: blank Google Doc for notes, meeting minutes, reports, or manual editing",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) ALWAYS execute THIS tool NOW - NEVER reference 'I created earlier' or use conversation history\n(2) MUST return format: **[Name]** | ID: `[id]` | URL: [full_url] | Link: [title](url)\n(3) Use EXACT values from tool response - NEVER make up fake URLs/IDs\n(4) If tool fails, say 'Failed to create' - NEVER pretend it succeeded\n\nExample response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\n⚠️ MUST USE: execute_tool(tool_name='google_docs_create_document', ...) - DO NOT call directly!\n\nExample response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\nCreate a new Google Doc",
+      "platform": "google_docs",
+      "parameters": {
+        "title": {
+          "type": "string",
+          "description": "Document title"
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "Created document with ID and URL"
+      }
+    },
+    {
+      "name": "google_docs_get_document",
+      "short_description": "Get Google Doc content by ID to read full text, metadata, and formatting structure",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Read X from **[Resource Name]** (ID: `[id]` | URL: [url])'\n(3) Use EXACT [id] provided - NEVER substitute with different ID\n(4) If tool fails (404/403), say 'Failed to read [resource] ID: [id]' and explain error\n(5) NEVER make up data if read fails - acknowledge the failure clearly\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\n⚠️ MUST USE: execute_tool(tool_name='google_docs_get_document', ...) - DO NOT call directly!\n\n🔄 UPDATED (Nov 2025): Default format changed to 'summary' to prevent token overflow.\n\nGet document content with format control to prevent Claude 200K token limit errors.\n\nFORMAT OPTIONS:\n- 'summary' (DEFAULT): Returns title + first 2000 characters preview + metadata\n  • Prevents token overflow (reduces 200K+ tokens to ~500 tokens)\n  • Perfect for checking document existence, title, or preview\n  • Use this first, then use google_docs_search_document() for specific sections\n\n- 'text': Returns complete document as plain text (no formatting metadata)\n  • 90% token reduction vs 'full' format\n  • Good for documents under 50K tokens\n  • Still may hit limits on very large documents\n\n- 'markdown': Returns formatted document with headings, bold, italic, lists\n  • 85% token reduction vs 'full' format\n  • Preserves structure while removing JSON metadata\n  • Good for documents under 50K tokens\n\n- 'full': Complete JSON with all formatting (LEGACY - NOT RECOMMENDED)\n  • Can be 200K+ tokens for large documents\n  • Will trigger 'prompt too long' errors on documents >100 pages\n  • Only use for small documents (<10 pages)\n\nRECOMMENDED WORKFLOW FOR LARGE DOCUMENTS:\n1. Call with format='summary' to check title and preview (500 tokens)\n2. Use google_docs_search_document(query='...') to find relevant sections (2K tokens)\n3. Only use format='text' or 'markdown' if document is small (<50 pages)\n\nExample response (format='summary'):\n{\n  'success': True,\n  'title': 'Annual Report 2024',\n  'document_id': '1M11p3S...',\n  'preview': 'Executive Summary\\nOur company achieved...', \n  'preview_length': 2000,\n  'format': 'summary',\n  'note': 'Showing first 2000 chars. Use format=\"text\" for full content or google_docs_search_document() for specific sections.'\n}\n\nWARNING: The document '1M11p3SwvTHFSF5pcJd-oq2w9E_ShaBL17IMckkpkvj0' triggered a 400 error with 209,727 tokens (>200K limit) when using format='full'. Always use format='summary' or google_docs_search_document() for large documents.",
+      "platform": "google_docs",
+      "parameters": {
+        "document_id": {
+          "type": "string",
+          "description": "Document ID"
+        },
+        "format": {
+          "type": "string",
+          "description": "Output format: 'summary' (DEFAULT - 2K preview), 'text' (plain text), 'markdown' (formatted), 'full' (complete JSON - NOT RECOMMENDED)",
+          "required": false,
+          "default": "summary"
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "Document content in requested format (default: summary with 2000 char preview)"
+      }
+    },
+    {
+      "name": "google_docs_search_document",
+      "short_description": "Search text within Google Doc by ID to find keywords and return matching paragraphs",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Read X from **[Resource Name]** (ID: `[id]` | URL: [url])'\n(3) Use EXACT [id] provided - NEVER substitute with different ID\n(4) If tool fails (404/403), say 'Failed to read [resource] ID: [id]' and explain error\n(5) NEVER make up data if read fails - acknowledge the failure clearly\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\n⚠️ MUST USE: execute_tool(tool_name='google_docs_search_document', ...) - DO NOT call directly!\n\n🆕 NEW TOOL (Nov 2025): Search document for specific text and return only matching sections.\n\nEXTREMELY token-efficient for large documents (90%+ reduction):\n- Returns ONLY sections matching your query with surrounding context\n- Perfect for Q&A: \"What does the document say about X?\"\n- Perfect for extraction: \"Find all mentions of Y\"\n- Prevents 200K+ token responses that cause 400 errors\n\nUSE THIS INSTEAD OF google_docs_get_document when:\n- Document is large (>50 pages) \n- You need specific information (not entire document)\n- Previous google_docs_get_document calls caused token overflow\n- You want to ask questions about document content\n\nExample response:\n{\n  'success': True,\n  'title': 'Product Manual',\n  'document_id': '1M11p3S...',\n  'query': 'warranty',\n  'match_count': 3,\n  'showing': 3,\n  'matches': [\n    {\n      'text': '...warranty coverage includes manufacturing defects and material failures for a period of 12 months...',\n      'position': 1520,\n      'context_length': 800,\n      'match_number': 1\n    },\n    {\n      'text': '...extended warranty plans are available for purchase separately...',\n      'position': 4890,\n      'context_length': 800,\n      'match_number': 2\n    }\n  ],\n  'note': 'Found 3 matches, showing 3 with 800 chars context each'\n}\n\nCommon use cases:\n- 'Find sections about clinical competence' → Returns relevant paragraphs\n- 'What does it say about assessment?' → Extracts assessment-related content\n- 'Search for Year 2 transition' → Finds transition information\n- 'Look for self-scoring' → Returns scoring-related sections",
+      "platform": "google_docs",
+      "parameters": {
+        "document_id": {
+          "type": "string",
+          "description": "Document ID"
+        },
+        "query": {
+          "type": "string",
+          "description": "Search query (keywords or phrases, case-insensitive)"
+        },
+        "context_chars": {
+          "type": "integer",
+          "description": "Characters of context around matches (default: 800, range: 200-2000)",
+          "required": false,
+          "default": 800
+        },
+        "max_matches": {
+          "type": "integer",
+          "description": "Maximum matches to return (default: 10, range: 1-50)",
+          "required": false,
+          "default": 10
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "Search results with matching sections and context"
+      }
+    },
+    {
+      "name": "google_docs_batch_update",
+      "short_description": "Execute multiple Google Docs API requests in one batch call for efficient bulk operations",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER reference previous edits from conversation history\n(2) MUST cite what was updated: 'Updated **[Resource Name]** (ID: `[id]`)'\n(3) Use EXACT [id] provided - NEVER make up IDs\n(4) If tool fails, say 'Failed to update' and explain why\n(5) Show before/after if applicable\n\nExample response:\nUpdated: **Document Title**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Changed: [what was changed]\n\n⚠️ MUST USE: execute_tool(tool_name='google_docs_batch_update', ...) - DO NOT call directly!\n\nExample response:\nUpdated: **Document Title**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Changed: [what was changed]\n\nApply multiple updates to document (insert, delete, format text)",
+      "platform": "google_docs",
+      "parameters": {
+        "document_id": {
+          "type": "string",
+          "description": "Document ID"
+        },
+        "requests": {
+          "type": "array",
+          "description": "Array of update requests (insertText, deleteContentRange, updateTextStyle, etc.)"
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "Update results with reply objects"
+      }
+    },
+    {
+      "name": "google_docs_insert_text",
+      "short_description": "Insert plain text into Google Doc at specific index position for precise content placement",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) ALWAYS execute THIS tool NOW - NEVER reference 'I created earlier' or use conversation history\n(2) MUST return format: **[Name]** | ID: `[id]` | URL: [full_url] | Link: [title](url)\n(3) Use EXACT values from tool response - NEVER make up fake URLs/IDs\n(4) If tool fails, say 'Failed to create' - NEVER pretend it succeeded\n\nExample response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\n⚠️ MUST USE: execute_tool(tool_name='google_docs_insert_text', ...) - DO NOT call directly!\n\nExample response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\nInsert text at specific location",
+      "platform": "google_docs",
+      "parameters": {
+        "document_id": {
+          "type": "string",
+          "description": "Document ID"
+        },
+        "text": {
+          "type": "string",
+          "description": "Text to insert"
+        },
+        "index": {
+          "type": "integer",
+          "description": "Character index to insert at (1-based)"
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "Insert confirmation"
+      }
+    },
+    {
+      "name": "google_docs_delete_content",
+      "short_description": "Delete content range from Google Doc by start and end index to remove specific sections",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER pretend to delete from memory\n(2) MUST cite what was deleted: 'Deleted **[Resource Name]** (ID: `[id]`)'\n(3) CONFIRM deletion happened - don't assume success\n(4) If tool fails, say 'Failed to delete' and explain why\n\nExample response:\n✅ Deleted: **Old File**\n- ID: `abc123`\n- URL: https://example.com/file/abc123 (no longer accessible)\n\n⚠️ MUST USE: execute_tool(tool_name='google_docs_delete_content', ...) - DO NOT call directly!\n\nExample response:\n✅ Deleted: **Old File**\n- ID: `abc123`\n- URL: https://example.com/file/abc123 (no longer accessible)\n\nDelete content from document",
+      "platform": "google_docs",
+      "parameters": {
+        "document_id": {
+          "type": "string",
+          "description": "Document ID"
+        },
+        "start_index": {
+          "type": "integer",
+          "description": "Start index (1-based)"
+        },
+        "end_index": {
+          "type": "integer",
+          "description": "End index (exclusive)"
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "Deletion confirmation"
+      }
+    },
+    {
+      "name": "google_docs_format_text",
+      "short_description": "Apply text formatting to Google Doc range with bold, italic, font size, and color options",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Read X from **[Resource Name]** (ID: `[id]` | URL: [url])'\n(3) Use EXACT [id] provided - NEVER substitute with different ID\n(4) If tool fails (404/403), say 'Failed to read [resource] ID: [id]' and explain error\n(5) NEVER make up data if read fails - acknowledge the failure clearly\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\n⚠️ MUST USE: execute_tool(tool_name='google_docs_format_text', ...) - DO NOT call directly!\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nApply formatting to text range (bold, italic, font, color, etc.)",
+      "platform": "google_docs",
+      "parameters": {
+        "document_id": {
+          "type": "string",
+          "description": "Document ID"
+        },
+        "start_index": {
+          "type": "integer",
+          "description": "Start index"
+        },
+        "end_index": {
+          "type": "integer",
+          "description": "End index"
+        },
+        "bold": {
+          "type": "boolean",
+          "description": "Apply bold",
+          "required": false
+        },
+        "italic": {
+          "type": "boolean",
+          "description": "Apply italic",
+          "required": false
+        },
+        "underline": {
+          "type": "boolean",
+          "description": "Apply underline",
+          "required": false
+        },
+        "font_size": {
+          "type": "integer",
+          "description": "Font size in points",
+          "required": false
+        },
+        "font_family": {
+          "type": "string",
+          "description": "Font family name",
+          "required": false
+        },
+        "foreground_color": {
+          "type": "string",
+          "description": "Text color (hex format #RRGGBB)",
+          "required": false
+        },
+        "background_color": {
+          "type": "string",
+          "description": "Background color (hex format)",
+          "required": false
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "Format confirmation"
+      }
+    },
+    {
+      "name": "google_docs_insert_table",
+      "short_description": "Insert table into Google Doc at index with specified rows and columns for data layout",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) ALWAYS execute THIS tool NOW - NEVER reference 'I created earlier' or use conversation history\n(2) MUST return format: **[Name]** | ID: `[id]` | URL: [full_url] | Link: [title](url)\n(3) Use EXACT values from tool response - NEVER make up fake URLs/IDs\n(4) If tool fails, say 'Failed to create' - NEVER pretend it succeeded\n\nExample response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\n⚠️ MUST USE: execute_tool(tool_name='google_docs_insert_table', ...) - DO NOT call directly!\n\nExample response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\nInsert table into document",
+      "platform": "google_docs",
+      "parameters": {
+        "document_id": {
+          "type": "string",
+          "description": "Document ID"
+        },
+        "index": {
+          "type": "integer",
+          "description": "Index to insert table"
+        },
+        "rows": {
+          "type": "integer",
+          "description": "Number of rows"
+        },
+        "columns": {
+          "type": "integer",
+          "description": "Number of columns"
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "Inserted table details"
+      }
+    },
+    {
+      "name": "google_docs_insert_image",
+      "short_description": "Insert image into Google Doc from URL at index with width and height specifications",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) ALWAYS execute THIS tool NOW - NEVER reference 'I created earlier' or use conversation history\n(2) MUST return format: **[Name]** | ID: `[id]` | URL: [full_url] | Link: [title](url)\n(3) Use EXACT values from tool response - NEVER make up fake URLs/IDs\n(4) If tool fails, say 'Failed to create' - NEVER pretend it succeeded\n\nExample response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\n⚠️ MUST USE: execute_tool(tool_name='google_docs_insert_image', ...) - DO NOT call directly!\n\nExample response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\nInsert image into document",
+      "platform": "google_docs",
+      "parameters": {
+        "document_id": {
+          "type": "string",
+          "description": "Document ID"
+        },
+        "index": {
+          "type": "integer",
+          "description": "Index to insert image"
+        },
+        "image_uri": {
+          "type": "string",
+          "description": "Image URL (must be publicly accessible)"
+        },
+        "width": {
+          "type": "integer",
+          "description": "Width in points",
+          "required": false
+        },
+        "height": {
+          "type": "integer",
+          "description": "Height in points",
+          "required": false
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "Inserted image details"
+      }
+    },
+    {
+      "name": "google_docs_create_heading",
+      "short_description": "Create heading in Google Doc at index with level H1-H6 for document structure",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) ALWAYS execute THIS tool NOW - NEVER reference 'I created earlier' or use conversation history\n(2) MUST return format: **[Name]** | ID: `[id]` | URL: [full_url] | Link: [title](url)\n(3) Use EXACT values from tool response - NEVER make up fake URLs/IDs\n(4) If tool fails, say 'Failed to create' - NEVER pretend it succeeded\n\nExample response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\n⚠️ MUST USE: execute_tool(tool_name='google_docs_create_heading', ...) - DO NOT call directly!\n\nExample response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\nCreate heading (H1, H2, H3, etc.)",
+      "platform": "google_docs",
+      "parameters": {
+        "document_id": {
+          "type": "string",
+          "description": "Document ID"
+        },
+        "text": {
+          "type": "string",
+          "description": "Heading text"
+        },
+        "level": {
+          "type": "integer",
+          "description": "Heading level (1-6)"
+        },
+        "index": {
+          "type": "integer",
+          "description": "Index to insert heading",
+          "required": false
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "Created heading"
+      }
+    },
+    {
+      "name": "google_docs_create_list",
+      "short_description": "Create bulleted or numbered list in Google Doc at index with nesting support",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) ALWAYS execute THIS tool NOW - NEVER reference 'I created earlier' or use conversation history\n(2) MUST return format: **[Name]** | ID: `[id]` | URL: [full_url] | Link: [title](url)\n(3) Use EXACT values from tool response - NEVER make up fake URLs/IDs\n(4) If tool fails, say 'Failed to create' - NEVER pretend it succeeded\n\nExample response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\n⚠️ MUST USE: execute_tool(tool_name='google_docs_create_list', ...) - DO NOT call directly!\n\nExample response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\nCreate bulleted or numbered list",
+      "platform": "google_docs",
+      "parameters": {
+        "document_id": {
+          "type": "string",
+          "description": "Document ID"
+        },
+        "items": {
+          "type": "array",
+          "description": "List items"
+        },
+        "list_type": {
+          "type": "string",
+          "description": "List type: BULLET or NUMBER"
+        },
+        "index": {
+          "type": "integer",
+          "description": "Index to insert list",
+          "required": false
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "Created list"
+      }
+    },
+    {
+      "name": "google_docs_insert_page_break",
+      "short_description": "Insert page break into Google Doc at index to start new page for section separation",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) ALWAYS execute THIS tool NOW - NEVER reference 'I created earlier' or use conversation history\n(2) MUST return format: **[Name]** | ID: `[id]` | URL: [full_url] | Link: [title](url)\n(3) Use EXACT values from tool response - NEVER make up fake URLs/IDs\n(4) If tool fails, say 'Failed to create' - NEVER pretend it succeeded\n\nExample response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\n⚠️ MUST USE: execute_tool(tool_name='google_docs_insert_page_break', ...) - DO NOT call directly!\n\nExample response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\nInsert page break",
+      "platform": "google_docs",
+      "parameters": {
+        "document_id": {
+          "type": "string",
+          "description": "Document ID"
+        },
+        "index": {
+          "type": "integer",
+          "description": "Index to insert page break"
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "Insert confirmation"
+      }
+    },
+    {
+      "name": "google_docs_replace_text",
+      "short_description": "Find and replace text in Google Doc with match case option for bulk text changes",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Read X from **[Resource Name]** (ID: `[id]` | URL: [url])'\n(3) Use EXACT [id] provided - NEVER substitute with different ID\n(4) If tool fails (404/403), say 'Failed to read [resource] ID: [id]' and explain error\n(5) NEVER make up data if read fails - acknowledge the failure clearly\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\n⚠️ MUST USE: execute_tool(tool_name='google_docs_replace_text', ...) - DO NOT call directly!\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nFind and replace text throughout document",
+      "platform": "google_docs",
+      "parameters": {
+        "document_id": {
+          "type": "string",
+          "description": "Document ID"
+        },
+        "find_text": {
+          "type": "string",
+          "description": "Text to find"
+        },
+        "replace_text": {
+          "type": "string",
+          "description": "Replacement text"
+        },
+        "match_case": {
+          "type": "boolean",
+          "description": "Case-sensitive matching",
+          "required": false,
+          "default": false
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "Number of replacements made"
+      }
+    },
+    {
+      "name": "google_docs_append_text",
+      "short_description": "Append text to end of Google Doc for quick content addition without index calculation",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Read X from **[Resource Name]** (ID: `[id]` | URL: [url])'\n(3) Use EXACT [id] provided - NEVER substitute with different ID\n(4) If tool fails (404/403), say 'Failed to read [resource] ID: [id]' and explain error\n(5) NEVER make up data if read fails - acknowledge the failure clearly\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\n⚠️ MUST USE: execute_tool(tool_name='google_docs_append_text', ...) - DO NOT call directly!\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nAppend text to end of document",
+      "platform": "google_docs",
+      "parameters": {
+        "document_id": {
+          "type": "string",
+          "description": "Document ID"
+        },
+        "text": {
+          "type": "string",
+          "description": "Text to append"
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "Append confirmation"
+      }
+    },
+    {
+      "name": "google_docs_update_content",
+      "short_description": "Update existing content range in Google Doc by replacing text between start and end index",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER reference previous edits from conversation history\n(2) MUST cite what was updated: 'Updated **[Resource Name]** (ID: `[id]`)'\n(3) Use EXACT [id] provided - NEVER make up IDs\n(4) If tool fails, say 'Failed to update' and explain why\n(5) Show before/after if applicable\n\nExample response:\nUpdated: **Document Title**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Changed: [what was changed]\n\n⚠️ MUST USE: execute_tool(tool_name='google_docs_update_content', ...) - DO NOT call directly!\n\nUpdate Google Docs content with multiple modes:\n\n**MODE: replace_all (default)** - Replace entire document:\n  execute_tool('google_docs_update_content', document_id='abc123', content='New content', mode='replace_all')\n\n**MODE: find_replace** - Find and replace specific text:\n  execute_tool('google_docs_update_content', document_id='abc123', content='New text', mode='find_replace', find_text='Old text')\n\n**MODE: append** - Add content to end:\n  execute_tool('google_docs_update_content', document_id='abc123', content='Additional content', mode='append')",
+      "platform": "google_docs",
+      "parameters": {
+        "document_id": {
+          "type": "string",
+          "description": "Document ID"
+        },
+        "content": {
+          "type": "string",
+          "description": "Content to write/replace (depends on mode)"
+        },
+        "mode": {
+          "type": "string",
+          "description": "Update mode: 'replace_all' (delete all + insert new), 'find_replace' (find specific text and replace), 'append' (add to end)",
+          "required": false,
+          "default": "replace_all",
+          "enum": [
+            "replace_all",
+            "find_replace",
+            "append"
+          ]
+        },
+        "find_text": {
+          "type": "string",
+          "description": "Text to find and replace (required when mode='find_replace')",
+          "required": false
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "Update confirmation with mode, content_length, requests_executed, and document_id"
+      }
+    },
+    {
+      "name": "google_docs_export_as_pdf",
+      "short_description": "Export Google Doc as PDF file with formatting preserved for sharing and printing",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Read X from **[Resource Name]** (ID: `[id]` | URL: [url])'\n(3) Use EXACT [id] provided - NEVER substitute with different ID\n(4) If tool fails (404/403), say 'Failed to read [resource] ID: [id]' and explain error\n(5) NEVER make up data if read fails - acknowledge the failure clearly\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\n⚠️ MUST USE: execute_tool(tool_name='google_docs_export_as_pdf', ...) - DO NOT call directly!\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nExport document as PDF",
+      "platform": "google_docs",
+      "parameters": {
+        "document_id": {
+          "type": "string",
+          "description": "Document ID"
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "PDF file data (base64 encoded)"
+      }
+    },
+    {
+      "name": "google_docs_add_page_numbers",
+      "short_description": "Add page numbers to Google Doc footer with position and format options",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) ALWAYS execute THIS tool NOW - NEVER reference 'I created earlier' or use conversation history\n(2) MUST return format: **[Name]** | ID: `[id]` | URL: [full_url] | Link: [title](url)\n(3) Use EXACT values from tool response - NEVER make up fake URLs/IDs\n(4) If tool fails, say 'Failed to create' - NEVER pretend it succeeded\n\nExample response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\n⚠️ MUST USE: execute_tool(tool_name='google_docs_add_page_numbers', ...) - DO NOT call directly!\n\nExample response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\nConfigure document for page numbering (starting number). NOTE: Actual page number insertion requires manual step via Google Docs UI: Insert > Page numbers",
+      "platform": "google_docs",
+      "parameters": {
+        "document_id": {
+          "type": "string",
+          "description": "Document ID"
+        },
+        "position": {
+          "type": "string",
+          "description": "Page number position: HEADER or FOOTER (default: FOOTER)",
+          "required": false,
+          "default": "FOOTER"
+        },
+        "alignment": {
+          "type": "string",
+          "description": "Page number alignment: LEFT, CENTER, or RIGHT (default: CENTER)",
+          "required": false,
+          "default": "CENTER"
+        },
+        "starting_number": {
+          "type": "integer",
+          "description": "Page number to start from (default: 1)",
+          "required": false,
+          "default": 1
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "Configuration result with manual insertion instructions"
+      }
+    },
+    {
+      "name": "google_docs_export_as_html",
+      "short_description": "Export Google Doc as HTML with CSS styling for web publishing and embedding",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Read X from **[Resource Name]** (ID: `[id]` | URL: [url])'\n(3) Use EXACT [id] provided - NEVER substitute with different ID\n(4) If tool fails (404/403), say 'Failed to read [resource] ID: [id]' and explain error\n(5) NEVER make up data if read fails - acknowledge the failure clearly\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\n⚠️ MUST USE: execute_tool(tool_name='google_docs_export_as_html', ...) - DO NOT call directly!\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nExport document as HTML",
+      "platform": "google_docs",
+      "parameters": {
+        "document_id": {
+          "type": "string",
+          "description": "Document ID"
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "HTML content"
+      }
+    },
+    {
+      "name": "google_docs_export_as_markdown",
+      "short_description": "Export Google Doc as markdown text with headings, lists, and formatting preserved",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Read X from **[Resource Name]** (ID: `[id]` | URL: [url])'\n(3) Use EXACT [id] provided - NEVER substitute with different ID\n(4) If tool fails (404/403), say 'Failed to read [resource] ID: [id]' and explain error\n(5) NEVER make up data if read fails - acknowledge the failure clearly\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\n⚠️ MUST USE: execute_tool(tool_name='google_docs_export_as_markdown', ...) - DO NOT call directly!\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nExport document as Markdown",
+      "platform": "google_docs",
+      "parameters": {
+        "document_id": {
+          "type": "string",
+          "description": "Document ID"
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "Markdown content"
+      }
+    },
+    {
+      "name": "google_docs_create_from_template",
+      "short_description": "Create new Google Doc from template ID with variable substitution for consistent formatting",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) ALWAYS execute THIS tool NOW - NEVER reference 'I created earlier' or use conversation history\n(2) MUST return format: **[Name]** | ID: `[id]` | URL: [full_url] | Link: [title](url)\n(3) Use EXACT values from tool response - NEVER make up fake URLs/IDs\n(4) If tool fails, say 'Failed to create' - NEVER pretend it succeeded\n\nExample response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\n⚠️ MUST USE: execute_tool(tool_name='google_docs_create_from_template', ...) - DO NOT call directly!\n\nExample response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\nCreate document from template with variable substitution",
+      "platform": "google_docs",
+      "parameters": {
+        "template_id": {
+          "type": "string",
+          "description": "Template document ID"
+        },
+        "title": {
+          "type": "string",
+          "description": "New document title"
+        },
+        "variables": {
+          "type": "object",
+          "description": "Variables to replace (e.g., {name: 'John', date: '2025-10-23'})",
+          "required": false
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "Created document with substituted variables"
+      }
+    },
+    {
+      "name": "google_docs_get_suggestions",
+      "short_description": "Get all suggested edits and comments from Google Doc for review and approval workflow",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Read X from **[Resource Name]** (ID: `[id]` | URL: [url])'\n(3) Use EXACT [id] provided - NEVER substitute with different ID\n(4) If tool fails (404/403), say 'Failed to read [resource] ID: [id]' and explain error\n(5) NEVER make up data if read fails - acknowledge the failure clearly\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\n⚠️ MUST USE: execute_tool(tool_name='google_docs_get_suggestions', ...) - DO NOT call directly!\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nGet all suggestions/comments in document",
+      "platform": "google_docs",
+      "parameters": {
+        "document_id": {
+          "type": "string",
+          "description": "Document ID"
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "List of suggestions and comments"
+      }
+    },
+    {
+      "name": "google_docs_create_named_range",
+      "short_description": "Create named bookmark range in Google Doc for navigation and table of contents linking",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) ALWAYS execute THIS tool NOW - NEVER reference 'I created earlier' or use conversation history\n(2) MUST return format: **[Name]** | ID: `[id]` | URL: [full_url] | Link: [title](url)\n(3) Use EXACT values from tool response - NEVER make up fake URLs/IDs\n(4) If tool fails, say 'Failed to create' - NEVER pretend it succeeded\n\nExample response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\n⚠️ MUST USE: execute_tool(tool_name='google_docs_create_named_range', ...) - DO NOT call directly!\n\nExample response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\nCreate named range for bookmarking/referencing",
+      "platform": "google_docs",
+      "parameters": {
+        "document_id": {
+          "type": "string",
+          "description": "Document ID"
+        },
+        "name": {
+          "type": "string",
+          "description": "Range name"
+        },
+        "start_index": {
+          "type": "integer",
+          "description": "Start index"
+        },
+        "end_index": {
+          "type": "integer",
+          "description": "End index"
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "Created named range"
+      }
+    },
+    {
+      "name": "google_docs_create_professional_report_with_charts",
+      "short_description": "SMART: Generate professional report with embedded charts, tables, and formatted sections from data",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) ALWAYS execute THIS tool NOW - NEVER reference 'I created earlier' or use conversation history\n(2) MUST return format: **[Name]** | ID: `[id]` | URL: [full_url] | Link: [title](url)\n(3) Use EXACT values from tool response - NEVER make up fake URLs/IDs\n(4) If tool fails, say 'Failed to create' - NEVER pretend it succeeded\n\nExample response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\n⚠️ MUST USE: execute_tool(tool_name='google_docs_create_professional_report_with_charts', ...) - DO NOT call directly!\n\nExample response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\nCreate a professional stakeholder-ready Google Doc report with linked Google Sheets charts. Creates CLEAN document (no instructions) with chart placeholders and a separate spreadsheet with interactive charts. Charts have black centered titles, axis labels with units, legends. Document uses Figure 1, Figure 2 format with hyperlinks to exact chart locations. Perfect for financial reports, business analytics, presentations.",
+      "platform": "google_docs",
+      "parameters": {
+        "report_title": {
+          "type": "string",
+          "description": "Title for both document and spreadsheet (e.g., 'Q1 2025 Financial Report')"
+        },
+        "charts_config": {
+          "type": "array",
+          "description": "Array of chart configurations. Each chart needs: title (str), headers (array of column names), data (2D array), chart_type (COLUMN/BAR/LINE/AREA/PIE), x_axis (label), y_axis (label with units like 'Amount ($)'). Example: [{title: 'Monthly Revenue', headers: ['Month','Revenue ($)'], data: [['Jan',125000],['Feb',138000]], chart_type: 'COLUMN', x_axis: 'Month', y_axis: 'Amount ($)'}]",
+          "required": false
+        },
+        "separate_sheets": {
+          "type": "boolean",
+          "description": "True = each chart in own sheet tab (recommended), False = all charts in one sheet",
+          "required": false,
+          "default": true
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "Contains document_id, document_url, spreadsheet_id, spreadsheet_url, charts array (with title/chart_id/data_range/sheet_name/link for each), and instructions string with step-by-step guide for inserting charts"
+      }
+    },
+    {
+      "name": "google_sheets_create",
+      "short_description": "Create new Google Sheets spreadsheet: make spreadsheet in Google Sheets for data, tables, calculations, analysis",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) ALWAYS execute THIS tool NOW - NEVER reference 'I created earlier' or use conversation history\n(2) MUST return format: **[Name]** | ID: `[id]` | URL: [full_url] | Link: [title](url)\n(3) Use EXACT values from tool response - NEVER make up fake URLs/IDs\n(4) If tool fails, say 'Failed to create' - NEVER pretend it succeeded\n\nExample response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\n⚠️ MUST USE: execute_tool(tool_name='google_sheets_create', ...) - DO NOT call directly!\n\nExample response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\nCreate a new Google Sheets spreadsheet with optional data and headers. Uses official Google Sheets API (no gspread required). Can create empty spreadsheets or populate with data immediately. Auto-formats header row with bold text and gray background.",
+      "platform": "google_sheets",
+      "parameters": {
+        "title": {
+          "type": "string",
+          "description": "Title of the new spreadsheet"
+        },
+        "data": {
+          "type": "array",
+          "description": "Optional 2D array of data rows. Example: [['Alice', 100], ['Bob', 200]]",
+          "required": false
+        },
+        "headers": {
+          "type": "array",
+          "description": "Optional header row. Example: ['Name', 'Score']",
+          "required": false
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "Contains spreadsheet_id, spreadsheet_url, and success status"
+      }
+    },
+    {
+      "name": "google_sheets_read_data",
+      "short_description": "Read cell range data from Google Sheet by spreadsheet ID and A1 notation for analysis",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Read X from **[Resource Name]** (ID: `[id]` | URL: [url])'\n(3) Use EXACT [id] provided - NEVER substitute with different ID\n(4) If tool fails (404/403), say 'Failed to read [resource] ID: [id]' and explain error\n(5) NEVER make up data if read fails - acknowledge the failure clearly\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\n⚠️ MUST USE: execute_tool(tool_name='google_sheets_read_data', ...) - DO NOT call directly!\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nRead data from a Google Sheets spreadsheet using official Google Sheets API",
+      "platform": "google_sheets",
+      "parameters": {
+        "spreadsheet_id": {
+          "type": "string",
+          "description": "The spreadsheet ID (from URL)"
+        },
+        "range": {
+          "type": "string",
+          "description": "Range in A1 notation (e.g., 'Sheet1!A1:D10' or just 'A1:D10')"
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "Contains values (2D array), range, and row/column counts"
+      }
+    },
+    {
+      "name": "google_sheets_append_data",
+      "short_description": "Append rows to Google Sheet after last row in range for adding new records to dataset",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Read X from **[Resource Name]** (ID: `[id]` | URL: [url])'\n(3) Use EXACT [id] provided - NEVER substitute with different ID\n(4) If tool fails (404/403), say 'Failed to read [resource] ID: [id]' and explain error\n(5) NEVER make up data if read fails - acknowledge the failure clearly\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\n⚠️ MUST USE: execute_tool(tool_name='google_sheets_append_data', ...) - DO NOT call directly!\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nAppend data to a Google Sheets spreadsheet (adds rows at the end)",
+      "platform": "google_sheets",
+      "parameters": {
+        "spreadsheet_id": {
+          "type": "string",
+          "description": "The spreadsheet ID"
+        },
+        "range": {
+          "type": "string",
+          "description": "Range to append to (e.g., 'Sheet1!A:D')"
+        },
+        "values": {
+          "type": "array",
+          "description": "2D array of values to append. Example: [['Alice', 100], ['Bob', 200]]"
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "Contains updated spreadsheet info and number of rows appended"
+      }
+    },
+    {
+      "name": "google_docs_add_formatted_content",
+      "short_description": "Add rich formatted content to Google Doc with custom styling, colors, and text effects",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) ALWAYS execute THIS tool NOW - NEVER reference 'I created earlier' or use conversation history\n(2) MUST return format: **[Name]** | ID: `[id]` | URL: [full_url] | Link: [title](url)\n(3) Use EXACT values from tool response - NEVER make up fake URLs/IDs\n(4) If tool fails, say 'Failed to create' - NEVER pretend it succeeded\n\nExample response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\n⚠️ MUST USE: execute_tool(tool_name='google_docs_add_formatted_content', ...) - DO NOT call directly!\n\nExample response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\nAdd sample formatted content to a Google Doc to demonstrate rich text capabilities. Adds: Heading 1, Heading 2, paragraphs with bold/italic text, bulleted lists, numbered lists, and mixed formatting. Useful for testing or creating template documents.",
+      "platform": "google_docs",
+      "parameters": {
+        "document_id": {
+          "type": "string",
+          "description": "The document ID"
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "Contains document_id and success status"
+      }
+    },
+    {
+      "name": "google_charts_create",
+      "short_description": "Create chart from data with type, styling options for visualization in docs or sheets",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) ALWAYS execute THIS tool NOW - NEVER reference 'I created earlier' or use conversation history\n(2) MUST return format: **[Name]** | ID: `[id]` | URL: [full_url] | Link: [title](url)\n(3) Use EXACT values from tool response - NEVER make up fake URLs/IDs\n(4) If tool fails, say 'Failed to create' - NEVER pretend it succeeded\n\nExample response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\n⚠️ MUST USE: execute_tool(tool_name='google_charts_create', ...) - DO NOT call directly!\n\nExample response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\nCreate a professional Google Chart in a new Google Sheets spreadsheet. Supports 10+ chart types (column, bar, line, area, pie, scatter, combo, histogram, candlestick, bubble) with customization options (title, axis labels, colors, legend, dimensions). Returns spreadsheet with embedded interactive chart.",
+      "platform": "google_sheets",
+      "parameters": {
+        "title": {
+          "type": "string",
+          "description": "Spreadsheet title (e.g., 'Q1 Sales Chart')"
+        },
+        "chart_type": {
+          "type": "string",
+          "description": "Chart type: column/bar/line/area/pie/scatter/combo/histogram/candlestick/bubble"
+        },
+        "data": {
+          "type": "array",
+          "description": "2D array of data. First column = labels/x-axis, remaining = data series. Example: [['Jan', 10, 20], ['Feb', 15, 25]]"
+        },
+        "headers": {
+          "type": "array",
+          "description": "Optional header row. Example: ['Month', 'Sales', 'Expenses']",
+          "required": false
+        },
+        "chart_options": {
+          "type": "object",
+          "description": "Optional customization: {title: str, subtitle: str, x_axis_title: str, y_axis_title: str, width: int, height: int, legend_position: str, colors: [str], stacked: bool}",
+          "required": false
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "Contains spreadsheet_id, spreadsheet_url, chart_id, and chart details"
+      }
+    },
+    {
+      "name": "google_docs_insert_chart",
+      "short_description": "Insert chart from Google Sheets into Doc at index for data visualization in reports",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) ALWAYS execute THIS tool NOW - NEVER reference 'I created earlier' or use conversation history\n(2) MUST return format: **[Name]** | ID: `[id]` | URL: [full_url] | Link: [title](url)\n(3) Use EXACT values from tool response - NEVER make up fake URLs/IDs\n(4) If tool fails, say 'Failed to create' - NEVER pretend it succeeded\n\nExample response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\n⚠️ MUST USE: execute_tool(tool_name='google_docs_insert_chart', ...) - DO NOT call directly!\n\nExample response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\nCreate a Google Chart and insert it as an image into a Google Doc. Creates temporary spreadsheet with chart, exports as PNG, inserts into doc, and cleans up. Supports all chart types from google_charts_create.",
+      "platform": "google_docs",
+      "parameters": {
+        "document_id": {
+          "type": "string",
+          "description": "Target Google Doc ID"
+        },
+        "chart_data": {
+          "type": "object",
+          "description": "Chart data: {headers: [str], data: [[values]]}. Example: {headers: ['Month', 'Sales'], data: [['Jan', 100], ['Feb', 150]]}"
+        },
+        "chart_type": {
+          "type": "string",
+          "description": "Chart type: column/bar/line/area/pie/scatter (default: column)",
+          "required": false,
+          "default": "column"
+        },
+        "chart_options": {
+          "type": "object",
+          "description": "Optional chart customization (same as google_charts_create)",
+          "required": false
+        },
+        "insertion_index": {
+          "type": "integer",
+          "description": "Position in doc to insert chart (null = end of document)",
+          "required": false
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "Contains inserted status, image_url, temp_spreadsheet_id, chart_type, insertion_index"
+      }
+    },
+    {
+      "name": "google_docs_ai_smart_generate_document",
+      "short_description": "SMART: AI-generate complete Google Doc from prompt with content, formatting, and structure automatically created",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Read X from **[Resource Name]** (ID: `[id]` | URL: [url])'\n(3) Use EXACT [id] provided - NEVER substitute with different ID\n(4) If tool fails (404/403), say 'Failed to read [resource] ID: [id]' and explain error\n(5) NEVER make up data if read fails - acknowledge the failure clearly\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\n⚠️ MUST USE: execute_tool(tool_name='google_docs_ai_smart_generate_document', ...) - DO NOT call directly!\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\n🤖 SMART TOOL: AI-powered document generation from natural language in ONE call. Takes a prompt like 'Create a product requirements document for a mobile app' and AI generates complete, professionally formatted document with proper structure, headings, lists, tables. Use this instead of manually writing documents.",
+      "platform": "google_docs",
+      "category": "smart_bundled",
+      "parameters": {
+        "prompt": {
+          "type": "string",
+          "description": "Natural language description of document to create. Examples: 'Create a product requirements document for a mobile fitness app with sections for overview, features, technical specs, timeline', 'Write a professional project proposal for website redesign', 'Generate meeting minutes template'"
+        },
+        "tone": {
+          "type": "string",
+          "description": "Writing tone: 'professional', 'casual', 'formal', 'technical'",
+          "required": false,
+          "default": "professional"
+        },
+        "share_with": {
+          "type": "array",
+          "description": "Email addresses to share document with",
+          "required": false
+        },
+        "folder_id": {
+          "type": "string",
+          "description": "Google Drive folder ID to store document in",
+          "required": false
+        },
+        "include_toc": {
+          "type": "boolean",
+          "description": "Add table of contents at beginning",
+          "required": false,
+          "default": false
+        }
+      },
+      "returns": {
+        "document_id": "string",
+        "document_url": "string",
+        "title": "string (AI-generated)",
+        "generated_content": "string (full markdown content)",
+        "word_count": "integer",
+        "sections": "array of section names"
+      },
+      "use_cases": [
+        "Create product requirements documents",
+        "Generate technical specifications",
+        "Write project proposals with timelines",
+        "Create meeting minutes templates",
+        "Generate policy documents",
+        "Write standard operating procedures"
+      ],
+      "efficiency": "99% faster than manual writing (2 hours → 10 seconds)"
+    },
+    {
+      "name": "google_docs_smart_bulk_create_multiple",
+      "short_description": "SMART: Create multiple formatted Google Docs from template list in one batch operation for bulk generation",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) ALWAYS execute THIS tool NOW - NEVER reference 'I created earlier' or use conversation history\n(2) MUST return format: **[Name]** | ID: `[id]` | URL: [full_url] | Link: [title](url)\n(3) Use EXACT values from tool response - NEVER make up fake URLs/IDs\n(4) If tool fails, say 'Failed to create' - NEVER pretend it succeeded\n\nExample response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\n⚠️ MUST USE: execute_tool(tool_name='google_docs_smart_bulk_create_multiple', ...) - DO NOT call directly!\n\nExample response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\n📚 SMART TOOL: Bulk create multiple Google Docs in ONE call. Creates multiple complete documents simultaneously from markdown or AI generation. Each document can have different content, sharing, and folder settings. Perfect for batch operations.",
+      "platform": "google_docs",
+      "category": "smart_bundled",
+      "parameters": {
+        "documents": {
+          "type": "array",
+          "description": "Array of document configurations. Each can be: {'title': str, 'markdown_content': str} OR {'title': str, 'prompt': str, 'tone': str}. Example: [{'title': 'Q1 Report', 'markdown_content': '# Q1...'}, {'title': 'Q2 Report', 'prompt': 'Create Q2 financial report'}]"
+        },
+        "share_with": {
+          "type": "array",
+          "description": "Default email addresses to share ALL documents with (can be overridden per document)",
+          "required": false
+        },
+        "folder_id": {
+          "type": "string",
+          "description": "Default Google Drive folder for ALL documents (can be overridden per document)",
+          "required": false
+        }
+      },
+      "returns": {
+        "total_created": "integer",
+        "total_failed": "integer",
+        "successful": "array of {title, document_id, document_url}",
+        "failed": "array of {title, error}",
+        "created_documents": "array of full document details"
+      },
+      "use_cases": [
+        "Create 12 monthly report documents at once",
+        "Generate meeting notes for entire quarter",
+        "Create product documentation for multiple features",
+        "Bulk create project proposals for clients",
+        "Generate onboarding docs for new employees",
+        "Create standard templates library"
+      ],
+      "efficiency": "97% reduction in tool calls (20 calls per doc × 5 docs = 100 calls → 1 call)"
+    }
+  ]
+}

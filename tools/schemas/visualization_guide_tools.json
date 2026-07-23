@@ -1,0 +1,314 @@
+{
+    "platform": "visualization_guidance",
+    "category": "meta-tools",
+    "tools": [
+        {
+            "name": "visualization_guide",
+            "description": "Returns comprehensive guidance for using a specific visualization type. This is a READ-ONLY guidance tool that provides detailed instructions, rules, examples, and best practices for creating visualizations in chat messages. Use this tool when you need to generate a chart, diagram, animation, or interactive element but are unsure of the exact syntax, parameters, or best practices. The tool returns complete documentation including: 1) Delimiter syntax and structure, 2) All available parameters with descriptions, 3) Multiple working examples you can extrapolate from, 4) Rules to follow for best results, 5) Common pitfalls to avoid, 6) When to use vs when not to use this visualization type. This tool covers 14 visualization types: APEXCHARTS (modern interactive charts), PLOTLY (data analysis charts), CHARTJS (simple charts), MERMAID (flowcharts/diagrams), THREEJS (3D graphics), GSAP (UI animations), LOTTIE (loading animations), EXECUTE_HTML (interactive widgets), CAD (engineering drawings), SCHEMATIC (electrical circuits), BLUEPRINT (architectural plans), MOLECULE (chemical structures), LATEX (math equations), SVG (vector graphics). Call this tool BEFORE attempting to create a visualization to ensure you use the correct syntax and follow best practices.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "visual_type": {
+                        "type": "string",
+                        "description": "The visualization type to get guidance for. Must be one of: apexcharts, plotly, chartjs, mermaid, threejs, gsap, lottie, execute_html, cad, schematic, blueprint, molecule, latex, svg",
+                        "required": true,
+                        "enum": [
+                            "apexcharts",
+                            "plotly",
+                            "chartjs",
+                            "mermaid",
+                            "threejs",
+                            "gsap",
+                            "lottie",
+                            "execute_html",
+                            "cad",
+                            "schematic",
+                            "blueprint",
+                            "molecule",
+                            "latex",
+                            "svg"
+                        ]
+                    }
+                },
+                "required": [
+                    "visual_type"
+                ]
+            },
+            "returns": {
+                "type": "object",
+                "properties": {
+                    "delimiter": {
+                        "type": "string",
+                        "description": "The delimiter to use (e.g., <APEXCHARTS>...</APEXCHARTS>)"
+                    },
+                    "structure": {
+                        "type": "object",
+                        "description": "Expected JSON structure with all parameters"
+                    },
+                    "rules": {
+                        "type": "array",
+                        "description": "List of rules to follow for best results"
+                    },
+                    "examples": {
+                        "type": "array",
+                        "description": "3-5 complete working examples"
+                    },
+                    "best_practices": {
+                        "type": "array",
+                        "description": "Tips for optimal results"
+                    },
+                    "when_to_use": {
+                        "type": "array",
+                        "description": "Scenarios where this visualization is ideal"
+                    },
+                    "when_not_to_use": {
+                        "type": "array",
+                        "description": "Scenarios where another type would be better"
+                    },
+                    "common_errors": {
+                        "type": "array",
+                        "description": "Common mistakes and how to avoid them"
+                    }
+                }
+            },
+            "examples": [
+                {
+                    "description": "Get guidance for creating an ApexCharts visualization",
+                    "input": {
+                        "visual_type": "apexcharts"
+                    },
+                    "output": {
+                        "delimiter": "<APEXCHARTS>...</APEXCHARTS>",
+                        "structure": {
+                            "chart": {
+                                "type": "area|line|bar|column|pie|donut",
+                                "height": 400
+                            },
+                            "series": [],
+                            "xaxis": {},
+                            "yaxis": {}
+                        },
+                        "rules": [
+                            "Always include chart.type",
+                            "Series must be an array",
+                            "Use descriptive names for series"
+                        ],
+                        "examples": [
+                            "...3 complete examples..."
+                        ]
+                    }
+                },
+                {
+                    "description": "Get guidance for creating a Mermaid flowchart",
+                    "input": {
+                        "visual_type": "mermaid"
+                    },
+                    "output": {
+                        "delimiter": "<MERMAID>...</MERMAID>",
+                        "structure": "graph TD\\nA[Start] --> B[End]",
+                        "rules": [
+                            "Start with graph direction (TD, LR, BT, RL)",
+                            "Use square brackets for boxes",
+                            "Use --> for arrows"
+                        ]
+                    }
+                }
+            ],
+            "usage_guide": {
+                "when_to_use": [
+                    "Before creating any visualization for the first time",
+                    "When unsure of correct delimiter syntax",
+                    "When you need examples to extrapolate from",
+                    "When you want to know all available parameters",
+                    "When deciding between multiple visualization types",
+                    "When a visualization isn't rendering correctly"
+                ],
+                "when_not_to_use": [
+                    "If you already know the exact syntax",
+                    "For simple text-only responses",
+                    "When user explicitly provides the format to use"
+                ],
+                "workflow": [
+                    "1. User asks for a chart/diagram/visualization",
+                    "2. Call visualization_guide with appropriate visual_type",
+                    "3. Review the returned structure, rules, and examples",
+                    "4. Create your visualization following the guidance",
+                    "5. Include the visualization in your response to the user"
+                ],
+                "best_practices": [
+                    "Always call this tool BEFORE creating a visualization",
+                    "Read all rules carefully to avoid common errors",
+                    "Use the examples as templates and modify for your data",
+                    "Follow the structure exactly as documented",
+                    "Check 'when_not_to_use' to ensure you picked the right type"
+                ],
+                "error_handling": [
+                    "If visualization doesn't render, re-read the rules section",
+                    "Check that your JSON matches the documented structure",
+                    "Ensure delimiter tags are spelled correctly",
+                    "Verify all required parameters are included"
+                ],
+                "related_tools": [
+                    "list_visualization_types - Lists all 14 available types",
+                    "compare_visualizations - Compare 2+ types to choose best one"
+                ]
+            }
+        },
+        {
+            "name": "list_visualization_types",
+            "description": "Returns a list of all available visualization types with brief descriptions of what each one is best for. Use this tool when you need to choose which visualization type to use for a specific user request. Returns a categorized list with primary use cases for each type.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "filter_by": {
+                        "type": "string",
+                        "description": "Optional filter by category: charts, diagrams, animations, technical, interactive, math",
+                        "required": false,
+                        "enum": [
+                            "charts",
+                            "diagrams",
+                            "animations",
+                            "technical",
+                            "interactive",
+                            "math",
+                            "all"
+                        ]
+                    }
+                }
+            },
+            "returns": {
+                "type": "object",
+                "description": "List of visualization types grouped by category"
+            },
+            "examples": [
+                {
+                    "description": "List all chart types",
+                    "input": {
+                        "filter_by": "charts"
+                    },
+                    "output": {
+                        "charts": [
+                            {
+                                "type": "apexcharts",
+                                "best_for": "Modern interactive charts"
+                            },
+                            {
+                                "type": "plotly",
+                                "best_for": "Data analysis & scientific plots"
+                            },
+                            {
+                                "type": "chartjs",
+                                "best_for": "Simple bar/line/pie charts"
+                            }
+                        ]
+                    }
+                }
+            ],
+            "usage_guide": {
+                "when_to_use": [
+                    "User asks 'what charts can you create?'",
+                    "Need to decide between multiple visualization types",
+                    "Want an overview of all available options"
+                ],
+                "when_not_to_use": [
+                    "You already know which type to use",
+                    "User specifies a specific visualization type"
+                ],
+                "workflow": [
+                    "1. Call list_visualization_types (optionally with filter)",
+                    "2. Review the returned types and their use cases",
+                    "3. Choose the most appropriate type for user's needs",
+                    "4. Call visualization_guide for detailed instructions"
+                ]
+            }
+        },
+        {
+            "name": "compare_visualizations",
+            "description": "Compares 2 or more visualization types side-by-side to help you choose the best one for a specific use case. Returns a comparison table showing strengths, weaknesses, complexity, and ideal scenarios for each type.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "types": {
+                        "type": "array",
+                        "description": "Array of 2-4 visualization types to compare",
+                        "items": {
+                            "type": "string",
+                            "enum": [
+                                "apexcharts",
+                                "plotly",
+                                "chartjs",
+                                "mermaid",
+                                "threejs",
+                                "gsap",
+                                "lottie",
+                                "execute_html",
+                                "cad",
+                                "schematic",
+                                "blueprint",
+                                "molecule",
+                                "latex",
+                                "svg"
+                            ]
+                        },
+                        "required": true,
+                        "minItems": 2,
+                        "maxItems": 4
+                    },
+                    "use_case": {
+                        "type": "string",
+                        "description": "Optional: Describe the specific use case to get a recommendation",
+                        "required": false
+                    }
+                },
+                "required": [
+                    "types"
+                ]
+            },
+            "returns": {
+                "type": "object",
+                "properties": {
+                    "comparison_table": {
+                        "type": "object",
+                        "description": "Side-by-side comparison of features"
+                    },
+                    "recommendation": {
+                        "type": "string",
+                        "description": "Which type is best for the given use case"
+                    },
+                    "reasoning": {
+                        "type": "string",
+                        "description": "Why this type is recommended"
+                    }
+                }
+            },
+            "examples": [
+                {
+                    "description": "Compare chart libraries for sales data",
+                    "input": {
+                        "types": [
+                            "apexcharts",
+                            "chartjs",
+                            "plotly"
+                        ],
+                        "use_case": "Display monthly sales data with interactive tooltips"
+                    },
+                    "output": {
+                        "recommendation": "apexcharts",
+                        "reasoning": "Best balance of interactivity, modern design, and ease of use for business dashboards"
+                    }
+                }
+            ],
+            "usage_guide": {
+                "when_to_use": [
+                    "Unsure which visualization type to use",
+                    "Multiple types could work for the scenario",
+                    "Want to understand trade-offs between types"
+                ],
+                "when_not_to_use": [
+                    "Only one type is suitable for the use case",
+                    "User explicitly requests a specific type"
+                ]
+            }
+        }
+    ]
+}

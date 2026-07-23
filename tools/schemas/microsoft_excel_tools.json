@@ -1,0 +1,4209 @@
+{
+  "platform": "microsoft_excel",
+  "version": "2.2",
+  "description": "Microsoft Excel spreadsheet creation, data analysis, and automation tools via Graph API with FULL intelligence layers and data analysis integration\n\n⚠️ CRITICAL: ALL Microsoft 365 tools MUST be called through the execute_tool meta-tool for proper OAuth credential injection. DO NOT call these tools directly. Always use: execute_tool(tool_name='toolname', ...parameters)\n\n✨ NEW IN v2.2:\n- Multi-modal parameters on all GET/LIST tools (mode, format, export)\n- Natural language mapping for conversational AI\n- Tool intelligence with workflow patterns and success/failure indicators\n- Memory context for semantic search and conversation recall\n- Data analysis tool integration for advanced analytics pipelines\n- SMART Sheet Builder (build from scratch), AI Formula Assistant, Batch Updates, Single-call workflows: Read Excel → Analyze → Export to Google Sheets",
+  "authentication": "microsoft_oauth",
+  "base_url": "https://graph.microsoft.com/v1.0",
+  "required_scopes": [
+    "Files.ReadWrite.All"
+  ],
+  "rate_limits": {
+    "requests_per_second": 10,
+    "requests_per_minute": 600,
+    "note": "Follows Microsoft Graph API throttling limits"
+  },
+  "tools": [
+    {
+      "name": "microsoft_excel_create_workbook",
+      "short_description": "Create new Microsoft Excel workbook in OneDrive with default blank worksheet",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) ALWAYS execute THIS tool NOW - NEVER reference 'I created earlier' or use conversation history\n(2) MUST return format: **[Name]** | ID: `[id]` | URL: [full_url] | Link: [title](url)\n(3) Use EXACT values from tool response - NEVER make up fake URLs/IDs\n(4) If tool fails, say 'Failed to create' - NEVER pretend it succeeded\n\nExample response:\nCreated: **Sales Analysis Workbook**\n- ID: `abc123`\n- URL: https://onedrive.live.com/workbook/abc123\n- Link: [Sales Analysis Workbook](https://onedrive.live.com/workbook/abc123)\n\n⚠️ MUST USE: execute_tool(tool_name='microsoft_excel_create_workbook', ...) - DO NOT call directly!\n\nCreate a new Excel workbook in OneDrive. Workbooks are created with a default blank worksheet named 'Sheet1'.",
+      "category": "content_management",
+      "priority": "high",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "Workbook name (will add .xlsx if not present). Example: 'Sales Report 2025' becomes 'Sales Report 2025.xlsx'"
+          },
+          "folder_id": {
+            "type": "string",
+            "description": "OneDrive folder ID where workbook will be created (default: root folder)"
+          }
+        },
+        "required": [
+          "name"
+        ]
+      },
+      "returns": {
+        "type": "object",
+        "description": "Dict with workbook_id (OneDrive item ID), name, web_url (Excel Online URL), created_datetime (ISO timestamp)"
+      },
+      "user_facing_language": {
+        "action_verb": "create",
+        "resource_name": "spreadsheet",
+        "resource_plural": "spreadsheets",
+        "natural_phrases": [
+          "create a spreadsheet",
+          "make a new Excel file",
+          "create a workbook",
+          "start a new spreadsheet",
+          "create an Excel document"
+        ],
+        "capability_description": "I can create new Excel workbooks in your OneDrive. Workbooks start with a blank worksheet and are immediately available for editing in Excel Online.",
+        "example_ai_responses": [
+          "I'll create a new Excel workbook called 'Sales Report'.",
+          "I'll make a new spreadsheet for your financial data.",
+          "I'll create that Excel file in your OneDrive."
+        ]
+      },
+      "tool_intelligence": {
+        "category": "content_management",
+        "typical_workflow_patterns": [
+          "microsoft_excel_create_workbook → microsoft_excel_add_worksheet (create then add sheets)",
+          "microsoft_excel_create_workbook → microsoft_excel_update_range (create then populate data)",
+          "microsoft_excel_create_workbook → microsoft_excel_smart_import_csv (create then import data)",
+          "data_source → microsoft_excel_create_workbook → populate → analyze (full data workflow)"
+        ],
+        "success_indicators": {
+          "keywords": [
+            "workbook created",
+            "created successfully",
+            "new workbook",
+            "workbook ready",
+            "Excel file created"
+          ],
+          "behavioral": [
+            "User proceeds to add data or worksheets",
+            "User opens workbook in Excel Online",
+            "User shares workbook link",
+            "User continues with data entry workflow"
+          ]
+        },
+        "failure_indicators": {
+          "keywords": [
+            "creation failed",
+            "invalid name",
+            "folder not found",
+            "permission denied",
+            "quota exceeded"
+          ],
+          "behavioral": [
+            "User retries with different name",
+            "User checks folder permissions",
+            "User asks about storage limits",
+            "User manually creates in Excel Online"
+          ]
+        },
+        "performance_expectations": {
+          "typical_duration_ms": 800,
+          "rate_limit_per_minute": 60,
+          "max_retries": 3,
+          "timeout_seconds": 30
+        }
+      },
+      "memory_context": {
+        "vectorization_fields": [
+          "name",
+          "workbook_id",
+          "folder_id"
+        ],
+        "search_keywords": [
+          "create workbook",
+          "new spreadsheet",
+          "excel file",
+          "create excel",
+          "new workbook",
+          "spreadsheet creation"
+        ],
+        "related_synergy_platforms": [
+          "microsoft_excel",
+          "microsoft_365",
+          "onedrive"
+        ],
+        "typical_use_cases": [
+          "Data analysis setup - User creates workbook for new data analysis project",
+          "Report template - User creates workbook as template for recurring reports",
+          "Data collection - User creates workbook for collecting survey or form data",
+          "Financial tracking - User creates workbook for budget or expense tracking",
+          "Project management - User creates workbook for project task tracking"
+        ],
+        "conversation_memory_hints": {
+          "what_to_remember": "Workbook names, workbook IDs, folder locations, creation timestamps, intended purpose",
+          "search_context": "When user asks about 'workbooks I created', 'Excel files I made', 'spreadsheets for [project]'",
+          "related_entities": [
+            "workbook names",
+            "workbook IDs",
+            "folder paths",
+            "creation dates",
+            "project names"
+          ]
+        }
+      },
+      "data_analysis_integration": {
+        "post_creation_workflows": [
+          {
+            "workflow": "Create → Import CSV → Auto-Analyze",
+            "pattern": "create_workbook → smart_import_csv → data_analyze_statistics (auto)",
+            "use_case": "Create blank workbook, import CSV data, automatically run data quality checks",
+            "ai_suggestion": "After creating workbook, if user mentions data source, offer: 'I can import your CSV data and run quality checks automatically.'"
+          },
+          {
+            "workflow": "Create → Populate → Analyze",
+            "pattern": "create_workbook → update_range → get_range → data_analyze_statistics",
+            "use_case": "Create workbook, add data manually, then analyze",
+            "ai_behavior": "After user adds data, suggest analysis options"
+          }
+        ]
+      }
+    },
+    {
+      "name": "microsoft_excel_get_workbook",
+      "short_description": "Get Microsoft Excel workbook metadata including size, URLs, and modification dates",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Read metadata from **[Workbook Name]** (ID: `[id]` | URL: [url])'\n(3) Use EXACT [id] provided - NEVER substitute with different ID\n(4) If tool fails (404/403), say 'Failed to read workbook ID: [id]' and explain error\n(5) NEVER make up data if read fails - acknowledge the failure clearly\n\n⚠️ MUST USE: execute_tool(tool_name='microsoft_excel_get_workbook', ...) - DO NOT call directly!\n\nGet Excel workbook metadata including name, size, URLs, and modification dates. Does NOT return data - use microsoft_excel_get_range to read cell data.",
+      "category": "content_management",
+      "priority": "medium",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "workbook_id": {
+            "type": "string",
+            "description": "OneDrive item ID of the workbook (obtained from create_workbook or list_workbooks)"
+          },
+          "mode": {
+            "type": "string",
+            "enum": [
+              "summary",
+              "detailed",
+              "raw"
+            ],
+            "description": "Output mode:\n- 'summary' (default): Name, size, dates, URL\n- 'detailed': Complete metadata with permissions and sharing info\n- 'raw': Full API response with all fields",
+            "default": "summary"
+          },
+          "format": {
+            "type": "string",
+            "enum": [
+              "markdown",
+              "json",
+              "text"
+            ],
+            "description": "Output format:\n- 'markdown' (default): Formatted metadata display\n- 'json': Structured data object\n- 'text': Plain text summary",
+            "default": "markdown"
+          },
+          "export": {
+            "type": "string",
+            "enum": [
+              "none",
+              "synergy",
+              "google_doc",
+              "google_sheet"
+            ],
+            "description": "Auto-export destination:\n- 'none' (default): Return data only\n- 'synergy': Save metadata to dashboard\n- 'google_doc': Create metadata report document\n- 'google_sheet': Not recommended for single workbook metadata",
+            "default": "none"
+          },
+          "export_title": {
+            "type": "string",
+            "description": "Title for exported content. Supports {date}, {time}, {name} placeholders. Example: 'Workbook Info - {name} - {date}'"
+          }
+        },
+        "required": [
+          "workbook_id"
+        ]
+      },
+      "returns": {
+        "type": "object",
+        "description": "Workbook metadata: name, id, web_url, size_bytes, created_datetime, last_modified_datetime, last_modified_by, sharing_status"
+      },
+      "user_facing_language": {
+        "action_verb": "check",
+        "resource_name": "workbook info",
+        "resource_plural": "workbook info",
+        "natural_phrases": [
+          "check workbook details",
+          "get workbook information",
+          "show workbook metadata",
+          "what's the workbook info",
+          "get spreadsheet details"
+        ],
+        "capability_description": "I can retrieve detailed information about Excel workbooks including size, modification dates, sharing status, and URLs.",
+        "mode_translations": {
+          "summary": "basic info",
+          "detailed": "complete metadata",
+          "raw": "full technical data"
+        },
+        "format_translations": {
+          "markdown": "formatted display",
+          "json": "structured data",
+          "text": "plain text"
+        },
+        "export_translations": {
+          "synergy": "save to your dashboard",
+          "google_doc": "create info report",
+          "google_sheet": "not recommended for single workbook",
+          "none": "just show you"
+        },
+        "example_ai_responses": [
+          "I'll get the details for that workbook.",
+          "I'll check the workbook information including size and modification date.",
+          "I'll retrieve the metadata for that Excel file."
+        ]
+      },
+      "tool_intelligence": {
+        "category": "content_management",
+        "typical_workflow_patterns": [
+          "microsoft_excel_list_workbooks → microsoft_excel_get_workbook (browse then inspect)",
+          "microsoft_excel_get_workbook → microsoft_excel_list_worksheets (check metadata then explore structure)",
+          "microsoft_excel_get_workbook → microsoft_excel_get_range (verify workbook then read data)",
+          "user_shares_link → microsoft_excel_get_workbook (validate access before operations)"
+        ],
+        "success_indicators": {
+          "keywords": [
+            "workbook found",
+            "metadata retrieved",
+            "workbook details",
+            "info loaded",
+            "workbook accessible"
+          ],
+          "behavioral": [
+            "User reviews workbook properties",
+            "User proceeds to read worksheets or data",
+            "User checks file size or dates",
+            "User verifies workbook location"
+          ]
+        },
+        "failure_indicators": {
+          "keywords": [
+            "workbook not found",
+            "invalid workbook ID",
+            "404 error",
+            "access denied",
+            "permission error"
+          ],
+          "behavioral": [
+            "User checks workbook ID",
+            "User asks to search for workbook",
+            "User reports workbook should exist",
+            "User tries different ID"
+          ]
+        },
+        "performance_expectations": {
+          "typical_duration_ms": 400,
+          "rate_limit_per_minute": 120,
+          "max_retries": 3,
+          "timeout_seconds": 15
+        },
+        "multi_modal_usage_patterns": {
+          "common_mode_combinations": [
+            "mode=summary, format=markdown (quick info check)",
+            "mode=detailed, export=synergy (save workbook reference)",
+            "mode=detailed, format=json (programmatic access)"
+          ],
+          "export_use_cases": [
+            "Export to synergy for project workbook reference",
+            "Export to google_doc for workbook inventory report"
+          ]
+        }
+      },
+      "memory_context": {
+        "vectorization_fields": [
+          "workbook_id",
+          "name",
+          "folder_path"
+        ],
+        "search_keywords": [
+          "workbook metadata",
+          "workbook info",
+          "file details",
+          "workbook properties",
+          "excel file info",
+          "workbook stats"
+        ],
+        "related_synergy_platforms": [
+          "microsoft_excel",
+          "microsoft_365",
+          "onedrive"
+        ],
+        "typical_use_cases": [
+          "Workbook verification - User checks if workbook exists and is accessible",
+          "Size check - User verifies workbook size before downloading",
+          "Date tracking - User checks last modified date for version control",
+          "Sharing audit - User reviews workbook permissions and sharing status",
+          "Location confirmation - User verifies workbook folder location"
+        ],
+        "conversation_memory_hints": {
+          "what_to_remember": "Workbook IDs checked, workbook names, file sizes, modification dates, sharing status",
+          "search_context": "When user asks about 'workbook details', 'file info for [name]', 'when was [workbook] modified'",
+          "related_entities": [
+            "workbook IDs",
+            "workbook names",
+            "file sizes",
+            "modification dates",
+            "folder locations"
+          ]
+        }
+      }
+    },
+    {
+      "name": "microsoft_excel_list_workbooks",
+      "short_description": "List Microsoft Excel workbooks from OneDrive with filters and export to Google Sheets",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Listed [X] workbooks from **OneDrive Folder** (Folder ID: `[id]`)'\n(3) Use EXACT folder_id provided - NEVER substitute with different ID\n(4) If tool fails (404/403), say 'Failed to list workbooks' and explain error\n(5) NEVER make up data if read fails - acknowledge the failure clearly\n\n⚠️ MUST USE: execute_tool(tool_name='microsoft_excel_list_workbooks', ...) - DO NOT call directly!\n\nList Excel workbooks (.xlsx files) in OneDrive folder. Returns workbook metadata for each file found.",
+      "category": "content_management",
+      "priority": "high",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "folder_id": {
+            "type": "string",
+            "description": "OneDrive folder ID to search (default: root folder). Use 'root' for top-level OneDrive folder."
+          },
+          "limit": {
+            "type": "integer",
+            "description": "Maximum workbooks to return (default: 50, max: 200). Use lower values for faster response.",
+            "default": 50
+          },
+          "mode": {
+            "type": "string",
+            "enum": [
+              "summary",
+              "detailed",
+              "raw"
+            ],
+            "description": "Output mode:\n- 'summary' (default): Workbook names and IDs only\n- 'detailed': Complete metadata for each workbook (size, dates, URLs)\n- 'raw': Full API response with all fields",
+            "default": "summary"
+          },
+          "format": {
+            "type": "string",
+            "enum": [
+              "markdown",
+              "json",
+              "text"
+            ],
+            "description": "Output format:\n- 'markdown' (default): Formatted workbook list\n- 'json': Structured data array\n- 'text': Plain text list",
+            "default": "markdown"
+          },
+          "export": {
+            "type": "string",
+            "enum": [
+              "none",
+              "synergy",
+              "google_doc",
+              "google_sheet"
+            ],
+            "description": "Auto-export destination:\n- 'none' (default): Return data only\n- 'synergy': Save workbook inventory to dashboard\n- 'google_doc': Create workbook list report\n- 'google_sheet': Create workbook inventory spreadsheet (RECOMMENDED for tracking)",
+            "default": "none"
+          },
+          "export_title": {
+            "type": "string",
+            "description": "Title for exported content. Supports {date}, {time}, {count}, {folder} placeholders. Example: 'Workbook Inventory - {count} files - {date}'"
+          }
+        },
+        "required": []
+      },
+      "returns": {
+        "type": "object",
+        "description": "Dict with count (number found) and workbooks array (metadata for each workbook)"
+      },
+      "user_facing_language": {
+        "action_verb": "list",
+        "resource_name": "workbooks",
+        "resource_plural": "workbooks",
+        "natural_phrases": [
+          "list my Excel files",
+          "show my workbooks",
+          "what spreadsheets do I have",
+          "list my Excel workbooks",
+          "show files in folder"
+        ],
+        "capability_description": "I can list all Excel workbooks in your OneDrive folders, showing names, sizes, and dates. I can also export the inventory for tracking.",
+        "mode_translations": {
+          "summary": "workbook names and IDs",
+          "detailed": "complete information for each workbook",
+          "raw": "full technical data"
+        },
+        "format_translations": {
+          "markdown": "formatted list",
+          "json": "structured data",
+          "text": "plain text list"
+        },
+        "export_translations": {
+          "synergy": "save inventory to your dashboard",
+          "google_doc": "create workbook list report",
+          "google_sheet": "create inventory spreadsheet (recommended)",
+          "none": "just show you"
+        },
+        "example_ai_responses": [
+          "I'll list all your Excel workbooks in that folder.",
+          "I'll show you the spreadsheets you have and export the list to a Google Sheet.",
+          "I'll create an inventory of your Excel files."
+        ]
+      },
+      "tool_intelligence": {
+        "category": "content_management",
+        "typical_workflow_patterns": [
+          "microsoft_excel_list_workbooks → microsoft_excel_get_workbook (browse then inspect specific)",
+          "microsoft_excel_list_workbooks → microsoft_excel_get_range (browse then read data)",
+          "microsoft_excel_list_workbooks → export=google_sheet (inventory management)",
+          "microsoft_excel_list_workbooks → microsoft_excel_delete_workbook (cleanup workflow)"
+        ],
+        "success_indicators": {
+          "keywords": [
+            "found X workbooks",
+            "workbooks listed",
+            "showing workbooks",
+            "inventory complete",
+            "list ready"
+          ],
+          "behavioral": [
+            "User reviews workbook names",
+            "User selects specific workbooks to open",
+            "User exports for tracking",
+            "User asks about specific workbook"
+          ]
+        },
+        "failure_indicators": {
+          "keywords": [
+            "no workbooks found",
+            "folder not found",
+            "permission denied",
+            "access error",
+            "empty folder"
+          ],
+          "behavioral": [
+            "User checks folder ID",
+            "User verifies folder permissions",
+            "User expects workbooks but sees none",
+            "User tries different folder"
+          ]
+        },
+        "performance_expectations": {
+          "typical_duration_ms": 800,
+          "rate_limit_per_minute": 60,
+          "max_retries": 3,
+          "timeout_seconds": 30
+        },
+        "multi_modal_usage_patterns": {
+          "common_mode_combinations": [
+            "mode=summary, format=markdown (quick workbook overview)",
+            "mode=detailed, export=google_sheet (comprehensive inventory tracking)",
+            "mode=summary, export=synergy (save workbook list reference)"
+          ],
+          "export_use_cases": [
+            "Export to google_sheet for workbook management and version tracking",
+            "Export to synergy for project workbook inventory",
+            "Export to google_doc for workbook audit report"
+          ]
+        }
+      },
+      "memory_context": {
+        "vectorization_fields": [
+          "folder_id",
+          "workbook_names",
+          "workbook_count"
+        ],
+        "search_keywords": [
+          "list workbooks",
+          "excel files",
+          "workbook inventory",
+          "spreadsheet list",
+          "file list",
+          "workbook catalog"
+        ],
+        "related_synergy_platforms": [
+          "microsoft_excel",
+          "microsoft_365",
+          "onedrive"
+        ],
+        "typical_use_cases": [
+          "Workbook audit - User lists all workbooks for inventory tracking",
+          "Project review - User checks what workbooks exist in project folder",
+          "Cleanup planning - User lists workbooks before archiving or deleting",
+          "Documentation - User exports workbook list for team reference",
+          "File search - User browses workbooks to find specific file"
+        ],
+        "conversation_memory_hints": {
+          "what_to_remember": "Folder IDs listed, workbook names found, workbook counts, list timestamps",
+          "search_context": "When user asks about 'workbooks in [folder]', 'Excel files I have', 'workbook inventory'",
+          "related_entities": [
+            "folder names",
+            "folder IDs",
+            "workbook names",
+            "workbook counts",
+            "folder paths"
+          ]
+        },
+        "sheet_export_structure": {
+          "when_export_google_sheet": "If user selects export='google_sheet'",
+          "columns": [
+            {
+              "name": "workbook_name",
+              "type": "string",
+              "source": "workbook.name"
+            },
+            {
+              "name": "workbook_id",
+              "type": "string",
+              "source": "workbook.id"
+            },
+            {
+              "name": "size_mb",
+              "type": "number",
+              "source": "workbook.size_mb"
+            },
+            {
+              "name": "created_date",
+              "type": "date",
+              "format": "YYYY-MM-DD",
+              "source": "workbook.createdDateTime"
+            },
+            {
+              "name": "modified_date",
+              "type": "date",
+              "format": "YYYY-MM-DD",
+              "source": "workbook.lastModifiedDateTime"
+            },
+            {
+              "name": "web_url",
+              "type": "string",
+              "source": "workbook.webUrl"
+            }
+          ],
+          "sheet_formatting": {
+            "freeze_header_row": true,
+            "auto_filter": true,
+            "conditional_formatting": [
+              {
+                "column": "size_mb",
+                "rule": ">10",
+                "format": "orange_text"
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "name": "microsoft_excel_delete_workbook",
+      "short_description": "Delete Microsoft Excel workbook by ID to move to OneDrive recycle bin",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER pretend to delete from memory\n(2) MUST cite what was deleted: 'Deleted **[Workbook Name]** (ID: `[id]`)'\n(3) CONFIRM deletion happened - don't assume success\n(4) If tool fails, say 'Failed to delete workbook ID: [id]' and explain why\n\n⚠️ MUST USE: execute_tool(tool_name='microsoft_excel_delete_workbook', ...) - DO NOT call directly!\n\nDelete an Excel workbook permanently. File moves to OneDrive recycle bin and can be recovered within 30 days.",
+      "category": "content_management",
+      "priority": "low",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "workbook_id": {
+            "type": "string",
+            "description": "Workbook ID to delete (OneDrive item ID)"
+          }
+        },
+        "required": [
+          "workbook_id"
+        ]
+      },
+      "returns": {
+        "type": "object",
+        "description": "Dict with success status and deleted workbook info"
+      },
+      "user_facing_language": {
+        "action_verb": "delete",
+        "resource_name": "workbook",
+        "resource_plural": "workbooks",
+        "natural_phrases": [
+          "delete that workbook",
+          "remove the Excel file",
+          "delete that spreadsheet",
+          "get rid of that workbook",
+          "remove that file"
+        ],
+        "capability_description": "I can delete Excel workbooks from your OneDrive. Files move to the recycle bin and can be recovered within 30 days.",
+        "example_ai_responses": [
+          "I'll delete that workbook for you. It will move to your recycle bin.",
+          "I'll remove that Excel file permanently (recoverable from recycle bin for 30 days).",
+          "I'll delete that workbook from your OneDrive."
+        ]
+      },
+      "tool_intelligence": {
+        "category": "content_management",
+        "typical_workflow_patterns": [
+          "microsoft_excel_list_workbooks → microsoft_excel_delete_workbook (browse then delete)",
+          "microsoft_excel_get_workbook → microsoft_excel_delete_workbook (verify then delete)",
+          "microsoft_excel_create_workbook → error → microsoft_excel_delete_workbook (cleanup failed creation)",
+          "cleanup_task → microsoft_excel_list_workbooks → microsoft_excel_delete_workbook (bulk cleanup)"
+        ],
+        "success_indicators": {
+          "keywords": [
+            "deleted successfully",
+            "workbook removed",
+            "file deleted",
+            "deletion complete",
+            "workbook gone"
+          ],
+          "behavioral": [
+            "User confirms workbook is gone",
+            "User doesn't ask to recover",
+            "User continues with other tasks",
+            "User checks folder and workbook not present"
+          ]
+        },
+        "failure_indicators": {
+          "keywords": [
+            "deletion failed",
+            "workbook not found",
+            "permission denied",
+            "file in use",
+            "access error"
+          ],
+          "behavioral": [
+            "User reports workbook still exists",
+            "User checks permissions",
+            "User asks to retry",
+            "User manually deletes in OneDrive",
+            "User reports workbook is locked"
+          ]
+        },
+        "performance_expectations": {
+          "typical_duration_ms": 500,
+          "rate_limit_per_minute": 60,
+          "max_retries": 3,
+          "timeout_seconds": 20
+        }
+      },
+      "memory_context": {
+        "vectorization_fields": [
+          "workbook_id",
+          "workbook_name"
+        ],
+        "search_keywords": [
+          "delete workbook",
+          "remove file",
+          "delete excel",
+          "file deletion",
+          "remove workbook",
+          "delete spreadsheet"
+        ],
+        "related_synergy_platforms": [
+          "microsoft_excel",
+          "microsoft_365",
+          "onedrive"
+        ],
+        "typical_use_cases": [
+          "Cleanup - User deletes old or obsolete workbooks",
+          "Mistake correction - User removes incorrectly created workbook",
+          "Storage management - User deletes large files to free space",
+          "Project completion - User removes temporary work files",
+          "Duplicate removal - User deletes duplicate versions of workbooks"
+        ],
+        "conversation_memory_hints": {
+          "what_to_remember": "Workbook IDs deleted, workbook names, deletion timestamps, reasons for deletion",
+          "search_context": "When user asks about 'workbooks I deleted', 'files I removed', 'what I deleted recently'",
+          "related_entities": [
+            "workbook IDs",
+            "workbook names",
+            "deletion timestamps",
+            "folder locations",
+            "deletion reasons"
+          ]
+        }
+      }
+    },
+    {
+      "name": "microsoft_excel_list_worksheets",
+      "short_description": "List worksheets in Microsoft Excel workbook with names, positions, and visibility",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Listed [X] worksheets from **[Workbook Name]** (ID: `[id]`)'\n(3) Use EXACT workbook_id provided - NEVER substitute with different ID\n(4) If tool fails (404/403), say 'Failed to list worksheets' and explain error\n(5) NEVER make up data if read fails - acknowledge the failure clearly\n\n⚠️ MUST USE: execute_tool(tool_name='microsoft_excel_list_worksheets', ...) - DO NOT call directly!\n\nList all worksheets (tabs/sheets) in an Excel workbook. Returns worksheet names, IDs, positions, and visibility status.",
+      "category": "worksheet_operations",
+      "priority": "high",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "workbook_id": {
+            "type": "string",
+            "description": "Workbook ID containing the worksheets"
+          },
+          "mode": {
+            "type": "string",
+            "enum": [
+              "summary",
+              "detailed",
+              "raw"
+            ],
+            "description": "Output mode:\n- 'summary' (default): Worksheet names and positions\n- 'detailed': Complete metadata including visibility and protection status\n- 'raw': Full API response",
+            "default": "summary"
+          },
+          "format": {
+            "type": "string",
+            "enum": [
+              "markdown",
+              "json",
+              "text"
+            ],
+            "description": "Output format:\n- 'markdown' (default): Formatted worksheet list\n- 'json': Structured data array\n- 'text': Plain text list",
+            "default": "markdown"
+          },
+          "export": {
+            "type": "string",
+            "enum": [
+              "none",
+              "synergy",
+              "google_doc",
+              "google_sheet"
+            ],
+            "description": "Auto-export destination:\n- 'none' (default): Return data only\n- 'synergy': Save worksheet inventory to dashboard\n- 'google_doc': Create worksheet list document\n- 'google_sheet': Create worksheet catalog (useful for multi-workbook analysis)",
+            "default": "none"
+          },
+          "export_title": {
+            "type": "string",
+            "description": "Title for exported content. Supports {date}, {workbook}, {count} placeholders"
+          }
+        },
+        "required": [
+          "workbook_id"
+        ]
+      },
+      "returns": {
+        "type": "object",
+        "description": "Dict with count and worksheets array (name, id, position, visibility for each)"
+      },
+      "user_facing_language": {
+        "action_verb": "list",
+        "resource_name": "worksheets",
+        "resource_plural": "worksheets",
+        "natural_phrases": [
+          "list the sheets",
+          "show me the worksheets",
+          "what sheets are in this workbook",
+          "list tabs in spreadsheet",
+          "show worksheet names"
+        ],
+        "capability_description": "I can list all worksheets (tabs) in Excel workbooks, showing their names, order, and visibility. This helps you understand workbook structure before reading data.",
+        "mode_translations": {
+          "summary": "worksheet names and order",
+          "detailed": "complete sheet info with protection status",
+          "raw": "full technical data"
+        },
+        "format_translations": {
+          "markdown": "formatted list",
+          "json": "structured data",
+          "text": "plain text list"
+        },
+        "export_translations": {
+          "synergy": "save to your dashboard",
+          "google_doc": "create worksheet list",
+          "google_sheet": "create catalog (useful for multi-workbook)",
+          "none": "just show you"
+        },
+        "example_ai_responses": [
+          "I'll list all the worksheets in that workbook.",
+          "I'll show you the sheet names and their order.",
+          "I'll export the worksheet structure for your reference."
+        ]
+      },
+      "tool_intelligence": {
+        "category": "content_management",
+        "typical_workflow_patterns": [
+          "microsoft_excel_get_workbook → microsoft_excel_list_worksheets (check metadata then explore sheets)",
+          "microsoft_excel_list_worksheets → microsoft_excel_get_range (list sheets then read from specific sheet)",
+          "microsoft_excel_list_worksheets → microsoft_excel_add_worksheet (check existing then add new)",
+          "microsoft_excel_list_worksheets → export=google_sheet (document workbook structure)"
+        ],
+        "success_indicators": {
+          "keywords": [
+            "found X worksheets",
+            "worksheets listed",
+            "showing sheets",
+            "sheet inventory",
+            "list complete"
+          ],
+          "behavioral": [
+            "User selects specific sheet to read",
+            "User proceeds to get_range from sheet",
+            "User reviews sheet names",
+            "User adds or renames sheets based on list"
+          ]
+        },
+        "failure_indicators": {
+          "keywords": [
+            "no worksheets found",
+            "workbook not found",
+            "access denied",
+            "permission error",
+            "empty workbook"
+          ],
+          "behavioral": [
+            "User checks workbook ID",
+            "User verifies workbook access",
+            "User expects sheets but sees none",
+            "User tries different workbook"
+          ]
+        },
+        "performance_expectations": {
+          "typical_duration_ms": 600,
+          "rate_limit_per_minute": 60,
+          "max_retries": 3,
+          "timeout_seconds": 20
+        },
+        "multi_modal_usage_patterns": {
+          "common_mode_combinations": [
+            "mode=summary, format=markdown (quick sheet overview)",
+            "mode=detailed, export=google_sheet (workbook structure documentation)",
+            "mode=summary, format=json (programmatic sheet discovery)"
+          ],
+          "export_use_cases": [
+            "Export to google_sheet for multi-workbook sheet catalog",
+            "Export to synergy for project workbook structure reference",
+            "Export to google_doc for workbook documentation"
+          ]
+        }
+      },
+      "memory_context": {
+        "vectorization_fields": [
+          "workbook_id",
+          "worksheet_names",
+          "worksheet_count"
+        ],
+        "search_keywords": [
+          "list worksheets",
+          "worksheet list",
+          "sheet names",
+          "workbook tabs",
+          "sheet structure",
+          "worksheet catalog"
+        ],
+        "related_synergy_platforms": [
+          "microsoft_excel",
+          "microsoft_365",
+          "onedrive"
+        ],
+        "typical_use_cases": [
+          "Workbook exploration - User lists sheets before reading data",
+          "Structure validation - User checks if expected sheets exist",
+          "Navigation - User finds sheet names for get_range operations",
+          "Documentation - User exports sheet structure for team reference",
+          "Data discovery - User browses sheets to find relevant data"
+        ],
+        "conversation_memory_hints": {
+          "what_to_remember": "Workbook IDs inspected, worksheet names found, sheet counts, common sheet names",
+          "search_context": "When user asks about 'sheets in [workbook]', 'worksheet names', 'workbook structure'",
+          "related_entities": [
+            "workbook IDs",
+            "workbook names",
+            "worksheet names",
+            "sheet counts",
+            "sheet purposes"
+          ]
+        },
+        "sheet_export_structure": {
+          "when_export_google_sheet": "If user selects export='google_sheet'",
+          "columns": [
+            {
+              "name": "workbook_name",
+              "type": "string",
+              "source": "workbook.name"
+            },
+            {
+              "name": "worksheet_name",
+              "type": "string",
+              "source": "worksheet.name"
+            },
+            {
+              "name": "worksheet_id",
+              "type": "string",
+              "source": "worksheet.id"
+            },
+            {
+              "name": "position",
+              "type": "integer",
+              "source": "worksheet.position"
+            },
+            {
+              "name": "visibility",
+              "type": "string",
+              "source": "worksheet.visibility"
+            },
+            {
+              "name": "is_protected",
+              "type": "boolean",
+              "source": "worksheet.protection.protected"
+            }
+          ],
+          "sheet_formatting": {
+            "freeze_header_row": true,
+            "auto_filter": true
+          }
+        }
+      }
+    },
+    {
+      "name": "microsoft_excel_add_worksheet",
+      "short_description": "Add new worksheet to Microsoft Excel workbook with custom name",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) ALWAYS execute THIS tool NOW - NEVER reference 'I created earlier' or use conversation history\n(2) MUST return format: **[Name]** | ID: `[id]`\n(3) Use EXACT values from tool response - NEVER make up fake IDs\n(4) If tool fails, say 'Failed to create worksheet' - NEVER pretend it succeeded\n\n⚠️ MUST USE: execute_tool(tool_name='microsoft_excel_add_worksheet', ...) - DO NOT call directly!\n\nAdd new worksheet (tab/sheet) to existing workbook. Worksheet is created blank and positioned at the end by default.",
+      "category": "worksheet_operations",
+      "priority": "medium",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "workbook_id": {
+            "type": "string",
+            "description": "Workbook ID to add worksheet to"
+          },
+          "name": {
+            "type": "string",
+            "description": "Worksheet name (must be unique within workbook, max 31 characters). Example: 'Q4 Data', 'Summary', 'Analysis'"
+          }
+        },
+        "required": [
+          "workbook_id",
+          "name"
+        ]
+      },
+      "returns": {
+        "type": "object",
+        "description": "Dict with new worksheet info: name, id, position"
+      },
+      "user_facing_language": {
+        "action_verb": "add",
+        "resource_name": "worksheet",
+        "resource_plural": "worksheets",
+        "natural_phrases": [
+          "add a worksheet",
+          "create a new sheet",
+          "add a tab",
+          "create another worksheet",
+          "add a sheet to the workbook"
+        ],
+        "capability_description": "I can add new worksheets (tabs) to Excel workbooks, helping you organize data into separate sheets for different purposes.",
+        "example_ai_responses": [
+          "I'll add a new worksheet called 'Q4 Sales' to the workbook.",
+          "I'll create that sheet for you.",
+          "I'll add a 'Summary' tab to organize your data."
+        ]
+      },
+      "tool_intelligence": {
+        "category": "content_management",
+        "typical_workflow_patterns": [
+          "microsoft_excel_create_workbook → microsoft_excel_add_worksheet (create then organize)",
+          "microsoft_excel_list_worksheets → microsoft_excel_add_worksheet (check existing then add)",
+          "microsoft_excel_add_worksheet → microsoft_excel_update_range (create sheet then populate data)",
+          "data_analysis → microsoft_excel_add_worksheet → write results (analyze then create results sheet)"
+        ],
+        "success_indicators": {
+          "keywords": [
+            "worksheet added",
+            "sheet created",
+            "new worksheet",
+            "tab added",
+            "worksheet ready"
+          ],
+          "behavioral": [
+            "User proceeds to add data to new sheet",
+            "User creates multiple sheets for organization",
+            "User views worksheet in Excel Online",
+            "User continues data entry workflow"
+          ]
+        },
+        "failure_indicators": {
+          "keywords": [
+            "worksheet already exists",
+            "invalid name",
+            "name too long",
+            "workbook not found",
+            "permission denied"
+          ],
+          "behavioral": [
+            "User tries different worksheet name",
+            "User checks existing worksheet names",
+            "User shortens worksheet name",
+            "User manually creates in Excel Online"
+          ]
+        },
+        "performance_expectations": {
+          "typical_duration_ms": 600,
+          "rate_limit_per_minute": 60,
+          "max_retries": 3,
+          "timeout_seconds": 20
+        }
+      },
+      "memory_context": {
+        "vectorization_fields": [
+          "workbook_id",
+          "name",
+          "worksheet_id"
+        ],
+        "search_keywords": [
+          "add worksheet",
+          "create sheet",
+          "new tab",
+          "add sheet",
+          "create worksheet",
+          "new sheet"
+        ],
+        "related_synergy_platforms": [
+          "microsoft_excel",
+          "microsoft_365",
+          "onedrive"
+        ],
+        "typical_use_cases": [
+          "Data organization - User adds sheets for different data categories",
+          "Analysis separation - User creates 'Analysis' sheet separate from raw data",
+          "Report sections - User adds sheets for different report sections",
+          "Multi-period tracking - User creates sheets for Q1, Q2, Q3, Q4",
+          "Template building - User adds sheets for different template sections"
+        ],
+        "conversation_memory_hints": {
+          "what_to_remember": "Workbook IDs, worksheet names created, creation timestamps, worksheet purposes",
+          "search_context": "When user asks about 'worksheets I added', 'sheets I created', 'tabs in [workbook]'",
+          "related_entities": [
+            "workbook IDs",
+            "workbook names",
+            "worksheet names",
+            "worksheet IDs",
+            "creation dates"
+          ]
+        }
+      },
+      "data_analysis_integration": {
+        "post_analysis_workflows": [
+          {
+            "workflow": "Analyze → Create Results Sheet",
+            "pattern": "get_range → data_analyze_statistics → add_worksheet('Statistics') → update_range",
+            "use_case": "Read data, run analysis, create dedicated sheet for results",
+            "ai_suggestion": "After analysis, offer: 'I can create a separate worksheet for these analysis results.'"
+          },
+          {
+            "workflow": "Multi-Analysis Workbook",
+            "pattern": "add_worksheet('Summary') + add_worksheet('Correlation') + add_worksheet('Outliers')",
+            "use_case": "Create organized workbook with separate sheets for each analysis type",
+            "ai_behavior": "Auto-organize complex analyses into multiple sheets"
+          }
+        ]
+      }
+    },
+    {
+      "name": "microsoft_excel_rename_worksheet",
+      "short_description": "Rename worksheet in Microsoft Excel workbook for better organization",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER reference previous edits from conversation history\n(2) MUST cite what was updated: 'Renamed worksheet from **[OldName]** to **[NewName]**'\n(3) Use EXACT IDs provided - NEVER make up IDs\n(4) If tool fails, say 'Failed to rename worksheet' and explain why\n\n⚠️ MUST USE: execute_tool(tool_name='microsoft_excel_rename_worksheet', ...) - DO NOT call directly!\n\nRename existing worksheet in workbook. New name must be unique within workbook (max 31 characters).",
+      "category": "worksheet_operations",
+      "priority": "low",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "workbook_id": {
+            "type": "string",
+            "description": "Workbook ID containing the worksheet"
+          },
+          "sheet_id": {
+            "type": "string",
+            "description": "Worksheet ID to rename (or use sheet name)"
+          },
+          "new_name": {
+            "type": "string",
+            "description": "New worksheet name (must be unique, max 31 characters)"
+          }
+        },
+        "required": [
+          "workbook_id",
+          "sheet_id",
+          "new_name"
+        ]
+      },
+      "returns": {
+        "type": "object",
+        "description": "Dict with success status and new worksheet name"
+      },
+      "user_facing_language": {
+        "action_verb": "rename",
+        "resource_name": "worksheet",
+        "resource_plural": "worksheets",
+        "natural_phrases": [
+          "rename the worksheet",
+          "change sheet name",
+          "rename that tab",
+          "update worksheet name",
+          "change the sheet name"
+        ],
+        "capability_description": "I can rename Excel worksheets to better organize your workbook and clarify sheet purposes.",
+        "example_ai_responses": [
+          "I'll rename that worksheet to 'Q4 Sales Data'.",
+          "I'll change the sheet name for you.",
+          "I'll update that worksheet name to be more descriptive."
+        ]
+      },
+      "tool_intelligence": {
+        "category": "content_management",
+        "typical_workflow_patterns": [
+          "microsoft_excel_list_worksheets → microsoft_excel_rename_worksheet (find then rename)",
+          "microsoft_excel_add_worksheet → microsoft_excel_rename_worksheet (create with default name then rename)",
+          "organization_task → microsoft_excel_list_worksheets → microsoft_excel_rename_worksheet (cleanup workflow)"
+        ],
+        "success_indicators": {
+          "keywords": [
+            "renamed successfully",
+            "name changed",
+            "worksheet renamed",
+            "name updated",
+            "rename complete"
+          ],
+          "behavioral": [
+            "User confirms new name in Excel",
+            "User continues with other operations",
+            "User doesn't ask to undo",
+            "User references worksheet by new name"
+          ]
+        },
+        "failure_indicators": {
+          "keywords": [
+            "name already exists",
+            "invalid name",
+            "name too long",
+            "worksheet not found",
+            "rename failed"
+          ],
+          "behavioral": [
+            "User tries different name",
+            "User checks existing names",
+            "User shortens name",
+            "User manually renames in Excel"
+          ]
+        },
+        "performance_expectations": {
+          "typical_duration_ms": 500,
+          "rate_limit_per_minute": 60,
+          "max_retries": 3,
+          "timeout_seconds": 15
+        }
+      },
+      "memory_context": {
+        "vectorization_fields": [
+          "workbook_id",
+          "sheet_id",
+          "new_name"
+        ],
+        "search_keywords": [
+          "rename worksheet",
+          "change sheet name",
+          "update sheet name",
+          "rename tab",
+          "worksheet name",
+          "sheet rename"
+        ],
+        "related_synergy_platforms": [
+          "microsoft_excel",
+          "microsoft_365",
+          "onedrive"
+        ],
+        "typical_use_cases": [
+          "Clarity improvement - User renames 'Sheet1' to descriptive name",
+          "Organization - User renames sheets to match data contents",
+          "Standardization - User updates sheet names to follow naming convention",
+          "Error correction - User fixes typo in worksheet name",
+          "Project updates - User renames sheets to reflect current project phase"
+        ],
+        "conversation_memory_hints": {
+          "what_to_remember": "Workbook IDs, old worksheet names, new worksheet names, rename timestamps",
+          "search_context": "When user asks about 'sheets I renamed', 'worksheet name changes', 'what I called [sheet]'",
+          "related_entities": [
+            "workbook IDs",
+            "worksheet IDs",
+            "old names",
+            "new names",
+            "rename timestamps"
+          ]
+        }
+      }
+    },
+    {
+      "name": "microsoft_excel_delete_worksheet",
+      "short_description": "Delete worksheet from Microsoft Excel workbook permanently",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER pretend to delete from memory\n(2) MUST cite what was deleted: 'Deleted worksheet **[Name]** from workbook **[WorkbookName]**'\n(3) CONFIRM deletion happened - don't assume success\n(4) If tool fails, say 'Failed to delete worksheet' and explain why\n\n⚠️ MUST USE: execute_tool(tool_name='microsoft_excel_delete_worksheet', ...) - DO NOT call directly!\n\nDelete worksheet from workbook. WARNING: This permanently deletes the worksheet and all its data. Cannot delete the only worksheet in a workbook.",
+      "category": "worksheet_operations",
+      "priority": "low",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "workbook_id": {
+            "type": "string",
+            "description": "Workbook ID containing the worksheet"
+          },
+          "sheet_id": {
+            "type": "string",
+            "description": "Worksheet ID to delete (or use sheet name)"
+          }
+        },
+        "required": [
+          "workbook_id",
+          "sheet_id"
+        ]
+      },
+      "returns": {
+        "type": "object",
+        "description": "Dict with success status"
+      },
+      "user_facing_language": {
+        "action_verb": "delete",
+        "resource_name": "worksheet",
+        "resource_plural": "worksheets",
+        "natural_phrases": [
+          "delete the worksheet",
+          "remove that sheet",
+          "delete that tab",
+          "get rid of the worksheet",
+          "remove that sheet"
+        ],
+        "capability_description": "I can delete worksheets from Excel workbooks. WARNING: This permanently deletes the sheet and all its data. Cannot delete if it's the only worksheet.",
+        "example_ai_responses": [
+          "I'll delete that worksheet. This will permanently remove the sheet and its data.",
+          "I'll remove that sheet from the workbook (this cannot be undone).",
+          "I'll delete that worksheet. Note: All data on the sheet will be lost."
+        ]
+      },
+      "tool_intelligence": {
+        "category": "content_management",
+        "typical_workflow_patterns": [
+          "microsoft_excel_list_worksheets → microsoft_excel_delete_worksheet (list then delete)",
+          "microsoft_excel_add_worksheet → error → microsoft_excel_delete_worksheet (cleanup failed addition)",
+          "cleanup_task → microsoft_excel_list_worksheets → microsoft_excel_delete_worksheet (organize workbook)"
+        ],
+        "success_indicators": {
+          "keywords": [
+            "deleted successfully",
+            "worksheet removed",
+            "sheet deleted",
+            "deletion complete",
+            "worksheet gone"
+          ],
+          "behavioral": [
+            "User confirms worksheet is gone",
+            "User doesn't ask to recover",
+            "User continues with other tasks",
+            "User checks workbook and sheet not present"
+          ]
+        },
+        "failure_indicators": {
+          "keywords": [
+            "deletion failed",
+            "cannot delete last sheet",
+            "worksheet not found",
+            "permission denied",
+            "sheet in use"
+          ],
+          "behavioral": [
+            "User reports worksheet still exists",
+            "User checks if it's the only sheet",
+            "User asks to retry",
+            "User manually deletes in Excel"
+          ]
+        },
+        "performance_expectations": {
+          "typical_duration_ms": 500,
+          "rate_limit_per_minute": 60,
+          "max_retries": 3,
+          "timeout_seconds": 15
+        }
+      },
+      "memory_context": {
+        "vectorization_fields": [
+          "workbook_id",
+          "sheet_id",
+          "sheet_name"
+        ],
+        "search_keywords": [
+          "delete worksheet",
+          "remove sheet",
+          "delete tab",
+          "sheet deletion",
+          "remove worksheet",
+          "delete sheet"
+        ],
+        "related_synergy_platforms": [
+          "microsoft_excel",
+          "microsoft_365",
+          "onedrive"
+        ],
+        "typical_use_cases": [
+          "Cleanup - User deletes temporary or unused worksheets",
+          "Organization - User removes duplicate or obsolete sheets",
+          "Error correction - User deletes incorrectly created worksheet",
+          "Workbook simplification - User removes unused sheets before sharing",
+          "Template preparation - User removes example sheets from template"
+        ],
+        "conversation_memory_hints": {
+          "what_to_remember": "Workbook IDs, deleted worksheet names, deletion timestamps, reasons for deletion",
+          "search_context": "When user asks about 'worksheets I deleted', 'sheets I removed', 'what sheets were in [workbook]'",
+          "related_entities": [
+            "workbook IDs",
+            "worksheet names",
+            "deletion timestamps",
+            "workbook structure"
+          ]
+        }
+      }
+    },
+    {
+      "name": "microsoft_excel_get_range",
+      "short_description": "Get cell range data from Microsoft Excel with formulas, values, and formatting",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Read [X] rows from **[Workbook Name]** sheet **[SheetName]** range [Range]'\n(3) Use EXACT IDs and range provided - NEVER substitute with different values\n(4) If tool fails (404/403), say 'Failed to read range [range] from sheet [sheet]' and explain error\n(5) NEVER make up data if read fails - acknowledge the failure clearly\n\nExample response:\nRead 45 rows from **Sales Spreadsheet** sheet **Q4 Data** range A1:E45\n- Workbook ID: `xyz789`\n- URL: https://onedrive.live.com/workbook/xyz789\n- Data preview: [first 10 rows shown]\n\n⚠️ MUST USE: execute_tool(tool_name='microsoft_excel_get_range', ...) - DO NOT call directly!\n\n🎯 MOST IMPORTANT EXCEL TOOL - Used for reading data from Excel cells and ranges. This is the primary data extraction tool.\n\n✨ MULTI-MODAL CAPABILITIES:\n- Read data in summary (preview), detailed (all data), or raw (with formulas) modes\n- Export directly to Google Sheets for advanced analysis (RECOMMENDED for large datasets)\n- Single-call workflow: Read from Excel → Export to Google Sheets (no intermediate steps!)\n\n📊 DATA ANALYSIS INTEGRATION:\nAfter reading Excel data, AI should automatically suggest analysis options based on data type:\n- Numeric columns → Offer statistics, correlations, outliers detection\n- Categorical + numeric → Offer pivot tables, group comparisons, hypothesis tests\n- Time series → Offer rolling averages, forecasting, trend analysis",
+      "category": "data_processing",
+      "priority": "critical",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "workbook_id": {
+            "type": "string",
+            "description": "Workbook ID containing the data"
+          },
+          "sheet_name": {
+            "type": "string",
+            "description": "Worksheet name to read from. Example: 'Sheet1', 'Sales Data', 'Q4 Results'"
+          },
+          "range_address": {
+            "type": "string",
+            "description": "Cell or range address in A1 notation. Examples: 'A1' (single cell), 'A1:E10' (range), 'A:A' (entire column), '1:1' (entire row). For entire sheet data, use 'A1:ZZ1000' or call without specifying end."
+          },
+          "mode": {
+            "type": "string",
+            "enum": [
+              "summary",
+              "detailed",
+              "raw"
+            ],
+            "description": "Output mode:\n- 'summary' (default): First 10 rows preview with row/column counts - FAST, use for initial data exploration\n- 'detailed': All data with values only - use when you need complete data for analysis\n- 'raw': Complete data with formulas, formatting, and metadata - use when formulas/formatting matter",
+            "default": "summary"
+          },
+          "format": {
+            "type": "string",
+            "enum": [
+              "markdown",
+              "json",
+              "csv"
+            ],
+            "description": "Output format:\n- 'markdown' (default): Formatted table (human-readable, good for AI display)\n- 'json': Structured 2D array (best for programmatic processing)\n- 'csv': CSV string (best for data analysis tool integration)",
+            "default": "markdown"
+          },
+          "export": {
+            "type": "string",
+            "enum": [
+              "none",
+              "synergy",
+              "google_sheet",
+              "google_doc"
+            ],
+            "description": "Auto-export destination:\n- 'none' (default): Return data only\n- 'synergy': Save to dashboard for project reference\n- 'google_sheet': Export to new Google Sheet (⚠️ RECOMMENDED for data analysis! Better pivot tables, collaboration, and integration with data_analysis tools)\n- 'google_doc': Create table in Google Doc (use for presentation/reports)",
+            "default": "none"
+          },
+          "export_title": {
+            "type": "string",
+            "description": "Title for exported content. Supports placeholders: {date}, {time}, {workbook}, {sheet}, {range}, {rows}, {cols}. Example: '{workbook} - {sheet} Data Export - {date}'"
+          }
+        },
+        "required": [
+          "workbook_id",
+          "sheet_name",
+          "range_address"
+        ]
+      },
+      "returns": {
+        "type": "object",
+        "description": "Dict with values (2D array), row_count, column_count, range_address, formulas (if mode=raw), formatting (if mode=raw), export_info (if export != none)"
+      },
+      "user_facing_language": {
+        "action_verb": "read",
+        "resource_name": "spreadsheet data",
+        "resource_plural": "spreadsheet data",
+        "natural_phrases": [
+          "read the Excel data",
+          "get data from spreadsheet",
+          "pull data from range",
+          "fetch spreadsheet values",
+          "extract Excel data",
+          "show me the data"
+        ],
+        "capability_description": "I can read data from Excel ranges with previews or complete data. I can also export directly to Google Sheets for advanced analysis, pivot tables, and collaboration. This is the most powerful data extraction tool.",
+        "mode_translations": {
+          "summary": "preview (first 10 rows) - fast",
+          "detailed": "all data - complete dataset",
+          "raw": "complete with formulas and formatting"
+        },
+        "format_translations": {
+          "markdown": "formatted table for display",
+          "json": "structured data for processing",
+          "csv": "spreadsheet format for analysis"
+        },
+        "export_translations": {
+          "synergy": "save to your dashboard",
+          "google_sheet": "export to Google Sheets (RECOMMENDED - better for analysis, pivot tables, and collaboration)",
+          "google_doc": "create table document",
+          "none": "just show you"
+        },
+        "example_ai_responses": [
+          "I'll read the sales data from A1:E50 and show you a preview.",
+          "I'll get all the data from that range and export it to a Google Sheet for analysis.",
+          "I'll extract the financial data and save it to your dashboard.",
+          "I'll read that range and we can analyze it for statistics, correlations, or outliers."
+        ]
+      },
+      "tool_intelligence": {
+        "category": "data_processing",
+        "typical_workflow_patterns": [
+          "microsoft_excel_list_workbooks → microsoft_excel_list_worksheets → microsoft_excel_get_range (browse → explore → read)",
+          "microsoft_excel_get_range → export=google_sheet (read then analyze in Sheets) ⚠️ MOST COMMON",
+          "microsoft_excel_get_range → data_analyze_statistics (read then analyze) ⚠️ RECOMMENDED",
+          "microsoft_excel_get_range → microsoft_excel_update_range (read, modify, write back)",
+          "microsoft_excel_get_range → data_create_regression_model (read then predict)",
+          "microsoft_excel_get_range → data_run_hypothesis_test (read then compare groups)"
+        ],
+        "success_indicators": {
+          "keywords": [
+            "data retrieved",
+            "read X rows",
+            "range loaded",
+            "values extracted",
+            "exported to sheets",
+            "data preview ready"
+          ],
+          "behavioral": [
+            "User reviews data preview",
+            "User exports for analysis",
+            "User proceeds to analyze with data_analysis tools",
+            "User uses data in calculations",
+            "User asks follow-up questions about data"
+          ]
+        },
+        "failure_indicators": {
+          "keywords": [
+            "range not found",
+            "invalid range address",
+            "workbook not accessible",
+            "permission denied",
+            "empty range",
+            "sheet not found"
+          ],
+          "behavioral": [
+            "User checks range address format",
+            "User verifies workbook/sheet access",
+            "User reports expecting data",
+            "User tries different range",
+            "User checks sheet name spelling"
+          ]
+        },
+        "performance_expectations": {
+          "typical_duration_ms": 1200,
+          "rate_limit_per_minute": 60,
+          "max_retries": 3,
+          "timeout_seconds": 30
+        },
+        "multi_modal_usage_patterns": {
+          "common_mode_combinations": [
+            "mode=summary, format=markdown (quick preview before deciding next action) - USE FIRST",
+            "mode=detailed, export=google_sheet (full export for pivot tables and analysis) - MOST POWERFUL",
+            "mode=detailed, format=csv → data_analyze_statistics (read then analyze) - RECOMMENDED",
+            "mode=raw, format=json (when formulas and formatting matter)"
+          ],
+          "export_use_cases": [
+            "Export to google_sheet for pivot tables, charts, and collaborative analysis (BEST for large datasets)",
+            "Export to synergy for project data reference and dashboard",
+            "Export to google_doc for data presentation in reports",
+            "Keep in Excel (export=none) only for small datasets or when updating back to Excel"
+          ]
+        }
+      },
+      "memory_context": {
+        "vectorization_fields": [
+          "workbook_id",
+          "sheet_name",
+          "range_address",
+          "data_summary"
+        ],
+        "search_keywords": [
+          "read excel",
+          "get range",
+          "spreadsheet data",
+          "excel values",
+          "cell data",
+          "range data",
+          "extract data",
+          "pull data"
+        ],
+        "related_synergy_platforms": [
+          "microsoft_excel",
+          "microsoft_365",
+          "onedrive",
+          "google_sheets"
+        ],
+        "typical_use_cases": [
+          "Data analysis - User reads sales data from Excel for statistical analysis",
+          "Report building - User extracts financial data for reporting",
+          "Data migration - User exports Excel data to Google Sheets for better collaboration",
+          "Validation - User reads data to verify updates or accuracy",
+          "Integration - User pulls Excel data for processing in other tools",
+          "Business intelligence - User extracts metrics for dashboard creation"
+        ],
+        "conversation_memory_hints": {
+          "what_to_remember": "Workbook IDs, sheet names, range addresses, data topics, read timestamps, row/column counts, frequently accessed ranges",
+          "search_context": "When user asks about 'data from [workbook]', 'Excel range I read', 'spreadsheet values', 'sales data in Excel'",
+          "related_entities": [
+            "workbook IDs",
+            "workbook names",
+            "sheet names",
+            "range addresses",
+            "data topics",
+            "read timestamps",
+            "column names"
+          ]
+        },
+        "sheet_export_structure": {
+          "when_export_google_sheet": "If user selects export='google_sheet' (HIGHLY RECOMMENDED for data analysis)",
+          "columns": "Dynamic - preserves exact source range structure with headers and data",
+          "column_mapping": [
+            {
+              "source": "range[0]",
+              "target": "header_row",
+              "type": "header",
+              "note": "First row becomes column headers"
+            },
+            {
+              "source": "range[1:]",
+              "target": "data_rows",
+              "type": "values",
+              "note": "Remaining rows are data"
+            }
+          ],
+          "sheet_formatting": {
+            "freeze_header_row": true,
+            "auto_filter": true,
+            "preserve_number_formats": true,
+            "conditional_formatting": "Preserve if mode=raw",
+            "column_widths": "Auto-fit to content",
+            "note": "Google Sheets formatting is applied for better usability"
+          },
+          "metadata": {
+            "source_workbook": "workbook.name",
+            "source_sheet": "sheet_name",
+            "source_range": "range_address",
+            "export_date": "timestamp",
+            "row_count": "row_count",
+            "column_count": "column_count",
+            "note": "Metadata added in first sheet cell comment or separate metadata sheet"
+          }
+        }
+      },
+      "data_analysis_integration": {
+        "primary_use": "Extract Excel data for analysis with data_analysis tools - THE MOST CRITICAL INTEGRATION POINT",
+        "recommended_data_analysis_workflows": [
+          {
+            "workflow": "Quick Statistics",
+            "pattern": "get_range(mode='detailed', format='csv') → data_analyze_statistics(analysis_type='summary')",
+            "speed": "Fast (~1.5-2s total: 1.2s read + 0.3s analyze)",
+            "use_when": "User asks: 'What are the statistics?', 'Summarize this data', 'Show me mean/median/outliers'",
+            "ai_response_template": "I'll read the Excel data and calculate summary statistics. This will take about 2 seconds.",
+            "ai_auto_suggest": "After reading numeric data, automatically offer: 'I can calculate statistics (mean, median, std dev, quartiles) for this data. Would you like me to?'"
+          },
+          {
+            "workflow": "Correlation Analysis",
+            "pattern": "get_range(mode='detailed', format='csv') → data_analyze_statistics(analysis_type='correlation', options={'method':'pearson', 'include_pvalues':true}) → export to Google Sheets",
+            "speed": "Fast (~1.6-2.2s total: 1.2s read + 0.4s analyze)",
+            "use_when": "User has multi-column numeric data and asks about relationships",
+            "ai_response_template": "I'll analyze correlations between [columns] to find relationships. Results will show which variables are related and if those relationships are statistically significant.",
+            "ai_auto_suggest": "Trigger: 3+ numeric columns detected. Offer: 'I can calculate correlations between these columns to identify relationships. Would you like to see which variables are related?'"
+          },
+          {
+            "workflow": "Outlier Detection",
+            "pattern": "get_range → data_analyze_statistics(analysis_type='outliers', options={'method':'iqr'})",
+            "speed": "Fast (~1.5-2s total)",
+            "use_when": "User wants to find unusual values or data quality check",
+            "ai_response_template": "I'll detect outliers in your data using the IQR method. This identifies values that are unusually high or low.",
+            "ai_auto_suggest": "Trigger: Large dataset (100+ rows). Offer: 'Would you like me to check for outliers or unusual values in this data?'"
+          },
+          {
+            "workflow": "Data Quality Check",
+            "pattern": "get_range → data_analyze_statistics(analysis_type='missing') + data_analyze_statistics(analysis_type='outliers')",
+            "speed": "Fast (~1.8-2.5s total)",
+            "use_when": "User imports/reads data for first time",
+            "ai_response_template": "I'll run a data quality check including missing value analysis and outlier detection.",
+            "ai_auto_suggest": "ALWAYS offer after reading new dataset: 'Data loaded: [X] rows, [Y] columns. Would you like me to run a quality check (missing values, outliers)?'"
+          },
+          {
+            "workflow": "Predictive Modeling",
+            "pattern": "get_range(mode='detailed') → data_create_regression_model(model_type='linear') → microsoft_excel_update_range (write predictions back)",
+            "speed": "Moderate (~2-4s total: 1.2s read + 1-2s model + 0.8s write)",
+            "use_when": "User wants forecasts, predictions, or understanding variable relationships",
+            "ai_response_template": "I'll build a [linear/random forest] regression model to predict [target] from [predictors]. Then I'll add predictions to your Excel sheet and create a visualization chart.",
+            "ai_auto_suggest": "Trigger: Time series data or clear target variable. Offer: 'I can build a predictive model for [variable]. Would you like forecasts?'"
+          },
+          {
+            "workflow": "Group Comparison",
+            "pattern": "get_range → data_run_hypothesis_test(test_type='anova') → microsoft_excel_add_worksheet('Statistics') → update_range",
+            "speed": "Fast (~1.8-2.5s total)",
+            "use_when": "User wants to compare groups statistically",
+            "ai_response_template": "I'll test if [groups] have significantly different [outcome variable] using [t-test/ANOVA/chi-square]. Results will show if differences are statistically significant (p<0.05).",
+            "ai_auto_suggest": "Trigger: Categorical column + numeric column. Offer: 'I can test if these groups have statistically different values. Would you like me to run a hypothesis test?'"
+          },
+          {
+            "workflow": "Pivot Table + Analysis",
+            "pattern": "get_range → data_create_aggregation(aggregation_type='pivot') → data_run_hypothesis_test (test group differences)",
+            "speed": "Fast (~1.5-2.5s total)",
+            "use_when": "User wants to summarize data by categories then analyze",
+            "ai_response_template": "I'll create a pivot table summary and then test if the group differences are statistically significant.",
+            "ai_auto_suggest": "Trigger: Categorical columns detected. Offer: 'I can create a pivot table to summarize [numeric] by [categorical]. Then I can test if differences are significant.'"
+          },
+          {
+            "workflow": "Time Series Analysis",
+            "pattern": "get_range → data_create_aggregation(aggregation_type='rolling', options={'window':7}) OR data_create_regression_model(model_type='time_series')",
+            "speed": "Moderate (~2-4s total for ARIMA forecasting)",
+            "use_when": "User has time series data (date column + metrics)",
+            "ai_response_template": "I'll calculate rolling averages and detect trends, OR I'll build an ARIMA forecast model for future predictions.",
+            "ai_auto_suggest": "Trigger: Date/datetime column detected. Offer: 'This looks like time series data. I can calculate rolling averages, detect trends, or build a forecast model.'"
+          },
+          {
+            "workflow": "Advanced Custom Analysis",
+            "pattern": "get_range(mode='detailed', format='csv') → data_execute_advanced_analysis(Docker sandbox) → export results to Google Sheets",
+            "speed": "Slow (20-60s total: 1.2s read + 20-60s Docker execution)",
+            "use_when": "Complex ML, specialized algorithms not available in Tier 1/2",
+            "ai_warning": "⚠️ MUST inform user BEFORE calling: 'Running advanced analysis in secure sandbox environment. This will take approximately 20-30 seconds for container initialization and execution...'",
+            "ai_response_template": "I'll run custom [ML model/algorithm] on your Excel data. This requires a secure sandbox environment and will take about [20-30] seconds. Results will be exported to Google Sheets.",
+            "ai_auto_suggest": "Only suggest when Tier 1/2 tools cannot fulfill requirement. Example: 'For neural networks or specialized algorithms, I'll need to use advanced analysis (takes ~30 seconds).'"
+          },
+          {
+            "workflow": "Excel → Google Sheets → Analyze",
+            "pattern": "get_range(mode='detailed', export='google_sheet') → [User works in Google Sheets OR continue with data_analysis tools]",
+            "speed": "Fast (~1.5-2s for export)",
+            "use_when": "Large dataset, collaborative analysis, or user prefers Google Sheets environment",
+            "ai_response_template": "I'll export your Excel data to a new Google Sheet. This gives you better pivot tables, collaboration features, and easier integration with analysis tools.",
+            "ai_auto_suggest": "Trigger: Large dataset (1000+ rows) OR user mentions collaboration. Offer: 'For easier analysis and collaboration, I can export this to Google Sheets. The pivot tables and charts are better there.'"
+          }
+        ],
+        "ai_auto_suggestions": {
+          "trigger_conditions": [
+            {
+              "condition": "User reads range with 3+ numeric columns",
+              "detect": "Check column data types after read",
+              "suggest": "After showing data preview, offer: 'I can calculate correlations between these columns to identify relationships. Would you like to see which variables are related?'",
+              "follow_up": "If yes → call data_analyze_statistics(analysis_type='correlation', options={'include_pvalues':true})"
+            },
+            {
+              "condition": "User reads range with 1 categorical + 1+ numeric columns",
+              "detect": "Check for low-cardinality text columns + numeric columns",
+              "suggest": "After showing data, offer: 'I can create a pivot table summary or run statistical tests to compare [groups]. Which would you like?'",
+              "follow_up": "Pivot → data_create_aggregation(aggregation_type='pivot'), Test → data_run_hypothesis_test"
+            },
+            {
+              "condition": "User reads range with date/time column + numeric columns",
+              "detect": "Check for date/datetime data types",
+              "suggest": "After showing data, offer: 'This looks like time series data. I can: 1) Calculate rolling averages, 2) Detect trends, 3) Build a forecast model. What would you like?'",
+              "follow_up": "Rolling → data_create_aggregation(aggregation_type='rolling'), Forecast → data_create_regression_model(model_type='time_series')"
+            },
+            {
+              "condition": "User reads large range (100+ rows)",
+              "detect": "Check row_count in response",
+              "suggest": "After showing preview, offer: 'Large dataset detected ([X] rows). I can: 1) Check data quality (missing values, outliers), 2) Calculate summary statistics, 3) Export to Google Sheets for easier analysis. What would help?'",
+              "follow_up": "Quality → data_analyze_statistics(analysis_type='missing' + 'outliers'), Export → Already exported if user chose export='google_sheet'"
+            },
+            {
+              "condition": "User reads financial/revenue data (detected by column names)",
+              "detect": "Check for columns named: revenue, sales, cost, profit, price, etc.",
+              "suggest": "Financial data detected. I can: 1) Calculate key metrics (totals, averages, growth rates), 2) Detect anomalies/outliers, 3) Build revenue forecast model. What would you like?",
+              "follow_up": "Metrics → data_analyze_statistics, Anomalies → data_analyze_statistics(analysis_type='outliers'), Forecast → data_create_regression_model"
+            },
+            {
+              "condition": "User reads range with many columns (10+)",
+              "detect": "Check column_count",
+              "suggest": "Many columns detected. I can identify which variables are most important through correlation analysis or feature importance. Would you like me to find the key relationships?",
+              "follow_up": "data_analyze_statistics(analysis_type='correlation') OR data_create_regression_model with feature importance"
+            }
+          ]
+        },
+        "intelligent_export_routing": {
+          "when_to_recommend_google_sheets": [
+            "Large datasets (500+ rows) - 'For easier manipulation, I recommend exporting to Google Sheets'",
+            "Complex analysis needed - 'Google Sheets has better pivot table UI for this analysis'",
+            "Collaboration mentioned - 'For team collaboration, let's export to Google Sheets'",
+            "User mentions charts/visualization - 'Google Sheets charts are easier to customize'",
+            "Multiple analysis steps - 'For this workflow, let's start with Google Sheets export'"
+          ],
+          "when_to_keep_in_excel": [
+            "Small datasets (<100 rows) - 'I can analyze this directly from Excel'",
+            "User wants to update Excel - 'I'll keep the data in Excel so I can write results back'",
+            "Quick one-off analysis - 'For quick statistics, no need to export'",
+            "User explicitly prefers Excel - Respect user preference"
+          ],
+          "export_format_recommendations": {
+            "correlation_matrices": "Export to Google Sheets with heatmap conditional formatting",
+            "large_regression_results": "Export to Google Sheets for easier manipulation",
+            "time_series_forecasts": "Export to Google Sheets + create chart",
+            "pivot_tables": "Use data_create_aggregation then export to Google Sheets (better pivot UI)",
+            "simple_statistics": "Can stay in Excel or export to Synergy dashboard"
+          }
+        },
+        "performance_optimization": {
+          "read_strategy": "Always start with mode='summary' to preview data before full read",
+          "large_data_handling": "For 1000+ rows, recommend: mode='summary' first → if user wants all data → mode='detailed', export='google_sheet'",
+          "analysis_chaining": "Read once, run multiple analyses: get_range → analyze_statistics + run_hypothesis_test + create_aggregation (reuse data)",
+          "format_selection": "Use format='csv' when passing to data_analysis tools (most efficient parsing)"
+        }
+      }
+    },
+    {
+      "name": "microsoft_excel_update_range",
+      "short_description": "Update cell range in Microsoft Excel with new values as 2D array",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER reference previous edits from conversation history\n(2) MUST cite what was updated: 'Updated range **[Range]** in sheet **[SheetName]** with [X] rows × [Y] columns of data'\n(3) Use EXACT IDs and range provided - NEVER make up values\n(4) If tool fails, say 'Failed to update range' and explain why\n(5) Show data summary if applicable\n\n⚠️ MUST USE: execute_tool(tool_name='microsoft_excel_update_range', ...) - DO NOT call directly!\n\nUpdate cell or range values in Excel worksheet. Can write single cells, ranges, or entire datasets. Most frequently used tool for writing data to Excel.",
+      "category": "data_processing",
+      "priority": "critical",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "workbook_id": {
+            "type": "string",
+            "description": "Workbook ID to update"
+          },
+          "sheet_name": {
+            "type": "string",
+            "description": "Worksheet name to update"
+          },
+          "range_address": {
+            "type": "string",
+            "description": "Range address to update (e.g., 'A1:B10'). Must match dimensions of values array. For single cell: 'A1'. For range: 'A1:E50'."
+          },
+          "values": {
+            "type": "array",
+            "description": "2D array of values to write. Each inner array is a row. Example: [['Header1', 'Header2'], ['Value1', 'Value2'], ['Value3', 'Value4']]. Dimensions must match range_address."
+          }
+        },
+        "required": [
+          "workbook_id",
+          "sheet_name",
+          "range_address",
+          "values"
+        ]
+      },
+      "returns": {
+        "type": "object",
+        "description": "Dict with success status, rows_updated, columns_updated, range_address"
+      },
+      "user_facing_language": {
+        "action_verb": "update",
+        "resource_name": "spreadsheet data",
+        "resource_plural": "spreadsheet data",
+        "natural_phrases": [
+          "update the spreadsheet",
+          "write data to Excel",
+          "update the range",
+          "put data in spreadsheet",
+          "write values to Excel",
+          "update cells"
+        ],
+        "capability_description": "I can write data to Excel ranges, updating single cells or entire datasets. Perfect for writing analysis results, calculated values, or importing data into Excel.",
+        "example_ai_responses": [
+          "I'll update those cells with the new data.",
+          "I'll write the analysis results to the Excel sheet.",
+          "I'll update range A1:E10 with the calculated values.",
+          "I'll add the statistics to a new sheet in your workbook."
+        ]
+      },
+      "tool_intelligence": {
+        "category": "data_processing",
+        "typical_workflow_patterns": [
+          "microsoft_excel_get_range → analyze → microsoft_excel_update_range (read, analyze, write back) ⚠️ MOST COMMON",
+          "data_analyze_statistics → microsoft_excel_add_worksheet → microsoft_excel_update_range (analyze then write results)",
+          "data_create_regression_model → microsoft_excel_update_range (build model then write predictions)",
+          "microsoft_excel_create_workbook → microsoft_excel_update_range (create then populate)",
+          "data_create_aggregation → microsoft_excel_update_range (aggregate then write summary)"
+        ],
+        "success_indicators": {
+          "keywords": [
+            "updated successfully",
+            "data written",
+            "range updated",
+            "X rows updated",
+            "values written",
+            "cells updated"
+          ],
+          "behavioral": [
+            "User views updated data in Excel",
+            "User proceeds to next operation",
+            "User doesn't report errors",
+            "User continues analysis workflow",
+            "User exports updated workbook"
+          ]
+        },
+        "failure_indicators": {
+          "keywords": [
+            "update failed",
+            "dimension mismatch",
+            "invalid range",
+            "workbook not found",
+            "permission denied",
+            "sheet not found"
+          ],
+          "behavioral": [
+            "User reports data not written",
+            "User checks range dimensions",
+            "User verifies values array format",
+            "User retries with corrected range",
+            "User manually updates in Excel"
+          ]
+        },
+        "performance_expectations": {
+          "typical_duration_ms": 800,
+          "rate_limit_per_minute": 60,
+          "max_retries": 3,
+          "timeout_seconds": 30
+        }
+      },
+      "memory_context": {
+        "vectorization_fields": [
+          "workbook_id",
+          "sheet_name",
+          "range_address",
+          "data_summary"
+        ],
+        "search_keywords": [
+          "update range",
+          "write excel",
+          "update cells",
+          "write data",
+          "update spreadsheet",
+          "write values"
+        ],
+        "related_synergy_platforms": [
+          "microsoft_excel",
+          "microsoft_365",
+          "onedrive"
+        ],
+        "typical_use_cases": [
+          "Analysis results - User writes statistics or model output back to Excel",
+          "Data import - User populates Excel with data from external source",
+          "Calculations - User writes calculated values to spreadsheet",
+          "Template population - User fills template with actual data",
+          "Report generation - User writes report data to formatted workbook"
+        ],
+        "conversation_memory_hints": {
+          "what_to_remember": "Workbook IDs updated, sheet names, range addresses, data types written, update timestamps, update purposes",
+          "search_context": "When user asks about 'data I wrote to Excel', 'ranges I updated', 'what I added to [workbook]'",
+          "related_entities": [
+            "workbook IDs",
+            "sheet names",
+            "range addresses",
+            "data topics",
+            "update timestamps"
+          ]
+        }
+      },
+      "data_analysis_integration": {
+        "primary_use": "Write analysis results back to Excel after using data_analysis tools",
+        "smart_result_formatting": {
+          "auto_detect_analysis_result_type": [
+            {
+              "result_type": "Summary statistics from data_analyze_statistics",
+              "source_tool": "data_analyze_statistics(analysis_type='summary')",
+              "auto_format": "Transpose to vertical table format: [Statistic Name | Value]",
+              "example_range": "A1:B11 (10 statistics + header)",
+              "values_structure": "[['Statistic', 'Value'], ['Count', 150], ['Mean', 42.5], ['Std Dev', 12.3], ...]",
+              "suggested_location": "Adjacent to data range OR new sheet named '[SheetName]_Statistics'",
+              "ai_behavior": "Automatically format with bold headers, 2-4 decimal places for floats"
+            },
+            {
+              "result_type": "Correlation matrix from data_analyze_statistics",
+              "source_tool": "data_analyze_statistics(analysis_type='correlation')",
+              "auto_format": "NxN grid with row/column headers",
+              "example_range": "A1:E5 (4x4 correlation + headers)",
+              "values_structure": "[['', 'Var1', 'Var2', 'Var3'], ['Var1', 1.0, 0.75, -0.23], ['Var2', 0.75, 1.0, 0.45], ...]",
+              "suggested_location": "New sheet named '[SheetName]_Correlation'",
+              "ai_behavior": "Freeze headers, suggest conditional formatting heatmap (red=negative, green=positive)",
+              "ai_offer": "After writing, offer: 'Would you like me to add conditional formatting to show correlations as a heatmap?'"
+            },
+            {
+              "result_type": "Predictions from data_create_regression_model",
+              "source_tool": "data_create_regression_model(options={'return_predictions': true})",
+              "auto_format": "Single column appended to existing data",
+              "example_range": "F1:F101 (predictions for 100 rows + header)",
+              "values_structure": "[['Predicted_Sales'], [45.2], [51.8], [39.4], ...]",
+              "suggested_location": "Next empty column after source data",
+              "ai_behavior": "Add header 'Predicted_[TargetVariable]', format numbers consistently with target variable",
+              "ai_offer": "After writing, offer: 'Would you like me to create a scatter chart comparing actual vs predicted values?'"
+            },
+            {
+              "result_type": "Hypothesis test results from data_run_hypothesis_test",
+              "source_tool": "data_run_hypothesis_test",
+              "auto_format": "Summary table with test details",
+              "example_range": "A1:D5",
+              "values_structure": "[['Test', 'Statistic', 'P-Value', 'Significant?'], ['t-test', 2.45, 0.023, 'Yes'], ['Group1 Mean', 45.2, '', ''], ...]",
+              "suggested_location": "New sheet named '[SheetName]_HypothesisTest'",
+              "ai_behavior": "Conditional format p-value cell (red if p<0.05, yellow if p<0.10, green if p>=0.10)",
+              "ai_offer": "Would you like me to add conditional formatting to highlight significant results?"
+            },
+            {
+              "result_type": "Pivot table from data_create_aggregation",
+              "source_tool": "data_create_aggregation(aggregation_type='pivot')",
+              "auto_format": "Preserve pivot structure with row/column headers",
+              "example_range": "A1:D10 (depends on pivot dimensions)",
+              "values_structure": "[[' Product', 'Region1', 'Region2'], ['ProductA', 1000, 1200], ...]",
+              "suggested_location": "New sheet named '[SheetName]_Pivot'",
+              "ai_behavior": "Freeze headers, auto-filter, bold totals if present",
+              "ai_offer": "Note: For better pivot manipulation, consider exporting to Google Sheets instead."
+            },
+            {
+              "result_type": "Outliers from data_analyze_statistics",
+              "source_tool": "data_analyze_statistics(analysis_type='outliers')",
+              "auto_format": "Boolean column or separate list",
+              "example_range": "G1:G101 (outlier flags) OR separate sheet with outlier rows only",
+              "values_structure": "[['Is_Outlier'], [False], [False], [True], ...] OR outlier rows extracted",
+              "suggested_location": "New column 'Is_Outlier' adjacent to data OR new sheet '[SheetName]_Outliers'",
+              "ai_behavior": "If column: add conditional formatting (highlight TRUE). If sheet: show only outlier rows",
+              "ai_offer": "Would you like me to: 1) Add a flag column, or 2) Create a separate sheet with outliers only?"
+            }
+          ]
+        },
+        "write_back_workflows": [
+          {
+            "workflow": "Analysis Results + Source Data (Append Columns)",
+            "pattern": "get_range(A1:C100) → data_analyze_statistics(outliers) → update_range(D1:E100 with outlier flags + scores)",
+            "example": "Read sales data A1:C100, detect outliers, write 'Is_Outlier' to D1:D100 and 'Outlier_Score' to E1:E100",
+            "ai_behavior": "Preserve source data, add analysis as new column(s). Update adjacent columns.",
+            "benefits": "Keeps all data together, easy to filter/sort by analysis results"
+          },
+          {
+            "workflow": "Separate Analysis Sheet (New Worksheet)",
+            "pattern": "get_range → analyze → add_worksheet('[SheetName]_Analysis') → update_range (write to new sheet)",
+            "example": "Read 'Sales' sheet, run statistics, create 'Sales_Statistics' sheet with results",
+            "ai_behavior": "Keep source data clean, analysis results in dedicated sheet. Preserve original formatting.",
+            "benefits": "Clean separation, original data unchanged, easy to regenerate analysis",
+            "ai_default": "USE THIS for summary statistics, correlation matrices, hypothesis tests"
+          },
+          {
+            "workflow": "In-Place Enrichment (Expand Range)",
+            "pattern": "get_range(A1:C100) → data_execute_calculation(add Total, ROI columns) → update_range(A1:E100 with original + new columns)",
+            "example": "Read A1:C100, calculate Total=B*C and ROI=(B-C)/C, write A1:E100 with all columns",
+            "ai_behavior": "Expand range with new calculated columns, overwrite original range",
+            "benefits": "Everything in one place, formulas replaced with values",
+            "use_when": "User wants calculated columns added to existing data"
+          },
+          {
+            "workflow": "Prediction Integration",
+            "pattern": "get_range → data_create_regression_model(return_predictions=true) → update_range(append predictions column) → microsoft_excel_create_chart",
+            "example": "Read A1:E100, build model, write predictions to F1:F100, create scatter chart in sheet",
+            "ai_behavior": "Add predictions as new column, then visualize actual vs predicted",
+            "benefits": "Complete ML workflow in Excel with visualization",
+            "ai_offer": "After writing predictions, automatically offer to create chart"
+          }
+        ],
+        "smart_formatting_suggestions": {
+          "auto_apply_when_writing_analysis_results": [
+            "Freeze header rows (first row)",
+            "Auto-fit column widths to content",
+            "Number formatting: 2-4 decimals for statistics, match source format for predictions",
+            "Bold headers for tables",
+            "Conditional formatting suggestions (not auto-applied, but AI should offer)"
+          ],
+          "conditional_formatting_offers": {
+            "correlation_matrix": "Offer heatmap: red (negative correlation) → white (zero) → green (positive correlation)",
+            "p_values": "Offer significance highlighting: red (p<0.05), yellow (p<0.10), green (p>=0.10)",
+            "outliers": "Offer outlier highlighting: red (outlier), white (normal)",
+            "predictions_vs_actual": "Offer error highlighting: red (>20% error), yellow (10-20% error), green (<10% error)"
+          }
+        },
+        "dimension_validation": {
+          "auto_calculate_range": "If user provides values without range_address, auto-calculate range based on dimensions",
+          "dimension_mismatch_handling": "If values dimensions don't match range_address, suggest correction before calling API",
+          "example": "User provides 10x5 array but range_address='A1:B10' (10x2) → AI: 'Your data is 10 rows × 5 columns. Range should be A1:E10. Should I update to A1:E10?'"
+        }
+      }
+    },
+    {
+      "name": "microsoft_excel_clear_range",
+      "short_description": "Clear cell range in Microsoft Excel removing contents or formatting",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER pretend to delete from memory\n(2) MUST cite what was cleared: 'Cleared range **[Range]** in sheet **[SheetName]** ([contents/formats/all])'\n(3) CONFIRM clearing happened - don't assume success\n(4) If tool fails, say 'Failed to clear range' and explain why\n\n⚠️ MUST USE: execute_tool(tool_name='microsoft_excel_clear_range', ...) - DO NOT call directly!\n\nClear range contents and/or formatting. Can clear values only (keep formatting), formatting only (keep values), or both.",
+      "category": "data_processing",
+      "priority": "low",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "workbook_id": {
+            "type": "string",
+            "description": "Workbook ID"
+          },
+          "sheet_name": {
+            "type": "string",
+            "description": "Worksheet name"
+          },
+          "range_address": {
+            "type": "string",
+            "description": "Range address to clear (e.g., 'A1:E10')"
+          },
+          "apply_to": {
+            "type": "string",
+            "description": "What to clear: 'All' (contents + formats), 'Contents' (values only, keep formatting), 'Formats' (formatting only, keep values)",
+            "default": "All",
+            "enum": [
+              "All",
+              "Contents",
+              "Formats"
+            ]
+          }
+        },
+        "required": [
+          "workbook_id",
+          "sheet_name",
+          "range_address"
+        ]
+      },
+      "returns": {
+        "type": "object",
+        "description": "Dict with success status and cleared range details"
+      },
+      "user_facing_language": {
+        "action_verb": "clear",
+        "resource_name": "range",
+        "resource_plural": "ranges",
+        "natural_phrases": [
+          "clear the range",
+          "delete the data",
+          "clear those cells",
+          "remove the values",
+          "erase the range"
+        ],
+        "capability_description": "I can clear Excel ranges - removing values, formatting, or both. Values are deleted but cells remain (unlike deleting rows/columns).",
+        "example_ai_responses": [
+          "I'll clear that range for you.",
+          "I'll remove the data but keep the formatting.",
+          "I'll clear both values and formatting from that range."
+        ]
+      },
+      "tool_intelligence": {
+        "category": "data_processing",
+        "typical_workflow_patterns": [
+          "microsoft_excel_clear_range → microsoft_excel_update_range (clear then write new data)",
+          "microsoft_excel_get_range → validate → microsoft_excel_clear_range (read, check, clear if needed)",
+          "cleanup_workflow → microsoft_excel_clear_range (batch cleanup operations)"
+        ],
+        "success_indicators": {
+          "keywords": [
+            "cleared successfully",
+            "range cleared",
+            "data removed",
+            "cells cleared"
+          ],
+          "behavioral": [
+            "User writes new data",
+            "User confirms range is empty",
+            "User continues workflow"
+          ]
+        },
+        "failure_indicators": {
+          "keywords": [
+            "clear failed",
+            "permission denied",
+            "range not found"
+          ],
+          "behavioral": [
+            "User reports data still present",
+            "User checks permissions",
+            "User manually clears"
+          ]
+        },
+        "performance_expectations": {
+          "typical_duration_ms": 500,
+          "rate_limit_per_minute": 60,
+          "max_retries": 3,
+          "timeout_seconds": 15
+        }
+      },
+      "memory_context": {
+        "vectorization_fields": [
+          "workbook_id",
+          "sheet_name",
+          "range_address"
+        ],
+        "search_keywords": [
+          "clear range",
+          "delete data",
+          "clear cells",
+          "remove values",
+          "erase range"
+        ],
+        "related_synergy_platforms": [
+          "microsoft_excel",
+          "microsoft_365",
+          "onedrive"
+        ],
+        "typical_use_cases": [
+          "Data reset - User clears old data before importing new",
+          "Template preparation - User clears example data from template",
+          "Error correction - User clears incorrect entries",
+          "Cleanup - User removes temporary data after analysis"
+        ],
+        "conversation_memory_hints": {
+          "what_to_remember": "Workbook IDs, ranges cleared, clear timestamps, clear purposes",
+          "search_context": "When user asks about 'ranges I cleared', 'data I removed'",
+          "related_entities": [
+            "workbook IDs",
+            "sheet names",
+            "range addresses",
+            "clear types"
+          ]
+        }
+      }
+    },
+    {
+      "name": "microsoft_excel_insert_rows",
+      "short_description": "Insert rows in Microsoft Excel worksheet at position with shift down",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) ALWAYS execute THIS tool NOW - NEVER reference 'I created earlier' or use conversation history\n(2) MUST return format: 'Inserted [X] row(s) at position [index] in sheet **[SheetName]**'\n(3) Use EXACT values from tool response - NEVER make up fake results\n(4) If tool fails, say 'Failed to insert rows' - NEVER pretend it succeeded\n\n⚠️ MUST USE: execute_tool(tool_name='microsoft_excel_insert_rows', ...) - DO NOT call directly!\n\nInsert blank rows in worksheet at specified position. Existing rows shift down.",
+      "category": "data_processing",
+      "priority": "low",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "workbook_id": {
+            "type": "string",
+            "description": "Workbook ID"
+          },
+          "sheet_name": {
+            "type": "string",
+            "description": "Worksheet name"
+          },
+          "index": {
+            "type": "integer",
+            "description": "Row index to insert at (0-based). Example: 0 = insert before first row, 5 = insert before row 6"
+          },
+          "count": {
+            "type": "integer",
+            "description": "Number of rows to insert (default: 1)",
+            "default": 1
+          }
+        },
+        "required": [
+          "workbook_id",
+          "sheet_name",
+          "index"
+        ]
+      },
+      "returns": {
+        "type": "object",
+        "description": "Dict with success status, rows_inserted, insert_position"
+      },
+      "user_facing_language": {
+        "action_verb": "insert",
+        "resource_name": "rows",
+        "resource_plural": "rows",
+        "natural_phrases": [
+          "insert rows",
+          "add rows",
+          "insert blank rows",
+          "add empty rows"
+        ],
+        "capability_description": "I can insert blank rows in Excel worksheets. Existing rows shift down to make room.",
+        "example_ai_responses": [
+          "I'll insert 5 blank rows at position 10.",
+          "I'll add a row at the top of the sheet."
+        ]
+      },
+      "tool_intelligence": {
+        "category": "data_processing",
+        "typical_workflow_patterns": [
+          "microsoft_excel_insert_rows → microsoft_excel_update_range (insert then populate)",
+          "data_analysis → microsoft_excel_insert_rows → update_range (make room for results)"
+        ],
+        "success_indicators": {
+          "keywords": [
+            "rows inserted",
+            "insert successful"
+          ],
+          "behavioral": [
+            "User writes data to new rows"
+          ]
+        },
+        "failure_indicators": {
+          "keywords": [
+            "insert failed",
+            "invalid index"
+          ],
+          "behavioral": [
+            "User checks index",
+            "User manually inserts"
+          ]
+        },
+        "performance_expectations": {
+          "typical_duration_ms": 600,
+          "rate_limit_per_minute": 60,
+          "max_retries": 3,
+          "timeout_seconds": 20
+        }
+      },
+      "memory_context": {
+        "vectorization_fields": [
+          "workbook_id",
+          "sheet_name",
+          "index",
+          "count"
+        ],
+        "search_keywords": [
+          "insert rows",
+          "add rows",
+          "blank rows"
+        ],
+        "related_synergy_platforms": [
+          "microsoft_excel",
+          "microsoft_365",
+          "onedrive"
+        ],
+        "typical_use_cases": [
+          "Make room for new data",
+          "Insert headers",
+          "Add spacing between sections"
+        ],
+        "conversation_memory_hints": {
+          "what_to_remember": "Workbook IDs, sheet names, insert positions, row counts",
+          "search_context": "When user asks about 'rows I inserted', 'where I added rows'",
+          "related_entities": [
+            "workbook IDs",
+            "sheet names",
+            "row positions"
+          ]
+        }
+      }
+    },
+    {
+      "name": "microsoft_excel_delete_rows",
+      "short_description": "Delete rows from Microsoft Excel worksheet with shift up",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER pretend to delete from memory\n(2) MUST cite what was deleted: 'Deleted [X] row(s) starting at position [index] from sheet **[SheetName]**'\n(3) CONFIRM deletion happened - don't assume success\n(4) If tool fails, say 'Failed to delete rows' and explain why\n\n⚠️ MUST USE: execute_tool(tool_name='microsoft_excel_delete_rows', ...) - DO NOT call directly!\n\nDelete rows from worksheet. Rows below shift up to fill the gap. WARNING: Permanently deletes data in those rows.",
+      "category": "data_processing",
+      "priority": "low",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "workbook_id": {
+            "type": "string",
+            "description": "Workbook ID"
+          },
+          "sheet_name": {
+            "type": "string",
+            "description": "Worksheet name"
+          },
+          "index": {
+            "type": "integer",
+            "description": "Row index to delete from (0-based)"
+          },
+          "count": {
+            "type": "integer",
+            "description": "Number of rows to delete (default: 1)",
+            "default": 1
+          }
+        },
+        "required": [
+          "workbook_id",
+          "sheet_name",
+          "index"
+        ]
+      },
+      "returns": {
+        "type": "object",
+        "description": "Dict with success status, rows_deleted, delete_position"
+      },
+      "user_facing_language": {
+        "action_verb": "delete",
+        "resource_name": "rows",
+        "resource_plural": "rows",
+        "natural_phrases": [
+          "delete rows",
+          "remove rows",
+          "delete those rows",
+          "remove the rows"
+        ],
+        "capability_description": "I can delete rows from Excel worksheets. WARNING: This permanently removes the rows and their data.",
+        "example_ai_responses": [
+          "I'll delete rows 5-10 (this will permanently remove the data).",
+          "I'll remove that row from the sheet."
+        ]
+      },
+      "tool_intelligence": {
+        "category": "data_processing",
+        "typical_workflow_patterns": [
+          "microsoft_excel_get_range → filter → microsoft_excel_delete_rows (read, identify unwanted, delete)",
+          "data_analyze_statistics(outliers) → microsoft_excel_delete_rows (find outliers then remove)"
+        ],
+        "success_indicators": {
+          "keywords": [
+            "rows deleted",
+            "deletion complete"
+          ],
+          "behavioral": [
+            "User confirms rows gone"
+          ]
+        },
+        "failure_indicators": {
+          "keywords": [
+            "delete failed",
+            "invalid index"
+          ],
+          "behavioral": [
+            "User checks index",
+            "User manually deletes"
+          ]
+        },
+        "performance_expectations": {
+          "typical_duration_ms": 600,
+          "rate_limit_per_minute": 60,
+          "max_retries": 3,
+          "timeout_seconds": 20
+        }
+      },
+      "memory_context": {
+        "vectorization_fields": [
+          "workbook_id",
+          "sheet_name",
+          "index",
+          "count"
+        ],
+        "search_keywords": [
+          "delete rows",
+          "remove rows",
+          "row deletion"
+        ],
+        "related_synergy_platforms": [
+          "microsoft_excel",
+          "microsoft_365",
+          "onedrive"
+        ],
+        "typical_use_cases": [
+          "Remove outliers",
+          "Delete duplicate entries",
+          "Remove blank rows",
+          "Clean up data"
+        ],
+        "conversation_memory_hints": {
+          "what_to_remember": "Workbook IDs, row deletion details, deletion timestamps",
+          "search_context": "When user asks about 'rows I deleted', 'what I removed'",
+          "related_entities": [
+            "workbook IDs",
+            "sheet names",
+            "deletion positions"
+          ]
+        }
+      }
+    },
+    {
+      "name": "microsoft_excel_set_formula",
+      "short_description": "Set Excel formula in cell range for automatic calculations",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER reference previous edits from conversation history\n(2) MUST cite what was updated: 'Set formula **[Formula]** in cell **[Cell]** of sheet **[SheetName]** | Calculated value: [Result]'\n(3) Use EXACT IDs provided - NEVER make up formulas or results\n(4) If tool fails, say 'Failed to set formula' and explain why\n\n⚠️ MUST USE: execute_tool(tool_name='microsoft_excel_set_formula', ...) - DO NOT call directly!\n\nSet Excel formula in cell and get the calculated result. Supports all Excel functions (SUM, AVERAGE, VLOOKUP, IF, etc.).",
+      "category": "formulas",
+      "priority": "medium",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "workbook_id": {
+            "type": "string",
+            "description": "Workbook ID"
+          },
+          "sheet_name": {
+            "type": "string",
+            "description": "Worksheet name"
+          },
+          "cell_address": {
+            "type": "string",
+            "description": "Cell address (e.g., 'A1', 'D15')"
+          },
+          "formula": {
+            "type": "string",
+            "description": "Excel formula (must start with =). Examples: '=SUM(A1:A10)', '=AVERAGE(B1:B10)', '=IF(C1>100,\"High\",\"Low\")', '=VLOOKUP(A2,Products!A:B,2,FALSE)'"
+          }
+        },
+        "required": [
+          "workbook_id",
+          "sheet_name",
+          "cell_address",
+          "formula"
+        ]
+      },
+      "returns": {
+        "type": "object",
+        "description": "Dict with formula, calculated_value, cell_address"
+      },
+      "user_facing_language": {
+        "action_verb": "set",
+        "resource_name": "formula",
+        "resource_plural": "formulas",
+        "natural_phrases": [
+          "add a formula",
+          "set formula",
+          "create formula",
+          "calculate with formula"
+        ],
+        "capability_description": "I can add Excel formulas to cells. The formula calculates automatically and I'll show you the result.",
+        "example_ai_responses": [
+          "I'll add a SUM formula to total those values.",
+          "I'll create an AVERAGE formula and show you the result."
+        ]
+      },
+      "tool_intelligence": {
+        "category": "formulas",
+        "typical_workflow_patterns": [
+          "microsoft_excel_get_range → analyze → microsoft_excel_set_formula (read data then create summary formulas)",
+          "microsoft_excel_update_range → microsoft_excel_set_formula (write data then add calculations)"
+        ],
+        "success_indicators": {
+          "keywords": [
+            "formula set",
+            "calculated",
+            "formula created"
+          ],
+          "behavioral": [
+            "User views result",
+            "User adds more formulas"
+          ]
+        },
+        "failure_indicators": {
+          "keywords": [
+            "formula error",
+            "#REF!",
+            "#VALUE!",
+            "invalid formula"
+          ],
+          "behavioral": [
+            "User checks formula syntax",
+            "User fixes references"
+          ]
+        },
+        "performance_expectations": {
+          "typical_duration_ms": 700,
+          "rate_limit_per_minute": 60,
+          "max_retries": 3,
+          "timeout_seconds": 20
+        }
+      },
+      "memory_context": {
+        "vectorization_fields": [
+          "workbook_id",
+          "sheet_name",
+          "cell_address",
+          "formula"
+        ],
+        "search_keywords": [
+          "set formula",
+          "excel formula",
+          "calculate",
+          "formula"
+        ],
+        "related_synergy_platforms": [
+          "microsoft_excel",
+          "microsoft_365",
+          "onedrive"
+        ],
+        "typical_use_cases": [
+          "Add totals row",
+          "Calculate averages",
+          "Create conditional logic",
+          "Lookup values"
+        ],
+        "conversation_memory_hints": {
+          "what_to_remember": "Formulas created, cells with formulas, calculated results",
+          "search_context": "When user asks about 'formulas I added', 'calculations in [sheet]'",
+          "related_entities": [
+            "workbook IDs",
+            "cell addresses",
+            "formula types",
+            "calculated values"
+          ]
+        }
+      }
+    },
+    {
+      "name": "microsoft_excel_calculate",
+      "short_description": "Recalculate formulas in Microsoft Excel workbook to update values",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Triggered [calculation_type] for workbook **[WorkbookName]**'\n(3) Use EXACT workbook_id provided\n(4) If tool fails, say 'Failed to calculate workbook' and explain error\n\n⚠️ MUST USE: execute_tool(tool_name='microsoft_excel_calculate', ...) - DO NOT call directly!\n\nTrigger workbook calculation to update all formulas. Use after updating data that formulas reference.",
+      "category": "formulas",
+      "priority": "low",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "workbook_id": {
+            "type": "string",
+            "description": "Workbook ID"
+          },
+          "calculation_type": {
+            "type": "string",
+            "description": "'Recalculate' (recalc changed cells) or 'Full' (recalc all formulas)",
+            "default": "Recalculate",
+            "enum": [
+              "Recalculate",
+              "Full"
+            ]
+          }
+        },
+        "required": [
+          "workbook_id"
+        ]
+      },
+      "returns": {
+        "type": "object",
+        "description": "Dict with success status"
+      },
+      "user_facing_language": {
+        "action_verb": "recalculate",
+        "resource_name": "workbook",
+        "resource_plural": "workbooks",
+        "natural_phrases": [
+          "recalculate the workbook",
+          "update formulas",
+          "refresh calculations"
+        ],
+        "capability_description": "I can trigger workbook recalculation to update all formulas after data changes.",
+        "example_ai_responses": [
+          "I'll recalculate the workbook to update all formulas.",
+          "I'll trigger a full recalculation."
+        ]
+      },
+      "tool_intelligence": {
+        "category": "formulas",
+        "typical_workflow_patterns": [
+          "microsoft_excel_update_range → microsoft_excel_calculate (update data then recalc formulas)",
+          "microsoft_excel_set_formula → microsoft_excel_calculate → microsoft_excel_get_range (set formula, calc, read result)"
+        ],
+        "success_indicators": {
+          "keywords": [
+            "calculation complete",
+            "recalculated"
+          ],
+          "behavioral": [
+            "Formulas show updated values"
+          ]
+        },
+        "failure_indicators": {
+          "keywords": [
+            "calculation failed"
+          ],
+          "behavioral": [
+            "Formulas show old values"
+          ]
+        },
+        "performance_expectations": {
+          "typical_duration_ms": 800,
+          "rate_limit_per_minute": 30,
+          "max_retries": 3,
+          "timeout_seconds": 30
+        }
+      },
+      "memory_context": {
+        "vectorization_fields": [
+          "workbook_id",
+          "calculation_type"
+        ],
+        "search_keywords": [
+          "recalculate",
+          "update formulas",
+          "calculate workbook"
+        ],
+        "related_synergy_platforms": [
+          "microsoft_excel",
+          "microsoft_365",
+          "onedrive"
+        ],
+        "typical_use_cases": [
+          "Update formulas after data change",
+          "Refresh calculations",
+          "Ensure latest values"
+        ],
+        "conversation_memory_hints": {
+          "what_to_remember": "Workbook IDs recalculated, calculation timestamps",
+          "search_context": "When user asks about 'when I recalculated'",
+          "related_entities": [
+            "workbook IDs",
+            "calculation times"
+          ]
+        }
+      }
+    },
+    {
+      "name": "microsoft_excel_create_chart",
+      "short_description": "Create chart in Microsoft Excel from data range with type and title",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) ALWAYS execute THIS tool NOW - NEVER reference 'I created earlier' or use conversation history\n(2) MUST return format: 'Created **[ChartType]** chart **[Title]** in sheet **[SheetName]** | Chart ID: `[id]`'\n(3) Use EXACT values from tool response - NEVER make up fake IDs\n(4) If tool fails, say 'Failed to create chart' - NEVER pretend it succeeded\n\n⚠️ MUST USE: execute_tool(tool_name='microsoft_excel_create_chart', ...) - DO NOT call directly!\n\nCreate chart in worksheet from data range. Supports various chart types (column, line, pie, scatter, etc.).",
+      "category": "visualization",
+      "priority": "medium",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "workbook_id": {
+            "type": "string",
+            "description": "Workbook ID"
+          },
+          "sheet_name": {
+            "type": "string",
+            "description": "Worksheet name"
+          },
+          "chart_type": {
+            "type": "string",
+            "description": "Chart type: 'ColumnClustered', 'ColumnStacked', 'Line', 'LineMarkers', 'Pie', 'PieExploded', 'XYScatter', 'XYScatterLines', 'Area', 'AreaStacked', 'Bar', 'BarStacked'"
+          },
+          "source_range": {
+            "type": "string",
+            "description": "Data range for chart (e.g., 'A1:B10'). First row should be headers."
+          },
+          "title": {
+            "type": "string",
+            "description": "Chart title (optional)"
+          }
+        },
+        "required": [
+          "workbook_id",
+          "sheet_name",
+          "chart_type",
+          "source_range"
+        ]
+      },
+      "returns": {
+        "type": "object",
+        "description": "Dict with chart_id, chart_type, title, source_range"
+      },
+      "user_facing_language": {
+        "action_verb": "create",
+        "resource_name": "chart",
+        "resource_plural": "charts",
+        "natural_phrases": [
+          "create a chart",
+          "make a graph",
+          "visualize the data",
+          "create visualization"
+        ],
+        "capability_description": "I can create charts from Excel data. Supports column charts, line graphs, pie charts, scatter plots, and more.",
+        "example_ai_responses": [
+          "I'll create a column chart from that data.",
+          "I'll make a line graph showing the trend.",
+          "I'll create a scatter plot to visualize the relationship."
+        ]
+      },
+      "tool_intelligence": {
+        "category": "visualization",
+        "typical_workflow_patterns": [
+          "microsoft_excel_get_range → microsoft_excel_create_chart (read data then visualize)",
+          "data_create_regression_model → microsoft_excel_update_range → microsoft_excel_create_chart (predict, write, visualize)",
+          "data_create_aggregation → microsoft_excel_update_range → microsoft_excel_create_chart (aggregate, write, visualize)"
+        ],
+        "success_indicators": {
+          "keywords": [
+            "chart created",
+            "visualization ready",
+            "chart ID"
+          ],
+          "behavioral": [
+            "User views chart",
+            "User exports workbook"
+          ]
+        },
+        "failure_indicators": {
+          "keywords": [
+            "chart failed",
+            "invalid range",
+            "unsupported chart type"
+          ],
+          "behavioral": [
+            "User checks range",
+            "User tries different chart type"
+          ]
+        },
+        "performance_expectations": {
+          "typical_duration_ms": 1000,
+          "rate_limit_per_minute": 30,
+          "max_retries": 3,
+          "timeout_seconds": 30
+        }
+      },
+      "memory_context": {
+        "vectorization_fields": [
+          "workbook_id",
+          "sheet_name",
+          "chart_type",
+          "title"
+        ],
+        "search_keywords": [
+          "create chart",
+          "make graph",
+          "visualization",
+          "chart",
+          "graph"
+        ],
+        "related_synergy_platforms": [
+          "microsoft_excel",
+          "microsoft_365",
+          "onedrive"
+        ],
+        "typical_use_cases": [
+          "Visualize trends",
+          "Compare categories",
+          "Show distributions",
+          "Present analysis results"
+        ],
+        "conversation_memory_hints": {
+          "what_to_remember": "Workbook IDs, chart types created, chart titles, data ranges visualized",
+          "search_context": "When user asks about 'charts I created', 'visualizations in [workbook]'",
+          "related_entities": [
+            "workbook IDs",
+            "chart IDs",
+            "chart types",
+            "data ranges"
+          ]
+        }
+      },
+      "data_analysis_integration": {
+        "post_analysis_visualization": [
+          {
+            "workflow": "Regression Predictions Chart",
+            "pattern": "data_create_regression_model(return_predictions=true) → update_range (write predictions) → create_chart (scatter plot of actual vs predicted)",
+            "chart_type": "XYScatter",
+            "ai_behavior": "After writing predictions, automatically offer: 'Would you like me to create a scatter plot comparing actual vs predicted values?'"
+          },
+          {
+            "workflow": "Time Series Forecast Chart",
+            "pattern": "data_create_regression_model(model_type='time_series') → update_range (write forecast) → create_chart (line chart with historical + forecast)",
+            "chart_type": "LineMarkers",
+            "ai_behavior": "After writing forecast, offer line chart showing historical data and predictions"
+          },
+          {
+            "workflow": "Pivot Table Visualization",
+            "pattern": "data_create_aggregation(aggregation_type='pivot') → update_range → create_chart (column chart of pivot results)",
+            "chart_type": "ColumnClustered",
+            "ai_behavior": "After creating pivot, offer: 'Would you like a chart to visualize these results?'"
+          }
+        ]
+      }
+    },
+    {
+      "name": "microsoft_excel_list_charts",
+      "short_description": "List charts in Microsoft Excel worksheet with names and positions",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Listed [X] charts from sheet **[SheetName]**'\n(3) Use EXACT workbook_id and sheet_name provided\n(4) If tool fails, say 'Failed to list charts' and explain error\n\n⚠️ MUST USE: execute_tool(tool_name='microsoft_excel_list_charts', ...) - DO NOT call directly!\n\nList all charts in worksheet. Returns chart metadata including type, title, and data range.",
+      "category": "visualization",
+      "priority": "low",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "workbook_id": {
+            "type": "string",
+            "description": "Workbook ID"
+          },
+          "sheet_name": {
+            "type": "string",
+            "description": "Worksheet name"
+          }
+        },
+        "required": [
+          "workbook_id",
+          "sheet_name"
+        ]
+      },
+      "returns": {
+        "type": "object",
+        "description": "Dict with count and charts array (id, name, chart_type for each)"
+      },
+      "user_facing_language": {
+        "action_verb": "list",
+        "resource_name": "charts",
+        "resource_plural": "charts",
+        "natural_phrases": [
+          "list the charts",
+          "show charts",
+          "what charts are in this sheet"
+        ],
+        "capability_description": "I can list all charts in Excel worksheets, showing their types and titles.",
+        "example_ai_responses": [
+          "I'll list all charts in that worksheet.",
+          "I'll show you the charts in that sheet."
+        ]
+      },
+      "tool_intelligence": {
+        "category": "visualization",
+        "typical_workflow_patterns": [
+          "microsoft_excel_list_charts → document charts for reference",
+          "microsoft_excel_list_worksheets → microsoft_excel_list_charts (explore sheets then charts)"
+        ],
+        "success_indicators": {
+          "keywords": [
+            "found X charts",
+            "charts listed"
+          ],
+          "behavioral": [
+            "User reviews chart list"
+          ]
+        },
+        "failure_indicators": {
+          "keywords": [
+            "no charts found",
+            "sheet not found"
+          ],
+          "behavioral": [
+            "User checks sheet name"
+          ]
+        },
+        "performance_expectations": {
+          "typical_duration_ms": 600,
+          "rate_limit_per_minute": 60,
+          "max_retries": 3,
+          "timeout_seconds": 20
+        }
+      },
+      "memory_context": {
+        "vectorization_fields": [
+          "workbook_id",
+          "sheet_name",
+          "chart_types"
+        ],
+        "search_keywords": [
+          "list charts",
+          "charts",
+          "visualizations"
+        ],
+        "related_synergy_platforms": [
+          "microsoft_excel",
+          "microsoft_365",
+          "onedrive"
+        ],
+        "typical_use_cases": [
+          "Chart inventory",
+          "Workbook exploration",
+          "Documentation"
+        ],
+        "conversation_memory_hints": {
+          "what_to_remember": "Workbook IDs, sheet names, chart counts",
+          "search_context": "When user asks about 'charts in [worksheet]'",
+          "related_entities": [
+            "workbook IDs",
+            "sheet names",
+            "chart types"
+          ]
+        }
+      }
+    },
+    {
+      "name": "microsoft_excel_sort_range",
+      "short_description": "Sort cell range in Microsoft Excel by column ascending or descending",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite what was sorted: 'Sorted range **[Range]** in sheet **[SheetName]** by column [X] [ascending/descending]'\n(3) Use EXACT IDs and range provided\n(4) If tool fails, say 'Failed to sort range' and explain error\n\n⚠️ MUST USE: execute_tool(tool_name='microsoft_excel_sort_range', ...) - DO NOT call directly!\n\nSort data range by specified column. Can sort ascending or descending, with or without header row.",
+      "category": "data_analysis",
+      "priority": "medium",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "workbook_id": {
+            "type": "string",
+            "description": "Workbook ID"
+          },
+          "sheet_name": {
+            "type": "string",
+            "description": "Worksheet name"
+          },
+          "range_address": {
+            "type": "string",
+            "description": "Range to sort (e.g., 'A1:C10')"
+          },
+          "sort_column": {
+            "type": "integer",
+            "description": "Column index to sort by (0-based). Example: 0=first column, 1=second column"
+          },
+          "ascending": {
+            "type": "boolean",
+            "description": "Sort ascending (true) or descending (false)",
+            "default": true
+          },
+          "has_headers": {
+            "type": "boolean",
+            "description": "Whether range has header row (default: true)",
+            "default": true
+          }
+        },
+        "required": [
+          "workbook_id",
+          "sheet_name",
+          "range_address",
+          "sort_column"
+        ]
+      },
+      "returns": {
+        "type": "object",
+        "description": "Dict with success status, range_address, sort_column, sort_order"
+      },
+      "user_facing_language": {
+        "action_verb": "sort",
+        "resource_name": "data",
+        "resource_plural": "data",
+        "natural_phrases": [
+          "sort the data",
+          "sort by column",
+          "arrange data",
+          "order by"
+        ],
+        "capability_description": "I can sort Excel data by any column in ascending or descending order.",
+        "example_ai_responses": [
+          "I'll sort the data by Sales column in descending order.",
+          "I'll sort that range alphabetically."
+        ]
+      },
+      "tool_intelligence": {
+        "category": "data_processing",
+        "typical_workflow_patterns": [
+          "microsoft_excel_get_range → data_analyze_statistics → microsoft_excel_sort_range (read, analyze, sort by results)",
+          "microsoft_excel_sort_range → microsoft_excel_get_range (sort then read)"
+        ],
+        "success_indicators": {
+          "keywords": [
+            "sorted successfully",
+            "data sorted"
+          ],
+          "behavioral": [
+            "User views sorted data"
+          ]
+        },
+        "failure_indicators": {
+          "keywords": [
+            "sort failed",
+            "invalid column"
+          ],
+          "behavioral": [
+            "User checks column index"
+          ]
+        },
+        "performance_expectations": {
+          "typical_duration_ms": 800,
+          "rate_limit_per_minute": 60,
+          "max_retries": 3,
+          "timeout_seconds": 20
+        }
+      },
+      "memory_context": {
+        "vectorization_fields": [
+          "workbook_id",
+          "sheet_name",
+          "range_address",
+          "sort_column"
+        ],
+        "search_keywords": [
+          "sort data",
+          "sort range",
+          "order data"
+        ],
+        "related_synergy_platforms": [
+          "microsoft_excel",
+          "microsoft_365",
+          "onedrive"
+        ],
+        "typical_use_cases": [
+          "Sort by value",
+          "Alphabetical sorting",
+          "Rank data",
+          "Organize results"
+        ],
+        "conversation_memory_hints": {
+          "what_to_remember": "Workbook IDs, sort operations, sort columns",
+          "search_context": "When user asks about 'how I sorted [data]'",
+          "related_entities": [
+            "workbook IDs",
+            "sort columns",
+            "sort orders"
+          ]
+        }
+      }
+    },
+    {
+      "name": "microsoft_excel_filter_range",
+      "short_description": "Filter cell range in Microsoft Excel by criteria to show matching rows",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite what was filtered: 'Applied autofilter to range **[Range]** in sheet **[SheetName]**'\n(3) Use EXACT IDs and range provided\n(4) If tool fails, say 'Failed to apply filter' and explain error\n\n⚠️ MUST USE: execute_tool(tool_name='microsoft_excel_filter_range', ...) - DO NOT call directly!\n\nApply autofilter to range (adds filter dropdown arrows to header row). Users can then filter data in Excel.",
+      "category": "data_analysis",
+      "priority": "low",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "workbook_id": {
+            "type": "string",
+            "description": "Workbook ID"
+          },
+          "sheet_name": {
+            "type": "string",
+            "description": "Worksheet name"
+          },
+          "range_address": {
+            "type": "string",
+            "description": "Range to filter (must include header row)"
+          }
+        },
+        "required": [
+          "workbook_id",
+          "sheet_name",
+          "range_address"
+        ]
+      },
+      "returns": {
+        "type": "object",
+        "description": "Dict with success status, filtered_range"
+      },
+      "user_facing_language": {
+        "action_verb": "filter",
+        "resource_name": "range",
+        "resource_plural": "ranges",
+        "natural_phrases": [
+          "add filters",
+          "enable filtering",
+          "apply autofilter"
+        ],
+        "capability_description": "I can add filter dropdowns to Excel data so you can filter by any column in Excel.",
+        "example_ai_responses": [
+          "I'll add filters to that data range.",
+          "I'll enable filtering so you can filter by any column."
+        ]
+      },
+      "tool_intelligence": {
+        "category": "data_processing",
+        "typical_workflow_patterns": [
+          "microsoft_excel_update_range → microsoft_excel_filter_range (write data then add filters)",
+          "microsoft_excel_sort_range → microsoft_excel_filter_range (sort then enable filtering)"
+        ],
+        "success_indicators": {
+          "keywords": [
+            "filter applied",
+            "autofilter enabled"
+          ],
+          "behavioral": [
+            "User sees filter dropdowns"
+          ]
+        },
+        "failure_indicators": {
+          "keywords": [
+            "filter failed",
+            "invalid range"
+          ],
+          "behavioral": [
+            "User checks range includes headers"
+          ]
+        },
+        "performance_expectations": {
+          "typical_duration_ms": 600,
+          "rate_limit_per_minute": 60,
+          "max_retries": 3,
+          "timeout_seconds": 15
+        }
+      },
+      "memory_context": {
+        "vectorization_fields": [
+          "workbook_id",
+          "sheet_name",
+          "range_address"
+        ],
+        "search_keywords": [
+          "filter range",
+          "autofilter",
+          "enable filtering"
+        ],
+        "related_synergy_platforms": [
+          "microsoft_excel",
+          "microsoft_365",
+          "onedrive"
+        ],
+        "typical_use_cases": [
+          "Enable data filtering",
+          "Add filter dropdowns",
+          "Prepare data for user filtering"
+        ],
+        "conversation_memory_hints": {
+          "what_to_remember": "Workbook IDs, filtered ranges",
+          "search_context": "When user asks about 'where I added filters'",
+          "related_entities": [
+            "workbook IDs",
+            "filtered ranges"
+          ]
+        }
+      }
+    },
+    {
+      "name": "microsoft_excel_smart_import_csv",
+      "short_description": "SMART: Import CSV file into Microsoft Excel with automatic type detection and formatting",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Imported [X] rows from CSV into new workbook **[WorkbookName]**'\n(3) Use EXACT values from tool response - NEVER make up fake IDs/URLs\n(4) If tool fails, say 'Failed to import CSV' - NEVER pretend it succeeded\n\n⚠️ MUST USE: execute_tool(tool_name='microsoft_excel_smart_import_csv', ...) - DO NOT call directly!\n\n🎯 SMART AUTOMATION (Tier 1) - Import CSV data and create professionally formatted Excel workbook with optional auto-formatting and charts.\n\n✨ CAPABILITIES:\n- Create new workbook with imported data\n- Auto-format headers (bold, freeze, filters)\n- Optional chart generation from data\n- Data quality check integration\n\n📊 DATA ANALYSIS INTEGRATION:\nAfter importing, AI should AUTOMATICALLY:\n1. Run data quality check (missing values, outliers) - adds ~200ms\n2. Offer analysis options based on data structure\n3. Suggest Google Sheets export for large datasets (better collaboration)",
+      "category": "smart_automation",
+      "tier": 1,
+      "priority": "high",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "csv_data": {
+            "type": "array",
+            "description": "2D array of CSV data (includes headers as first row). Example: [['Name', 'Age', 'Score'], ['Alice', 25, 95], ['Bob', 30, 87]]"
+          },
+          "workbook_name": {
+            "type": "string",
+            "description": "Name for new workbook (will add .xlsx if not present). Example: 'Sales Import 2025'"
+          },
+          "sheet_name": {
+            "type": "string",
+            "description": "Worksheet name for imported data",
+            "default": "Data"
+          },
+          "auto_format": {
+            "type": "boolean",
+            "description": "Apply automatic formatting (bold headers, freeze top row, auto-filter, column widths)",
+            "default": true
+          },
+          "create_chart": {
+            "type": "boolean",
+            "description": "Generate chart from numeric columns (auto-selects appropriate chart type based on data structure)",
+            "default": false
+          }
+        },
+        "required": [
+          "csv_data",
+          "workbook_name"
+        ]
+      },
+      "returns": {
+        "type": "object",
+        "description": "Dict with workbook_id, name, web_url, sheet_name, rows_imported, columns_imported, chart_id (if create_chart=true), data_quality_summary (auto-generated)"
+      },
+      "user_facing_language": {
+        "action_verb": "import",
+        "resource_name": "CSV data",
+        "resource_plural": "CSV data",
+        "natural_phrases": [
+          "import CSV data",
+          "load CSV into Excel",
+          "create spreadsheet from CSV",
+          "import this data",
+          "load data into Excel"
+        ],
+        "capability_description": "I can import CSV data into a new Excel workbook with professional formatting, optional charts, and automatic data quality checks. Perfect for turning raw data into polished spreadsheets instantly.",
+        "example_ai_responses": [
+          "I'll import that CSV data into a new Excel workbook with formatting.",
+          "I'll create a spreadsheet from your CSV and run a data quality check.",
+          "I'll import the data, format it professionally, and create a visualization chart.",
+          "Data imported! I found [X] rows and [Y] columns. I've run a quality check - [results]."
+        ]
+      },
+      "tool_intelligence": {
+        "category": "smart_automation",
+        "typical_workflow_patterns": [
+          "csv_source → microsoft_excel_smart_import_csv → data_analyze_statistics (auto) → AI summary (RECOMMENDED DEFAULT)",
+          "microsoft_excel_smart_import_csv → data_create_aggregation(pivot) (import then summarize)",
+          "microsoft_excel_smart_import_csv → export to Google Sheets (import then move to better platform for analysis)",
+          "microsoft_excel_smart_import_csv(create_chart=true) → microsoft_excel_get_range → analyze (import, visualize, then dive deeper)"
+        ],
+        "success_indicators": {
+          "keywords": [
+            "imported successfully",
+            "X rows imported",
+            "workbook created",
+            "data loaded",
+            "import complete",
+            "quality check passed"
+          ],
+          "behavioral": [
+            "User views imported data in Excel",
+            "User proceeds to analyze data",
+            "User asks follow-up questions about data",
+            "User exports to Google Sheets for collaboration",
+            "User requests additional analysis"
+          ]
+        },
+        "failure_indicators": {
+          "keywords": [
+            "import failed",
+            "invalid CSV format",
+            "malformed data",
+            "quota exceeded",
+            "permission denied"
+          ],
+          "behavioral": [
+            "User checks CSV format",
+            "User asks about error",
+            "User tries with smaller dataset",
+            "User manually imports in Excel",
+            "User reports data quality issues"
+          ]
+        },
+        "performance_expectations": {
+          "typical_duration_ms": 2000,
+          "rate_limit_per_minute": 20,
+          "max_retries": 3,
+          "timeout_seconds": 60,
+          "note": "Add 200-500ms for auto data quality check"
+        }
+      },
+      "memory_context": {
+        "vectorization_fields": [
+          "workbook_name",
+          "workbook_id",
+          "rows_imported",
+          "columns_imported",
+          "data_topic"
+        ],
+        "search_keywords": [
+          "import csv",
+          "csv import",
+          "load data",
+          "import data",
+          "csv to excel",
+          "data import",
+          "upload csv"
+        ],
+        "related_synergy_platforms": [
+          "microsoft_excel",
+          "microsoft_365",
+          "onedrive",
+          "google_sheets"
+        ],
+        "typical_use_cases": [
+          "Data import - User imports sales CSV from external system into Excel",
+          "Report preparation - User loads raw data to build Excel report",
+          "Data migration - User converts CSV exports to Excel format",
+          "Analysis setup - User imports data for statistical analysis",
+          "Template population - User loads data into formatted Excel template"
+        ],
+        "conversation_memory_hints": {
+          "what_to_remember": "Workbook IDs created, import timestamps, data topics (sales, financial, customer, etc.), row/column counts, data quality issues found",
+          "search_context": "When user asks about 'CSV I imported', 'data I loaded', 'spreadsheet from [topic] data'",
+          "related_entities": [
+            "workbook IDs",
+            "workbook names",
+            "import timestamps",
+            "data topics",
+            "row counts",
+            "data quality metrics"
+          ]
+        }
+      },
+      "data_analysis_integration": {
+        "primary_use": "Import CSV and IMMEDIATELY analyze - fastest path from raw data to insights",
+        "post_import_auto_analysis": {
+          "always_run_quality_check": {
+            "execution": "AUTOMATICALLY run after import (user doesn't need to ask)",
+            "tools": "data_analyze_statistics(analysis_type='missing') + data_analyze_statistics(analysis_type='outliers')",
+            "speed": "Adds ~200-500ms to import (negligible)",
+            "ai_reporting": "Always include in response: 'Imported [X] rows, [Y] columns. Quality check: [Z] missing values in [cols], [N] outliers detected in [cols].'",
+            "user_value": "Instant data quality feedback - catches issues immediately",
+            "implementation": "Run in parallel with workbook creation to minimize delay"
+          },
+          "smart_column_detection": {
+            "numeric_columns": {
+              "detect": "Check column data types after import",
+              "auto_suggest": "I see numeric columns: [list]. I can calculate statistics, find correlations, or detect outliers. What would help?",
+              "quick_options": "1) Summary statistics, 2) Correlation analysis, 3) Outlier detection"
+            },
+            "categorical_columns": {
+              "detect": "Low cardinality text columns (< 20 unique values)",
+              "auto_suggest": "I found categorical columns: [list]. I can create a pivot table to summarize by [column]. Would you like that?",
+              "quick_action": "data_create_aggregation(aggregation_type='pivot')"
+            },
+            "date_columns": {
+              "detect": "Date/datetime data types",
+              "auto_suggest": "This looks like time series data. I can calculate trends, rolling averages, or build a forecast model. Which interests you?",
+              "quick_options": "1) Trend analysis, 2) Rolling averages, 3) Forecast model"
+            },
+            "mixed_columns": {
+              "detect": "Categorical + numeric columns",
+              "auto_suggest": "I can compare [numeric] across [categorical] groups using statistical tests. Want to see if differences are significant?",
+              "quick_action": "data_run_hypothesis_test"
+            }
+          }
+        },
+        "intelligent_export_routing": {
+          "when_to_recommend_google_sheets": [
+            "Large datasets (1000+ rows) - 'For easier analysis, I recommend exporting to Google Sheets after import'",
+            "Collaborative analysis - 'Google Sheets would be better for team collaboration on this data'",
+            "Complex pivot tables needed - 'Google Sheets has better pivot table features for this dataset'",
+            "User mentions sharing - 'Let me import to Excel then export to Google Sheets for sharing'"
+          ],
+          "workflow": "smart_import_csv → microsoft_excel_get_range(export='google_sheet') (import then immediately export)"
+        },
+        "auto_analysis_workflows": [
+          {
+            "workflow": "Import → Quality Check → Statistics → Report",
+            "pattern": "smart_import_csv → data_analyze_statistics(missing) → data_analyze_statistics(summary) → AI generates text report",
+            "speed": "2.5-3.5s total (2s import + 0.5-1.5s analysis)",
+            "ai_response": "Imported [X] rows. Quality: [quality summary]. Statistics: Mean=[Y], Std=[Z], Outliers=[N]. [Data looks clean/needs review].",
+            "user_value": "Complete data assessment in one step",
+            "when_to_use": "ALWAYS for numeric data imports"
+          },
+          {
+            "workflow": "Import → Auto-Pivot → Visualize",
+            "pattern": "smart_import_csv(create_chart=false) → data_create_aggregation(pivot) → microsoft_excel_create_chart",
+            "speed": "2.5-3s total",
+            "trigger": "Categorical columns detected",
+            "ai_response": "Imported and created pivot table by [category]. Would you like a chart to visualize this?",
+            "user_value": "Instant data summarization",
+            "when_to_use": "Sales data, survey data, categorical summaries"
+          },
+          {
+            "workflow": "Import → Trend Analysis",
+            "pattern": "smart_import_csv → data_create_aggregation(rolling) → microsoft_excel_create_chart(line)",
+            "speed": "2.5-3s total",
+            "trigger": "Date column + numeric metrics detected",
+            "ai_response": "Imported time series data. Calculated 7-day rolling average. Created trend chart.",
+            "user_value": "Instant trend visualization",
+            "when_to_use": "Time series, financial data, KPI tracking"
+          },
+          {
+            "workflow": "Import → Export to Google Sheets → Advanced Analysis",
+            "pattern": "smart_import_csv → get_range(export='google_sheet') → [user continues in Sheets OR data_analysis tools]",
+            "speed": "3-4s total (2s import + 1-2s export)",
+            "trigger": "Large dataset OR user mentions collaboration",
+            "ai_response": "Imported to Excel and exported to Google Sheets for better analysis tools and collaboration.",
+            "user_value": "Best of both worlds - Excel compatibility + Google Sheets power",
+            "when_to_use": "Large datasets, team projects, complex analysis needs"
+          }
+        ],
+        "ai_auto_suggestions_after_import": {
+          "trigger_based_on_data_structure": [
+            {
+              "data_structure": "Financial data (revenue, cost, profit columns)",
+              "detect": "Column names: revenue, sales, cost, profit, expense, income",
+              "auto_suggest": "Financial data detected. I can: 1) Calculate key metrics (margins, growth rates), 2) Detect anomalies, 3) Build forecast model. What would you like?",
+              "recommended_workflow": "Calculate profit margin, ROI, then run outlier detection"
+            },
+            {
+              "data_structure": "Customer data (names, emails, demographics)",
+              "detect": "Column names: customer, name, email, age, gender, segment",
+              "auto_suggest": "Customer data detected. I can: 1) Segment analysis (group by demographics), 2) Statistical profiling, 3) Duplicate detection. What helps most?",
+              "recommended_workflow": "Create pivot by segment, run statistics per segment"
+            },
+            {
+              "data_structure": "Sales transaction data",
+              "detect": "Column names: order, date, product, quantity, price, customer",
+              "auto_suggest": "Transaction data detected. I can: 1) Sales summary by product/time, 2) Customer purchase patterns, 3) Revenue forecasting. Which interests you?",
+              "recommended_workflow": "Pivot by product + time period, calculate totals, detect trends"
+            },
+            {
+              "data_structure": "Survey/rating data",
+              "detect": "Many columns with numeric scales (1-5, 1-10) or Yes/No",
+              "auto_suggest": "Survey data detected. I can: 1) Response statistics, 2) Cross-tabulation by demographics, 3) Sentiment analysis. What's your focus?",
+              "recommended_workflow": "Summary statistics + chi-square tests for relationships"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "microsoft_excel_smart_data_analysis",
+      "short_description": "SMART: AI-analyze Excel data with statistics, patterns, and insights generation",
+      "description": "⚠️ DEPRECATION NOTICE: This tool is REDUNDANT with data_analyze_statistics (Tier 1 data analysis tool).\n\n🔄 RECOMMENDED REPLACEMENT: Use microsoft_excel_get_range → data_analyze_statistics instead\n- data_analyze_statistics is 10-100x FASTER (50-200ms vs 2-5s)\n- 6 analysis types vs 1 (summary, correlation, distribution, outliers, missing, variance)\n- Works on ANY data source, not just Excel\n- Can export results to Google Sheets, Synergy, or back to Excel\n\n📊 MIGRATION PATH:\nOLD: smart_data_analysis(workbook_id, sheet_name, range)\nNEW: get_range(workbook_id, sheet_name, range, mode='detailed', format='csv') → data_analyze_statistics(data_source=csv, analysis_type='summary')\n\nResult: Same output, faster execution, more flexibility\n\n⚠️ KEEP THIS TOOL ONLY IF: User specifically wants results as new Excel worksheet (not common use case)\n\n🚨 AI BEHAVIOR: When user requests data analysis on Excel data, PREFER data_analyze_statistics over this tool unless user explicitly says 'add Excel worksheet with results'",
+      "category": "smart_automation",
+      "tier": 1,
+      "priority": "low",
+      "status": "⚠️ Consider deprecating - use data_analyze_statistics instead",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "workbook_id": {
+            "type": "string",
+            "description": "Workbook ID"
+          },
+          "sheet_name": {
+            "type": "string",
+            "description": "Worksheet name"
+          },
+          "data_range": {
+            "type": "string",
+            "description": "Range containing data (e.g., 'A1:D100')"
+          },
+          "analysis_type": {
+            "type": "string",
+            "description": "Type of analysis (currently only 'summary' supported)",
+            "default": "summary",
+            "enum": [
+              "summary"
+            ]
+          }
+        },
+        "required": [
+          "workbook_id",
+          "sheet_name",
+          "data_range"
+        ]
+      },
+      "returns": {
+        "type": "object",
+        "description": "Dict with statistics (count, sum, average, min, max per numeric column) and analysis_sheet_id (new worksheet with results)"
+      },
+      "user_facing_language": {
+        "action_verb": "analyze",
+        "resource_name": "spreadsheet data",
+        "resource_plural": "spreadsheet data",
+        "natural_phrases": [
+          "analyze the data",
+          "get statistics",
+          "summarize the data",
+          "analyze this spreadsheet"
+        ],
+        "capability_description": "⚠️ LEGACY TOOL: I can analyze Excel data and create a summary statistics worksheet. However, I recommend using my newer data analysis tools which are faster and more powerful.",
+        "example_ai_responses": [
+          "I can analyze this data, but I recommend using the faster data_analyze_statistics tool instead. It's 10x faster and offers more analysis types. Which would you prefer?",
+          "For quick statistics, I recommend reading the data and using data_analyze_statistics (much faster). Or I can create an Excel worksheet with results using this tool."
+        ]
+      },
+      "tool_intelligence": {
+        "category": "smart_automation",
+        "typical_workflow_patterns": [
+          "⚠️ DEPRECATED PATTERN: smart_data_analysis → view results",
+          "✅ RECOMMENDED PATTERN: get_range → data_analyze_statistics → add_worksheet → update_range (if Excel worksheet needed)"
+        ],
+        "success_indicators": {
+          "keywords": [
+            "analysis complete",
+            "statistics generated",
+            "analysis worksheet created"
+          ],
+          "behavioral": [
+            "User views analysis sheet"
+          ]
+        },
+        "failure_indicators": {
+          "keywords": [
+            "analysis failed",
+            "range invalid"
+          ],
+          "behavioral": [
+            "User switches to data_analyze_statistics"
+          ]
+        },
+        "performance_expectations": {
+          "typical_duration_ms": 2500,
+          "rate_limit_per_minute": 20,
+          "max_retries": 2,
+          "timeout_seconds": 60,
+          "note": "SLOW compared to data_analyze_statistics (50-200ms)"
+        }
+      },
+      "memory_context": {
+        "vectorization_fields": [
+          "workbook_id",
+          "sheet_name",
+          "data_range"
+        ],
+        "search_keywords": [
+          "analyze excel",
+          "excel statistics",
+          "data analysis",
+          "smart analysis"
+        ],
+        "related_synergy_platforms": [
+          "microsoft_excel",
+          "microsoft_365",
+          "onedrive"
+        ],
+        "typical_use_cases": [
+          "⚠️ LEGACY: Quick statistics on Excel data (now better served by data_analyze_statistics)"
+        ],
+        "conversation_memory_hints": {
+          "what_to_remember": "That this tool is deprecated, prefer data_analyze_statistics",
+          "search_context": "Rarely used - redirect to better tool",
+          "related_entities": [
+            "workbook IDs",
+            "analysis types"
+          ]
+        }
+      },
+      "data_analysis_integration": {
+        "deprecation_recommendation": {
+          "status": "⚠️ STRONGLY RECOMMEND DEPRECATION",
+          "reason": "data_analyze_statistics is objectively superior in every way",
+          "comparison": {
+            "smart_data_analysis": {
+              "speed": "2-5s",
+              "analysis_types": "1 (summary only)",
+              "flexibility": "Excel only",
+              "output": "New Excel worksheet only"
+            },
+            "data_analyze_statistics": {
+              "speed": "50-200ms (10-100x faster!)",
+              "analysis_types": "6 (summary, correlation, distribution, outliers, missing, variance)",
+              "flexibility": "Any data source",
+              "output": "Return data, export to Excel/Sheets/Synergy/Doc - user choice"
+            }
+          },
+          "migration_strategy": "Redirect all calls to: get_range → data_analyze_statistics → (optionally) add_worksheet + update_range",
+          "keep_tool_only_if": "User explicitly says 'create Excel worksheet with analysis' (rare case)"
+        }
+      }
+    },
+    {
+      "name": "microsoft_excel_smart_create_pivot",
+      "short_description": "SMART: Create pivot table in Microsoft Excel from data range with aggregation",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) ALWAYS execute THIS tool NOW - NEVER reference 'I created earlier' or use conversation history\n(2) MUST return format: 'Created pivot table in sheet **[DestSheet]** from source **[SourceSheet]** range [Range]'\n(3) Use EXACT values from tool response - NEVER make up fake results\n(4) If tool fails, say 'Failed to create pivot table' - NEVER pretend it succeeded\n\n⚠️ MUST USE: execute_tool(tool_name='microsoft_excel_smart_create_pivot', ...) - DO NOT call directly!\n\n🎯 SMART AUTOMATION (Tier 1) - Create Excel pivot table with custom grouping and aggregation.\n\n⚡ ALTERNATIVE TOOL AVAILABLE: data_create_aggregation(aggregation_type='pivot') is 10x FASTER (50-500ms vs 2-5s)\n\n🤔 WHEN TO USE EACH:\n- Use THIS tool: User wants native Excel pivot table object (manipulable in Excel UI)\n- Use data_create_aggregation: Speed matters, pivot is intermediate step, or exporting to Google Sheets\n\n💡 AI DECISION LOGIC:\n- User says 'pivot table' or 'pivot' → Use data_create_aggregation (faster)\n- User says 'Excel pivot table I can edit' → Use THIS tool (native Excel object)",
+      "category": "smart_automation",
+      "tier": 1,
+      "priority": "medium",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "workbook_id": {
+            "type": "string",
+            "description": "Workbook ID"
+          },
+          "source_sheet": {
+            "type": "string",
+            "description": "Source worksheet name"
+          },
+          "source_range": {
+            "type": "string",
+            "description": "Data range (e.g., 'A1:D100'). Must include headers."
+          },
+          "row_fields": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Column names to use as row labels. Example: ['Product', 'Region'] for multi-level grouping"
+          },
+          "value_fields": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Column names to aggregate. Example: ['Sales', 'Quantity']"
+          },
+          "destination_sheet": {
+            "type": "string",
+            "description": "Destination sheet name (creates if doesn't exist). Example: 'Pivot_Summary'"
+          }
+        },
+        "required": [
+          "workbook_id",
+          "source_sheet",
+          "source_range",
+          "row_fields",
+          "value_fields"
+        ]
+      },
+      "returns": {
+        "type": "object",
+        "description": "Dict with pivot_table_id, destination_sheet, source_range, row_fields, value_fields"
+      },
+      "user_facing_language": {
+        "action_verb": "create",
+        "resource_name": "pivot table",
+        "resource_plural": "pivot tables",
+        "natural_phrases": [
+          "create a pivot table",
+          "make a pivot table",
+          "pivot the data",
+          "summarize by category",
+          "group and aggregate data"
+        ],
+        "capability_description": "I can create Excel pivot tables OR use faster data aggregation tools. Excel pivot tables are best when you need to manipulate them in Excel. For speed or Google Sheets export, I use faster aggregation methods.",
+        "example_ai_responses": [
+          "I'll create a pivot table summarizing Sales by Product and Region.",
+          "For faster results, I can use data aggregation instead of Excel pivot (10x faster). Which do you prefer?",
+          "I'll create an Excel pivot table you can edit in Excel Online."
+        ]
+      },
+      "tool_intelligence": {
+        "category": "smart_automation",
+        "typical_workflow_patterns": [
+          "microsoft_excel_get_range → microsoft_excel_smart_create_pivot (read data then pivot) - SLOWER",
+          "microsoft_excel_get_range → data_create_aggregation(pivot) (read then aggregate) - FASTER ✅ RECOMMENDED",
+          "smart_create_pivot → microsoft_excel_create_chart (pivot then visualize)",
+          "smart_create_pivot → data_run_hypothesis_test (pivot then test group differences)"
+        ],
+        "success_indicators": {
+          "keywords": [
+            "pivot created",
+            "pivot table ready",
+            "summarized by"
+          ],
+          "behavioral": [
+            "User views pivot in Excel",
+            "User manipulates pivot"
+          ]
+        },
+        "failure_indicators": {
+          "keywords": [
+            "pivot failed",
+            "invalid field names",
+            "range error"
+          ],
+          "behavioral": [
+            "User checks field names",
+            "User tries data_create_aggregation instead"
+          ]
+        },
+        "performance_expectations": {
+          "typical_duration_ms": 2500,
+          "rate_limit_per_minute": 10,
+          "max_retries": 2,
+          "timeout_seconds": 60,
+          "note": "SLOW - data_create_aggregation is 10x faster"
+        }
+      },
+      "memory_context": {
+        "vectorization_fields": [
+          "workbook_id",
+          "source_sheet",
+          "row_fields",
+          "value_fields"
+        ],
+        "search_keywords": [
+          "pivot table",
+          "excel pivot",
+          "summarize data",
+          "group by",
+          "aggregate"
+        ],
+        "related_synergy_platforms": [
+          "microsoft_excel",
+          "microsoft_365",
+          "onedrive",
+          "google_sheets"
+        ],
+        "typical_use_cases": [
+          "Sales analysis - Pivot sales by product and region",
+          "Data summarization - Group transactions by category",
+          "Report building - Create summary tables for reports",
+          "Multi-dimensional analysis - Analyze by multiple dimensions"
+        ],
+        "conversation_memory_hints": {
+          "what_to_remember": "Workbook IDs, pivot configurations (row/value fields), pivot purposes",
+          "search_context": "When user asks about 'pivot tables I created', 'data summaries'",
+          "related_entities": [
+            "workbook IDs",
+            "field names",
+            "aggregation types"
+          ]
+        }
+      },
+      "data_analysis_integration": {
+        "alternative_tool_comparison": {
+          "excel_native_pivot": {
+            "tool": "microsoft_excel_smart_create_pivot",
+            "speed": "2-5s",
+            "output": "Native Excel pivot table object",
+            "pros": [
+              "Manipulable in Excel UI",
+              "Excel-native features",
+              "Familiar to Excel users"
+            ],
+            "cons": [
+              "Slow",
+              "Excel-only",
+              "Limited to Excel API constraints"
+            ],
+            "use_when": "User explicitly wants Excel pivot table object to edit in Excel"
+          },
+          "data_aggregation_pivot": {
+            "tool": "data_create_aggregation(aggregation_type='pivot')",
+            "speed": "50-500ms (10x faster!)",
+            "output": "Pivot table as data (2D array)",
+            "pros": [
+              "Very fast",
+              "More flexible",
+              "Works with any data source",
+              "Easier to chain analyses"
+            ],
+            "cons": [
+              "Results as data, not Excel pivot object",
+              "User must format if writing to Excel"
+            ],
+            "use_when": "Speed matters, pivot is intermediate step, or exporting to Google Sheets"
+          },
+          "ai_recommendation": "PREFER data_create_aggregation for 90% of use cases. Only use smart_create_pivot when user needs native Excel pivot object."
+        },
+        "post_pivot_analysis_workflows": [
+          {
+            "workflow": "Pivot → Statistical Tests",
+            "pattern": "create_pivot OR data_create_aggregation → data_run_hypothesis_test",
+            "use_case": "Create sales pivot by region, then test if regional differences are statistically significant",
+            "ai_suggestion": "After creating pivot, automatically offer: 'Would you like me to test if these group differences are statistically significant?'"
+          },
+          {
+            "workflow": "Pivot → Visualization",
+            "pattern": "create_pivot → microsoft_excel_create_chart",
+            "use_case": "Create pivot, then chart the results",
+            "ai_auto_behavior": "Always offer chart creation after pivot table"
+          },
+          {
+            "workflow": "Pivot → Export to Google Sheets",
+            "pattern": "data_create_aggregation(pivot) → write to Google Sheets",
+            "use_case": "Create pivot summary then export for better collaboration/manipulation",
+            "ai_suggestion": "For pivots on large datasets, recommend: 'I can create this in Google Sheets instead - better pivot table features there.'"
+          }
+        ]
+      }
+    },
+    {
+      "name": "microsoft_excel_smart_financial_report",
+      "short_description": "SMART: Generate financial report in Excel with formulas, charts, and summaries",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST return format: 'Created financial report **[WorkbookName]** with [X] sheets: [sheet list]'\n(3) Use EXACT values from tool response - NEVER make up fake IDs/URLs\n(4) If tool fails, say 'Failed to create financial report' - NEVER pretend it succeeded\n\n⚠️ MUST USE: execute_tool(tool_name='microsoft_excel_smart_financial_report', ...) - DO NOT call directly!\n\n🎯 SMART AUTOMATION (Tier 1) - Generate comprehensive financial report workbook with multiple sheets, formulas, and optional charts.\n\n✨ GENERATES:\n- Income Statement sheet (revenue, expenses, profit)\n- Balance Sheet (assets, liabilities, equity)\n- Cash Flow Statement (operations, investing, financing)\n- Optional charts for each sheet\n\n📊 DATA ANALYSIS INTEGRATION:\nAfter generating, AI should AUTOMATICALLY:\n1. Run variance analysis on all financial metrics\n2. Offer period comparison statistical tests\n3. Suggest forecast model for revenue/profit projections",
+      "category": "smart_automation",
+      "tier": 1,
+      "priority": "medium",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "workbook_name": {
+            "type": "string",
+            "description": "Name for financial report workbook. Example: 'Q4 2025 Financial Report'"
+          },
+          "financial_data": {
+            "type": "object",
+            "description": "Dict with 'income', 'balance', 'cashflow' keys. Each contains array of financial line items. Example: {'income': [['Revenue', 100000], ['Cost of Goods', -60000], ['Gross Profit', 40000]], 'balance': [...], 'cashflow': [...]}"
+          },
+          "include_charts": {
+            "type": "boolean",
+            "description": "Generate charts for each financial sheet",
+            "default": true
+          }
+        },
+        "required": [
+          "workbook_name",
+          "financial_data"
+        ]
+      },
+      "returns": {
+        "type": "object",
+        "description": "Dict with workbook_id, web_url, sheets_created (array of sheet names), chart_ids (if include_charts=true), financial_summary (key metrics)"
+      },
+      "user_facing_language": {
+        "action_verb": "generate",
+        "resource_name": "financial report",
+        "resource_plural": "financial reports",
+        "natural_phrases": [
+          "create financial report",
+          "generate financial statements",
+          "build financial report",
+          "create income statement",
+          "generate quarterly report"
+        ],
+        "capability_description": "I can generate comprehensive financial reports with Income Statement, Balance Sheet, and Cash Flow Statement. I'll automatically add statistical analysis, variance checks, and offer forecasting.",
+        "example_ai_responses": [
+          "I'll generate your Q4 financial report with all three statements and charts.",
+          "I'll create the financial report and run variance analysis on all metrics.",
+          "Report generated! I've added statistical insights - [summary]. Would you like revenue forecasting?"
+        ]
+      },
+      "tool_intelligence": {
+        "category": "smart_automation",
+        "typical_workflow_patterns": [
+          "data_source → microsoft_excel_smart_financial_report → data_analyze_statistics(variance) → AI summary ✅ RECOMMENDED",
+          "smart_financial_report → data_run_hypothesis_test (compare periods)",
+          "smart_financial_report → data_create_regression_model(forecast revenue)",
+          "smart_financial_report → add Executive Summary sheet with insights"
+        ],
+        "success_indicators": {
+          "keywords": [
+            "report created",
+            "X sheets generated",
+            "financial statements ready",
+            "charts included"
+          ],
+          "behavioral": [
+            "User reviews financial sheets",
+            "User requests additional analysis",
+            "User exports report"
+          ]
+        },
+        "failure_indicators": {
+          "keywords": [
+            "report failed",
+            "invalid financial data",
+            "missing sections"
+          ],
+          "behavioral": [
+            "User checks data format",
+            "User retries with corrected data"
+          ]
+        },
+        "performance_expectations": {
+          "typical_duration_ms": 4000,
+          "rate_limit_per_minute": 5,
+          "max_retries": 2,
+          "timeout_seconds": 90,
+          "note": "Add 500ms for auto variance analysis"
+        }
+      },
+      "memory_context": {
+        "vectorization_fields": [
+          "workbook_name",
+          "workbook_id",
+          "report_period",
+          "key_metrics"
+        ],
+        "search_keywords": [
+          "financial report",
+          "income statement",
+          "balance sheet",
+          "cash flow",
+          "financial statements",
+          "quarterly report"
+        ],
+        "related_synergy_platforms": [
+          "microsoft_excel",
+          "microsoft_365",
+          "onedrive"
+        ],
+        "typical_use_cases": [
+          "Quarterly reporting - Generate Q1/Q2/Q3/Q4 financial statements",
+          "Annual reports - Create year-end financial report package",
+          "Board presentations - Prepare financial summary for board meetings",
+          "Investor relations - Generate reports for investors",
+          "Budget analysis - Compare actual vs budget performance"
+        ],
+        "conversation_memory_hints": {
+          "what_to_remember": "Workbook IDs, report periods (Q1 2025, etc.), key financial metrics, report timestamps",
+          "search_context": "When user asks about 'financial reports I created', 'Q[X] reports', 'financial statements'",
+          "related_entities": [
+            "workbook IDs",
+            "report periods",
+            "financial metrics",
+            "variance findings"
+          ]
+        }
+      },
+      "data_analysis_integration": {
+        "primary_use": "Generate financial report, then add statistical insights automatically",
+        "enhanced_financial_workflows": [
+          {
+            "workflow": "Financial Report + Auto Variance Analysis",
+            "pattern": "smart_financial_report → data_analyze_statistics(analysis_type='variance') → microsoft_excel_add_worksheet('Variance Analysis') → update_range",
+            "execution": "AUTOMATICALLY run after report generation (adds ~500ms)",
+            "output": "Standard financial sheets + 'Variance Analysis' sheet with statistical metrics",
+            "ai_reporting": "Report generated. Variance analysis: Revenue variance [X]%, Expense variance [Y]%, [N] metrics exceed 10% threshold.",
+            "user_value": "Instant identification of unusual variances",
+            "always_include": true
+          },
+          {
+            "workflow": "Financial Report + Period Comparison Tests",
+            "pattern": "smart_financial_report → data_run_hypothesis_test(test_type='t_test') to compare periods (Q1 vs Q2, YoY, etc.)",
+            "output": "Financial report + 'Period Comparison' sheet with statistical tests",
+            "ai_offering": "After report, offer: 'Would you like me to test if period-over-period changes are statistically significant?'",
+            "use_case": "Test if Q3 revenue increase is statistically significant (not just random variation)",
+            "example": "t-test: Q3 vs Q2 revenue, p=0.023 (significant increase at p<0.05)"
+          },
+          {
+            "workflow": "Financial Report + Revenue Forecast",
+            "pattern": "smart_financial_report → data_create_regression_model(model_type='time_series', target='Revenue') → add_worksheet('Forecast') → update_range",
+            "output": "Historical financial sheets + 'Revenue Forecast' sheet with ARIMA predictions for next 12 months",
+            "ai_offering": "After generating report, automatically offer: 'Would you like me to add a revenue forecast sheet using time series analysis?'",
+            "execution_time": "Add ~2-4s for ARIMA model training",
+            "user_value": "Forward-looking insights in addition to historical statements"
+          },
+          {
+            "workflow": "Financial Report + Executive Summary (Auto-Generated)",
+            "pattern": "smart_financial_report → data_analyze_statistics(summary + variance) → generate text summary → add_worksheet('Executive Summary') → update_range",
+            "output": "Add 'Executive Summary' sheet with auto-generated text insights",
+            "ai_capability": "Automatically detect and report: YoY growth %, variance exceedances, trend changes, statistical significance",
+            "example_summary": "'Executive Summary:\n\n**Revenue**: $2.5M (+23% YoY, p<0.01 statistically significant increase)\n**Expenses**: $1.8M (+15% variance above budget in Q3 - investigate)\n**Profit Margin**: 28% (improved from 23% last quarter, p<0.05 significant)\n**Cash Flow**: $450K positive (operations generating strong cash)\n**Outliers Detected**: 3 expense transactions >$50K in August (review recommended)\n**Forecast**: Revenue projected to reach $3.2M next quarter (95% confidence interval: $2.9M-$3.5M)'",
+            "always_offer": true
+          }
+        ],
+        "ai_auto_enhancements": {
+          "always_run_after_report_generation": {
+            "variance_analysis": "Automatically run data_analyze_statistics(analysis_type='variance') on all numeric columns (adds ~100-300ms)",
+            "outlier_detection": "Flag variance exceedances (>10% from mean), trend changes (>20% period-over-period), outliers (z-score >3)",
+            "summary_generation": "Include statistical summary in AI response: 'Report generated. Notable findings: [auto-detected insights]'"
+          },
+          "smart_offering_based_on_data": {
+            "time_series_detected": "Offer: 'I can add a forecast sheet with revenue/profit projections using time series analysis.'",
+            "multiple_periods": "Offer: 'I can test if period-over-period changes are statistically significant.'",
+            "budget_data_present": "Offer: 'I can compare actual vs budget and highlight variances exceeding thresholds.'",
+            "quarterly_data": "Offer: 'I can calculate quarterly trends and identify seasonal patterns.'"
+          }
+        }
+      }
+    },
+    {
+      "name": "microsoft_excel_smart_sheet_builder",
+      "short_description": "⭐ SMART: THE comprehensive Excel builder - create/update workbooks, sheets, formulas, charts - ONE TOOL DOES IT ALL",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data\n(2) MUST return format: 'Created/Updated workbook with [X] sheets, [Y] formulas, [Z] charts'\n(3) Use EXACT values from tool response\n\n⚠️ MUST USE: execute_tool(tool_name='microsoft_excel_smart_sheet_builder', ...) - DO NOT call directly!\n\n⭐ COMPREHENSIVE EXCEL BUILDER - ONE TOOL TO DO IT ALL\n\n🎯 MODES:\n1. **CREATE FROM SCRATCH**: Provide workbook_name + worksheets\n2. **UPDATE EXISTING**: Provide workbook_id + changes\n3. **LEGACY SIMPLE**: Provide workbook_name + sheet_description (backward compatible)\n\n✨ CAPABILITIES:\n- **Multiple Worksheets**: Create entire workbooks with many sheets\n- **Natural Language Formulas**: \"sum column A\", \"multiply B by C\", or direct Excel formulas\n- **Cross-Sheet References**: \"=SUM('Sales Data'!C:C)\"\n- **Multiple Charts**: Different chart types on different sheets\n- **Granular Updates**: Add formulas/charts to existing workbooks\n- **Smart Auto-Detection**: Columns, data types, formulas from descriptions\n\n📊 COMPREHENSIVE EXAMPLES:\n\n**Example 1: Full Workbook from Scratch**\n```python\n{\n    \"workbook_name\": \"Q1 Sales Report\",\n    \"worksheets\": [\n        {\n            \"name\": \"Sales Data\",\n            \"columns\": [\"Rep\", \"Month\", \"Amount\", \"Region\"],\n            \"data\": [[\"Alice\", \"Jan\", 1000, \"West\"], [\"Bob\", \"Jan\", 1200, \"East\"]],\n            \"formulas\": [\n                {\"cell\": \"C10\", \"formula\": \"sum column C\"}\n            ],\n            \"chart\": {\n                \"type\": \"column\",\n                \"range\": \"A1:C10\",\n                \"title\": \"Sales by Rep\"\n            }\n        },\n        {\n            \"name\": \"Summary\",\n            \"columns\": [\"Metric\", \"Value\"],\n            \"formulas\": [\n                {\"cell\": \"B1\", \"formula\": \"=SUM('Sales Data'!C:C)\"},\n                {\"cell\": \"B2\", \"formula\": \"=AVERAGE('Sales Data'!C:C)\"},\n                {\"cell\": \"B3\", \"formula\": \"=COUNT('Sales Data'!A:A)\"}\n            ]\n        },\n        {\n            \"name\": \"Charts\",\n            \"chart\": {\n                \"type\": \"pie\",\n                \"range\": \"'Sales Data'!D1:D10\",\n                \"title\": \"Sales by Region\"\n            }\n        }\n    ]\n}\n```\n\n**Example 2: Update Existing Workbook (Granular)**\n```python\n{\n    \"workbook_id\": \"existing_wb_id\",\n    \"formulas\": [\n        {\"sheet\": \"Data\", \"cell\": \"E1\", \"formula\": \"multiply column B by column C\"},\n        {\"sheet\": \"Data\", \"cell\": \"F1\", \"formula\": \"=B1*1.1\"}\n    ],\n    \"charts\": [\n        {\"sheet\": \"Data\", \"type\": \"line\", \"range\": \"A1:C20\", \"title\": \"Trend\"}\n    ]\n}\n```\n\n**Example 3: Simple (Legacy)**\n```python\n{\n    \"workbook_name\": \"Sales Tracker\",\n    \"sheet_description\": \"sales tracker with rep performance\"\n}\n```\n\n🔧 ADVANCED FEATURES:\n- **Multi-Sheet**: Create 10+ sheets in one call\n- **Formula Types**: Natural language OR direct Excel syntax\n- **Chart Positioning**: Specify exact ranges and types\n- **Data Validation**: Columns auto-detected (numeric, date, text)\n- **Cross-References**: Link data across sheets\n- **Batch Operations**: Multiple formulas/charts in one call\n\n📋 PARAMETERS:\n- `workbook_name`: (optional) Name for NEW workbook\n- `workbook_id`: (optional) ID of EXISTING workbook to update\n- `worksheets`: (optional) Array of worksheet definitions\n- `formulas`: (optional) Global formulas to add\n- `charts`: (optional) Global charts to add\n- `sheet_description`: (optional) Legacy simple mode\n- `include_formulas`: (optional) Auto-add formulas (default: true)\n- `include_charts`: (optional) Auto-generate charts (default: true)\n\n⚙️ RETURNS:\n```python\n{\n    \"success\": true,\n    \"mode\": \"create|update\",\n    \"workbook_id\": \"...\",\n    \"web_url\": \"...\",\n    \"worksheets_created\": [...],\n    \"worksheets_updated\": [...],\n    \"formulas_added\": 5,\n    \"formulas\": [{...}],\n    \"charts_created\": 2,\n    \"charts\": [{...}]\n}\n```\n\n🎯 USE CASES:\n✅ **Creating Full Reports**: Multi-sheet workbooks with calculations and visualizations\n✅ **Updating Existing**: Add formulas/charts to existing workbooks\n✅ **Complex Analysis**: Cross-sheet references and advanced formulas\n✅ **Quick Templates**: Simple single-sheet creation\n✅ **Dashboards**: Multiple chart types across sheets\n\n⚡ This replaces the need for multiple tool calls:\n- Instead of: create_workbook → add_worksheet → update_range → set_formula → create_chart (5+ calls)\n- Use this: ONE CALL with all specifications",
+      "category": "smart_automation",
+      "tier": 1,
+      "priority": "critical",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "workbook_name": {
+            "type": "string",
+            "description": "Name for NEW workbook (creates new)",
+            "required": false
+          },
+          "workbook_id": {
+            "type": "string",
+            "description": "ID of EXISTING workbook to update",
+            "required": false
+          },
+          "worksheets": {
+            "type": "array",
+            "description": "Array of worksheet definitions with name, columns, data, formulas, charts",
+            "required": false
+          },
+          "formulas": {
+            "type": "array",
+            "description": "Global formulas: [{sheet, cell/range, formula}]",
+            "required": false
+          },
+          "charts": {
+            "type": "array",
+            "description": "Global charts: [{sheet, type, range, title}]",
+            "required": false
+          },
+          "sheet_description": {
+            "type": "string",
+            "description": "LEGACY: Simple single-sheet description",
+            "required": false
+          },
+          "data_structure": {
+            "type": "object",
+            "description": "LEGACY: Simple single-sheet structure",
+            "required": false
+          },
+          "include_formulas": {
+            "type": "boolean",
+            "description": "Auto-add formulas (default: true)",
+            "default": true
+          },
+          "include_charts": {
+            "type": "boolean",
+            "description": "Auto-generate charts (default: true)",
+            "default": true
+          }
+        },
+        "required": []
+      },
+      "returns": {
+        "type": "object",
+        "description": "Dict with mode, workbook_id, web_url, worksheets_created, worksheets_updated, formulas_added, formulas array, charts_created, charts array"
+      },
+      "user_facing_language": {
+        "action_verb": "build",
+        "resource_name": "Excel workbook",
+        "natural_phrases": [
+          "create an Excel workbook with",
+          "build a spreadsheet with multiple sheets",
+          "add formulas to existing workbook",
+          "create comprehensive Excel report"
+        ],
+        "capability_description": "I can create complete Excel workbooks with multiple sheets, formulas, and charts in one operation. I can also update existing workbooks with new formulas or charts.",
+        "example_ai_responses": [
+          "I'll create a comprehensive workbook with Sales Data, Summary, and Charts sheets.",
+          "I'll add those formulas and charts to your existing workbook.",
+          "I'll build a complete sales report with cross-sheet calculations."
+        ]
+      },
+      "tool_intelligence": {
+        "category": "smart_automation",
+        "replaces_tools": [
+          "microsoft_excel_create_workbook",
+          "microsoft_excel_add_worksheet",
+          "microsoft_excel_update_range",
+          "microsoft_excel_set_formula",
+          "microsoft_excel_create_chart"
+        ],
+        "typical_workflow_patterns": [
+          "smart_sheet_builder(complete spec) → share_workbook",
+          "smart_sheet_builder(create) → smart_sheet_builder(update with new formulas)",
+          "data_analysis → smart_sheet_builder(create report)"
+        ],
+        "auto_suggests_when": [
+          "User needs multi-sheet workbook",
+          "User wants formulas and charts together",
+          "User needs to update existing workbook"
+        ],
+        "performance_expectations": {
+          "typical_duration_ms": 5000,
+          "rate_limit_per_minute": 15
+        }
+      }
+    },
+    {
+      "name": "microsoft_excel_smart_formula_builder",
+      "short_description": "⭐ SMART: AI Formula Assistant - Convert natural language to Excel formulas",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data\n(2) MUST return format: 'Applied formula **[formula]** to range [range]: [explanation]'\n(3) Use EXACT values from tool response\n(4) If tool fails, say 'Could not generate formula' - suggest alternative phrasing\n\n⚠️ MUST USE: execute_tool(tool_name='microsoft_excel_smart_formula_builder', ...) - DO NOT call directly!\n\n⭐ AI FORMULA ASSISTANT - Converts natural language to Excel formulas automatically.\n\n✨ SUPPORTED PATTERNS:\n- SUM: 'sum column A', 'total of column B'\n- AVERAGE: 'average column D', 'mean of column E'\n- MULTIPLY: 'multiply column B by column C'\n- COUNT: 'count column A'\n\n🔗 SMART WORKFLOW INTEGRATION:\n- Used internally by excel_smart_financial_report for auto-calculations\n- Enhances excel_smart_data_analysis with custom metrics\n- Powers excel_smart_create_dashboard formula generation\n\n📊 EXAMPLES:\n- \"sum column A\" → =SUM(A:A)\n- \"multiply column B by column C\" → =B2*C2",
+      "category": "smart_automation",
+      "tier": 1,
+      "priority": "high",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "workbook_id": {
+            "type": "string",
+            "description": "OneDrive item ID of the workbook"
+          },
+          "worksheet_name": {
+            "type": "string",
+            "description": "Name of the worksheet"
+          },
+          "natural_language_query": {
+            "type": "string",
+            "description": "Natural language description. Examples: 'sum column A', 'multiply column B by column C'"
+          },
+          "target_range": {
+            "type": "string",
+            "description": "Cell or range (e.g., 'C1', 'D2:D100')"
+          },
+          "context": {
+            "type": "object",
+            "description": "Optional context. Example: {'has_headers': true}",
+            "required": false
+          }
+        },
+        "required": [
+          "workbook_id",
+          "worksheet_name",
+          "natural_language_query",
+          "target_range"
+        ]
+      },
+      "returns": {
+        "type": "object",
+        "description": "Dict with formula, explanation, applied_range, success"
+      },
+      "user_facing_language": {
+        "action_verb": "build",
+        "resource_name": "formula",
+        "natural_phrases": [
+          "create a formula",
+          "calculate the total",
+          "sum column"
+        ],
+        "capability_description": "I can convert natural language to Excel formulas. Just tell me what calculation you need.",
+        "example_ai_responses": [
+          "I'll create a SUM formula to total column A."
+        ]
+      },
+      "tool_intelligence": {
+        "category": "smart_automation",
+        "typical_workflow_patterns": [
+          "update_range(data) → smart_formula_builder(calculations) → create_chart"
+        ],
+        "success_indicators": {
+          "keywords": [
+            "formula applied",
+            "calculation created"
+          ]
+        },
+        "failure_indicators": {
+          "keywords": [
+            "could not generate formula"
+          ]
+        },
+        "performance_expectations": {
+          "typical_duration_ms": 500,
+          "rate_limit_per_minute": 60
+        }
+      },
+      "smart_workflow_integration": {
+        "used_by": [
+          "microsoft_excel_smart_financial_report",
+          "microsoft_excel_smart_data_analysis",
+          "microsoft_excel_smart_create_dashboard"
+        ],
+        "enhancement": "SMART workflows can now use natural language for formula creation instead of hardcoded formulas",
+        "example_integration": "Financial report can accept 'calculate profit margin' instead of requiring explicit formula syntax"
+      }
+    },
+    {
+      "name": "microsoft_excel_batch_update",
+      "short_description": "⚡ Update multiple ranges in one operation (reduces API calls)",
+      "description": "⚠️ MUST USE: execute_tool(tool_name='microsoft_excel_batch_update', ...) - DO NOT call directly!\n\n⚡ PERFORMANCE OPTIMIZATION - Update multiple cell ranges in a single operation.\n\n🔗 SMART WORKFLOW INTEGRATION:\n- Used by excel_smart_import_csv for efficient data loading\n- Powers excel_smart_financial_report multi-sheet creation\n\n✨ BENEFITS:\n- Reduces API calls\n- Faster execution\n- Update multiple columns at once",
+      "category": "content_management",
+      "priority": "medium",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "workbook_id": {
+            "type": "string",
+            "description": "Workbook ID"
+          },
+          "worksheet_name": {
+            "type": "string",
+            "description": "Worksheet name"
+          },
+          "updates": {
+            "type": "array",
+            "description": "Array of {'range': 'A1:A10', 'values': [[...]]} objects",
+            "items": {
+              "type": "object",
+              "properties": {
+                "range": {
+                  "type": "string"
+                },
+                "values": {
+                  "type": "array"
+                }
+              },
+              "required": [
+                "range",
+                "values"
+              ]
+            }
+          }
+        },
+        "required": [
+          "workbook_id",
+          "worksheet_name",
+          "updates"
+        ]
+      },
+      "returns": {
+        "type": "object",
+        "description": "Dict with total_updates, successful, failed, results"
+      },
+      "user_facing_language": {
+        "action_verb": "update",
+        "resource_name": "multiple ranges",
+        "natural_phrases": [
+          "update multiple ranges",
+          "populate several columns"
+        ],
+        "capability_description": "I can update multiple cell ranges in one operation, which is faster.",
+        "example_ai_responses": [
+          "I'll update all 3 ranges at once."
+        ]
+      },
+      "tool_intelligence": {
+        "category": "content_management",
+        "typical_workflow_patterns": [
+          "create_workbook → batch_update(populate all) → smart_formula_builder"
+        ],
+        "performance_expectations": {
+          "typical_duration_ms": 1200,
+          "rate_limit_per_minute": 30
+        }
+      },
+      "smart_workflow_integration": {
+        "used_by": [
+          "microsoft_excel_smart_import_csv",
+          "microsoft_excel_smart_financial_report"
+        ],
+        "enhancement": "SMART workflows use batch_update for faster multi-sheet population",
+        "performance_gain": "3-5x faster than sequential range updates for large datasets"
+      }
+    }
+  ],
+  "api_limitations": {
+    "description": "Microsoft Graph API constraints - features NOT available via API",
+    "limitations": [
+      {
+        "feature": "Conditional Formatting",
+        "status": "NOT_SUPPORTED",
+        "reason": "Graph API does not expose conditional formatting endpoints",
+        "workaround": "Use Excel Desktop, Excel Online UI, or Office Add-ins",
+        "impact": "Cannot create color scales, data bars, icon sets via API"
+      },
+      {
+        "feature": "Data Validation",
+        "status": "NOT_SUPPORTED",
+        "reason": "Graph API does not support data validation rules",
+        "workaround": "Use Office Scripts or Excel Desktop",
+        "impact": "Cannot create dropdown lists or input restrictions via API"
+      },
+      {
+        "feature": "Advanced Chart Types",
+        "status": "LIMITED",
+        "reason": "Graph API only supports 6 basic chart types",
+        "available_types": [
+          "column",
+          "bar",
+          "line",
+          "pie",
+          "scatter",
+          "area"
+        ],
+        "unavailable_types": [
+          "waterfall",
+          "funnel",
+          "treemap",
+          "sunburst",
+          "histogram",
+          "box_whisker"
+        ],
+        "workaround": "Use Excel Desktop for advanced visualizations",
+        "impact": "Limited chart variety for data visualization"
+      }
+    ],
+    "note": "These limitations are enforced by Microsoft Graph API v1.0. Tools will return clear error messages with workarounds when these features are requested."
+  }
+}

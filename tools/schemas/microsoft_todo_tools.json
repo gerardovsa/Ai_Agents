@@ -1,0 +1,845 @@
+{
+  "platform": "microsoft_todo",
+  "description": "Microsoft To Do & Planner - Task management, project planning, team assignments, and workload tracking\n\n⚠️ CRITICAL: ALL Microsoft 365 tools MUST be called through the execute_tool meta-tool for proper OAuth credential injection. DO NOT call these tools directly. Always use: execute_tool(tool_name='toolname', ...parameters)",
+  "version": "1.0.0",
+  "tools": [
+    {
+      "name": "microsoft_todo_list_tasks",
+      "short_description": "List Microsoft Todo tasks with filters for completed, today, or important",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Read X from **[Resource Name]** (ID: `[id]` | URL: [url])'\n(3) Use EXACT [id] provided - NEVER substitute with different ID\n(4) If tool fails (404/403), say 'Failed to read [resource] ID: [id]' and explain error\n(5) NEVER make up data if read fails - acknowledge the failure clearly\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\n⚠️ MUST USE: execute_tool(tool_name='microsoft_todo_list_tasks', ...) - DO NOT call directly!\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nList tasks from To Do",
+      "platform": "microsoft_todo",
+      "category": "basic",
+      "priority": "high",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "user_id": {
+            "type": "string",
+            "description": "User ID for authentication"
+          },
+          "list_id": {
+            "type": "string",
+            "description": "Task list ID (default list if not specified)"
+          },
+          "filter": {
+            "type": "string",
+            "description": "Filter: 'all', 'completed', 'incomplete', 'today', 'important'",
+            "default": "incomplete"
+          },
+          "max_results": {
+            "type": "integer",
+            "description": "Maximum number of tasks to return",
+            "default": 100
+          }
+        },
+        "required": [
+          "user_id"
+        ]
+      },
+      "example": {
+        "user_id": "user123",
+        "list_id": "AAMkAGI...",
+        "filter": "today",
+        "max_results": 50
+      }
+    },
+    {
+      "name": "microsoft_todo_create_task",
+      "short_description": "Create Microsoft Todo task with title, due date, and reminder",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) ALWAYS execute THIS tool NOW - NEVER reference 'I created earlier' or use conversation history\n(2) MUST return format: **[Name]** | ID: `[id]` | URL: [full_url] | Link: [title](url)\n(3) Use EXACT values from tool response - NEVER make up fake URLs/IDs\n(4) If tool fails, say 'Failed to create' - NEVER pretend it succeeded\n\nExample response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\n⚠️ MUST USE: execute_tool(tool_name='microsoft_todo_create_task', ...) - DO NOT call directly!\n\nExample response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\nCreate a new task in To Do",
+      "platform": "microsoft_todo",
+      "category": "basic",
+      "priority": "high",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "user_id": {
+            "type": "string",
+            "description": "User ID for authentication"
+          },
+          "title": {
+            "type": "string",
+            "description": "Task title"
+          },
+          "list_id": {
+            "type": "string",
+            "description": "Task list ID (default list if not specified)"
+          },
+          "due_date": {
+            "type": "string",
+            "description": "Due date (ISO 8601 format)"
+          },
+          "reminder": {
+            "type": "string",
+            "description": "Reminder date/time (ISO 8601 format)"
+          },
+          "importance": {
+            "type": "string",
+            "description": "Importance: 'low', 'normal', 'high'",
+            "default": "normal"
+          },
+          "body": {
+            "type": "string",
+            "description": "Task description/notes"
+          }
+        },
+        "required": [
+          "user_id",
+          "title"
+        ]
+      },
+      "example": {
+        "user_id": "user123",
+        "title": "Review project proposal",
+        "due_date": "2025-10-31T17:00:00Z",
+        "importance": "high",
+        "body": "Focus on budget and timeline sections"
+      }
+    },
+    {
+      "name": "microsoft_todo_update_task",
+      "short_description": "Update Microsoft Todo task with new title, due date, or notes",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER reference previous edits from conversation history\n(2) MUST cite what was updated: 'Updated **[Resource Name]** (ID: `[id]`)'\n(3) Use EXACT [id] provided - NEVER make up IDs\n(4) If tool fails, say 'Failed to update' and explain why\n(5) Show before/after if applicable\n\nExample response:\nUpdated: **Document Title**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Changed: [what was changed]\n\n⚠️ MUST USE: execute_tool(tool_name='microsoft_todo_update_task', ...) - DO NOT call directly!\n\nExample response:\nUpdated: **Document Title**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Changed: [what was changed]\n\nUpdate an existing task",
+      "platform": "microsoft_todo",
+      "category": "basic",
+      "priority": "medium",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "user_id": {
+            "type": "string",
+            "description": "User ID for authentication"
+          },
+          "task_id": {
+            "type": "string",
+            "description": "Task ID to update"
+          },
+          "updates": {
+            "type": "object",
+            "description": "Fields to update"
+          }
+        },
+        "required": [
+          "user_id",
+          "task_id",
+          "updates"
+        ]
+      },
+      "example": {
+        "user_id": "user123",
+        "task_id": "AAMkAGI...",
+        "updates": {
+          "title": "Updated: Review proposal",
+          "due_date": "2025-11-01T17:00:00Z",
+          "status": "in_progress"
+        }
+      }
+    },
+    {
+      "name": "microsoft_todo_complete_task",
+      "short_description": "Mark Microsoft Todo task as complete by task ID",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Read X from **[Resource Name]** (ID: `[id]` | URL: [url])'\n(3) Use EXACT [id] provided - NEVER substitute with different ID\n(4) If tool fails (404/403), say 'Failed to read [resource] ID: [id]' and explain error\n(5) NEVER make up data if read fails - acknowledge the failure clearly\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\n⚠️ MUST USE: execute_tool(tool_name='microsoft_todo_complete_task', ...) - DO NOT call directly!\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nMark a task as completed",
+      "platform": "microsoft_todo",
+      "category": "basic",
+      "priority": "high",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "user_id": {
+            "type": "string",
+            "description": "User ID for authentication"
+          },
+          "task_id": {
+            "type": "string",
+            "description": "Task ID to complete"
+          }
+        },
+        "required": [
+          "user_id",
+          "task_id"
+        ]
+      },
+      "example": {
+        "user_id": "user123",
+        "task_id": "AAMkAGI..."
+      }
+    },
+    {
+      "name": "microsoft_todo_delete_task",
+      "short_description": "Delete Microsoft Todo task by ID permanently",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER pretend to delete from memory\n(2) MUST cite what was deleted: 'Deleted **[Resource Name]** (ID: `[id]`)'\n(3) CONFIRM deletion happened - don't assume success\n(4) If tool fails, say 'Failed to delete' and explain why\n\nExample response:\n✅ Deleted: **Old File**\n- ID: `abc123`\n- URL: https://example.com/file/abc123 (no longer accessible)\n\n⚠️ MUST USE: execute_tool(tool_name='microsoft_todo_delete_task', ...) - DO NOT call directly!\n\nExample response:\n✅ Deleted: **Old File**\n- ID: `abc123`\n- URL: https://example.com/file/abc123 (no longer accessible)\n\nDelete a task",
+      "platform": "microsoft_todo",
+      "category": "basic",
+      "priority": "low",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "user_id": {
+            "type": "string",
+            "description": "User ID for authentication"
+          },
+          "task_id": {
+            "type": "string",
+            "description": "Task ID to delete"
+          }
+        },
+        "required": [
+          "user_id",
+          "task_id"
+        ]
+      },
+      "example": {
+        "user_id": "user123",
+        "task_id": "AAMkAGI..."
+      }
+    },
+    {
+      "name": "microsoft_todo_create_list",
+      "short_description": "Create new Microsoft Todo list for organizing tasks by category",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) ALWAYS execute THIS tool NOW - NEVER reference 'I created earlier' or use conversation history\n(2) MUST return format: **[Name]** | ID: `[id]` | URL: [full_url] | Link: [title](url)\n(3) Use EXACT values from tool response - NEVER make up fake URLs/IDs\n(4) If tool fails, say 'Failed to create' - NEVER pretend it succeeded\n\nExample response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\n⚠️ MUST USE: execute_tool(tool_name='microsoft_todo_create_list', ...) - DO NOT call directly!\n\nExample response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\nCreate a new task list",
+      "platform": "microsoft_todo",
+      "category": "basic",
+      "priority": "medium",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "user_id": {
+            "type": "string",
+            "description": "User ID for authentication"
+          },
+          "name": {
+            "type": "string",
+            "description": "List name"
+          }
+        },
+        "required": [
+          "user_id",
+          "name"
+        ]
+      },
+      "example": {
+        "user_id": "user123",
+        "name": "Project Alpha Tasks"
+      }
+    },
+    {
+      "name": "microsoft_todo_list_lists",
+      "short_description": "List Microsoft Todo task lists with names and task counts",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Read X from **[Resource Name]** (ID: `[id]` | URL: [url])'\n(3) Use EXACT [id] provided - NEVER substitute with different ID\n(4) If tool fails (404/403), say 'Failed to read [resource] ID: [id]' and explain error\n(5) NEVER make up data if read fails - acknowledge the failure clearly\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\n⚠️ MUST USE: execute_tool(tool_name='microsoft_todo_list_lists', ...) - DO NOT call directly!\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nList all task lists",
+      "platform": "microsoft_todo",
+      "category": "basic",
+      "priority": "medium",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "user_id": {
+            "type": "string",
+            "description": "User ID for authentication"
+          }
+        },
+        "required": [
+          "user_id"
+        ]
+      },
+      "example": {
+        "user_id": "user123"
+      }
+    },
+    {
+      "name": "planner_list_plans",
+      "short_description": "List Microsoft Planner plans with teams, status, and task counts",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Read X from **[Resource Name]** (ID: `[id]` | URL: [url])'\n(3) Use EXACT [id] provided - NEVER substitute with different ID\n(4) If tool fails (404/403), say 'Failed to read [resource] ID: [id]' and explain error\n(5) NEVER make up data if read fails - acknowledge the failure clearly\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\n⚠️ MUST USE: execute_tool(tool_name='planner_list_plans', ...) - DO NOT call directly!\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nList all Planner plans accessible to user",
+      "platform": "microsoft_todo",
+      "category": "basic",
+      "priority": "high",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "user_id": {
+            "type": "string",
+            "description": "User ID for authentication"
+          },
+          "group_id": {
+            "type": "string",
+            "description": "Optional: Filter by Microsoft 365 Group ID"
+          }
+        },
+        "required": [
+          "user_id"
+        ]
+      },
+      "example": {
+        "user_id": "user123",
+        "group_id": "12345678-1234-1234-1234-123456789abc"
+      }
+    },
+    {
+      "name": "planner_create_plan",
+      "short_description": "Create Microsoft Planner plan for team project with boards and buckets",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) ALWAYS execute THIS tool NOW - NEVER reference 'I created earlier' or use conversation history\n(2) MUST return format: **[Name]** | ID: `[id]` | URL: [full_url] | Link: [title](url)\n(3) Use EXACT values from tool response - NEVER make up fake URLs/IDs\n(4) If tool fails, say 'Failed to create' - NEVER pretend it succeeded\n\nExample response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\n⚠️ MUST USE: execute_tool(tool_name='planner_create_plan', ...) - DO NOT call directly!\n\nExample response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\nCreate a new Planner plan",
+      "platform": "microsoft_todo",
+      "category": "basic",
+      "priority": "medium",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "user_id": {
+            "type": "string",
+            "description": "User ID for authentication"
+          },
+          "title": {
+            "type": "string",
+            "description": "Plan title"
+          },
+          "owner_group_id": {
+            "type": "string",
+            "description": "Microsoft 365 Group ID that owns the plan"
+          }
+        },
+        "required": [
+          "user_id",
+          "title",
+          "owner_group_id"
+        ]
+      },
+      "example": {
+        "user_id": "user123",
+        "title": "Q4 2025 Marketing Campaign",
+        "owner_group_id": "12345678-1234-1234-1234-123456789abc"
+      }
+    },
+    {
+      "name": "planner_list_buckets",
+      "short_description": "List Planner buckets (columns) in plan with task counts and order",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Read X from **[Resource Name]** (ID: `[id]` | URL: [url])'\n(3) Use EXACT [id] provided - NEVER substitute with different ID\n(4) If tool fails (404/403), say 'Failed to read [resource] ID: [id]' and explain error\n(5) NEVER make up data if read fails - acknowledge the failure clearly\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\n⚠️ MUST USE: execute_tool(tool_name='planner_list_buckets', ...) - DO NOT call directly!\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nList buckets (columns) in a Planner plan",
+      "platform": "microsoft_todo",
+      "category": "basic",
+      "priority": "medium",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "user_id": {
+            "type": "string",
+            "description": "User ID for authentication"
+          },
+          "plan_id": {
+            "type": "string",
+            "description": "Plan ID"
+          }
+        },
+        "required": [
+          "user_id",
+          "plan_id"
+        ]
+      },
+      "example": {
+        "user_id": "user123",
+        "plan_id": "xqQg5FS2LkCp935s-BuFRmUAFfbg"
+      }
+    },
+    {
+      "name": "planner_create_bucket",
+      "short_description": "Create Planner bucket (column) in plan for task categorization",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) ALWAYS execute THIS tool NOW - NEVER reference 'I created earlier' or use conversation history\n(2) MUST return format: **[Name]** | ID: `[id]` | URL: [full_url] | Link: [title](url)\n(3) Use EXACT values from tool response - NEVER make up fake URLs/IDs\n(4) If tool fails, say 'Failed to create' - NEVER pretend it succeeded\n\nExample response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\n⚠️ MUST USE: execute_tool(tool_name='planner_create_bucket', ...) - DO NOT call directly!\n\nExample response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\nCreate a bucket (column) in a plan",
+      "platform": "microsoft_todo",
+      "category": "basic",
+      "priority": "medium",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "user_id": {
+            "type": "string",
+            "description": "User ID for authentication"
+          },
+          "plan_id": {
+            "type": "string",
+            "description": "Plan ID"
+          },
+          "name": {
+            "type": "string",
+            "description": "Bucket name"
+          }
+        },
+        "required": [
+          "user_id",
+          "plan_id",
+          "name"
+        ]
+      },
+      "example": {
+        "user_id": "user123",
+        "plan_id": "xqQg5FS2LkCp935s-BuFRmUAFfbg",
+        "name": "In Progress"
+      }
+    },
+    {
+      "name": "planner_list_tasks",
+      "short_description": "List Planner tasks with assignments, priorities, and progress status",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Read X from **[Resource Name]** (ID: `[id]` | URL: [url])'\n(3) Use EXACT [id] provided - NEVER substitute with different ID\n(4) If tool fails (404/403), say 'Failed to read [resource] ID: [id]' and explain error\n(5) NEVER make up data if read fails - acknowledge the failure clearly\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\n⚠️ MUST USE: execute_tool(tool_name='planner_list_tasks', ...) - DO NOT call directly!\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nList tasks in a Planner plan",
+      "platform": "microsoft_todo",
+      "category": "basic",
+      "priority": "high",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "user_id": {
+            "type": "string",
+            "description": "User ID for authentication"
+          },
+          "plan_id": {
+            "type": "string",
+            "description": "Plan ID"
+          },
+          "bucket_id": {
+            "type": "string",
+            "description": "Optional: Filter by bucket ID"
+          }
+        },
+        "required": [
+          "user_id",
+          "plan_id"
+        ]
+      },
+      "example": {
+        "user_id": "user123",
+        "plan_id": "xqQg5FS2LkCp935s-BuFRmUAFfbg"
+      }
+    },
+    {
+      "name": "planner_create_task",
+      "short_description": "Create Planner task with assignments, due dates, and priority levels",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) ALWAYS execute THIS tool NOW - NEVER reference 'I created earlier' or use conversation history\n(2) MUST return format: **[Name]** | ID: `[id]` | URL: [full_url] | Link: [title](url)\n(3) Use EXACT values from tool response - NEVER make up fake URLs/IDs\n(4) If tool fails, say 'Failed to create' - NEVER pretend it succeeded\n\nExample response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\n⚠️ MUST USE: execute_tool(tool_name='planner_create_task', ...) - DO NOT call directly!\n\nExample response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\nCreate a task in Planner",
+      "platform": "microsoft_todo",
+      "category": "basic",
+      "priority": "high",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "user_id": {
+            "type": "string",
+            "description": "User ID for authentication"
+          },
+          "plan_id": {
+            "type": "string",
+            "description": "Plan ID"
+          },
+          "bucket_id": {
+            "type": "string",
+            "description": "Bucket ID"
+          },
+          "title": {
+            "type": "string",
+            "description": "Task title"
+          },
+          "assignments": {
+            "type": "array",
+            "description": "List of user IDs to assign task to"
+          },
+          "due_date": {
+            "type": "string",
+            "description": "Due date (ISO 8601 format)"
+          },
+          "priority": {
+            "type": "integer",
+            "description": "Priority: 1-10 (1=urgent, 5=medium, 9=low)",
+            "default": 5
+          }
+        },
+        "required": [
+          "user_id",
+          "plan_id",
+          "bucket_id",
+          "title"
+        ]
+      },
+      "example": {
+        "user_id": "user123",
+        "plan_id": "xqQg5FS2LkCp935s-BuFRmUAFfbg",
+        "bucket_id": "hsOf2dhoh02QT52nf-ZdbZcAKABg",
+        "title": "Design homepage mockup",
+        "assignments": [
+          "john@company.com"
+        ],
+        "due_date": "2025-11-05T17:00:00Z",
+        "priority": 3
+      }
+    },
+    {
+      "name": "planner_update_task",
+      "short_description": "Update Planner task with progress, assignments, or bucket changes",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER reference previous edits from conversation history\n(2) MUST cite what was updated: 'Updated **[Resource Name]** (ID: `[id]`)'\n(3) Use EXACT [id] provided - NEVER make up IDs\n(4) If tool fails, say 'Failed to update' and explain why\n(5) Show before/after if applicable\n\nExample response:\nUpdated: **Document Title**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Changed: [what was changed]\n\n⚠️ MUST USE: execute_tool(tool_name='planner_update_task', ...) - DO NOT call directly!\n\nExample response:\nUpdated: **Document Title**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Changed: [what was changed]\n\nUpdate a Planner task",
+      "platform": "microsoft_todo",
+      "category": "basic",
+      "priority": "medium",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "user_id": {
+            "type": "string",
+            "description": "User ID for authentication"
+          },
+          "task_id": {
+            "type": "string",
+            "description": "Task ID"
+          },
+          "updates": {
+            "type": "object",
+            "description": "Fields to update"
+          }
+        },
+        "required": [
+          "user_id",
+          "task_id",
+          "updates"
+        ]
+      },
+      "example": {
+        "user_id": "user123",
+        "task_id": "01gzSlKkduf...",
+        "updates": {
+          "percent_complete": 50,
+          "bucket_id": "new-bucket-id"
+        }
+      }
+    },
+    {
+      "name": "planner_assign_task",
+      "short_description": "Assign or reassign Planner task to team members by email",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Read X from **[Resource Name]** (ID: `[id]` | URL: [url])'\n(3) Use EXACT [id] provided - NEVER substitute with different ID\n(4) If tool fails (404/403), say 'Failed to read [resource] ID: [id]' and explain error\n(5) NEVER make up data if read fails - acknowledge the failure clearly\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\n⚠️ MUST USE: execute_tool(tool_name='planner_assign_task', ...) - DO NOT call directly!\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nAssign or reassign a task to users",
+      "platform": "microsoft_todo",
+      "category": "basic",
+      "priority": "medium",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "user_id": {
+            "type": "string",
+            "description": "User ID for authentication"
+          },
+          "task_id": {
+            "type": "string",
+            "description": "Task ID"
+          },
+          "assignees": {
+            "type": "array",
+            "description": "List of user IDs to assign"
+          }
+        },
+        "required": [
+          "user_id",
+          "task_id",
+          "assignees"
+        ]
+      },
+      "example": {
+        "user_id": "user123",
+        "task_id": "01gzSlKkduf...",
+        "assignees": [
+          "john@company.com",
+          "jane@company.com"
+        ]
+      }
+    },
+    {
+      "name": "planner_add_checklist",
+      "short_description": "Add checklist items to Planner task for subtask tracking",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) ALWAYS execute THIS tool NOW - NEVER reference 'I created earlier' or use conversation history\n(2) MUST return format: **[Name]** | ID: `[id]` | URL: [full_url] | Link: [title](url)\n(3) Use EXACT values from tool response - NEVER make up fake URLs/IDs\n(4) If tool fails, say 'Failed to create' - NEVER pretend it succeeded\n\nExample response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\n⚠️ MUST USE: execute_tool(tool_name='planner_add_checklist', ...) - DO NOT call directly!\n\nExample response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\nAdd checklist items to a Planner task",
+      "platform": "microsoft_todo",
+      "category": "basic",
+      "priority": "low",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "user_id": {
+            "type": "string",
+            "description": "User ID for authentication"
+          },
+          "task_id": {
+            "type": "string",
+            "description": "Task ID"
+          },
+          "checklist_items": {
+            "type": "array",
+            "description": "List of checklist item titles"
+          }
+        },
+        "required": [
+          "user_id",
+          "task_id",
+          "checklist_items"
+        ]
+      },
+      "example": {
+        "user_id": "user123",
+        "task_id": "01gzSlKkduf...",
+        "checklist_items": [
+          "Research competitors",
+          "Create wireframes",
+          "Get feedback from team"
+        ]
+      }
+    },
+    {
+      "name": "microsoft_todo_smart_daily_digest",
+      "short_description": "SMART: Generate Microsoft Todo daily digest with today and overdue tasks",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Read X from **[Resource Name]** (ID: `[id]` | URL: [url])'\n(3) Use EXACT [id] provided - NEVER substitute with different ID\n(4) If tool fails (404/403), say 'Failed to read [resource] ID: [id]' and explain error\n(5) NEVER make up data if read fails - acknowledge the failure clearly\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\n⚠️ MUST USE: execute_tool(tool_name='microsoft_todo_smart_daily_digest', ...) - DO NOT call directly!\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nGenerate daily task digest with priorities and due dates",
+      "platform": "microsoft_todo",
+      "category": "smart_bundled",
+      "priority": "high",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "user_id": {
+            "type": "string",
+            "description": "User ID for authentication"
+          },
+          "include_overdue": {
+            "type": "boolean",
+            "description": "Include overdue tasks",
+            "default": true
+          },
+          "include_upcoming": {
+            "type": "boolean",
+            "description": "Include tasks due in next 7 days",
+            "default": true
+          },
+          "format": {
+            "type": "string",
+            "description": "Output format: 'text', 'html', 'markdown'",
+            "default": "html"
+          }
+        },
+        "required": [
+          "user_id"
+        ]
+      },
+      "example": {
+        "user_id": "user123",
+        "include_overdue": true,
+        "include_upcoming": true,
+        "format": "html"
+      }
+    },
+    {
+      "name": "planner_smart_sprint_setup",
+      "short_description": "SMART: Create complete sprint board with buckets and initial tasks",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER reference previous edits from conversation history\n(2) MUST cite what was updated: 'Updated **[Resource Name]** (ID: `[id]`)'\n(3) Use EXACT [id] provided - NEVER make up IDs\n(4) If tool fails, say 'Failed to update' and explain why\n(5) Show before/after if applicable\n\nExample response:\nUpdated: **Document Title**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Changed: [what was changed]\n\n⚠️ MUST USE: execute_tool(tool_name='planner_smart_sprint_setup', ...) - DO NOT call directly!\n\nExample response:\nUpdated: **Document Title**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Changed: [what was changed]\n\nCreate complete sprint board with buckets and initial tasks",
+      "platform": "microsoft_todo",
+      "category": "smart_bundled",
+      "priority": "high",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "user_id": {
+            "type": "string",
+            "description": "User ID for authentication"
+          },
+          "plan_name": {
+            "type": "string",
+            "description": "Sprint/plan name"
+          },
+          "owner_group_id": {
+            "type": "string",
+            "description": "Microsoft 365 Group ID"
+          },
+          "sprint_config": {
+            "type": "object",
+            "description": "Sprint configuration with buckets and tasks"
+          }
+        },
+        "required": [
+          "user_id",
+          "plan_name",
+          "owner_group_id",
+          "sprint_config"
+        ]
+      },
+      "example": {
+        "user_id": "user123",
+        "plan_name": "Sprint 15 - October 2025",
+        "owner_group_id": "12345678-1234-1234-1234-123456789abc",
+        "sprint_config": {
+          "buckets": [
+            "Backlog",
+            "In Progress",
+            "Review",
+            "Done"
+          ],
+          "tasks": [
+            {
+              "title": "User authentication feature",
+              "bucket": "Backlog",
+              "assignee": "john@company.com",
+              "priority": 1
+            },
+            {
+              "title": "Database schema update",
+              "bucket": "In Progress",
+              "assignee": "jane@company.com",
+              "priority": 2
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "planner_smart_team_workload",
+      "short_description": "SMART: Analyze team workload and suggest task redistribution for balance",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Read X from **[Resource Name]** (ID: `[id]` | URL: [url])'\n(3) Use EXACT [id] provided - NEVER substitute with different ID\n(4) If tool fails (404/403), say 'Failed to read [resource] ID: [id]' and explain error\n(5) NEVER make up data if read fails - acknowledge the failure clearly\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\n⚠️ MUST USE: execute_tool(tool_name='planner_smart_team_workload', ...) - DO NOT call directly!\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nAnalyze team workload and suggest task redistribution",
+      "platform": "microsoft_todo",
+      "category": "smart_bundled",
+      "priority": "medium",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "user_id": {
+            "type": "string",
+            "description": "User ID for authentication"
+          },
+          "plan_id": {
+            "type": "string",
+            "description": "Plan ID to analyze"
+          },
+          "balance_by": {
+            "type": "string",
+            "description": "Balance method: 'task_count', 'priority', 'estimated_hours'",
+            "default": "task_count"
+          },
+          "auto_reassign": {
+            "type": "boolean",
+            "description": "Automatically reassign tasks to balance workload",
+            "default": false
+          }
+        },
+        "required": [
+          "user_id",
+          "plan_id"
+        ]
+      },
+      "example": {
+        "user_id": "user123",
+        "plan_id": "xqQg5FS2LkCp935s-BuFRmUAFfbg",
+        "balance_by": "priority",
+        "auto_reassign": false
+      }
+    },
+    {
+      "name": "microsoft_todo_smart_recurring_tasks",
+      "short_description": "SMART: Create Microsoft Todo recurring tasks with daily, weekly, or monthly pattern",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Read X from **[Resource Name]** (ID: `[id]` | URL: [url])'\n(3) Use EXACT [id] provided - NEVER substitute with different ID\n(4) If tool fails (404/403), say 'Failed to read [resource] ID: [id]' and explain error\n(5) NEVER make up data if read fails - acknowledge the failure clearly\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\n⚠️ MUST USE: execute_tool(tool_name='microsoft_todo_smart_recurring_tasks', ...) - DO NOT call directly!\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nCreate recurring tasks with custom patterns",
+      "platform": "microsoft_todo",
+      "category": "smart_bundled",
+      "priority": "medium",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "user_id": {
+            "type": "string",
+            "description": "User ID for authentication"
+          },
+          "task_template": {
+            "type": "object",
+            "description": "Task template with title, description, importance"
+          },
+          "recurrence": {
+            "type": "object",
+            "description": "Recurrence pattern (daily, weekly, monthly)"
+          },
+          "end_date": {
+            "type": "string",
+            "description": "When to stop creating tasks (ISO 8601)"
+          }
+        },
+        "required": [
+          "user_id",
+          "task_template",
+          "recurrence"
+        ]
+      },
+      "example": {
+        "user_id": "user123",
+        "task_template": {
+          "title": "Weekly status report",
+          "importance": "high",
+          "body": "Prepare and send weekly team status"
+        },
+        "recurrence": {
+          "type": "weekly",
+          "day_of_week": "friday",
+          "time": "17:00"
+        },
+        "end_date": "2025-12-31T23:59:59Z"
+      }
+    },
+    {
+      "name": "planner_get_plan_progress",
+      "short_description": "Get Planner plan progress statistics with completion percentages",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Read X from **[Resource Name]** (ID: `[id]` | URL: [url])'\n(3) Use EXACT [id] provided - NEVER substitute with different ID\n(4) If tool fails (404/403), say 'Failed to read [resource] ID: [id]' and explain error\n(5) NEVER make up data if read fails - acknowledge the failure clearly\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\n⚠️ MUST USE: execute_tool(tool_name='planner_get_plan_progress', ...) - DO NOT call directly!\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nGet progress statistics for a Planner plan",
+      "platform": "microsoft_todo",
+      "category": "advanced",
+      "priority": "medium",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "user_id": {
+            "type": "string",
+            "description": "User ID for authentication"
+          },
+          "plan_id": {
+            "type": "string",
+            "description": "Plan ID"
+          }
+        },
+        "required": [
+          "user_id",
+          "plan_id"
+        ]
+      },
+      "example": {
+        "user_id": "user123",
+        "plan_id": "xqQg5FS2LkCp935s-BuFRmUAFfbg"
+      }
+    },
+    {
+      "name": "microsoft_todo_export_tasks",
+      "short_description": "Export Microsoft Todo tasks to CSV or Excel for backup and reporting",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Read X from **[Resource Name]** (ID: `[id]` | URL: [url])'\n(3) Use EXACT [id] provided - NEVER substitute with different ID\n(4) If tool fails (404/403), say 'Failed to read [resource] ID: [id]' and explain error\n(5) NEVER make up data if read fails - acknowledge the failure clearly\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\n⚠️ MUST USE: execute_tool(tool_name='microsoft_todo_export_tasks', ...) - DO NOT call directly!\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nExport tasks to various formats",
+      "platform": "microsoft_todo",
+      "category": "advanced",
+      "priority": "low",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "user_id": {
+            "type": "string",
+            "description": "User ID for authentication"
+          },
+          "list_id": {
+            "type": "string",
+            "description": "Task list ID to export"
+          },
+          "format": {
+            "type": "string",
+            "description": "Export format: 'csv', 'json', 'markdown'",
+            "default": "csv"
+          },
+          "output_path": {
+            "type": "string",
+            "description": "Local path to save export"
+          }
+        },
+        "required": [
+          "user_id",
+          "list_id",
+          "output_path"
+        ]
+      },
+      "example": {
+        "user_id": "user123",
+        "list_id": "AAMkAGI...",
+        "format": "csv",
+        "output_path": "/exports/tasks.csv"
+      }
+    }
+  ]
+}

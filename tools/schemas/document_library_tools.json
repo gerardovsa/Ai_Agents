@@ -1,0 +1,936 @@
+{
+    "platform": "document_library",
+    "description": "Universal document library with advanced search capabilities (full-text, semantic, hybrid) across Google Drive, OneDrive, Dropbox, SharePoint, and internal documents",
+    "tools": [
+        {
+            "name": "document_library_search_fulltext",
+            "short_description": "PostgreSQL full-text search - exact keywords, phrases, boolean queries with ranking",
+            "description": "Search documents using PostgreSQL full-text search with ranking. Best for: exact keywords, phrases, boolean queries. Returns ranked results with highlighted snippets.",
+            "platform": "document_library",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "query": {
+                        "type": "string",
+                        "description": "Search query using PostgreSQL websearch syntax. Examples: 'contract agreement', 'invoice AND pending', 'report OR summary'"
+                    },
+                    "limit": {
+                        "type": "integer",
+                        "description": "Maximum number of results to return (default: 20)",
+                        "default": 20
+                    },
+                    "offset": {
+                        "type": "integer",
+                        "description": "Number of results to skip for pagination (default: 0)",
+                        "default": 0
+                    },
+                    "filters": {
+                        "type": "object",
+                        "description": "Optional filters to narrow search",
+                        "properties": {
+                            "source": {
+                                "type": "string",
+                                "description": "Filter by source: 'google_drive', 'onedrive', 'dropbox', 'sharepoint', 'internal'"
+                            },
+                            "file_type": {
+                                "type": "string",
+                                "description": "Filter by type: 'document', 'spreadsheet', 'presentation', 'pdf', 'image', 'video', 'audio', 'other'"
+                            },
+                            "user_id": {
+                                "type": "integer",
+                                "description": "Filter by creator user ID"
+                            }
+                        }
+                    }
+                },
+                "required": [
+                    "query"
+                ]
+            },
+            "returns": {
+                "type": "object",
+                "description": "Search results with ranking and snippets",
+                "properties": {
+                    "success": {
+                        "type": "boolean"
+                    },
+                    "search_type": {
+                        "type": "string"
+                    },
+                    "query": {
+                        "type": "string"
+                    },
+                    "results": {
+                        "type": "array",
+                        "items": {
+                            "type": "object",
+                            "properties": {
+                                "id": {
+                                    "type": "string"
+                                },
+                                "document_id": {
+                                    "type": "string"
+                                },
+                                "title": {
+                                    "type": "string"
+                                },
+                                "source": {
+                                    "type": "string"
+                                },
+                                "file_type": {
+                                    "type": "string"
+                                },
+                                "created_at": {
+                                    "type": "string"
+                                },
+                                "rank": {
+                                    "type": "number",
+                                    "description": "Relevance score (higher = more relevant)"
+                                },
+                                "snippet": {
+                                    "type": "string",
+                                    "description": "Highlighted text preview showing search matches"
+                                }
+                            }
+                        }
+                    },
+                    "count": {
+                        "type": "integer"
+                    }
+                }
+            },
+            "examples": [
+                {
+                    "description": "Search for contract documents",
+                    "parameters": {
+                        "query": "contract agreement",
+                        "filters": {
+                            "file_type": "document",
+                            "source": "google_drive"
+                        },
+                        "limit": 10
+                    }
+                }
+            ]
+        },
+        {
+            "name": "document_library_search_semantic",
+            "short_description": "Vector similarity semantic search - find similar content, conceptual searches with AI",
+            "description": "Search documents using vector similarity (semantic search). Best for: finding similar content, conceptual searches, 'documents like this'. Requires OpenAI embeddings.",
+            "platform": "document_library",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "query": {
+                        "type": "string",
+                        "description": "Natural language search query to be converted to embeddings. Example: 'documents about project management best practices'"
+                    },
+                    "threshold": {
+                        "type": "number",
+                        "description": "Similarity threshold (0-1, default: 0.25). Lower = more results, higher = stricter matching",
+                        "default": 0.25
+                    },
+                    "limit": {
+                        "type": "integer",
+                        "description": "Maximum number of results (default: 20)",
+                        "default": 20
+                    },
+                    "filters": {
+                        "type": "object",
+                        "description": "Optional filters",
+                        "properties": {
+                            "source": {
+                                "type": "string"
+                            },
+                            "file_type": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                },
+                "required": [
+                    "query"
+                ]
+            },
+            "returns": {
+                "type": "object",
+                "description": "Semantically similar documents",
+                "properties": {
+                    "success": {
+                        "type": "boolean"
+                    },
+                    "search_type": {
+                        "type": "string"
+                    },
+                    "results": {
+                        "type": "array",
+                        "items": {
+                            "type": "object",
+                            "properties": {
+                                "id": {
+                                    "type": "string"
+                                },
+                                "document_id": {
+                                    "type": "string"
+                                },
+                                "title": {
+                                    "type": "string"
+                                },
+                                "source": {
+                                    "type": "string"
+                                },
+                                "file_type": {
+                                    "type": "string"
+                                },
+                                "similarity": {
+                                    "type": "number",
+                                    "description": "Similarity score (0-1, higher = more similar)"
+                                }
+                            }
+                        }
+                    },
+                    "count": {
+                        "type": "integer"
+                    }
+                }
+            },
+            "examples": [
+                {
+                    "description": "Find documents similar to a concept",
+                    "parameters": {
+                        "query": "machine learning model training best practices",
+                        "threshold": 0.3,
+                        "limit": 15
+                    }
+                }
+            ]
+        },
+        {
+            "name": "document_library_search_hybrid",
+            "short_description": "Hybrid search - combines full-text + semantic using RRF for comprehensive results",
+            "description": "Hybrid search combining full-text + semantic search using Reciprocal Rank Fusion (RRF). Best for: comprehensive searches where both exact matches and conceptual similarity matter. Most accurate but slower.",
+            "platform": "document_library",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "query": {
+                        "type": "string",
+                        "description": "Search query for both full-text and semantic search"
+                    },
+                    "limit": {
+                        "type": "integer",
+                        "description": "Maximum results (default: 20)",
+                        "default": 20
+                    },
+                    "fts_weight": {
+                        "type": "number",
+                        "description": "Weight for full-text search (0-1, default: 0.5). Higher = prioritize keyword matches",
+                        "default": 0.5
+                    },
+                    "semantic_weight": {
+                        "type": "number",
+                        "description": "Weight for semantic search (0-1, default: 0.5). Higher = prioritize conceptual similarity",
+                        "default": 0.5
+                    }
+                },
+                "required": [
+                    "query"
+                ]
+            },
+            "returns": {
+                "type": "object",
+                "description": "Combined search results with multiple scoring metrics",
+                "properties": {
+                    "success": {
+                        "type": "boolean"
+                    },
+                    "search_type": {
+                        "type": "string"
+                    },
+                    "query": {
+                        "type": "string"
+                    },
+                    "results": {
+                        "type": "array",
+                        "items": {
+                            "type": "object",
+                            "properties": {
+                                "id": {
+                                    "type": "string"
+                                },
+                                "document_id": {
+                                    "type": "string"
+                                },
+                                "title": {
+                                    "type": "string"
+                                },
+                                "source": {
+                                    "type": "string"
+                                },
+                                "file_type": {
+                                    "type": "string"
+                                },
+                                "created_at": {
+                                    "type": "string"
+                                },
+                                "combined_score": {
+                                    "type": "number",
+                                    "description": "RRF combined score"
+                                },
+                                "fts_rank": {
+                                    "type": "number",
+                                    "description": "Full-text relevance"
+                                },
+                                "semantic_similarity": {
+                                    "type": "number",
+                                    "description": "Semantic similarity"
+                                }
+                            }
+                        }
+                    },
+                    "count": {
+                        "type": "integer"
+                    }
+                }
+            },
+            "examples": [
+                {
+                    "description": "Comprehensive search for sales reports",
+                    "parameters": {
+                        "query": "quarterly sales performance metrics",
+                        "limit": 20,
+                        "fts_weight": 0.6,
+                        "semantic_weight": 0.4
+                    }
+                }
+            ]
+        },
+        {
+            "name": "document_library_filter_advanced",
+            "short_description": "Elasticsearch-style boolean queries - complex multi-criteria searches with must/should",
+            "description": "Advanced filtering with Elasticsearch-style boolean queries (must/should/must_not), range queries, and metadata filtering. Best for: complex multi-criteria searches.",
+            "platform": "document_library",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "must": {
+                        "type": "array",
+                        "description": "Conditions that MUST match (AND logic)",
+                        "items": {
+                            "type": "object",
+                            "properties": {
+                                "field": {
+                                    "type": "string",
+                                    "description": "Field name (e.g., 'source', 'file_type', 'tags')"
+                                },
+                                "operator": {
+                                    "type": "string",
+                                    "description": "Operator: 'equals', 'not_equals', 'contains', 'starts_with', 'ends_with', 'in', 'is_null', 'is_not_null'"
+                                },
+                                "value": {
+                                    "description": "Value to compare (type varies by field)"
+                                }
+                            },
+                            "required": [
+                                "field",
+                                "operator"
+                            ]
+                        }
+                    },
+                    "should": {
+                        "type": "array",
+                        "description": "Conditions where at least one SHOULD match (OR logic)",
+                        "items": {
+                            "type": "object",
+                            "properties": {
+                                "field": {
+                                    "type": "string"
+                                },
+                                "operator": {
+                                    "type": "string"
+                                },
+                                "value": {}
+                            }
+                        }
+                    },
+                    "must_not": {
+                        "type": "array",
+                        "description": "Conditions that MUST NOT match (NOT logic)",
+                        "items": {
+                            "type": "object",
+                            "properties": {
+                                "field": {
+                                    "type": "string"
+                                },
+                                "operator": {
+                                    "type": "string"
+                                },
+                                "value": {}
+                            }
+                        }
+                    },
+                    "range": {
+                        "type": "object",
+                        "description": "Range filters for dates/numbers. Keys: field names, Values: {gte, lte, gt, lt}",
+                        "additionalProperties": {
+                            "type": "object",
+                            "properties": {
+                                "gte": {
+                                    "description": "Greater than or equal"
+                                },
+                                "lte": {
+                                    "description": "Less than or equal"
+                                },
+                                "gt": {
+                                    "description": "Greater than"
+                                },
+                                "lt": {
+                                    "description": "Less than"
+                                }
+                            }
+                        }
+                    },
+                    "limit": {
+                        "type": "integer",
+                        "description": "Maximum results (default: 20)",
+                        "default": 20
+                    },
+                    "offset": {
+                        "type": "integer",
+                        "description": "Pagination offset (default: 0)",
+                        "default": 0
+                    },
+                    "sort": {
+                        "type": "array",
+                        "description": "Sort criteria",
+                        "items": {
+                            "type": "object",
+                            "properties": {
+                                "field": {
+                                    "type": "string",
+                                    "description": "Field to sort by"
+                                },
+                                "order": {
+                                    "type": "string",
+                                    "description": "'asc' or 'desc'",
+                                    "enum": [
+                                        "asc",
+                                        "desc"
+                                    ]
+                                }
+                            },
+                            "required": [
+                                "field",
+                                "order"
+                            ]
+                        }
+                    }
+                },
+                "required": []
+            },
+            "returns": {
+                "type": "object",
+                "description": "Filtered documents with pagination info",
+                "properties": {
+                    "success": {
+                        "type": "boolean"
+                    },
+                    "results": {
+                        "type": "array"
+                    },
+                    "count": {
+                        "type": "integer"
+                    },
+                    "total": {
+                        "type": "integer"
+                    },
+                    "has_more": {
+                        "type": "boolean"
+                    }
+                }
+            },
+            "examples": [
+                {
+                    "description": "Find Google Drive documents from last quarter, excluding archived",
+                    "parameters": {
+                        "must": [
+                            {
+                                "field": "source",
+                                "operator": "equals",
+                                "value": "google_drive"
+                            },
+                            {
+                                "field": "file_type",
+                                "operator": "equals",
+                                "value": "document"
+                            }
+                        ],
+                        "must_not": [
+                            {
+                                "field": "is_archived",
+                                "operator": "equals",
+                                "value": true
+                            }
+                        ],
+                        "range": {
+                            "created_at": {
+                                "gte": "2024-10-01",
+                                "lte": "2024-12-31"
+                            },
+                            "file_size_bytes": {
+                                "lte": 10485760
+                            }
+                        },
+                        "sort": [
+                            {
+                                "field": "created_at",
+                                "order": "desc"
+                            }
+                        ],
+                        "limit": 50
+                    }
+                }
+            ]
+        },
+        {
+            "name": "document_library_get_facets",
+            "short_description": "Get faceted aggregation counts - document distribution by source, type, tags, dates",
+            "description": "Get faceted aggregation counts for filtering UI. Returns distribution of documents by source, file type, tags, and date ranges. Best for: building filter dropdowns and showing document statistics.",
+            "platform": "document_library",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "filters": {
+                        "type": "object",
+                        "description": "Optional filters to apply before aggregation",
+                        "properties": {
+                            "source": {
+                                "type": "string"
+                            },
+                            "created_after": {
+                                "type": "string",
+                                "description": "ISO 8601 date"
+                            },
+                            "created_before": {
+                                "type": "string",
+                                "description": "ISO 8601 date"
+                            }
+                        }
+                    }
+                },
+                "required": []
+            },
+            "returns": {
+                "type": "object",
+                "description": "Aggregated facet counts",
+                "properties": {
+                    "success": {
+                        "type": "boolean"
+                    },
+                    "facets": {
+                        "type": "object",
+                        "properties": {
+                            "sources": {
+                                "type": "array",
+                                "description": "Document counts by source",
+                                "items": {
+                                    "type": "object",
+                                    "properties": {
+                                        "source": {
+                                            "type": "string"
+                                        },
+                                        "count": {
+                                            "type": "integer"
+                                        }
+                                    }
+                                }
+                            },
+                            "file_types": {
+                                "type": "array",
+                                "description": "Document counts by file type",
+                                "items": {
+                                    "type": "object",
+                                    "properties": {
+                                        "type": {
+                                            "type": "string"
+                                        },
+                                        "count": {
+                                            "type": "integer"
+                                        }
+                                    }
+                                }
+                            },
+                            "top_tags": {
+                                "type": "array",
+                                "description": "Top 20 most used tags",
+                                "items": {
+                                    "type": "object",
+                                    "properties": {
+                                        "tag": {
+                                            "type": "string"
+                                        },
+                                        "count": {
+                                            "type": "integer"
+                                        }
+                                    }
+                                }
+                            },
+                            "date_distribution": {
+                                "type": "array",
+                                "description": "Document counts by month (last 12 months)",
+                                "items": {
+                                    "type": "object",
+                                    "properties": {
+                                        "period": {
+                                            "type": "string"
+                                        },
+                                        "count": {
+                                            "type": "integer"
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "examples": [
+                {
+                    "description": "Get all facets for current year",
+                    "parameters": {
+                        "filters": {
+                            "created_after": "2024-01-01"
+                        }
+                    }
+                }
+            ]
+        },
+        {
+            "name": "document_library_list",
+            "short_description": "List documents with pagination and simple filtering - browse docs, recent files",
+            "description": "List documents with basic pagination and simple filtering. Best for: browsing documents, getting recent files, simple queries.",
+            "platform": "document_library",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "limit": {
+                        "type": "integer",
+                        "description": "Number of documents to return (default: 20)",
+                        "default": 20
+                    },
+                    "offset": {
+                        "type": "integer",
+                        "description": "Pagination offset (default: 0)",
+                        "default": 0
+                    },
+                    "source": {
+                        "type": "string",
+                        "description": "Filter by source: 'google_drive', 'onedrive', 'dropbox', 'sharepoint', 'internal'"
+                    },
+                    "file_type": {
+                        "type": "string",
+                        "description": "Filter by type: 'document', 'spreadsheet', 'presentation', 'pdf', 'image', 'video', 'audio', 'other'"
+                    }
+                },
+                "required": []
+            },
+            "returns": {
+                "type": "object",
+                "description": "List of documents",
+                "properties": {
+                    "success": {
+                        "type": "boolean"
+                    },
+                    "documents": {
+                        "type": "array",
+                        "items": {
+                            "type": "object",
+                            "properties": {
+                                "id": {
+                                    "type": "string"
+                                },
+                                "document_id": {
+                                    "type": "string"
+                                },
+                                "title": {
+                                    "type": "string"
+                                },
+                                "source": {
+                                    "type": "string"
+                                },
+                                "file_type": {
+                                    "type": "string"
+                                },
+                                "mime_type": {
+                                    "type": "string"
+                                },
+                                "file_size_bytes": {
+                                    "type": "integer"
+                                },
+                                "created_by_name": {
+                                    "type": "string"
+                                },
+                                "created_at": {
+                                    "type": "string"
+                                },
+                                "last_modified_at": {
+                                    "type": "string"
+                                },
+                                "tags": {
+                                    "type": "array",
+                                    "items": {
+                                        "type": "string"
+                                    }
+                                },
+                                "categories": {
+                                    "type": "array",
+                                    "items": {
+                                        "type": "string"
+                                    }
+                                },
+                                "description": {
+                                    "type": "string"
+                                },
+                                "url": {
+                                    "type": "string"
+                                },
+                                "thumbnail_url": {
+                                    "type": "string"
+                                },
+                                "view_count": {
+                                    "type": "integer"
+                                }
+                            }
+                        }
+                    },
+                    "count": {
+                        "type": "integer"
+                    }
+                }
+            },
+            "examples": [
+                {
+                    "description": "Get recent Google Drive documents",
+                    "parameters": {
+                        "source": "google_drive",
+                        "limit": 10
+                    }
+                }
+            ]
+        },
+        {
+            "name": "document_library_get",
+            "short_description": "Get detailed document info - auto-increments views, updates last accessed timestamp",
+            "description": "Get detailed information about a specific document. Automatically increments view count and updates last accessed timestamp.",
+            "platform": "document_library",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "document_id": {
+                        "type": "string",
+                        "description": "Unique document ID"
+                    }
+                },
+                "required": [
+                    "document_id"
+                ]
+            },
+            "returns": {
+                "type": "object",
+                "description": "Complete document details",
+                "properties": {
+                    "success": {
+                        "type": "boolean"
+                    },
+                    "document": {
+                        "type": "object",
+                        "description": "Full document object with all fields including metadata, custom_fields, sharing info, activity metrics"
+                    }
+                }
+            },
+            "examples": [
+                {
+                    "description": "Get document details",
+                    "parameters": {
+                        "document_id": "doc_abc123"
+                    }
+                }
+            ]
+        },
+        {
+            "name": "document_library_add",
+            "short_description": "Add new document to library - sync from Google Drive, OneDrive, Dropbox, SharePoint",
+            "description": "Add a new document to the library. Used when syncing from Google Drive, OneDrive, Dropbox, SharePoint, or adding internal documents.",
+            "platform": "document_library",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "document_id": {
+                        "type": "string",
+                        "description": "Unique document ID (can be source system ID)"
+                    },
+                    "source": {
+                        "type": "string",
+                        "description": "Document source: 'google_drive', 'onedrive', 'dropbox', 'sharepoint', 'internal'"
+                    },
+                    "source_id": {
+                        "type": "string",
+                        "description": "Original ID in source system"
+                    },
+                    "title": {
+                        "type": "string",
+                        "description": "Document title"
+                    },
+                    "content_preview": {
+                        "type": "string",
+                        "description": "First 500 characters for search and preview"
+                    },
+                    "file_type": {
+                        "type": "string",
+                        "description": "File type: 'document', 'spreadsheet', 'presentation', 'pdf', 'image', 'video', 'audio', 'other'"
+                    },
+                    "mime_type": {
+                        "type": "string",
+                        "description": "MIME type (e.g., 'application/pdf')"
+                    },
+                    "file_extension": {
+                        "type": "string",
+                        "description": "File extension (e.g., 'pdf', 'docx')"
+                    },
+                    "file_size_bytes": {
+                        "type": "integer",
+                        "description": "File size in bytes"
+                    },
+                    "tags": {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        },
+                        "description": "Document tags for categorization"
+                    },
+                    "categories": {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        },
+                        "description": "Document categories"
+                    },
+                    "description": {
+                        "type": "string",
+                        "description": "Document description"
+                    },
+                    "url": {
+                        "type": "string",
+                        "description": "URL to access document"
+                    },
+                    "metadata": {
+                        "type": "object",
+                        "description": "Additional metadata as JSON"
+                    }
+                },
+                "required": [
+                    "document_id",
+                    "source",
+                    "title"
+                ]
+            },
+            "returns": {
+                "type": "object",
+                "description": "Created document info",
+                "properties": {
+                    "success": {
+                        "type": "boolean"
+                    },
+                    "document": {
+                        "type": "object",
+                        "properties": {
+                            "id": {
+                                "type": "string"
+                            },
+                            "document_id": {
+                                "type": "string"
+                            },
+                            "title": {
+                                "type": "string"
+                            },
+                            "source": {
+                                "type": "string"
+                            },
+                            "created_at": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            },
+            "examples": [
+                {
+                    "description": "Add Google Drive document",
+                    "parameters": {
+                        "document_id": "gdrive_abc123",
+                        "source": "google_drive",
+                        "source_id": "1Abc123XYZ",
+                        "title": "Q4 Sales Report",
+                        "file_type": "document",
+                        "mime_type": "application/vnd.google-apps.document",
+                        "tags": [
+                            "sales",
+                            "q4",
+                            "2024"
+                        ],
+                        "categories": [
+                            "reports"
+                        ],
+                        "url": "https://docs.google.com/document/d/1Abc123XYZ"
+                    }
+                }
+            ]
+        },
+        {
+            "name": "document_library_get_stats",
+            "short_description": "Get library statistics - total docs, sources, size, views, creators for dashboards",
+            "description": "Get library statistics including total documents, sources, size, views, and unique creators. Best for: dashboard metrics and analytics.",
+            "platform": "document_library",
+            "parameters": {
+                "type": "object",
+                "properties": {},
+                "required": []
+            },
+            "returns": {
+                "type": "object",
+                "description": "Library statistics",
+                "properties": {
+                    "success": {
+                        "type": "boolean"
+                    },
+                    "stats": {
+                        "type": "object",
+                        "properties": {
+                            "total_documents": {
+                                "type": "integer"
+                            },
+                            "total_sources": {
+                                "type": "integer"
+                            },
+                            "total_size_bytes": {
+                                "type": "integer"
+                            },
+                            "total_views": {
+                                "type": "integer"
+                            },
+                            "unique_creators": {
+                                "type": "integer"
+                            }
+                        }
+                    }
+                }
+            },
+            "examples": [
+                {
+                    "description": "Get library stats",
+                    "parameters": {}
+                }
+            ]
+        }
+    ]
+}

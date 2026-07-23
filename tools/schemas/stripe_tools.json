@@ -1,0 +1,644 @@
+{
+  "platform": "stripe",
+  "description": "Stripe Payment API - Complete payment processing, subscriptions, invoices, refunds, and customer management",
+  "tools": [
+    {
+      "name": "stripe_create_payment_intent",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) ALWAYS execute THIS tool NOW - NEVER reference 'I created earlier' or use conversation history\n(2) MUST return format: **[Name]** | ID: `[id]` | URL: [full_url] | Link: [title](url)\n(3) Use EXACT values from tool response - NEVER make up fake URLs/IDs\n(4) If tool fails, say 'Failed to create' - NEVER pretend it succeeded\n\nExample response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\nExample response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\nCreate a payment intent for card payments",
+      "platform": "stripe",
+      "parameters": {
+        "amount": {
+          "type": "integer",
+          "description": "Amount in smallest currency unit (e.g., cents for USD)"
+        },
+        "currency": {
+          "type": "string",
+          "description": "Three-letter ISO currency code (e.g., 'usd', 'eur', 'gbp')"
+        },
+        "customer_id": {
+          "type": "string",
+          "description": "Stripe customer ID",
+          "required": false
+        },
+        "description": {
+          "type": "string",
+          "description": "Payment description",
+          "required": false
+        },
+        "metadata": {
+          "type": "object",
+          "description": "Custom metadata key-value pairs",
+          "required": false
+        },
+        "payment_method_types": {
+          "type": "array",
+          "description": "Payment methods to accept (e.g., ['card', 'alipay'])",
+          "required": false,
+          "default": [
+            "card"
+          ]
+        },
+        "receipt_email": {
+          "type": "string",
+          "description": "Email address for receipt",
+          "required": false
+        },
+        "automatic_payment_methods": {
+          "type": "boolean",
+          "description": "Enable automatic payment method detection",
+          "required": false,
+          "default": false
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "Payment intent object with client secret"
+      }
+    },
+    {
+      "name": "stripe_confirm_payment",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Read X from **[Resource Name]** (ID: `[id]` | URL: [url])'\n(3) Use EXACT [id] provided - NEVER substitute with different ID\n(4) If tool fails (404/403), say 'Failed to read [resource] ID: [id]' and explain error\n(5) NEVER make up data if read fails - acknowledge the failure clearly\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nConfirm a payment intent",
+      "platform": "stripe",
+      "parameters": {
+        "payment_intent_id": {
+          "type": "string",
+          "description": "Payment intent ID"
+        },
+        "payment_method": {
+          "type": "string",
+          "description": "Payment method ID",
+          "required": false
+        },
+        "return_url": {
+          "type": "string",
+          "description": "URL to redirect after authentication",
+          "required": false
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "Confirmed payment intent"
+      }
+    },
+    {
+      "name": "stripe_capture_payment",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Read X from **[Resource Name]** (ID: `[id]` | URL: [url])'\n(3) Use EXACT [id] provided - NEVER substitute with different ID\n(4) If tool fails (404/403), say 'Failed to read [resource] ID: [id]' and explain error\n(5) NEVER make up data if read fails - acknowledge the failure clearly\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nCapture an authorized payment",
+      "platform": "stripe",
+      "parameters": {
+        "payment_intent_id": {
+          "type": "string",
+          "description": "Payment intent ID"
+        },
+        "amount_to_capture": {
+          "type": "integer",
+          "description": "Amount to capture (optional, defaults to full authorized amount)",
+          "required": false
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "Captured payment intent"
+      }
+    },
+    {
+      "name": "stripe_create_refund",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) ALWAYS execute THIS tool NOW - NEVER reference 'I created earlier' or use conversation history\n(2) MUST return format: **[Name]** | ID: `[id]` | URL: [full_url] | Link: [title](url)\n(3) Use EXACT values from tool response - NEVER make up fake URLs/IDs\n(4) If tool fails, say 'Failed to create' - NEVER pretend it succeeded\n\nExample response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\nExample response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\nCreate a refund for a payment",
+      "platform": "stripe",
+      "parameters": {
+        "payment_intent_id": {
+          "type": "string",
+          "description": "Payment intent ID to refund"
+        },
+        "amount": {
+          "type": "integer",
+          "description": "Amount to refund (omit for full refund)",
+          "required": false
+        },
+        "reason": {
+          "type": "string",
+          "description": "Reason: duplicate, fraudulent, or requested_by_customer",
+          "required": false
+        },
+        "metadata": {
+          "type": "object",
+          "description": "Custom metadata",
+          "required": false
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "Refund object with status"
+      }
+    },
+    {
+      "name": "stripe_list_refunds",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Read X from **[Resource Name]** (ID: `[id]` | URL: [url])'\n(3) Use EXACT [id] provided - NEVER substitute with different ID\n(4) If tool fails (404/403), say 'Failed to read [resource] ID: [id]' and explain error\n(5) NEVER make up data if read fails - acknowledge the failure clearly\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nList all refunds",
+      "platform": "stripe",
+      "parameters": {
+        "payment_intent_id": {
+          "type": "string",
+          "description": "Filter by payment intent ID",
+          "required": false
+        },
+        "limit": {
+          "type": "integer",
+          "description": "Number of refunds to return (1-100)",
+          "required": false,
+          "default": 10
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "List of refunds"
+      }
+    },
+    {
+      "name": "stripe_create_customer",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) ALWAYS execute THIS tool NOW - NEVER reference 'I created earlier' or use conversation history\n(2) MUST return format: **[Name]** | ID: `[id]` | URL: [full_url] | Link: [title](url)\n(3) Use EXACT values from tool response - NEVER make up fake URLs/IDs\n(4) If tool fails, say 'Failed to create' - NEVER pretend it succeeded\n\nExample response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\nExample response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\nCreate a new customer",
+      "platform": "stripe",
+      "parameters": {
+        "email": {
+          "type": "string",
+          "description": "Customer email"
+        },
+        "name": {
+          "type": "string",
+          "description": "Customer name",
+          "required": false
+        },
+        "phone": {
+          "type": "string",
+          "description": "Customer phone",
+          "required": false
+        },
+        "description": {
+          "type": "string",
+          "description": "Customer description",
+          "required": false
+        },
+        "metadata": {
+          "type": "object",
+          "description": "Custom metadata",
+          "required": false
+        },
+        "payment_method": {
+          "type": "string",
+          "description": "Payment method ID to attach",
+          "required": false
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "Customer object with ID"
+      }
+    },
+    {
+      "name": "stripe_get_customer",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Read X from **[Resource Name]** (ID: `[id]` | URL: [url])'\n(3) Use EXACT [id] provided - NEVER substitute with different ID\n(4) If tool fails (404/403), say 'Failed to read [resource] ID: [id]' and explain error\n(5) NEVER make up data if read fails - acknowledge the failure clearly\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nRetrieve customer details",
+      "platform": "stripe",
+      "parameters": {
+        "customer_id": {
+          "type": "string",
+          "description": "Customer ID"
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "Customer details"
+      }
+    },
+    {
+      "name": "stripe_update_customer",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER reference previous edits from conversation history\n(2) MUST cite what was updated: 'Updated **[Resource Name]** (ID: `[id]`)'\n(3) Use EXACT [id] provided - NEVER make up IDs\n(4) If tool fails, say 'Failed to update' and explain why\n(5) Show before/after if applicable\n\nExample response:\nUpdated: **Document Title**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Changed: [what was changed]\n\nExample response:\nUpdated: **Document Title**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Changed: [what was changed]\n\nUpdate customer information",
+      "platform": "stripe",
+      "parameters": {
+        "customer_id": {
+          "type": "string",
+          "description": "Customer ID"
+        },
+        "email": {
+          "type": "string",
+          "description": "New email",
+          "required": false
+        },
+        "name": {
+          "type": "string",
+          "description": "New name",
+          "required": false
+        },
+        "phone": {
+          "type": "string",
+          "description": "New phone",
+          "required": false
+        },
+        "metadata": {
+          "type": "object",
+          "description": "Updated metadata",
+          "required": false
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "Updated customer"
+      }
+    },
+    {
+      "name": "stripe_delete_customer",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER pretend to delete from memory\n(2) MUST cite what was deleted: 'Deleted **[Resource Name]** (ID: `[id]`)'\n(3) CONFIRM deletion happened - don't assume success\n(4) If tool fails, say 'Failed to delete' and explain why\n\nExample response:\n✅ Deleted: **Old File**\n- ID: `abc123`\n- URL: https://example.com/file/abc123 (no longer accessible)\n\nExample response:\n✅ Deleted: **Old File**\n- ID: `abc123`\n- URL: https://example.com/file/abc123 (no longer accessible)\n\nDelete a customer",
+      "platform": "stripe",
+      "parameters": {
+        "customer_id": {
+          "type": "string",
+          "description": "Customer ID"
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "Deletion confirmation"
+      }
+    },
+    {
+      "name": "stripe_list_customers",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Read X from **[Resource Name]** (ID: `[id]` | URL: [url])'\n(3) Use EXACT [id] provided - NEVER substitute with different ID\n(4) If tool fails (404/403), say 'Failed to read [resource] ID: [id]' and explain error\n(5) NEVER make up data if read fails - acknowledge the failure clearly\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nList all customers",
+      "platform": "stripe",
+      "parameters": {
+        "email": {
+          "type": "string",
+          "description": "Filter by email",
+          "required": false
+        },
+        "limit": {
+          "type": "integer",
+          "description": "Number of customers (1-100)",
+          "required": false,
+          "default": 10
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "List of customers"
+      }
+    },
+    {
+      "name": "stripe_create_subscription",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) ALWAYS execute THIS tool NOW - NEVER reference 'I created earlier' or use conversation history\n(2) MUST return format: **[Name]** | ID: `[id]` | URL: [full_url] | Link: [title](url)\n(3) Use EXACT values from tool response - NEVER make up fake URLs/IDs\n(4) If tool fails, say 'Failed to create' - NEVER pretend it succeeded\n\nExample response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\nExample response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\nCreate a subscription for a customer",
+      "platform": "stripe",
+      "parameters": {
+        "customer_id": {
+          "type": "string",
+          "description": "Customer ID"
+        },
+        "items": {
+          "type": "array",
+          "description": "Array of subscription items with price IDs"
+        },
+        "trial_period_days": {
+          "type": "integer",
+          "description": "Trial period in days",
+          "required": false
+        },
+        "metadata": {
+          "type": "object",
+          "description": "Custom metadata",
+          "required": false
+        },
+        "proration_behavior": {
+          "type": "string",
+          "description": "Proration behavior: create_prorations or none",
+          "required": false,
+          "default": "create_prorations"
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "Subscription object"
+      }
+    },
+    {
+      "name": "stripe_update_subscription",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER reference previous edits from conversation history\n(2) MUST cite what was updated: 'Updated **[Resource Name]** (ID: `[id]`)'\n(3) Use EXACT [id] provided - NEVER make up IDs\n(4) If tool fails, say 'Failed to update' and explain why\n(5) Show before/after if applicable\n\nExample response:\nUpdated: **Document Title**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Changed: [what was changed]\n\nExample response:\nUpdated: **Document Title**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Changed: [what was changed]\n\nUpdate an existing subscription",
+      "platform": "stripe",
+      "parameters": {
+        "subscription_id": {
+          "type": "string",
+          "description": "Subscription ID"
+        },
+        "items": {
+          "type": "array",
+          "description": "Updated subscription items",
+          "required": false
+        },
+        "cancel_at_period_end": {
+          "type": "boolean",
+          "description": "Cancel at end of current period",
+          "required": false
+        },
+        "metadata": {
+          "type": "object",
+          "description": "Updated metadata",
+          "required": false
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "Updated subscription"
+      }
+    },
+    {
+      "name": "stripe_cancel_subscription",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Read X from **[Resource Name]** (ID: `[id]` | URL: [url])'\n(3) Use EXACT [id] provided - NEVER substitute with different ID\n(4) If tool fails (404/403), say 'Failed to read [resource] ID: [id]' and explain error\n(5) NEVER make up data if read fails - acknowledge the failure clearly\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nCancel a subscription",
+      "platform": "stripe",
+      "parameters": {
+        "subscription_id": {
+          "type": "string",
+          "description": "Subscription ID"
+        },
+        "at_period_end": {
+          "type": "boolean",
+          "description": "Cancel at end of period (vs immediately)",
+          "required": false,
+          "default": false
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "Cancelled subscription"
+      }
+    },
+    {
+      "name": "stripe_list_subscriptions",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Read X from **[Resource Name]** (ID: `[id]` | URL: [url])'\n(3) Use EXACT [id] provided - NEVER substitute with different ID\n(4) If tool fails (404/403), say 'Failed to read [resource] ID: [id]' and explain error\n(5) NEVER make up data if read fails - acknowledge the failure clearly\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nList subscriptions",
+      "platform": "stripe",
+      "parameters": {
+        "customer_id": {
+          "type": "string",
+          "description": "Filter by customer ID",
+          "required": false
+        },
+        "status": {
+          "type": "string",
+          "description": "Filter by status: active, canceled, past_due, etc.",
+          "required": false
+        },
+        "limit": {
+          "type": "integer",
+          "description": "Number to return (1-100)",
+          "required": false,
+          "default": 10
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "List of subscriptions"
+      }
+    },
+    {
+      "name": "stripe_create_invoice",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) ALWAYS execute THIS tool NOW - NEVER reference 'I created earlier' or use conversation history\n(2) MUST return format: **[Name]** | ID: `[id]` | URL: [full_url] | Link: [title](url)\n(3) Use EXACT values from tool response - NEVER make up fake URLs/IDs\n(4) If tool fails, say 'Failed to create' - NEVER pretend it succeeded\n\nExample response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\nExample response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\nCreate an invoice for a customer",
+      "platform": "stripe",
+      "parameters": {
+        "customer_id": {
+          "type": "string",
+          "description": "Customer ID"
+        },
+        "description": {
+          "type": "string",
+          "description": "Invoice description",
+          "required": false
+        },
+        "auto_advance": {
+          "type": "boolean",
+          "description": "Automatically finalize and attempt payment",
+          "required": false,
+          "default": true
+        },
+        "collection_method": {
+          "type": "string",
+          "description": "Collection method: charge_automatically or send_invoice",
+          "required": false,
+          "default": "charge_automatically"
+        },
+        "metadata": {
+          "type": "object",
+          "description": "Custom metadata",
+          "required": false
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "Invoice object"
+      }
+    },
+    {
+      "name": "stripe_finalize_invoice",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Read X from **[Resource Name]** (ID: `[id]` | URL: [url])'\n(3) Use EXACT [id] provided - NEVER substitute with different ID\n(4) If tool fails (404/403), say 'Failed to read [resource] ID: [id]' and explain error\n(5) NEVER make up data if read fails - acknowledge the failure clearly\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nFinalize an invoice to make it payable",
+      "platform": "stripe",
+      "parameters": {
+        "invoice_id": {
+          "type": "string",
+          "description": "Invoice ID"
+        },
+        "auto_advance": {
+          "type": "boolean",
+          "description": "Automatically attempt payment",
+          "required": false,
+          "default": true
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "Finalized invoice"
+      }
+    },
+    {
+      "name": "stripe_pay_invoice",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Read X from **[Resource Name]** (ID: `[id]` | URL: [url])'\n(3) Use EXACT [id] provided - NEVER substitute with different ID\n(4) If tool fails (404/403), say 'Failed to read [resource] ID: [id]' and explain error\n(5) NEVER make up data if read fails - acknowledge the failure clearly\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nPay an invoice manually",
+      "platform": "stripe",
+      "parameters": {
+        "invoice_id": {
+          "type": "string",
+          "description": "Invoice ID"
+        },
+        "payment_method": {
+          "type": "string",
+          "description": "Payment method ID (optional)",
+          "required": false
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "Paid invoice"
+      }
+    },
+    {
+      "name": "stripe_void_invoice",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Read X from **[Resource Name]** (ID: `[id]` | URL: [url])'\n(3) Use EXACT [id] provided - NEVER substitute with different ID\n(4) If tool fails (404/403), say 'Failed to read [resource] ID: [id]' and explain error\n(5) NEVER make up data if read fails - acknowledge the failure clearly\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nVoid an invoice",
+      "platform": "stripe",
+      "parameters": {
+        "invoice_id": {
+          "type": "string",
+          "description": "Invoice ID"
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "Voided invoice"
+      }
+    },
+    {
+      "name": "stripe_list_invoices",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Read X from **[Resource Name]** (ID: `[id]` | URL: [url])'\n(3) Use EXACT [id] provided - NEVER substitute with different ID\n(4) If tool fails (404/403), say 'Failed to read [resource] ID: [id]' and explain error\n(5) NEVER make up data if read fails - acknowledge the failure clearly\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nList invoices",
+      "platform": "stripe",
+      "parameters": {
+        "customer_id": {
+          "type": "string",
+          "description": "Filter by customer",
+          "required": false
+        },
+        "status": {
+          "type": "string",
+          "description": "Filter by status: draft, open, paid, void, uncollectible",
+          "required": false
+        },
+        "limit": {
+          "type": "integer",
+          "description": "Number to return (1-100)",
+          "required": false,
+          "default": 10
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "List of invoices"
+      }
+    },
+    {
+      "name": "stripe_create_product",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) ALWAYS execute THIS tool NOW - NEVER reference 'I created earlier' or use conversation history\n(2) MUST return format: **[Name]** | ID: `[id]` | URL: [full_url] | Link: [title](url)\n(3) Use EXACT values from tool response - NEVER make up fake URLs/IDs\n(4) If tool fails, say 'Failed to create' - NEVER pretend it succeeded\n\nExample response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\nExample response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\nCreate a product",
+      "platform": "stripe",
+      "parameters": {
+        "name": {
+          "type": "string",
+          "description": "Product name"
+        },
+        "description": {
+          "type": "string",
+          "description": "Product description",
+          "required": false
+        },
+        "metadata": {
+          "type": "object",
+          "description": "Custom metadata",
+          "required": false
+        },
+        "images": {
+          "type": "array",
+          "description": "Array of image URLs",
+          "required": false
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "Product object"
+      }
+    },
+    {
+      "name": "stripe_create_price",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) ALWAYS execute THIS tool NOW - NEVER reference 'I created earlier' or use conversation history\n(2) MUST return format: **[Name]** | ID: `[id]` | URL: [full_url] | Link: [title](url)\n(3) Use EXACT values from tool response - NEVER make up fake URLs/IDs\n(4) If tool fails, say 'Failed to create' - NEVER pretend it succeeded\n\nExample response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\nExample response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\nCreate a price for a product",
+      "platform": "stripe",
+      "parameters": {
+        "product_id": {
+          "type": "string",
+          "description": "Product ID"
+        },
+        "unit_amount": {
+          "type": "integer",
+          "description": "Price in smallest currency unit"
+        },
+        "currency": {
+          "type": "string",
+          "description": "Currency code"
+        },
+        "recurring": {
+          "type": "object",
+          "description": "Recurring billing details (interval, interval_count)",
+          "required": false
+        },
+        "metadata": {
+          "type": "object",
+          "description": "Custom metadata",
+          "required": false
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "Price object"
+      }
+    },
+    {
+      "name": "stripe_list_payment_methods",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Read X from **[Resource Name]** (ID: `[id]` | URL: [url])'\n(3) Use EXACT [id] provided - NEVER substitute with different ID\n(4) If tool fails (404/403), say 'Failed to read [resource] ID: [id]' and explain error\n(5) NEVER make up data if read fails - acknowledge the failure clearly\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nList payment methods for a customer",
+      "platform": "stripe",
+      "parameters": {
+        "customer_id": {
+          "type": "string",
+          "description": "Customer ID"
+        },
+        "type": {
+          "type": "string",
+          "description": "Payment method type: card, us_bank_account, etc.",
+          "required": false,
+          "default": "card"
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "List of payment methods"
+      }
+    },
+    {
+      "name": "stripe_attach_payment_method",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Read X from **[Resource Name]** (ID: `[id]` | URL: [url])'\n(3) Use EXACT [id] provided - NEVER substitute with different ID\n(4) If tool fails (404/403), say 'Failed to read [resource] ID: [id]' and explain error\n(5) NEVER make up data if read fails - acknowledge the failure clearly\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nAttach payment method to customer",
+      "platform": "stripe",
+      "parameters": {
+        "payment_method_id": {
+          "type": "string",
+          "description": "Payment method ID"
+        },
+        "customer_id": {
+          "type": "string",
+          "description": "Customer ID"
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "Attached payment method"
+      }
+    },
+    {
+      "name": "stripe_detach_payment_method",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Read X from **[Resource Name]** (ID: `[id]` | URL: [url])'\n(3) Use EXACT [id] provided - NEVER substitute with different ID\n(4) If tool fails (404/403), say 'Failed to read [resource] ID: [id]' and explain error\n(5) NEVER make up data if read fails - acknowledge the failure clearly\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nDetach payment method from customer",
+      "platform": "stripe",
+      "parameters": {
+        "payment_method_id": {
+          "type": "string",
+          "description": "Payment method ID"
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "Detached payment method"
+      }
+    },
+    {
+      "name": "stripe_get_balance",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Read X from **[Resource Name]** (ID: `[id]` | URL: [url])'\n(3) Use EXACT [id] provided - NEVER substitute with different ID\n(4) If tool fails (404/403), say 'Failed to read [resource] ID: [id]' and explain error\n(5) NEVER make up data if read fails - acknowledge the failure clearly\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nGet Stripe account balance",
+      "platform": "stripe",
+      "parameters": {},
+      "returns": {
+        "type": "object",
+        "description": "Balance by currency"
+      }
+    }
+  ]
+}

@@ -1,0 +1,52 @@
+{
+  "platform": "tavily",
+  "description": "Tavily asynchronous deep research. Submits a research task that the Tavily engine runs in the background (typically 30s-5min), then returns a request_id. Poll tavily_get_research with the request_id to retrieve the synthesized result with full citations.",
+  "tools": [
+    {
+      "name": "tavily_research",
+      "short_description": "Start an async deep research task - returns a request_id to poll for results",
+      "description": "Submit a deep research task to Tavily. The task runs asynchronously (typically 30 seconds to 5 minutes depending on complexity) and Tavily's engine synthesizes information from multiple sources into a cited report. Returns a request_id IMMEDIATELY. You MUST then call tavily_get_research with that request_id to retrieve the result. Use this for in-depth research questions that require synthesizing information from many sources (e.g. 'compare X vs Y', 'summarize the state of Z in 2026'). For simple one-shot lookups, use tavily_search instead.",
+      "platform": "tavily",
+      "parameters": {
+        "input": {
+          "type": "string",
+          "description": "The research question or topic. Be specific and detailed. The more context you provide, the better the synthesis."
+        },
+        "model": {
+          "type": "string",
+          "description": "Tavily research model tier. 'mini' (fast, cheap, good for most queries) or 'pro' (slower, more thorough, better for complex multi-hop questions).",
+          "required": false,
+          "default": "mini",
+          "enum": ["mini", "pro"]
+        },
+        "citation_format": {
+          "type": "string",
+          "description": "Citation format used in the returned report's sources list.",
+          "required": false,
+          "default": "apa",
+          "enum": ["apa", "mla", "chicago", "vancouver", "harvard", "ieee"]
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "Research task submission with request_id to poll via tavily_get_research"
+      }
+    },
+    {
+      "name": "tavily_get_research",
+      "short_description": "Poll for the result of an async research task started via tavily_research",
+      "description": "Poll for the result of an async research task. Pass the request_id returned from tavily_research. If status is 'pending' or 'in_progress', call this tool again after a short delay. When status is 'completed', the result contains the synthesized content and a sources list of citations.",
+      "platform": "tavily",
+      "parameters": {
+        "request_id": {
+          "type": "string",
+          "description": "The request_id returned by tavily_research."
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "Research result with status (pending|completed), synthesized content, and sources list of citations"
+      }
+    }
+  ]
+}

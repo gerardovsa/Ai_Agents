@@ -1,0 +1,1994 @@
+{
+    "platform": "adobe_indesign",
+    "description": "Data merge and variable data printing tools for Adobe InDesign. Enable automated document generation from data sources (CSV, Excel, databases) with field mapping, conditional logic, QR codes, barcodes, and batch processing. Critical for catalog generation, personalized marketing, and variable data workflows.",
+    "tools": [
+        {
+            "name": "indesign_create_data_merge",
+            "description": "Initialize data merge workflow for document generation from data sources.\n\nSets up merge with:\n- Template document selection\n- Data source configuration (CSV, Excel, database)\n- Field mapping between data and placeholders\n- Merge preview options\n- Output settings\n\nThis is the primary entry point for variable data printing workflows. The merge setup defines how data from spreadsheets or databases flows into InDesign placeholders (<<FieldName>>) to generate hundreds or thousands of personalized documents.\n\nUse when:\n- Creating product catalogs from inventory databases\n- Generating personalized marketing materials\n- Producing variable data print runs\n- Automating document creation from data\n\nSupports CSV files, Excel spreadsheets, and direct database connections. Field mapping allows flexible column-to-placeholder relationships.\n\nTypical workflow: Create merge → Map fields → Preview → Execute merge → Export documents.",
+            "platform": "adobe_indesign",
+            "category": "data_merge",
+            "backend": "firefly",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "template_id": {
+                        "type": "string",
+                        "description": "Template document with placeholders"
+                    },
+                    "data_source": {
+                        "type": "object",
+                        "properties": {
+                            "type": {
+                                "type": "string",
+                                "enum": [
+                                    "csv",
+                                    "excel",
+                                    "database"
+                                ],
+                                "description": "Data source type"
+                            },
+                            "path": {
+                                "type": "string",
+                                "description": "File path or database connection string"
+                            },
+                            "sheet_name": {
+                                "type": "string",
+                                "description": "Excel sheet name (if type is excel)"
+                            }
+                        },
+                        "required": [
+                            "type",
+                            "path"
+                        ]
+                    },
+                    "field_mapping": {
+                        "type": "object",
+                        "description": "Map data columns to InDesign placeholders",
+                        "additionalProperties": {
+                            "type": "string"
+                        }
+                    },
+                    "merge_options": {
+                        "type": "object",
+                        "properties": {
+                            "records_per_page": {
+                                "type": "integer",
+                                "default": 1
+                            },
+                            "skip_empty_records": {
+                                "type": "boolean",
+                                "default": true
+                            }
+                        }
+                    }
+                },
+                "required": [
+                    "template_id",
+                    "data_source"
+                ]
+            },
+            "returns": {
+                "type": "object",
+                "properties": {
+                    "success": {
+                        "type": "boolean"
+                    },
+                    "merge_id": {
+                        "type": "string"
+                    },
+                    "total_records": {
+                        "type": "integer"
+                    },
+                    "placeholders_found": {
+                        "type": "array"
+                    },
+                    "unmapped_fields": {
+                        "type": "array"
+                    },
+                    "error": {
+                        "type": "string"
+                    }
+                }
+            },
+            "examples": [
+                {
+                    "description": "Create catalog merge from CSV",
+                    "parameters": {
+                        "template_id": "template_product_page",
+                        "data_source": {
+                            "type": "csv",
+                            "path": "products.csv"
+                        },
+                        "field_mapping": {
+                            "product_name": "Name",
+                            "price": "Price",
+                            "description": "Description",
+                            "image": "ImagePath"
+                        }
+                    },
+                    "expected_result": {
+                        "success": true,
+                        "merge_id": "merge_catalog_001",
+                        "total_records": 500,
+                        "placeholders_found": [
+                            "<<product_name>>",
+                            "<<price>>",
+                            "<<description>>",
+                            "<<image>>"
+                        ]
+                    }
+                },
+                {
+                    "description": "Personalized letter merge from Excel",
+                    "parameters": {
+                        "template_id": "template_letter",
+                        "data_source": {
+                            "type": "excel",
+                            "path": "customers.xlsx",
+                            "sheet_name": "Contacts"
+                        },
+                        "field_mapping": {
+                            "first_name": "FirstName",
+                            "last_name": "LastName",
+                            "address": "Address"
+                        }
+                    },
+                    "expected_result": {
+                        "success": true,
+                        "merge_id": "merge_letters_002",
+                        "total_records": 1200
+                    }
+                }
+            ],
+            "usage_guide": {
+                "when_to_use": [
+                    "Creating product catalogs from inventory data",
+                    "Generating personalized marketing materials",
+                    "Producing variable data print runs",
+                    "Automating document creation from databases"
+                ],
+                "workflow": [
+                    "Step 1: Prepare template with placeholders (<<FieldName>>)",
+                    "Step 2: Prepare data source (CSV, Excel, database)",
+                    "Step 3: Call indesign_create_data_merge() with field mapping",
+                    "Step 4: Preview with indesign_preview_merge()",
+                    "Step 5: Execute with indesign_execute_merge()"
+                ],
+                "best_practices": [
+                    "Use consistent placeholder naming (<<FieldName>>)",
+                    "Test with small dataset first",
+                    "Validate data source before merge",
+                    "Map all placeholders to avoid empty fields",
+                    "Use descriptive field_mapping keys"
+                ],
+                "error_handling": [
+                    "Error 'Data source not found' → Verify path exists",
+                    "Error 'Placeholder not mapped' → Check field_mapping completeness",
+                    "Error 'Invalid data format' → Use indesign_validate_data_source() first",
+                    "Warning 'Unmapped fields' → Review unmapped_fields array"
+                ],
+                "related_tools": [
+                    "indesign_validate_data_source - Validate before merge",
+                    "indesign_map_fields - Configure field mapping",
+                    "indesign_preview_merge - Preview results",
+                    "indesign_execute_merge - Generate documents"
+                ]
+            },
+            "tool_intelligence": {
+                "success_indicators": [
+                    "merge_id returned",
+                    "total_records > 0",
+                    "unmapped_fields empty or acceptable"
+                ],
+                "failure_patterns": [
+                    "data_source path invalid",
+                    "no placeholders in template",
+                    "field_mapping incomplete"
+                ],
+                "common_workflows": [
+                    "catalog generation",
+                    "personalized marketing",
+                    "variable data printing"
+                ]
+            },
+            "memory_context": {
+                "vectorize_fields": [
+                    "description",
+                    "usage_guide.when_to_use"
+                ],
+                "use_cases": [
+                    "product catalog from CSV",
+                    "personalized letters from Excel",
+                    "variable data printing"
+                ]
+            }
+        },
+        {
+            "name": "indesign_map_fields",
+            "description": "Configure or update field mapping between data source columns and InDesign placeholders.\n\nField mapping defines:\n- Which CSV/Excel column fills which placeholder\n- Data type conversions\n- Optional field transformations\n- Image path mappings\n\nUse to establish or modify data-to-placeholder relationships.",
+            "platform": "adobe_indesign",
+            "category": "data_merge",
+            "backend": "firefly",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "merge_id": {
+                        "type": "string"
+                    },
+                    "mapping": {
+                        "type": "object",
+                        "additionalProperties": {
+                            "type": "object",
+                            "properties": {
+                                "source_field": {
+                                    "type": "string"
+                                },
+                                "data_type": {
+                                    "type": "string",
+                                    "enum": [
+                                        "text",
+                                        "number",
+                                        "image",
+                                        "date"
+                                    ]
+                                },
+                                "transform": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    }
+                },
+                "required": [
+                    "merge_id",
+                    "mapping"
+                ]
+            },
+            "returns": {
+                "type": "object",
+                "properties": {
+                    "success": {
+                        "type": "boolean"
+                    },
+                    "fields_mapped": {
+                        "type": "integer"
+                    },
+                    "validation_warnings": {
+                        "type": "array"
+                    },
+                    "error": {
+                        "type": "string"
+                    }
+                }
+            },
+            "examples": [
+                {
+                    "description": "Map product data fields",
+                    "parameters": {
+                        "merge_id": "merge_catalog_001",
+                        "mapping": {
+                            "product_name": {
+                                "source_field": "Name",
+                                "data_type": "text"
+                            },
+                            "price": {
+                                "source_field": "Price",
+                                "data_type": "number",
+                                "transform": "currency"
+                            },
+                            "image": {
+                                "source_field": "ImagePath",
+                                "data_type": "image"
+                            }
+                        }
+                    },
+                    "expected_result": {
+                        "success": true,
+                        "fields_mapped": 3
+                    }
+                }
+            ],
+            "usage_guide": {
+                "when_to_use": [
+                    "Setting up data merge",
+                    "Updating field relationships",
+                    "Adding new placeholders",
+                    "Fixing mapping errors"
+                ],
+                "workflow": [
+                    "Step 1: Create merge with indesign_create_data_merge()",
+                    "Step 2: Call indesign_map_fields() to configure/update mapping",
+                    "Step 3: Preview with indesign_preview_merge()"
+                ],
+                "best_practices": [
+                    "Map all placeholders",
+                    "Use correct data_type",
+                    "Test transformations",
+                    "Include image paths"
+                ],
+                "error_handling": [
+                    "Error 'Field not found' → Check source_field exists in data",
+                    "Warning 'Type mismatch' → Review data_type setting"
+                ],
+                "related_tools": [
+                    "indesign_create_data_merge - Initial merge setup",
+                    "indesign_validate_data_source - Check fields exist"
+                ]
+            }
+        },
+        {
+            "name": "indesign_validate_data_source",
+            "description": "Validate data source before executing merge.\n\nChecks:\n- File exists and readable\n- Required columns present\n- Data types match expectations\n- Image paths valid\n- No duplicate keys\n\nPrevents merge failures by validating upfront.",
+            "platform": "adobe_indesign",
+            "category": "data_merge",
+            "backend": "firefly",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "data_source": {
+                        "type": "object",
+                        "properties": {
+                            "type": {
+                                "type": "string"
+                            },
+                            "path": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "required_fields": {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
+                    },
+                    "validate_images": {
+                        "type": "boolean",
+                        "default": true
+                    }
+                },
+                "required": [
+                    "data_source"
+                ]
+            },
+            "returns": {
+                "type": "object",
+                "properties": {
+                    "success": {
+                        "type": "boolean"
+                    },
+                    "is_valid": {
+                        "type": "boolean"
+                    },
+                    "errors": {
+                        "type": "array"
+                    },
+                    "warnings": {
+                        "type": "array"
+                    },
+                    "record_count": {
+                        "type": "integer"
+                    },
+                    "columns_found": {
+                        "type": "array"
+                    }
+                }
+            },
+            "examples": [
+                {
+                    "description": "Validate CSV before merge",
+                    "parameters": {
+                        "data_source": {
+                            "type": "csv",
+                            "path": "products.csv"
+                        },
+                        "required_fields": [
+                            "Name",
+                            "Price",
+                            "ImagePath"
+                        ]
+                    },
+                    "expected_result": {
+                        "success": true,
+                        "is_valid": true,
+                        "record_count": 500,
+                        "columns_found": [
+                            "Name",
+                            "Price",
+                            "Description",
+                            "ImagePath"
+                        ]
+                    }
+                }
+            ],
+            "usage_guide": {
+                "when_to_use": [
+                    "Before creating merge",
+                    "After data source updates",
+                    "Troubleshooting merge failures"
+                ],
+                "workflow": [
+                    "Step 1: Call indesign_validate_data_source()",
+                    "Step 2: Review errors/warnings",
+                    "Step 3: Fix data issues",
+                    "Step 4: Proceed with merge"
+                ],
+                "best_practices": [
+                    "Always validate before large merges",
+                    "Check required_fields",
+                    "Validate image paths",
+                    "Review warnings"
+                ],
+                "error_handling": [
+                    "Error 'File not found' → Check path",
+                    "Error 'Missing columns' → Review required_fields",
+                    "Warning 'Missing images' → Fix image paths"
+                ],
+                "related_tools": [
+                    "indesign_create_data_merge - Create merge after validation"
+                ]
+            }
+        },
+        {
+            "name": "indesign_preview_merge",
+            "description": "Preview data merge results before generating all documents.\n\nPreview shows:\n- Single merged record rendering\n- Placeholder population\n- Image placement\n- Layout verification\n\nPrevents wasting time on incorrect merges.",
+            "platform": "adobe_indesign",
+            "category": "data_merge",
+            "backend": "firefly",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "merge_id": {
+                        "type": "string"
+                    },
+                    "record_index": {
+                        "type": "integer",
+                        "default": 0
+                    },
+                    "show_placeholders": {
+                        "type": "boolean",
+                        "default": false
+                    }
+                },
+                "required": [
+                    "merge_id"
+                ]
+            },
+            "returns": {
+                "type": "object",
+                "properties": {
+                    "success": {
+                        "type": "boolean"
+                    },
+                    "preview_url": {
+                        "type": "string"
+                    },
+                    "fields_populated": {
+                        "type": "object"
+                    },
+                    "missing_data": {
+                        "type": "array"
+                    },
+                    "error": {
+                        "type": "string"
+                    }
+                }
+            },
+            "examples": [
+                {
+                    "description": "Preview first record",
+                    "parameters": {
+                        "merge_id": "merge_catalog_001",
+                        "record_index": 0
+                    },
+                    "expected_result": {
+                        "success": true,
+                        "preview_url": "https://firefly.adobe.com/preview/abc123.png",
+                        "fields_populated": {
+                            "product_name": "Widget Pro",
+                            "price": "$29.99"
+                        }
+                    }
+                }
+            ],
+            "usage_guide": {
+                "when_to_use": [
+                    "Before executing large merges",
+                    "Testing field mapping",
+                    "Verifying layout",
+                    "Checking image placement"
+                ],
+                "workflow": [
+                    "Step 1: Create merge",
+                    "Step 2: Call indesign_preview_merge()",
+                    "Step 3: Review preview",
+                    "Step 4: Adjust if needed",
+                    "Step 5: Execute merge"
+                ],
+                "best_practices": [
+                    "Preview multiple records",
+                    "Check first, middle, last records",
+                    "Verify images load",
+                    "Test edge cases"
+                ],
+                "error_handling": [
+                    "Error 'Merge not found' → Check merge_id",
+                    "Warning 'Missing data' → Review missing_data array"
+                ],
+                "related_tools": [
+                    "indesign_execute_merge - Generate documents after preview"
+                ]
+            }
+        },
+        {
+            "name": "indesign_execute_merge",
+            "description": "Execute data merge to generate documents from all records.\n\nGenerates:\n- Individual documents per record\n- Multi-record documents (multiple records per page/document)\n- Exported files in specified format\n- Batch processing with progress tracking\n\nThis is the primary execution tool for variable data printing. After setup and preview, this generates the final output documents.",
+            "platform": "adobe_indesign",
+            "category": "data_merge",
+            "backend": "firefly",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "merge_id": {
+                        "type": "string"
+                    },
+                    "records": {
+                        "type": "object",
+                        "properties": {
+                            "start_index": {
+                                "type": "integer",
+                                "default": 0
+                            },
+                            "end_index": {
+                                "type": "integer"
+                            },
+                            "record_ids": {
+                                "type": "array",
+                                "items": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    },
+                    "output_format": {
+                        "type": "string",
+                        "enum": [
+                            "indd",
+                            "pdf",
+                            "both"
+                        ],
+                        "default": "pdf"
+                    },
+                    "output_options": {
+                        "type": "object",
+                        "properties": {
+                            "create_single_file": {
+                                "type": "boolean",
+                                "default": false
+                            },
+                            "naming_pattern": {
+                                "type": "string",
+                                "default": "output_{record_index}"
+                            }
+                        }
+                    }
+                },
+                "required": [
+                    "merge_id"
+                ]
+            },
+            "returns": {
+                "type": "object",
+                "properties": {
+                    "success": {
+                        "type": "boolean"
+                    },
+                    "job_id": {
+                        "type": "string"
+                    },
+                    "records_processed": {
+                        "type": "integer"
+                    },
+                    "documents_created": {
+                        "type": "integer"
+                    },
+                    "output_files": {
+                        "type": "array"
+                    },
+                    "errors": {
+                        "type": "array"
+                    },
+                    "execution_time": {
+                        "type": "number"
+                    },
+                    "error": {
+                        "type": "string"
+                    }
+                }
+            },
+            "examples": [
+                {
+                    "description": "Generate 500 product pages",
+                    "parameters": {
+                        "merge_id": "merge_catalog_001",
+                        "output_format": "pdf",
+                        "output_options": {
+                            "create_single_file": true,
+                            "naming_pattern": "catalog_2025.pdf"
+                        }
+                    },
+                    "expected_result": {
+                        "success": true,
+                        "job_id": "job_abc123",
+                        "records_processed": 500,
+                        "documents_created": 1,
+                        "output_files": [
+                            "catalog_2025.pdf"
+                        ],
+                        "execution_time": 85.3
+                    }
+                },
+                {
+                    "description": "Generate individual PDFs for first 50 records",
+                    "parameters": {
+                        "merge_id": "merge_letters_002",
+                        "records": {
+                            "start_index": 0,
+                            "end_index": 50
+                        },
+                        "output_format": "pdf",
+                        "output_options": {
+                            "create_single_file": false,
+                            "naming_pattern": "letter_{record_index}.pdf"
+                        }
+                    },
+                    "expected_result": {
+                        "success": true,
+                        "records_processed": 50,
+                        "documents_created": 50,
+                        "output_files": [
+                            "letter_0.pdf",
+                            "letter_1.pdf",
+                            "..."
+                        ]
+                    }
+                }
+            ],
+            "usage_guide": {
+                "when_to_use": [
+                    "After successful preview",
+                    "Generating final output",
+                    "Batch document creation",
+                    "Production runs"
+                ],
+                "workflow": [
+                    "Step 1: Create and validate merge",
+                    "Step 2: Preview results",
+                    "Step 3: Call indesign_execute_merge()",
+                    "Step 4: Monitor with indesign_merge_status()",
+                    "Step 5: Retrieve output files"
+                ],
+                "best_practices": [
+                    "Test with small batch first",
+                    "Use create_single_file for catalogs",
+                    "Use individual files for personalized items",
+                    "Monitor job_id for large merges",
+                    "Review errors array if issues"
+                ],
+                "error_handling": [
+                    "Error 'Merge validation failed' → Check data source",
+                    "Error 'Template missing' → Verify template exists",
+                    "Partial success → Check errors array for failed records"
+                ],
+                "related_tools": [
+                    "indesign_merge_status - Monitor progress",
+                    "indesign_preview_merge - Preview before executing",
+                    "indesign_export_merged_documents - Export results"
+                ]
+            }
+        },
+        {
+            "name": "indesign_batch_merge",
+            "description": "Process multiple data sources in batch for large-scale variable data printing.\n\nBatch processing:\n- Multiple CSV/Excel files\n- Same template applied to all\n- Parallel processing for speed\n- Progress tracking per source\n\nOptimized for high-volume production runs.",
+            "platform": "adobe_indesign",
+            "category": "data_merge",
+            "backend": "firefly",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "template_id": {
+                        "type": "string"
+                    },
+                    "data_sources": {
+                        "type": "array",
+                        "items": {
+                            "type": "object",
+                            "properties": {
+                                "path": {
+                                    "type": "string"
+                                },
+                                "field_mapping": {
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "batch_size": {
+                        "type": "integer",
+                        "default": 100
+                    },
+                    "output_format": {
+                        "type": "string",
+                        "default": "pdf"
+                    }
+                },
+                "required": [
+                    "template_id",
+                    "data_sources"
+                ]
+            },
+            "returns": {
+                "type": "object",
+                "properties": {
+                    "success": {
+                        "type": "boolean"
+                    },
+                    "batch_job_id": {
+                        "type": "string"
+                    },
+                    "sources_queued": {
+                        "type": "integer"
+                    },
+                    "total_records": {
+                        "type": "integer"
+                    },
+                    "estimated_time": {
+                        "type": "number"
+                    },
+                    "error": {
+                        "type": "string"
+                    }
+                }
+            },
+            "examples": [
+                {
+                    "description": "Batch process 5 regional catalogs",
+                    "parameters": {
+                        "template_id": "template_regional_catalog",
+                        "data_sources": [
+                            {
+                                "path": "products_north.csv",
+                                "field_mapping": {}
+                            },
+                            {
+                                "path": "products_south.csv",
+                                "field_mapping": {}
+                            },
+                            {
+                                "path": "products_east.csv",
+                                "field_mapping": {}
+                            },
+                            {
+                                "path": "products_west.csv",
+                                "field_mapping": {}
+                            },
+                            {
+                                "path": "products_central.csv",
+                                "field_mapping": {}
+                            }
+                        ]
+                    },
+                    "expected_result": {
+                        "success": true,
+                        "batch_job_id": "batch_xyz789",
+                        "sources_queued": 5,
+                        "total_records": 2500
+                    }
+                }
+            ],
+            "usage_guide": {
+                "when_to_use": [
+                    "Processing multiple data files",
+                    "Regional variations",
+                    "Multi-client production",
+                    "High-volume printing"
+                ],
+                "workflow": [
+                    "Step 1: Prepare multiple data sources",
+                    "Step 2: Call indesign_batch_merge()",
+                    "Step 3: Monitor with indesign_merge_status()",
+                    "Step 4: Retrieve outputs"
+                ],
+                "best_practices": [
+                    "Use consistent field_mapping",
+                    "Set reasonable batch_size",
+                    "Monitor batch_job_id",
+                    "Handle errors per source"
+                ],
+                "error_handling": [
+                    "Partial batch failure → Check per-source errors",
+                    "Timeout → Reduce batch_size"
+                ],
+                "related_tools": [
+                    "indesign_execute_merge - Single source merge",
+                    "indesign_merge_status - Track batch progress"
+                ]
+            }
+        },
+        {
+            "name": "indesign_merge_to_pdf",
+            "description": "Execute data merge with direct PDF export and PDF-specific settings.\n\nDirect PDF merge:\n- Bypasses .indd file creation\n- Optimized PDF generation\n- Custom PDF settings (compression, quality, marks)\n- Faster for PDF-only output\n\nIdeal when InDesign files aren't needed.",
+            "platform": "adobe_indesign",
+            "category": "data_merge",
+            "backend": "firefly",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "merge_id": {
+                        "type": "string"
+                    },
+                    "pdf_settings": {
+                        "type": "object",
+                        "properties": {
+                            "quality": {
+                                "type": "string",
+                                "enum": [
+                                    "high",
+                                    "medium",
+                                    "low"
+                                ]
+                            },
+                            "compression": {
+                                "type": "boolean",
+                                "default": true
+                            },
+                            "include_printer_marks": {
+                                "type": "boolean",
+                                "default": false
+                            }
+                        }
+                    },
+                    "output_path": {
+                        "type": "string"
+                    }
+                },
+                "required": [
+                    "merge_id",
+                    "output_path"
+                ]
+            },
+            "returns": {
+                "type": "object",
+                "properties": {
+                    "success": {
+                        "type": "boolean"
+                    },
+                    "pdf_path": {
+                        "type": "string"
+                    },
+                    "file_size": {
+                        "type": "number"
+                    },
+                    "pages": {
+                        "type": "integer"
+                    },
+                    "error": {
+                        "type": "string"
+                    }
+                }
+            },
+            "examples": [
+                {
+                    "description": "Generate high-quality print PDF",
+                    "parameters": {
+                        "merge_id": "merge_catalog_001",
+                        "pdf_settings": {
+                            "quality": "high",
+                            "compression": false,
+                            "include_printer_marks": true
+                        },
+                        "output_path": "catalog_print.pdf"
+                    },
+                    "expected_result": {
+                        "success": true,
+                        "pdf_path": "catalog_print.pdf",
+                        "pages": 250
+                    }
+                }
+            ],
+            "usage_guide": {
+                "when_to_use": [
+                    "PDF-only output needed",
+                    "Print production",
+                    "Digital distribution",
+                    "Client deliverables"
+                ],
+                "workflow": [
+                    "Step 1: Create merge",
+                    "Step 2: Preview",
+                    "Step 3: Call indesign_merge_to_pdf()",
+                    "Step 4: Retrieve PDF"
+                ],
+                "best_practices": [
+                    "Use 'high' quality for print",
+                    "Enable compression for digital",
+                    "Include printer marks for commercial printing"
+                ],
+                "error_handling": [
+                    "Error 'PDF generation failed' → Check template validity"
+                ],
+                "related_tools": [
+                    "indesign_execute_merge - Generate INDD files",
+                    "indesign_export_merged_documents - Export after generation"
+                ]
+            }
+        },
+        {
+            "name": "indesign_merge_with_images",
+            "description": "Execute data merge with image placeholder support.\n\nImage merge features:\n- Map image paths from data source\n- Auto-fit images to frames\n- Fallback images for missing files\n- Image quality settings\n- Batch image processing\n\nEssential for product catalogs with photos.",
+            "platform": "adobe_indesign",
+            "category": "data_merge",
+            "backend": "firefly",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "merge_id": {
+                        "type": "string"
+                    },
+                    "image_settings": {
+                        "type": "object",
+                        "properties": {
+                            "image_folder": {
+                                "type": "string"
+                            },
+                            "fallback_image": {
+                                "type": "string"
+                            },
+                            "fit_option": {
+                                "type": "string",
+                                "enum": [
+                                    "fill_proportionally",
+                                    "fit_content_proportionally",
+                                    "fit_frame_proportionally"
+                                ]
+                            },
+                            "validate_images": {
+                                "type": "boolean",
+                                "default": true
+                            }
+                        }
+                    }
+                },
+                "required": [
+                    "merge_id"
+                ]
+            },
+            "returns": {
+                "type": "object",
+                "properties": {
+                    "success": {
+                        "type": "boolean"
+                    },
+                    "images_placed": {
+                        "type": "integer"
+                    },
+                    "missing_images": {
+                        "type": "array"
+                    },
+                    "fallback_used": {
+                        "type": "integer"
+                    },
+                    "error": {
+                        "type": "string"
+                    }
+                }
+            },
+            "examples": [
+                {
+                    "description": "Merge product catalog with images",
+                    "parameters": {
+                        "merge_id": "merge_catalog_001",
+                        "image_settings": {
+                            "image_folder": "./product_images/",
+                            "fallback_image": "placeholder.jpg",
+                            "fit_option": "fill_proportionally"
+                        }
+                    },
+                    "expected_result": {
+                        "success": true,
+                        "images_placed": 485,
+                        "missing_images": [
+                            "product_123.jpg",
+                            "product_456.jpg"
+                        ],
+                        "fallback_used": 2
+                    }
+                }
+            ],
+            "usage_guide": {
+                "when_to_use": [
+                    "Product catalogs",
+                    "Real estate listings",
+                    "Employee directories",
+                    "Any merge with photos"
+                ],
+                "workflow": [
+                    "Step 1: Organize images in folder",
+                    "Step 2: Ensure CSV has image paths",
+                    "Step 3: Call indesign_merge_with_images()",
+                    "Step 4: Review missing_images"
+                ],
+                "best_practices": [
+                    "Use relative paths in data",
+                    "Provide fallback image",
+                    "Validate images beforehand",
+                    "Use consistent image dimensions"
+                ],
+                "error_handling": [
+                    "Warning 'Missing images' → Check image_folder path",
+                    "Error 'Fallback not found' → Verify fallback_image exists"
+                ],
+                "related_tools": [
+                    "indesign_execute_merge - Standard merge",
+                    "indesign_validate_data_source - Check image paths"
+                ]
+            }
+        },
+        {
+            "name": "indesign_conditional_merge",
+            "description": "Execute data merge with conditional logic and rules.\n\nConditional features:\n- Show/hide content based on data values\n- Apply different styles conditionally\n- Include/exclude records by criteria\n- Dynamic layout adjustments\n\nEnables sophisticated variable data workflows.",
+            "platform": "adobe_indesign",
+            "category": "data_merge",
+            "backend": "firefly",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "merge_id": {
+                        "type": "string"
+                    },
+                    "conditions": {
+                        "type": "array",
+                        "items": {
+                            "type": "object",
+                            "properties": {
+                                "field": {
+                                    "type": "string"
+                                },
+                                "operator": {
+                                    "type": "string",
+                                    "enum": [
+                                        "equals",
+                                        "not_equals",
+                                        "greater_than",
+                                        "less_than",
+                                        "contains"
+                                    ]
+                                },
+                                "value": {
+                                    "type": "string"
+                                },
+                                "action": {
+                                    "type": "string",
+                                    "enum": [
+                                        "show",
+                                        "hide",
+                                        "apply_style"
+                                    ]
+                                }
+                            }
+                        }
+                    }
+                },
+                "required": [
+                    "merge_id",
+                    "conditions"
+                ]
+            },
+            "returns": {
+                "type": "object",
+                "properties": {
+                    "success": {
+                        "type": "boolean"
+                    },
+                    "records_processed": {
+                        "type": "integer"
+                    },
+                    "records_filtered": {
+                        "type": "integer"
+                    },
+                    "conditions_applied": {
+                        "type": "integer"
+                    },
+                    "error": {
+                        "type": "string"
+                    }
+                }
+            },
+            "examples": [
+                {
+                    "description": "Show premium badge only for high-value products",
+                    "parameters": {
+                        "merge_id": "merge_catalog_001",
+                        "conditions": [
+                            {
+                                "field": "price",
+                                "operator": "greater_than",
+                                "value": "100",
+                                "action": "show"
+                            }
+                        ]
+                    },
+                    "expected_result": {
+                        "success": true,
+                        "records_processed": 500,
+                        "conditions_applied": 87
+                    }
+                }
+            ],
+            "usage_guide": {
+                "when_to_use": [
+                    "Dynamic content display",
+                    "Filtering records",
+                    "Conditional formatting",
+                    "Business rule enforcement"
+                ],
+                "workflow": [
+                    "Step 1: Define conditions",
+                    "Step 2: Call indesign_conditional_merge()",
+                    "Step 3: Review conditions_applied count"
+                ],
+                "best_practices": [
+                    "Test conditions with preview",
+                    "Use clear field names",
+                    "Document condition logic"
+                ],
+                "error_handling": [
+                    "Error 'Invalid operator' → Check operator value",
+                    "Warning 'No matches' → Review condition logic"
+                ],
+                "related_tools": [
+                    "indesign_execute_merge - Standard merge",
+                    "indesign_preview_merge - Test conditions"
+                ]
+            }
+        },
+        {
+            "name": "indesign_merge_qr_codes",
+            "description": "Generate QR codes dynamically during data merge.\n\nQR code generation:\n- Create QR codes from data fields\n- Embed URLs, text, contact info\n- Customize size and error correction\n- Place in designated frames\n\nIdeal for product tracking, marketing campaigns, event tickets.",
+            "platform": "adobe_indesign",
+            "category": "data_merge",
+            "backend": "firefly",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "merge_id": {
+                        "type": "string"
+                    },
+                    "qr_field": {
+                        "type": "string"
+                    },
+                    "qr_options": {
+                        "type": "object",
+                        "properties": {
+                            "size": {
+                                "type": "string",
+                                "default": "1in"
+                            },
+                            "error_correction": {
+                                "type": "string",
+                                "enum": [
+                                    "L",
+                                    "M",
+                                    "Q",
+                                    "H"
+                                ],
+                                "default": "M"
+                            }
+                        }
+                    }
+                },
+                "required": [
+                    "merge_id",
+                    "qr_field"
+                ]
+            },
+            "returns": {
+                "type": "object",
+                "properties": {
+                    "success": {
+                        "type": "boolean"
+                    },
+                    "qr_codes_generated": {
+                        "type": "integer"
+                    },
+                    "error": {
+                        "type": "string"
+                    }
+                }
+            },
+            "examples": [
+                {
+                    "description": "Generate QR codes for product URLs",
+                    "parameters": {
+                        "merge_id": "merge_catalog_001",
+                        "qr_field": "product_url",
+                        "qr_options": {
+                            "size": "0.75in",
+                            "error_correction": "H"
+                        }
+                    },
+                    "expected_result": {
+                        "success": true,
+                        "qr_codes_generated": 500
+                    }
+                }
+            ],
+            "usage_guide": {
+                "when_to_use": [
+                    "Product catalogs with links",
+                    "Event tickets",
+                    "Marketing materials",
+                    "Tracking codes"
+                ],
+                "workflow": [
+                    "Step 1: Add QR placeholder to template",
+                    "Step 2: Ensure data has URL/text field",
+                    "Step 3: Call indesign_merge_qr_codes()"
+                ],
+                "best_practices": [
+                    "Use high error correction for print",
+                    "Test QR code scanning",
+                    "Ensure adequate size"
+                ],
+                "error_handling": [
+                    "Error 'QR field empty' → Check data has values"
+                ],
+                "related_tools": [
+                    "indesign_merge_barcodes - Generate barcodes",
+                    "indesign_execute_merge - Standard merge"
+                ]
+            }
+        },
+        {
+            "name": "indesign_merge_barcodes",
+            "description": "Generate barcodes dynamically during data merge.\n\nBarcode generation:\n- Support for UPC, EAN, Code 39, Code 128\n- Generate from SKU or product ID fields\n- Customize barcode dimensions\n- Include human-readable text\n\nEssential for retail product catalogs and inventory.",
+            "platform": "adobe_indesign",
+            "category": "data_merge",
+            "backend": "firefly",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "merge_id": {
+                        "type": "string"
+                    },
+                    "barcode_field": {
+                        "type": "string"
+                    },
+                    "barcode_type": {
+                        "type": "string",
+                        "enum": [
+                            "UPC-A",
+                            "EAN-13",
+                            "Code39",
+                            "Code128"
+                        ]
+                    },
+                    "options": {
+                        "type": "object",
+                        "properties": {
+                            "show_text": {
+                                "type": "boolean",
+                                "default": true
+                            },
+                            "height": {
+                                "type": "string",
+                                "default": "0.5in"
+                            }
+                        }
+                    }
+                },
+                "required": [
+                    "merge_id",
+                    "barcode_field",
+                    "barcode_type"
+                ]
+            },
+            "returns": {
+                "type": "object",
+                "properties": {
+                    "success": {
+                        "type": "boolean"
+                    },
+                    "barcodes_generated": {
+                        "type": "integer"
+                    },
+                    "invalid_codes": {
+                        "type": "array"
+                    },
+                    "error": {
+                        "type": "string"
+                    }
+                }
+            },
+            "examples": [
+                {
+                    "description": "Generate UPC barcodes for products",
+                    "parameters": {
+                        "merge_id": "merge_catalog_001",
+                        "barcode_field": "upc",
+                        "barcode_type": "UPC-A"
+                    },
+                    "expected_result": {
+                        "success": true,
+                        "barcodes_generated": 500
+                    }
+                }
+            ],
+            "usage_guide": {
+                "when_to_use": [
+                    "Retail product catalogs",
+                    "Inventory sheets",
+                    "Price tags",
+                    "Packaging design"
+                ],
+                "workflow": [
+                    "Step 1: Add barcode placeholder to template",
+                    "Step 2: Ensure data has valid codes",
+                    "Step 3: Call indesign_merge_barcodes()"
+                ],
+                "best_practices": [
+                    "Validate barcode formats",
+                    "Use appropriate type for industry",
+                    "Test barcode scanning"
+                ],
+                "error_handling": [
+                    "Error 'Invalid barcode' → Check barcode_field format",
+                    "Warning 'Invalid codes' → Review invalid_codes array"
+                ],
+                "related_tools": [
+                    "indesign_merge_qr_codes - Generate QR codes",
+                    "indesign_execute_merge - Standard merge"
+                ]
+            }
+        },
+        {
+            "name": "indesign_export_merged_documents",
+            "description": "Export merged documents in batch with custom naming patterns.\n\nBatch export:\n- Multiple output formats (PDF, PNG, EPUB)\n- Custom file naming from data fields\n- Organize by folders\n- Parallel export processing\n\nStreamlines post-merge export workflow.",
+            "platform": "adobe_indesign",
+            "category": "data_merge",
+            "backend": "firefly",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "merge_id": {
+                        "type": "string"
+                    },
+                    "export_format": {
+                        "type": "string",
+                        "enum": [
+                            "pdf",
+                            "png",
+                            "epub",
+                            "all"
+                        ]
+                    },
+                    "naming_pattern": {
+                        "type": "string"
+                    },
+                    "output_folder": {
+                        "type": "string"
+                    }
+                },
+                "required": [
+                    "merge_id",
+                    "export_format"
+                ]
+            },
+            "returns": {
+                "type": "object",
+                "properties": {
+                    "success": {
+                        "type": "boolean"
+                    },
+                    "files_exported": {
+                        "type": "integer"
+                    },
+                    "export_paths": {
+                        "type": "array"
+                    },
+                    "error": {
+                        "type": "string"
+                    }
+                }
+            },
+            "examples": [
+                {
+                    "description": "Export individual PDFs with product names",
+                    "parameters": {
+                        "merge_id": "merge_catalog_001",
+                        "export_format": "pdf",
+                        "naming_pattern": "{product_name}_{sku}.pdf",
+                        "output_folder": "./exports/products/"
+                    },
+                    "expected_result": {
+                        "success": true,
+                        "files_exported": 500
+                    }
+                }
+            ],
+            "usage_guide": {
+                "when_to_use": [
+                    "Exporting merged documents",
+                    "Custom file naming",
+                    "Multi-format output",
+                    "Organized file structure"
+                ],
+                "workflow": [
+                    "Step 1: Execute merge",
+                    "Step 2: Call indesign_export_merged_documents()",
+                    "Step 3: Retrieve files from output_folder"
+                ],
+                "best_practices": [
+                    "Use data fields in naming_pattern",
+                    "Create output_folder beforehand",
+                    "Export to PDF for print",
+                    "Use PNG for web"
+                ],
+                "error_handling": [
+                    "Error 'Folder not found' → Create output_folder",
+                    "Error 'Invalid pattern' → Check naming_pattern syntax"
+                ],
+                "related_tools": [
+                    "indesign_execute_merge - Generate documents first",
+                    "indesign_merge_to_pdf - Direct PDF export"
+                ]
+            }
+        },
+        {
+            "name": "indesign_merge_status",
+            "description": "Check status of running or completed data merge job.\n\nStatus information:\n- Job progress percentage\n- Records processed count\n- Estimated time remaining\n- Error count and details\n- Output file locations\n\nEssential for monitoring long-running merges.",
+            "platform": "adobe_indesign",
+            "category": "data_merge",
+            "backend": "firefly",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "job_id": {
+                        "type": "string"
+                    }
+                },
+                "required": [
+                    "job_id"
+                ]
+            },
+            "returns": {
+                "type": "object",
+                "properties": {
+                    "success": {
+                        "type": "boolean"
+                    },
+                    "status": {
+                        "type": "string",
+                        "enum": [
+                            "queued",
+                            "running",
+                            "completed",
+                            "failed",
+                            "cancelled"
+                        ]
+                    },
+                    "progress_percent": {
+                        "type": "number"
+                    },
+                    "records_processed": {
+                        "type": "integer"
+                    },
+                    "total_records": {
+                        "type": "integer"
+                    },
+                    "estimated_remaining": {
+                        "type": "number"
+                    },
+                    "errors": {
+                        "type": "array"
+                    },
+                    "output_files": {
+                        "type": "array"
+                    },
+                    "error": {
+                        "type": "string"
+                    }
+                }
+            },
+            "examples": [
+                {
+                    "description": "Check merge progress",
+                    "parameters": {
+                        "job_id": "job_abc123"
+                    },
+                    "expected_result": {
+                        "success": true,
+                        "status": "running",
+                        "progress_percent": 65.4,
+                        "records_processed": 327,
+                        "total_records": 500,
+                        "estimated_remaining": 29.8
+                    }
+                }
+            ],
+            "usage_guide": {
+                "when_to_use": [
+                    "Monitoring long merges",
+                    "Checking job completion",
+                    "Troubleshooting failures",
+                    "Retrieving output files"
+                ],
+                "workflow": [
+                    "Step 1: Execute merge (get job_id)",
+                    "Step 2: Poll indesign_merge_status()",
+                    "Step 3: Wait for status='completed'",
+                    "Step 4: Retrieve output_files"
+                ],
+                "best_practices": [
+                    "Poll every 5-10 seconds",
+                    "Check errors array for issues",
+                    "Store output_files for download"
+                ],
+                "error_handling": [
+                    "Status 'failed' → Review errors array",
+                    "Error 'Job not found' → Check job_id"
+                ],
+                "related_tools": [
+                    "indesign_execute_merge - Start job (returns job_id)",
+                    "indesign_cancel_merge - Cancel job"
+                ]
+            }
+        },
+        {
+            "name": "indesign_cancel_merge",
+            "description": "Cancel running data merge job.\n\nCancellation:\n- Stops job immediately\n- Preserves partially completed work\n- Returns records processed count\n- Frees server resources\n\nUse when merge needs to be stopped.",
+            "platform": "adobe_indesign",
+            "category": "data_merge",
+            "backend": "firefly",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "job_id": {
+                        "type": "string"
+                    }
+                },
+                "required": [
+                    "job_id"
+                ]
+            },
+            "returns": {
+                "type": "object",
+                "properties": {
+                    "success": {
+                        "type": "boolean"
+                    },
+                    "job_cancelled": {
+                        "type": "boolean"
+                    },
+                    "records_completed": {
+                        "type": "integer"
+                    },
+                    "partial_output": {
+                        "type": "array"
+                    },
+                    "error": {
+                        "type": "string"
+                    }
+                }
+            },
+            "examples": [
+                {
+                    "description": "Cancel running merge",
+                    "parameters": {
+                        "job_id": "job_abc123"
+                    },
+                    "expected_result": {
+                        "success": true,
+                        "job_cancelled": true,
+                        "records_completed": 327
+                    }
+                }
+            ],
+            "usage_guide": {
+                "when_to_use": [
+                    "Stopping incorrect merge",
+                    "Server resource management",
+                    "Testing with partial runs"
+                ],
+                "workflow": [
+                    "Step 1: Get job_id from merge",
+                    "Step 2: Call indesign_cancel_merge()",
+                    "Step 3: Check partial_output if needed"
+                ],
+                "best_practices": [
+                    "Cancel early if error detected",
+                    "Review partial_output"
+                ],
+                "error_handling": [
+                    "Error 'Job already completed' → Too late to cancel",
+                    "Error 'Job not found' → Check job_id"
+                ],
+                "related_tools": [
+                    "indesign_merge_status - Check if cancellation needed",
+                    "indesign_resume_failed_merge - Resume after cancel"
+                ]
+            }
+        },
+        {
+            "name": "indesign_merge_error_log",
+            "description": "Retrieve detailed error log for merge job.\n\nError log contains:\n- Record-level errors\n- Field-level issues\n- Image errors\n- Template problems\n- Stack traces\n\nCritical for debugging merge failures.",
+            "platform": "adobe_indesign",
+            "category": "data_merge",
+            "backend": "firefly",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "job_id": {
+                        "type": "string"
+                    }
+                },
+                "required": [
+                    "job_id"
+                ]
+            },
+            "returns": {
+                "type": "object",
+                "properties": {
+                    "success": {
+                        "type": "boolean"
+                    },
+                    "total_errors": {
+                        "type": "integer"
+                    },
+                    "errors": {
+                        "type": "array",
+                        "items": {
+                            "type": "object",
+                            "properties": {
+                                "record_index": {
+                                    "type": "integer"
+                                },
+                                "error_type": {
+                                    "type": "string"
+                                },
+                                "message": {
+                                    "type": "string"
+                                },
+                                "field": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    },
+                    "error": {
+                        "type": "string"
+                    }
+                }
+            },
+            "examples": [
+                {
+                    "description": "Get error log",
+                    "parameters": {
+                        "job_id": "job_abc123"
+                    },
+                    "expected_result": {
+                        "success": true,
+                        "total_errors": 3,
+                        "errors": [
+                            {
+                                "record_index": 42,
+                                "error_type": "missing_image",
+                                "message": "Image not found: product_42.jpg"
+                            },
+                            {
+                                "record_index": 127,
+                                "error_type": "invalid_data",
+                                "field": "price",
+                                "message": "Invalid number format"
+                            }
+                        ]
+                    }
+                }
+            ],
+            "usage_guide": {
+                "when_to_use": [
+                    "Debugging merge failures",
+                    "Identifying problematic records",
+                    "Data quality issues"
+                ],
+                "workflow": [
+                    "Step 1: Execute merge",
+                    "Step 2: Check status for errors",
+                    "Step 3: Call indesign_merge_error_log()",
+                    "Step 4: Fix issues",
+                    "Step 5: Retry"
+                ],
+                "best_practices": [
+                    "Review all errors",
+                    "Fix data source issues",
+                    "Use indesign_validate_data_source beforehand"
+                ],
+                "error_handling": [
+                    "Error 'No errors found' → Merge succeeded"
+                ],
+                "related_tools": [
+                    "indesign_merge_status - Check for errors",
+                    "indesign_resume_failed_merge - Retry failed records"
+                ]
+            }
+        },
+        {
+            "name": "indesign_resume_failed_merge",
+            "description": "Resume merge job from last successful record after failure.\n\nResume features:\n- Continue from failure point\n- Skip already processed records\n- Preserve completed output\n- Retry failed records\n\nAvoids re-processing successful records.",
+            "platform": "adobe_indesign",
+            "category": "data_merge",
+            "backend": "firefly",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "job_id": {
+                        "type": "string"
+                    },
+                    "retry_failed": {
+                        "type": "boolean",
+                        "default": true
+                    }
+                },
+                "required": [
+                    "job_id"
+                ]
+            },
+            "returns": {
+                "type": "object",
+                "properties": {
+                    "success": {
+                        "type": "boolean"
+                    },
+                    "new_job_id": {
+                        "type": "string"
+                    },
+                    "resume_from_record": {
+                        "type": "integer"
+                    },
+                    "records_remaining": {
+                        "type": "integer"
+                    },
+                    "error": {
+                        "type": "string"
+                    }
+                }
+            },
+            "examples": [
+                {
+                    "description": "Resume after fixing data issues",
+                    "parameters": {
+                        "job_id": "job_abc123",
+                        "retry_failed": true
+                    },
+                    "expected_result": {
+                        "success": true,
+                        "new_job_id": "job_def456",
+                        "resume_from_record": 327,
+                        "records_remaining": 173
+                    }
+                }
+            ],
+            "usage_guide": {
+                "when_to_use": [
+                    "After fixing data issues",
+                    "Recovering from failures",
+                    "Continuing cancelled jobs"
+                ],
+                "workflow": [
+                    "Step 1: Review errors with indesign_merge_error_log()",
+                    "Step 2: Fix issues",
+                    "Step 3: Call indesign_resume_failed_merge()",
+                    "Step 4: Monitor new_job_id"
+                ],
+                "best_practices": [
+                    "Fix errors before resuming",
+                    "Use retry_failed for transient errors",
+                    "Monitor new_job_id"
+                ],
+                "error_handling": [
+                    "Error 'Job completed' → No resume needed",
+                    "Error 'Cannot resume' → Start new merge"
+                ],
+                "related_tools": [
+                    "indesign_merge_error_log - Review errors first",
+                    "indesign_merge_status - Monitor resumed job"
+                ]
+            }
+        },
+        {
+            "name": "indesign_merge_dry_run",
+            "description": "Execute data merge in test mode without generating files.\n\nDry run validates:\n- Data source integrity\n- Field mapping correctness\n- Template compatibility\n- Resource availability\n- Estimated execution time\n\nRun before production merge to catch issues.",
+            "platform": "adobe_indesign",
+            "category": "data_merge",
+            "backend": "firefly",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "merge_id": {
+                        "type": "string"
+                    }
+                },
+                "required": [
+                    "merge_id"
+                ]
+            },
+            "returns": {
+                "type": "object",
+                "properties": {
+                    "success": {
+                        "type": "boolean"
+                    },
+                    "validation_passed": {
+                        "type": "boolean"
+                    },
+                    "warnings": {
+                        "type": "array"
+                    },
+                    "errors": {
+                        "type": "array"
+                    },
+                    "estimated_time": {
+                        "type": "number"
+                    },
+                    "records_to_process": {
+                        "type": "integer"
+                    },
+                    "error": {
+                        "type": "string"
+                    }
+                }
+            },
+            "examples": [
+                {
+                    "description": "Test merge before production",
+                    "parameters": {
+                        "merge_id": "merge_catalog_001"
+                    },
+                    "expected_result": {
+                        "success": true,
+                        "validation_passed": true,
+                        "warnings": [
+                            "3 images missing - fallback will be used"
+                        ],
+                        "estimated_time": 87.5,
+                        "records_to_process": 500
+                    }
+                }
+            ],
+            "usage_guide": {
+                "when_to_use": [
+                    "Before large production merges",
+                    "Testing new templates",
+                    "Validating data sources",
+                    "Estimating execution time"
+                ],
+                "workflow": [
+                    "Step 1: Create merge",
+                    "Step 2: Call indesign_merge_dry_run()",
+                    "Step 3: Review warnings/errors",
+                    "Step 4: Fix issues",
+                    "Step 5: Execute real merge"
+                ],
+                "best_practices": [
+                    "Always dry run large merges",
+                    "Fix all errors before production",
+                    "Review warnings",
+                    "Check estimated_time"
+                ],
+                "error_handling": [
+                    "validation_passed=false → Fix errors before executing",
+                    "Warnings → Decide if acceptable"
+                ],
+                "related_tools": [
+                    "indesign_validate_data_source - Validate data",
+                    "indesign_execute_merge - Run production merge"
+                ]
+            }
+        },
+        {
+            "name": "indesign_schedule_merge",
+            "description": "Schedule data merge job for future execution.\n\nScheduling features:\n- Queue merge for specific time\n- Recurring merges (daily, weekly)\n- Timezone support\n- Automatic retry on failure\n\nIdeal for automated batch processing.",
+            "platform": "adobe_indesign",
+            "category": "data_merge",
+            "backend": "firefly",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "merge_id": {
+                        "type": "string"
+                    },
+                    "execution_time": {
+                        "type": "string"
+                    },
+                    "recurring": {
+                        "type": "object",
+                        "properties": {
+                            "frequency": {
+                                "type": "string",
+                                "enum": [
+                                    "daily",
+                                    "weekly",
+                                    "monthly"
+                                ]
+                            },
+                            "time": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                },
+                "required": [
+                    "merge_id",
+                    "execution_time"
+                ]
+            },
+            "returns": {
+                "type": "object",
+                "properties": {
+                    "success": {
+                        "type": "boolean"
+                    },
+                    "scheduled_job_id": {
+                        "type": "string"
+                    },
+                    "execution_time": {
+                        "type": "string"
+                    },
+                    "error": {
+                        "type": "string"
+                    }
+                }
+            },
+            "examples": [
+                {
+                    "description": "Schedule catalog generation for midnight",
+                    "parameters": {
+                        "merge_id": "merge_catalog_001",
+                        "execution_time": "2025-12-01T00:00:00Z"
+                    },
+                    "expected_result": {
+                        "success": true,
+                        "scheduled_job_id": "sched_xyz123",
+                        "execution_time": "2025-12-01T00:00:00Z"
+                    }
+                }
+            ],
+            "usage_guide": {
+                "when_to_use": [
+                    "Automated batch processing",
+                    "Off-hours execution",
+                    "Recurring reports",
+                    "Scheduled deliveries"
+                ],
+                "workflow": [
+                    "Step 1: Create merge",
+                    "Step 2: Call indesign_schedule_merge()",
+                    "Step 3: Monitor scheduled_job_id at execution time"
+                ],
+                "best_practices": [
+                    "Schedule for off-peak hours",
+                    "Set up email notifications",
+                    "Test before scheduling"
+                ],
+                "error_handling": [
+                    "Error 'Invalid time' → Check execution_time format",
+                    "Error 'Past time' → Use future time"
+                ],
+                "related_tools": [
+                    "indesign_merge_status - Monitor scheduled job",
+                    "indesign_cancel_merge - Cancel scheduled job"
+                ]
+            }
+        }
+    ]
+}

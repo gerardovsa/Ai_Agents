@@ -1,0 +1,695 @@
+{
+  "platform": "supabase",
+  "description": "Supabase database, authentication, storage, and realtime tools - Complete backend-as-a-service coverage",
+  "tools": [
+    {
+      "name": "supabase_query",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Read X from **[Resource Name]** (ID: `[id]` | URL: [url])'\n(3) Use EXACT [id] provided - NEVER substitute with different ID\n(4) If tool fails (404/403), say 'Failed to read [resource] ID: [id]' and explain error\n(5) NEVER make up data if read fails - acknowledge the failure clearly\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nQuery data from a Supabase table with optional filters, sorting, and joins",
+      "platform": "supabase",
+      "parameters": {
+        "table": {
+          "type": "string",
+          "description": "Name of the table to query"
+        },
+        "select": {
+          "type": "string",
+          "description": "Columns to select (e.g., '*' or 'id,name,email' or 'id,posts(*)' for joins)",
+          "required": false,
+          "default": "*"
+        },
+        "filters": {
+          "type": "object",
+          "description": "Filter conditions as key-value pairs (e.g., {'status': 'active'})",
+          "required": false
+        },
+        "limit": {
+          "type": "integer",
+          "description": "Maximum number of rows to return",
+          "required": false
+        },
+        "offset": {
+          "type": "integer",
+          "description": "Number of rows to skip",
+          "required": false
+        },
+        "order_by": {
+          "type": "string",
+          "description": "Column to order by with direction (e.g., 'created_at.desc', 'name.asc')",
+          "required": false
+        },
+        "range_start": {
+          "type": "integer",
+          "description": "Start index for range query",
+          "required": false
+        },
+        "range_end": {
+          "type": "integer",
+          "description": "End index for range query",
+          "required": false
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "Query results with data array, count, and metadata"
+      },
+      "examples": [
+        {
+          "description": "Get all active users with pagination",
+          "parameters": {
+            "table": "users",
+            "select": "*",
+            "filters": {
+              "status": "active"
+            },
+            "limit": 100,
+            "order_by": "created_at.desc"
+          }
+        },
+        {
+          "description": "Get users with their posts (join)",
+          "parameters": {
+            "table": "users",
+            "select": "id, name, posts(*)",
+            "limit": 10
+          }
+        }
+      ]
+    },
+    {
+      "name": "supabase_insert",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) ALWAYS execute THIS tool NOW - NEVER reference 'I created earlier' or use conversation history\n(2) MUST return format: **[Name]** | ID: `[id]` | URL: [full_url] | Link: [title](url)\n(3) Use EXACT values from tool response - NEVER make up fake URLs/IDs\n(4) If tool fails, say 'Failed to create' - NEVER pretend it succeeded\n\nExample response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\nExample response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\nInsert new data into a Supabase table (single or bulk)",
+      "platform": "supabase",
+      "parameters": {
+        "table": {
+          "type": "string",
+          "description": "Name of the table to insert into"
+        },
+        "data": {
+          "type": "object",
+          "description": "Data to insert as object or array of objects for bulk insert"
+        },
+        "returning": {
+          "type": "string",
+          "description": "Columns to return (default: 'representation')",
+          "required": false,
+          "default": "representation"
+        },
+        "upsert": {
+          "type": "boolean",
+          "description": "Enable upsert mode (insert or update on conflict)",
+          "required": false,
+          "default": false
+        },
+        "on_conflict": {
+          "type": "string",
+          "description": "Column(s) for conflict resolution in upsert",
+          "required": false
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "Inserted row(s) with generated IDs and timestamps"
+      },
+      "examples": [
+        {
+          "description": "Create new user",
+          "parameters": {
+            "table": "users",
+            "data": {
+              "name": "John Doe",
+              "email": "john@example.com",
+              "status": "active"
+            }
+          }
+        },
+        {
+          "description": "Bulk insert multiple records",
+          "parameters": {
+            "table": "products",
+            "data": [
+              {
+                "name": "Product 1",
+                "price": 19.99
+              },
+              {
+                "name": "Product 2",
+                "price": 29.99
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "supabase_update",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER reference previous edits from conversation history\n(2) MUST cite what was updated: 'Updated **[Resource Name]** (ID: `[id]`)'\n(3) Use EXACT [id] provided - NEVER make up IDs\n(4) If tool fails, say 'Failed to update' and explain why\n(5) Show before/after if applicable\n\nExample response:\nUpdated: **Document Title**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Changed: [what was changed]\n\nExample response:\nUpdated: **Document Title**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Changed: [what was changed]\n\nUpdate existing records in a Supabase table",
+      "platform": "supabase",
+      "parameters": {
+        "table": {
+          "type": "string",
+          "description": "Name of the table to update"
+        },
+        "data": {
+          "type": "object",
+          "description": "Data to update as key-value pairs"
+        },
+        "filters": {
+          "type": "object",
+          "description": "Filter conditions to match records (e.g., {'id': 123})"
+        },
+        "returning": {
+          "type": "string",
+          "description": "What to return after update",
+          "required": false,
+          "default": "representation"
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "Updated row(s)"
+      },
+      "examples": [
+        {
+          "description": "Update user status",
+          "parameters": {
+            "table": "users",
+            "data": {
+              "status": "inactive",
+              "updated_at": "now()"
+            },
+            "filters": {
+              "id": 123
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "supabase_delete",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER pretend to delete from memory\n(2) MUST cite what was deleted: 'Deleted **[Resource Name]** (ID: `[id]`)'\n(3) CONFIRM deletion happened - don't assume success\n(4) If tool fails, say 'Failed to delete' and explain why\n\nExample response:\n✅ Deleted: **Old File**\n- ID: `abc123`\n- URL: https://example.com/file/abc123 (no longer accessible)\n\nExample response:\n✅ Deleted: **Old File**\n- ID: `abc123`\n- URL: https://example.com/file/abc123 (no longer accessible)\n\nDelete records from a Supabase table",
+      "platform": "supabase",
+      "parameters": {
+        "table": {
+          "type": "string",
+          "description": "Name of the table to delete from"
+        },
+        "filters": {
+          "type": "object",
+          "description": "Filter conditions to match records to delete"
+        },
+        "returning": {
+          "type": "string",
+          "description": "What to return after delete",
+          "required": false,
+          "default": "representation"
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "Deleted row(s)"
+      },
+      "examples": [
+        {
+          "description": "Delete user by ID",
+          "parameters": {
+            "table": "users",
+            "filters": {
+              "id": 123
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "supabase_rpc",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Read X from **[Resource Name]** (ID: `[id]` | URL: [url])'\n(3) Use EXACT [id] provided - NEVER substitute with different ID\n(4) If tool fails (404/403), say 'Failed to read [resource] ID: [id]' and explain error\n(5) NEVER make up data if read fails - acknowledge the failure clearly\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nCall a PostgreSQL stored procedure or function",
+      "platform": "supabase",
+      "parameters": {
+        "function_name": {
+          "type": "string",
+          "description": "Name of the stored procedure/function"
+        },
+        "params": {
+          "type": "object",
+          "description": "Function parameters as key-value pairs",
+          "required": false
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "Function result"
+      },
+      "examples": [
+        {
+          "description": "Call custom analytics function",
+          "parameters": {
+            "function_name": "get_user_analytics",
+            "params": {
+              "user_id": 123,
+              "period": "30d"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "supabase_count",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Read X from **[Resource Name]** (ID: `[id]` | URL: [url])'\n(3) Use EXACT [id] provided - NEVER substitute with different ID\n(4) If tool fails (404/403), say 'Failed to read [resource] ID: [id]' and explain error\n(5) NEVER make up data if read fails - acknowledge the failure clearly\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nCount rows in a table with optional filters",
+      "platform": "supabase",
+      "parameters": {
+        "table": {
+          "type": "string",
+          "description": "Name of the table"
+        },
+        "filters": {
+          "type": "object",
+          "description": "Filter conditions",
+          "required": false
+        },
+        "count": {
+          "type": "string",
+          "description": "Count method: exact, planned, or estimated",
+          "required": false,
+          "default": "exact"
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "Count result"
+      }
+    },
+    {
+      "name": "supabase_auth_signup",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Read X from **[Resource Name]** (ID: `[id]` | URL: [url])'\n(3) Use EXACT [id] provided - NEVER substitute with different ID\n(4) If tool fails (404/403), say 'Failed to read [resource] ID: [id]' and explain error\n(5) NEVER make up data if read fails - acknowledge the failure clearly\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nCreate a new user account with email and password",
+      "platform": "supabase",
+      "parameters": {
+        "email": {
+          "type": "string",
+          "description": "User email address"
+        },
+        "password": {
+          "type": "string",
+          "description": "User password (minimum 6 characters)"
+        },
+        "options": {
+          "type": "object",
+          "description": "Additional options (data, redirect_to, etc.)",
+          "required": false
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "User data and session"
+      }
+    },
+    {
+      "name": "supabase_auth_signin",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Read X from **[Resource Name]** (ID: `[id]` | URL: [url])'\n(3) Use EXACT [id] provided - NEVER substitute with different ID\n(4) If tool fails (404/403), say 'Failed to read [resource] ID: [id]' and explain error\n(5) NEVER make up data if read fails - acknowledge the failure clearly\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nSign in an existing user with email and password",
+      "platform": "supabase",
+      "parameters": {
+        "email": {
+          "type": "string",
+          "description": "User email address"
+        },
+        "password": {
+          "type": "string",
+          "description": "User password"
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "Authentication result with user and session data"
+      }
+    },
+    {
+      "name": "supabase_auth_signout",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Read X from **[Resource Name]** (ID: `[id]` | URL: [url])'\n(3) Use EXACT [id] provided - NEVER substitute with different ID\n(4) If tool fails (404/403), say 'Failed to read [resource] ID: [id]' and explain error\n(5) NEVER make up data if read fails - acknowledge the failure clearly\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nSign out the current user",
+      "platform": "supabase",
+      "parameters": {
+        "scope": {
+          "type": "string",
+          "description": "Sign out scope: global, local, or others",
+          "required": false,
+          "default": "global"
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "Sign out confirmation"
+      }
+    },
+    {
+      "name": "supabase_auth_get_user",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Read X from **[Resource Name]** (ID: `[id]` | URL: [url])'\n(3) Use EXACT [id] provided - NEVER substitute with different ID\n(4) If tool fails (404/403), say 'Failed to read [resource] ID: [id]' and explain error\n(5) NEVER make up data if read fails - acknowledge the failure clearly\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nGet the current authenticated user",
+      "platform": "supabase",
+      "parameters": {},
+      "returns": {
+        "type": "object",
+        "description": "Current user data"
+      }
+    },
+    {
+      "name": "supabase_auth_update_user",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER reference previous edits from conversation history\n(2) MUST cite what was updated: 'Updated **[Resource Name]** (ID: `[id]`)'\n(3) Use EXACT [id] provided - NEVER make up IDs\n(4) If tool fails, say 'Failed to update' and explain why\n(5) Show before/after if applicable\n\nExample response:\nUpdated: **Document Title**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Changed: [what was changed]\n\nExample response:\nUpdated: **Document Title**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Changed: [what was changed]\n\nUpdate user metadata or password",
+      "platform": "supabase",
+      "parameters": {
+        "updates": {
+          "type": "object",
+          "description": "Updates to apply (email, password, data, etc.)"
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "Updated user data"
+      }
+    },
+    {
+      "name": "supabase_auth_reset_password",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER reference previous edits from conversation history\n(2) MUST cite what was updated: 'Updated **[Resource Name]** (ID: `[id]`)'\n(3) Use EXACT [id] provided - NEVER make up IDs\n(4) If tool fails, say 'Failed to update' and explain why\n(5) Show before/after if applicable\n\nExample response:\nUpdated: **Document Title**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Changed: [what was changed]\n\nExample response:\nUpdated: **Document Title**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Changed: [what was changed]\n\nSend password reset email",
+      "platform": "supabase",
+      "parameters": {
+        "email": {
+          "type": "string",
+          "description": "User email address"
+        },
+        "redirect_to": {
+          "type": "string",
+          "description": "URL to redirect to after reset",
+          "required": false
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "Reset confirmation"
+      }
+    },
+    {
+      "name": "supabase_auth_invite_user",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Read X from **[Resource Name]** (ID: `[id]` | URL: [url])'\n(3) Use EXACT [id] provided - NEVER substitute with different ID\n(4) If tool fails (404/403), say 'Failed to read [resource] ID: [id]' and explain error\n(5) NEVER make up data if read fails - acknowledge the failure clearly\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nInvite a user via email (admin only)",
+      "platform": "supabase",
+      "parameters": {
+        "email": {
+          "type": "string",
+          "description": "Email address to invite"
+        },
+        "options": {
+          "type": "object",
+          "description": "Additional options (data, redirect_to)",
+          "required": false
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "Invite confirmation"
+      }
+    },
+    {
+      "name": "supabase_storage_upload",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) ALWAYS execute THIS tool NOW - NEVER reference 'I created earlier' or use conversation history\n(2) MUST return format: **[Name]** | ID: `[id]` | URL: [full_url] | Link: [title](url)\n(3) Use EXACT values from tool response - NEVER make up fake URLs/IDs\n(4) If tool fails, say 'Failed to create' - NEVER pretend it succeeded\n\nExample response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\nExample response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\nUpload a file to Supabase Storage",
+      "platform": "supabase",
+      "parameters": {
+        "bucket": {
+          "type": "string",
+          "description": "Name of the storage bucket"
+        },
+        "file_path": {
+          "type": "string",
+          "description": "Path within the bucket (e.g., 'avatars/user123.jpg')"
+        },
+        "file_content": {
+          "type": "string",
+          "description": "File content as bytes, base64 string, or local file path"
+        },
+        "content_type": {
+          "type": "string",
+          "description": "MIME type of the file",
+          "required": false
+        },
+        "upsert": {
+          "type": "boolean",
+          "description": "Overwrite if file exists",
+          "required": false,
+          "default": false
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "Upload result with path and public URL"
+      }
+    },
+    {
+      "name": "supabase_storage_download",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Read X from **[Resource Name]** (ID: `[id]` | URL: [url])'\n(3) Use EXACT [id] provided - NEVER substitute with different ID\n(4) If tool fails (404/403), say 'Failed to read [resource] ID: [id]' and explain error\n(5) NEVER make up data if read fails - acknowledge the failure clearly\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nDownload a file from Supabase Storage",
+      "platform": "supabase",
+      "parameters": {
+        "bucket": {
+          "type": "string",
+          "description": "Name of the storage bucket"
+        },
+        "file_path": {
+          "type": "string",
+          "description": "Path to the file in the bucket"
+        },
+        "download_to": {
+          "type": "string",
+          "description": "Local path to save the file",
+          "required": false
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "File content or download confirmation"
+      }
+    },
+    {
+      "name": "supabase_storage_delete",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER pretend to delete from memory\n(2) MUST cite what was deleted: 'Deleted **[Resource Name]** (ID: `[id]`)'\n(3) CONFIRM deletion happened - don't assume success\n(4) If tool fails, say 'Failed to delete' and explain why\n\nExample response:\n✅ Deleted: **Old File**\n- ID: `abc123`\n- URL: https://example.com/file/abc123 (no longer accessible)\n\nExample response:\n✅ Deleted: **Old File**\n- ID: `abc123`\n- URL: https://example.com/file/abc123 (no longer accessible)\n\nDelete a file from Supabase Storage",
+      "platform": "supabase",
+      "parameters": {
+        "bucket": {
+          "type": "string",
+          "description": "Name of the storage bucket"
+        },
+        "file_paths": {
+          "type": "array",
+          "description": "Array of file paths to delete"
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "Deletion confirmation"
+      }
+    },
+    {
+      "name": "supabase_storage_list",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Read X from **[Resource Name]** (ID: `[id]` | URL: [url])'\n(3) Use EXACT [id] provided - NEVER substitute with different ID\n(4) If tool fails (404/403), say 'Failed to read [resource] ID: [id]' and explain error\n(5) NEVER make up data if read fails - acknowledge the failure clearly\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nList files in a storage bucket",
+      "platform": "supabase",
+      "parameters": {
+        "bucket": {
+          "type": "string",
+          "description": "Name of the storage bucket"
+        },
+        "path": {
+          "type": "string",
+          "description": "Folder path within bucket",
+          "required": false,
+          "default": ""
+        },
+        "limit": {
+          "type": "integer",
+          "description": "Maximum number of files to return",
+          "required": false,
+          "default": 100
+        },
+        "offset": {
+          "type": "integer",
+          "description": "Number of files to skip",
+          "required": false,
+          "default": 0
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "List of files with metadata"
+      }
+    },
+    {
+      "name": "supabase_storage_get_public_url",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Read X from **[Resource Name]** (ID: `[id]` | URL: [url])'\n(3) Use EXACT [id] provided - NEVER substitute with different ID\n(4) If tool fails (404/403), say 'Failed to read [resource] ID: [id]' and explain error\n(5) NEVER make up data if read fails - acknowledge the failure clearly\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nGet public URL for a file",
+      "platform": "supabase",
+      "parameters": {
+        "bucket": {
+          "type": "string",
+          "description": "Name of the storage bucket"
+        },
+        "file_path": {
+          "type": "string",
+          "description": "Path to the file"
+        },
+        "download": {
+          "type": "boolean",
+          "description": "Force download instead of inline display",
+          "required": false,
+          "default": false
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "Public URL to access the file"
+      }
+    },
+    {
+      "name": "supabase_storage_create_signed_url",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) ALWAYS execute THIS tool NOW - NEVER reference 'I created earlier' or use conversation history\n(2) MUST return format: **[Name]** | ID: `[id]` | URL: [full_url] | Link: [title](url)\n(3) Use EXACT values from tool response - NEVER make up fake URLs/IDs\n(4) If tool fails, say 'Failed to create' - NEVER pretend it succeeded\n\nExample response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\nExample response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\nCreate a signed URL for temporary file access",
+      "platform": "supabase",
+      "parameters": {
+        "bucket": {
+          "type": "string",
+          "description": "Name of the storage bucket"
+        },
+        "file_path": {
+          "type": "string",
+          "description": "Path to the file"
+        },
+        "expires_in": {
+          "type": "integer",
+          "description": "Expiration time in seconds (max 31536000 = 1 year)"
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "Signed URL with expiration"
+      }
+    },
+    {
+      "name": "supabase_storage_move",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Read X from **[Resource Name]** (ID: `[id]` | URL: [url])'\n(3) Use EXACT [id] provided - NEVER substitute with different ID\n(4) If tool fails (404/403), say 'Failed to read [resource] ID: [id]' and explain error\n(5) NEVER make up data if read fails - acknowledge the failure clearly\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nMove a file within or between buckets",
+      "platform": "supabase",
+      "parameters": {
+        "from_bucket": {
+          "type": "string",
+          "description": "Source bucket name"
+        },
+        "from_path": {
+          "type": "string",
+          "description": "Source file path"
+        },
+        "to_bucket": {
+          "type": "string",
+          "description": "Destination bucket name"
+        },
+        "to_path": {
+          "type": "string",
+          "description": "Destination file path"
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "Move confirmation"
+      }
+    },
+    {
+      "name": "supabase_realtime_subscribe",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Read X from **[Resource Name]** (ID: `[id]` | URL: [url])'\n(3) Use EXACT [id] provided - NEVER substitute with different ID\n(4) If tool fails (404/403), say 'Failed to read [resource] ID: [id]' and explain error\n(5) NEVER make up data if read fails - acknowledge the failure clearly\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nSubscribe to realtime changes on a table",
+      "platform": "supabase",
+      "parameters": {
+        "table": {
+          "type": "string",
+          "description": "Table name to subscribe to"
+        },
+        "event": {
+          "type": "string",
+          "description": "Event type: INSERT, UPDATE, DELETE, or * for all",
+          "required": false,
+          "default": "*"
+        },
+        "filter": {
+          "type": "string",
+          "description": "Filter expression (e.g., 'user_id=eq.123')",
+          "required": false
+        },
+        "callback": {
+          "type": "string",
+          "description": "Callback function name for handling changes"
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "Subscription confirmation"
+      }
+    },
+    {
+      "name": "supabase_create_bucket",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) ALWAYS execute THIS tool NOW - NEVER reference 'I created earlier' or use conversation history\n(2) MUST return format: **[Name]** | ID: `[id]` | URL: [full_url] | Link: [title](url)\n(3) Use EXACT values from tool response - NEVER make up fake URLs/IDs\n(4) If tool fails, say 'Failed to create' - NEVER pretend it succeeded\n\nExample response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\nExample response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\nCreate a new storage bucket",
+      "platform": "supabase",
+      "parameters": {
+        "bucket_name": {
+          "type": "string",
+          "description": "Name for the new bucket"
+        },
+        "public": {
+          "type": "boolean",
+          "description": "Make bucket public",
+          "required": false,
+          "default": false
+        },
+        "file_size_limit": {
+          "type": "integer",
+          "description": "Max file size in bytes",
+          "required": false
+        },
+        "allowed_mime_types": {
+          "type": "array",
+          "description": "Allowed MIME types",
+          "required": false
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "Created bucket info"
+      }
+    },
+    {
+      "name": "supabase_list_buckets",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Read X from **[Resource Name]** (ID: `[id]` | URL: [url])'\n(3) Use EXACT [id] provided - NEVER substitute with different ID\n(4) If tool fails (404/403), say 'Failed to read [resource] ID: [id]' and explain error\n(5) NEVER make up data if read fails - acknowledge the failure clearly\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nList all storage buckets",
+      "platform": "supabase",
+      "parameters": {},
+      "returns": {
+        "type": "object",
+        "description": "List of buckets"
+      }
+    },
+    {
+      "name": "supabase_delete_bucket",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER pretend to delete from memory\n(2) MUST cite what was deleted: 'Deleted **[Resource Name]** (ID: `[id]`)'\n(3) CONFIRM deletion happened - don't assume success\n(4) If tool fails, say 'Failed to delete' and explain why\n\nExample response:\n✅ Deleted: **Old File**\n- ID: `abc123`\n- URL: https://example.com/file/abc123 (no longer accessible)\n\nExample response:\n✅ Deleted: **Old File**\n- ID: `abc123`\n- URL: https://example.com/file/abc123 (no longer accessible)\n\nDelete a storage bucket",
+      "platform": "supabase",
+      "parameters": {
+        "bucket_name": {
+          "type": "string",
+          "description": "Name of bucket to delete"
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "Deletion confirmation"
+      }
+    },
+    {
+      "name": "supabase_get_schema",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Read X from **[Resource Name]** (ID: `[id]` | URL: [url])'\n(3) Use EXACT [id] provided - NEVER substitute with different ID\n(4) If tool fails (404/403), say 'Failed to read [resource] ID: [id]' and explain error\n(5) NEVER make up data if read fails - acknowledge the failure clearly\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nGet database schema information",
+      "platform": "supabase",
+      "parameters": {
+        "schema": {
+          "type": "string",
+          "description": "Schema name (default: public)",
+          "required": false,
+          "default": "public"
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "Schema structure with tables and columns"
+      }
+    }
+  ]
+}

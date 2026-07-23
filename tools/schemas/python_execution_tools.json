@@ -1,0 +1,86 @@
+{
+    "platform": "python_execution",
+    "tools": [
+        {
+            "name": "python_exec",
+            "description": "Execute Python code in a sandboxed environment. Supports pandas, numpy, matplotlib, and seaborn for data analysis and visualization. Code runs with RestrictedPython security (no file system access outside workspace, no network, no subprocess). Maximum execution time: 30 seconds. Perfect for data analysis, statistical computation, and chart generation.",
+            "input_schema": {
+                "type": "object",
+                "properties": {
+                    "code": {
+                        "type": "string",
+                        "description": "Python code to execute. Available libraries: pandas (as pd), numpy (as np), matplotlib.pyplot (as plt), seaborn (as sns). Code output (print statements) and variables will be captured and returned. Example: 'import pandas as pd\\ndf = pd.DataFrame({\"a\": [1,2,3]})\\nprint(df.describe())'"
+                    },
+                    "timeout": {
+                        "type": "integer",
+                        "default": 30,
+                        "description": "Maximum execution time in seconds. Code will be terminated if it exceeds this limit. Default is 30 seconds."
+                    },
+                    "workspace_dir": {
+                        "type": "string",
+                        "description": "Optional workspace directory path for file operations. If provided, code can read/write files in this directory. Use relative paths in your code (e.g., 'data.csv' not '/tmp/data.csv')."
+                    }
+                },
+                "required": [
+                    "code"
+                ]
+            }
+        },
+        {
+            "name": "python_exec_with_dataframe",
+            "description": "Execute Python code with a pre-loaded DataFrame. Convenience function that automatically injects a 'df' variable containing your data. Use this when you already have data in memory and want to analyze it without loading from a file.",
+            "input_schema": {
+                "type": "object",
+                "properties": {
+                    "code": {
+                        "type": "string",
+                        "description": "Python code to execute. A 'df' variable will be automatically available containing your DataFrame. Example: 'result = df.groupby(\"species\")[\"revisits\"].mean()\\nprint(result)'"
+                    },
+                    "dataframe": {
+                        "type": "object",
+                        "description": "DataFrame data to inject as 'df' variable. Should be in a format that can be converted to pandas DataFrame (dict of lists, records, etc.)"
+                    },
+                    "timeout": {
+                        "type": "integer",
+                        "default": 30,
+                        "description": "Maximum execution time in seconds."
+                    }
+                },
+                "required": [
+                    "code",
+                    "dataframe"
+                ]
+            }
+        },
+        {
+            "name": "python_exec_analysis",
+            "description": "Execute Python analysis code with automatic CSV data loading. Convenience function that loads a CSV file into 'df' variable and then runs your analysis code. Useful for quick data analysis workflows.",
+            "input_schema": {
+                "type": "object",
+                "properties": {
+                    "code": {
+                        "type": "string",
+                        "description": "Analysis code to execute. A 'df' variable will be automatically available containing data from the CSV file. No need to write pd.read_csv() - it's done automatically. Example: 'summary = df.describe()\\nprint(summary)'"
+                    },
+                    "data_file": {
+                        "type": "string",
+                        "description": "Path to CSV file to load. Can be relative (if workspace_dir provided) or absolute. Data will be loaded into 'df' variable before your code runs."
+                    },
+                    "timeout": {
+                        "type": "integer",
+                        "default": 30,
+                        "description": "Maximum execution time in seconds."
+                    },
+                    "workspace_dir": {
+                        "type": "string",
+                        "description": "Optional workspace directory. If provided, data_file path will be relative to this directory."
+                    }
+                },
+                "required": [
+                    "code",
+                    "data_file"
+                ]
+            }
+        }
+    ]
+}

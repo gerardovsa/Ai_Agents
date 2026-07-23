@@ -1,0 +1,923 @@
+{
+    "schema_version": "1.0",
+    "category": "workspace_search",
+    "description": "Search and retrieve workspace messages and transcriptions using simple keyword search, AI-powered semantic search, and flexible filtering",
+    "last_updated": "2025-12-08",
+    "tools": [
+        {
+            "name": "workspace_simple_search",
+            "description": "Fast full-text keyword search across workspace messages and transcriptions. Uses PostgreSQL ILIKE for simple pattern matching. Fast, reliable, and doesn't require OpenAI API. Use this when you need quick keyword-based search or when semantic search is not available.",
+            "parameters": {
+                "search_query": {
+                    "type": "string",
+                    "required": true,
+                    "description": "Text to search for. Supports % wildcards for partial matching. Case-insensitive.",
+                    "examples": [
+                        "database performance",
+                        "pricing strategy",
+                        "%quarterly%report%",
+                        "Sarah mentioned"
+                    ]
+                },
+                "workspace_ids": {
+                    "type": "array",
+                    "items": {
+                        "type": "integer"
+                    },
+                    "required": false,
+                    "description": "List of workspace IDs to search. If omitted, searches all workspaces the user has access to.",
+                    "examples": [
+                        [
+                            1
+                        ],
+                        [
+                            1,
+                            2,
+                            3
+                        ],
+                        null
+                    ]
+                },
+                "user_id": {
+                    "type": "integer",
+                    "required": false,
+                    "description": "Filter results to specific user ID. If omitted, searches messages/transcriptions from all users.",
+                    "examples": [
+                        5,
+                        12,
+                        null
+                    ]
+                },
+                "search_messages": {
+                    "type": "boolean",
+                    "required": false,
+                    "default": true,
+                    "description": "Include workspace messages in search results. Set to false to search only transcriptions.",
+                    "examples": [
+                        true,
+                        false
+                    ]
+                },
+                "search_transcriptions": {
+                    "type": "boolean",
+                    "required": false,
+                    "default": true,
+                    "description": "Include transcriptions in search results. Set to false to search only messages.",
+                    "examples": [
+                        true,
+                        false
+                    ]
+                },
+                "limit": {
+                    "type": "integer",
+                    "required": false,
+                    "default": 50,
+                    "minimum": 1,
+                    "maximum": 200,
+                    "description": "Maximum number of results to return across both messages and transcriptions. Higher limits may cause token overflow.",
+                    "examples": [
+                        20,
+                        50,
+                        100
+                    ]
+                }
+            },
+            "returns": {
+                "success": {
+                    "type": "boolean",
+                    "description": "True if search completed successfully"
+                },
+                "results": {
+                    "type": "object",
+                    "properties": {
+                        "messages": {
+                            "type": "array",
+                            "description": "Array of matching messages with full details"
+                        },
+                        "transcriptions": {
+                            "type": "array",
+                            "description": "Array of matching transcriptions with full details"
+                        }
+                    }
+                },
+                "total_count": {
+                    "type": "integer",
+                    "description": "Total number of results returned (messages + transcriptions)"
+                },
+                "query": {
+                    "type": "string",
+                    "description": "The search query that was executed"
+                },
+                "search_type": {
+                    "type": "string",
+                    "description": "Always 'simple' for this tool"
+                }
+            },
+            "examples": [
+                {
+                    "name": "Search for database discussions in specific workspaces",
+                    "input": {
+                        "search_query": "database performance",
+                        "workspace_ids": [
+                            1,
+                            2,
+                            3
+                        ],
+                        "limit": 20
+                    },
+                    "description": "Find all messages and transcriptions mentioning 'database performance' in workspaces 1, 2, and 3"
+                },
+                {
+                    "name": "Search only transcriptions for keyword",
+                    "input": {
+                        "search_query": "quarterly report",
+                        "search_messages": false,
+                        "search_transcriptions": true,
+                        "limit": 30
+                    },
+                    "description": "Search only transcriptions (not messages) for 'quarterly report'"
+                },
+                {
+                    "name": "Find what a specific user said",
+                    "input": {
+                        "search_query": "pricing",
+                        "user_id": 5,
+                        "workspace_ids": [
+                            1
+                        ],
+                        "limit": 50
+                    },
+                    "description": "Find all messages/transcriptions from user 5 mentioning 'pricing' in workspace 1"
+                },
+                {
+                    "name": "Wildcard search for variations",
+                    "input": {
+                        "search_query": "%deploy%production%",
+                        "limit": 25
+                    },
+                    "description": "Find messages containing both 'deploy' and 'production' in any order"
+                }
+            ],
+            "notes": [
+                "✅ FAST: Uses PostgreSQL ILIKE - very quick even on large datasets",
+                "✅ RELIABLE: No dependencies on external APIs",
+                "✅ SIMPLE: Just matches keywords - no AI understanding",
+                "❌ LIMITED: Won't find 'SQL optimization' when searching for 'database performance'",
+                "💡 TIP: Use wildcards (%) for flexible matching: '%performance%issue%'",
+                "💡 TIP: Case-insensitive by default (ILIKE operator)",
+                "⚠️ LIMIT: Returns chronological results, not relevance-ranked"
+            ]
+        },
+        {
+            "name": "workspace_semantic_search",
+            "description": "AI-powered semantic search using OpenAI embeddings and vector similarity. Understands meaning and context, not just exact keywords. Searching for 'database performance' will find results about 'SQL optimization', 'query speed', and 'data store performance' even without exact keyword matches. Requires pgvector extension and populated embeddings.",
+            "parameters": {
+                "search_query": {
+                    "type": "string",
+                    "required": true,
+                    "description": "Natural language description of what you're looking for. The AI will understand the meaning and find semantically similar content.",
+                    "examples": [
+                        "Tell me about pricing strategy discussions",
+                        "database performance issues",
+                        "What did Sarah say about the Q4 goals?",
+                        "meetings where we discussed hiring plans"
+                    ]
+                },
+                "workspace_ids": {
+                    "type": "array",
+                    "items": {
+                        "type": "integer"
+                    },
+                    "required": false,
+                    "description": "List of workspace IDs to search. If omitted, searches all workspaces.",
+                    "examples": [
+                        [
+                            1
+                        ],
+                        [
+                            1,
+                            2,
+                            3
+                        ],
+                        null
+                    ]
+                },
+                "user_id": {
+                    "type": "integer",
+                    "required": false,
+                    "description": "Filter results to specific user ID. If omitted, searches all users.",
+                    "examples": [
+                        5,
+                        12,
+                        null
+                    ]
+                },
+                "similarity_threshold": {
+                    "type": "number",
+                    "required": false,
+                    "default": 0.7,
+                    "minimum": 0.0,
+                    "maximum": 1.0,
+                    "description": "Minimum similarity score (0.0-1.0) for results. Higher values = more strict matching. 0.7 is recommended for general use, 0.8+ for very precise matches.",
+                    "examples": [
+                        0.6,
+                        0.7,
+                        0.8,
+                        0.85
+                    ]
+                },
+                "limit": {
+                    "type": "integer",
+                    "required": false,
+                    "default": 20,
+                    "minimum": 1,
+                    "maximum": 100,
+                    "description": "Maximum number of results to return. Results are ranked by similarity score (most relevant first).",
+                    "examples": [
+                        10,
+                        20,
+                        50
+                    ]
+                }
+            },
+            "returns": {
+                "success": {
+                    "type": "boolean",
+                    "description": "True if search completed successfully"
+                },
+                "results": {
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "properties": {
+                            "id": "Message ID",
+                            "content": "Message text",
+                            "similarity_score": "Relevance score 0.0-1.0 (higher = more relevant)",
+                            "workspace_name": "Workspace name",
+                            "user_name": "Username",
+                            "created_at": "Timestamp"
+                        }
+                    },
+                    "description": "Array of messages ranked by similarity score (most relevant first)"
+                },
+                "total_count": {
+                    "type": "integer",
+                    "description": "Number of results returned"
+                },
+                "query": {
+                    "type": "string",
+                    "description": "The search query that was executed"
+                },
+                "search_type": {
+                    "type": "string",
+                    "description": "Always 'semantic' for this tool"
+                },
+                "similarity_threshold": {
+                    "type": "number",
+                    "description": "The threshold used for filtering results"
+                }
+            },
+            "examples": [
+                {
+                    "name": "Find pricing discussions without exact keywords",
+                    "input": {
+                        "search_query": "Tell me about pricing strategy discussions",
+                        "workspace_ids": [
+                            1,
+                            2
+                        ],
+                        "similarity_threshold": 0.75,
+                        "limit": 10
+                    },
+                    "description": "Will find messages about 'cost structure', 'revenue model', 'pricing tiers' even if they don't mention 'pricing strategy' exactly"
+                },
+                {
+                    "name": "Search for database performance topics",
+                    "input": {
+                        "search_query": "database performance issues",
+                        "limit": 20
+                    },
+                    "description": "Will find messages about 'SQL optimization', 'query speed', 'data store performance', 'slow queries' even without exact keyword matches"
+                },
+                {
+                    "name": "Find what a user said about a topic",
+                    "input": {
+                        "search_query": "What did Sarah say about Q4 goals?",
+                        "user_id": 5,
+                        "workspace_ids": [
+                            1
+                        ],
+                        "limit": 15
+                    },
+                    "description": "Semantic search for user 5's messages about quarterly objectives, targets, milestones, etc."
+                },
+                {
+                    "name": "High-precision search for specific topic",
+                    "input": {
+                        "search_query": "Kubernetes deployment configuration",
+                        "similarity_threshold": 0.85,
+                        "limit": 5
+                    },
+                    "description": "Very strict matching (0.85 threshold) for highly relevant results only"
+                }
+            ],
+            "requirements": [
+                "✅ pgvector extension must be enabled on PostgreSQL",
+                "✅ embedding_vector column must be type vector(1536), not TEXT",
+                "✅ Embeddings must be populated for existing messages",
+                "✅ OPENAI_API_KEY environment variable must be set",
+                "✅ OpenAI Python library must be installed (pip install openai)"
+            ],
+            "notes": [
+                "🤖 AI-POWERED: Uses OpenAI text-embedding-3-small model",
+                "🎯 SEMANTIC: Understands meaning, not just keywords",
+                "📊 RANKED: Results sorted by similarity score (most relevant first)",
+                "💰 COST: ~$0.02 per 1M tokens (~500,000 searches)",
+                "⚡ SPEED: Slightly slower than simple search (~200-500ms)",
+                "💡 TIP: Use natural language queries like 'What did we discuss about...'",
+                "💡 TIP: Lower threshold (0.6-0.7) for broader results, higher (0.8+) for precision",
+                "⚠️ FALLBACK: If semantic search fails, automatically suggests workspace_simple_search",
+                "⚠️ SETUP: Requires one-time migration to enable pgvector and populate embeddings"
+            ],
+            "troubleshooting": {
+                "error_vector_extension": {
+                    "message": "pgvector extension not enabled or embedding_vector column not configured",
+                    "solution": "Run the migration script: python tools/migrations/enable_pgvector.py",
+                    "fallback": "Use workspace_simple_search for keyword-based search"
+                },
+                "error_openai_key": {
+                    "message": "OPENAI_API_KEY environment variable not set",
+                    "solution": "Set environment variable: export OPENAI_API_KEY='sk-...'",
+                    "fallback": "Use workspace_simple_search for keyword-based search"
+                },
+                "error_no_results": {
+                    "message": "No results found above similarity threshold",
+                    "solution": "Try lowering similarity_threshold to 0.6 or 0.65",
+                    "alternative": "Use workspace_simple_search to verify data exists"
+                }
+            }
+        },
+        {
+            "name": "workspace_get_messages",
+            "description": "Retrieve workspace messages with flexible filtering by thread, session, user, role, date range, or any combination. Use this to get conversation context, thread history, or specific message sets. Supports pagination for large result sets.",
+            "parameters": {
+                "workspace_ids": {
+                    "type": "array",
+                    "items": {
+                        "type": "integer"
+                    },
+                    "required": false,
+                    "description": "List of workspace IDs to retrieve messages from. If omitted, retrieves from all workspaces.",
+                    "examples": [
+                        [
+                            1
+                        ],
+                        [
+                            1,
+                            2,
+                            3
+                        ],
+                        null
+                    ]
+                },
+                "thread_id": {
+                    "type": "integer",
+                    "required": false,
+                    "description": "Retrieve all messages from a specific thread. Useful for getting complete conversation context.",
+                    "examples": [
+                        42,
+                        123,
+                        null
+                    ]
+                },
+                "session_id": {
+                    "type": "integer",
+                    "required": false,
+                    "description": "Retrieve all messages from a specific session.",
+                    "examples": [
+                        789,
+                        1001,
+                        null
+                    ]
+                },
+                "user_id": {
+                    "type": "integer",
+                    "required": false,
+                    "description": "Filter to messages from a specific user.",
+                    "examples": [
+                        5,
+                        12,
+                        null
+                    ]
+                },
+                "role": {
+                    "type": "string",
+                    "required": false,
+                    "enum": [
+                        "user",
+                        "assistant",
+                        "system"
+                    ],
+                    "description": "Filter by message role. 'user' = user messages, 'assistant' = AI responses, 'system' = system messages.",
+                    "examples": [
+                        "user",
+                        "assistant",
+                        "system",
+                        null
+                    ]
+                },
+                "date_from": {
+                    "type": "string",
+                    "required": false,
+                    "format": "YYYY-MM-DD",
+                    "description": "Start date for date range filter (inclusive). Only messages on or after this date.",
+                    "examples": [
+                        "2025-12-01",
+                        "2025-11-15",
+                        null
+                    ]
+                },
+                "date_to": {
+                    "type": "string",
+                    "required": false,
+                    "format": "YYYY-MM-DD",
+                    "description": "End date for date range filter (inclusive). Only messages on or before this date.",
+                    "examples": [
+                        "2025-12-07",
+                        "2025-12-31",
+                        null
+                    ]
+                },
+                "limit": {
+                    "type": "integer",
+                    "required": false,
+                    "default": 100,
+                    "minimum": 1,
+                    "maximum": 500,
+                    "description": "Maximum number of messages to return. Use with offset for pagination.",
+                    "examples": [
+                        50,
+                        100,
+                        200
+                    ]
+                },
+                "offset": {
+                    "type": "integer",
+                    "required": false,
+                    "default": 0,
+                    "minimum": 0,
+                    "description": "Number of messages to skip (for pagination). offset=100 with limit=50 returns messages 101-150.",
+                    "examples": [
+                        0,
+                        50,
+                        100
+                    ]
+                }
+            },
+            "returns": {
+                "success": {
+                    "type": "boolean",
+                    "description": "True if retrieval completed successfully"
+                },
+                "messages": {
+                    "type": "array",
+                    "description": "Array of message objects with full details (id, content, role, timestamps, user info, workspace info)"
+                },
+                "total_count": {
+                    "type": "integer",
+                    "description": "Total number of messages matching filters (not just returned count)"
+                },
+                "returned_count": {
+                    "type": "integer",
+                    "description": "Number of messages in this response"
+                },
+                "limit": {
+                    "type": "integer",
+                    "description": "Limit used for this query"
+                },
+                "offset": {
+                    "type": "integer",
+                    "description": "Offset used for this query"
+                },
+                "filters_applied": {
+                    "type": "object",
+                    "description": "Summary of filters that were applied"
+                },
+                "has_more": {
+                    "type": "boolean",
+                    "description": "True if there are more results beyond this page"
+                }
+            },
+            "examples": [
+                {
+                    "name": "Get recent messages from workspace",
+                    "input": {
+                        "workspace_ids": [
+                            1
+                        ],
+                        "limit": 50
+                    },
+                    "description": "Retrieve the 50 most recent messages from workspace 1"
+                },
+                {
+                    "name": "Get entire thread conversation",
+                    "input": {
+                        "thread_id": 42
+                    },
+                    "description": "Retrieve all messages from thread 42 to see complete conversation context"
+                },
+                {
+                    "name": "Get user messages in date range",
+                    "input": {
+                        "user_id": 5,
+                        "date_from": "2025-12-01",
+                        "date_to": "2025-12-07",
+                        "limit": 100
+                    },
+                    "description": "Get all messages from user 5 during the first week of December"
+                },
+                {
+                    "name": "Get all AI responses in workspace",
+                    "input": {
+                        "workspace_ids": [
+                            1
+                        ],
+                        "role": "assistant",
+                        "limit": 200
+                    },
+                    "description": "Retrieve all AI assistant responses from workspace 1"
+                },
+                {
+                    "name": "Paginate through large result set",
+                    "input": {
+                        "workspace_ids": [
+                            1,
+                            2
+                        ],
+                        "limit": 100,
+                        "offset": 100
+                    },
+                    "description": "Get messages 101-200 (second page) from workspaces 1 and 2"
+                },
+                {
+                    "name": "Get session messages for specific user",
+                    "input": {
+                        "session_id": 789,
+                        "user_id": 5
+                    },
+                    "description": "Get all messages from user 5 in session 789"
+                }
+            ],
+            "notes": [
+                "📊 PAGINATION: Use limit + offset to page through large result sets",
+                "🕒 ORDER: Results ordered by created_at DESC (newest first)",
+                "🔍 FLEXIBLE: Combine any filters - all are optional",
+                "💡 TIP: Use thread_id to get complete conversation context",
+                "💡 TIP: Use role='assistant' to see only AI responses",
+                "💡 TIP: Check has_more=true to know if there are more results",
+                "⚠️ LIMIT: Max 500 messages per request to prevent token overflow",
+                "⚠️ PERFORMANCE: Filtering by thread_id or session_id is faster than date ranges"
+            ]
+        },
+        {
+            "name": "workspace_get_transcriptions",
+            "description": "Retrieve transcriptions with flexible filtering by workspace, session, user, transcription mode, duration, date range, or any combination. Automatically excludes deleted transcriptions. Supports pagination for large result sets.",
+            "parameters": {
+                "workspace_ids": {
+                    "type": "array",
+                    "items": {
+                        "type": "integer"
+                    },
+                    "required": false,
+                    "description": "List of workspace IDs to retrieve transcriptions from. If omitted, retrieves from all workspaces.",
+                    "examples": [
+                        [
+                            1
+                        ],
+                        [
+                            1,
+                            2,
+                            3
+                        ],
+                        null
+                    ]
+                },
+                "session_id": {
+                    "type": "integer",
+                    "required": false,
+                    "description": "Retrieve all transcriptions from a specific session.",
+                    "examples": [
+                        789,
+                        1001,
+                        null
+                    ]
+                },
+                "user_id": {
+                    "type": "integer",
+                    "required": false,
+                    "description": "Filter to transcriptions from a specific user.",
+                    "examples": [
+                        5,
+                        12,
+                        null
+                    ]
+                },
+                "transcription_mode": {
+                    "type": "string",
+                    "required": false,
+                    "enum": [
+                        "web_speech",
+                        "whisper",
+                        "hybrid"
+                    ],
+                    "description": "Filter by transcription mode. 'web_speech' = browser API, 'whisper' = OpenAI Whisper, 'hybrid' = both.",
+                    "examples": [
+                        "web_speech",
+                        "whisper",
+                        "hybrid",
+                        null
+                    ]
+                },
+                "date_from": {
+                    "type": "string",
+                    "required": false,
+                    "format": "YYYY-MM-DD",
+                    "description": "Start date for date range filter (inclusive).",
+                    "examples": [
+                        "2025-12-01",
+                        "2025-11-15",
+                        null
+                    ]
+                },
+                "date_to": {
+                    "type": "string",
+                    "required": false,
+                    "format": "YYYY-MM-DD",
+                    "description": "End date for date range filter (inclusive).",
+                    "examples": [
+                        "2025-12-07",
+                        "2025-12-31",
+                        null
+                    ]
+                },
+                "min_duration": {
+                    "type": "integer",
+                    "required": false,
+                    "description": "Minimum transcription duration in seconds. Use to filter for longer recordings.",
+                    "examples": [
+                        30,
+                        60,
+                        120,
+                        null
+                    ]
+                },
+                "max_duration": {
+                    "type": "integer",
+                    "required": false,
+                    "description": "Maximum transcription duration in seconds. Use to filter for shorter recordings.",
+                    "examples": [
+                        60,
+                        300,
+                        600,
+                        null
+                    ]
+                },
+                "limit": {
+                    "type": "integer",
+                    "required": false,
+                    "default": 50,
+                    "minimum": 1,
+                    "maximum": 200,
+                    "description": "Maximum number of transcriptions to return. Use with offset for pagination.",
+                    "examples": [
+                        20,
+                        50,
+                        100
+                    ]
+                },
+                "offset": {
+                    "type": "integer",
+                    "required": false,
+                    "default": 0,
+                    "minimum": 0,
+                    "description": "Number of transcriptions to skip (for pagination).",
+                    "examples": [
+                        0,
+                        50,
+                        100
+                    ]
+                }
+            },
+            "returns": {
+                "success": {
+                    "type": "boolean",
+                    "description": "True if retrieval completed successfully"
+                },
+                "transcriptions": {
+                    "type": "array",
+                    "description": "Array of transcription objects with full details (id, text, whisper_text, mode, duration, timestamps, user info, workspace info)"
+                },
+                "total_count": {
+                    "type": "integer",
+                    "description": "Total number of transcriptions matching filters"
+                },
+                "returned_count": {
+                    "type": "integer",
+                    "description": "Number of transcriptions in this response"
+                },
+                "limit": {
+                    "type": "integer",
+                    "description": "Limit used for this query"
+                },
+                "offset": {
+                    "type": "integer",
+                    "description": "Offset used for this query"
+                },
+                "filters_applied": {
+                    "type": "object",
+                    "description": "Summary of filters that were applied"
+                },
+                "has_more": {
+                    "type": "boolean",
+                    "description": "True if there are more results beyond this page"
+                }
+            },
+            "examples": [
+                {
+                    "name": "Get recent transcriptions from workspace",
+                    "input": {
+                        "workspace_ids": [
+                            1
+                        ],
+                        "limit": 20
+                    },
+                    "description": "Retrieve the 20 most recent transcriptions from workspace 1"
+                },
+                {
+                    "name": "Get all transcriptions from session",
+                    "input": {
+                        "session_id": 789
+                    },
+                    "description": "Retrieve all transcriptions from session 789"
+                },
+                {
+                    "name": "Get long transcriptions (over 2 minutes)",
+                    "input": {
+                        "min_duration": 120,
+                        "limit": 30
+                    },
+                    "description": "Find transcriptions longer than 2 minutes (120 seconds)"
+                },
+                {
+                    "name": "Get Whisper AI transcriptions from date range",
+                    "input": {
+                        "transcription_mode": "whisper",
+                        "date_from": "2025-12-01",
+                        "date_to": "2025-12-07",
+                        "limit": 50
+                    },
+                    "description": "Get all Whisper AI transcriptions from the first week of December"
+                },
+                {
+                    "name": "Get short transcriptions for testing",
+                    "input": {
+                        "max_duration": 30,
+                        "limit": 10
+                    },
+                    "description": "Find transcriptions 30 seconds or shorter"
+                },
+                {
+                    "name": "Get user's hybrid transcriptions",
+                    "input": {
+                        "user_id": 5,
+                        "transcription_mode": "hybrid",
+                        "workspace_ids": [
+                            1,
+                            2
+                        ]
+                    },
+                    "description": "Get all hybrid-mode transcriptions from user 5 in workspaces 1 and 2"
+                }
+            ],
+            "notes": [
+                "🗑️ AUTO-FILTER: Automatically excludes deleted transcriptions (deleted_at IS NULL)",
+                "📊 PAGINATION: Use limit + offset to page through large result sets",
+                "🕒 ORDER: Results ordered by created_at DESC (newest first)",
+                "🔍 FLEXIBLE: Combine any filters - all are optional",
+                "📝 TEXT: Both 'text' (Web Speech) and 'whisper_text' (Whisper AI) are returned",
+                "💡 TIP: Use min_duration to find substantial recordings",
+                "💡 TIP: Use transcription_mode='whisper' for highest quality transcriptions",
+                "💡 TIP: Check has_more=true to know if there are more results",
+                "⚠️ LIMIT: Max 200 transcriptions per request to prevent token overflow"
+            ]
+        }
+    ],
+    "usage_guidance": {
+        "when_to_use_each_tool": {
+            "workspace_simple_search": [
+                "User asks to 'search for' or 'find' with specific keywords",
+                "Need fast results without AI processing",
+                "Semantic search is not available or configured",
+                "Searching for exact phrases or specific words",
+                "Example: 'Search for messages mentioning database'"
+            ],
+            "workspace_semantic_search": [
+                "User asks 'What did we discuss about...' or 'Tell me about...'",
+                "Need to understand meaning, not just keywords",
+                "User describes a concept without exact keywords",
+                "Want ranked results by relevance",
+                "Example: 'What pricing strategies did we discuss?' (finds 'cost model', 'revenue approach', etc.)"
+            ],
+            "workspace_get_messages": [
+                "User wants to see conversation history",
+                "Need messages from specific thread or session",
+                "Filtering by user, role, or date range",
+                "Getting AI responses or user messages separately",
+                "Example: 'Show me all messages from thread 42' or 'Get user messages from last week'"
+            ],
+            "workspace_get_transcriptions": [
+                "User wants to see transcription history",
+                "Need transcriptions from specific session",
+                "Filtering by duration, mode, or date range",
+                "Finding long or short recordings",
+                "Example: 'Show me all Whisper transcriptions over 2 minutes'"
+            ]
+        },
+        "common_workflows": {
+            "workflow_1_context_retrieval": {
+                "name": "Get conversation context for current thread",
+                "steps": [
+                    "1. Use workspace_get_messages with thread_id to get all messages",
+                    "2. Review message history to understand context",
+                    "3. Use that context to provide informed responses"
+                ]
+            },
+            "workflow_2_topic_search": {
+                "name": "Find all discussions about a topic",
+                "steps": [
+                    "1. Try workspace_semantic_search for meaning-based search",
+                    "2. If semantic search fails, fall back to workspace_simple_search",
+                    "3. Review results and provide summary to user"
+                ]
+            },
+            "workflow_3_user_activity": {
+                "name": "Get all activity from specific user",
+                "steps": [
+                    "1. Use workspace_get_messages with user_id filter",
+                    "2. Use workspace_get_transcriptions with user_id filter",
+                    "3. Combine and summarize user's contributions"
+                ]
+            },
+            "workflow_4_session_review": {
+                "name": "Review everything from a session",
+                "steps": [
+                    "1. Use workspace_get_messages with session_id",
+                    "2. Use workspace_get_transcriptions with session_id",
+                    "3. Present chronological summary of session activity"
+                ]
+            }
+        },
+        "performance_tips": [
+            "✅ Use workspace_ids filter to reduce search scope",
+            "✅ Use date ranges for recent data (last 7 days, last month)",
+            "✅ Start with lower limits (20-50) to avoid token overflow",
+            "✅ Use thread_id or session_id filters for fastest queries",
+            "✅ Semantic search is slower but more accurate - use wisely",
+            "⚠️ Large result sets (200+) may cause token overflow",
+            "⚠️ Avoid very broad date ranges without other filters",
+            "⚠️ Semantic search requires OpenAI API call (~200-500ms delay)"
+        ],
+        "error_handling": [
+            "If semantic search fails → Automatically suggests simple search fallback",
+            "If no results found → Try lowering similarity_threshold or using wildcards",
+            "If token overflow → Reduce limit or add more filters",
+            "If connection fails → Check database credentials and network"
+        ]
+    },
+    "setup_requirements": {
+        "for_simple_search": [
+            "✅ PostgreSQL database connection (Supabase)",
+            "✅ Environment variables: SUPABASE_HOST, SUPABASE_USER, SUPABASE_PASSWORD",
+            "✅ No additional setup needed - works out of the box"
+        ],
+        "for_semantic_search": [
+            "✅ Everything from simple search",
+            "✅ pgvector extension enabled on PostgreSQL",
+            "✅ embedding_vector column converted to vector(1536) type",
+            "✅ Embeddings populated for existing messages",
+            "✅ OPENAI_API_KEY environment variable set",
+            "✅ OpenAI Python library installed (pip install openai)",
+            "📝 See migration script: tools/migrations/enable_pgvector.py"
+        ],
+        "for_message_retrieval": [
+            "✅ PostgreSQL database connection (Supabase)",
+            "✅ Access to workspace_chats schema",
+            "✅ Environment variables: SUPABASE_HOST, SUPABASE_USER, SUPABASE_PASSWORD"
+        ],
+        "for_transcription_retrieval": [
+            "✅ PostgreSQL database connection (Supabase)",
+            "✅ Access to valorai_chrome_extension schema",
+            "✅ Environment variables: SUPABASE_HOST, SUPABASE_USER, SUPABASE_PASSWORD"
+        ]
+    }
+}

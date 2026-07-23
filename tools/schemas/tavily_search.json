@@ -1,0 +1,60 @@
+{
+  "platform": "tavily",
+  "description": "Tavily AI-optimized web search. Returns clean, citation-ready text snippets and a relevance-ranked list of results. Use for any current/recent information, news, prices, weather, research questions, or anything requiring live web data.",
+  "tools": [
+    {
+      "name": "tavily_search",
+      "short_description": "Search the public web for current information - returns ranked {title, url, content, score} results",
+      "description": "Search the public web via Tavily. Use whenever the user asks about current events, news, prices, weather, recent research, or anything that requires up-to-date information not in the model's training data. Returns a list of results with title, URL, content snippet, and relevance score. For fetching a specific known URL, prefer tavily_extract instead. For mapping the structure of a website, prefer tavily_map. For deep multi-source research with citations, use tavily_research.",
+      "platform": "tavily",
+      "parameters": {
+        "query": {
+          "type": "string",
+          "description": "The search query (1-400 chars). Be specific and include relevant qualifiers (location, date, version)."
+        },
+        "max_results": {
+          "type": "integer",
+          "description": "Maximum number of results to return (1-20).",
+          "required": false,
+          "default": 5
+        },
+        "search_depth": {
+          "type": "string",
+          "description": "Search depth: 'basic' (fast, ~1-2s) or 'advanced' (slower, ~2-4s, more thorough).",
+          "required": false,
+          "default": "basic",
+          "enum": ["basic", "advanced"]
+        },
+        "topic": {
+          "type": "string",
+          "description": "Result topic: 'general' (default) or 'news' (recency-weighted).",
+          "required": false,
+          "default": "general",
+          "enum": ["general", "news"]
+        },
+        "include_answer": {
+          "type": "boolean",
+          "description": "Include a Tavily-generated short answer (synthesized from the top results) in the response.",
+          "required": false,
+          "default": false
+        },
+        "include_raw_content": {
+          "type": "boolean",
+          "description": "Include the full extracted text of each result page (not just the snippet). Increases response size significantly.",
+          "required": false,
+          "default": false
+        },
+        "include_domains": {
+          "type": "array",
+          "items": {"type": "string"},
+          "description": "Optional: restrict results to these domains (e.g. ['wikipedia.org', '.gov']). Use for trusted-source queries.",
+          "required": false
+        }
+      },
+      "returns": {
+        "type": "object",
+        "description": "Search results with query, ranked results array, optional answer, and timing info"
+      }
+    }
+  ]
+}

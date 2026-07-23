@@ -37,6 +37,9 @@ IS_LOCAL = not (IS_RENDER or IS_PRODUCTION)
 
 # Modules to DISABLE on Render deployment
 # Strategy: Only keep inhouse-kanban visible on Render, disable all other external modules
+# NOTE (July 23, 2026): Removed 'veterinary_alerts', 'vsa-veterinary-alerts', and 'xero'
+#   from this list per active development work. The user is iterating on these modules
+#   so they must stay enabled. Re-add here only with explicit instruction.
 RENDER_DISABLED_MODULES = [
     # External modules (all disabled except inhouse-kanban)
     'database-visualizer',
@@ -50,10 +53,10 @@ RENDER_DISABLED_MODULES = [
     'salesforce',
     'shopify',
     'stock-management',
-    'veterinary_alerts',
     'voip-demo',
-    'vsa-veterinary-alerts',
-    'xero',
+    # 'veterinary_alerts',        # OFF disabled list — module under active development
+    # 'vsa-veterinary-alerts',    # OFF disabled list — module under active development
+    # 'xero',                     # OFF disabled list — normal xero tools stay enabled
 ]
 
 # Modules to DISABLE in ALL production environments

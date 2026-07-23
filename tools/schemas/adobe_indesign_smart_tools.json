@@ -1,0 +1,826 @@
+{
+    "platform": "adobe_indesign",
+    "description": "Smart composite tools that execute multi-step workflows in a single call. These tools dramatically simplify complex InDesign automation by combining multiple operations intelligently.",
+    "tools": [
+        {
+            "name": "indesign_create_product_catalog",
+            "description": "SMART TOOL: Creates complete product catalog from CSV data and template. Executes: (1) Document creation, (2) Data merge setup, (3) Image placement, (4) Style application, (5) TOC generation, (6) Preflight check, (7) PDF export. All in one call.",
+            "platform": "adobe_indesign",
+            "category": "smart_composite",
+            "backend": "hybrid",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "template_id": {
+                        "type": "string",
+                        "description": "InDesign template file path or ID (.indt file). Must contain placeholder fields like <<ProductName>>, <<Price>>, etc."
+                    },
+                    "data_source": {
+                        "type": "string",
+                        "description": "Path to CSV, JSON, or Excel file with product data. Each row = one product."
+                    },
+                    "data_mapping": {
+                        "type": "object",
+                        "description": "Maps data columns to InDesign placeholders. Example: {'product_name': '<<ProductName>>', 'price': '<<Price>>'}",
+                        "additionalProperties": {
+                            "type": "string"
+                        }
+                    },
+                    "image_folder": {
+                        "type": "string",
+                        "description": "Path to folder containing product images. Tool will match images by filename from data source."
+                    },
+                    "output_format": {
+                        "type": "array",
+                        "items": {
+                            "type": "string",
+                            "enum": [
+                                "pdf_print",
+                                "pdf_interactive",
+                                "png",
+                                "jpg",
+                                "idml",
+                                "indd"
+                            ]
+                        },
+                        "default": [
+                            "pdf_print"
+                        ],
+                        "description": "Export formats (can specify multiple). 'indd' keeps InDesign source file."
+                    },
+                    "export_settings": {
+                        "type": "object",
+                        "properties": {
+                            "pdf_preset": {
+                                "type": "string",
+                                "default": "Press Quality",
+                                "enum": [
+                                    "High Quality Print",
+                                    "Press Quality",
+                                    "Smallest File Size",
+                                    "PDF/X-4:2008"
+                                ]
+                            },
+                            "include_bleed": {
+                                "type": "boolean",
+                                "default": true
+                            },
+                            "include_slug": {
+                                "type": "boolean",
+                                "default": false
+                            },
+                            "compress_images": {
+                                "type": "boolean",
+                                "default": false
+                            },
+                            "image_quality": {
+                                "type": "string",
+                                "enum": [
+                                    "Maximum",
+                                    "High",
+                                    "Medium",
+                                    "Low"
+                                ],
+                                "default": "High"
+                            }
+                        }
+                    },
+                    "quality_check": {
+                        "type": "boolean",
+                        "default": true,
+                        "description": "Run preflight validation before export. Checks for missing fonts, low-res images, overset text, etc."
+                    },
+                    "auto_export": {
+                        "type": "boolean",
+                        "default": true,
+                        "description": "Automatically export after document creation. Set false to review document first."
+                    },
+                    "page_limit": {
+                        "type": "integer",
+                        "description": "Maximum pages to generate. Use for testing with large datasets (e.g., page_limit: 10 to test with first 10 pages)."
+                    }
+                },
+                "required": [
+                    "template_id",
+                    "data_source",
+                    "data_mapping"
+                ]
+            },
+            "returns": {
+                "type": "object",
+                "properties": {
+                    "success": {
+                        "type": "boolean"
+                    },
+                    "document_path": {
+                        "type": "string",
+                        "description": "Path to created .indd file"
+                    },
+                    "pdf_path": {
+                        "type": "string",
+                        "description": "Path to exported PDF (if auto_export=true)"
+                    },
+                    "records_processed": {
+                        "type": "integer",
+                        "description": "Number of products merged"
+                    },
+                    "pages_created": {
+                        "type": "integer"
+                    },
+                    "preflight_passed": {
+                        "type": "boolean"
+                    },
+                    "preflight_warnings": {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
+                    },
+                    "preflight_errors": {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
+                    },
+                    "images_placed": {
+                        "type": "integer"
+                    },
+                    "missing_images": {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
+                    },
+                    "execution_time": {
+                        "type": "number",
+                        "description": "Seconds taken to complete"
+                    }
+                }
+            },
+            "examples": [
+                {
+                    "description": "Create 500-product catalog from CSV with print-ready PDF",
+                    "input": {
+                        "template_id": "catalog_template_2024.indt",
+                        "data_source": "products_spring_2024.csv",
+                        "data_mapping": {
+                            "product_name": "<<ProductName>>",
+                            "price": "<<Price>>",
+                            "description": "<<Description>>",
+                            "sku": "<<SKU>>",
+                            "image_file": "<<ImagePath>>"
+                        },
+                        "image_folder": "C:/Images/Products",
+                        "output_format": [
+                            "pdf_print",
+                            "indd"
+                        ],
+                        "export_settings": {
+                            "pdf_preset": "Press Quality",
+                            "include_bleed": true
+                        },
+                        "quality_check": true
+                    },
+                    "output": {
+                        "success": true,
+                        "document_path": "catalog_spring_2024.indd",
+                        "pdf_path": "catalog_spring_2024.pdf",
+                        "records_processed": 500,
+                        "pages_created": 125,
+                        "preflight_passed": true,
+                        "preflight_warnings": [],
+                        "preflight_errors": [],
+                        "images_placed": 500,
+                        "missing_images": [],
+                        "execution_time": 72.5
+                    }
+                },
+                {
+                    "description": "Test catalog with first 10 products (page limit)",
+                    "input": {
+                        "template_id": "catalog_template_2024.indt",
+                        "data_source": "products_spring_2024.csv",
+                        "data_mapping": {
+                            "product_name": "<<ProductName>>",
+                            "price": "<<Price>>"
+                        },
+                        "page_limit": 10,
+                        "auto_export": false
+                    },
+                    "output": {
+                        "success": true,
+                        "document_path": "catalog_spring_2024_test.indd",
+                        "records_processed": 10,
+                        "pages_created": 10,
+                        "preflight_passed": true,
+                        "images_placed": 10,
+                        "execution_time": 8.2
+                    }
+                }
+            ],
+            "instructions": "This is the most powerful catalog generation tool. It handles the entire workflow:\n\n1. SETUP: Validates template has required placeholders\n2. DATA: Imports CSV/JSON/Excel and validates structure\n3. MERGE: Creates data merge configuration\n4. IMAGES: Places product images from specified folder\n5. FORMATTING: Applies template styles and formatting\n6. TOC: Generates table of contents (if template has TOC markers)\n7. QUALITY: Runs preflight checks (missing fonts, low-res images, overset text)\n8. EXPORT: Exports to specified formats (PDF, PNG, JPG, etc.)\n\nFor large catalogs (1000+ products), enable compress_images to reduce file size. Use page_limit parameter to test with small dataset first.\n\nTroubleshooting:\n- If preflight_passed=false, check preflight_errors array\n- If missing_images has items, verify image_folder path and filenames match data\n- For slow performance with large datasets, consider splitting into multiple catalogs",
+            "error_handling": {
+                "template_not_found": "Returns error with template path details and suggestions",
+                "data_source_invalid": "Returns validation error with line number and column details",
+                "preflight_failed": "Returns preflight report in preflight_errors, does not export if quality_check=true",
+                "missing_images": "Returns list in missing_images array, continues with placeholder images",
+                "memory_exceeded": "Returns error suggesting page_limit or batch processing approach"
+            }
+        },
+        {
+            "name": "indesign_batch_update_text",
+            "description": "SMART TOOL: Find and replace text across multiple InDesign documents. Opens each file, executes replacements, optionally updates styles, saves and closes. Supports backup creation.",
+            "platform": "adobe_indesign",
+            "category": "smart_composite",
+            "backend": "soap",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "folder_path": {
+                        "type": "string",
+                        "description": "Path to folder containing InDesign files to process"
+                    },
+                    "file_pattern": {
+                        "type": "string",
+                        "default": "*.indd",
+                        "description": "File pattern to match (e.g., '*.indd', 'brochure_*.indt', 'catalog_2024*.indd')"
+                    },
+                    "recursive": {
+                        "type": "boolean",
+                        "default": false,
+                        "description": "Search subfolders recursively"
+                    },
+                    "operations": {
+                        "type": "array",
+                        "items": {
+                            "type": "object",
+                            "properties": {
+                                "find": {
+                                    "type": "string",
+                                    "description": "Text to find"
+                                },
+                                "replace": {
+                                    "type": "string",
+                                    "description": "Replacement text"
+                                },
+                                "case_sensitive": {
+                                    "type": "boolean",
+                                    "default": false
+                                },
+                                "whole_word": {
+                                    "type": "boolean",
+                                    "default": false
+                                },
+                                "include_locked_layers": {
+                                    "type": "boolean",
+                                    "default": false
+                                },
+                                "include_master_pages": {
+                                    "type": "boolean",
+                                    "default": true
+                                }
+                            },
+                            "required": [
+                                "find",
+                                "replace"
+                            ]
+                        },
+                        "description": "List of find/replace operations to execute on each file"
+                    },
+                    "backup_originals": {
+                        "type": "boolean",
+                        "default": true,
+                        "description": "Create backup copies before modifying files"
+                    },
+                    "backup_suffix": {
+                        "type": "string",
+                        "default": "_backup",
+                        "description": "Suffix for backup files (e.g., 'document_backup.indd')"
+                    },
+                    "save_changes": {
+                        "type": "boolean",
+                        "default": true,
+                        "description": "Save files after replacements. Set false for dry run."
+                    }
+                },
+                "required": [
+                    "folder_path",
+                    "operations"
+                ]
+            },
+            "returns": {
+                "type": "object",
+                "properties": {
+                    "success": {
+                        "type": "boolean"
+                    },
+                    "files_processed": {
+                        "type": "integer"
+                    },
+                    "files_modified": {
+                        "type": "integer"
+                    },
+                    "replacements_made": {
+                        "type": "integer"
+                    },
+                    "backup_folder": {
+                        "type": "string"
+                    },
+                    "file_details": {
+                        "type": "array",
+                        "items": {
+                            "type": "object",
+                            "properties": {
+                                "file_path": {
+                                    "type": "string"
+                                },
+                                "replacements": {
+                                    "type": "integer"
+                                },
+                                "errors": {
+                                    "type": "array",
+                                    "items": {
+                                        "type": "string"
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "execution_time": {
+                        "type": "number"
+                    }
+                }
+            },
+            "examples": [
+                {
+                    "description": "Update company name across 50 brochures",
+                    "input": {
+                        "folder_path": "C:/Brochures/2024",
+                        "file_pattern": "*.indd",
+                        "operations": [
+                            {
+                                "find": "Acme LLC",
+                                "replace": "Acme Corporation",
+                                "case_sensitive": false
+                            },
+                            {
+                                "find": "www.acmellc.com",
+                                "replace": "www.acmecorp.com"
+                            }
+                        ],
+                        "backup_originals": true
+                    },
+                    "output": {
+                        "success": true,
+                        "files_processed": 50,
+                        "files_modified": 48,
+                        "replacements_made": 152,
+                        "backup_folder": "C:/Brochures/2024/backups_20251129",
+                        "execution_time": 45.2
+                    }
+                }
+            ],
+            "instructions": "This tool automates text updates across multiple InDesign files, essential for rebranding, date updates, or correcting repeated errors.\n\nWorkflow:\n1. Scans folder for matching files\n2. Creates backups (if enabled)\n3. Opens each file\n4. Executes find/replace operations in order\n5. Saves and closes\n6. Returns detailed report\n\nTips:\n- Test with save_changes=false first (dry run)\n- backup_originals=true is highly recommended\n- Operations execute in array order (useful for chained replacements)\n- Use whole_word=true to avoid partial matches (e.g., don't replace 'cat' in 'catalog')",
+            "error_handling": {
+                "file_locked": "Skips file, reports in file_details.errors",
+                "file_corrupted": "Skips file, reports in file_details.errors",
+                "permission_denied": "Skips file, reports in file_details.errors"
+            }
+        },
+        {
+            "name": "indesign_batch_export_multiple_formats",
+            "description": "SMART TOOL: Export folder of InDesign files to multiple formats (PDF, PNG, JPG, EPUB, etc.) with format-specific settings. Organizes output into subfolders by format.",
+            "platform": "adobe_indesign",
+            "category": "smart_composite",
+            "backend": "hybrid",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "folder_path": {
+                        "type": "string",
+                        "description": "Path to folder containing InDesign files"
+                    },
+                    "file_pattern": {
+                        "type": "string",
+                        "default": "*.indd",
+                        "description": "File pattern to match"
+                    },
+                    "output_formats": {
+                        "type": "array",
+                        "items": {
+                            "type": "object",
+                            "properties": {
+                                "format": {
+                                    "type": "string",
+                                    "enum": [
+                                        "pdf_print",
+                                        "pdf_interactive",
+                                        "png",
+                                        "jpg",
+                                        "eps",
+                                        "svg",
+                                        "epub",
+                                        "html"
+                                    ]
+                                },
+                                "settings": {
+                                    "type": "object",
+                                    "description": "Format-specific export settings"
+                                }
+                            },
+                            "required": [
+                                "format"
+                            ]
+                        },
+                        "description": "List of formats to export with their settings"
+                    },
+                    "output_folder": {
+                        "type": "string",
+                        "description": "Base output folder. Subfolders created for each format (e.g., /output/pdf, /output/png)"
+                    },
+                    "organize_by_format": {
+                        "type": "boolean",
+                        "default": true,
+                        "description": "Create subfolders for each format"
+                    },
+                    "overwrite_existing": {
+                        "type": "boolean",
+                        "default": false,
+                        "description": "Overwrite existing exported files"
+                    }
+                },
+                "required": [
+                    "folder_path",
+                    "output_formats"
+                ]
+            },
+            "returns": {
+                "type": "object",
+                "properties": {
+                    "success": {
+                        "type": "boolean"
+                    },
+                    "files_processed": {
+                        "type": "integer"
+                    },
+                    "exports_created": {
+                        "type": "integer"
+                    },
+                    "output_folders": {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
+                    },
+                    "file_details": {
+                        "type": "array",
+                        "items": {
+                            "type": "object",
+                            "properties": {
+                                "source_file": {
+                                    "type": "string"
+                                },
+                                "exports": {
+                                    "type": "array",
+                                    "items": {
+                                        "type": "string"
+                                    }
+                                },
+                                "errors": {
+                                    "type": "array",
+                                    "items": {
+                                        "type": "string"
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "execution_time": {
+                        "type": "number"
+                    }
+                }
+            },
+            "examples": [
+                {
+                    "description": "Export 20 brochures to print PDF and web PNG",
+                    "input": {
+                        "folder_path": "C:/Brochures/Final",
+                        "output_formats": [
+                            {
+                                "format": "pdf_print",
+                                "settings": {
+                                    "preset": "Press Quality",
+                                    "include_bleed": true
+                                }
+                            },
+                            {
+                                "format": "png",
+                                "settings": {
+                                    "resolution": 150,
+                                    "color_space": "RGB"
+                                }
+                            }
+                        ],
+                        "output_folder": "C:/Exports",
+                        "organize_by_format": true
+                    },
+                    "output": {
+                        "success": true,
+                        "files_processed": 20,
+                        "exports_created": 40,
+                        "output_folders": [
+                            "C:/Exports/pdf_print",
+                            "C:/Exports/png"
+                        ],
+                        "execution_time": 62.8
+                    }
+                }
+            ],
+            "instructions": "Batch export tool for multi-format publishing workflows.\n\nCommon use cases:\n- Print shop: Export to Press Quality PDF + low-res preview JPG\n- Web publishing: Export to PNG + interactive PDF\n- Distribution: Export to multiple PDF presets (print, screen, smallest)\n\nOutput structure:\n/output_folder\n  /pdf_print\n    - brochure1.pdf\n    - brochure2.pdf\n  /png\n    - brochure1.png\n    - brochure2.png"
+        },
+        {
+            "name": "indesign_create_branded_document",
+            "description": "SMART TOOL: Create new document with complete brand application. Imports brand colors, styles, logo, sets up master pages, and applies brand guidelines automatically.",
+            "platform": "adobe_indesign",
+            "category": "smart_composite",
+            "backend": "soap",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "document_type": {
+                        "type": "string",
+                        "enum": [
+                            "brochure",
+                            "flyer",
+                            "report",
+                            "manual",
+                            "presentation",
+                            "newsletter"
+                        ],
+                        "description": "Document type (determines default page count and layout)"
+                    },
+                    "page_count": {
+                        "type": "integer",
+                        "description": "Number of pages. If omitted, uses default for document_type."
+                    },
+                    "brand_guide_id": {
+                        "type": "string",
+                        "description": "Brand style guide identifier or file path (.indd or .idml with brand assets)"
+                    },
+                    "brand_assets": {
+                        "type": "object",
+                        "properties": {
+                            "logo_path": {
+                                "type": "string"
+                            },
+                            "color_palette": {
+                                "type": "array",
+                                "items": {
+                                    "type": "object",
+                                    "properties": {
+                                        "name": {
+                                            "type": "string"
+                                        },
+                                        "color_space": {
+                                            "type": "string",
+                                            "enum": [
+                                                "CMYK",
+                                                "RGB",
+                                                "Pantone"
+                                            ]
+                                        },
+                                        "values": {
+                                            "type": "array",
+                                            "items": {
+                                                "type": "number"
+                                            }
+                                        }
+                                    }
+                                }
+                            },
+                            "fonts": {
+                                "type": "object",
+                                "properties": {
+                                    "heading": {
+                                        "type": "string"
+                                    },
+                                    "body": {
+                                        "type": "string"
+                                    },
+                                    "accent": {
+                                        "type": "string"
+                                    }
+                                }
+                            }
+                        },
+                        "description": "Brand assets to apply (if not using brand_guide_id)"
+                    },
+                    "include_templates": {
+                        "type": "array",
+                        "items": {
+                            "type": "string",
+                            "enum": [
+                                "cover",
+                                "chapter",
+                                "content",
+                                "back_cover"
+                            ]
+                        },
+                        "description": "Master page templates to include"
+                    },
+                    "output_path": {
+                        "type": "string",
+                        "description": "Path for new document file"
+                    }
+                },
+                "required": [
+                    "document_type"
+                ]
+            },
+            "returns": {
+                "type": "object",
+                "properties": {
+                    "success": {
+                        "type": "boolean"
+                    },
+                    "document_path": {
+                        "type": "string"
+                    },
+                    "pages_created": {
+                        "type": "integer"
+                    },
+                    "master_pages": {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
+                    },
+                    "styles_imported": {
+                        "type": "integer"
+                    },
+                    "colors_imported": {
+                        "type": "integer"
+                    },
+                    "execution_time": {
+                        "type": "number"
+                    }
+                }
+            },
+            "examples": [
+                {
+                    "description": "Create branded 8-page brochure",
+                    "input": {
+                        "document_type": "brochure",
+                        "page_count": 8,
+                        "brand_guide_id": "company_brand_2024",
+                        "include_templates": [
+                            "cover",
+                            "content",
+                            "back_cover"
+                        ],
+                        "output_path": "C:/Projects/new_brochure.indd"
+                    },
+                    "output": {
+                        "success": true,
+                        "document_path": "C:/Projects/new_brochure.indd",
+                        "pages_created": 8,
+                        "master_pages": [
+                            "Cover",
+                            "Content",
+                            "Back Cover"
+                        ],
+                        "styles_imported": 15,
+                        "colors_imported": 8,
+                        "execution_time": 5.2
+                    }
+                }
+            ],
+            "instructions": "This tool accelerates branded document creation by automating brand application.\n\nWorkflow:\n1. Creates document with specified page count\n2. Imports brand colors as swatches\n3. Imports or creates paragraph/character styles with brand fonts\n4. Creates master pages from templates\n5. Places logo on master pages\n6. Sets up document grid and margins per brand guidelines\n\nResults in document ready for content, with consistent branding applied."
+        },
+        {
+            "name": "indesign_apply_style_library",
+            "description": "SMART TOOL: Import and apply complete style system from another document or library. Includes paragraph styles, character styles, object styles, table styles, and color swatches.",
+            "platform": "adobe_indesign",
+            "category": "smart_composite",
+            "backend": "soap",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "target_document": {
+                        "type": "string",
+                        "description": "Document to apply styles to (file path or document ID)"
+                    },
+                    "style_library_source": {
+                        "type": "string",
+                        "description": "Source document or library file (.indd, .idml, or .indd library)"
+                    },
+                    "style_types": {
+                        "type": "array",
+                        "items": {
+                            "type": "string",
+                            "enum": [
+                                "paragraph_styles",
+                                "character_styles",
+                                "object_styles",
+                                "table_styles",
+                                "cell_styles",
+                                "color_swatches",
+                                "gradients"
+                            ]
+                        },
+                        "default": [
+                            "paragraph_styles",
+                            "character_styles",
+                            "color_swatches"
+                        ],
+                        "description": "Types of styles to import"
+                    },
+                    "conflict_resolution": {
+                        "type": "string",
+                        "enum": [
+                            "overwrite",
+                            "rename",
+                            "skip"
+                        ],
+                        "default": "rename",
+                        "description": "How to handle style name conflicts"
+                    },
+                    "apply_to_content": {
+                        "type": "boolean",
+                        "default": false,
+                        "description": "Apply imported styles to matching content (by style name)"
+                    }
+                },
+                "required": [
+                    "target_document",
+                    "style_library_source"
+                ]
+            },
+            "returns": {
+                "type": "object",
+                "properties": {
+                    "success": {
+                        "type": "boolean"
+                    },
+                    "styles_imported": {
+                        "type": "object",
+                        "properties": {
+                            "paragraph_styles": {
+                                "type": "integer"
+                            },
+                            "character_styles": {
+                                "type": "integer"
+                            },
+                            "object_styles": {
+                                "type": "integer"
+                            },
+                            "table_styles": {
+                                "type": "integer"
+                            },
+                            "color_swatches": {
+                                "type": "integer"
+                            }
+                        }
+                    },
+                    "conflicts_resolved": {
+                        "type": "integer"
+                    },
+                    "content_updated": {
+                        "type": "boolean"
+                    },
+                    "execution_time": {
+                        "type": "number"
+                    }
+                }
+            },
+            "examples": [
+                {
+                    "description": "Import brand styles to new document",
+                    "input": {
+                        "target_document": "new_brochure.indd",
+                        "style_library_source": "brand_style_library.indd",
+                        "style_types": [
+                            "paragraph_styles",
+                            "character_styles",
+                            "object_styles",
+                            "color_swatches"
+                        ],
+                        "conflict_resolution": "overwrite"
+                    },
+                    "output": {
+                        "success": true,
+                        "styles_imported": {
+                            "paragraph_styles": 12,
+                            "character_styles": 8,
+                            "object_styles": 5,
+                            "color_swatches": 10
+                        },
+                        "conflicts_resolved": 0,
+                        "execution_time": 2.1
+                    }
+                }
+            ],
+            "instructions": "Use this to standardize styling across multiple documents or apply brand style guides.\n\nCommon workflows:\n- Import company brand styles to new project\n- Synchronize styles across book chapters\n- Apply updated style library to existing documents\n\nTip: Create a master style library document with all brand styles, then use this tool to apply to new projects."
+        }
+    ]
+}

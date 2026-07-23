@@ -1,0 +1,260 @@
+{
+  "platform": "veterinary_soap",
+  "description": "Voice-to-text SOAP note generation for veterinary practices using AssemblyAI transcription and GPT-4 formatting",
+  "tools": [
+    {
+      "name": "vet_soap_transcribe_recording",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Read X from **[Resource Name]** (ID: `[id]` | URL: [url])'\n(3) Use EXACT [id] provided - NEVER substitute with different ID\n(4) If tool fails (404/403), say 'Failed to read [resource] ID: [id]' and explain error\n(5) NEVER make up data if read fails - acknowledge the failure clearly\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nTranscribe veterinary voice recording to text using AssemblyAI. Supports speaker diarization to identify vet vs. client voices. Optimized for medical vocabulary (parvo, heartworm, subcutaneous, etc.). Returns high-accuracy transcription with confidence scores.",
+      "platform": "veterinary_soap",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "audio_file": {
+            "type": "string",
+            "description": "Path to audio file or URL (supports MP3, WAV, M4A, etc.)"
+          },
+          "language": {
+            "type": "string",
+            "description": "Language code (default: 'en' for English)"
+          },
+          "speaker_labels": {
+            "type": "boolean",
+            "description": "Enable speaker diarization to identify vet/client (default: true)"
+          }
+        },
+        "required": [
+          "audio_file"
+        ]
+      },
+      "returns": {
+        "type": "object",
+        "description": "Transcription with text, speakers, confidence score, and audio duration"
+      },
+      "examples": [
+        {
+          "description": "Transcribe exam room recording",
+          "parameters": {
+            "audio_file": "/recordings/exam_2024_11_25_143022.mp3",
+            "speaker_labels": true
+          }
+        }
+      ]
+    },
+    {
+      "name": "vet_soap_generate_note",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Read X from **[Resource Name]** (ID: `[id]` | URL: [url])'\n(3) Use EXACT [id] provided - NEVER substitute with different ID\n(4) If tool fails (404/403), say 'Failed to read [resource] ID: [id]' and explain error\n(5) NEVER make up data if read fails - acknowledge the failure clearly\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nGenerate formatted SOAP note from transcription using GPT-4. Structures text into Subjective, Objective, Assessment, and Plan sections. Extracts vitals (TPR), medications, and follow-up instructions. Professional veterinary medical terminology.",
+      "platform": "veterinary_soap",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "transcription": {
+            "type": "string",
+            "description": "Raw transcription text from voice recording"
+          },
+          "patient_name": {
+            "type": "string",
+            "description": "Patient/pet name (required)"
+          },
+          "patient_species": {
+            "type": "string",
+            "description": "Dog, cat, bird, etc. (optional)"
+          },
+          "patient_breed": {
+            "type": "string",
+            "description": "Breed (optional, e.g., 'Golden Retriever')"
+          },
+          "patient_age": {
+            "type": "string",
+            "description": "Age (optional, e.g., '3 years')"
+          },
+          "veterinarian_name": {
+            "type": "string",
+            "description": "Examining veterinarian's name (optional)"
+          }
+        },
+        "required": [
+          "transcription",
+          "patient_name"
+        ]
+      },
+      "returns": {
+        "type": "object",
+        "description": "Formatted SOAP note with separate sections (subjective, objective, assessment, plan)"
+      },
+      "examples": [
+        {
+          "description": "Generate SOAP note from transcription",
+          "parameters": {
+            "transcription": "Owner reports Max has been vomiting for two days. No diarrhea. Still eating and drinking. On exam, temperature 102.5, heart rate 120, abdomen soft. Diagnosis: Gastritis. Plan: Metoclopramide 0.5mg/kg TID for 5 days, bland diet.",
+            "patient_name": "Max",
+            "patient_species": "dog",
+            "patient_breed": "Labrador Retriever",
+            "patient_age": "5 years",
+            "veterinarian_name": "Dr. Sarah Johnson"
+          }
+        }
+      ]
+    },
+    {
+      "name": "vet_soap_voice_to_note",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Read X from **[Resource Name]** (ID: `[id]` | URL: [url])'\n(3) Use EXACT [id] provided - NEVER substitute with different ID\n(4) If tool fails (404/403), say 'Failed to read [resource] ID: [id]' and explain error\n(5) NEVER make up data if read fails - acknowledge the failure clearly\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nEND-TO-END: Convert voice recording to formatted SOAP note in one step. Transcribes audio using AssemblyAI, formats as SOAP note using GPT-4, extracts vitals and diagnoses. Complete workflow for exam room dictation.",
+      "platform": "veterinary_soap",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "audio_file": {
+            "type": "string",
+            "description": "Path to audio recording or URL (supports MP3, WAV, M4A, etc.)"
+          },
+          "patient_name": {
+            "type": "string",
+            "description": "Patient/pet name (required)"
+          },
+          "patient_species": {
+            "type": "string",
+            "description": "Dog, cat, bird, etc. (optional)"
+          },
+          "patient_breed": {
+            "type": "string",
+            "description": "Breed (optional)"
+          },
+          "patient_age": {
+            "type": "string",
+            "description": "Age (optional)"
+          },
+          "veterinarian_name": {
+            "type": "string",
+            "description": "Examining veterinarian's name (optional)"
+          }
+        },
+        "required": [
+          "audio_file",
+          "patient_name"
+        ]
+      },
+      "returns": {
+        "type": "object",
+        "description": "Complete result with transcription, formatted SOAP note, extracted vitals, and diagnoses"
+      },
+      "examples": [
+        {
+          "description": "Convert exam room recording to SOAP note",
+          "parameters": {
+            "audio_file": "/recordings/exam_bella_2024_11_25.mp3",
+            "patient_name": "Bella",
+            "patient_species": "cat",
+            "patient_age": "7 years",
+            "veterinarian_name": "Dr. Michael Chen"
+          }
+        }
+      ]
+    },
+    {
+      "name": "vet_soap_extract_vitals",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Read X from **[Resource Name]** (ID: `[id]` | URL: [url])'\n(3) Use EXACT [id] provided - NEVER substitute with different ID\n(4) If tool fails (404/403), say 'Failed to read [resource] ID: [id]' and explain error\n(5) NEVER make up data if read fails - acknowledge the failure clearly\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nExtract vital signs from transcription text using regex pattern matching. Identifies Temperature (F), Pulse (bpm), Respiration (breaths/min), and Weight (lbs/kg). Returns structured data for PIMS integration.",
+      "platform": "veterinary_soap",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "transcription": {
+            "type": "string",
+            "description": "Transcription text containing vital signs"
+          }
+        },
+        "required": [
+          "transcription"
+        ]
+      },
+      "returns": {
+        "type": "object",
+        "description": "Extracted vitals with units (temperature, pulse, respiration, weight)"
+      },
+      "examples": [
+        {
+          "description": "Extract vitals from transcription",
+          "parameters": {
+            "transcription": "Physical exam: Temperature 102.5 degrees, heart rate 120 bpm, respiration 24 breaths per minute, weight 65 lbs"
+          }
+        }
+      ]
+    },
+    {
+      "name": "vet_soap_identify_diagnoses",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Read X from **[Resource Name]** (ID: `[id]` | URL: [url])'\n(3) Use EXACT [id] provided - NEVER substitute with different ID\n(4) If tool fails (404/403), say 'Failed to read [resource] ID: [id]' and explain error\n(5) NEVER make up data if read fails - acknowledge the failure clearly\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nIdentify mentioned diagnoses and conditions from transcription. Detects common veterinary diagnoses (parvovirus, diabetes, arthritis, etc.) and flags them for structured data extraction. Useful for coding and billing.",
+      "platform": "veterinary_soap",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "transcription": {
+            "type": "string",
+            "description": "Transcription text containing diagnoses"
+          }
+        },
+        "required": [
+          "transcription"
+        ]
+      },
+      "returns": {
+        "type": "object",
+        "description": "List of identified diagnoses with confidence levels"
+      },
+      "examples": [
+        {
+          "description": "Identify diagnoses from SOAP note",
+          "parameters": {
+            "transcription": "Assessment: Gastroenteritis, possibly secondary to dietary indiscretion. Rule out parvovirus given recent exposure at dog park."
+          }
+        }
+      ]
+    },
+    {
+      "name": "vet_soap_generate_treatment_plan",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) Execute THIS tool NOW - NEVER use cached/remembered data from conversation history\n(2) MUST cite resource: 'Read X from **[Resource Name]** (ID: `[id]` | URL: [url])'\n(3) Use EXACT [id] provided - NEVER substitute with different ID\n(4) If tool fails (404/403), say 'Failed to read [resource] ID: [id]' and explain error\n(5) NEVER make up data if read fails - acknowledge the failure clearly\n\nExample response:\nRead 45 rows from **Sales Spreadsheet**\n- ID: `xyz789`\n- URL: https://example.com/sheet/xyz789\n- Data: [actual data read]\n\nGenerate treatment plan recommendations based on assessment using GPT-4. Provides medications (generic names, dosages), supportive care, dietary recommendations, follow-up timeline, and warning signs to monitor. Veterinary-specific guidance.",
+      "platform": "veterinary_soap",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "assessment": {
+            "type": "string",
+            "description": "Assessment section from SOAP note (diagnosis/differential diagnoses)"
+          },
+          "diagnoses": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "List of identified diagnoses (optional)"
+          },
+          "patient_species": {
+            "type": "string",
+            "description": "Dog, cat, etc. (optional)"
+          },
+          "patient_weight": {
+            "type": "number",
+            "description": "Patient weight in pounds for dosage calculations (optional)"
+          }
+        },
+        "required": [
+          "assessment"
+        ]
+      },
+      "returns": {
+        "type": "object",
+        "description": "Treatment plan with medications, supportive care, diet, follow-up, and warning signs"
+      },
+      "examples": [
+        {
+          "description": "Generate treatment plan for gastroenteritis",
+          "parameters": {
+            "assessment": "Acute gastroenteritis, likely dietary indiscretion",
+            "diagnoses": [
+              "gastroenteritis"
+            ],
+            "patient_species": "dog",
+            "patient_weight": 65.0
+          }
+        }
+      ]
+    }
+  ]
+}

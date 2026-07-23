@@ -1,0 +1,283 @@
+{
+  "platform": "kajabi",
+  "description": "Kajabi Smart Tools - Enhanced analytics, bulk operations, and export capabilities for Kajabi Knowledge Commerce Platform",
+  "tools": [
+    {
+      "name": "kajabi_member_analytics",
+      "description": "📊 SMART ANALYTICS: Comprehensive member analytics with multiple output formats (summary/detailed/CSV) and Google Sheets export. Similar to gmail_bulk_read_summarize - analyzes all members, provides insights, and optionally exports to Google Sheets. Token-efficient 'summary' format shows key metrics only. Use when you need member statistics, enrollment trends, or want to export member data.",
+      "platform": "kajabi",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "status_filter": {
+            "type": "string",
+            "description": "Filter members by status: 'active', 'inactive', 'trialing', or null for all members",
+            "enum": [
+              "active",
+              "inactive",
+              "trialing",
+              null
+            ]
+          },
+          "include_product_access": {
+            "type": "boolean",
+            "description": "Include product access details for each member (requires additional API calls, default: true)",
+            "default": true
+          },
+          "output_format": {
+            "type": "string",
+            "description": "Output format: 'summary' (token-efficient, key metrics only), 'detailed' (full member data), 'csv' (export-ready format)",
+            "enum": [
+              "summary",
+              "detailed",
+              "csv"
+            ],
+            "default": "summary"
+          },
+          "export_to_sheets": {
+            "type": "boolean",
+            "description": "Create Google Sheets with results (requires Google Sheets access, default: false)",
+            "default": false
+          },
+          "sheet_title": {
+            "type": "string",
+            "description": "Custom sheet title (default: 'Kajabi Members - {date}')"
+          }
+        },
+        "required": []
+      },
+      "returns": {
+        "type": "object",
+        "description": "Analytics data with optional spreadsheet_url. Summary format: {total_members, by_status, top_products, recent_signups}. Detailed format includes full member array. CSV format includes csv_data string."
+      },
+      "examples": [
+        {
+          "description": "Get member statistics in token-efficient format",
+          "parameters": {
+            "output_format": "summary"
+          }
+        },
+        {
+          "description": "Export all active members to Google Sheets",
+          "parameters": {
+            "status_filter": "active",
+            "output_format": "detailed",
+            "export_to_sheets": true
+          }
+        },
+        {
+          "description": "Get member list as CSV for further processing",
+          "parameters": {
+            "output_format": "csv"
+          }
+        }
+      ]
+    },
+    {
+      "name": "kajabi_product_performance",
+      "description": "📈 SMART ANALYTICS: Product performance analysis with enrollment metrics and export. Analyzes all products, counts enrolled members per product, and provides performance insights. Supports summary (top products only), detailed (all products), and CSV formats. Can export to Google Sheets for reporting.",
+      "platform": "kajabi",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "include_member_count": {
+            "type": "boolean",
+            "description": "Count enrolled members per product (requires additional API calls to members endpoint, default: true)",
+            "default": true
+          },
+          "include_revenue_data": {
+            "type": "boolean",
+            "description": "Include revenue metrics if available (future enhancement, default: false)",
+            "default": false
+          },
+          "output_format": {
+            "type": "string",
+            "description": "Output format: 'summary' (top 10 products), 'detailed' (all products), 'csv' (export format)",
+            "enum": [
+              "summary",
+              "detailed",
+              "csv"
+            ],
+            "default": "summary"
+          },
+          "export_to_sheets": {
+            "type": "boolean",
+            "description": "Create Google Sheets with product data (default: false)",
+            "default": false
+          }
+        },
+        "required": []
+      },
+      "returns": {
+        "type": "object",
+        "description": "Product performance metrics. Summary: {total_products, top_products[{name, type, member_count, id}]}. Detailed includes full product array. CSV includes csv_data string."
+      },
+      "examples": [
+        {
+          "description": "Show top 10 products by enrollment",
+          "parameters": {
+            "include_member_count": true,
+            "output_format": "summary"
+          }
+        },
+        {
+          "description": "Export all products with member counts to Google Sheets",
+          "parameters": {
+            "include_member_count": true,
+            "export_to_sheets": true
+          }
+        }
+      ]
+    },
+    {
+      "name": "kajabi_bulk_member_operations",
+      "description": "🔧 BULK OPERATIONS: Perform actions on multiple members at once. Supports: grant_access (grant product access), revoke_access (remove product access), add_tag (add tag to members), remove_tag (remove tag). Processes all members in batch with success/failure tracking. Use when you need to update many members simultaneously.",
+      "platform": "kajabi",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "operation": {
+            "type": "string",
+            "description": "Operation to perform: 'grant_access', 'revoke_access', 'add_tag', 'remove_tag'",
+            "enum": [
+              "grant_access",
+              "revoke_access",
+              "add_tag",
+              "remove_tag"
+            ]
+          },
+          "member_ids": {
+            "type": "array",
+            "description": "List of member IDs to perform operation on",
+            "items": {
+              "type": "string"
+            }
+          },
+          "product_id": {
+            "type": "string",
+            "description": "Product ID (required for grant_access and revoke_access operations)"
+          },
+          "tag": {
+            "type": "string",
+            "description": "Tag name (required for add_tag and remove_tag operations)"
+          },
+          "offer_id": {
+            "type": "string",
+            "description": "Optional offer ID for grant_access operation"
+          }
+        },
+        "required": [
+          "operation",
+          "member_ids"
+        ]
+      },
+      "returns": {
+        "type": "object",
+        "description": "Operation results: {operation, total_members, successful, failed, results[{member_id, success, error?}]}"
+      },
+      "examples": [
+        {
+          "description": "Grant course access to 50 members",
+          "parameters": {
+            "operation": "grant_access",
+            "member_ids": [
+              "123",
+              "456",
+              "789"
+            ],
+            "product_id": "course_001"
+          }
+        },
+        {
+          "description": "Add VIP tag to premium members",
+          "parameters": {
+            "operation": "add_tag",
+            "member_ids": [
+              "123",
+              "456"
+            ],
+            "tag": "VIP"
+          }
+        },
+        {
+          "description": "Remove access from list of members",
+          "parameters": {
+            "operation": "revoke_access",
+            "member_ids": [
+              "123",
+              "456"
+            ],
+            "product_id": "course_001"
+          }
+        }
+      ]
+    },
+    {
+      "name": "kajabi_export_to_doc",
+      "description": "📄 EXPORT TO GOOGLE DOCS: Create formatted Google Doc with Kajabi data. Exports member lists, product lists, or comprehensive analytics reports to Google Docs with proper markdown formatting. Creates professional reports suitable for sharing with team members or stakeholders.",
+      "platform": "kajabi",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "content_type": {
+            "type": "string",
+            "description": "Type of content to export: 'member_list' (member report with stats), 'product_list' (all products with enrollment), 'analytics_report' (comprehensive analytics)",
+            "enum": [
+              "member_list",
+              "product_list",
+              "analytics_report"
+            ]
+          },
+          "title": {
+            "type": "string",
+            "description": "Document title (default: auto-generated based on content type and date)"
+          },
+          "status_filter": {
+            "type": "string",
+            "description": "For member_list: filter by status ('active', 'inactive', 'trialing')",
+            "enum": [
+              "active",
+              "inactive",
+              "trialing",
+              null
+            ]
+          },
+          "include_member_count": {
+            "type": "boolean",
+            "description": "For product_list: include member enrollment counts (default: true)",
+            "default": true
+          }
+        },
+        "required": [
+          "content_type"
+        ]
+      },
+      "returns": {
+        "type": "object",
+        "description": "Google Doc details: {document_id, document_url, title}"
+      },
+      "examples": [
+        {
+          "description": "Create member report document",
+          "parameters": {
+            "content_type": "member_list",
+            "title": "Q4 2025 Member Report"
+          }
+        },
+        {
+          "description": "Export product list with enrollment stats",
+          "parameters": {
+            "content_type": "product_list",
+            "include_member_count": true
+          }
+        },
+        {
+          "description": "Generate comprehensive analytics report",
+          "parameters": {
+            "content_type": "analytics_report"
+          }
+        }
+      ]
+    }
+  ]
+}
