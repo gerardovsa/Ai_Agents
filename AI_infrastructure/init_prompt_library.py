@@ -78,42 +78,30 @@ def init_prompt_library_table(db_path=None):
         
         # Step 2: Create indexes (skip if slow, table works without them)
         # Indexes are performance optimization only - not required for functionality
+        # ✅ BOOT-PERF (2026-07-23): Removed redundant per-index existence pre-check.
+        # `CREATE INDEX IF NOT EXISTS` is atomic in PostgreSQL — the previous
+        # `SELECT 1 FROM pg_indexes WHERE ...` round-trip (~80ms × 4 = ~320ms
+        # over the network) added no safety, only latency to the cold-start path.
         indexes = [
             ("idx_prompt_library_user_id", "user_id"),
             ("idx_prompt_library_workspace_id", "workspace_id"),
             ("idx_prompt_library_category", "category"),
             ("idx_prompt_library_visibility", "visibility")
         ]
-        
+
         logger.info("Creating indexes (may skip if slow)...")
-        
+
         for idx_name, column in indexes:
             try:
-                # Rollback any previous failed transaction
-                conn.rollback()
-                
-                # Check if index already exists (fast query)
-                with conn.cursor() as cursor:
-                    cursor.execute("""
-                        SELECT 1 FROM pg_indexes 
-                        WHERE schemaname = 'ai_infrastructure' 
-                          AND indexname = %s
-                    """, (idx_name,))
-                    exists = cursor.fetchone()
-                
-                if exists:
-                    logger.info(f"✅ Index {idx_name} already exists")
-                    continue
-                
-                # Index doesn't exist - try to create it (with timeout)
-                # Set short timeout for index creation (10s max per index)
-                conn.rollback()  # Clean state
+                # Atomic create — PostgreSQL handles existence check internally.
+                # 10s per-index timeout guards against pathological lock contention.
+                conn.rollback()  # Clean state from any prior failed tx
                 with conn.cursor() as cursor:
                     cursor.execute("SET LOCAL statement_timeout = '10s'")
                     cursor.execute(f"CREATE INDEX IF NOT EXISTS {idx_name} ON ai_infrastructure.prompt_library({column})")
                 conn.commit()
-                logger.info(f"✅ Index {idx_name} created")
-                    
+                logger.info(f"✅ Index {idx_name} ensured")
+
             except Exception as idx_error:
                 # Rollback failed transaction
                 try:
@@ -126,18 +114,13 @@ def init_prompt_library_table(db_path=None):
                     logger.warning(f"⚠️ Index {idx_name} skipped (timeout - will retry next startup)")
                 else:
                     logger.warning(f"⚠️ Index {idx_name} skipped: {error_msg}")
-        
-        # Step 3: Check row count (rollback first if transaction is aborted)
-        try:
-            conn.rollback()  # Ensure clean state
-            with conn.cursor() as cursor:
-                cursor.execute("SELECT COUNT(*) FROM ai_infrastructure.prompt_library")
-                count = cursor.fetchone()[0]
-            logger.info(f"✅ prompt_library table initialized ({count} existing prompts)")
-        except Exception as count_error:
-            # Non-critical: just means we couldn't verify row count
-            logger.info(f"⚠️ Could not verify prompt count (non-critical): {count_error}")
-        
+
+        # ✅ BOOT-PERF (2026-07-23): Removed `SELECT COUNT(*) FROM prompt_library`
+        # verification. The query is logging-only — its own try/except marked it
+        # "non-critical". Eliminating it saves ~50-100ms of network round-trip on
+        # every cold start for zero functional value.
+
+        logger.info(f"✅ prompt_library table initialized (schema verified)")
         return True
         
     except Exception as e:

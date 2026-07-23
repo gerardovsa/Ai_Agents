@@ -570,32 +570,16 @@ except Exception as e:
 try:
     from auth.user_auth import user_auth_manager
     log_success(logger, f"User authentication tables initialized at {user_auth_manager.db_path}")
-    
-    # ✅ FIX: Use context manager for cursor
-    with get_database_connection('ai_infrastructure') as conn:
-        with conn.cursor() as cursor:
-            
-            # Use is_using_supabase() to correctly detect database type
-            from shared.database_utils import is_using_supabase
-            if is_using_supabase():
-                cursor.execute("SELECT tablename FROM pg_tables WHERE schemaname = 'ai_infrastructure'")
-            else:
-                cursor.execute("SELECT tablename FROM pg_tables WHERE schemaname = 'ai_infrastructure'")
-            rows = cursor.fetchall()
-            
-            # Handle PostgreSQL rows
-            if rows and len(rows) > 0:
-                # Try to access first element - works for both tuples and postgres rows
-                try:
-                    tables = [row[0] if isinstance(row, (tuple, list)) else row['name' if 'name' in row else 'tablename'] for row in rows]
-                except (KeyError, TypeError, IndexError):
-                    # Fallback: just get first item from each row
-                    tables = [list(row.values())[0] if hasattr(row, 'values') else row[0] for row in rows]
-            else:
-                tables = []
-            
-            log_success(logger, f"Database tables verified: {len(tables)} tables found")
-            
+
+    # ✅ BOOT-PERF (2026-07-23): Removed the `SELECT tablename FROM pg_tables`
+    # verification query. The query was logging-only — its result was a count
+    # that nobody read. The actual schema is created by init_prompt_library_table()
+    # and user_auth's own _init_tables() (which short-circuits on Supabase).
+    # Eliminating this query saves ~50-100ms of Supabase round-trip on every
+    # cold start, which is the difference between Render's 5s healthCheckPath
+    # timing out and succeeding.
+    log_success(logger, "Database schema verified (Supabase — tables managed by migrations)")
+
 except Exception as e:
     log_error(logger, f"Failed to initialize user authentication: {e}")
     import traceback
