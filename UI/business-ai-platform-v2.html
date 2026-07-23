@@ -12514,7 +12514,7 @@
 
         .agent-column.drag-over {
             background: rgba(88, 166, 255, 0.1);
-            border: 3px solid var(--accent-primary);
+            border: 2px solid var(--accent-primary);
             box-shadow: inset 0 0 20px rgba(88, 166, 255, 0.2);
             transition: background 0.3s cubic-bezier(0.4, 0, 0.2, 1),
                 border 0.3s cubic-bezier(0.4, 0, 0.2, 1),
@@ -12543,7 +12543,7 @@
 
         /* Prime drop zone — applied to entire ai-chat-panel when a thread
            info card is dragged over it. Style matches .agent-column.drag-over
-           exactly (3px solid border, blue glow, smooth transition) so the
+           exactly (2px solid border, blue glow, smooth transition) so the
            three drop targets read as the same affordance.
 
            FIX (Jul 23, 2026): the previous rule used `outline: 3px dashed
@@ -12552,9 +12552,12 @@
            sat on top of it and obscured it. Switching to `border` paints
            the highlight on the panel's own box edge — outside the children
            — so it stays visible. Box-sizing: border-box is set globally
-           so adding 3px borders does not shift content. */
+           so adding 2px borders does not shift content.
+
+           FIX (Jul 23, 2026, 2nd pass): thinned from 3px → 2px to match
+           the agent columns and catalogue (per user direction). */
         .ai-chat-panel.prime-drag-over {
-            border: 3px solid var(--accent-primary);
+            border: 2px solid var(--accent-primary);
             background: rgba(88, 166, 255, 0.1);
             box-shadow: inset 0 0 20px rgba(88, 166, 255, 0.2);
             transition: background 0.3s cubic-bezier(0.4, 0, 0.2, 1),
@@ -12565,9 +12568,16 @@
         /* Thread Catalogue drop zone — only fires when the sidebar is
            open (.active). Same accent + same solid-border treatment as
            Prime and the agent columns so all three drop targets read
-           identically. */
+           identically. FIX (Jul 23, 2026): base `.thread-menu-overlay`
+           rule sets `border-left: 1px solid !important` (line 6850) which
+           previously won over this rule and hid the left edge of the
+           highlight. Adding `!important` here (and matching `border-left`
+           in the shorthand) lets the drag-over accent paint cleanly on
+           all four sides. Also thinned to 2px for visual parity with
+           Prime and the agent columns. */
         .thread-menu-overlay.drag-over {
-            border: 3px solid var(--accent-primary);
+            border: 2px solid var(--accent-primary) !important;
+            border-left: 2px solid var(--accent-primary) !important;
             background: rgba(88, 166, 255, 0.1);
             box-shadow: inset 0 0 20px rgba(88, 166, 255, 0.2);
             transition: background 0.3s cubic-bezier(0.4, 0, 0.2, 1),
