@@ -439,6 +439,37 @@ ${lucideScript}
             }, '*');
         } catch (_) {}
 
+        // ── DIAGNOSTIC FENCES (2026-07-23) ─────────────────────────────────
+        // The recurring bug "e.get is not a function" at babel.min.js:1:925003
+        // fires inside makeWeakCache (function NI(e,t,r) in the minified
+        // bundle). That cache is initialised by @babel/core when it resolves
+        // plugins for a file. We do not know which renderer setup step
+        // corrupts the cache reference, so we probe Babel.transform with a
+        // trivial JSX source at each seam between setup steps. Whichever
+        // fence reports ok=false narrows the search.
+        //
+        // Results are surfaced two ways:
+        //   1) window.parent.__babelFences  (same-origin only; wrapped in
+        //      try/catch because the iframe is srcdoc-sandboxed and the
+        //      write throws SecurityError cross-origin)
+        //   2) postMessage 'react-render-fences'  (cross-origin safe)
+        var __babelFences = [];
+        (function __babelFence(label) {
+            try {
+                Babel.transform('function T(){return <div/>;}', {
+                    presets: [['react', { runtime: 'classic' }]]
+                });
+                __babelFences.push({ label: label, ok: true });
+            } catch (e) {
+                __babelFences.push({
+                    label: label,
+                    ok: false,
+                    err: e.message,
+                    stackHead: ((e.stack || '').split('\n').slice(0, 3).join(' | '))
+                });
+            }
+        })('F0 — Babel initial state (no setup yet)');
+
         // ── React + hooks on window so user code can use identifiers ───────
         // without an explicit React. prefix.
         window.React = React;
@@ -451,8 +482,28 @@ ${lucideScript}
             if (typeof React[k] === 'function') window[k] = React[k];
         });
         window.Fragment = React.Fragment;
+        __babelFence('F1 — after React hooks assigned to window');
+
 ${rechartsSetup}
+        __babelFence('F2 — after Recharts globals on window');
+
 ${identifierHoist}
+        __babelFence('F3 — after identifier hoist (lucide/Recharts PascalCase)');
+
+        // Surface fence results to parent for offline inspection. The
+        // postMessage is the cross-origin-safe channel; the direct property
+        // assignment is the same-origin fast path (silently fails in sandbox).
+        try {
+            window.parent.__babelFences = __babelFences;
+            window.parent.__lastFenceFrameId = '${chartId}';
+        } catch (_) {}
+        try {
+            window.parent.postMessage({
+                type: 'react-render-fences',
+                id: '${chartId}',
+                fences: __babelFences
+            }, '*');
+        } catch (_) {}
 
         var rawSource = ${JSON.stringify(cleanedJSX)};
         var out;
@@ -488,8 +539,11 @@ ${identifierHoist}
                 window.parent.__lastBadLen     = rawSource.length;
                 window.parent.__lastBadMsg     = tmsg;
                 window.parent.__lastBadFrameId = '${chartId}';
+                window.parent.__lastBadFences  = __babelFences;
                 console.error('[REACT_RENDERER_DIAG] Captured failing JSX on window.parent.__lastBadJsx — length:',
                     rawSource.length, 'preview:', rawSource.slice(0, 200));
+                console.error('[REACT_RENDERER_DIAG] Babel fence results at throw:',
+                    JSON.stringify(__babelFences, null, 2));
             } catch (_) { /* parent unreachable (srcdoc sandbox) */ }
             return;
         }
