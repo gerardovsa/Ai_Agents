@@ -34,7 +34,14 @@ services:
     
     # Health check endpoint
     healthCheckPath: /health
-    
+    # Health check timeout: Render defaults to 5s, max 30s.
+    # Bumped to 30s because boot takes ~23s end-to-end:
+    #   - Phase 1 (commit f0287455) stripped ~500ms of redundant DB verification queries
+    #   - Remaining ~22s is core_route_imports + database_initialization +
+    #     module_blueprint_autoload + SocketIO init + pool prewarm
+    # Without this bump, every cold start crashes with HTTP health check failed (timed out after 5 seconds).
+    healthCheckTimeout: 30
+
     # ==================== Persistent Disk (10GB) ====================
     # Mounts to /data for SQLite databases
     # Cost: $2.50/month (10GB @ $0.25/GB)
