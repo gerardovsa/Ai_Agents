@@ -547,7 +547,7 @@ ${lucideScript}
                     label: label,
                     ok: false,
                     err: e.message,
-                    stackHead: ((e.stack || '').split('\n').slice(0, 3).join(' | '))
+                    stackHead: ((e.stack || '').split(String.fromCharCode(10)).slice(0, 3).join(' | '))
                 });
             }
         })('F0 — Babel initial state (no setup yet)');
