@@ -805,7 +805,7 @@
     <script src="visualisation_engine/svg_renderer.js?v=20260328_1054" defer></script>
     <script src="visualisation_engine/latex_renderer.js?v=20260328_1054" defer></script>
     <script src="visualisation_engine/html_renderer.js?v=20260328_1054" defer></script>
-    <script src="visualisation_engine/react_renderer.js?v=20260723_1230" defer></script>
+    <script src="visualisation_engine/react_renderer.js?v=20260723_1955" defer></script>
     <script src="visualisation_engine/viz_popup_manager.js?v=20260328_1054" defer></script>
     <script src="visualisation_engine/threejs_renderer.js?v=20260328_1054" defer></script>
 
@@ -12542,22 +12542,37 @@
         }
 
         /* Prime drop zone — applied to entire ai-chat-panel when a thread
-           info card is dragged over it. Distinct blue glow so users see
-           that Prime is a valid target, not just any empty space. */
+           info card is dragged over it. Style matches .agent-column.drag-over
+           exactly (3px solid border, blue glow, smooth transition) so the
+           three drop targets read as the same affordance.
+
+           FIX (Jul 23, 2026): the previous rule used `outline: 3px dashed
+           with outline-offset: -6px`, which drew the highlight INSIDE the
+           panel's box where .ai-chat-messages (flex: 1, own background)
+           sat on top of it and obscured it. Switching to `border` paints
+           the highlight on the panel's own box edge — outside the children
+           — so it stays visible. Box-sizing: border-box is set globally
+           so adding 3px borders does not shift content. */
         .ai-chat-panel.prime-drag-over {
-            outline: 3px dashed var(--accent-primary);
-            outline-offset: -6px;
-            background: rgba(88, 166, 255, 0.06);
-            transition: outline-color 0.15s ease, background 0.15s ease;
+            border: 3px solid var(--accent-primary);
+            background: rgba(88, 166, 255, 0.1);
+            box-shadow: inset 0 0 20px rgba(88, 166, 255, 0.2);
+            transition: background 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+                border 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+                box-shadow 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         }
 
         /* Thread Catalogue drop zone — only fires when the sidebar is
-           open (.active). Same accent as Prime for visual consistency. */
+           open (.active). Same accent + same solid-border treatment as
+           Prime and the agent columns so all three drop targets read
+           identically. */
         .thread-menu-overlay.drag-over {
-            outline: 3px dashed var(--accent-primary);
-            outline-offset: -6px;
-            background: rgba(88, 166, 255, 0.06);
-            transition: outline-color 0.15s ease, background 0.15s ease;
+            border: 3px solid var(--accent-primary);
+            background: rgba(88, 166, 255, 0.1);
+            box-shadow: inset 0 0 20px rgba(88, 166, 255, 0.2);
+            transition: background 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+                border 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+                box-shadow 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         }
 
         .agent-header {
