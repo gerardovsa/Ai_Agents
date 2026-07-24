@@ -1,8 +1,8 @@
 # React Renderer Troubleshooting — Lucide / Babel / Recharts
 
-**Date:** 2026-07-22 → 2026-07-23 (live doc; appended as new evidence lands)
-**Status:** Lucide + Recharts hoist works. Babel `makeWeakCache` corruption fixed. **One remaining bug**: `ComposedChart` with dual YAxes + conditional `<Area>/<Bar>/<Line>` throws `TypeError: t.has is not a function` from `Recharts.js:2:121494`. Single-axis Recharts renders fine.
-**Priority:** P1 — Recharts with `LineChart`/`PieChart`/`BarChart` (single-axis) works, but the AI commonly emits `ComposedChart` for combined dashboards, so this still blocks a major class of visualizations.
+**Date:** 2026-07-22 → 2026-07-24 (live doc; appended as new evidence lands)
+**Status:** Lucide + Recharts hoist works. Babel `makeWeakCache` corruption fixed. **`t.has is not a function`** fixed in 3 patch rounds (§12). **New bug 2026-07-24**: `window.Recharts` appears undefined in the post-exec snapshot while individual components (BarChart, ScatterChart) read as functions — fixed in §13 by polling for `window.Recharts` to appear before the rechartsSetup IIFE assigns.
+**Priority:** P2 — single-axis Recharts works since §12; multi-axis ComposedChart needs §13's defensive rechartsSetup.
 
 ---
 
@@ -306,3 +306,172 @@ If the upgrade is to Recharts 3.x, the class is no longer named `vn` and the min
 - ScatterChart with `<Cell>` children inside `<Scatter>` should now render
 - Single-axis LineChart/BarChart/PieChart (which already worked) continue to work
 - All other Recharts patterns are unaffected — the guards are at the `vn` class only
+
+---
+
+## 13. Round 4 — `window.Recharts` race / `Element type is invalid` (#130)
+
+**Status:** Fixed in commit `TBD` (cache-buster `20260724_1800` in both `react_renderer.js` URL inside `business-ai-platform-v2.html:808` and the inner `prop-types.js` / `Recharts.js` URLs inside `react_renderer.js:322`).
+
+### 13.1 Symptom
+
+After deploying §12, the original `t.has is not a function` error disappeared, but a new error appeared in the iframe:
+
+```
+Error: Element type is invalid: expected a string (for built-in components)
+or a class/function (for composite components) but got: undefined.
+…
+Check the render method of `App`.
+```
+
+The component stack ended at the user's `App` component, so the failing JSX was inside the user's chart. The post-execution snapshot taken from the same iframe showed:
+
+```json
+{
+  "hasRecharts":   "undefined",
+  "hasBarChart":   "function",
+  "hasScatter":    "function",
+  "hasLineChart":  "function",
+  "hasPieChart":   "function",
+  "hasResponsive": "undefined",
+  "hasBriefcase":  "function",
+  "hasDollarSign": "function",
+  …
+}
+```
+
+This is internally contradictory: `hasBarChart: "function"` implies `window.Recharts.BarChart` was readable by *something* (either the `rechartsSetup` IIFE or the `identifierHoist` IIFE, both of which source from `window.Recharts || {}`), but `hasRecharts: "undefined"` says `window.Recharts` is undefined at snapshot time. The reconciliation:
+
+1. The `rechartsSetup` IIFE ran when `window.Recharts` was defined (so BarChart, ScatterChart, LineChart, PieChart were copied to `window.*`).
+2. Something — a UMD evaluation race in some browsers, a slow prop-types.js response, or a defensive cleanup path — caused the snapshot to observe `window.Recharts === undefined` even though the component-by-component copy succeeded.
+
+The chart's JSX uses `<ResponsiveContainer>`, `<Cell>`, `<CartesianGrid>`, `<XAxis>`, `<YAxis>`, `<Tooltip>`, `<Bar>`, `<Area>`, `<Line>`, `<Legend>` — none of which are checked by the snapshot, but they all went through the same `rechartsSetup`/`identifierHoist` paths. The most likely failure mode: the rechartsSetup IIFE did `window[n] = r[n]` blindly, and for the names that were **not** in the user's `referenced` set passed to `identifierHoist`, the only writer was rechartsSetup. If rechartsSetup's `r = window.Recharts || {}` evaluated to `{}` (because the UMD hadn't run yet), those names were silently set to `undefined`. The render-time `<ResponsiveContainer />` then crashed with `Element type is invalid: … got: undefined`.
+
+### 13.2 Fix
+
+Two changes in `react_renderer.js`:
+
+**a) `rechartsSetup` (line ~340) now polls for `window.Recharts` and only assigns defined values:**
+
+```js
+(function () {
+    var names = ['BarChart','Bar','LineChart', … /* 33 names */ ];
+    var assigned = [];
+    function tryAssign() {
+        var r = window.Recharts;
+        if (!r || typeof r !== 'object') return false;
+        for (var i = 0; i < names.length; i++) {
+            var n = names[i], v = r[n];
+            if (typeof v === 'function' || typeof v === 'object') {
+                if (window[n] !== v) { window[n] = v; assigned.push(n); }
+            }
+        }
+        return true;
+    }
+    if (!tryAssign()) {
+        var waited = 0;
+        var poll = setInterval(function () {
+            waited += 50;
+            if (tryAssign() || waited >= 3000) {
+                clearInterval(poll);
+                if (waited >= 3000 && !window.Recharts) {
+                    console.error('[REACT_RENDERER] window.Recharts never appeared within 3 s. ' +
+                        'prop-types.js may have failed to load (Recharts UMD factory needs it). …');
+                }
+            }
+        }, 50);
+    }
+})();
+```
+
+**b) Cache-buster bump `20260724_1605 → 20260724_1800`** in:
+- `business-ai-platform-v2.html:808` (the `<script src="visualisation_engine/react_renderer.js?v=…">` tag)
+- `react_renderer.js:322` (the `<script src="visualisation_engine/libs/{prop-types,Recharts}.js?v=…">` template)
+
+### 13.3 Updated console helpers
+
+**Constraint:** Never `location.reload()` from a helper — it logs the SPA out (see memory `never-reload-in-devtools-diagnostics`). Use `fetch(url, {cache:'no-store'})` for freshness checks.
+
+**Helper R1 — confirm Round 4 is deployed (cache-buster should be `20260724_1800`):**
+
+```js
+(async () => {
+    const r = await fetch('/visualisation_engine/react_renderer.js', {cache:'no-store'});
+    const t = await r.text();
+    const m = t.match(/libs\/Recharts\.js\?v=(\d{8})_(\d{4})/);
+    if (!m) { console.log('CACHE-BUSTER NOT FOUND — old build?'); return; }
+    const stamp = parseInt(m[1] + m[2], 10);
+    const target = 20260724 * 1e4 + 1800;
+    console.log(stamp === target
+        ? `OK: Round 4 deployed (cache-buster ${m[1]}_${m[2]})`
+        : `STALE: Round 4 target ${target}, server has ${stamp}`);
+    return { serverCacheBuster: `${m[1]}_${m[2]}`, target, isCurrent: stamp === target };
+})();
+```
+
+**Helper R2 — find the latest chart iframe and report the fence results:**
+
+```js
+(() => {
+    const iframes = Array.from(document.querySelectorAll('iframe'));
+    const diag = iframes.filter(f => f.id && /^react-/.test(f.id));
+    if (!diag.length) { console.log('No react iframes found. Render a chart in the playground first.'); return; }
+    const latest = diag[diag.length - 1];
+    console.log('Found', diag.length, 'react iframes; latest id =', latest.id);
+    return { id: latest.id, count: diag.length };
+})();
+```
+
+**Helper R3 — read the fence results from the parent-side cache (set by the iframe's inline script):**
+
+```js
+(() => {
+    const fences = window.__babelFences || (window.parent && window.parent.__babelFences);
+    if (!fences) { console.log('No fences captured yet. Re-render any chart first.'); return; }
+    console.table(fences);
+    return fences;
+})();
+```
+
+**Helper R4 — read the post-exec snapshot from the latest iframe (no reload required):**
+
+```js
+(() => {
+    const snap = window.__lastExecSnap;
+    if (!snap) { console.log('No post-exec snapshot yet. Render any chart first.'); return; }
+    console.log('[REACT_RENDERER_DIAG] post-exec snapshot:', JSON.stringify(snap, null, 2));
+    return snap;
+})();
+```
+
+**Helper R5 — directly probe a live chart iframe's window for Recharts (run from inside the iframe's DevTools context):**
+
+```js
+(() => {
+    return {
+        windowRecharts:        typeof window.Recharts,
+        windowPropTypes:       typeof window.PropTypes,
+        windowReact:           typeof window.React,
+        windowBarChart:        typeof window.BarChart,
+        windowScatterChart:    typeof window.ScatterChart,
+        windowResponsiveContainer: typeof window.ResponsiveContainer,
+        windowCell:            typeof window.Cell,
+        windowCartesianGrid:   typeof window.CartesianGrid,
+        windowXAxis:           typeof window.XAxis,
+        windowYAxis:           typeof window.YAxis,
+        windowTooltip:         typeof window.Tooltip,
+        windowLegend:          typeof window.Legend,
+        windowComposedChart:   typeof window.ComposedChart,
+        rechartsKeys:          window.Recharts ? Object.keys(window.Recharts).sort() : null
+    };
+})();
+```
+
+Run R5 from inside an active chart iframe (DevTools > Sources > top > select the iframe > Console panel). All `function`/`object` = Round 4 worked. Any `undefined` = that name was never assigned, which is the symptom §13 was designed to eliminate.
+
+### 13.4 Verification
+
+- ComposedChart with dual YAxes + `<Area>` / `<Bar>` / `<Line>` children should now render without React error #130.
+- ScatterChart with mapped `<Cell>` children should now render.
+- The `[REACT_RENDERER] rechartsSetup resolved synchronously:` (or `after N ms:`) console line confirms the polling path was taken.
+- If `window.Recharts never appeared within 3 s` appears, check the Network tab for `visualisation_engine/libs/prop-types.js` — a 4xx/5xx/CORS error there is the most likely cause (the Recharts UMD factory needs PropTypes to evaluate without throwing).

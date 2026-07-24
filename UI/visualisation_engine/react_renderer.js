@@ -319,7 +319,7 @@ class ReactRenderer {
 
         // ── CDN script tags ─────────────────────────────────────────────────────
         const rechartsScript = usesRecharts
-            ? `  <script src="visualisation_engine/libs/prop-types.js?v=20260724_1605"><\/script>\n  <script src="visualisation_engine/libs/Recharts.js?v=20260724_1605"><\/script>` : '';
+            ? `  <script src="visualisation_engine/libs/prop-types.js?v=20260724_1800"><\/script>\n  <script src="visualisation_engine/libs/Recharts.js?v=20260724_1800"><\/script>` : '';
         // Always inject the lucide UMD. The detection regex above is brittle
         // (only ~30 hand-picked icons) and the AI emits PascalCase JSX tags
         // without explicit `import` statements, so by the time we know an
@@ -337,11 +337,34 @@ class ReactRenderer {
             ? `  <script src="https://cdn.tailwindcss.com"><\/script>` : '';
 
         // ── Global destructures for common libraries ────────────────────────────
+        // Recharts — expose all chart components as window globals so user code
+        // can use <BarChart .../> without an explicit prefix.
+        //
+        // Defensive v2 (2026-07-24): the previous version did
+        //     var r = window.Recharts || {};
+        //     names.forEach(function (n) { window[n] = r[n]; });
+        // which silently assigned `undefined` to every name if window.Recharts
+        // was not yet set when this IIFE fired (it lives in the inline script
+        // after a <script src="...Recharts.js?..."> tag; classic <script>
+        // tags run in document order so Recharts should be set, but we saw
+        // a render where BarChart / ScatterChart ended up as functions
+        // (came from rechartsSetup OR a later hoist) while ResponsiveContainer
+        // / Cell / CartesianGrid were undefined — inconsistent with both
+        // sources being available at the same instant, which suggests the
+        // snapshot itself raced the UMD evaluation in some browsers).
+        //
+        // New contract:
+        //   1) Poll for window.Recharts to appear (max 3 s) — robust against
+        //      UMD evaluation order races and slow CDN responses.
+        //   2) Only assign window[name] when r[name] is actually defined —
+        //      never write `undefined` into a slot.
+        //   3) Surface a clear console error if window.Recharts never appears
+        //      (e.g. prop-types.js failed to load, breaking the UMD factory
+        //      and leaving window.Recharts permanently missing).
         const rechartsSetup = usesRecharts ? `
     // Recharts — expose all chart components as window globals so user code
     // can use <BarChart .../> without an explicit prefix.
     (function () {
-        var r = window.Recharts || {};
         var names = [
             'BarChart','Bar','LineChart','Line','PieChart','Pie','Cell',
             'AreaChart','Area','ScatterChart','Scatter','XAxis','YAxis','ZAxis',
@@ -351,7 +374,39 @@ class ReactRenderer {
             'LabelList','ReferenceLine','ReferenceArea','ReferenceDot',
             'Brush','ErrorBar','Label'
         ];
-        names.forEach(function (n) { window[n] = r[n]; });
+        var assigned = [];
+        function tryAssign() {
+            var r = window.Recharts;
+            if (!r || typeof r !== 'object') return false;
+            for (var i = 0; i < names.length; i++) {
+                var n = names[i];
+                var v = r[n];
+                if (typeof v === 'function' || typeof v === 'object') {
+                    if (window[n] !== v) { window[n] = v; assigned.push(n); }
+                }
+            }
+            return true;
+        }
+        if (!tryAssign()) {
+            var waited = 0;
+            var poll = setInterval(function () {
+                waited += 50;
+                if (tryAssign() || waited >= 3000) {
+                    clearInterval(poll);
+                    if (waited >= 3000 && !window.Recharts) {
+                        console.error('[REACT_RENDERER] window.Recharts never appeared within 3 s. ' +
+                            'prop-types.js may have failed to load (Recharts UMD factory needs it). ' +
+                            'Check Network tab for visualisation_engine/libs/prop-types.js — a 404 / CORS / MIME error here breaks the entire chart.');
+                    } else if (assigned.length) {
+                        console.log('[REACT_RENDERER] rechartsSetup resolved after ' + waited + ' ms:',
+                            assigned.length + ' components on window');
+                    }
+                }
+            }, 50);
+        } else if (assigned.length) {
+            console.log('[REACT_RENDERER] rechartsSetup resolved synchronously:',
+                assigned.length + ' components on window');
+        }
     })();` : '';
 
         // ── Auto-hoist every PascalCase identifier the user references ────────
