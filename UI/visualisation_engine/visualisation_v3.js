@@ -5022,6 +5022,20 @@ svg{max-width:100%;height:auto;display:block;margin:0 auto;}</style>
         const baseId = retryContext ? retryContext.baseId : chartId;
         const attempt = retryContext ? retryContext.attempt : 0;
 
+        // EW (Jul 24 2026): Render-token for concurrent re-render safety.
+        // When two renderMermaidDirectly calls race on the same contentArea
+        // (stream-finalize + chunk-handler both triggering a render, or
+        // _scheduleMermaidRerender racing the original attempt), the second
+        // call's cleanup at L5063 wipes the first call's <svg>-bearing div
+        // before the first call's awaited mermaid.render resolves.  Without
+        // this token, the stale call would write SVG into a detached div
+        // AND attach an action bar to the outer viz-container — leaving the
+        // user with a visible action bar but an empty body.  Bumping the
+        // token on entry and checking it after every await makes the LATEST
+        // in-flight render the only one that commits, mirroring the React 18
+        // pattern for dropping stale render commits.
+        const myRenderToken = (contentArea._mermaidRenderToken = (contentArea._mermaidRenderToken || 0) + 1);
+
         // RITICAL: DOM validation before any DOM manipulation
         if (!contentArea) {
             throw new Error('Content area is null - cannot render Mermaid');
@@ -5182,6 +5196,14 @@ svg{max-width:100%;height:auto;display:block;margin:0 auto;}</style>
                 return;
             }
 
+            // EW (Jul 24 2026): Bail out before any DOM mutation if a newer
+            // render has superseded us.  See render-token comment at the top
+            // of this function for the race this guards against.
+            if (contentArea._mermaidRenderToken !== myRenderToken) {
+                console.log(`🔁 VIZ-V3: Mermaid render superseded (token ${myRenderToken} -> ${contentArea._mermaidRenderToken}); discarding stale SVG`);
+                return;
+            }
+
             mermaidDiv.innerHTML = svg;
 
             // OVERRIDE: Mermaid sets style="max-width: Xpx" based on the SVG's own
@@ -5231,6 +5253,16 @@ svg{max-width:100%;height:auto;display:block;margin:0 auto;}</style>
             }
 
             if (vizContainer) {
+                // EW (Jul 24 2026): Re-check token before attaching the action
+                // bar.  If a newer render has superseded us between the SVG
+                // write and this point, skip the action bar so the surviving
+                // render owns the viz-container's UI state — otherwise the
+                // user ends up with multiple action bars and the wrong one
+                // bound to the (now-stale) chartId.
+                if (contentArea._mermaidRenderToken !== myRenderToken) {
+                    console.log(`🔁 VIZ-V3: Mermaid render superseded before action bar (token ${myRenderToken}); skipping`);
+                    return;
+                }
                 vizContainer.setAttribute('data-color-theme', 'default');
                 vizContainer.setAttribute('data-font-size', '14');
                 this.addMermaidUnifiedActionBar(vizContainer, item.content, chartId);
@@ -5239,6 +5271,14 @@ svg{max-width:100%;height:auto;display:block;margin:0 auto;}</style>
             console.log('nhanced Mermaid with improved approach rendered successfully');
 
         } catch (error) {
+            // EW (Jul 24 2026): If a newer render has superseded us, swallow
+            // the error silently — the new render owns the viz-container's
+            // UI state and will surface its own success or error outcome.
+            // Showing a stale error here would be misleading.
+            if (contentArea._mermaidRenderToken !== myRenderToken) {
+                console.log(`🔁 VIZ-V3: Mermaid render superseded in catch (token ${myRenderToken}); skipping stale error render`);
+                return;
+            }
             console.error(' Enhanced Mermaid rendering error:', error);
 
             // Translate Mermaid 10's internal layout-routing failure into a

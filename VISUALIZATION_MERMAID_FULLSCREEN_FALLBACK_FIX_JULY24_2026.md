@@ -217,3 +217,112 @@ contracts are touched.
 
 No env-var, schema, or API changes. No front-end cache busting required
 beyond the normal browser reload. Single-file diff; risk is minimal.
+
+---
+
+## Followup — Concurrent Re-render Race in `renderMermaidDirectly`
+
+The fullscreen fallback fix above addresses the user-facing "No diagram
+found to display" toast when the inline SVG is missing. The companion fix
+below addresses the upstream cause of that missing SVG: a race between two
+`renderMermaidDirectly` calls on the same `contentArea`.
+
+### Race Trace
+
+In `UI/visualisation_engine/visualisation_v3.js`:
+
+- `renderMermaidDirectly` (L5008) wipes prior `.mermaid` divs at **L5063**:
+  ```js
+  contentArea.querySelectorAll('.mermaid, .mermaid-deferred-placeholder')
+              .forEach(d => d.remove());
+  ```
+- The same function then awaits `mermaid.render(...)` at L5134 and,
+  on resolution, writes the SVG into its own `mermaidDiv` at **L5185** and
+  attaches the action bar to the outer `vizContainer` at **L5236**.
+
+When two renders race on the same `contentArea` (e.g. stream-finalize
+triggers `_processDeferredRenders` while the initial chunk handler is still
+mid-`await`, or `_scheduleMermaidRerender` is racing the original attempt),
+the second call's L5063 cleanup wipes the first call's `<svg>`-bearing div.
+The first call's awaited promise still resolves — it writes SVG into a
+now-detached div and stamps an action bar on `vizContainer`. Net effect:
+
+- Outer `.viz-container` — has an action bar (from the stale render).
+- Inner `.viz-content-area > .mermaid` — empty (wiped by the second call,
+  until the second call's own SVG lands).
+- User sees: visible action bar, empty body, intermittent "diagram missing".
+
+### Fix — Render Token on `contentArea`
+
+Same idea React 18+ uses internally to drop stale render commits. Each call
+to `renderMermaidDirectly` bumps a counter on `contentArea` and captures its
+own value; every post-`await` DOM mutation is gated on the captured value
+still being current.
+
+```js
+// At the top of renderMermaidDirectly (L5024 area):
+const myRenderToken = (contentArea._mermaidRenderToken =
+    (contentArea._mermaidRenderToken || 0) + 1);
+
+// Before mermaidDiv.innerHTML = svg (L5185 area):
+if (contentArea._mermaidRenderToken !== myRenderToken) {
+    console.log(`🔁 VIZ-V3: Mermaid render superseded
+        (token ${myRenderToken} -> ${contentArea._mermaidRenderToken});
+        discarding stale SVG`);
+    return;
+}
+
+// Before addMermaidUnifiedActionBar (L5236 area):
+if (contentArea._mermaidRenderToken !== myRenderToken) {
+    console.log(`🔁 VIZ-V3: Mermaid render superseded before action bar
+        (token ${myRenderToken}); skipping`);
+    return;
+}
+
+// At the top of the catch block (L5241 area):
+if (contentArea._mermaidRenderToken !== myRenderToken) {
+    console.log(`🔁 VIZ-V3: Mermaid render superseded in catch
+        (token ${myRenderToken}); skipping stale error render`);
+    return;
+}
+```
+
+### Why this is isolated
+
+| Concern | Before | After |
+|---|---|---|
+| Behaviour on the only render | Renders normally | Renders normally (token check passes) |
+| Behaviour with two racing renders | First wins-but-is-wiped; UI shows action bar with empty body | Latest in-flight render owns all UI state |
+| Action-bar duplication | Two action bars in races | Only the surviving render attaches an action bar |
+| `_scheduleMermaidRerender` race | Original + retry both reach L5236 | Retry supersedes original via token bump |
+| Stale error UI | Stale error rendered after supersession | Swallowed silently; the live render owns error UI |
+| Plotly / Recharts / D3 / other types | Unaffected | Unaffected (token is `contentArea`-scoped per Mermaid call) |
+
+### Why the token lives on `contentArea`, not `vizContainer`
+
+The race window opens in `contentArea` (that's what L5063 wipes). Putting
+the token there keeps the guard local to the exact place where the race
+manifests and prevents cross-talk between unrelated `.viz-container`s that
+might share a parent. A `vizContainer`-scoped token would leak state
+across sibling renders.
+
+### Manual Verification
+
+1. Hard-reload (`Ctrl+Shift+R`) the SPA.
+2. Send an AI message that produces a Mermaid diagram, then immediately
+   type/send a second message that also produces a Mermaid diagram.
+3. Watch both messages' viz-containers. Confirm: each diagram renders with
+   an action bar; neither has an empty body; neither has duplicated action
+   bars.
+4. DevTools console should NOT show "🔁 VIZ-V3: Mermaid render superseded"
+   for normal single-stream renders. If it does, two renders raced and the
+   older one was correctly discarded.
+
+### Rollback Information
+
+Revert the four token-guard edits to `renderMermaidDirectly`. The function
+returns to its original behaviour: every render attempt commits, even if
+its `mermaidDiv` was already wiped. The fullscreen fallback fix above is
+unaffected and remains useful as a defensive layer.
+
+No env-var, schema, or API changes.
