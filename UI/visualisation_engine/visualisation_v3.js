@@ -10601,14 +10601,63 @@ ${svgData}`;
     }
 
     // EW: Fullscreen Mermaid viewer with zoom and pan
-    openMermaidFullscreen(container, diagramContent, chartId) {
+    async openMermaidFullscreen(container, diagramContent, chartId) {
         console.log('🖥️ Opening Mermaid fullscreen view...');
 
         // Get the current SVG element
-        const currentSvg = container.querySelector('svg');
+        let currentSvg = container.querySelector('svg');
+        // EW (Jul 24 2026): Track a hidden holder for a fallback-rendered
+        // SVG so we can clean it up immediately after cloning.  See the
+        // fallback branch below for the race that triggers it.
+        let parkedHolder = null;
+
+        // EW (Jul 24 2026): Defensive fallback render.  When the inline
+        // SVG is missing but the action bar is visible (visible
+        // copy/zoom/theme buttons on an empty body), the underlying
+        // .mermaid div was removed by a concurrent re-render's
+        // contentArea cleanup (renderMermaidDirectly L5063) while the
+        // outer .viz-container -- where the action bar lives --
+        // survived.  The diagram source is preserved on vizContainer
+        // via data-original-content (set in renderMermaidDirectly at
+        // L5123), so re-render synchronously into an off-screen staging
+        // div, park the result in a hidden holder on the container, and
+        // continue with the existing overlay-creation flow.  The hidden
+        // holder is removed immediately after the SVG is cloned below.
         if (!currentSvg) {
-            this.showNotification(' No diagram found to display', 'error');
-            return;
+            const source = (container.getAttribute && container.getAttribute('data-original-content'))
+                || diagramContent || '';
+            if (!source || typeof window === 'undefined' || !window.mermaid || typeof window.mermaid.render !== 'function') {
+                this.showNotification(' No diagram found to display', 'error');
+                return;
+            }
+            const staging = document.createElement('div');
+            staging.style.cssText = 'position:absolute;left:-99999px;top:0;visibility:hidden;width:1px;height:1px;overflow:hidden;pointer-events:none;';
+            const fallbackId = `fs-fallback-${chartId || Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+            document.body.appendChild(staging);
+            try {
+                const svgString = await window.mermaid.render(fallbackId, source);
+                if (!svgString) {
+                    this.showNotification(' No diagram found to display', 'error');
+                    return;
+                }
+                staging.innerHTML = svgString;
+                const stagedSvg = staging.querySelector('svg');
+                if (!stagedSvg) {
+                    this.showNotification(' No diagram found to display', 'error');
+                    return;
+                }
+                parkedHolder = document.createElement('div');
+                parkedHolder.style.cssText = 'display:none';
+                parkedHolder.appendChild(stagedSvg);
+                container.appendChild(parkedHolder);
+                currentSvg = stagedSvg;
+            } catch (err) {
+                console.error('🖥️ Mermaid fallback render failed:', err);
+                this.showNotification(' No diagram found to display', 'error');
+                return;
+            } finally {
+                if (staging.parentNode) staging.remove();
+            }
         }
 
         // Create fullscreen overlay
@@ -10723,6 +10772,13 @@ ${svgData}`;
 
         // Clone and prepare SVG
         const clonedSvg = currentSvg.cloneNode(true);
+        // EW (Jul 24 2026): If the fallback branch parked a hidden SVG
+        // holder, remove it now that the clone owns the content.  Keeps
+        // subsequent re-render paths (reRenderFullscreenIfOpen, font/theme
+        // handlers) from picking up a stale SVG instead of the live one.
+        if (parkedHolder && parkedHolder.parentElement === container) {
+            parkedHolder.remove();
+        }
 
         // Get the actual rendered dimensions of the original SVG
         const originalRect = currentSvg.getBoundingClientRect();
