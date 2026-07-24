@@ -687,7 +687,10 @@ def start_scheduler():
     safe regardless of how many times it fires.
     """
     scheduler = get_scheduler()
-    if scheduler.running:
+    # Delegate to APScheduler's own .running flag — AutomationScheduler doesn't
+    # track this state itself, so reading scheduler.running would AttributeError.
+    # The wrapped BackgroundScheduler is the source of truth.
+    if scheduler.scheduler.running:
         logger.info("Automation scheduler already running — skipping restart")
         return scheduler
     scheduler.start()
