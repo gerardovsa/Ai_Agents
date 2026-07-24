@@ -10690,7 +10690,14 @@ ${svgData}`;
             const fallbackId = `fs-fallback-${chartId || Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
             document.body.appendChild(staging);
             try {
-                const svgString = await window.mermaid.render(fallbackId, source);
+                // mermaid 10.x returns {svg, bindFunctions} -- not a bare string.
+                // The previous fallback awaited the promise and treated the result
+                // as a string, which coerced the object to "[object Object]" and
+                // produced no <svg> in staging. The empty-stagedSvg check then
+                // surfaced "No diagram found to display" even when the source
+                // was perfectly recoverable. Destructure svg (and pick up
+                // bindFunctions so clickable nodes still respond in fullscreen).
+                const { svg: svgString, bindFunctions } = await window.mermaid.render(fallbackId, source);
                 if (!svgString) {
                     this.showNotification(' No diagram found to display', 'error');
                     return;
@@ -10700,6 +10707,10 @@ ${svgData}`;
                 if (!stagedSvg) {
                     this.showNotification(' No diagram found to display', 'error');
                     return;
+                }
+                // Wire up Mermaid's interactive handlers (clickable nodes, etc.)
+                if (typeof bindFunctions === 'function') {
+                    try { bindFunctions(stagedSvg); } catch (e) { /* best-effort */ }
                 }
                 parkedHolder = document.createElement('div');
                 parkedHolder.style.cssText = 'display:none';

@@ -326,3 +326,100 @@ its `mermaidDiv` was already wiped. The fullscreen fallback fix above is
 unaffected and remains useful as a defensive layer.
 
 No env-var, schema, or API changes.
+
+---
+
+## Followup — Destructure `mermaid.render()` in the fullscreen fallback
+
+The fullscreen fallback described at the top of this document was a *shell*
+on first deploy. It never actually produced a usable SVG for the user —
+which is why, after the previous fixes shipped, the user still reported
+"clicking Fullscreen shows No diagram found to display even though the
+source is there".
+
+### Root Cause
+
+`mermaid.render(id, source)` in Mermaid 10.x returns a
+`Promise<{svg: string, bindFunctions?: (element: Element) => void}>`,
+not a bare string. Every other call site in `visualisation_v3.js`
+(L5143, L5513, L7212, L7504, L7696, L10317) destructures with
+`const { svg } = await mermaid.render(...)`.
+
+The fallback at L10693 (in `openMermaidFullscreen`) did not:
+
+```js
+const svgString = await window.mermaid.render(fallbackId, source);
+if (!svgString) { /* bail */ }
+staging.innerHTML = svgString;
+```
+
+When the fallback fired, `svgString` was the object `{svg: "...",
+bindFunctions: fn}`. The truthy check passed (objects are truthy), then
+`staging.innerHTML = svgString` coerced the object to `"[object Object]"`,
+`staging.querySelector('svg')` returned null, and the empty-stagedSvg
+check surfaced "No diagram found to display" — identical to the
+pre-fallback failure.
+
+The success path's render at L5143 had always been correct, so the
+inline-render case worked; only the fallback (i.e. exactly the case the
+fallback was added to save) was broken.
+
+### Fix
+
+**File:** `UI/visualisation_engine/visualisation_v3.js`
+**Function:** `openMermaidFullscreen` fallback branch (around L10693).
+
+Replace the buggy destructure with:
+
+```js
+const { svg: svgString, bindFunctions } = await window.mermaid.render(fallbackId, source);
+if (!svgString) { /* bail */ }
+staging.innerHTML = svgString;
+const stagedSvg = staging.querySelector('svg');
+if (!stagedSvg) { /* bail */ }
+if (typeof bindFunctions === 'function') {
+    try { bindFunctions(stagedSvg); } catch (e) { /* best-effort */ }
+}
+```
+
+The `svg` alias preserves the existing `svgString` variable name so the
+downstream snippet (the stagedSvg query, the parkedHolder construction,
+the `currentSvg = stagedSvg` assignment) is unchanged. The
+`bindFunctions` wiring is best-effort wrapped in try/catch so a missing
+or throwing handler (some Mermaid diagram types don't return one) does
+not break fullscreen.
+
+### Why this is isolated
+
+| Concern | Before | After |
+|---|---|---|
+| Inline render (success path) | Works | Works (unchanged) |
+| Fullscreen on inline SVG | Works | Works (unchanged) |
+| Fullscreen fallback, source present | Bails with "No diagram found" | Re-renders SVG, opens fullscreen |
+| Fullscreen fallback, source missing | Bails with "No diagram found" | Bails with "No diagram found" (unchanged) |
+| Clickable nodes in fullscreen | Not wired (renderer's bindFunctions was discarded) | Wired via best-effort bindFunctions call |
+| Other call sites | Already correct | Already correct (no change) |
+
+### Manual Verification
+
+1. Hard-reload (`Ctrl+Shift+R`) to clear cached JS.
+2. Open a thread that contains a Mermaid diagram whose inline body
+   failed to render (action bar visible, body empty).
+3. Click the **Fullscreen** button on that diagram's action bar.
+4. Expect: fullscreen overlay appears within ~50 ms with the rendered
+   diagram — no "No diagram found to display" notification.
+5. Run with DevTools console open. The fallback's `console.error('🖥️
+   Mermaid fallback render failed:', …)` line should NOT fire.
+6. Optional: confirm the fullscreen still allows click-to-zoom / pan
+   on interactive node types (flowchart click, sequenceDiagram actor
+   click). The bindFunctions hook is what wires those.
+
+### Rollback Information
+
+Revert the L10693 destructure to its previous form. The fallback
+returns to its original (broken) behaviour: it spreads the
+`mermaid.render` object into the DOM and bails with "No diagram found
+to display". The success path is unaffected — it never relied on the
+fallback.
+
+No env-var, schema, or API changes.
