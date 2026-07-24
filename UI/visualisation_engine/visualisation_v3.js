@@ -10695,14 +10695,17 @@ ${svgData}`;
                 // as a string, which coerced the object to "[object Object]" and
                 // produced no <svg> in staging. The empty-stagedSvg check then
                 // surfaced "No diagram found to display" even when the source
-                // was perfectly recoverable. Destructure svg (and pick up
-                // bindFunctions so clickable nodes still respond in fullscreen).
-                const { svg: svgString, bindFunctions } = await window.mermaid.render(fallbackId, source);
-                if (!svgString) {
+                // was perfectly recoverable. Destructure with fresh names so
+                // there's no risk of variable shadowing from an outer scope.
+                const renderResult = await window.mermaid.render(fallbackId, source);
+                const renderedSvg = renderResult && typeof renderResult === 'object' ? renderResult.svg : renderResult;
+                const bindFunctions = renderResult && typeof renderResult === 'object' ? renderResult.bindFunctions : undefined;
+                if (!renderedSvg || typeof renderedSvg !== 'string') {
+                    console.error('🖥️ Mermaid fallback render returned no SVG', { typeOfResult: typeof renderResult, hasSvgKey: renderResult && 'svg' in renderResult });
                     this.showNotification(' No diagram found to display', 'error');
                     return;
                 }
-                staging.innerHTML = svgString;
+                staging.innerHTML = renderedSvg;
                 const stagedSvg = staging.querySelector('svg');
                 if (!stagedSvg) {
                     this.showNotification(' No diagram found to display', 'error');
