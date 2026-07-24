@@ -1,247 +1,308 @@
-# React Renderer Lucide-Icon Troubleshooting & Hand-off
+# React Renderer Troubleshooting — Lucide / Babel / Recharts
 
-**Date:** 2026-07-22
-**Status:** Fix **NOT** deployed — production console still shows `ReferenceError: TrendingUp is not defined` and `Briefcase is not defined` from `about:srcdoc:293`.
-**Priority:** P0 — this blocks every AI-built React dashboard that uses lucide icons without an explicit `import` statement.
-
----
-
-## What is broken
-
-AI agents emit React JSX like:
-```jsx
-function Dashboard() {
-  return (
-    <div>
-      <TrendingUp size={28} className="text-blue-600" />
-      <Briefcase />
-      <Calendar />
-      <DollarSign />
-      <Users />
-      <Activity />
-      <BarChart3 />
-      <Filter />
-    </div>
-  );
-}
-```
-…with **no `import` statements** (because the AI lives in a no-build-step sandboxed iframe). The renderer's job is to make every PascalCase JSX tag resolve to either a React component from `window.Recharts` or a lucide icon component from `window.lucide`.
-
-**Current state:** `window.lucide` is never defined in the iframe, so `TrendingUp`/`Briefcase`/etc. never get bound to the global scope → React throws `ReferenceError: TrendingUp is not defined` at first render → the ErrorBoundary catches it and the iframe goes white.
+**Date:** 2026-07-22 → 2026-07-23 (live doc; appended as new evidence lands)
+**Status:** Lucide + Recharts hoist works. Babel `makeWeakCache` corruption fixed. **One remaining bug**: `ComposedChart` with dual YAxes + conditional `<Area>/<Bar>/<Line>` throws `TypeError: t.has is not a function` from `Recharts.js:2:121494`. Single-axis Recharts renders fine.
+**Priority:** P1 — Recharts with `LineChart`/`PieChart`/`BarChart` (single-axis) works, but the AI commonly emits `ComposedChart` for combined dashboards, so this still blocks a major class of visualizations.
 
 ---
 
-## Root cause
+## 1. Timeline of commits (chronological)
 
-The renderer's library auto-detection (at `UI/visualisation_engine/react_renderer.js:104`):
-
-```js
-const usesLucide = /lucide|LucideIcon|import.*from.*['"](lucide|lucide-react)['"]|\b(ChevronRight|ChevronDown|Circle|Square|Triangle|Star|Heart|Home|User|Settings|Search|Bell|Mail|Check|X|Plus|Minus|Edit|Trash|Download|Upload|Eye|Lock|Unlock|ArrowRight|ArrowLeft|ArrowUp|ArrowDown)\b/.test(jsxContent);
-```
-
-This regex only triggers the lucide UMD injection if the user's JSX mentions one of ~30 hand-picked icon names (`ChevronRight`, `Circle`, `Square`, etc.). **None of the icons in the failing example are in that list.** `TrendingUp`, `Briefcase`, `Calendar`, `DollarSign`, `Users`, `Activity`, `BarChart3`, `Filter` — all common icons, none detected.
-
-So `usesLucide === false`, the script tag `<script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>` is never emitted (line 220-221), `window.lucide` is `undefined` when the identifier-hoist IIFE runs (line 266+), and the hoist's `sources = [window.lucide || {}, window.Recharts || {}]` uses an empty object — no icons get bound.
-
----
-
-## What's already in place (NOT the problem)
-
-The post-fix hoist code at lines 266-348 (from commit `221f1ed1`) is correct in structure:
-
-```js
-function makeIconComponent(name, descriptor) {
-    var Icon = function (props) {
-        // ... renders <svg> with descriptor children
-    };
-    Icon.displayName = name;
-    return Icon;
-}
-Array.from([...referenced]).forEach(function (name) {
-    for (var i = 0; i < sources.length; i++) {
-        var src = sources[i];
-        if (!src) continue;             // <-- this fires when window.lucide is undefined
-        var v = src[name];
-        // ...
-    }
-});
-```
-
-The catch-all lift (lines 334-348) also requires `window.lucide` to be populated. Without the script tag, both passes are no-ops.
+| Date / commit | Goal | Result |
+|---|---|---|
+| `77a83c91` | Self-host babel/react/react-dom/recharts/prop-types | ✅ All libs now load from `visualisation_engine/libs/` — no more CDN race for Recharts |
+| `03889d34` | Pin `@babel/standalone@7.24.7`, revert prior lucide experiments | ✅ Stable Babel baseline |
+| `1874dba1` | Capture full failing JSX on Babel error for offline analysis | ✅ New globals `window.parent.__lastBadJsx`, `__lastBadFences` |
+| `a23a4e2f` | Babel.transform fence probes (F0–F3) to isolate `makeWeakCache` bug | ✅ Probes installed; **pinpointed the bug** |
+| `6bd07a12` | SSE heartbeat / broken-pipe handlers / 502 retry | ✅ Streaming no longer dies silently |
+| `b0ceea21` | Snapshot between script-append and auto-mount | ✅ Post-exec snapshot on `window.parent.__lastExecSnap` |
+| `90ed3cf1` | Page-level diagnostic sink for blank-iframe triage | ✅ `__renderSnapshots__`/`__renderFences__`/`__renderErrors__` |
+| `67a17e56` | Replace literal `'\n'` in fence catch with `String.fromCharCode(10)` | ✅ Fixed a templated-comment bug |
+| `8e5e5294` | Hoist `__babelFence` via function declaration | ✅ Function hoisting bypassed the temporal dead zone |
+| `9ff3fc0b` | Move `identifierHoist` IIFE AFTER `Babel.transform` | ✅ Resolved the `e.get is not a function` at `babel.min.js:1:925003` |
+| `REACT_RENDERER_LUCIDE_TROUBLESHOOTING_2026-07-22.md` (this doc, original) | Wrote the always-inject-lucide plan (Strategy A) | ✅ Strategy A applied; verification confirms lucide is fully hoisted |
 
 ---
 
-## Two fix strategies
+## 2. What was broken, what was fixed
 
-### Strategy A — Always inject the lucide UMD (~615 KB, cached)
+### Bug 1 — Lucide icons not detected → `ReferenceError: TrendingUp is not defined`
 
-**Change line 220-221:**
+**Symptom:** AI emits JSX like `<TrendingUp />` without an `import`. Renderer didn't inject the lucide UMD script. Iframe went white.
 
-```js
-const lucideScript = `
-  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"><\/script>
-`;
+**Root cause:** `usesLucide` regex on [react_renderer.js:187](UI/visualisation_engine/react_renderer.js#L187) only matched ~30 hand-picked icon names. `TrendingUp`/`Briefcase`/`Calendar`/`DollarSign`/`Users`/`Activity`/`BarChart3`/`Filter` all slipped past it.
+
+**Fix:** Strategy A from the original doc — unconditional lucide UMD injection at [react_renderer.js:312-313](UI/visualisation_engine/react_renderer.js#L312). Comment block cites this doc.
+
+**Verified:** Today the diagnostic snapshot shows
+```
+hasBriefcase: "function"
+hasDollarSign: "function"
+hasTarget: "function"
+hasUsers: "function"
+hasWallet: "function"
+hasCreditCard: "function"
+```
+and the log shows
+```
+[REACT_RENDERER] hoisted identifiers from lucide/Recharts:
+  TrendingUp, Calendar, DollarSign, Users, Activity, BarChart3, Filter,
+  ResponsiveContainer, ComposedChart, CartesianGrid, XAxis, YAxis, Tooltip,
+  Legend, Area, Bar, Line, PieChart, Pie, Cell
+```
+The lucide catch-all lift at [react_renderer.js:429-440](UI/visualisation_engine/react_renderer.js#L429) is reading from `window.lucide` directly (the UMD exposes icons at the top level), so my earlier concern that it needed `window.lucide.icons` was wrong — that was based on reading the lucide UMD source without testing. The current path works.
+
+### Bug 2 — `e.get is not a function` at `babel.min.js:1:925003`
+
+**Symptom:** After the lucide fix, the very first fence (F0) passed but the F3 fence (after Recharts globals + before the real `Babel.transform` call) failed with this error. Same error propagated to the real transform.
+
+**Root cause:** The `identifierHoist` IIFE, executed between Babel's initial probe and the real `Babel.transform(rawSource, ...)`, was corrupting Babel's internal `makeWeakCache` (`function NI(e,t,r)` in the minified bundle at offset 925003). The cache is a `WeakMap`-backed plugin resolution map; when the IIFE allocates new function instances in the same execution frame, something throws when Babel tries `n=e.get(t)` on its own internal slot.
+
+**Diagnosis:** The fence probes (F0–F3) bracketed the renderer setup so each step could be isolated. F0/F1/F2 succeeded identically, F3 was the first to touch `Babel.transform` AFTER the `identifierHoist` IIFE — diff narrowed it to the hoist.
+
+**Fix (commit `9ff3fc0b`):** Move the `${identifierHoist}` injection from its previous position (before F3) to a new spot AFTER the real `Babel.transform` call succeeds, BEFORE the classic-`<script>` append. See [react_renderer.js:642-656](UI/visualisation_engine/react_renderer.js#L642). Babel's syntax pass doesn't need `window.BarChart`, but the executed code does — placement matters.
+
+**Verified:** Today the diagnostic shows
+```
+fencesSummary: "F0=OK, F1=OK, F2=OK, F3=OK"
+```
+All four fences pass. The actual transform on the 12,028-char source also succeeds (`outLen: 13702`).
+
+### Bug 3 — `TypeError: t.has is not a function` in Recharts (CURRENT, OPEN)
+
+**Symptom:** The Advanced Analytics dashboard with `ComposedChart`, dual YAxes (`yAxisId="left"` and `"right"`), and conditional `{showRevenue && (<Area ... />)}`/`{showUsers && (<Bar ... />)}`/`{showConversion && (<Line ... />)}` children throws:
+
+```
+TypeError: t.has is not a function
+    at mn (Recharts.js:2:121494)
+    at vn.has (Recharts.js:2:121339)
+    at On.o.domain (Recharts.js:2:122031)
+    at r.domain (Recharts.js:2:122831)
+    at Recharts.js:2:341845
+    at Array.reduce (<anonymous>)
+    at _m (Recharts.js:2:341026)
+    at Recharts.js:2:442130
+    at Array.forEach (<anonymous>)
+    at b (Recharts.js:2:442104)
+    at Recharts.js:2:460818
+    at tf (react-dom.production.min.js:117:145)
+    at uf (react-dom.production.min.js:119:366)
+    ...
 ```
 
-Delete the `usesLucide` conditional. The 615 KB payload is downloaded once per browser per CDN cache TTL (~24h on unpkg) and served from cache thereafter. With the catch-all lift at line 334-348 already in place, **every** PascalCase key from `window.lucide` becomes a globally available icon component.
-
-**Pros:** Bulletproof. Future-proof. No more regex maintenance as lucide adds icons.
-**Cons:** +615 KB initial iframe load for every React viz. Mitigated by browser cache; only matters on first visit per session per browser.
-
-### Strategy B — Widen the regex to ~150 icons (no payload cost, fragile)
-
-**Change line 104 to enumerate every common lucide icon**, e.g.:
-
-```js
-const usesLucide = /lucide|LucideIcon|import.*from.*['"](lucide|lucide-react)['"]|\b(TrendingUp|TrendingDown|Briefcase|Calendar|DollarSign|Users|Activity|BarChart3|BarChart|BarChart2|LineChart|PieChart|AreaChart|Filter|Search|Bell|Mail|Check|X|Plus|Minus|Edit|Trash|Download|Upload|Eye|Lock|Unlock|ArrowRight|ArrowLeft|ArrowUp|ArrowDown|ChevronRight|ChevronDown|ChevronUp|ChevronLeft|ChevronUpCircle|ChevronDownCircle|Home|User|Users|UserPlus|UserMinus|UserCheck|UserX|Settings|Star|Heart|Camera|Image|File|FileText|Folder|FolderOpen|Save|Printer|Share|Link|Globe|Map|MapPin|Phone|PhoneCall|MessageSquare|MessageCircle|Send|Paperclip|Bookmark|Tag|Flag|Calendar|Days|Clock|Watch|Timer|Sun|Moon|Cloud|CloudRain|CloudSnow|Wind|Droplet|Flame|Umbrella|Zap|Battery|BatteryCharging|Wifi|WifiOff|Volume|Volume2|VolumeX|Mic|MicOff|Play|Pause|SkipForward|SkipBack|Refresh|RotateCw|RotateCcw|RotateCcw|Repeat|Shuffle|Loader|Loader2|Circle|Square|Triangle|Hexagon|Octagon|Pentagon|Database|Server|HardDrive|Cpu|Monitor|Smartphone|Tablet|Laptop|Code|Terminal|GitBranch|GitCommit|GitMerge|GitPullRequest)\b/i.test(jsxContent);
+This surfaces inside the ErrorBoundary (`componentDidCatch`) as the visible
 ```
+⚠ Render error:
+t.has is not a function
+```
+banner inside the iframe.
 
-**Pros:** Zero payload cost. Icons only load when actually used.
-**Cons:** Brittle. Every new AI prompt that uses an icon outside the list reproduces the bug. Have to maintain a list of 150+ strings. Users will keep hitting edges.
+**Reproduces:** Every test that combines ≥2 chart types in a `ComposedChart` with dual YAxes. The simpler Sales Dashboard (separate `LineChart`, `PieChart`, `BarChart` per view) renders fine.
 
-### **Recommended: Strategy A** (always inject)
-
-The robustness gain is worth the cached 615 KB. Lucide is already lazy — the user's browser caches it after the first React viz with any lucide icon. Strategy A is "fix it once, never touch it again."
+**Not yet diagnosed.** Working hypothesis in §3 below.
 
 ---
 
-## Exact edit (Strategy A)
+## 3. Open investigation: ComposedChart `t.has is not a function`
 
-**File:** `UI/visualisation_engine/react_renderer.js`
+### Why the fence diagnostic can't catch this
+The fences only probe `Babel.transform(...)` syntax-pass health. Recharts's `t.has` is a runtime error inside the **React render phase**, after `Babel.transform` has succeeded and the script has executed. Fences see `ok=true` at all four checkpoints because Babel is healthy — the bug is downstream.
 
-**Lines 220-221:**
+### Hypotheses (in order of likelihood)
 
-```js
-        const lucideScript = usesLucide
-            ? `  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"><\/script>` : '';
-```
+**H1 — Recharts `ComposedChart` + dual YAxis scale-resolution bug.**
+The trace shape (`r.domain` → `On.o.domain` → `vn.has` → `mn`) is characteristic of Recharts scale plumbing. `vn.has()` looks like a scale's `.has(value)` check used during domain merging. With `yAxisId="left"` shared by `<Area>` (dataKey="revenue") and `<Bar>` (dataKey="users"), and `yAxisId="right"` for `<Line>` (dataKey="conversion"), Recharts must merge domains per axisId. If the merged-domain step receives a non-array (e.g. a string, an `undefined`, or one of the values), it calls `t.has` on it.
 
-**Replace with:**
+In the AI's source:
+- `revenue` range: 45,000–105,000
+- `users` range: 4,200–9,100
+- `conversion` range: 2.9–5.1
 
-```js
-        // Always inject the lucide UMD. The detection regex below is brittle
-        // (only ~30 hand-picked icons) and the AI emits PascalCase JSX tags
-        // without explicit `import` statements, so by the time we know an
-        // icon is needed, the hoist block has already run. The 615 KB
-        // payload is cached by the browser; subsequent React viz loads are
-        // O(ms). Strategy: always inject, always lift, always wrap as a
-        // functional React component. See REACT_RENDERER_LUCIDE_TROUBLESHOOTING
-        // _2026-07-22.md for the full rationale.
-        const lucideScript = `
-  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"><\/script>`;
-```
+The left axis has to combine revenue (large) and users (small) — large dynamic range. Recharts uses `LinearScale` here. The `t.has` call in the error is being made on a value that's not the scale.
 
-**Optional cleanup — delete the now-unused `usesLucide` regex (line 104).** Keep the variable for one release cycle so the rest of the file still compiles (it's referenced at line 220 currently — replaced above). After this change, line 104 is dead code but harmless; remove in a follow-up commit.
+**H2 — Conditional children destabilise Recharts's per-axis registry.**
+The pattern `{showX && (<Component .../>)}` is officially supported by Recharts, but the registry that Recharts builds at first mount (which maps child `<XAxis yAxisId="...">` ↔ its data siblings) is computed once. If a child is conditionally absent at first mount, the registry may contain an entry that points at `undefined`. The next render then dereferences `.has` on that undefined slot.
 
-**No other code changes required.** The existing hoist block (lines 266-348), the `makeIconComponent` factory, the catch-all lift loop, and the `__EXPORT_DATA__`/`__EXPORT_HANDLER__` extensions all work unchanged.
+**H3 — `<defs>` + `<linearGradient>` inside `<ComposedChart>`.**
+The AI emits `<defs><linearGradient id="colorRevenue" .../></defs>` as a child of `<ResponsiveContainer>` in the second test. While this is fine in `AreaChart`, `ComposedChart` may walk children it does not understand and choke. However the trace shows the throw is in scale logic, not SVG handling, so this is weaker.
 
----
+**H4 — Recharts version mismatch / UMD wrapping bug.**
+The renderer self-hosts `visualisation_engine/libs/Recharts.js`. If that build was made with a Babel config that doesn't handle a particular ES2018 feature (object rest/spread in JSX props), the bundle could be subtly broken in scale code. Less likely because the single-axis charts work fine in the same bundle.
 
-## Verification
+### Recommended next diagnostic
 
-After applying the fix:
+1. **Reduce the failing source to the minimal repro.** Take the AI's full ComposedChart JSX and delete things one at a time:
+   - First, delete the conditional wrapping (`{showX && ...}`) — render `<Area>`+`<Bar>`+`<Line>` unconditionally.
+   - Then, drop `<Bar>` (keep only Area+Line).
+   - Then, drop one YAxis (single-axis).
+   - Then, drop `<defs>` + `<linearGradient>`.
+   Each deletion either makes the chart render or narrows the bug.
 
-1. **Hard reload** the SPA in Chrome (Ctrl+Shift+R).
-2. **Open DevTools → Console.** Clear it.
-3. **Paste this minimal repro into a chat** (or open an existing failing dashboard):
-
-   ```jsx
-   <div style="display:flex;gap:16px;padding:24px;">
-     <TrendingUp size={32} color="#3b82f6" />
-     <Briefcase size={32} color="#10b981" />
-     <Calendar size={32} color="#f59e0b" />
-     <DollarSign size={32} color="#ef4444" />
-     <Users size={32} color="#8b5cf6" />
-     <Activity size={32} color="#06b6d4" />
-     <BarChart3 size={32} color="#84cc16" />
-     <Filter size={32} color="#ec4899" />
-   </div>
+2. **Patch `__babelFence` to probe more aggressively.** Add a fence at "after auto-mount start" that does
+   ```js
+   try { ReactDOM.createRoot(document.createElement('div')).render(
+       React.createElement(window.Recharts.ComposedChart, { data: [{a:1}], width: 200, height: 200 },
+           React.createElement(window.Recharts.Area, { dataKey: 'a' }))
+   ); fences.push({label:'F4-Recharts-probe', ok:true});
+   } catch(e) { fences.push({label:'F4-Recharts-probe', ok:false, err:e.message, stackHead:e.stack.split('\n').slice(0,4).join(' | ')}); }
    ```
+   If this fails the same way (`t.has is not a function`), the bug is in Recharts itself, not in anything the AI emitted. If it succeeds, the bug is in the AI's source — most likely the conditional children (H2).
 
-4. **Confirm:**
-   - No `ReferenceError: TrendingUp is not defined` in console.
-   - Iframe renders 8 icons in a row.
-   - `[REACT_RENDERER] hoisted identifiers from lucide/Recharts: [...]` log shows ~1500 entries from the catch-all lift.
-5. **Open Network tab.** Confirm `lucide.js` loaded once (status 200). Reload — confirm cached (status 200 from disk cache).
-6. **Click the iframe's "panel" button** (existing viz-popup-manager). Confirm the popup also renders icons correctly (popup re-uses the same srcdoc).
+3. **Try a different Recharts import.** If self-hosted `Recharts.js` proves to be the issue, swap it for the official UMD on unpkg (`https://unpkg.com/recharts@2/umd/Recharts.js`). Same self-hosted loading pattern as Babel.
 
-### If still broken
-
-If the icon ReferenceErrors persist after the fix:
-
-1. **Confirm `lucide.js` is being requested.** DevTools → Network → filter `lucide`. If absent, the renderer's srcdoc was cached — hard-reload again or close-and-reopen the tab.
-2. **Confirm `window.lucide` exists inside the iframe.** Open DevTools → Console, find the iframe via Elements panel, type in the console (with the iframe context selected): `Object.keys(window.lucide).length`. Should return >1000.
-3. **Confirm hoist ran.** Check console for `[REACT_RENDERER] hoisted identifiers from lucide/Recharts: …`.
-4. **Confirm the AI's exact JSX is what you expect.** If the AI emitted `import { TrendingUp } from 'lucide-react'` (i.e. it tried to import), Babel will throw because `import` is stripped but the named export `TrendingUp` was never bound. Mitigation: the hoist block in the renderer should still bind `window.TrendingUp = makeIconComponent('TrendingUp', window.lucide.TrendingUp)`. If it doesn't, check the regex on line ~104 — `import.*from.*['"](lucide|lucide-react)['"]` should make `usesLucide` true, but with Strategy A we no longer rely on it.
-5. **Check the cache-buster.** `business-ai-platform-v2.html:808` loads `react_renderer.js?v=<date>`. If you bumped the renderer but not the SPA, the SPA serves a stale iframe. Bump both in the same commit.
+4. **Try Recharts `defaultShowTooltip` / explicit `domain` props.** If `r.domain` is the trigger, providing `domain={[0, 'auto']}` on each YAxis might bypass the dynamic-merging logic.
 
 ---
 
-## Rollout checklist
+## 4. Diagnostic infrastructure (now in place)
 
-- [ ] Apply Strategy A edit to `UI/visualisation_engine/react_renderer.js`.
-- [ ] Bump cache-buster on the SPA: `UI/business-ai-platform-v2.html:808` → `?v=20260722_1200` (or later).
-- [ ] Run `./.vscode/fix-bom.ps1`.
-- [ ] Run `node --check UI/visualisation_engine/react_renderer.js`.
-- [ ] Commit: `git commit -m "fix(react-renderer): always inject lucide UMD so all PascalCase icons resolve"`.
-- [ ] Push: `git push gerardo v11:v11`.
-- [ ] Wait ~60s for Render deploy.
-- [ ] Hard-reload SPA in Chrome.
-- [ ] Run the verification block above.
+Every React iframe the renderer creates posts three messages to its parent (`window` of the SPA):
+
+| Message type | Fields | Purpose |
+|---|---|---|
+| `react-render-fences` | `id`, `fences[]` | Babel fence results from F0–F3 (and any future fences) |
+| `react-render-snapshot` | `id`, `snap` | Post-execution runtime snapshot — every `typeof` we care about, plus DOM checks |
+| `react-render-error` | `id`, `message`, `stack` | Caught by `componentDidCatch` in the ErrorBoundary |
+
+The parent listener at [react_renderer.js:42-84](UI/visualisation_engine/react_renderer.js#L42) caches everything on `window.__renderSnapshots__`/`__renderFences__`/`__renderErrors__`. DevTools console can probe:
+
+```js
+__renderFences__['two-rule-react-1784797846996']   // see F0/F1/F2/F3 ok booleans
+__renderSnapshots__['two-rule-react-1784797846996'] // see the full runtime state
+__renderErrors__['two-rule-react-1784797846897']    // see the latest runtime error
+```
+
+This means a blank-iframe investigation can be done from a single DevTools console without attaching to each sandboxed child iframe.
 
 ---
 
-## Related history
+## 5. Verification (after every fix)
+
+1. Hard-reload SPA (Ctrl+Shift+R).
+2. Trigger a React viz (or paste the failing repro into chat).
+3. Open DevTools → Console. Look for:
+   - `[REACT_RENDERER_PARENT_DIAG] fences for <id>` — should show all `ok: true`.
+   - `[REACT_RENDERER_DIAG] post-exec snapshot` — check `hasRecharts: "object"`, `hasLucide: "object"`, all hooks `"function"`, the icons in use `"function"`, `fencesSummary: "F0=OK, F1=OK, F2=OK, F3=OK"`.
+   - No `runtime error for <id>` red lines.
+4. If the iframe still shows ⚠ Render error, paste the `t.has is not a function` line (and the `stackHead` that follows it) into chat — the diagnostic infrastructure now captures it cleanly.
+
+---
+
+## 6. Files involved
+
+- [UI/visualisation_engine/react_renderer.js](UI/visualisation_engine/react_renderer.js) — the only file being modified for these fixes
+- `UI/visualisation_engine/libs/Recharts.js` — self-hosted UMD (currently the version we ship — bug investigation may need to bump)
+- `UI/visualisation_engine/libs/babel.min.js` — `@babel/standalone@7.24.7` (pinned)
+- `UI/visualisation_engine/libs/react.production.min.js`, `react-dom.production.min.js` — React 18
+- `UI/visualisation_engine/libs/prop-types.js` — Recharts runtime dep
+- `UI/business-ai-platform-v2.html` — calls the renderer; has a `?v=<date>` cache-buster for `react_renderer.js`
+
+---
+
+## 7. Cache-busting
+
+The SPA loads `react_renderer.js?v=<YYYYMMDD_HHMM>`. After every renderer edit, bump this. Search pattern: `react_renderer.js?v=`. Bump both the SPA HTML AND any callers that bypass the cache-buster.
+
+---
+
+## 8. Related history (older fixes, preserved for context)
 
 - `b24cc2ac` — ErrorBoundary + initial lucide/Recharts auto-hoist.
 - `048132a6` — Dropped dangling `${lucideSetup}` reference.
 - `221f1ed1` — Wrapped hoisted lucide arrays as React SVG components (`makeIconComponent` factory).
 - `c8078410` — AST-based module strip.
-- This doc — identifies that the hoist block is correct, but the lucide UMD never loads for many AI-emitted icons due to brittle detection regex.
+- The original doc (now superseded by §1–§5 above) identified that the hoist block was correct but the lucide UMD never loaded for many AI-emitted icons. **That bug is now fixed via Strategy A; see §2 Bug 1.**
 
 ---
 
-## Hand-off instructions for the next agent
-
-If you're reading this because the user gave you a session where `ReferenceError: TrendingUp is not defined` is back:
-
-1. Read this doc end-to-end before touching the renderer.
-2. Don't add a new regex pattern to `usesLucide` — that's Strategy B and it's a maintenance trap.
-3. Apply Strategy A (always inject) and verify with the test JSX above.
-4. If the user is on Strategy B and wants to keep payload small, walk them through the tradeoff in this doc.
-5. The broader Tier-1 toolbar + viz_snapshots + AI tools plan lives in `REACT_ENHANCEMENT_TODO_2026-07-22.md` and is independent of this fix. Once the renderer works, that plan is the next priority.
-
----
-
-## Open questions / risks
-
-1. **CDN availability.** `unpkg.com` is reliable but not guaranteed. Consider pinning to `https://unpkg.com/lucide@0.460.0/dist/umd/lucide.js` (or whatever the latest stable is at deploy time) to avoid breaking-changes from a `@latest` bump. **Add this if Strategy A is kept long-term.**
-2. **CDN dependency for production.** If unpkg is blocked in some deployment environments (corporate firewalls, Render region restrictions), the iframe goes blank. Mitigation: self-host `lucide.js` from `/static/` and update the script src.
-3. **Bundle size impact.** 615 KB is non-trivial for low-bandwidth users. Browser cache mitigates after first load. If this becomes a real complaint, fall back to Strategy B with a deliberately-maintained icon-allowlist.
-4. **lucide-react vs lucide.** `lucide@latest/dist/umd/lucide.js` is the vanilla (non-React) UMD — exports raw icon descriptor arrays. `lucide-react` is the npm package that wraps them in React components. We want the former (UMD), because the renderer's `makeIconComponent` factory does the React wrapping itself. Confirm via `head -1 $(curl -s https://unpkg.com/lucide@latest/dist/umd/lucide.js)` — should show a UMD banner, not an ES module.
-
----
-
-## Quick reference: the failing example
+## 9. Quick reference: the failing example (still open)
 
 ```jsx
-function App() {
-  return (
-    <div style={{padding: 24}}>
-      <h1>Sales Dashboard</h1>
-      <div style={{display:'flex',gap:16}}>
-        <TrendingUp size={28} className="text-blue-600" />
-        <Briefcase />
-        <Calendar />
-        <DollarSign />
-        <Users />
-        <Activity />
-        <BarChart3 />
-        <Filter />
-      </div>
-    </div>
-  );
-}
+<ResponsiveContainer width="100%" height="100%">
+  <ComposedChart data={filteredData}>
+    <defs>
+      <linearGradient id="colorRevenue" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.8} />
+        <stop offset="95%" stopColor="#3b82f6" stopOpacity={0.2} />
+      </linearGradient>
+    </defs>
+    <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+    <XAxis dataKey="month" stroke="#64748b" />
+    <YAxis yAxisId="left" orientation="left" stroke="#64748b" />
+    <YAxis yAxisId="right" orientation="right" stroke="#64748b" />
+    <Tooltip />
+    <Legend />
+    {showRevenue && (
+      <Area yAxisId="left" type="monotone" dataKey="revenue"
+            fill="url(#colorRevenue)" stroke="#3b82f6" name="Revenue ($)" />
+    )}
+    {showUsers && (
+      <Bar yAxisId="left" dataKey="users" fill="#10b981" name="Users" />
+    )}
+    {showConversion && (
+      <Line yAxisId="right" type="monotone" dataKey="conversion"
+            stroke="#ef4444" strokeWidth={3} name="Conversion (%)" dot={{ r: 5 }} />
+    )}
+  </ComposedChart>
+</ResponsiveContainer>
 ```
 
-This is the exact AI-emitted JSX that fails today. Strategy A fixes it without further code changes.
+To triage, delete the `{showX && (...)}` wrappers first (force all children to render) and see if the error goes away. If yes → H2 (conditional children). If no → drop `<Bar>` next; if still failing → H1/H4.
+
+---
+
+## 10. Hand-off
+
+If you're reading this in a new session and the user pastes a fresh `t.has is not a function` error:
+
+1. Re-read §3 — the bug is open and the diagnostic plan is laid out.
+2. Run the minimal-repro reduction in §3 step 1 — that will tell you whether it's H1/H4 or H2 in 2 minutes.
+3. Don't touch the lucide hoist or Babel fences — both are working.
+4. If you decide to swap the self-hosted `Recharts.js` for an unpkg UMD, do it as its own commit so the diff is reviewable. Remember to bump the cache-buster.
+
+---
+
+## 12. Recharts `vn` class `_intern` guard — patch landed (2026-07-24)
+
+**Status:** Patched in 3 rounds (`8c50daeb` → `25c27cc1` → `20e6994d`). The `t.has is not a function` error from §3 should no longer occur for ComposedChart-with-dual-YAxes + conditional children, ScatterChart-with-Cell-children, or any pattern that exercises Recharts' `On.o.domain` re-evaluation.
+
+### 12.1 Root cause (confirmed by reading the bundle)
+
+`Recharts.js` line 121183 contains a `class vn extends Map` whose constructor sets `_intern = new Map()` via `Object.defineProperties`. Three free functions destructure `this._intern` and call methods on it:
+
+```js
+function mn({_intern:t, _key:e}, r) { return (t && t.has) ? t.has(e(r)) ? t.get(e(r)) : r : r }   // read
+function bn({_intern:t, _key:e}, r) { return (t && t.has) ? t.has(e(r)) ? t.get(e(r)) : (t.set(e(r), r), r) : r }   // write
+function gn({_intern:t, _key:e}, r) { return (t && t.has) ? t.has(e(r)) && (r = t.get(e(r)), t.delete(e(r)), r) : r }   // delete
+```
+
+When AI-authored charts use `ComposedChart` with conditional `<Area>/<Bar>/<Line>` children or `ScatterChart` with mapped `<Cell>` children, the `On.o.domain` factory at line 121725 does `t = new vn` and then loops `t.has(n) || t.set(n, ...)`. The constructor's `Object.defineProperties` makes `_intern` non-writable, non-configurable, non-enumerable — so on a properly-constructed `vn` it can never be reassigned. **The actual upstream bug** (still open in Recharts: issues [#1988](https://github.com/recharts/recharts/issues/1988), [#4923](https://github.com/recharts/recharts/issues/4923), [#6246](https://github.com/recharts/recharts/issues/6246), [#3442](https://github.com/recharts/recharts/issues/3442)) is that some code paths create Map-like objects inheriting `vn.prototype` without running the constructor — leaving `_intern` undefined.
+
+### 12.2 Three-round patch history
+
+| Commit | What it patches | Bytes added | Layer |
+|---|---|---|---|
+| `8c50daeb` | `mn()` normalizer — `(t && t.has)` guard | +12 | Normalizer (defense-in-depth) |
+| `25c27cc1` | `bn()` + `gn()` normalizers — same guard | +24 | Normalizer (defense-in-depth) |
+| `20e6994d` | `vn.prototype.{get,has,set,delete}` — `this._intern ? super.X(mn(this,t)) : super.X(t)` | +109 | Public API (primary guard) |
+
+Cumulative file size: 502,946 → 503,091 bytes (+145 total). The normalizer guards catch the failure if any non-prototype call path slips through; the prototype guards catch all four standard methods at the upstream-most point possible.
+
+### 12.3 CRITICAL: do NOT overwrite `Recharts.js` without re-applying these patches
+
+`UI/visualisation_engine/libs/Recharts.js` is a **patched** minified bundle. If you replace it with a fresh `recharts@2.x` UMD from unpkg, all three rounds of guards disappear and the bug returns. If you must upgrade Recharts, do this:
+
+1. `cp UI/visualisation_engine/libs/Recharts.js /tmp/Recharts.js.before-patch`
+2. Replace the file with the new UMD
+3. Re-apply all three guards using `grep -bo` to find the new byte offsets
+4. Bump both cache-busters (`react_renderer.js` URL in SPA HTML + `Recharts.js`/`prop-types.js` URLs in the renderer template)
+5. Test with the same ComposedChart + dual YAxes + conditional children pattern
+
+If the upgrade is to Recharts 3.x, the class is no longer named `vn` and the minified layout is different — redo the analysis from §12.1 (search for the new class name and the new `_intern`-equivalent slot). The same vulnerability class (destructured-Map-slot method call) likely persists.
+
+### 12.4 Verification
+
+- ComposedChart with dual YAxes + `{showRevenue && <Area .../>}` + `{showUsers && <Bar .../>}` + `{showConversion && <Line .../>}` should now render
+- ScatterChart with `<Cell>` children inside `<Scatter>` should now render
+- Single-axis LineChart/BarChart/PieChart (which already worked) continue to work
+- All other Recharts patterns are unaffected — the guards are at the `vn` class only
