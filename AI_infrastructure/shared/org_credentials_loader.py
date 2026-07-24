@@ -76,6 +76,46 @@ PLATFORM_ENV_VARS: Dict[str, str] = {
 
 
 # ============================================================================
+# CANONICAL PLATFORM NAMES (read-side casing normalisation)
+# ============================================================================
+# Some platforms are stored in the DB with non-lowercase canonical forms
+# (e.g. 'MiniMax' PascalCase — matches chk_organisations_ai_provider and
+# organisation_platform_credentials.platform values). Callers may pass any
+# case ('MiniMax', 'minimax', 'MINIMAX'), so we normalise before any DB
+# lookup. The DB stores these exactly as listed below.
+# ---------------------------------------------------------------------------
+_PLATFORM_CANONICAL: Dict[str, str] = {
+    'MiniMax': 'MiniMax',   # only PascalCase outlier — others are lowercase
+}
+
+
+def _canonicalize_platform(platform: str) -> str:
+    """Normalise a caller-supplied platform name to the form stored in the DB.
+
+    Lookup is case-insensitive: any of 'MiniMax' / 'minimax' / 'MINIMAX' resolves
+    to 'MiniMax'. Unknown platforms fall back to lowercase (which matches the
+    storage convention for anthropic / openai / pinecone / etc.).
+
+    Args:
+        platform: Caller-supplied platform name (any case).
+
+    Returns:
+        Canonical platform name suitable for SQL `platform = %s` lookup.
+    """
+    if not platform:
+        return ''
+    key = platform.strip()
+    if key in _PLATFORM_CANONICAL:
+        return _PLATFORM_CANONICAL[key]
+    # Case-insensitive lookup so 'minimax' / 'MINIMAX' both resolve to 'MiniMax'
+    key_lower = key.lower()
+    for canonical_name in _PLATFORM_CANONICAL:
+        if canonical_name.lower() == key_lower:
+            return canonical_name
+    return key_lower
+
+
+# ============================================================================
 # INTERNAL: SUB-USER PARENT LOOKUP
 # ============================================================================
 
@@ -144,7 +184,7 @@ def resolve_credentials(
             'org'   → came from organisation_platform_credentials
             'env'   → came from environment variable (legacy)
     """
-    platform = platform.lower().strip()
+    platform = _canonicalize_platform(platform)
 
     def _preview(raw: str) -> str:
         """Safe masked preview: first 6 + … + last 4 (or '***' for short/empty)."""
@@ -481,6 +521,7 @@ def get_credential_source_info(user_id: int, platform: str) -> dict:
             'org_name':              'Acme Corp',
         }
     """
+    platform = _canonicalize_platform(platform)
     has_user = bool(_get_user_credential(user_id, platform))
 
     org_id = execute_query(

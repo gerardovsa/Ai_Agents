@@ -677,8 +677,19 @@ def get_scheduler() -> AutomationScheduler:
 
 
 def start_scheduler():
-    """Start the global scheduler"""
+    """Start the global scheduler.
+
+    Idempotent: if the scheduler is already running (e.g. a second
+    module-import under gunicorn forking, a Flask debug-reloader
+    child process, or an atexit hook that re-imports flask_app),
+    returns the existing instance instead of raising
+    SchedulerAlreadyRunningError. This keeps the module-import call
+    safe regardless of how many times it fires.
+    """
     scheduler = get_scheduler()
+    if scheduler.running:
+        logger.info("Automation scheduler already running — skipping restart")
+        return scheduler
     scheduler.start()
     return scheduler
 

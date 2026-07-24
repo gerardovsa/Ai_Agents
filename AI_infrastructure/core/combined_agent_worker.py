@@ -3907,10 +3907,16 @@ Proceed to the NEXT step now."""
                         # ✅ FIX (Jan 22, 2026): Pass _user_id to tools that need authentication
                         # Universal file tools, Google/Microsoft tools need user_id for OAuth
                         # Calculator tools and other regular tools don't need it
+                        #
+                        # ✅ FIX (July 24, 2026): ALWAYS pass _user_id — OAuth injection
+                        # (_injected_credentials) is the only conditional part. Meta-tools
+                        # (search_tools, get_tool_schema), org-scoped tools (pinecone_*,
+                        # xero_*, shopify_*), and RLS-aware tools all resolve credentials
+                        # via resolve_credentials(user_id, ...).
                         if tool_name.startswith(('google_', 'microsoft_', 'process_', 'gmail_', 'outlook_')):
                             result = registry.execute_tool(tool_name=tool_name, _user_id=user_id, _injected_credentials=True, **tool_input)
                         else:
-                            result = registry.execute_tool(tool_name=tool_name, **tool_input)
+                            result = registry.execute_tool(tool_name=tool_name, _user_id=user_id, **tool_input)
                     
                     # Smart truncation for large tool results to avoid 413 errors
                     result_str = smart_truncate_tool_result(result, tool_name=tool_name, max_tokens=2000)
