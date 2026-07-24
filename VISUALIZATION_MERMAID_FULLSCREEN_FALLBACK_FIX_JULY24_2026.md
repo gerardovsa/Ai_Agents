@@ -423,3 +423,110 @@ to display". The success path is unaffected — it never relied on the
 fallback.
 
 No env-var, schema, or API changes.
+
+---
+
+## Followup — Browser cache prevented the previous fixes from reaching the user
+
+The destructure fix above was correct on its first commit (`af1cd2a4`).
+Subsequent local tests still showed the fallback bailing with "No
+diagram found to display" — which initially appeared to be a code bug.
+It was not. It was a browser-cache artifact.
+
+### Root Cause
+
+The SPA loads its scripts from `UI/business-ai-platform-v2.html` with
+hard-coded cache-bust query strings:
+
+```html
+<script src="visualisation_engine/visualisation_v3.js?v=20260328_1054" defer></script>
+```
+
+The deploy pipeline rewrites every `?v=...` string in the served HTML
+to a fresh Unix timestamp on each build. **But the user's browser
+caches the HTML itself.** As long as the HTML cached in the browser
+references the same `?v=...` URL, the browser will keep loading the
+JS it has cached at that URL — even after the underlying JS file is
+updated server-side.
+
+Three commits shipped the destructure fix and its defensive
+refinements (`af1cd2a4`, `8db96fb3`), but none of them changed the
+cache-bust string in `business-ai-platform-v2.html`. The browser
+never re-fetched the JS. The user kept loading the pre-fix code.
+
+### Diagnosis Path
+
+1. Live curl of the deployed `visualisation_v3.js` confirmed the new
+   destructure code at L10700.
+2. A browser-side check of `window.vizEngine.openMermaidFullscreen.toString()`
+   still returned the OLD body (`if (!svgString)`, no destructure).
+3. A `fetch(.../visualisation_v3.js?v=LIVE_CACHE_BUST, {cache:'no-store'})`
+   from the browser returned the NEW code (493,153 bytes, contains
+   `renderResult` / `renderedSvg` / the diagnostic console.error).
+4. Conclusion: the browser had the old JS loaded into memory via the
+   `<script>` tag in its cached HTML; the server, when re-fetched, was
+   already serving the new code.
+
+### Fix
+
+**File:** `UI/business-ai-platform-v2.html`
+**Change:** Bump the `?v=...` cache-bust on the
+`visualisation_engine/visualisation_v3.js` script tag from
+`20260328_1054` to today's date (`20260724_1430`).
+
+```html
+<!-- before -->
+<script src="visualisation_engine/visualisation_v3.js?v=20260328_1054" defer></script>
+<!-- after  -->
+<script src="visualisation_engine/visualisation_v3.js?v=20260724_1430" defer></script>
+```
+
+Only the visualisation script tag was changed — the other
+visualisation sub-renderers, all CSS, and the rest of the SPA are
+left at their existing cache-bust. (Those were not the cause of the
+bug and changing them risks unrelated regressions.) The deploy
+pipeline will rewrite the bumped string to a fresh Unix timestamp on
+the next push; the user's next hard-reload will then fetch the new
+HTML, hit the new `?v=...` URL, and load the fixed JS.
+
+### Why this is isolated
+
+| Concern | Before | After |
+|---|---|---|
+| Other scripts in `business-ai-platform-v2.html` | Cache-bust unchanged | Cache-bust unchanged |
+| CSS, images, fonts | Cache-bust unchanged | Cache-bust unchanged |
+| The destructure fix | Already deployed, but not in browser | Already deployed, now in browser after hard-reload |
+| The defensive diagnostic | Already deployed, but not in browser | Already deployed, now in browser after hard-reload |
+| Hard-reload cost on the user | Same | Same (browser fetches a different `?v=...` URL anyway) |
+| Subsequent deploys | Auto-rewrite the new `?v=...` as before | Same |
+
+### Manual Verification
+
+1. Hard-reload (`Ctrl+Shift+R`) the SPA.
+2. Open a thread with a Mermaid diagram whose inline body failed to
+   render (action bar visible, body empty).
+3. Click **Fullscreen**.
+4. Expect: fullscreen overlay appears with the rendered diagram —
+   no "No diagram found to display" toast.
+5. DevTools console should NOT log
+   `🖥️ Mermaid fallback render returned no SVG`. If it does, the
+   diagnostic captured what `mermaid.render()` actually returned —
+   paste that into the next fix.
+
+### Rollback Information
+
+Revert the cache-bust string in `business-ai-platform-v2.html` to
+`20260328_1054`. The deploy pipeline will rewrite it as before; the
+visualisation code itself is unchanged in this commit. There is no
+code-level rollback to make.
+
+### Broader Lesson
+
+In a multi-writer production repo, a JS-only commit can ship
+correctly and still fail to fix the user if the HTML cache-bust is
+not bumped in the same change. The cost of bumping the cache-bust
+on every visualisation-touching commit is one line of churn; the
+benefit is that hard-reload alone is sufficient for the user to see
+the fix. Going forward: any commit that changes a file referenced by
+a cache-busted `<script>` tag should bump that tag's cache-bust in
+the same commit.
