@@ -743,18 +743,49 @@ Object.assign(window.ThreadManager, {
                 // agent-N flow: use assignThread with the swap flag so the backend
                 // routes the displaced thread to the correct destination.
                 const swap = choice.action === 'swap';
-                // FIX (Jul 23, 2026, 2nd pass): capture the assignThread response
-                // so we can read `displaced_thread` / `displaced_new_location` and
-                // explicitly load the displaced thread into ITS new location.
-                // STEP 3b inside _cascadeThreadAssignment runs BEFORE the post-
-                // assignment loadThreadsFromBackend below, and in some sequences
-                // (especially Agent→Agent where the displaces target is also an
-                // agent) the chat panel for the source agent ends up empty even
-                // though the DB assignment is correct. handleDrop is now the
-                // authoritative loader for both legs of the swap.
+                const targetAgentId = parseInt(targetLocation.replace('agent-', ''), 10);
+
+                // FIX (Jul 23, 2026, 3rd pass): COORDINATED SWAP FLOW.
+                //
+                // The previous sequence was:
+                //   1. assignThread (DB write)
+                //   2. loadThreadsFromBackend (refresh state)
+                //   3. _cascadeThreadAssignment called STEP 3b which also tried
+                //      to load the displaced thread's messages
+                //   4. handleDrop's defensive block then loaded the displaced
+                //      thread AGAIN, causing doubled messages and the chat
+                //      panel to flash empty between the two loads.
+                //
+                // The new sequence is atomic from the user's perspective:
+                //   1. Clear BOTH columns (no empty state, no "No thread loaded")
+                //   2. assignThread — DB write
+                //   3. loadThreadsFromBackend — refresh state
+                //   4. Load source thread INTO target agent (single load)
+                //   5. Load displaced thread INTO its destination (single load)
+                //   6. Render thread-info cards for both legs
+                //
+                // The user sees a brief blank state during the swap, then both
+                // threads appear in their new columns with messages intact.
+
+                // STEP 1: Clear both columns WITHOUT empty state.
+                // Always clear the target agent (the displaced thread is leaving).
+                this._clearAgentColumnForSwap(targetAgentId);
+                // Clear the source if it is a rendered location (Prime or agent).
+                if (sourceLocation === 'prime') {
+                    this._clearPrimePanelForSwap();
+                } else if (sourceLocation && sourceLocation.startsWith('agent-')) {
+                    const sourceAgentId = parseInt(sourceLocation.replace('agent-', ''), 10);
+                    if (!Number.isNaN(sourceAgentId) && sourceAgentId !== targetAgentId) {
+                        this._clearAgentColumnForSwap(sourceAgentId);
+                    }
+                }
+                // (sourceLocation === 'unassigned' / 'thread-history' — nothing to clear.)
+
+                // STEP 2: DB assign. The backend returns the displaced thread info
+                // for swaps so we can route it to its new home.
                 const assignmentResult = await this.assignThread(threadId, targetLocation, { swap });
 
-                // Refresh from DB to get the canonical post-assignment state
+                // STEP 3: Refresh local state from DB.
                 await this.loadThreadsFromBackend();
 
                 const refreshedThread = this.threads.find(t => t.id === threadId);
@@ -763,25 +794,15 @@ Object.assign(window.ThreadManager, {
                     return;
                 }
 
-                // Load the thread into the agent's chat panel
-                const agentId = parseInt(targetLocation.replace('agent-', ''));
-                if (MultiAgent.loadThreadIntoAgent) {
-                    await MultiAgent.loadThreadIntoAgent(agentId, refreshedThread);
+                // STEP 4: Load the source thread into the target agent's chat panel.
+                if (typeof MultiAgent !== 'undefined' && typeof MultiAgent.loadThreadIntoAgent === 'function') {
+                    await MultiAgent.loadThreadIntoAgent(targetAgentId, refreshedThread);
                 }
 
-                // Re-render the agent's thread info card
-                const threadInfoContainer = document.getElementById(`thread-info-${agentId}`);
-                if (threadInfoContainer && typeof this.renderThreadInfoContainer === 'function') {
-                    threadInfoContainer.innerHTML = this.renderThreadInfoContainer(targetLocation, threadId, true);
-                }
-
-                // FIX (Jul 23, 2026, 2nd pass, defensive swap-load): explicitly
-                // load the displaced thread into its new location AFTER the
-                // backend reload, so both legs of the swap end up visible in the
-                // chat panels. Without this, the source column can stay empty
-                // after Agent→Agent swaps even though the DB is correct.
+                // STEP 5: Load the displaced thread into its destination (single load).
                 const displaced = assignmentResult?.assignment?.displaced_thread;
                 const displacedDest = assignmentResult?.assignment?.displaced_new_location;
+                let displacedDestAgentId = null;
                 if (displaced && displacedDest) {
                     const dispThread = this.threads.find(t => t.id === displaced);
                     if (dispThread) {
@@ -789,39 +810,54 @@ Object.assign(window.ThreadManager, {
                             if (typeof this.loadThreadInPrime === 'function') {
                                 try {
                                     await this.loadThreadInPrime(displaced);
-                                    console.log(`✅ [Drop] Defensive load: displaced thread ${displaced} into Prime`);
+                                    console.log(`✅ [Drop] Swap: displaced thread ${displaced} into Prime`);
                                 } catch (e) {
-                                    console.warn(`[Drop] Defensive load into Prime failed for ${displaced}:`, e);
+                                    console.warn(`[Drop] Swap load into Prime failed for ${displaced}:`, e);
                                 }
                             }
-                            // Re-render Prime thread-info card
-                            const primeInfo = document.getElementById('thread-info-prime');
-                            if (primeInfo && typeof this.renderThreadInfoContainer === 'function') {
-                                primeInfo.innerHTML = this.renderThreadInfoContainer('prime', displaced, true);
-                            }
                         } else if (typeof displacedDest === 'string' && displacedDest.startsWith('agent-')) {
-                            const destAgentId = parseInt(displacedDest.replace('agent-', ''), 10);
+                            displacedDestAgentId = parseInt(displacedDest.replace('agent-', ''), 10);
                             if (typeof window !== 'undefined' &&
                                 typeof window.MultiAgent !== 'undefined' &&
                                 typeof window.MultiAgent.loadThreadIntoAgent === 'function') {
                                 try {
-                                    await window.MultiAgent.loadThreadIntoAgent(destAgentId, dispThread);
-                                    console.log(`✅ [Drop] Defensive load: displaced thread ${displaced} into ${displacedDest}`);
+                                    await window.MultiAgent.loadThreadIntoAgent(displacedDestAgentId, dispThread);
+                                    console.log(`✅ [Drop] Swap: displaced thread ${displaced} into ${displacedDest}`);
                                 } catch (e) {
-                                    console.warn(`[Drop] Defensive load into ${displacedDest} failed for ${displaced}:`, e);
+                                    console.warn(`[Drop] Swap load into ${displacedDest} failed for ${displaced}:`, e);
                                 }
                             }
-                            // Re-render the source agent's thread info card
-                            const sourceInfo = document.getElementById(`thread-info-${destAgentId}`);
-                            if (sourceInfo && typeof this.renderThreadInfoContainer === 'function') {
-                                sourceInfo.innerHTML = this.renderThreadInfoContainer(displacedDest, displaced, true);
-                            }
                         }
-                        // displacedDest === 'unassigned' (or anything else): the
-                        // displaced thread is back in the catalogue — no chat load.
+                        // displacedDest === 'unassigned' (or anything else): displaced
+                        // thread is back in the catalogue — no chat load needed.
                     }
                 }
 
+                // STEP 6: Render thread-info cards for BOTH legs of the swap.
+                const targetInfoContainer = document.getElementById(`thread-info-${targetAgentId}`);
+                if (targetInfoContainer && typeof this.renderThreadInfoContainer === 'function') {
+                    targetInfoContainer.innerHTML = this.renderThreadInfoContainer(targetLocation, threadId, true);
+                }
+                if (displaced && displacedDest) {
+                    if (displacedDest === 'prime') {
+                        const primeInfo = document.getElementById('thread-info-prime');
+                        if (primeInfo && typeof this.renderThreadInfoContainer === 'function') {
+                            primeInfo.innerHTML = this.renderThreadInfoContainer('prime', displaced, true);
+                        }
+                    } else if (displacedDestAgentId !== null && !Number.isNaN(displacedDestAgentId)) {
+                        const destInfo = document.getElementById(`thread-info-${displacedDestAgentId}`);
+                        if (destInfo && typeof this.renderThreadInfoContainer === 'function') {
+                            destInfo.innerHTML = this.renderThreadInfoContainer(displacedDest, displaced, true);
+                        }
+                    }
+                }
+
+                // STEP 7: Re-render the catalogue so the new locations show.
+                if (typeof this.renderThreadList === 'function') {
+                    this.renderThreadList();
+                }
+
+                // STEP 8: Notification.
                 if (typeof showNotification === 'function') {
                     const agentDisplay = this.formatLocationName(targetLocation);
                     const action = swap ? 'Swapped with' : 'Replaced existing thread at';

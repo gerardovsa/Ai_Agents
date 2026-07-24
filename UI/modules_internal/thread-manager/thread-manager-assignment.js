@@ -322,55 +322,15 @@ Object.assign(window.ThreadManager, {
             }
         }
 
-        // STEP 3b (Jul 23, 2026): Bug 8 — Load the displaced thread into ITS
-        // new location. Previously, the cascade updated the DB state and
-        // re-rendered the thread-info card for the source thread at the swap
-        // TARGET, but never called the chat-load function for the displaced
-        // thread at the swap SOURCE. Result: after Prime→Agent or Agent→Agent
-        // swaps, the source column had the right DB assignment but an empty
-        // chat panel and no thread-info card. handleDrop's post-assignment
-        // block only loads the target's newly-arrived thread.
-        //
-        // We restrict to dest === 'prime' for the Prime case. If the backend
-        // collapsed the swap to 'unassigned' (source had no real previous
-        // location), we deliberately do NOT load — the displaced thread is
-        // back in the catalogue, not at Prime.
-        if (assignment.displaced_thread && assignment.displaced_new_location) {
-            const dispId = assignment.displaced_thread;
-            const dispDest = assignment.displaced_new_location;
-            const dispThread = this.threads.find(t => t.id === dispId);
-            if (dispThread) {
-                try {
-                    if (dispDest === 'prime') {
-                        if (typeof this.loadThreadInPrime === 'function') {
-                            await this.loadThreadInPrime(dispId);
-                            console.log(`[CASCADE] Loaded displaced thread ${dispId} into Prime`);
-                        } else {
-                            console.warn(`[CASCADE] loadThreadInPrime not available — displaced thread ${dispId} not loaded`);
-                        }
-                    } else if (typeof dispDest === 'string' && dispDest.startsWith('agent-')) {
-                        const destAgentId = parseInt(dispDest.replace('agent-', ''), 10);
-                        if (typeof window !== 'undefined' &&
-                            typeof window.MultiAgent !== 'undefined' &&
-                            typeof window.MultiAgent.loadThreadIntoAgent === 'function') {
-                            await window.MultiAgent.loadThreadIntoAgent(destAgentId, dispThread);
-                            console.log(`[CASCADE] Loaded displaced thread ${dispId} into ${dispDest}`);
-                        } else {
-                            console.warn(`[CASCADE] MultiAgent.loadThreadIntoAgent not available — displaced thread ${dispId} not loaded into ${dispDest}`);
-                        }
-                    } else {
-                        // dispDest === 'unassigned' or anything else — thread is
-                        // back in the catalogue, no chat load needed.
-                        console.log(`[CASCADE] Displaced thread ${dispId} destination is ${dispDest} — no chat load`);
-                    }
-                } catch (e) {
-                    // Don't fail the whole cascade if a chat-load throws; log
-                    // and continue. The DB is the source of truth and the
-                    // thread info will still be correct.
-                    console.warn(`[CASCADE] Could not load displaced thread ${dispId} into ${dispDest}:`, e);
-                }
-            }
-        }
+        // STEP 3b (Jul 23, 2026): REMOVED in 2nd pass. The cascade used to
+        // load the displaced thread into its new location here, but that
+        // caused a double-load (cascade + handleDrop's defensive block both
+        // called loadThreadIntoAgent / loadThreadInPrime for the displaced
+        // thread, leading to doubled messages and the chat panel flashing
+        // empty between the two loads). handleDrop now performs a single
+        // coordinated swap: clear both columns → DB assign → load both
+        // threads in one batch. The cascade now only updates state and
+        // clears the OLD location UI; it does NOT load messages.
 
         // STEP 4: Update thread-info container in NEW location
         if (newLocation && newLocation.startsWith('agent-')) {
@@ -489,6 +449,77 @@ Object.assign(window.ThreadManager, {
                 }
             }
         }
+    },
+
+    /**
+     * Clear an agent column for a coordinated swap WITHOUT showing empty state.
+     *
+     * Unlike `_clearLocationUI` (which renders the "No thread loaded" pill),
+     * this is the visual half-step of a swap. The user wants the column to
+     * look briefly blank during the swap (no empty state, no welcome message,
+     * no "No thread loaded" pill) — the new thread will be loaded into the
+     * same column moments later by `handleDrop`.
+     *
+     * Does NOT touch `loadedThreads[agentId]` or `sessions[agentId]` — those
+     * are overwritten by the subsequent `loadThreadIntoAgent` call.
+     *
+     * @param {number} agentId
+     */
+    _clearAgentColumnForSwap(agentId) {
+        // Clear messages container (preserve scroll controls + outer wrapper)
+        const messagesContainer = document.querySelector(`#agent-column-${agentId} .agent-messages-container`);
+        if (messagesContainer) {
+            // Destroy any active TwoRuleStreamProcessors before clearing
+            const bubbles = messagesContainer.querySelectorAll('[data-processor-initialized="true"]');
+            bubbles.forEach(bubble => {
+                if (bubble._processor) {
+                    if (window._twoRuleProcessors) {
+                        window._twoRuleProcessors.delete(bubble._processor);
+                    }
+                    bubble._processor = null;
+                }
+            });
+            messagesContainer.querySelectorAll('.message-bubble, .ai-message').forEach(m => m.remove());
+            const emptyState = messagesContainer.querySelector('.empty-state');
+            if (emptyState) emptyState.remove();
+        }
+
+        // Clear thread-info card blank (NOT empty state)
+        const threadInfoEl = document.getElementById(`thread-info-${agentId}`);
+        if (threadInfoEl) threadInfoEl.innerHTML = '';
+
+        console.log(`🔄 [SWAP] Cleared agent-${agentId} column for swap (no empty state)`);
+    },
+
+    /**
+     * Clear the Prime panel for a coordinated swap WITHOUT showing empty state
+     * or welcome message. The Prime empty state (welcome message) will return
+     * only if the new state wants it; for a swap the displaced thread is
+     * reloaded into Prime immediately by `handleDrop`.
+     */
+    _clearPrimePanelForSwap() {
+        // Clear messages container
+        const messagesContainer = document.getElementById('ai-chat-messages');
+        if (messagesContainer) {
+            const bubbles = messagesContainer.querySelectorAll('[data-processor-initialized="true"]');
+            bubbles.forEach(bubble => {
+                if (bubble._processor) {
+                    if (window._twoRuleProcessors) window._twoRuleProcessors.delete(bubble._processor);
+                    bubble._processor = null;
+                }
+            });
+            messagesContainer.querySelectorAll('.message-bubble, .ai-message').forEach(m => m.remove());
+        }
+
+        // Hide the welcome container so Prime doesn't show the welcome state
+        const welcomeContainer = document.getElementById('prime-welcome-container');
+        if (welcomeContainer) welcomeContainer.style.display = 'none';
+
+        // Clear Prime thread-info card blank (NOT empty state)
+        const primeThreadInfo = document.getElementById('thread-info-prime');
+        if (primeThreadInfo) primeThreadInfo.innerHTML = '';
+
+        console.log(`🔄 [SWAP] Cleared Prime panel for swap (no empty state)`);
     },
 
     /**
