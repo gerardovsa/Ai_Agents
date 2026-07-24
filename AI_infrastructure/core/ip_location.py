@@ -7,7 +7,6 @@ Enhanced with weather data (temperature, conditions)
 
 import requests
 from typing import Dict, Optional
-from functools import lru_cache
 from datetime import datetime
 from threading import Lock
 from time import monotonic
@@ -21,7 +20,6 @@ _weather_cache = {}
 _weather_cache_lock = Lock()
 
 
-@lru_cache(maxsize=128)
 def get_location_from_ip(ip_address: Optional[str] = None) -> Dict[str, str]:
     """
     Get user location from IP address using ipapi.co (free, no API key required)
@@ -67,7 +65,8 @@ def get_location_from_ip(ip_address: Optional[str] = None) -> Dict[str, str]:
         'location_string': 'Brisbane, Queensland, Australia',
         'latitude': -27.4786,
         'longitude': 153.0244,
-        'ip': ip_address or '127.0.0.1'
+        'ip': ip_address or '127.0.0.1',
+        'resolved_from_ip': False
     }
     
     try:
@@ -109,7 +108,8 @@ def get_location_from_ip(ip_address: Optional[str] = None) -> Dict[str, str]:
             'location_string': location_string,
             'latitude': latitude,
             'longitude': longitude,
-            'ip': ip
+            'ip': ip,
+            'resolved_from_ip': True
         }
         
         print(f"[IP Location] Detected: {location_string}")
@@ -117,13 +117,13 @@ def get_location_from_ip(ip_address: Optional[str] = None) -> Dict[str, str]:
         
     except requests.exceptions.Timeout:
         print("[IP Location] Timeout - using default Brisbane location")
-        return _add_temporal_data(default_location)
+        return default_location.copy()
     except requests.exceptions.RequestException as e:
         print(f"[IP Location] Request failed: {e} - using default Brisbane location")
-        return _add_temporal_data(default_location)
+        return default_location.copy()
     except Exception as e:
         print(f"[IP Location] Unexpected error: {e} - using default Brisbane location")
-        return _add_temporal_data(default_location)
+        return default_location.copy()
 
 
 def _fetch_weather_data(latitude: float, longitude: float) -> Dict:

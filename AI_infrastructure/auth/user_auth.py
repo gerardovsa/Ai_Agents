@@ -442,7 +442,7 @@ class UserAuthManager:
             from AI_infrastructure.core.ip_location import get_location_from_ip
 
             location = get_location_from_ip(ip_address)
-            if not location:
+            if not location or not location.get('resolved_from_ip'):
                 return
 
             with get_connection('ai_infrastructure') as conn:

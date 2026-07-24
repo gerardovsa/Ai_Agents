@@ -609,7 +609,7 @@ def save_preferences():
             # Update existing preferences
             cursor.execute("""
                 UPDATE ai_infrastructure.user_preferences
-                SET communication_style = %s, detail_level = %s, auth_platform = %s, preferred_tools = %s, custom_preferences = %s, nickname = %s, detected_country = %s, detected_city = %s, detected_timezone = %s, detected_ip_address = %s, manual_location_override = %s, manual_timezone_override = %s, use_manual_location = %s, use_manual_timezone = %s, ai_memories = %s,
+                SET communication_style = %s, detail_level = %s, auth_platform = %s, preferred_tools = %s, custom_preferences = %s, nickname = %s, detected_country = COALESCE(NULLIF(%s, ''), detected_country), detected_city = COALESCE(NULLIF(%s, ''), detected_city), detected_timezone = COALESCE(NULLIF(%s, ''), detected_timezone), detected_ip_address = COALESCE(NULLIF(%s, ''), detected_ip_address), manual_location_override = %s, manual_timezone_override = %s, use_manual_location = %s, use_manual_timezone = %s, ai_memories = %s,
                     ai_model = %s, ai_temperature = %s, ai_top_p = %s, ai_max_tokens = %s, ai_thinking_enabled = %s, ai_thinking_budget = %s, ai_streaming_enabled = %s,
                     theme = %s, enable_notifications = %s, enable_sounds = %s, max_rounds = %s, round_timeout = %s,
                     memory_updated_at = CURRENT_TIMESTAMP,
@@ -948,7 +948,7 @@ def save_user_preferences(user_id, preferences_dict):
         if exists:
             cursor.execute("""
                 UPDATE ai_infrastructure.user_preferences
-                SET communication_style = %s, detail_level = %s, auth_platform = %s, preferred_tools = %s, custom_preferences = %s, nickname = %s, detected_country = %s, detected_city = %s, detected_timezone = %s, detected_ip_address = %s, manual_location_override = %s, manual_timezone_override = %s, use_manual_location = %s, use_manual_timezone = %s,
+                SET communication_style = %s, detail_level = %s, auth_platform = %s, preferred_tools = %s, custom_preferences = %s, nickname = %s, detected_country = COALESCE(NULLIF(%s, ''), detected_country), detected_city = COALESCE(NULLIF(%s, ''), detected_city), detected_timezone = COALESCE(NULLIF(%s, ''), detected_timezone), detected_ip_address = COALESCE(NULLIF(%s, ''), detected_ip_address), manual_location_override = %s, manual_timezone_override = %s, use_manual_location = %s, use_manual_timezone = %s,
                     updated_at = CURRENT_TIMESTAMP
                 WHERE user_id = %s
             """, (communication_style, detail_level, auth_platform, preferred_tools, custom_preferences,
