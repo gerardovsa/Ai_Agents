@@ -433,6 +433,50 @@ class UserAuthManager:
                 'error': 'Username or email already exists' if 'UNIQUE' in str(e) else str(e)
             }
     
+    def _refresh_login_location(self, user_id: int, ip_address: Optional[str]) -> None:
+        """Best-effort login-time location refresh; authentication never depends on it."""
+        if not user_id or not ip_address:
+            return
+
+        try:
+            from AI_infrastructure.core.ip_location import get_location_from_ip
+
+            location = get_location_from_ip(ip_address)
+            if not location:
+                return
+
+            with get_connection('ai_infrastructure') as conn:
+                with conn.cursor() as cursor:
+                    cursor.execute('''
+                        INSERT INTO ai_infrastructure.user_preferences
+                            (user_id, detected_country, detected_city,
+                             detected_timezone, detected_ip_address,
+                             detected_latitude, detected_longitude,
+                             last_location_check, updated_at)
+                        VALUES (%s, %s, %s, %s, %s, %s, %s,
+                                CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+                        ON CONFLICT (user_id) DO UPDATE SET
+                            detected_country = EXCLUDED.detected_country,
+                            detected_city = EXCLUDED.detected_city,
+                            detected_timezone = EXCLUDED.detected_timezone,
+                            detected_ip_address = EXCLUDED.detected_ip_address,
+                            detected_latitude = EXCLUDED.detected_latitude,
+                            detected_longitude = EXCLUDED.detected_longitude,
+                            last_location_check = CURRENT_TIMESTAMP,
+                            updated_at = CURRENT_TIMESTAMP
+                    ''', (
+                        user_id,
+                        location.get('country_name') or location.get('country'),
+                        location.get('city'),
+                        location.get('timezone'),
+                        location.get('ip') or ip_address,
+                        location.get('latitude'),
+                        location.get('longitude'),
+                    ))
+                conn.commit()
+        except Exception as e:
+            print(f"[AUTH] Login location refresh skipped: {e}")
+
     def generate_jwt(self, user_data: Dict) -> str:
         """
         Generate JWT token for a user (used for OAuth and dev mode)
@@ -462,7 +506,8 @@ class UserAuthManager:
             try:
                 from flask import request
                 if request:
-                    ip_address = request.remote_addr
+                    forwarded_for = request.headers.get('X-Forwarded-For', '')
+                    ip_address = forwarded_for.split(',')[0].strip() or request.remote_addr
                     user_agent = request.headers.get('User-Agent', '')
                     device_info = self.parse_user_agent(user_agent)
             except (ImportError, RuntimeError):
@@ -479,7 +524,8 @@ class UserAuthManager:
                 
                 conn.commit()
                 print(f"✅ Session created for user {user_data.get('id')} from {device_info.get('browser', 'Unknown')} on {device_info.get('os', 'Unknown')}")
-            
+
+            self._refresh_login_location(user_data.get('id'), ip_address)
             return token
             
         except Exception as e:
@@ -605,6 +651,7 @@ class UserAuthManager:
                 
                 conn.commit()
                 
+                self._refresh_login_location(user_id, ip_address)
                 print(f"✅ User logged in: {username}")
                 
                 return {
@@ -1799,7 +1846,8 @@ class UserAuthManager:
             try:
                 from flask import request
                 if request:
-                    ip_address = request.remote_addr
+                    forwarded_for = request.headers.get('X-Forwarded-For', '')
+                    ip_address = forwarded_for.split(',')[0].strip() or request.remote_addr
                     user_agent = request.headers.get('User-Agent', '')
                     device_info = self.parse_user_agent(user_agent)
             except (ImportError, RuntimeError):

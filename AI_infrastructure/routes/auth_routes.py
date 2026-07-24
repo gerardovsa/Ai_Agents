@@ -2073,7 +2073,8 @@ def login_team():
 
         # Store session
         try:
-            ip_address = request.remote_addr
+            forwarded_for = request.headers.get('X-Forwarded-For', '')
+            ip_address = forwarded_for.split(',')[0].strip() or request.remote_addr
             user_agent = request.headers.get('User-Agent', '')
             with get_database_connection() as conn:
                 with conn.cursor() as cursor:
@@ -2090,6 +2091,7 @@ def login_team():
         except Exception as session_err:
             print(f'[TEAM LOGIN] Session store warning: {session_err}')
 
+        user_auth_manager._refresh_login_location(parent_user_id, ip_address)
         return jsonify({
             'success': True,
             'token': token,

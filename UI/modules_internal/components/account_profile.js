@@ -1301,7 +1301,7 @@ async function loadAccountSettings() {
                 ip_address: data.detected_ip_address || 'Unknown'
             });
         } else if (document.getElementById('detectedLocation')) {
-            detectAndDisplayGeolocation();
+            document.getElementById('detectedLocation').textContent = 'Available after next login';
         }
 
         // Enable/disable thinking budget slider based on extended thinking checkbox
@@ -1373,10 +1373,7 @@ async function loadAccountSettings() {
             document.getElementById('manualTimezone').value = settings.manualTimezone || '';
         }
 
-        // Load and display detected geolocation
-        if (document.getElementById('detectedLocation')) {
-            detectAndDisplayGeolocation();
-        }
+        // Keep the last stored location when the backend is unavailable.
 
         // Enable/disable thinking budget slider based on extended thinking checkbox
         const thinkingBudgetSlider = document.getElementById('thinkingBudgetSlider');
@@ -1543,42 +1540,53 @@ async function saveAllSettingsToBackend(userId, settings) {
     }
 }
 
-// NEW: Detect geolocation from IP address
+// Explicit refresh helper; account loading itself uses the stored login location.
+let geolocationDetectionPromise = null;
 async function detectAndDisplayGeolocation() {
-    try {
-        // Try to get geolocation from backend first
-        const backendUrl = window.API_BASE_URL || 'http://localhost:5001';
-        const response = await fetch(`${backendUrl}/api/geolocation/detect`, {
-            headers: {
-                'Authorization': `Bearer ${localStorage.getItem('authToken')}`
-            }
-        });
-
-        if (response.ok) {
-            const data = await response.json();
-            displayGeolocationData(data);
-        } else {
-            // Fallback to ipapi service
-            const ipResponse = await fetch('https://ipapi.co/json/');
-            const ipData = await ipResponse.json();
-            displayGeolocationData({
-                country: ipData.country_name,
-                city: ipData.city,
-                timezone: ipData.timezone,
-                ip_address: ipData.ip
-            });
-        }
-    } catch (error) {
-        console.warn('Geolocation detection failed:', error);
-        document.getElementById('detectedLocation').textContent = 'Unable to detect';
-        document.getElementById('detectedTimezone').textContent = 'Unable to detect';
+    if (geolocationDetectionPromise) {
+        return geolocationDetectionPromise;
     }
+
+    geolocationDetectionPromise = (async () => {
+        try {
+            const backendUrl = window.API_BASE_URL || 'http://localhost:5001';
+            const response = await fetch(`${backendUrl}/api/geolocation/detect`, {
+                headers: {
+                    'Authorization': `Bearer ${localStorage.getItem('authToken')}`
+                }
+            });
+
+            if (!response.ok) {
+                throw new Error(`Location refresh failed (${response.status})`);
+            }
+
+            const payload = await response.json();
+            const locationData = payload.data || payload;
+            displayGeolocationData(locationData);
+            return locationData;
+        } catch (error) {
+            console.warn('Geolocation detection failed:', error);
+            const locationElement = document.getElementById('detectedLocation');
+            const timezoneElement = document.getElementById('detectedTimezone');
+            if (locationElement && !locationElement.textContent) {
+                locationElement.textContent = 'Unable to detect';
+            }
+            if (timezoneElement && !timezoneElement.textContent) {
+                timezoneElement.textContent = 'Unable to detect';
+            }
+            return null;
+        } finally {
+            geolocationDetectionPromise = null;
+        }
+    })();
+
+    return geolocationDetectionPromise;
 }
 
 function displayGeolocationData(data) {
     const location = data.city && data.country ? `${data.city}, ${data.country}` : data.country || 'Unknown';
     const timezone = data.timezone || 'Unknown';
-    const ip = data.ip_address || 'Unknown';
+    const ip = data.ip_address || data.ip || 'Unknown';
 
     document.getElementById('detectedLocation').textContent = location;
     document.getElementById('detectedTimezone').textContent = timezone;
@@ -2389,9 +2397,7 @@ async function loadUserPreferences() {
                 ip_address: data.detected_ip_address || 'Unknown'
             });
         } else {
-            // No stored geolocation - trigger fresh detection
-            console.log('No stored geolocation found, detecting from IP...');
-            detectAndDisplayGeolocation();
+            console.log('No stored geolocation found; it will be detected at next login.');
         }
 
         // Render after data is loaded
@@ -2407,8 +2413,7 @@ async function loadUserPreferences() {
         // Still render with empty arrays
         renderPreferredTools();
         renderCustomPreferences();
-        // Fallback to IP detection on error
-        detectAndDisplayGeolocation();
+        // Keep the last stored location when preference loading fails.
     }
 }
 

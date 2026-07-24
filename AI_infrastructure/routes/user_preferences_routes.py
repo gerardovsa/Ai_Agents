@@ -47,7 +47,6 @@ import logging
 import jwt
 from pathlib import Path
 from shared.database_utils import get_database_connection
-from AI_infrastructure.core.ip_location import build_geolocation_context
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -121,6 +120,8 @@ def get_or_create_preferences_table():
                 detected_city TEXT,
                 detected_timezone TEXT,
                 detected_ip_address TEXT,
+                detected_latitude DOUBLE PRECISION,
+                detected_longitude DOUBLE PRECISION,
                 manual_location_override TEXT,
                 manual_timezone_override TEXT,
                 use_manual_location INTEGER DEFAULT 0,
@@ -248,6 +249,8 @@ def get_preferences():
                 detected_city,
                 detected_timezone,
                 detected_ip_address,
+                detected_latitude,
+                detected_longitude,
                 manual_location_override,
                 manual_timezone_override,
                 use_manual_location,
@@ -308,6 +311,8 @@ def get_preferences():
                     'detected_city': '',
                     'detected_timezone': '',
                     'detected_ip_address': '',
+                    'detected_latitude': None,
+                    'detected_longitude': None,
                     'manual_location_override': '',
                     'manual_timezone_override': '',
                     'use_manual_location': 0,
@@ -392,6 +397,8 @@ def get_preferences():
                 'detected_city': row['detected_city'],
                 'detected_timezone': row['detected_timezone'],
                 'detected_ip_address': row['detected_ip_address'],
+                'detected_latitude': row['detected_latitude'],
+                'detected_longitude': row['detected_longitude'],
                 'manual_location_override': row['manual_location_override'],
                 'manual_timezone_override': row['manual_timezone_override'],
                 'use_manual_location': row['use_manual_location'],
@@ -585,33 +592,6 @@ def save_preferences():
             round_timeout = 30
         round_timeout = max(5, min(round_timeout, 600))  # clamp 5..600 seconds
         
-        # Auto-detect location from IP if not manually set
-        if not use_manual_location:
-            try:
-                # Get IP address from request
-                ip_address = request.headers.get('X-Forwarded-For', '').split(',')[0].strip()
-                if not ip_address:
-                    ip_address = request.remote_addr
-                
-                logger.info(f"Auto-detecting location from IP: {ip_address}")
-                
-                # Get full geolocation context
-                geo_context = build_geolocation_context(ip_address)
-                
-                if geo_context and geo_context.get('success'):
-                    # Update detected location fields
-                    detected_ip_address = geo_context.get('ip', ip_address)
-                    detected_country = geo_context.get('country_name', detected_country)
-                    detected_city = geo_context.get('city', detected_city)
-                    detected_timezone = geo_context.get('timezone', detected_timezone)
-                    
-                    logger.info(f"Location detected: {detected_city}, {detected_country} ({detected_timezone})")
-                else:
-                    logger.warning(f"Failed to detect location from IP: {ip_address}")
-                    
-            except Exception as e:
-                logger.error(f"Error auto-detecting location: {str(e)}", exc_info=True)
-        
         # Convert custom_preferences dict to JSON string if provided
         if custom_preferences:
             import json
@@ -633,7 +613,6 @@ def save_preferences():
                     ai_model = %s, ai_temperature = %s, ai_top_p = %s, ai_max_tokens = %s, ai_thinking_enabled = %s, ai_thinking_budget = %s, ai_streaming_enabled = %s,
                     theme = %s, enable_notifications = %s, enable_sounds = %s, max_rounds = %s, round_timeout = %s,
                     memory_updated_at = CURRENT_TIMESTAMP,
-                    last_location_check = CURRENT_TIMESTAMP,
                     updated_at = CURRENT_TIMESTAMP
                 WHERE user_id = %s
             """, (communication_style, detail_level, auth_platform, preferred_tools, custom_preferences,
@@ -650,8 +629,8 @@ def save_preferences():
                  manual_location_override, manual_timezone_override, use_manual_location, use_manual_timezone,
                  ai_memories, ai_model, ai_temperature, ai_top_p, ai_max_tokens, ai_thinking_enabled, ai_thinking_budget, ai_streaming_enabled,
                  theme, enable_notifications, enable_sounds, max_rounds, round_timeout,
-                 memory_updated_at, last_location_check)
-                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+                 memory_updated_at)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, CURRENT_TIMESTAMP)
             """, (user_id, communication_style, detail_level, auth_platform, preferred_tools, custom_preferences,
                   nickname, detected_country, detected_city, detected_timezone, detected_ip_address,
                   manual_location_override, manual_timezone_override, use_manual_location, use_manual_timezone,
@@ -675,6 +654,8 @@ def save_preferences():
                 detected_city,
                 detected_timezone,
                 detected_ip_address,
+                detected_latitude,
+                detected_longitude,
                 manual_location_override,
                 manual_timezone_override,
                 use_manual_location,
@@ -741,6 +722,8 @@ def save_preferences():
                 'detected_city': row['detected_city'],
                 'detected_timezone': row['detected_timezone'],
                 'detected_ip_address': row['detected_ip_address'],
+                'detected_latitude': row['detected_latitude'],
+                'detected_longitude': row['detected_longitude'],
                 'manual_location_override': row['manual_location_override'],
                 'manual_timezone_override': row['manual_timezone_override'],
                 'use_manual_location': row['use_manual_location'],
@@ -816,6 +799,8 @@ def get_user_preferences(user_id):
                 detected_city,
                 detected_timezone,
                 detected_ip_address,
+                detected_latitude,
+                detected_longitude,
                 manual_location_override,
                 manual_timezone_override,
                 use_manual_location,
@@ -866,6 +851,8 @@ def get_user_preferences(user_id):
             'detected_city': row['detected_city'],
             'detected_timezone': row['detected_timezone'],
             'detected_ip_address': row['detected_ip_address'],
+            'detected_latitude': row['detected_latitude'],
+            'detected_longitude': row['detected_longitude'],
             'manual_location_override': row['manual_location_override'],
             'manual_timezone_override': row['manual_timezone_override'],
             'use_manual_location': row['use_manual_location'],
@@ -962,7 +949,6 @@ def save_user_preferences(user_id, preferences_dict):
             cursor.execute("""
                 UPDATE ai_infrastructure.user_preferences
                 SET communication_style = %s, detail_level = %s, auth_platform = %s, preferred_tools = %s, custom_preferences = %s, nickname = %s, detected_country = %s, detected_city = %s, detected_timezone = %s, detected_ip_address = %s, manual_location_override = %s, manual_timezone_override = %s, use_manual_location = %s, use_manual_timezone = %s,
-                    last_location_check = CURRENT_TIMESTAMP,
                     updated_at = CURRENT_TIMESTAMP
                 WHERE user_id = %s
             """, (communication_style, detail_level, auth_platform, preferred_tools, custom_preferences,
@@ -973,8 +959,8 @@ def save_user_preferences(user_id, preferences_dict):
                 INSERT INTO ai_infrastructure.user_preferences
                 (user_id, communication_style, detail_level, auth_platform, preferred_tools, custom_preferences,
                  nickname, detected_country, detected_city, detected_timezone, detected_ip_address,
-                 manual_location_override, manual_timezone_override, use_manual_location, use_manual_timezone, last_location_check)
-                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, CURRENT_TIMESTAMP)
+                 manual_location_override, manual_timezone_override, use_manual_location, use_manual_timezone)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
             """, (user_id, communication_style, detail_level, auth_platform, preferred_tools, custom_preferences,
                   nickname, detected_country, detected_city, detected_timezone, detected_ip_address,
                   manual_location_override, manual_timezone_override, use_manual_location, use_manual_timezone))

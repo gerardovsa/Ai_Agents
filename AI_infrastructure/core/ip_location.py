@@ -9,7 +9,16 @@ import requests
 from typing import Dict, Optional
 from functools import lru_cache
 from datetime import datetime
+from threading import Lock
+from time import monotonic
 import pytz
+
+
+_WEATHER_SUCCESS_TTL_SECONDS = 15 * 60
+_WEATHER_FAILURE_TTL_SECONDS = 2 * 60
+_WEATHER_CACHE_MAXSIZE = 128
+_weather_cache = {}
+_weather_cache_lock = Lock()
 
 
 @lru_cache(maxsize=128)
@@ -75,7 +84,7 @@ def get_location_from_ip(ip_address: Optional[str] = None) -> Dict[str, str]:
         # Check if we got valid data
         if 'error' in data:
             print(f"[IP Location] Error from API: {data.get('reason', 'Unknown')}")
-            return _add_temporal_data(default_location)
+            return default_location.copy()
         
         # Extract location info
         city = data.get('city', 'Unknown')
@@ -103,9 +112,6 @@ def get_location_from_ip(ip_address: Optional[str] = None) -> Dict[str, str]:
             'ip': ip
         }
         
-        # Add temporal awareness
-        result = _add_temporal_data(result)
-        
         print(f"[IP Location] Detected: {location_string}")
         return result
         
@@ -120,7 +126,7 @@ def get_location_from_ip(ip_address: Optional[str] = None) -> Dict[str, str]:
         return _add_temporal_data(default_location)
 
 
-def _get_weather_data(latitude: float, longitude: float) -> Dict:
+def _fetch_weather_data(latitude: float, longitude: float) -> Dict:
     """
     Get current weather data from Open-Meteo API (free, no API key required)
     
@@ -202,6 +208,40 @@ def _get_weather_data(latitude: float, longitude: float) -> Dict:
         }
 
 
+def _get_weather_data(latitude: float, longitude: float) -> Dict:
+    """Return current weather with a bounded per-process TTL cache."""
+    cache_key = (round(float(latitude), 3), round(float(longitude), 3))
+    now = monotonic()
+
+    with _weather_cache_lock:
+        cached = _weather_cache.get(cache_key)
+        if cached and cached['expires_at'] > now:
+            return cached['value'].copy()
+        if cached:
+            _weather_cache.pop(cache_key, None)
+
+    weather = _fetch_weather_data(latitude, longitude)
+    ttl = (
+        _WEATHER_SUCCESS_TTL_SECONDS
+        if weather.get('temperature_c') is not None
+        else _WEATHER_FAILURE_TTL_SECONDS
+    )
+
+    with _weather_cache_lock:
+        if len(_weather_cache) >= _WEATHER_CACHE_MAXSIZE:
+            oldest_key = min(
+                _weather_cache,
+                key=lambda key: _weather_cache[key]['expires_at'],
+            )
+            _weather_cache.pop(oldest_key, None)
+        _weather_cache[cache_key] = {
+            'expires_at': now + ttl,
+            'value': weather.copy(),
+        }
+
+    return weather
+
+
 def _add_temporal_data(location: Dict) -> Dict:
     """
     Add temporal awareness data (time, day, season) and weather to location dict
@@ -238,7 +278,7 @@ def _add_temporal_data(location: Dict) -> Dict:
         
         # Season - Detect hemisphere based on latitude
         month = now.month
-        latitude = location.get('latitude', 0)
+        latitude = location.get('latitude') or 0
         
         # Southern Hemisphere (latitude < 0) has opposite seasons
         if latitude < 0:
@@ -272,6 +312,7 @@ def _add_temporal_data(location: Dict) -> Dict:
         location['season'] = season
         location['hour'] = hour
         location['date'] = now.strftime('%Y-%m-%d')
+        location['month_name'] = now.strftime('%B')
         location['success'] = True
         
         # Add weather data if coordinates available
@@ -286,6 +327,40 @@ def _add_temporal_data(location: Dict) -> Dict:
         location['success'] = False
     
     return location
+
+
+def build_context_from_stored_location(
+    location: Optional[Dict] = None,
+    location_override: Optional[str] = None,
+    timezone_override: Optional[str] = None,
+) -> Dict:
+    """Build fresh temporal/weather context without resolving an IP address."""
+    stored = dict(location or {})
+    default_location = {
+        'city': 'Brisbane',
+        'region': 'Queensland',
+        'country': 'AU',
+        'country_name': 'Australia',
+        'timezone': 'Australia/Brisbane',
+        'location_string': 'Brisbane, Queensland, Australia',
+        'latitude': None,
+        'longitude': None,
+    }
+
+    context = {**default_location, **{k: v for k, v in stored.items() if v is not None}}
+    if timezone_override:
+        context['timezone'] = timezone_override
+    if location_override:
+        context['location_string'] = location_override
+    elif not context.get('location_string'):
+        parts = [
+            context.get('city'),
+            context.get('region'),
+            context.get('country_name') or context.get('country'),
+        ]
+        context['location_string'] = ', '.join(part for part in parts if part)
+
+    return _add_temporal_data(context)
 
 
 def get_location_for_prompt(request_ip: Optional[str] = None) -> str:
@@ -312,7 +387,7 @@ def get_location_dict(request_ip: Optional[str] = None) -> Dict[str, str]:
     Returns:
         Dict with city, region, country, timezone for web_search tool
     """
-    return get_location_from_ip(request_ip)
+    return build_context_from_stored_location(get_location_from_ip(request_ip))
 
 
 def get_temporal_awareness(timezone_str: str) -> Dict:
@@ -402,7 +477,7 @@ def build_geolocation_context(request_ip: Optional[str] = None) -> Dict:
     Returns:
         Full geolocation context with all data
     """
-    return get_location_from_ip(request_ip)
+    return build_context_from_stored_location(get_location_from_ip(request_ip))
 
 
 # Example usage in routes:
