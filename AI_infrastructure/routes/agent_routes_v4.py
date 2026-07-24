@@ -1295,7 +1295,22 @@ def stream_agent(agent_id):
     print(f"[STREAM] 🔍 RAW USER PREFS: {user_prefs}")
     
     nickname = user_prefs.get('nickname', '') if user_prefs else ''
-    auth_platform = user_prefs.get('auth_platform', 'auto') if user_prefs else 'auto'
+    # Honour the user's explicit 'google' / 'microsoft' lock, or resolve
+    # 'auto' by inspecting oauth_tokens for the most-recent active token.
+    # Without this step the value 'auto' is a silent no-op and the AI
+    # receives both Google and Microsoft tool schemas with no guidance.
+    # See AI_infrastructure/shared/auth_platform_resolver.py for the
+    # resolution contract.
+    try:
+        from shared.auth_platform_resolver import resolve_auth_platform
+        _auth_platform_raw = user_prefs.get('auth_platform', 'auto') if user_prefs else 'auto'
+        auth_platform = resolve_auth_platform(user_id, _auth_platform_raw)
+    except Exception as _e:
+        # Never let a resolver failure 500 the chat endpoint; fall back to
+        # the raw stored value so the pre-existing else-branch behaviour
+        # (weak 'auto-detect' hint) still runs.
+        auth_platform = user_prefs.get('auth_platform', 'auto') if user_prefs else 'auto'
+        print(f"[STREAM] ⚠️  auth_platform resolver failed: {_e}; falling back to raw value '{auth_platform}'")
     
     # ============================================
     # 🚀 PROACTIVE SEMANTIC TOOL PRE-SEARCH
@@ -1442,6 +1457,20 @@ def stream_agent(agent_id):
                 preferred_tools = preferred_tools_raw
         except:
             preferred_tools = []
+
+    # Get custom_preferences (free-form JSON dict of user instructions).
+    # Stored as TEXT in DB (json.dumps'd at save_preferences), returned as
+    # either None, a dict, or a JSON string depending on caller.
+    custom_preferences_raw = user_prefs.get('custom_preferences') if user_prefs else None
+    custom_preferences = {}
+    if custom_preferences_raw:
+        try:
+            if isinstance(custom_preferences_raw, dict):
+                custom_preferences = custom_preferences_raw
+            elif isinstance(custom_preferences_raw, str) and custom_preferences_raw.strip():
+                custom_preferences = json.loads(custom_preferences_raw) or {}
+        except Exception:
+            custom_preferences = {}
     
     if nickname:
         print(f"[STREAM] 👤 User nickname: {nickname}")
@@ -1451,70 +1480,67 @@ def stream_agent(agent_id):
     print(f"[STREAM] 📋 Preferred tools: {preferred_tools}")
     
     # ============================================
-    # LOCATION DETECTION AND WEATHER (Retained)
+    # STORED LOCATION + FRESH TIME/WEATHER
     # ============================================
-    from core.ip_location import get_location_dict
+    from core.ip_location import build_context_from_stored_location
     try:
-        user_ip = request.remote_addr
-        location_dict = get_location_dict(user_ip)
+        stored_location = {
+            'city': user_prefs.get('detected_city') if user_prefs else None,
+            'country': user_prefs.get('detected_country') if user_prefs else None,
+            'country_name': user_prefs.get('detected_country') if user_prefs else None,
+            'timezone': user_prefs.get('detected_timezone') if user_prefs else None,
+            'latitude': user_prefs.get('detected_latitude') if user_prefs else None,
+            'longitude': user_prefs.get('detected_longitude') if user_prefs else None,
+        }
+        stored_location['location_string'] = ', '.join(
+            part for part in (
+                stored_location.get('city'),
+                stored_location.get('country_name'),
+            ) if part
+        )
+        location_override = (
+            user_prefs.get('manual_location_override')
+            if user_prefs and user_prefs.get('use_manual_location')
+            else None
+        )
+        timezone_override = (
+            user_prefs.get('manual_timezone_override')
+            if user_prefs and user_prefs.get('use_manual_timezone')
+            else None
+        )
+        location_dict = build_context_from_stored_location(
+            stored_location,
+            location_override=location_override,
+            timezone_override=timezone_override,
+        )
         location_string = location_dict.get('location_string', 'Brisbane, Queensland, Australia')
-        
         current_time_str = location_dict.get('current_time', 'Unknown time')
         day_of_week = location_dict.get('day_of_week', 'Unknown')
         season = location_dict.get('season', 'Unknown season')
-        
+        month_name = location_dict.get('month_name', 'Unknown')
         temp_c = location_dict.get('temperature_c')
         temp_f = location_dict.get('temperature_f')
         weather_condition = location_dict.get('weather_condition', 'Unknown')
-        
-        from datetime import datetime
-        date_str = location_dict.get('date', '2025-12-07')
-        try:
-            month_name = datetime.strptime(date_str, '%Y-%m-%d').strftime('%B')
-        except:
-            month_name = 'December'
-        
+
         if temp_c is not None:
             temp_str = f"{temp_c}°C ({temp_f}°F), {weather_condition}"
             time_context = f"{location_string} | {day_of_week}, {current_time_str} | {month_name} ({season}) | {temp_str}"
         else:
             time_context = f"{location_string} | {day_of_week}, {current_time_str} | {month_name} ({season})"
-        
-        print(f"[STREAM] 📍 Location: {location_string}")
+
+        print(f"[STREAM] 📍 Stored location: {location_string}")
         print(f"[STREAM] 🕐 Local time: {day_of_week}, {current_time_str}")
-        print(f"[STREAM] 🌍 Season/Month: {month_name} ({season})")
         if temp_c is not None:
             print(f"[STREAM] 🌡️  Temperature: {temp_c}°C ({temp_f}°F), {weather_condition}")
     except Exception as e:
-        from datetime import datetime
-        import pytz
-        
-        location_string = "Brisbane, Queensland, Australia"
-        location_dict = {
-            'city': 'Brisbane',
-            'region': 'Queensland',
-            'country': 'AU',
-            'timezone': 'Australia/Brisbane'
-        }
-        
-        tz = pytz.timezone('Australia/Brisbane')
-        now = datetime.now(tz)
-        current_time_str = now.strftime('%Y-%m-%d %I:%M %p %Z')
-        day_of_week = now.strftime('%A')
-        month_name = now.strftime('%B')
-        
-        month = now.month
-        if month in [12, 1, 2]:
-            season = 'Summer'
-        elif month in [3, 4, 5]:
-            season = 'Autumn'
-        elif month in [6, 7, 8]:
-            season = 'Winter'
-        else:
-            season = 'Spring'
-        
+        location_dict = build_context_from_stored_location()
+        location_string = location_dict['location_string']
+        current_time_str = location_dict.get('current_time', 'Unknown time')
+        day_of_week = location_dict.get('day_of_week', 'Unknown')
+        month_name = location_dict.get('month_name', 'Unknown')
+        season = location_dict.get('season', 'Unknown season')
         time_context = f"{location_string} | {day_of_week}, {current_time_str} | {month_name} ({season})"
-        print(f"[STREAM] ⚠️  Location detection failed: {e}, using default")
+        print(f"[STREAM] ⚠️  Stored location context failed: {e}, using default")
     
     # ============================================
     # SERVER TOOLS (web_search with location)
@@ -1645,7 +1671,27 @@ Additional Preferences (YOU MUST FOLLOW THESE):
             user_context_block += "\n\nSpecial Instructions (CRITICAL - MUST FOLLOW):"
             for tool_pref in preferred_tools:
                 user_context_block += f"\n- {tool_pref}"
-        
+
+        # custom_preferences: free-form JSON dict of user instructions.
+        # Render both scalar values and list values; skip empty/None.
+        if custom_preferences:
+            rendered_any = False
+            cp_lines = []
+            for k, v in custom_preferences.items():
+                if v is None or v == '':
+                    continue
+                if isinstance(v, list):
+                    joined = ', '.join(str(x) for x in v if x)
+                    if joined:
+                        cp_lines.append(f"- {k}: {joined}")
+                        rendered_any = True
+                else:
+                    cp_lines.append(f"- {k}: {v}")
+                    rendered_any = True
+            if rendered_any:
+                user_context_block += "\n\nCustom Preferences (USER-CONFIGURED):"
+                user_context_block += "\n" + "\n".join(cp_lines)
+
         if ai_memories:
             user_context_block += "\n\nKey Memories About This User:"
             for memory in ai_memories[:5]:
