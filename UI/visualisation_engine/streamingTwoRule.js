@@ -670,10 +670,30 @@ class TwoRuleStreamProcessor {
         // RITICAL FIX: ALWAYS concatenate TYPE 1 content unless there's a visual break
         // Check if we can append to the last element instead of creating new one
         const lastElement = this.markdownContainer.lastElementChild;
+
+        // CRITICAL GUARD: If the previous content is inside an open code fence,
+        // we MUST concatenate regardless of what the new package starts with.
+        // Python / shell / Ruby code blocks commonly contain lines starting with
+        // '#' (comments), and the `# Don't concat headers` rule below would
+        // otherwise split the code block at any stream chunk that *happens* to
+        // begin with a hash — producing `<h1>Fix:</h1>` and the rest of the
+        // code rendered as plain paragraphs. See bug #markdown-codefence-split.
+        //
+        // CRITICAL: check at pkg.position (this package's START in the raw buffer),
+        // NOT this.bufferPosition.  bufferPosition is the END of the LATEST parsed
+        // chunk after the parseNormalState while-loop, so by the time
+        // releaseReadyPackages → renderMarkdownPackage runs, bufferPosition is
+        // past this package.  For a package that closes a fence (start=inside,
+        // end=outside), using bufferPosition would miss the guard and the `#`
+        // header rule would split the code block.
+        const isInsideCodeFence = this.isInsideCodeFence(pkg.position);
+
         const canAppendToPrevious = lastElement &&
             lastElement.className === 'two-rule-markdown-content' &&
-            !pkg.content.trim().startsWith('#') && // Don't concat headers
-            !this.hasVisualBreakBefore(pkg); // No visual content between this and last
+            (isInsideCodeFence || (
+                !pkg.content.trim().startsWith('#') && // Don't concat headers (outside code blocks)
+                !this.hasVisualBreakBefore(pkg)        // No visual content between this and last
+            ));
 
         if (canAppendToPrevious) {
             // RUE CONCATENATION: Concatenate RAW text first, then render as one unit
