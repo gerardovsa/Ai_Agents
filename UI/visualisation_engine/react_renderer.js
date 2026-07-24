@@ -699,10 +699,45 @@ ${rechartsSetup}
                             var right = node.right;
                             var isParen = t.isParenthesizedExpression(right);
                             var inner = isParen ? right.expression : right;
-                            if (!(t.isJSXElement(inner) || t.isJSXFragment(inner))) return;
-                            path.replaceWith(
-                                t.conditionalExpression(node.left, inner, t.nullLiteral())
-                            );
+                            // Rewrite ANY "cond && X" where X is anything
+                            // React might render - not just literal JSX.
+                            // The previous version only matched
+                            // JSXElement / JSXFragment on the right, which
+                            // missed "cond && SomeComponent",
+                            // "cond && obj.prop", "cond && factory()",
+                            // "cond && (cond2 ? A : B)" patterns. Each of
+                            // these can resolve to false at render time,
+                            // and React inserts false as a text-child
+                            // placeholder fiber. Recharts' axis registry
+                            // (the patched vn / On Map subclasses at
+                            // Recharts.js:121189) then mis-handles the
+                            // placeholder and either throws
+                            // 't.has is not a function' or, worse, lets a
+                            // corrupted fiber tree reach React's commit
+                            // phase where React's own function d in
+                            // react-dom.production.min.js:85 (which builds
+                            // a fresh new Map() of children) ends up
+                            // dereferencing a child whose key/index path
+                            // triggered the upstream Recharts error,
+                            // surfacing as 'a.set is not a function'.
+                            // The rewrite "cond && X" -> "cond ? X : null"
+                            // makes the JSX idiomatic for Recharts without
+                            // changing what the AI authored: when "cond" is
+                            // falsy, the child is explicitly null and React
+                            // emits NO placeholder fiber.
+                            if (
+                                t.isJSXElement(inner) ||
+                                t.isJSXFragment(inner) ||
+                                t.isIdentifier(inner) ||
+                                t.isMemberExpression(inner) ||
+                                t.isCallExpression(inner) ||
+                                t.isConditionalExpression(inner) ||
+                                t.isLogicalExpression(inner)
+                            ) {
+                                path.replaceWith(
+                                    t.conditionalExpression(node.left, right, t.nullLiteral())
+                                );
+                            }
                         }
                     }
                 };
@@ -944,6 +979,93 @@ ${identifierHoist}
                                     key: 'p5',
                                     style: { fontSize: '12px', color: '#78350f' }
                                 }, 'Single-axis LineChart / BarChart / PieChart already render correctly here. Only ComposedChart-with-multiple-YAxes is blocked.'),
+                                window.React.createElement('details', {
+                                    key: 'p6',
+                                    style: { fontSize: '11px', marginTop: '10px', color: '#78350f' }
+                                }, [
+                                    window.React.createElement('summary', { key: 's' }, 'Show raw error'),
+                                    window.React.createElement('pre', {
+                                        key: 'e',
+                                        style: {
+                                            background: '#fff7ed',
+                                            padding: '8px',
+                                            borderRadius: '4px',
+                                            marginTop: '6px',
+                                            whiteSpace: 'pre-wrap',
+                                            fontFamily: 'ui-monospace,monospace',
+                                            fontSize: '11px'
+                                        }
+                                    }, msg)
+                                ])
+                            ]);
+                        }
+
+                        // Graceful fallback: a second flavour of the same
+                        // underlying Recharts instability. When a Logical-
+                        // Expression JSX child of <ComposedChart> slips past
+                        // the logicalToConditionalPlugin (e.g. an Identifier
+                        // component reference, a CallExpression returning
+                        // JSX, or a nested LogicalExpression on the right
+                        // that Babel's post-order traversal rewrote but did
+                        // not recurse into), React inserts a "false"
+                        // placeholder fiber into the child list. Recharts'
+                        // axis registry corrupts, and the resulting throw
+                        // surfaces inside React's own commit phase as
+                        // "a.set is not a function" at
+                        // react-dom.production.min.js:85. Show the same
+                        // yellow ComposedChart hint panel so the user gets a
+                        // coherent workaround message instead of a raw stack.
+                        var isRechartsRenderPhaseBug =
+                            (typeof msg === 'string')
+                            && (msg.indexOf('a.set is not a function') !== -1)
+                            && (typeof rawSource === 'string')
+                            && (rawSource.indexOf('ComposedChart') !== -1);
+
+                        if (isRechartsRenderPhaseBug) {
+                            return window.React.createElement('div', {
+                                style: {
+                                    color: '#92400e',
+                                    background: '#fffbeb',
+                                    padding: '20px',
+                                    borderRadius: '10px',
+                                    border: '1px solid #fde68a',
+                                    margin: '16px',
+                                    fontFamily: 'system-ui,-apple-system,Segoe UI,sans-serif',
+                                    lineHeight: '1.5'
+                                }
+                            }, [
+                                window.React.createElement('div', {
+                                    key: 'h',
+                                    style: { fontSize: '15px', fontWeight: 600, marginBottom: '12px' }
+                                }, '⚠ ComposedChart hit a React commit-phase bug from a Recharts fiber corruption'),
+                                window.React.createElement('div', {
+                                    key: 'p1',
+                                    style: { fontSize: '13px', marginBottom: '10px' }
+                                }, 'The chart triggered "a.set is not a function" inside React\'s commit phase (react-dom.production.min.js:85). This is the same family of Recharts internal-bug crashes as the yellow ComposedChart panel below: a LogicalExpression JSX child of <ComposedChart> (e.g. {cond && ComponentRef}) was not rewritten to a conditional in time, the falsy branch produced a placeholder fiber, and Recharts\' axis registry corrupted on first mount.'),
+                                window.React.createElement('div', {
+                                    key: 'p2',
+                                    style: { fontSize: '13px', marginBottom: '6px', fontWeight: 600 }
+                                }, 'Workaround'),
+                                window.React.createElement('div', {
+                                    key: 'p3',
+                                    style: { fontSize: '13px', marginBottom: '6px' }
+                                }, 'Rewrite any "cond && Component" patterns inside <ComposedChart> as explicit conditionals, or ask for separate single-axis charts:'),
+                                window.React.createElement('pre', {
+                                    key: 'p4',
+                                    style: {
+                                        background: '#fef3c7',
+                                        padding: '10px',
+                                        borderRadius: '6px',
+                                        fontSize: '12px',
+                                        fontFamily: 'ui-monospace,monospace',
+                                        margin: '8px 0 12px 0',
+                                        whiteSpace: 'pre-wrap'
+                                    }
+                                }, '// Instead of:\n{showLegend && <Legend />}\n// Use:\n{showLegend ? <Legend /> : null}\n\n// Or split into side-by-side single-axis charts.'),
+                                window.React.createElement('div', {
+                                    key: 'p5',
+                                    style: { fontSize: '12px', color: '#78350f' }
+                                }, 'Single-axis LineChart / BarChart / PieChart already render correctly here. Only ComposedChart-with-LogicalExpression-children is blocked.'),
                                 window.React.createElement('details', {
                                     key: 'p6',
                                     style: { fontSize: '11px', marginTop: '10px', color: '#78350f' }
