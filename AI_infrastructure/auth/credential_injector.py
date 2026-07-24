@@ -59,7 +59,7 @@ import requests
 from shared.db_connection_wrapper import get_connection
 from pathlib import Path
 from typing import Callable, Dict, Any, Optional
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 # Add parent directories to path
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
@@ -78,6 +78,27 @@ except ImportError:
 
 
 # ==================== GOOGLE WORKSPACE CREDENTIAL INJECTION ====================
+
+def _parse_google_token_expiry(expires_at):
+    """Return token expiry as naive UTC for google-auth compatibility."""
+    if not expires_at:
+        return None
+
+    try:
+        if isinstance(expires_at, str):
+            expiry = datetime.fromisoformat(expires_at.replace('Z', '+00:00'))
+        elif isinstance(expires_at, datetime):
+            expiry = expires_at
+        else:
+            return None
+    except (TypeError, ValueError):
+        return None
+
+    if expiry.tzinfo is not None:
+        expiry = expiry.astimezone(timezone.utc).replace(tzinfo=None)
+
+    return expiry
+
 
 def create_google_service_with_user_credentials(user_id: int, service_name: str, version: str = 'v1'):
     """
@@ -127,21 +148,8 @@ def create_google_service_with_user_credentials(user_id: int, service_name: str,
     cred_dict = encryptor.decrypt_dict(cred_dict)
     print(f"🔓 Decrypted Google credentials for user {user_id}")
     
-    # Create Google OAuth Credentials object
-    from datetime import datetime, timezone as _tz
-
-    expiry = None
-    expires_at = cred_dict.get('expires_at')
-    if expires_at:
-        try:
-            if isinstance(expires_at, str):
-                expiry = datetime.fromisoformat(str(expires_at).replace('Z', '+00:00'))
-            elif hasattr(expires_at, 'year'):
-                expiry = expires_at
-        except Exception:
-            pass
-    if expiry is not None and expiry.tzinfo is None:
-        expiry = expiry.replace(tzinfo=_tz.utc)
+    # google-auth compares expiry against a naive UTC clock in the deployed version.
+    expiry = _parse_google_token_expiry(cred_dict.get('expires_at'))
 
     credentials = Credentials(
         token=cred_dict['access_token'],

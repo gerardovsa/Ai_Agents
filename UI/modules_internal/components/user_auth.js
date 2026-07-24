@@ -8,6 +8,7 @@ const UserAuth = {
     user: null,
     isInitialized: false, //  Prevent double initialization
     mainAppInitialized: false, //  Prevent double main app initialization
+    _initRetryAttempted: false, // ✅ ADDED (Jul 20, 2026): Guard against infinite init-retry loops
 
     async checkExistingSession() {
         // ✅ CRITICAL FIX (Nov 25, 2025): Wait for DOM to be fully ready before checking session
@@ -142,6 +143,9 @@ const UserAuth = {
             this.user = JSON.parse(storedUser);
 
             // Verify token is still valid
+            // ✅ FIX (Jul 20, 2026): Only dump to login on a REAL auth failure (server returned 401,
+            //    verifyToken() cleared `this.token`). Transient errors (network blip / Render
+            //    cold-start / 5xx) leave the token intact — retry instead of forcing a re-login.
             this.verifyToken().then(valid => {
                 if (valid) {
                     console.log(' Token valid, loading application...');
@@ -151,15 +155,32 @@ const UserAuth = {
                     setTimeout(() => {
                         this.showMainApp();
                     }, 500);
-                } else {
-                    console.log(' Token invalid, showing login...');
+                } else if (this.token === null) {
+                    // verifyToken() returned false AND cleared the token — genuine 401 from server
+                    console.log(' Token rejected by server (401), showing login...');
                     this.hideLoadingOverlay();
                     this.showLogin();
+                } else {
+                    // verifyToken() returned false but kept the token (transient error).
+                    // Do NOT dump to login — show a progress hint and retry after 5s.
+                    console.warn('⚠️ [AUTH] verifyToken returned false but token intact — likely transient. Retrying in 5s...');
+                    this.setLoadingProgress(5, 'Connection issue — retrying...');
+                    const self = this;
+                    setTimeout(() => {
+                        // Reset the init guard so the recursive call runs, then re-enter init().
+                        self.isInitialized = false;
+                        self.init();
+                    }, 5000);
                 }
             }).catch(error => {
-                console.error(' Token verification error:', error);
-                this.hideLoadingOverlay();
-                this.showLogin();
+                // verifyToken() itself threw — treat as transient and retry.
+                console.warn('⚠️ [AUTH] Token verification network error — retrying in 5s:', error.message);
+                this.setLoadingProgress(5, 'Connection issue — retrying...');
+                const self = this;
+                setTimeout(() => {
+                    self.isInitialized = false;
+                    self.init();
+                }, 5000);
             });
         } else {
             console.log(' No token found, showing login...');
@@ -628,6 +649,7 @@ const UserAuth = {
             // ✅ FIX (Nov 24, 2025): Set initialization flag AFTER successful completion
             // This ensures the flag is only set if all initialization steps succeeded
             this.mainAppInitialized = true;
+            this._initRetryAttempted = false; // ✅ ADDED (Jul 20, 2026): Reset retry guard after success
             console.log('✅ 🔓🔓 [AUTH] Main app initialization COMPLETE - Flag set to true');
 
             // ✅ FIX (Dec 10, 2025): Show UI immediately when ready (was 10s delay)
@@ -665,11 +687,35 @@ const UserAuth = {
             // ✅ FIX (Nov 24, 2025): Reset flag on error to allow retries
             this.mainAppInitialized = false;
 
-            this.setLoadingProgress(0, 'Error loading application');
+            // ✅ FIX (Jul 20, 2026): Retry initialization ONCE before dumping to login.
+            //    The most common cause is a deferred script (e.g. agent-js.js) that hadn't
+            //    finished loading yet — `initMultiAgent is not available` → throw → login dump.
+            //    A 2-second retry lets the script finish without kicking the user out.
+            if (!this._initRetryAttempted) {
+                this._initRetryAttempted = true;
+                this.setLoadingProgress(5, 'Loading interrupted — retrying...');
+                console.log('🔄 [AUTH] Retrying initializeMainApp() once in 2s...');
+                const self = this;
+                setTimeout(async () => {
+                    try {
+                        await window.initializeMainApp();
+                        self._initRetryAttempted = false;
+                        console.log('✅ [AUTH] Retry succeeded — main app initialized');
+                    } catch (retryErr) {
+                        console.error('❌ [AUTH] Retry also failed — now showing login:', retryErr);
+                        self.setLoadingProgress(0, 'Error loading application');
+                        setTimeout(() => {
+                            self.hideLoadingOverlay();
+                            self.showLogin();
+                            console.log('🔄 [AUTH] Returned to login screen after retry exhaustion');
+                        }, 1500);
+                    }
+                }, 2000);
+                return; // Don't fall through to the original "always dump to login" path
+            }
 
-            // ✅ FIX (Nov 24, 2025): Show login screen on initialization failure
-            // Previously: Tried to show main app even on error (broken state)
-            // Now: Return to login screen so user can retry
+            // Retry already attempted — original behaviour: show login after 2s
+            this.setLoadingProgress(0, 'Error loading application');
             setTimeout(() => {
                 this.hideLoadingOverlay();
                 this.showLogin(); // Show login screen to allow retry
