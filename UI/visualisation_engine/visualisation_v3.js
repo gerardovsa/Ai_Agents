@@ -5314,6 +5314,21 @@ svg{max-width:100%;height:auto;display:block;margin:0 auto;}</style>
     // renderMermaidDirectly is responsible for surfacing an error once the
     // per-render attempt budget is exhausted.
     _scheduleMermaidRerender(item, contentArea, baseId, nextAttempt, maxRetries) {
+        // EW (Jul 24 2026): The calling renderMermaidDirectly has already
+        // created an empty `.mermaid` div (L5052 + L5079) and appended it to
+        // contentArea. When the broken-viewBox path fires the deferral, we
+        // must remove that empty div before showing the placeholder — otherwise
+        // the user sees an empty `.mermaid` body alongside the "Preparing…"
+        // placeholder, exactly the symptom we are trying to eliminate.
+        //
+        // This is also defensive against a second concurrent renderMermaidDirectly
+        // call (e.g. _processDeferredRenders in streamingTwoRule.js wipes
+        // vizContentArea.innerHTML = '' at L280, then re-renders; or a stream-
+        // finalize fires a second renderMermaidDirectly) that creates a fresh
+        // empty `.mermaid` div mid-await.  Clearing both selectors here keeps
+        // the contentArea tidy regardless of how we got here.
+        contentArea.querySelectorAll('.mermaid, .mermaid-deferred-placeholder').forEach(d => d.remove());
+
         // Lightweight placeholder so the user knows the render is pending, not failed
         const placeholder = document.createElement('div');
         placeholder.className = 'mermaid-deferred-placeholder';
