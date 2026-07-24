@@ -1484,9 +1484,17 @@ def stream_agent(agent_id):
     # ============================================
     from core.ip_location import build_context_from_stored_location
     try:
+        # Note: user_preferences.detected_country holds the full country NAME
+        # (e.g. "Australia"), not a 2-letter ISO code. Anthropic's web_search
+        # tool requires the "country" field to be <=2 characters, so we read
+        # the 2-letter code from a (future) detected_country_code column. For
+        # current rows that column does not exist yet, so .get() returns None
+        # and build_context_from_stored_location's safety net (in
+        # core/ip_location.py) falls back to the default "AU". The full name
+        # is still forwarded under "country_name" for display purposes.
         stored_location = {
             'city': user_prefs.get('detected_city') if user_prefs else None,
-            'country': user_prefs.get('detected_country') if user_prefs else None,
+            'country': user_prefs.get('detected_country_code') if user_prefs else None,
             'country_name': user_prefs.get('detected_country') if user_prefs else None,
             'timezone': user_prefs.get('detected_timezone') if user_prefs else None,
             'latitude': user_prefs.get('detected_latitude') if user_prefs else None,

@@ -242,6 +242,26 @@ def _get_weather_data(latitude: float, longitude: float) -> Dict:
     return weather
 
 
+def _safe_iso_country(value):
+    """Return ``value`` if it is a 2-letter ISO 3166-1 alpha-2 code, else ``None``.
+
+    Anthropic's ``web_search_20250305`` server tool requires the
+    ``user_location.country`` field to be at most 2 characters. Stored
+    location rows (e.g. ``ai_infrastructure.user_preferences.detected_country``)
+    historically hold the full country NAME (e.g. ``"Australia"``) under the
+    ``"country"`` key by mistake; this helper rejects that shape so the
+    default 2-letter code (e.g. ``"AU"``) can survive the merge in
+    :func:`build_context_from_stored_location`. Non-string, empty, longer-than-2,
+    or non-alphabetic values are all treated as missing.
+    """
+    if not isinstance(value, str):
+        return None
+    stripped = value.strip()
+    if len(stripped) == 2 and stripped.isalpha():
+        return stripped.upper()
+    return None
+
+
 def _add_temporal_data(location: Dict) -> Dict:
     """
     Add temporal awareness data (time, day, season) and weather to location dict
@@ -336,6 +356,16 @@ def build_context_from_stored_location(
 ) -> Dict:
     """Build fresh temporal/weather context without resolving an IP address."""
     stored = dict(location or {})
+    # Sanitize the country value: a stored full country name (e.g. "Australia")
+    # under the "country" key would break Anthropic's web_search tool, which
+    # requires the country field to be <=2 characters. If the value isn't a
+    # valid ISO 3166-1 alpha-2 code, drop it so the default "AU" survives.
+    safe_country = _safe_iso_country(stored.get('country'))
+    if safe_country is not None:
+        stored['country'] = safe_country
+    else:
+        stored.pop('country', None)
+
     default_location = {
         'city': 'Brisbane',
         'region': 'Queensland',
