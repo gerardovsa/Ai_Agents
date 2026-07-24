@@ -480,10 +480,23 @@ def update_org_info():
                 cleaned.append(d)
         updates['allowed_domains'] = cleaned  # stored as TEXT[] in Postgres
 
-    # ai_provider: must be one of the supported providers (GAP-M3)
+    # ai_provider: must be one of the supported providers (GAP-M3).
+    # Canonicalise to the exact form the DB CHECK constraint requires
+    # (migration 051: anthropic | openai | deepseek | 'MiniMax').
+    # Case-insensitive on input, PascalCase 'MiniMax' on output - storing
+    # any other casing would be rejected by chk_organisations_ai_provider
+    # (the silent-failure gap migration 051 was created to close).
+    _AI_PROVIDER_CANONICAL = {
+        'anthropic': 'anthropic',
+        'openai':    'openai',
+        'deepseek':  'deepseek',
+        'minimax':   'MiniMax',  # canonical PascalCase (DB CHECK, ai_model_catalog)
+    }
     if 'ai_provider' in data:
-        provider = str(data['ai_provider']).strip().lower()
-        if provider not in ('anthropic', 'openai', 'deepseek', 'MiniMax'):
+        provider = _AI_PROVIDER_CANONICAL.get(
+            str(data['ai_provider'] or '').strip().lower()
+        )
+        if provider is None:
             return jsonify({'success': False, 'error': 'ai_provider must be anthropic, openai, deepseek, or MiniMax'}), 400
         updates['ai_provider'] = provider
 

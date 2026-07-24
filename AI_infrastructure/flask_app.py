@@ -5072,6 +5072,86 @@ if os.environ.get('RENDER') == 'true' or __name__ == '__main__':
     _prewarm_connection_pools()
 
     # ============================================================================
+    # 🚀 SEMANTIC SEARCH PREWARM (Deploy-time marker + background-thread fallback)
+    # ============================================================================
+    # WHY HERE (not under `if __name__ == '__main__':`):
+    #   gunicorn imports flask_app as a module, so its __name__ is
+    #   "AI_infrastructure.flask_app" — never "__main__". Placing this inside
+    #   the __main__-only block silently skipped it under gunicorn, leaving
+    #   `_semantic_search_initialization_complete` stuck at False and the chat
+    #   endpoint returning 503 + Retry-After forever — the user reported
+    #   symptom on 2026-07-24. The same `RENDER or __main__` pattern that
+    #   gates `_prewarm_connection_pools()` above is what makes the connection
+    #   pool prewarm actually fire under gunicorn; we mirror it here so the
+    #   semantic-search prewarm behaves the same way.
+    #
+    # If startup.sh ran AI_infrastructure/scripts/deploy_prewarm.py BEFORE
+    # `exec gunicorn`, a marker file /data/.prewarm_complete exists. In that
+    # case the HuggingFace model is already in /data/vdb_models/ AND the tool
+    # embeddings are already cached in Supabase — workers load them on first
+    # chat in <2s. We SKIP the background thread (the user's clock is no
+    # longer paying for the prewarm cost).
+    #
+    # If the marker is absent (local dev, deploy script failed), fall back
+    # to the background-thread prewarm + the 503+Retry-After gate in
+    # agent_routes_v4.py get_semantic_search(). Deploys never crash-loop
+    # because of a prewarm failure.
+    _PREWARM_MARKER_PATH = '/data/.prewarm_complete'
+
+    try:
+        _marker_present = os.path.isfile(_PREWARM_MARKER_PATH)
+    except Exception as _marker_err:
+        print(f"[DEPLOY_PREWARM] Marker detection error (non-fatal): {_marker_err}")
+        _marker_present = False
+
+    if _marker_present:
+        # Trust the marker — the persistent_semantic_search singleton will
+        # load instantly from /data/vdb_models/ + Supabase on first call.
+        _semantic_search_initialization_complete = True
+        _semantic_search_initialization_error = None
+        print(f"[DEPLOY_PREWARM] ✓ Marker file detected: {_PREWARM_MARKER_PATH}")
+        print("[DEPLOY_PREWARM]   Deploy-time prewarm already completed.")
+        print("[DEPLOY_PREWARM]   Skipping background-thread prewarm; workers will")
+        print("[DEPLOY_PREWARM]   load embeddings from cache on first chat (<2s).")
+        print("[DEPLOY_PREWARM] ✓ Background prewarm thread SKIPPED.\n")
+    else:
+        # No marker (dev mode or deploy-time prewarm failed). Start the
+        # background-thread prewarm; the chat endpoint will return 503 with
+        # Retry-After until it completes.
+        print("[STARTUP] No deploy-prewarm marker found — starting background-thread prewarm...")
+        print("[STARTUP] Server will respond to health checks immediately while embeddings load.")
+        print("[STARTUP] Chat endpoint will 503+Retry-After until prewarm completes.\n")
+        start_semantic_search_initialization()
+
+    # ============================================================================
+    # 🚀 PGVECTOR BGE MODEL PRELOAD (background thread, non-fatal)
+    # ============================================================================
+    # WHY HERE (not under `if __name__ == '__main__':`):
+    #   Same gunicorn __name__ trap as the semantic-search prewarm above:
+    #   `start_pgvector_bge_initialization()` is the function that actually
+    #   spawns the preload thread, and under gunicorn its __name__ is
+    #   "AI_infrastructure.flask_app" — never "__main__". Placing the call
+    #   inside the __main__-only block silently skipped it under gunicorn
+    #   on Render, leaving `_pgvector_bge_initialization_complete` stuck at
+    #   False and the first vector-DB upload paying the 30-60 s HuggingFace
+    #   download cost.
+    #
+    # NOTE: This is NOT on the chat hot path — it's only consumed by the
+    # vector-DB document upload flow. Failures here are non-fatal: the
+    # model will still load on first use (just with the original 30-60 s
+    # wait). We log and continue if anything goes wrong.
+    #
+    # Bug fixed 2026-07-24 — function was previously defined but never
+    # called from anywhere in the codebase, so the preload never ran on
+    # Render. The diagnostic endpoint at /api/dev-tools/startup-diagnostics
+    # was always reporting `pgvector_bge.initialized: false`.
+    # ============================================================================
+    try:
+        start_pgvector_bge_initialization()
+    except Exception as _bge_err:
+        print(f"[STARTUP] ⚠️  Failed to start pgvector BGE preload (non-fatal): {_bge_err}")
+
+    # ============================================================================
     # CONNECTION LEAK DETECTOR STARTUP
     #
     # Why here (not under `if __name__ == '__main__':`):
@@ -5217,54 +5297,14 @@ if __name__ == '__main__':
     print(f"WebSocket Support: ENABLED (using socketio.run)")
     print(f"Auto-reload: {not is_production}")
     print("=" * 80 + "\n")
-    
-    # 🚀 SEMANTIC SEARCH INITIALIZATION (Deploy-time vs background fallback)
-    # -------------------------------------------------------------------------
-    # If startup.sh ran AI_infrastructure/scripts/deploy_prewarm.py BEFORE
-    # `exec gunicorn`, a marker file /data/.prewarm_complete exists. In that
-    # case the HuggingFace model is already in /data/vdb_models/ AND the tool
-    # embeddings are already cached in Supabase — workers load them on first
-    # chat in <2s. We SKIP the background thread (the user's clock is no
-    # longer paying for the prewarm cost).
-    #
-    # If the marker is absent (local dev, deploy script failed), fall back
-    # to the background-thread prewarm + the 503+Retry-After gate in
-    # agent_routes_v4.py get_semantic_search().
-    _PREWARM_MARKER_PATH = '/data/.prewarm_complete'
 
-    def _deploy_prewarm_already_ran() -> bool:
-        """Return True if startup.sh's deploy_prewarm.py completed successfully."""
-        try:
-            if os.path.isfile(_PREWARM_MARKER_PATH):
-                print(f"[DEPLOY_PREWARM] ✓ Marker file detected: {_PREWARM_MARKER_PATH}")
-                print("[DEPLOY_PREWARM]   Deploy-time prewarm already completed.")
-                print("[DEPLOY_PREWARM]   Skipping background-thread prewarm; workers will")
-                print("[DEPLOY_PREWARM]   load embeddings from cache on first chat (<2s).")
-                return True
-        except Exception as marker_err:
-            print(f"[DEPLOY_PREWARM] Marker detection error (non-fatal): {marker_err}")
-        return False
+    # NOTE: Deploy-prewarm marker check + semantic-search background-thread
+    # prewarm + pgvector BGE model preload are now kicked off earlier in the
+    # file (inside the `RENDER or __main__` block alongside
+    # `_prewarm_connection_pools()`). Putting any of them inside this
+    # __main__-only block silently skipped them under gunicorn, leaving the
+    # chat endpoint 503'd on every request — bugs fixed 2026-07-24.
 
-    if _deploy_prewarm_already_ran():
-        # Trust the marker — the persistent_semantic_search singleton will
-        # load instantly from /data/vdb_models/ + Supabase on first call.
-        _semantic_search_initialization_complete = True
-        _semantic_search_initialization_error = None
-        print("[DEPLOY_PREWARM] ✓ Background prewarm thread SKIPPED.\n")
-    else:
-        # No marker (dev mode or deploy-time prewarm failed). Start the
-        # background-thread prewarm; the chat endpoint will return 503 with
-        # Retry-After until it completes.
-        print("[STARTUP] No deploy-prewarm marker found — starting background-thread prewarm...")
-        print("[STARTUP] Server will respond to health checks immediately while embeddings load.")
-        print("[STARTUP] Chat endpoint will 503+Retry-After until prewarm completes.\n")
-        start_semantic_search_initialization()
-
-    # Preload the pgvector BGE embedding model on the persistent disk so
-    # the first user upload doesn't wait 30-60 s for the HuggingFace
-    # download.  Non-fatal on failure (see initialize_pgvector_bge_model_async).
-    start_pgvector_bge_initialization()
-    
     if USE_SOCKETIO:
         # Use SocketIO server (supports WebSockets + HTTP)
         print("=" * 80)

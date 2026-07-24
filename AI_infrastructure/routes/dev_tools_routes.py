@@ -22,6 +22,11 @@ from flask import Blueprint, request, jsonify
 from typing import Dict, Any, List
 from flask_socketio import emit
 
+# Auth decorator is imported at module level so it resolves on the
+# @require_auth lines below. PermissionChecker is still imported lazily
+# inside the handler to dodge circular-import risk at boot.
+from auth.user_auth import require_auth
+
 # Create blueprint
 dev_tools_bp = Blueprint('dev_tools', __name__, url_prefix='/api/dev-tools')
 
@@ -842,7 +847,7 @@ def audit_database_connections():
                     filename = file_match.group(1)
                     count = int(file_match.group(2))
                     leaks_by_file[filename] = count
-        
+
         return jsonify({
             'success': True,
             'total_leaks': total_leaks,
@@ -851,9 +856,109 @@ def audit_database_connections():
             'raw_output': output,
             'note': 'Many "leaks" may be false positives if using context managers (with statements). See database_utils.py for PooledConnection auto-return failsafe.'
         })
-        
+
     except Exception as e:
         return jsonify({
             'success': False,
             'error': str(e)
         }), 500
+
+
+# ================================================================
+# STARTUP DIAGNOSTICS
+# ================================================================
+# Additive endpoints that expose the in-memory startup-phase timing records
+# collected by AI_infrastructure/shared/startup_timing.py during boot.
+#
+# GET /api/dev-tools/startup-diagnostics       -> JSON snapshot
+# GET /api/dev-tools/startup-diagnostics.txt   -> plain-text table
+#
+# Auth:    JWT required (set by @require_auth -> request.user).
+# Roles:   admin (5) or owner (6) — matches the org_credentials_bp pattern.
+# Why:     The primary surface for diagnosing Render's 5s healthCheckPath
+#          failures. The user can curl this URL and read where the boot
+#          time went without scraping Render logs.
+#
+# Notes:
+# - We import auth + startup_timing lazily inside each handler to avoid
+#   circular imports during early boot (see CLAUDE.md §5 "Imports").
+# - The endpoints read from a process-local in-memory list, so a hit on
+#   gunicorn (single-worker) always reflects this worker's boot. With
+#   multi-worker, each worker has its own list — the first request
+#   landing on the freshly-restarted worker is what you want.
+
+def _require_admin_or_owner():
+    """Return (ok, response_or_none, user_id) tuple for the diagnostic views.
+
+    Centralises the 401/403 decision so both endpoints share it.
+    """
+    # Lazy imports to avoid circular import at module-load time.
+    from auth.permission_checker import PermissionChecker
+
+    # `require_auth` decorator on the route ensures request.user is set.
+    user = getattr(request, 'user', None)
+    if not user:
+        return False, (jsonify({
+            'ok': False,
+            'error': 'unauthenticated',
+            'message': 'Bearer JWT required (Authorization header).'
+        }), 401), None
+
+    user_id = user.get('user_id')
+    if not user_id:
+        return False, (jsonify({
+            'ok': False,
+            'error': 'invalid_token',
+            'message': 'Token does not contain a user_id claim.'
+        }), 401), None
+
+    # admin = level 5; owner = level 6 (see auth/permission_checker.py).
+    if not PermissionChecker().has_role_level(user_id, 5):
+        return False, (jsonify({
+            'ok': False,
+            'error': 'forbidden',
+            'message': 'Admin or owner role required.'
+        }), 403), None
+
+    return True, None, user_id
+
+
+@dev_tools_bp.route('/startup-diagnostics', methods=['GET'])
+@require_auth
+def startup_diagnostics_json():
+    """Return the full startup-phase timing snapshot as JSON.
+
+    Shape:
+        {
+          "ok": true,
+          "pid": <int>,
+          "render_mode": <bool>,
+          "boot_t0_wall": "2026-07-23T...",
+          "boot_total_ms": 27431.2,
+          "phases": [ ... 12 records ... ],
+          "summary": { "slowest_phase": {...}, "under_5s_target": false, ... }
+        }
+    """
+    # Import inside the handler — keeps module import cheap and avoids
+    # surprising the boot path if startup_timing ever changes its deps.
+    from shared.startup_timing import snapshot
+
+    ok, err_resp, _user_id = _require_admin_or_owner()
+    if not ok:
+        return err_resp
+
+    return jsonify(snapshot())
+
+
+@dev_tools_bp.route('/startup-diagnostics.txt', methods=['GET'])
+@require_auth
+def startup_diagnostics_text():
+    """Plain-text startup-phase report (curl | less friendly)."""
+    from shared.startup_timing import render_text
+    from flask import Response
+
+    ok, err_resp, _user_id = _require_admin_or_owner()
+    if not ok:
+        return err_resp
+
+    return Response(render_text(), mimetype='text/plain')

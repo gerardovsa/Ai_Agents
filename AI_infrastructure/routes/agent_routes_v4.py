@@ -81,42 +81,40 @@ def get_semantic_search(registry):
     This ensures embeddings are loaded ONCE at server startup from Supabase,
     not regenerated on every message or new thread.
 
-    ✅ DEPLOY-TIME GATE (July 24, 2026):
+    ✅ NO TEMPORAL COUPLING WITH CHAT (July 24, 2026 — user request):
     The flask_app.py background thread `initialize_semantic_search_async`
-    runs at gunicorn boot and populates `_semantic_search_cache`. Before
-    this gate, a chat request that arrived during the 30-60 s prewarm
-    would acquire `_semantic_search_lock` and silently wait — appearing as
-    a hung spinner to the user. Now the function returns early with a
-    sentinel exception so the chat endpoint can return a 503 + Retry-After
-    instead of a hung request. The prewarm itself is unaffected.
+    runs at gunicorn boot and populates `_semantic_search_cache`. Per user
+    directive, the chat endpoint MUST NOT 503 because the semantic-search
+    optimisation layer isn't ready. Tool embeddings are a *hint*, not a
+    prerequisite — the AI receives the full tool schema regardless.
+
+    If the prewarm is still running (or failed), this function returns
+    `None`. The caller (`stream_agent_response`) treats `None` as
+    "no suggestions block this round" and proceeds normally. The
+    `PrewarmPending` / `PrewarmFailed` sentinels still exist in flask_app
+    for diagnostic endpoints but are no longer raised on the chat path.
 
     Returns:
-        PersistentSemanticToolSearch instance, OR raises PrewarmPending /
-        PrewarmFailed (imported from flask_app) so callers can 503 cleanly.
+        PersistentSemanticToolSearch instance if prewarm has completed,
+        OR `None` if prewarm hasn't finished yet / failed. Never raises.
     """
     global _semantic_search_cache, _semantic_search_lock
 
-    # ✅ DEPLOY-TIME GATE: If the background prewarm hasn't finished yet,
-    # tell the caller "retry shortly" instead of silently waiting on the
-    # lock. The prewarm thread will release the cache the moment it
-    # completes, so the user's next retry (5 s later) gets a fast response.
-    # Import lazily to avoid a circular-import at module-load time
-    # (flask_app imports this module at line 369).
-    from flask_app import (
-        is_prewarm_complete,
-        get_prewarm_error,
-        PrewarmPending,
-        PrewarmFailed,
-    )
+    # ✅ NO-COUPLE GATE: If the background prewarm hasn't finished yet,
+    # return None so the chat proceeds without the suggestion block. The
+    # prewarm thread still populates the cache the moment it completes —
+    # the *next* chat request will pick it up. Import lazily to avoid a
+    # circular-import at module-load time (flask_app imports this module).
+    from flask_app import is_prewarm_complete, get_prewarm_error
     if not is_prewarm_complete():
+        # Surface a one-line log on every call so production grep can
+        # confirm the gate is being hit (and how often).
         err = get_prewarm_error()
         if err:
-            # Prewarm raised and gave up — don't try to silently rebuild
-            # (that's what caused the user's "re-embedding on every chat"
-            # complaint). Surface the real error.
-            raise PrewarmFailed(err)
-        # Prewarm is still running — tell the caller to retry.
-        raise PrewarmPending(retry_after_seconds=5)
+            print(f"[SEMANTIC CACHE] prewarm failed ({err[:80]}) — chat proceeding without suggestion block")
+        else:
+            print(f"[SEMANTIC CACHE] prewarm not complete — chat proceeding without suggestion block")
+        return None
 
     # Thread-safe initialization
     if _semantic_search_lock is None:
@@ -1423,38 +1421,13 @@ def stream_agent(agent_id):
             print(f"[STREAM] ⚠️  Semantic search not available")
     
     except Exception as e:
-        # ✅ DEPLOY-TIME GATE (July 24, 2026): If the prewarm is still
-        # running (or failed), the user gets a clear 503 + Retry-After
-        # instead of a hung spinner or a silent fallback. See
-        # flask_app.py:initialize_semantic_search_async for the prewarm
-        # thread that runs at gunicorn boot. The prewarm itself is
-        # unaffected — it just populates _semantic_search_cache and
-        # flips _semantic_search_initialization_complete = True.
-        # Imported lazily to keep agent_routes_v4 import-time cheap.
-        from flask_app import PrewarmPending, PrewarmFailed
-        if isinstance(e, PrewarmPending):
-            print(f"[STREAM] 🚦 Prewarm still running — returning 503 Retry-After {e.retry_after_seconds}s")
-            resp = jsonify({
-                "status": "warming_up",
-                "error": "Deploy-time prewarm still running",
-                "detail": "Tool embeddings are being loaded as part of this deploy. Retry in a few seconds.",
-                "retry_after_seconds": e.retry_after_seconds,
-            })
-            resp.status_code = 503
-            resp.headers["Retry-After"] = str(e.retry_after_seconds)
-            return resp
-        if isinstance(e, PrewarmFailed):
-            print(f"[STREAM] ❌ Prewarm failed — returning 503: {e.reason}")
-            resp = jsonify({
-                "status": "prewarm_failed",
-                "error": "Deploy-time prewarm failed",
-                "detail": e.reason,
-            })
-            resp.status_code = 503
-            resp.headers["Retry-After"] = "30"
-            return resp
-        print(f"[STREAM] ⚠️  Semantic pre-search failed: {e}")
-        # Continue without suggestions - not a critical failure
+        # ✅ NO TEMPORAL COUPLING (July 24, 2026): The prewarm gate is
+        # gone. The chat endpoint never 503s because of an optimisation
+        # layer (tool embeddings) being unavailable. If anything in the
+        # suggestion-block pipeline raises, we log it and continue with
+        # `intelligent_tool_suggestions = ""`. The AI still receives the
+        # full tool schema and can pick tools directly.
+        print(f"[STREAM] ⚠️  Semantic pre-search failed (continuing without suggestions): {e}")
     communication_style = user_prefs.get('communication_style', 'professional') if user_prefs else 'professional'
     detail_level = user_prefs.get('detail_level', 'standard') if user_prefs else 'standard'
     
