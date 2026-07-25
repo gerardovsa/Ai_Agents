@@ -536,6 +536,29 @@ class ReactRenderer {
     setTimeout(sendHeight, 1200);
 })();`;
 
+        // ── DIAGNOSTIC v6 (2026-07-25): PARENT-side capture ────────────────────
+        // The Babel.transform at line 717 runs INSIDE the iframe (it's part of
+        // the srcdoc). If the iframe's <script> tag has a script-body
+        // SyntaxError, every line in that script (including the postMessage-
+        // based diagnostics) is dead before it can execute. The parent has
+        // the raw source in cleanedJSX at this exact moment, so we capture
+        // it on the parent BEFORE returning the srcdoc. This runs even when
+        // the iframe ends up blank, because the parent SPA is unaffected by
+        // iframe script parse failures.
+        try {
+            if (typeof window !== 'undefined') {
+                window.__lastChartRaw__      = cleanedJSX;
+                window.__lastChartRawLen__   = cleanedJSX.length;
+                window.__lastChartRawHead__  = cleanedJSX.slice(0, 1200);
+                window.__lastChartRawId__    = chartId;
+                console.log(
+                    '[REACT_RENDERER_DIAG] v6 captured parent-side raw.',
+                    'len:', cleanedJSX.length,
+                    'id:', chartId
+                );
+            }
+        } catch (_diagIgnoreErr) { /* paranoid */ }
+
         return `<!DOCTYPE html>
 <html>
 <head>
