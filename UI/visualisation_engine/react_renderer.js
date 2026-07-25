@@ -182,6 +182,23 @@ class ReactRenderer {
      * @returns {string} Full HTML document string
      */
     buildReactSrcdoc(jsxContent, chartId) {
+        // ── DIAGNOSTIC v7 (2026-07-25): UNCONDITIONAL entry-point log ──────────
+        // If you see this in the parent console, buildReactSrcdoc IS being
+        // called and your browser has the latest react_renderer.js. If you
+        // do NOT see this, the browser is serving a stale version of the
+        // file even after a hard reload — likely a service worker or
+        // Cloudflare cache. Workaround: open DevTools → Application →
+        // Service Workers → Unregister, then hard-reload again.
+        try {
+            window.__buildReactSrcdocCalls = (window.__buildReactSrcdocCalls || 0) + 1;
+            console.log(
+                '[REACT_RENDERER_DIAG] v7 buildReactSrcdoc ENTRY.',
+                'call#:', window.__buildReactSrcdocCalls,
+                'id:', chartId,
+                'inLen:', jsxContent && jsxContent.length
+            );
+        } catch (_) { /* paranoid */ }
+
         // ── Library auto-detection ──────────────────────────────────────────────
         const usesRecharts = /recharts|BarChart|LineChart|PieChart|AreaChart|ScatterChart|RadarChart|ComposedChart|RadialBar|Treemap|Funnel/i.test(jsxContent);
         const usesLucide   = /lucide|LucideIcon|import.*from.*['"](lucide|lucide-react)['"]|\b(ChevronRight|ChevronDown|Circle|Square|Triangle|Star|Heart|Home|User|Settings|Search|Bell|Mail|Check|X|Plus|Minus|Edit|Trash|Download|Upload|Eye|Lock|Unlock|ArrowRight|ArrowLeft|ArrowUp|ArrowDown)\b/.test(jsxContent);
