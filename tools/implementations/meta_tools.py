@@ -338,7 +338,11 @@ def list_platform_tools(platform: str, **kwargs) -> Dict[str, Any]:
     
     # Update result with additional fields
     result["matched_as"] = matched_platform
-    result["next_steps"] = "To use a tool: 1) Call get_tool_schema(tool_name) to see parameters, 2) Call execute_tool(tool_name, **params)"
+    result["next_steps"] = (
+        "To use a tool: 1) Call get_tool_schema(tool_name) to see parameters, "
+        "2) Call execute_tool(tool_name, parameters={...}) — pass tool "
+        "arguments under the `parameters` dict, not as top-level kwargs."
+    )
     
     if guidance:
         result["guidance"] = guidance
@@ -401,7 +405,11 @@ def get_tool_schema(tool_name: str = None, **kwargs) -> Dict[str, Any]:
                 "step_1": "Call list_available_platforms() to see all platform names",
                 "step_2": "Call list_platform_tools(platform='platform_name') to see available tools",
                 "step_3": "Call get_tool_schema(tool_name='exact_tool_name') to see parameters",
-                "step_4": "Call execute_tool(tool_name='exact_tool_name', **params) to run the tool"
+                "step_4": (
+                    "Call execute_tool(tool_name='exact_tool_name', "
+                    "parameters={...}) — pass tool arguments under the "
+                    "`parameters` dict, not as top-level kwargs."
+                ),
             },
             "note": "You MUST pass tool_name parameter. Do NOT call get_tool_schema() without parameters.",
             "received_params": list(kwargs.keys())
@@ -787,7 +795,11 @@ Just use it directly.""",
         "tools": matching_tools[:50],  # Limit to 50 results
         "search_method": "exact_substring_matching",
         "aliases_available": list(alias_map.keys()),
-        "next_steps": "To use a tool: 1) Call get_tool_schema(tool_name) to see parameters, 2) Call execute_tool(tool_name, **params)"
+        "next_steps": (
+            "To use a tool: 1) Call get_tool_schema(tool_name) to see parameters, "
+            "2) Call execute_tool(tool_name, parameters={...}) — pass tool "
+            "arguments under the `parameters` dict, not as top-level kwargs."
+        )
     }
     
     # Add smart guidance for broad platform searches
@@ -831,7 +843,11 @@ def get_platform_guide(platform: str, **kwargs) -> Dict[str, Any]:
     guide += "To use this platform:\n"
     guide += f"1. Call list_platform_tools('{platform}') to see all tools\n"
     guide += "2. Call get_tool_schema(tool_name) to learn about a specific tool\n"
-    guide += "3. Call execute_tool(tool_name, **params) to use the tool\n"
+    guide += (
+        "3. Call execute_tool(tool_name, parameters={...}) to use the tool — "
+        "pass tool arguments under the `parameters` dict, not as top-level "
+        "kwargs.\n"
+    )
     
     return {
         "success": True,
@@ -858,39 +874,69 @@ def recommend_tools_for_task(task_description: str,
     return search_tools(task_description, **kwargs)
 
 
-def execute_tool(tool_name: str = None, **tool_params) -> Dict[str, Any]:
+def execute_tool(
+    tool_name: str = None,
+    parameters: Optional[Dict[str, Any]] = None,
+    **tool_params,
+) -> Dict[str, Any]:
     """
     Execute ANY tool by name (proxy function for dynamic tool execution)
-    
+
     This allows Claude to call tools after discovering them via list_platform_tools(),
     without needing all 603 tool schemas sent upfront.
-    
+
     MULTI-PROVIDER COMPATIBLE: Handles both Anthropic (Claude) and OpenAI (GPT) formats.
-    
+
     Anthropic sends: execute_tool(input={"tool_name": "X", "param": "Y"})
     OpenAI sends: execute_tool(arguments='{"tool_name": "X", "param": "Y"}')
-    
+
+    PASSING TOOL PARAMETERS
+    -----------------------
+    The MCP server builds this function's JSON schema from the typed
+    signature. ``**tool_params`` is invisible to the schema, so any tool
+    argument passed as a top-level kwarg is dropped at MCP validation time
+    (the bug that caused ``gmail_get_message(message_id=...)`` to lose
+    ``message_id`` and crash with ``missing 1 required positional argument``).
+
+    To forward arguments, the AI must pass them under the typed
+    ``parameters`` argument (a JSON object). The convention is:
+
+        execute_tool(
+            tool_name="gmail_get_message",
+            parameters={"message_id": "19f993e672f4c126", "format": "full"},
+        )
+
+    ``parameters`` accepts either a dict or a JSON string (auto-parsed).
+    The merged kwargs are then forwarded to ``registry.execute_tool()``.
+
     Args:
-        tool_name: Name of tool to execute (e.g., 'gmail_send_email', 'google_docs_create') [REQUIRED]
-        **tool_params: All parameters required by the tool
-    
+        tool_name: Name of tool to execute (e.g., 'gmail_send_email',
+            'google_docs_create') [REQUIRED]
+        parameters: Dict (or JSON string) of arguments to forward to the
+            tool. Optional tool parameters belong here, NOT as top-level
+            kwargs. ``_user_id`` and ``_injected_credentials`` are added
+            by the MCP auth layer and survive the merge.
+        **tool_params: Reserved for future use. Currently the MCP schema
+            does not expose top-level kwargs, so anything passed here is
+            silently dropped. Use ``parameters`` instead.
+
     Returns:
         Result from the executed tool
     """
     import json
     from tools.registry_v3 import get_registry
-    
+
     # MULTI-PROVIDER PARAMETER EXTRACTION
     # Handle 4 different ways providers send parameters:
-    
+
     # 1. Direct parameter (least common, but check first)
     extracted_tool_name = tool_name
     params = dict(tool_params)
-    
+
     # 2. Anthropic format: tool_name in kwargs
     if not extracted_tool_name and 'tool_name' in params:
         extracted_tool_name = params.pop('tool_name')
-    
+
     # 3. OpenAI format: JSON string in 'arguments'
     if not extracted_tool_name and 'arguments' in params:
         arguments = params.pop('arguments')
@@ -905,61 +951,93 @@ def execute_tool(tool_name: str = None, **tool_params) -> Dict[str, Any]:
                     "error": f"Failed to parse arguments JSON: {str(e)}",
                     "received_arguments": arguments[:100]
                 }
-    
+
     # 4. Nested input object (some API wrappers)
     if not extracted_tool_name and 'input' in params:
         input_obj = params.pop('input')
         if isinstance(input_obj, dict):
             extracted_tool_name = input_obj.pop('tool_name', None)
             params.update(input_obj)
-    
-    # 5. Unwrap nested 'parameters' dict OR JSON string (AI agent sometimes wraps actual params)
-    # Example: {"tool_name": "foo", "parameters": {"query": "SELECT..."}}
-    # OR: {"tool_name": "foo", "parameters": "{\"query\": \"SELECT...\"}"}
-    # Should become: {"query": "SELECT..."}
-    if 'parameters' in params:
-        nested_params = params.pop('parameters')
-        
-        # If parameters is a JSON string, parse it first
-        if isinstance(nested_params, str):
+
+    # 5. Typed `parameters` argument (the new MCP-safe path).
+    # Because the function signature declares `parameters: Optional[Dict]`,
+    # the MCP server's generated JSON schema exposes it as a typed object
+    # property — so values passed here actually reach this function.
+    #
+    # This step runs LAST so that ``parameters`` overrides values from
+    # every earlier extraction shape (direct kwargs, Anthropic ``input``,
+    # OpenAI ``arguments``). Two rules govern the merge:
+    #
+    #   (a) Non-``_`` keys from ``parameters`` win over kwargs — the AI's
+    #       explicit, typed request is the source of truth for tool args.
+    #   (b) ``_``-prefixed keys from ``parameters`` are ignored — auth-layer
+    #       injections (``_user_id``, ``_injected_credentials``) must not
+    #       be overridable by an AI-supplied dict, even by accident.
+    if parameters is not None:
+        if isinstance(parameters, str):
             try:
-                nested_params = json.loads(nested_params)
+                parameters = json.loads(parameters)
             except json.JSONDecodeError as e:
                 return {
                     "success": False,
-                    "error": f"Failed to parse nested parameters JSON: {str(e)}",
-                    "received_parameters": nested_params[:100] if len(nested_params) > 100 else nested_params
+                    "error": f"Failed to parse 'parameters' JSON: {str(e)}",
+                    "received_parameters": parameters[:100],
                 }
-        
-        # Now nested_params should be a dict - merge it
-        if isinstance(nested_params, dict):
-            # Merge nested params into main params (nested params take precedence)
-            params.update(nested_params)
+        if isinstance(parameters, dict):
+            for k, v in parameters.items():
+                if not k.startswith('_'):
+                    params[k] = v
         else:
             return {
                 "success": False,
-                "error": f"Expected 'parameters' to be a dict or JSON string, got {type(nested_params).__name__}",
-                "received_type": str(type(nested_params))
+                "error": (
+                    "'parameters' must be a dict or JSON string, got "
+                    f"{type(parameters).__name__}"
+                ),
+                "received_type": str(type(parameters)),
             }
-    
+
+    # NOTE: nested 'parameters' unwrapping used to live at this position
+    # in the function. It has moved to step 5 (typed ``parameters`` arg)
+    # so the MCP schema actually exposes the field and the AI's tool
+    # arguments survive validation. Keeping a 'parameters' key in
+    # **tool_params** for backward compatibility is fine: the early
+    # extraction shapes (Anthropic ``input``, OpenAI ``arguments``)
+    # already merged anything they found there into ``params``.
+
     # Validate tool_name extracted
     if not extracted_tool_name:
         return {
             "success": False,
             "error": "❌ MISSING PARAMETER: tool_name is required",
-            "correct_usage": "execute_tool(tool_name='exact_tool_name', param1='value1', param2='value2')",
+            "correct_usage": (
+                "execute_tool(tool_name='exact_tool_name', "
+                "parameters={'param1': 'value1', 'param2': 'value2'})"
+            ),
             "workflow": {
                 "step_1": "First discover tools: search_tools(query='keyword') or list_platform_tools(platform='name')",
                 "step_2": "Get parameters: get_tool_schema(tool_name='exact_tool_name')",
-                "step_3": "Then execute: execute_tool(tool_name='exact_tool_name', **required_params)"
+                "step_3": (
+                    "Then execute: execute_tool(tool_name='exact_tool_name', "
+                    "parameters={...})"
+                ),
+                "warning": (
+                    "MCP drops top-level kwargs because the JSON schema "
+                    "only declares `tool_name`. Always pass tool "
+                    "arguments under the `parameters` dict."
+                ),
             },
             "received_params": list(tool_params.keys()),
             "example": {
                 "discovery": "search_tools(query='excel create')",
                 "get_params": "get_tool_schema(tool_name='microsoft_excel_create_workbook')",
-                "execution": "execute_tool(tool_name='microsoft_excel_create_workbook', name='My Spreadsheet')"
+                "execution": (
+                    "execute_tool("
+                    "tool_name='microsoft_excel_create_workbook', "
+                    "parameters={'name': 'My Spreadsheet'})"
+                ),
             },
-            "note": "You MUST pass tool_name parameter. Do NOT call execute_tool() without tool_name."
+            "note": "You MUST pass tool_name parameter. Do NOT call execute_tool() without tool_name.",
         }
     
     registry = get_registry()
@@ -980,7 +1058,11 @@ def execute_tool(tool_name: str = None, **tool_params) -> Dict[str, Any]:
                 "step_1": "Use search_tools(query='sheets create') to find actual tool names",
                 "step_2": "Or use list_platform_tools(platform='google_sheets') to list all tools",
                 "step_3": "Use the EXACT tool name from the discovery results",
-                "step_4": "Call execute_tool(tool_name='exact_name_from_discovery', **params)"
+                "step_4": (
+                    "Call execute_tool(tool_name='exact_name_from_discovery', "
+                    "parameters={...}) — pass tool arguments under the "
+                    "`parameters` dict, not as top-level kwargs."
+                ),
             },
             "available_discovery_tools": [
                 "search_tools(query='keyword') - Search across all 1071 tools",
