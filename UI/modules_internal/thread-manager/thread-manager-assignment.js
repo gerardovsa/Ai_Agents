@@ -290,9 +290,20 @@ Object.assign(window.ThreadManager, {
         // STEP 2: Clear OLD location UI (only if location ACTUALLY CHANGED)
         // CRITICAL FIX (Nov 21): Don't clear if previous_location === newLocation
         // This prevents threads from being cleared when re-assigned to same location
+        //
+        // FIX (Jul 25, 2026, 4th pass): When the cascade is firing as part of a
+        // swap (`assignment.displaced_thread` is set), the OLD location is going
+        // to be filled with the DISPLACED thread by handleDrop moments later.
+        // The cascade must NOT render empty state here — that empty state
+        // briefly flashes between the cascade's clear and handleDrop's load,
+        // and was previously persisting for the displaced thread's destination
+        // because the cascade's clear raced with handleDrop's loadIntoAgent.
+        // Pass `{ silent: true }` so the cascade clears DOM but doesn't render
+        // empty state and doesn't clobber the state object.
         if (assignment.previous_location && assignment.previous_location !== newLocation) {
-            console.log(`🧹 [CASCADE] Clearing ${assignment.previous_location} (moved to ${newLocation})`);
-            await this._clearLocationUI(assignment.previous_location, threadId);
+            const isSwap = !!assignment.displaced_thread;
+            console.log(`🧹 [CASCADE] Clearing ${assignment.previous_location} (moved to ${newLocation})${isSwap ? ' [silent — swap]' : ''}`);
+            await this._clearLocationUI(assignment.previous_location, threadId, { silent: isSwap });
         } else if (assignment.previous_location === newLocation) {
             console.log(`✅ [CASCADE] Thread ${threadId} staying at ${newLocation}, skipping clear`);
         }
@@ -310,8 +321,9 @@ Object.assign(window.ThreadManager, {
                 displacedThread.agent = displacedNewLocation.startsWith('agent-') ? displacedNewLocation : null;
                 displacedThread.updated = new Date().toISOString();
                 // Clear UI from the source target column (where the displaced
-                // thread USED to be rendered).
-                await this._clearLocationUI(newLocation, assignment.displaced_thread);
+                // thread USED to be rendered). FOR SWAPS: silent — handleDrop
+                // is about to load the source thread into this same location.
+                await this._clearLocationUI(newLocation, assignment.displaced_thread, { silent: true });
 
                 // Surface a toast so the user knows the displaced thread moved.
                 if (typeof showNotification === 'function') {
@@ -397,8 +409,16 @@ Object.assign(window.ThreadManager, {
     /**
      * CLEAR OLD LOCATION UI: Remove thread from old location
      * Only clears UI if this specific thread is loaded in that location
+     *
+     * Options:
+     *   silent (bool) — default false. When true, clears DOM + state but does
+     *   NOT render empty state / welcome message. Used during swap flows where
+     *   `handleDrop` is about to load a replacement thread into the same slot.
+     *   This prevents the brief empty-state flash + avoids a race where the
+     *   cascade's empty state would clobber the soon-to-be-rendered messages.
      */
-    async _clearLocationUI(location, threadId) {
+    async _clearLocationUI(location, threadId, options = {}) {
+        const silent = options.silent === true;
         if (location === 'unassigned') {
             // Clear Prime panel ONLY if this thread is loaded
             if (AppState.sessionId === threadId) {
@@ -415,17 +435,22 @@ Object.assign(window.ThreadManager, {
                     messagesContainer.innerHTML = '';
                 }
 
-                // Show welcome message
-                const welcomeContainer = document.getElementById('prime-welcome-container');
-                if (welcomeContainer) welcomeContainer.style.display = 'block';
-
-                // Update Prime header
-                const primeThreadInfo = document.getElementById('thread-info-prime');
-                if (primeThreadInfo && typeof this.renderThreadInfoContainer === 'function') {
-                    primeThreadInfo.innerHTML = this.renderThreadInfoContainer('prime', null, false);
+                // Show welcome message — but NOT when silent (handleDrop will
+                // immediately load the new thread's messages).
+                if (!silent) {
+                    const welcomeContainer = document.getElementById('prime-welcome-container');
+                    if (welcomeContainer) welcomeContainer.style.display = 'block';
                 }
 
-                console.log(`✅ [CASCADE] Cleared Prime UI (thread ${threadId})`);
+                // Update Prime header
+                if (!silent) {
+                    const primeThreadInfo = document.getElementById('thread-info-prime');
+                    if (primeThreadInfo && typeof this.renderThreadInfoContainer === 'function') {
+                        primeThreadInfo.innerHTML = this.renderThreadInfoContainer('prime', null, false);
+                    }
+                }
+
+                console.log(`✅ [CASCADE] Cleared Prime UI (thread ${threadId})${silent ? ' [silent]' : ''}`);
             }
 
         } else if (location.startsWith('agent-')) {
@@ -437,15 +462,22 @@ Object.assign(window.ThreadManager, {
 
                 // Clear ONLY if this thread is loaded in this agent
                 if (loadedThread && loadedThread.threadId === threadId) {
-                    MultiAgent.clearLoadedThread(agentId);
+                    // Forward `silent` to clearLoadedThread so it does NOT
+                    // re-render the empty-state header via updateAgentHeader.
+                    // Empty state is what was clobbering handleDrop's
+                    // freshly-loaded thread info card on the second swap.
+                    MultiAgent.clearLoadedThread(agentId, silent);
 
-                    // Update agent header to show "no thread"
-                    const headerEl = document.getElementById(`thread-info-${agentId}`);
-                    if (headerEl && typeof this.renderThreadInfoContainer === 'function') {
-                        headerEl.innerHTML = this.renderThreadInfoContainer(location, null, true);
+                    // Belt-and-suspenders: skip our own empty-state render
+                    // when silent (handleDrop will render the real card next).
+                    if (!silent) {
+                        const headerEl = document.getElementById(`thread-info-${agentId}`);
+                        if (headerEl && typeof this.renderThreadInfoContainer === 'function') {
+                            headerEl.innerHTML = this.renderThreadInfoContainer(location, null, true);
+                        }
                     }
 
-                    console.log(`✅ [CASCADE] Cleared ${location} UI (thread ${threadId})`);
+                    console.log(`✅ [CASCADE] Cleared ${location} UI (thread ${threadId})${silent ? ' [silent]' : ''}`);
                 }
             }
         }

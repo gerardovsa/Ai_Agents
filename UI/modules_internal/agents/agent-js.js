@@ -587,16 +587,25 @@ const MultiAgent = {
     },
 
     // Clear loaded thread
-    clearLoadedThread(agentId) {
+    // `silent` (bool, default false): when true, do NOT re-render the agent
+    // header into empty state. Used during swap flows where handleDrop is
+    // about to immediately call `loadThreadIntoAgent` on the same agentId,
+    // which would set `loadedThreads[agentId]` and render the info card.
+    // If we render empty state here, it briefly flashes and then gets
+    // overwritten; for the displaced-thread destination the empty state
+    // could persist if the subsequent load is skipped or fails.
+    clearLoadedThread(agentId, silent = false) {
         delete this.loadedThreads[agentId];
-        this.updateAgentHeader(agentId);
-        this.saveState();
+        if (!silent) {
+            this.updateAgentHeader(agentId);
 
-        // [NEW] After clearing, check if this agent has any OTHER assigned threads from database
-        // If not, show "Start New Chat" button
-        if (typeof ThreadManager !== 'undefined' && typeof ThreadManager.checkAndShowEmptyState === 'function') {
-            ThreadManager.checkAndShowEmptyState(agentId);
+            // [NEW] After clearing, check if this agent has any OTHER assigned threads from database
+            // If not, show "Start New Chat" button
+            if (typeof ThreadManager !== 'undefined' && typeof ThreadManager.checkAndShowEmptyState === 'function') {
+                ThreadManager.checkAndShowEmptyState(agentId);
+            }
         }
+        this.saveState();
     },
 
     // Build agent quick-nav bar (backend-driven)
