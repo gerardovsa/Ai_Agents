@@ -723,6 +723,41 @@ ${rechartsSetup}
                     ok: true
                 });
             }
+
+            // DIAGNOSTIC v5 (2026-07-25): unconditionally capture the raw
+            // JSX source AND the Babel output on parent.__lastChartRaw__ /
+            // parent.__lastChartOut__. The postMessage-based __renderSnapshots__
+            // only fires from a SUCCESSFULLY-parsed iframe script - if the
+            // <script> tag has a script-body SyntaxError, the entire iframe
+            // script is dead and no snapshot ever gets captured, which is the
+            // exact failure mode we are trying to debug right now. The parent
+            // has access to both inputs synchronously (Babel runs on the
+            // parent; the iframe is just where it gets injected), so saving
+            // them on parent always succeeds - even when the iframe ends up
+            // blank. From DevTools the user can pull these with:
+            //   window.parent.__lastChartRaw__
+            //   window.parent.__lastChartOut__
+            // and paste them back so we can reproduce offline. Removed once
+            // the root cause is identified.
+            try {
+                if (typeof window !== 'undefined' && window.parent) {
+                    window.parent.__lastChartRaw__ = rawSource;
+                    window.parent.__lastChartOut__ = out;
+                    window.parent.__lastChartRawLen__ = rawSource.length;
+                    window.parent.__lastChartOutLen__ = out.length;
+                    // Optional prefix-only preview of the babel output so the
+                    // user can eyeball it in DevTools without grepping a 5k+
+                    // string into the clipboard.
+                    window.parent.__lastChartOutHead__ = out.slice(0, 1200);
+                    console.log(
+                        '[REACT_RENDERER_DIAG] v5 captured raw/out on parent.',
+                        'rawLen:', rawSource.length,
+                        'outLen:', out.length
+                    );
+                }
+            } catch (_diagIgnoreErr) {
+                /* parent unreachable (srcdoc sandbox restrictions) */
+            }
         } catch (transformErr) {
             var tmsg = (transformErr && transformErr.message)
                 ? transformErr.message : String(transformErr);
