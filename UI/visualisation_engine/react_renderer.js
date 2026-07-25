@@ -737,8 +737,8 @@ ${rechartsSetup}
                             // iframe blank. The simple-identifier regex at
                             // ~line 304 already covers {flag && (<JSX/>)};
                             // this plugin only needs to cover
-                            // {complexCond && (<JSX/>)} (e.g.
-                            // `view === 'overview' && (<>...</>)`).
+                            // complexCond AND JSX cases like
+                            // view === overview AND fragment content.
                             if (
                                 t.isJSXElement(inner) ||
                                 t.isJSXFragment(inner)
