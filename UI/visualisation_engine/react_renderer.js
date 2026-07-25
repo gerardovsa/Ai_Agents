@@ -725,14 +725,23 @@ ${rechartsSetup}
                             // changing what the AI authored: when "cond" is
                             // falsy, the child is explicitly null and React
                             // emits NO placeholder fiber.
+                            // Defensive v3 (2026-07-25 rollback): only rewrite
+                            // when the right side is a literal JSXElement /
+                            // JSXFragment. The v2 extension (Identifier /
+                            // MemberExpression / CallExpression /
+                            // ConditionalExpression / LogicalExpression)
+                            // produced invalid JS for at least one real chart
+                            // pattern, surfacing in production as
+                            //   SyntaxError: missing ) after argument list
+                            // at the executed-script line, leaving every
+                            // iframe blank. The simple-identifier regex at
+                            // ~line 304 already covers {flag && (<JSX/>)};
+                            // this plugin only needs to cover
+                            // {complexCond && (<JSX/>)} (e.g.
+                            // `view === 'overview' && (<>...</>)`).
                             if (
                                 t.isJSXElement(inner) ||
-                                t.isJSXFragment(inner) ||
-                                t.isIdentifier(inner) ||
-                                t.isMemberExpression(inner) ||
-                                t.isCallExpression(inner) ||
-                                t.isConditionalExpression(inner) ||
-                                t.isLogicalExpression(inner)
+                                t.isJSXFragment(inner)
                             ) {
                                 path.replaceWith(
                                     t.conditionalExpression(node.left, right, t.nullLiteral())
@@ -747,6 +756,49 @@ ${rechartsSetup}
                 presets: [['react', { runtime: 'classic' }]],
                 plugins: [logicalToConditionalPlugin]
             }).code;
+            // Defensive v3 (2026-07-25): validate the transformed output
+            // BEFORE injecting it. Babel.transform can succeed (no
+            // exception) yet produce JS the browser cannot parse if the
+            // plugin chain emits a malformed AST for some input. The
+            // production failure "SyntaxError at about:srcdoc:642:36"
+            // proves the plugin output is not always valid. Parse-check
+            // it here; if it fails, retry without the plugin (regex-only
+            // output) so we still render something instead of a blank
+            // iframe. Both paths are parse-checked — if even raw Babel
+            // fails, we re-throw to the outer catch which renders a
+            // visible error banner with the Babel message.
+            try {
+                new Function(out);
+                if (typeof __babelFences !== 'undefined') {
+                    __babelFences.push({
+                        label: 'F2b — plugin output parses as valid JS',
+                        ok: true
+                    });
+                }
+            } catch (parseErr) {
+                if (typeof __babelFences !== 'undefined') {
+                    __babelFences.push({
+                        label: 'F2b — plugin output parses as valid JS',
+                        ok: false,
+                        err: String(parseErr && parseErr.message || parseErr)
+                    });
+                }
+                console.warn(
+                    '[REACT_RENDERER] plugin output failed to parse, ' +
+                    'retrying without plugin:',
+                    parseErr && parseErr.message
+                );
+                out = Babel.transform(rawSource, {
+                    presets: [['react', { runtime: 'classic' }]]
+                }).code;
+                try {
+                    new Function(out);
+                } catch (parseErr2) {
+                    // Even raw Babel output is broken — re-throw to the
+                    // outer catch so the visible error banner appears.
+                    throw parseErr2;
+                }
+            }
         } catch (transformErr) {
             var tmsg = (transformErr && transformErr.message)
                 ? transformErr.message : String(transformErr);
