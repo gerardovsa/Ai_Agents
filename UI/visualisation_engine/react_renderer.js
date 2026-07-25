@@ -687,117 +687,41 @@ ${rechartsSetup}
             // The 2026-07-23 fence+tail diagnostic captured the exact failing
             // pattern: <ComposedChart> with {showX && (<Component yAxisId="..."/>)}
             // children that all share/duplicate axis IDs destabilise the
-            // registry on first mount. This transform makes the JSX idiomatic
-            // for Recharts without changing what the AI authored.
-            function logicalToConditionalPlugin(api) {
-                var t = api.types;
-                return {
-                    visitor: {
-                        LogicalExpression: function (path) {
-                            var node = path.node;
-                            if (node.operator !== '&&') return;
-                            var right = node.right;
-                            var isParen = t.isParenthesizedExpression(right);
-                            var inner = isParen ? right.expression : right;
-                            // Rewrite ANY "cond && X" where X is anything
-                            // React might render - not just literal JSX.
-                            // The previous version only matched
-                            // JSXElement / JSXFragment on the right, which
-                            // missed "cond && SomeComponent",
-                            // "cond && obj.prop", "cond && factory()",
-                            // "cond && (cond2 ? A : B)" patterns. Each of
-                            // these can resolve to false at render time,
-                            // and React inserts false as a text-child
-                            // placeholder fiber. Recharts' axis registry
-                            // (the patched vn / On Map subclasses at
-                            // Recharts.js:121189) then mis-handles the
-                            // placeholder and either throws
-                            // 't.has is not a function' or, worse, lets a
-                            // corrupted fiber tree reach React's commit
-                            // phase where React's own function d in
-                            // react-dom.production.min.js:85 (which builds
-                            // a fresh new Map() of children) ends up
-                            // dereferencing a child whose key/index path
-                            // triggered the upstream Recharts error,
-                            // surfacing as 'a.set is not a function'.
-                            // The rewrite "cond && X" -> "cond ? X : null"
-                            // makes the JSX idiomatic for Recharts without
-                            // changing what the AI authored: when "cond" is
-                            // falsy, the child is explicitly null and React
-                            // emits NO placeholder fiber.
-                            // Defensive v3 (2026-07-25 rollback): only rewrite
-                            // when the right side is a literal JSXElement /
-                            // JSXFragment. The v2 extension (Identifier /
-                            // MemberExpression / CallExpression /
-                            // ConditionalExpression / LogicalExpression)
-                            // produced invalid JS for at least one real chart
-                            // pattern, surfacing in production as
-                            //   SyntaxError: missing ) after argument list
-                            // at the executed-script line, leaving every
-                            // iframe blank. The simple-identifier regex at
-                            // ~line 304 already covers {flag && (<JSX/>)};
-                            // this plugin only needs to cover
-                            // complexCond AND JSX cases like
-                            // view === overview AND fragment content.
-                            if (
-                                t.isJSXElement(inner) ||
-                                t.isJSXFragment(inner)
-                            ) {
-                                path.replaceWith(
-                                    t.conditionalExpression(node.left, right, t.nullLiteral())
-                                );
-                            }
-                        }
-                    }
-                };
-            }
-
+            // registry on first mount. The text-based simple-identifier regex
+            // above (~line 304) already covers {flag && (<JSX/>)} which is the
+            // most common form that triggers Recharts' axis registry falsy-
+            // placeholder bug.
+            //
+            // Defensive v4 (2026-07-25): the AST plugin is DISABLED entirely.
+            // Rationale: the previous rewrite (cond && X -> cond ? X : null) is
+            // sound for the simple-identifier case the regex already covers, but
+            // its expansion to handle complex right-hand sides (Identifier /
+            // MemberExpression / CallExpression / ConditionalExpression /
+            // LogicalExpression) and even its 2-type JSXElement/JSXFragment
+            // restriction still produced SyntaxError-at-script-time output for at
+            // least one real-world chart pattern that bypassed every locally-
+            // tested case. The iframe would render blank with no recoverable
+            // state because new Function() (function-body parse) is more
+            // permissive than the <script> parser the browser actually uses to
+            // execute the code (script-body parse). Without a plugin,
+            // Babel.transform only emits standard React.createElement output
+            // that the <script> parser is guaranteed to accept.
+            // Trade-off: the {complexCond && (<JSX/>)} pattern reverts to the
+            // original Recharts bug (a.set is not a function /
+            // i.set is not a function on axis registry falsy-placeholder). The
+            // user will see the chart render with a visible runtime error in
+            // DevTools instead of a completely blank iframe - a much better
+            // failure mode than blank-canvas. The simple-identifier regex
+            // above still handles the {flag && (<JSX/>)} case which is the most
+            // common Recharts offender.
             out = Babel.transform(rawSource, {
-                presets: [['react', { runtime: 'classic' }]],
-                plugins: [logicalToConditionalPlugin]
+                presets: [['react', { runtime: 'classic' }]]
             }).code;
-            // Defensive v3 (2026-07-25): validate the transformed output
-            // BEFORE injecting it. Babel.transform can succeed (no
-            // exception) yet produce JS the browser cannot parse if the
-            // plugin chain emits a malformed AST for some input. The
-            // production failure "SyntaxError at about:srcdoc:642:36"
-            // proves the plugin output is not always valid. Parse-check
-            // it here; if it fails, retry without the plugin (regex-only
-            // output) so we still render something instead of a blank
-            // iframe. Both paths are parse-checked — if even raw Babel
-            // fails, we re-throw to the outer catch which renders a
-            // visible error banner with the Babel message.
-            try {
-                new Function(out);
-                if (typeof __babelFences !== 'undefined') {
-                    __babelFences.push({
-                        label: 'F2b — plugin output parses as valid JS',
-                        ok: true
-                    });
-                }
-            } catch (parseErr) {
-                if (typeof __babelFences !== 'undefined') {
-                    __babelFences.push({
-                        label: 'F2b — plugin output parses as valid JS',
-                        ok: false,
-                        err: String(parseErr && parseErr.message || parseErr)
-                    });
-                }
-                console.warn(
-                    '[REACT_RENDERER] plugin output failed to parse, ' +
-                    'retrying without plugin:',
-                    parseErr && parseErr.message
-                );
-                out = Babel.transform(rawSource, {
-                    presets: [['react', { runtime: 'classic' }]]
-                }).code;
-                try {
-                    new Function(out);
-                } catch (parseErr2) {
-                    // Even raw Babel output is broken — re-throw to the
-                    // outer catch so the visible error banner appears.
-                    throw parseErr2;
-                }
+            if (typeof __babelFences !== 'undefined') {
+                __babelFences.push({
+                    label: 'F2b — plugin disabled v4, raw Babel output',
+                    ok: true
+                });
             }
         } catch (transformErr) {
             var tmsg = (transformErr && transformErr.message)

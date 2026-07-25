@@ -805,7 +805,7 @@
     <script src="visualisation_engine/svg_renderer.js?v=20260328_1054" defer></script>
     <script src="visualisation_engine/latex_renderer.js?v=20260328_1054" defer></script>
     <script src="visualisation_engine/html_renderer.js?v=20260328_1054" defer></script>
-    <script src="visualisation_engine/react_renderer.js?v=20260725_0900" defer></script>
+    <script src="visualisation_engine/react_renderer.js?v=20260725_1830" defer></script>
     <script src="visualisation_engine/viz_popup_manager.js?v=20260328_1054" defer></script>
     <script src="visualisation_engine/threejs_renderer.js?v=20260328_1054" defer></script>
 
@@ -8773,7 +8773,7 @@
 
         /* Full panel drop overlay for Prime - with fade in animation */
         .ai-chat-panel.drag-over::before {
-            content: '?? Drop thread here to load in Prime';
+            content: '⬇ Drop thread here to load in Prime';
             position: absolute;
             top: 50%;
             left: 50%;
@@ -12522,7 +12522,7 @@
         }
 
         .agent-column.drag-over::after {
-            content: '?? Drop thread here to load in this agent';
+            content: '⬇ Drop thread here to load in this agent';
             position: absolute;
             top: 50%;
             left: 50%;
@@ -22234,7 +22234,23 @@
                                     from `/api/user/preferences`, and
                                     `loadModelCatalog` does the same when the
                                     dynamic catalog is available.
+
+                                    (July 25, 2026) Added a disabled placeholder
+                                    option as the FIRST <option>. Without it, the
+                                    dropdown shows the first real option (Claude
+                                    Sonnet 4.6) for the brief window before
+                                    `loadModelCatalog` fetches /api/org/models and
+                                    `loadAndPopulatePreferences` restores the saved
+                                    value — a visible "flash" from 4.6 to e.g.
+                                    MiniMax-M3. The placeholder is selected by
+                                    default, has an empty value, and is disabled so
+                                    it cannot be saved. `loadModelCatalog` does
+                                    `sel.innerHTML = ''` and rebuilds before
+                                    setting `sel.value = currentValue`, so the
+                                    placeholder is only ever visible during the
+                                    pre-fetch render.
                                 -->
+                                <option value="" disabled selected hidden>— Select AI model —</option>
                                 <!-- ── Anthropic ─────────────────────────────────── -->
                                 <optgroup label="Anthropic">
                                     <option value="claude-sonnet-4-6-20260213">Claude Sonnet 4.6 ★ Recommended</option>
@@ -33819,6 +33835,9 @@ Thanks`;
             const token = localStorage.getItem('authToken') || sessionStorage.getItem('authToken');
             if (!token) {
                 _setSaveIndicator('error', 'Not logged in');
+                if (typeof showNotification === 'function') {
+                    showNotification('Not logged in — settings not saved', 'error', 3000);
+                }
                 return false;
             }
             _setSaveIndicator('saving');
@@ -33833,15 +33852,28 @@ Thanks`;
                 });
                 if (response.ok) {
                     _setSaveIndicator('saved');
+                    // (July 25, 2026) Toast on every successful save so the user
+                    // gets confirmation beyond the tiny inline indicator. The
+                    // guard keeps the save path non-fatal if the toast helper
+                    // ever disappears (e.g. partial test harness).
+                    if (typeof showNotification === 'function') {
+                        showNotification('Settings saved', 'success', 2000);
+                    }
                     return true;
                 }
                 let detail = `HTTP ${response.status}`;
                 try { const j = await response.json(); if (j && j.error) detail = j.error; } catch (_) {}
                 _setSaveIndicator('error', detail);
+                if (typeof showNotification === 'function') {
+                    showNotification('Save failed: ' + detail, 'error', 4000);
+                }
                 return false;
             } catch (e) {
                 console.error('[ACCOUNT SETTINGS] Auto-save failed:', e);
                 _setSaveIndicator('error', e.message || 'Network error');
+                if (typeof showNotification === 'function') {
+                    showNotification('Save failed: ' + (e.message || 'Network error'), 'error', 4000);
+                }
                 return false;
             }
         }
