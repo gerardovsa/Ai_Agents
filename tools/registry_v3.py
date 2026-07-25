@@ -80,6 +80,35 @@ _DISABLED_SCHEMA_FILENAMES = frozenset({
 })
 
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+# IMPLEMENTATION STEMS NOT TO REGISTER (July 25, 2026)
+# Distinct from `_RENDER_DISABLED_PLATFORMS`, which is keyed on the SCHEMA
+# platform name (e.g. "resend"). This set is keyed on the FILE STEM of
+# tools/implementations/<stem>.py. Some disabled platforms have a module
+# whose stem differs from the platform name (e.g. "resend" → "resend_email"),
+# and some implementation files crash at import time (e.g. `import resend`
+# in resend_email.py requires the `resend` SDK which is not in
+# requirements.txt). Skipping these at registration time avoids creating
+# proxies that always raise on first attribute access. The proxy hardening
+# in `_LazyModuleProxy.__getattr__` (above) is the broader safety net; this
+# list is the preventive filter.
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+_DISABLED_IMPLEMENTATION_STEMS = frozenset({
+    "resend_email",            # resend platform disabled; SDK not installed
+    "sendgrid_email_fallback", # sendgrid platform disabled; SDK not installed
+    "twilio",                  # twilio platform disabled
+    "twilio_veterinary",       # twilio_veterinary platform disabled
+    "ngrok",                   # ngrok platform disabled
+    "cloudflare",              # cloudflare platform disabled
+    "cloudconvert",            # cloudconvert platform disabled
+    "github",                  # github platform disabled (UI module blocked separately)
+    "render",                  # render platform disabled
+    "adobe_indesign",          # adobe_indesign platform disabled
+    "inhouse_query",           # inhouse_query platform disabled
+    "xero_quotes",             # xero_quotes sub-module disabled
+    "xero_quotes_smart",       # xero_quotes_smart sub-module disabled
+})
+
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 # LAZY MODULE PROXY (July 23, 2026)
 # Defers `importlib.import_module()` until first attribute access. Solves
 # the cold-start crash caused by heavy implementation imports (cadquery,
@@ -115,6 +144,13 @@ class _LazyModuleProxy:
             except Exception as e:
                 # Record the error and raise on every subsequent access —
                 # avoids re-importing a broken module every call.
+                # Log once at materialization time so ops can see which
+                # implementation is unhealthy (missing SDK, syntax error,
+                # etc.) without spamming the log on every attribute probe.
+                logger.warning(
+                    f"[REGISTRY_V3] Lazy import failed for {self._fq_name}: "
+                    f"{type(e).__name__}: {e}"
+                )
                 object.__setattr__(self, "_err", e)
                 raise
         if self._err is not None:
@@ -127,7 +163,25 @@ class _LazyModuleProxy:
             "_fq_name", "_mod", "_transform", "_err"
         ):
             raise AttributeError(name)
-        return getattr(self._materialize(), name)
+        try:
+            return getattr(self._materialize(), name)
+        except AttributeError:
+            # Genuine "the materialized module does not have this attribute"
+            # — propagate so `hasattr()` returns False and callers can fall
+            # through to the next candidate.
+            raise
+        except Exception as e:
+            # Materialization failure (or any other non-AttributeError) must
+            # surface as AttributeError to preserve the Python `module`-like
+            # contract. Otherwise `hasattr(proxy, "anything")` propagates
+            # ImportError / ModuleNotFoundError and crashes the dispatch
+            # loop in `get_tool_function` (see bug fixed July 25, 2026:
+            # `tavily_search` dispatch was crashing on `resend_email.py`'s
+            # `import resend` because the iteration probed every impl).
+            raise AttributeError(
+                f"lazy module {self._fq_name!r} cannot resolve attribute "
+                f"{name!r}: {type(e).__name__}: {e}"
+            ) from e
 
     def __bool__(self):
         # Truthy once materialised (or attempt made). Used by `if impl:`
@@ -713,6 +767,20 @@ class RegistryV3:
             # Skip if already loaded from google_workspace or special modules
             if module_name in self.implementations or module_name in special_modules:
                 logger.debug(f"  [OK]  {module_name}: skipped (already loaded)")
+                continue
+
+            # FIX (July 25, 2026): Skip implementation stems whose platform
+            # is in the disabled list. Without this, every `.py` in
+            # tools/implementations/ becomes a LazyModuleProxy keyed by file
+            # stem, and proxies for disabled modules (e.g. resend_email.py
+            # which has `import resend` at module top) raise on first
+            # attribute access — breaking get_tool_function dispatch for
+            # *unrelated* tools when the iteration probes them.
+            if module_name in _DISABLED_IMPLEMENTATION_STEMS:
+                logger.info(
+                    f"  [DISABLED] {module_name}: skipped (platform disabled, "
+                    f"see _DISABLED_IMPLEMENTATION_STEMS)"
+                )
                 continue
 
             try:
