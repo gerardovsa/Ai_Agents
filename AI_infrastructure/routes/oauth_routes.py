@@ -14,12 +14,12 @@ CHANGES:
 - Proper cleanup order: cursor → conn
 """
 
-from flask import Blueprint, request, redirect, session, jsonify, url_for
+from flask import Blueprint, request, redirect, session, jsonify
 from google_auth_oauthlib.flow import Flow
 from google.oauth2.credentials import Credentials
 import json
 import os
-from datetime import datetime
+from datetime import datetime, timedelta
 from pathlib import Path
 from shared.database_utils import get_database_connection, convert_sql_placeholders
 
@@ -38,16 +38,22 @@ oauth_bp = Blueprint('oauth', __name__, url_prefix='/api/oauth')
 @oauth_bp.route('/google/login', methods=['GET'])
 def google_login():
     """
-    Alias for /workspace/start - Start Google OAuth flow
-    
+    Alias for /workspace/start - Start Google OAuth flow (Phase 9: redirect to canonical).
+
     GET /api/oauth/google/login
-    
-    Redirects to the unified OAuth workspace flow
-    
+
+    Phase 9: delegate to the canonical /api/auth/google/login route.
+    The canonical flow owns the OAuth state, session, and token storage.
+    The legacy route remains in place for backwards compatibility with
+    existing frontend call sites (e.g. UI/business-ai-platform-v2.html).
+
     ✅ NO DATABASE OPERATIONS - Safe
     """
-    # Redirect to the main workspace OAuth endpoint
-    return redirect(url_for('oauth.oauth_workspace_start', mode='signin'))
+    # Phase 9: redirect to the canonical Google OAuth login endpoint.
+    # We pass `mode=signin` for behavioural parity with the previous
+    # internal redirect, but the canonical endpoint ignores it (the
+    # canonical flow does not differentiate signin vs signup).
+    return redirect('/api/auth/google/login?mode=signin')
 
 
 @oauth_bp.route('/microsoft/login', methods=['GET'])
@@ -70,96 +76,85 @@ def microsoft_login():
 @oauth_bp.route('/workspace/start', methods=['GET'])
 def oauth_workspace_start():
     """
-    Start OAuth flow for Google Workspace
-    
+    Start OAuth flow for Google Workspace (Phase 9: redirect to canonical).
+
     GET /api/oauth/workspace/start?mode=signin|signup
-    
-    Initiates OAuth 2.0 flow with unified scopes:
-    - Gmail, Calendar, Tasks, Forms
-    - Docs, Sheets, Slides, Drive
-    
+
+    Phase 9: delegate to the canonical /api/auth/google/login endpoint.
+    The canonical flow owns the OAuth state, session, and token storage.
+    This legacy route is retained for backwards compatibility with
+    existing frontend call sites (e.g. UI/modules_internal/components/account_profile.js,
+    templates/dashboard.html).
+
+    The `mode` query arg is forwarded for behavioural parity. The canonical
+    endpoint does not differentiate signin vs signup, so any value is harmless.
+
     ✅ NO DATABASE OPERATIONS - Safe
     """
-    try:
-        mode = request.args.get('mode', 'signin')  # signin or signup
-        
-        # Get OAuth configuration
-        config = get_oauth_config(service_name=None, mode='web')
-        
-        if not config or not config.get('credentials_file'):
-            return jsonify({
-                'success': False,
-                'error': 'OAuth not configured. Missing credentials_web.json'
-            }), 500
-        
-        credentials_file = config['credentials_file']
-        
-        if not os.path.exists(credentials_file):
-            return jsonify({
-                'success': False,
-                'error': f'Credentials file not found: {credentials_file}'
-            }), 500
-        
-        # Create OAuth flow
-        flow = Flow.from_client_secrets_file(
-            credentials_file,
-            scopes=UNIFIED_SCOPES,
-            redirect_uri=request.host_url.rstrip('/') + '/api/oauth/workspace/callback'
-        )
-        
-        # Generate authorization URL
-        authorization_url, state = flow.authorization_url(
-            access_type='offline',
-            include_granted_scopes='true',
-            prompt='consent'  # Force consent to get refresh token
-        )
-        
-        # Store state in session for verification
-        session['oauth_state'] = state
-        session['oauth_mode'] = mode  # Remember if signin or signup
-        
-        # CAPTURE ORIGIN URL: Store where user started OAuth (for redirect back)
-        capture_oauth_origin(request, session)
-        
-        print(f"🔐 OAuth flow started: {mode}")
-        print(f"   Redirect URI: {flow.redirect_uri}")
-        print(f"   State: {state[:20]}...")
-        
-        # Redirect user to Google
-        return redirect(authorization_url)
-        
-    except Exception as e:
-        print(f"❌ OAuth start error: {e}")
-        import traceback
-        traceback.print_exc()
-        return jsonify({
-            'success': False,
-            'error': str(e)
-        }), 500
+    mode = request.args.get('mode', 'signin')
+    print(f"🔐 OAuth flow started: {mode} (delegating to canonical /api/auth/google/login)")
+    return redirect(f'/api/auth/google/login?mode={mode}')
 
 
 @oauth_bp.route('/workspace/callback', methods=['GET'])
 def oauth_workspace_callback():
     """
-    OAuth callback endpoint
-    
+    OAuth callback endpoint (Phase 9: writes to the canonical token table).
+
     GET /api/oauth/workspace/callback?code=...&state=...
-    
-    Exchanges authorization code for access token
-    Stores encrypted token in database
-    
-    FIXED: Added proper cursor management with try/finally block
+
+    Exchanges authorization code for access token.
+    Phase 9: stores tokens in the canonical `ai_infrastructure.oauth_tokens`
+    table (24-column schema) so the shared OAuth injector can read them.
+    The route is retained because it is the registered Google redirect URI;
+    the destination table is the only thing that changed.
+
+    FIXED: Added proper cursor management with try/finally block.
     """
     cursor = None  # ✅ CRITICAL: Initialize before try
     conn = None    # ✅ CRITICAL: Initialize before try
-    
+
     try:
-        # Verify state
+        # Verify state — check DB first (canonical flow), then Flask session
+        # (legacy flow). The Phase 9 redirect from /workspace/start to the
+        # canonical /api/auth/google/login means new flows have state in DB.
         state = request.args.get('state')
-        if state != session.get('oauth_state'):
-            # ✅ Safe - no cursor created yet
+        state_valid = False
+
+        try:
+            conn_state = get_database_connection('ai_infrastructure')
+            cursor_state = conn_state.cursor()
+            sql, params = convert_sql_placeholders(
+                "SELECT state FROM ai_infrastructure.oauth_states "
+                "WHERE state = %s AND platform = 'google' "
+                "AND expires_at > CURRENT_TIMESTAMP",
+                (state,),
+            )
+            cursor_state.execute(sql, params)
+            db_state_row = cursor_state.fetchone()
+            if db_state_row:
+                state_valid = True
+                # Delete used state (single-use, mirroring canonical)
+                del_sql, del_params = convert_sql_placeholders(
+                    "DELETE FROM ai_infrastructure.oauth_states WHERE state = %s",
+                    (state,),
+                )
+                cursor_state.execute(del_sql, del_params)
+                conn_state.commit()
+            cursor_state.close()
+            conn_state.close()
+        except Exception as db_state_err:
+            print(f"⚠️ oauth_workspace_callback: DB state lookup failed ({db_state_err}); "
+                  f"falling back to Flask session check")
+
+        # Fallback to Flask session (legacy flow / cached browser state)
+        if not state_valid and state and state == session.get('oauth_state'):
+            state_valid = True
+            session.pop('oauth_state', None)
+
+        if not state_valid:
             return redirect('/login?error=Invalid OAuth state')
-        
+
         mode = session.get('oauth_mode', 'signin')
         
         # Get OAuth configuration
@@ -179,98 +174,212 @@ def oauth_workspace_callback():
         
         # Get credentials
         credentials = flow.credentials
-        
-        # Extract user info from credentials
-        # Note: We'll need to make an API call to get email
-        from googleapiclient.discovery import build
-        
+
+        # Extract user info — try userinfo endpoint first (canonical), then
+        # Gmail API fallback (legacy behaviour retained for parity).
+        import requests
+        user_email = None
+        user_name = None
+        user_picture = None
+        google_id = None
+
         try:
-            # Get user's email from Gmail API
-            gmail_service = build('gmail', 'v1', credentials=credentials)
-            profile = gmail_service.users().getProfile(userId='me').execute()
-            user_email = profile['emailAddress']
+            resp = requests.get(
+                'https://www.googleapis.com/oauth2/v1/userinfo',
+                headers={'Authorization': f'Bearer {credentials.token}'},
+            )
+            resp.raise_for_status()
+            user_info = resp.json()
+            user_email = user_info.get('email')
+            user_name = user_info.get('name')
+            user_picture = user_info.get('picture')
+            google_id = user_info.get('id')
         except Exception as e:
-            print(f"⚠️ Could not get email from Gmail API: {e}")
-            # Fallback: Try to get from OAuth token info
+            print(f"⚠️ oauth_workspace_callback: userinfo fetch failed ({e}); "
+                  f"falling back to Gmail API profile")
             try:
-                import requests
-                response = requests.get(
-                    'https://www.googleapis.com/oauth2/v1/userinfo',
-                    headers={'Authorization': f'Bearer {credentials.token}'}
-                )
-                user_info = response.json()
-                user_email = user_info.get('email')
-            except:
-                # ✅ Safe - no cursor created yet
+                from googleapiclient.discovery import build
+                gmail_service = build('gmail', 'v1', credentials=credentials)
+                profile = gmail_service.users().getProfile(userId='me').execute()
+                user_email = profile['emailAddress']
+            except Exception as e2:
+                print(f"❌ Could not get email from Gmail API: {e2}")
                 return redirect('/login?error=Could not verify Google account')
-        
+
+        if not user_email:
+            return redirect('/login?error=Could not verify Google account')
+
         print(f"✅ OAuth callback successful: {user_email}")
-        
-        # Prepare token data for storage
-        token_data = {
-            'token': credentials.token,
-            'refresh_token': credentials.refresh_token,
-            'token_uri': credentials.token_uri,
-            'client_id': credentials.client_id,
-            'client_secret': credentials.client_secret,
-            'scopes': list(credentials.scopes),
-            'expiry': credentials.expiry.isoformat() if credentials.expiry else None
-        }
-        
+
         # ✅ NOW create database connection (after validations passed)
         conn = get_database_connection('ai_infrastructure')
         cursor = conn.cursor()
-        
-        # Get or create user
-        cursor.execute('SELECT id FROM ai_infrastructure.users WHERE email = %s', (user_email,))
+
+        # Get or create user — also fetch password_hash for link_purpose
+        cursor.execute(
+            'SELECT id, password_hash FROM ai_infrastructure.users WHERE email = %s',
+            (user_email,),
+        )
         user_row = cursor.fetchone()
-        
+
         user_id = None
         username = None
-        
+        password_hash = None
+
         if user_row:
-            user_id = user_row['id']
+            user_id = user_row['id'] if isinstance(user_row, dict) else user_row[0]
+            password_hash = (
+                user_row['password_hash']
+                if isinstance(user_row, dict)
+                else user_row[1]
+            )
             print(f"✅ Found existing user: {user_id}")
         else:
             # Auto-create user if OAuth login
             username = user_email.split('@')[0]
             cursor.execute(
-                'INSERT INTO ai_infrastructure.users (username, email, password_hash, role) VALUES (%s, %s, %s, %s)',
-                (username, user_email, 'oauth_google', 'user')
+                'INSERT INTO ai_infrastructure.users (username, email, password_hash, role) '
+                'VALUES (%s, %s, %s, %s)',
+                (username, user_email, 'oauth_google', 'user'),
             )
             user_id = cursor.lastrowid
+            password_hash = 'oauth_google'
             print(f"✅ Created new user: {user_id}")
-        
-        # Store access token with proper schema
-        sql, params = convert_sql_placeholders('''
-            INSERT OR REPLACE INTO ai_infrastructure.user_platform_credentials 
-            (user_id, platform, credential_type, credential_key, credential_value, is_active, metadata, updated_at)
-            VALUES (%s, %s, %s, %s, %s, %s, %s, CURRENT_TIMESTAMP)
-        ''', (user_id, 'google', 'oauth', 'access_token', credentials.token, 1, json.dumps({
-            'scopes': list(credentials.scopes),
-            'expiry': credentials.expiry.isoformat() if credentials.expiry else None,
-            'user_email': user_email
-        })))
-        
-        cursor.execute(sql, params)
-        
-        # Store refresh token if available
-        if credentials.refresh_token:
-            cursor.execute('''
-                INSERT OR REPLACE INTO ai_infrastructure.user_platform_credentials 
-                (user_id, platform, credential_type, credential_key, credential_value, is_active, updated_at)
-                VALUES (%s, %s, %s, %s, %s, %s, CURRENT_TIMESTAMP)
-            ''', (user_id, 'google', 'oauth', 'refresh_token', credentials.refresh_token, 1))
-        
+
+        # Phase 9: link_purpose follows the canonical convention —
+        # primary if the user logged in with Google, storage otherwise.
+        link_purpose = 'primary' if password_hash == 'oauth_google' else 'storage'
+
+        # ====================================================================
+        # PHASE 9: Write to canonical `ai_infrastructure.oauth_tokens`
+        # (24-column schema). The tools read from this table; the legacy
+        # token store was unreadable by the tool layer. Same INSERT/UPDATE
+        # shape as google_auth_routes_V2_FIXED.py callback.
+        # ====================================================================
+        from shared.database_utils import is_using_supabase
+        bool_true = True if is_using_supabase() else 1
+
+        # Compute expiry timestamp
+        if credentials.expiry:
+            expires_at = credentials.expiry.strftime('%Y-%m-%d %H:%M:%S')
+        else:
+            expires_at = (
+                datetime.utcnow() + timedelta(seconds=3600)
+            ).strftime('%Y-%m-%d %H:%M:%S')
+
+        scope_str = ' '.join(credentials.scopes) if credentials.scopes else ''
+        granted_scopes = list(credentials.scopes) if credentials.scopes else []
+
+        # Check if token exists for this user+platform
+        cursor.execute(
+            'SELECT id FROM ai_infrastructure.oauth_tokens '
+            'WHERE user_id = %s AND platform = %s',
+            (user_id, 'google'),
+        )
+        existing_token = cursor.fetchone()
+
+        metadata = json.dumps({
+            'google_id': google_id,
+            'email': user_email,
+            'name': user_name,
+            'picture': user_picture,
+            'authorized_at': datetime.utcnow().isoformat(),
+            'client_id': (credentials.client_id or '')[:20] + '...' if credentials.client_id else None,
+            'link_purpose': link_purpose,
+            'legacy_callback': True,  # Mark provenance for ops debugging
+        })
+
+        if existing_token:
+            # UPDATE existing token
+            sql, params = convert_sql_placeholders('''
+                UPDATE ai_infrastructure.oauth_tokens SET
+                    access_token = %s,
+                    refresh_token = COALESCE(%s, refresh_token),
+                    token_type = %s,
+                    expires_at = %s,
+                    scope = %s,
+                    is_valid = %s,
+                    is_active = %s,
+                    auto_refresh_enabled = %s,
+                    last_refreshed_at = %s,
+                    refresh_attempts = 0,
+                    last_refresh_error = NULL,
+                    updated_at = CURRENT_TIMESTAMP,
+                    granted_scopes = %s,
+                    metadata = %s,
+                    link_purpose = %s
+                WHERE user_id = %s AND platform = %s
+            ''', (
+                credentials.token,
+                credentials.refresh_token,
+                'Bearer',
+                expires_at,
+                scope_str,
+                bool_true,
+                bool_true,
+                bool_true,
+                datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S'),
+                granted_scopes,
+                metadata,
+                link_purpose,
+                user_id,
+                'google',
+            ))
+            cursor.execute(sql, params)
+        else:
+            # INSERT new token (full 24-column schema)
+            sql, params = convert_sql_placeholders('''
+                INSERT INTO ai_infrastructure.oauth_tokens (
+                    user_id, platform,
+                    access_token, refresh_token, token_type, expires_at,
+                    scope, is_valid, is_active, auto_refresh_enabled,
+                    last_refreshed_at, refresh_attempts, last_refresh_error,
+                    granted_scopes, metadata, link_purpose,
+                    created_at, updated_at
+                ) VALUES (
+                    %s, %s, %s, %s, %s, %s,
+                    %s, %s, %s, %s,
+                    %s, %s, %s,
+                    %s, %s, %s,
+                    CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
+                )
+            ''', (
+                user_id,
+                'google',
+                credentials.token,
+                credentials.refresh_token,
+                'Bearer',
+                expires_at,
+                scope_str,
+                bool_true,
+                bool_true,
+                bool_true,
+                datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S'),
+                0,
+                None,
+                granted_scopes,
+                metadata,
+                link_purpose,
+            ))
+            cursor.execute(sql, params)
+
+        # Update has_google_oauth flag (mirrors canonical behaviour)
+        flag_sql, flag_params = convert_sql_placeholders(
+            'UPDATE ai_infrastructure.users SET has_google_oauth = %s WHERE id = %s',
+            (bool_true, user_id),
+        )
+        cursor.execute(flag_sql, flag_params)
+
         conn.commit()
-        
+
         # ✅ FIX: Close cursor BEFORE conn (single close, not duplicate)
         cursor.close()
         cursor = None
         conn.close()
         conn = None
-        
-        print(f"✅ Stored Google OAuth credentials in database for user {user_id}")
+
+        print(f"✅ Phase 9: stored Google OAuth tokens in oauth_tokens (link_purpose={link_purpose}) "
+              f"for user {user_id}")
         
         # Also store in session for immediate use
         session['user_email'] = user_email

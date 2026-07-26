@@ -3,8 +3,10 @@ Google Calendar API Implementation
 Handles calendar events, scheduling, and reminders
 
 Authentication: Uses database OAuth ONLY (oauth_tokens table)
+
+Phase 9: dropped the unused user-context Credentials import; all user
+construction now routes through AI_infrastructure.auth.credential_injector.
 """
-from google.oauth2.credentials import Credentials
 from googleapiclient.discovery import build
 from datetime import datetime
 

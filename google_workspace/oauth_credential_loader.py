@@ -1,10 +1,32 @@
 """
 OAuth Credential Loader for Google Workspace Tools
 ===================================================
-Loads user OAuth credentials from oauth_tokens table in ai_infrastructure.db
 
-This module is used by all Google Workspace tools to get user-specific
-credentials instead of using service accounts.
+DEPRECATED (Phase 9, 2026-07-26)
+--------------------------------
+This module is FROZEN historical code. It previously loaded user OAuth
+credentials from ``ai_infrastructure.oauth_tokens`` and constructed a Google
+``Credentials`` object for tool callers. As of Phase 9, every Google Workspace
+tool that needs user context routes through the canonical shared injector at
+``AI_infrastructure.auth.credential_injector`` (``get_user_<service>_service``).
+This file is no longer imported by any active code in the package.
+
+The functions below are retained verbatim for git history / archaeological
+reference. Do NOT add new callers. New code must use:
+
+    from AI_infrastructure.auth.credential_injector import get_user_<service>_service
+    service = get_user_<service>_service(user_id=<user_id>)
+
+The retained functions are:
+- ``get_oauth_credentials_from_db(user_id)``   — reads oauth_tokens directly
+- ``create_google_credentials_object(cred_dict, scopes)`` — wraps dict in google.oauth2.credentials.Credentials
+- ``build_service_with_oauth(user_id, service_name, version, scopes)`` —
+  convenience wrapper that does the above two steps + builds the API client.
+
+The historical purpose was a parallel user-OAuth loader that bypassed the
+shared injector. That bypass has been removed everywhere in the package;
+the canonical path now owns proactive refresh, exact-row persistence,
+storage-only enforcement, and credential sanitisation.
 """
 
 import sqlite3
