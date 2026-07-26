@@ -28,6 +28,7 @@ LAST MODIFIED: 2025-11-20 - Removed SQLite support, Supabase only
 import os
 import threading
 import time
+import contextlib
 from pathlib import Path
 from typing import Optional, Tuple
 from dotenv import load_dotenv
@@ -61,6 +62,55 @@ _pool_stats = {
     'total_wait_time': 0.0,
     'avg_wait_time': 0.0
 }
+
+
+# ============================================================================
+# SESSION-MODE POOL (port 5432, direct) - added 2026-07-26
+# ============================================================================
+# Created lazily on first call to _get_session_pool() or
+# execute_query_session().  Distinct from _connection_pools (port 6543,
+# transaction mode):
+#   - 60-connection backend limit (vs 15 for pooler)
+#   - SET LOCAL persists for the whole TCP session - useful for LISTEN/NOTIFY,
+#     server-side cursors, pg_advisory_lock without race-condition rollback
+#   - Long-held connections do not trigger TransactionMode pool STARVATION
+#     under gevent single-worker load (the 9.57s engines_status root cause)
+#
+# Sizing: minconn=2, maxconn=4 per schema, times 3 schemas = 12 max.
+# Combined with the regular pooler (24 max) peak total is 36 connections,
+# well under Supabase 60-connection backend quota (60 percent headroom).
+#
+# Env-gated: if SUPABASE_DB_URL_SESSION is unset (local dev), both helpers
+# transparently fall back to the regular pool - caller behaviour identical.
+_session_pools = {}
+_session_pool_lock = threading.Lock()
+
+
+def _get_session_pool(schema_name='ai_infrastructure'):
+    """Lazy-init and return a ThreadedConnectionPool using SUPABASE_DB_URL_SESSION.
+
+    Port 5432, direct session mode.  Returns None if SESSION URL is not
+    configured - callers fall back to the regular pool in that case.
+    """
+    session_url = os.getenv('SUPABASE_DB_URL_SESSION')
+    if not session_url:
+        return None  # Not configured; caller falls back
+    with _session_pool_lock:
+        if schema_name not in _session_pools:
+            import psycopg2
+            from psycopg2 import pool
+            _session_pools[schema_name] = pool.ThreadedConnectionPool(
+                minconn=2,
+                maxconn=4,  # See sizing rationale in module-level comment above
+                dsn=session_url,
+                sslmode='require',
+                connect_timeout=30,
+                keepalives=1,
+                keepalives_idle=30,
+                keepalives_interval=10,
+                keepalives_count=5,
+            )
+        return _session_pools[schema_name]
 
 
 def is_using_supabase() -> bool:
@@ -1188,5 +1238,172 @@ def execute_query(
         if conn:
             try:
                 conn.close()  # Returns to pool, doesn't actually close
+            except Exception:
+                pass
+
+
+# ============================================================================
+# SESSION-MODE API - added 2026-07-26
+# ============================================================================
+# Use these on Tier-A (latency-sensitive serial-DB) call sites:
+#   - credential resolution (resolve_credentials, resolve_api_keys_batch)
+#   - OAuth callbacks (high per-request SQL cost)
+#   - LISTEN/NOTIFY subscribers (incompatible with transaction mode)
+# DO NOT use these on hot heartbeat or ping paths - each call still acquires
+# and releases a connection; the benefit is the DEDICATED 12-connection budget,
+# not throughput.
+#
+# Auto-fall-back: if SUPABASE_DB_URL_SESSION is not configured (e.g. local
+# dev without that env var), both helpers transparently use the regular pool.
+
+
+@contextlib.contextmanager
+def session_connection(schema_name='ai_infrastructure'):
+    # Context manager yielding a raw psycopg2.connection from the SESSION pool
+    # (SUPABASE_DB_URL_SESSION, port 5432, direct).
+    #
+    # Falls back transparently to get_database_connection() (regular pool)
+    # when SESSION URL is not configured. The yielded connection is a raw
+    # psycopg2 connection (NOT wrapped) - caller is responsible for cursor
+    # management and explicitly applying RLS via:
+    #
+    #     from shared.rls_session_manager import inject_rls_vars
+    #     inject_rls_vars(conn)
+    #
+    # Otherwise, prefer execute_query_session() below for a higher-level API
+    # that mirrors execute_query() exactly.
+    sess_pool = _get_session_pool(schema_name)
+    if sess_pool is None:
+        # SESSION URL not set (local dev) - fall back to regular pool
+        with get_database_connection(schema_name) as fallback_conn:
+            yield fallback_conn
+            return
+
+    conn = sess_pool.getconn()
+    try:
+        yield conn
+    finally:
+        # Mirror get_database_connection() cleanup: rollback before putconn.
+        # Any aborted transaction state would otherwise poison the returned
+        # connection for the next caller.
+        try:
+            conn.rollback()
+        except Exception:
+            pass
+        try:
+            sess_pool.putconn(conn)
+        except Exception:
+            pass
+
+
+def execute_query_session(
+    query,
+    params=(),
+    *,
+    fetch_mode='all',
+    schema='ai_infrastructure'
+):
+    # Drop-in for execute_query() that routes via SUPABASE_DB_URL_SESSION
+    # (port 5432, direct) when configured; falls back to execute_query()
+    # otherwise.
+    #
+    # Semantics are identical to execute_query():
+    #   - RealDictCursor-style dict rows
+    #   - DML detection via cursor.statusmessage with conn.commit() so
+    #     DML+RETURNING persists
+    #   - fetch_mode: all | one | value | None
+    #   - Errors wrapped with `Query execution failed (session mode): ...`
+    #
+    # Caveat: callers must NOT use this as a wholesale replacement for
+    # execute_query() - it has its own 4-conn ceiling per schema and consumes
+    # from a dedicated budget. Reserve it for Tier-A paths where the regular
+    # pool 15-conn pooler ceiling is the documented bottleneck.
+    sess_pool = _get_session_pool(schema)
+    if sess_pool is None:
+        # SESSION URL not set - delegate to regular pool (same semantics)
+        return execute_query(query, params=params, fetch_mode=fetch_mode, schema=schema)
+
+    conn = None
+    cursor = None
+    try:
+        conn = sess_pool.getconn()
+        # Inject RLS context like get_database_connection() does
+        try:
+            from shared.rls_session_manager import inject_rls_vars
+            inject_rls_vars(conn)
+        except Exception:
+            pass  # Non-fatal - outside Flask request or RLS vars unset
+
+        cursor = conn.cursor()
+        cursor.execute(query, params)
+
+        # DML vs SELECT detection - mirrors execute_query() logic
+        _underlying = getattr(cursor, '_cursor', None)
+        _has_results = _underlying is not None and _underlying.description is not None
+        _status_msg = (_underlying.statusmessage if _underlying else '') or ''
+        _is_dml = (_status_msg.split()[0].upper() in ('INSERT', 'UPDATE', 'DELETE')
+                   if _status_msg else False)
+
+        # Fetch - mirrors execute_query() fetch ladder
+        if fetch_mode == 'all':
+            if not _has_results:
+                if _is_dml:
+                    conn.commit()
+                return []
+            rows = cursor.fetchall()
+            if _is_dml:
+                conn.commit()
+            return [dict(row) for row in rows] if rows else []
+
+        if fetch_mode == 'one':
+            if not _has_results:
+                if _is_dml:
+                    conn.commit()
+                return None
+            row = cursor.fetchone()
+            if _is_dml:
+                conn.commit()
+            return dict(row) if row else None
+
+        if fetch_mode == 'value':
+            if not _has_results:
+                if _is_dml:
+                    conn.commit()
+                return None
+            row = cursor.fetchone()
+            if _is_dml:
+                conn.commit()
+            if row:
+                return row[0] if isinstance(row, (tuple, list)) else list(row.values())[0]
+            return None
+
+        if fetch_mode is None:
+            # INSERT/UPDATE/DELETE - commit and return row count
+            conn.commit()
+            return cursor.rowcount
+
+        raise ValueError(
+            "Invalid fetch_mode: '" + str(fetch_mode) + "'. "
+            "Valid options: 'all', 'one', 'value', None"
+        )
+
+    except Exception as e:
+        if conn:
+            try:
+                conn.rollback()
+            except Exception:
+                pass
+        raise Exception("Query execution failed (session mode): " + str(e)) from e
+
+    finally:
+        if cursor:
+            try:
+                cursor.close()
+            except Exception:
+                pass
+        if conn:
+            try:
+                conn.rollback()
+                sess_pool.putconn(conn)
             except Exception:
                 pass
