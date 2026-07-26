@@ -5045,7 +5045,12 @@ def _prewarm_connection_pools():
 
     def _warm():
         try:
-            time.sleep(2)  # Let gunicorn fully bind before touching DB
+            time.sleep(0.5)  # Let gunicorn fully bind before touching DB
+            # Was 2.0s; reduced 2026-07-26 because gunicorn --worker-class
+            # geventwebsocket binds inside gunicorn-master's ready() callback
+            # and the gevent hub is already polling accept() by the time the
+            # worker fork returns - the original 2s was paranoid headroom
+            # that cost 1.5s on every deploy.
             logger.info('[STARTUP] Pre-warming connection pools...')
             from AI_infrastructure.shared.database_utils import get_database_connection
             for schema in ('ai_infrastructure', 'sessions'):
