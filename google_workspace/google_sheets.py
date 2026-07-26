@@ -43,72 +43,44 @@ from pathlib import Path
 # Add path for local imports
 sys.path.insert(0, os.path.dirname(__file__))
 
-from google_docs import (
-    _get_user_credentials_if_available,
-    build_drive_service,
-    build,
-    HAS_DOCS_API,
-    get_service_account_credentials
-)
+# Phase 5: Google Docs symbols no longer imported at module top level.
+# They are imported function-locally to avoid the eager-import cycle
+# exposed when Phase 4 removed the legacy _get_user_credentials_if_available.
+# build_drive_service and get_service_account_credentials come from the
+# auth helper; build comes from googleapiclient.discovery.
+try:
+    from google_workspace.google_auth_helper import build_drive_service, get_service_account_credentials
+    from googleapiclient.discovery import build
+    HAS_GOOGLE_API = True
+except ImportError as e:
+    HAS_GOOGLE_API = False
+    print(f"⚠️ Google API dependencies not available: {e}")
 
 # ==================== SHEETS SERVICE ====================
 
 def _get_sheets_service(user_id=None, injected_credentials=None):
-    """Get authenticated Google Sheets API service
-    
-    Args:
-        user_id: User ID for OAuth credentials from database
-        injected_credentials: OAuth credentials dict (from database)
-    
-    Returns:
-        Authenticated Sheets service
+    """Get authenticated Google Sheets API service.
+
+    Routing policy (Phase 5 — single shared contract):
+      - When the caller supplies user context (``user_id`` + ``injected_credentials``),
+        build the Sheets service through the shared injector
+        (``get_user_sheets_service``) so proactive refresh, exact-row persistence,
+        and storage-only enforcement are honoured. A missing/invalid user OAuth
+        row raises — NEVER silently falls back to a service account.
+      - When no user context is present at all, fall through to the explicit
+        service-account builder. This is the only path that may use a service
+        account, and only because the caller explicitly opted out of user OAuth.
     """
-    if not HAS_DOCS_API:
-        raise Exception("Google Sheets API not available")
-    
-    # Priority 1: Use new oauth_tokens DB path via build_service_with_oauth
-    if user_id:
-        try:
-            from google_workspace.oauth_credential_loader import build_service_with_oauth
-            SCOPES = [
-                'https://www.googleapis.com/auth/spreadsheets',
-                'https://www.googleapis.com/auth/drive'
-            ]
-            service = build_service_with_oauth(
-                user_id=user_id,
-                service_name='sheets',
-                version='v4',
-                scopes=SCOPES
-            )
-            if service:
-                print(f"✅ Sheets service created with user {user_id}'s OAuth credentials from database")
-                return service
-            print(f"⚠️  Failed to load OAuth credentials for Sheets, falling back")
-        except ImportError:
-            pass
-    
-    # Priority 2: Legacy injected credentials dict
+    if not HAS_GOOGLE_API:
+        raise Exception("Google Sheets API not available - install google-api-python-client")
+
     if user_id and injected_credentials:
-        from google.oauth2.credentials import Credentials
-        
-        SCOPES = [
-            'https://www.googleapis.com/auth/spreadsheets',
-            'https://www.googleapis.com/auth/drive'
-        ]
-        
-        credentials = Credentials(
-            token=injected_credentials.get('access_token'),
-            refresh_token=injected_credentials.get('refresh_token'),
-            token_uri='https://oauth2.googleapis.com/token',
-            client_id=injected_credentials.get('client_id'),
-            client_secret=injected_credentials.get('client_secret'),
-            scopes=SCOPES
-        )
-        
-        service = build('sheets', 'v4', credentials=credentials)
-        return service
-    
-    # Fall back to service account credentials
+        # User context present — go through the shared injector.
+        from AI_infrastructure.auth.credential_injector import get_user_sheets_service
+        return get_user_sheets_service(user_id=user_id)
+
+    # No user context — explicit service-account path. No fallback from a user OAuth
+    # failure into this branch.
     SCOPES = [
         'https://www.googleapis.com/auth/spreadsheets',
         'https://www.googleapis.com/auth/drive'
@@ -173,11 +145,13 @@ def google_sheets_create(title, data=None, headers=None, parse_markdown=False,
         }
     """
     try:
-        # Get user credentials if available
-        cred_dict = _get_user_credentials_if_available(_user_id, _injected_credentials)
-        
-        sheets_service = _get_sheets_service(user_id=_user_id, injected_credentials=cred_dict)
-        drive_service = build_drive_service(_user_id=_user_id, user_id=_user_id, injected_credentials=cred_dict)
+        # Phase 5: route through the shared injector when user context is present
+        sheets_service = _get_sheets_service(user_id=_user_id, injected_credentials=_injected_credentials)
+        if _user_id and _injected_credentials:
+            from AI_infrastructure.auth.credential_injector import get_user_drive_service
+            drive_service = get_user_drive_service(user_id=_user_id)
+        else:
+            drive_service = build_drive_service()
         
         # Create spreadsheet
         spreadsheet = {
@@ -393,8 +367,8 @@ def google_sheets_append_data(spreadsheet_id, data, sheet_name='Sheet1', _user_i
         dict: {'rows_added': int, 'range_updated': str}
     """
     try:
-        cred_dict = _get_user_credentials_if_available(_user_id, _injected_credentials)
-        sheets_service = _get_sheets_service(user_id=_user_id, injected_credentials=cred_dict)
+        # Phase 5: route through the shared injector when user context is present
+        sheets_service = _get_sheets_service(user_id=_user_id, injected_credentials=_injected_credentials)
         
         body = {'values': data}
         result = sheets_service.spreadsheets().values().append(
@@ -441,8 +415,8 @@ def google_sheets_update_range(spreadsheet_id, range_name, data, mode='update', 
     
     try:
         # Get credentials
-        cred_dict = _get_user_credentials_if_available(_user_id, _injected_credentials)
-        sheets_service = _get_sheets_service(user_id=_user_id, injected_credentials=cred_dict)
+        # Phase 5: route through the shared injector when user context is present
+        sheets_service = _get_sheets_service(user_id=_user_id, injected_credentials=_injected_credentials)
         
         # Build full range if sheet_name provided
         if sheet_name and '!' not in range_name:
@@ -553,8 +527,8 @@ def google_sheets_clear_range(spreadsheet_id, range_name, sheet_name=None, _user
     
     try:
         # Get credentials
-        cred_dict = _get_user_credentials_if_available(_user_id, _injected_credentials)
-        sheets_service = _get_sheets_service(user_id=_user_id, injected_credentials=cred_dict)
+        # Phase 5: route through the shared injector when user context is present
+        sheets_service = _get_sheets_service(user_id=_user_id, injected_credentials=_injected_credentials)
         
         # Build full range if sheet_name provided
         if sheet_name and '!' not in range_name:
@@ -601,8 +575,8 @@ def google_sheets_read_data(spreadsheet_id, range_name='Sheet1!A1:Z1000', _user_
         }
     """
     try:
-        cred_dict = _get_user_credentials_if_available(_user_id, _injected_credentials)
-        sheets_service = _get_sheets_service(user_id=_user_id, injected_credentials=cred_dict)
+        # Phase 5: route through the shared injector when user context is present
+        sheets_service = _get_sheets_service(user_id=_user_id, injected_credentials=_injected_credentials)
         
         result = sheets_service.spreadsheets().values().get(
             spreadsheetId=spreadsheet_id,
@@ -647,8 +621,8 @@ def google_sheets_get_range(spreadsheet_id, range='', format='summary', _user_id
         dict: Content in requested format
     """
     try:
-        cred_dict = _get_user_credentials_if_available(_user_id, _injected_credentials)
-        sheets_service = _get_sheets_service(user_id=_user_id, injected_credentials=cred_dict)
+        # Phase 5: route through the shared injector when user context is present
+        sheets_service = _get_sheets_service(user_id=_user_id, injected_credentials=_injected_credentials)
         
         # Get spreadsheet metadata
         spreadsheet = sheets_service.spreadsheets().get(
@@ -1396,8 +1370,8 @@ def google_sheets_update_cell(spreadsheet_id, cell, value, value_type='auto',
     
     try:
         # Get credentials
-        cred_dict = _get_user_credentials_if_available(_user_id, _injected_credentials)
-        sheets_service = _get_sheets_service(user_id=_user_id, injected_credentials=cred_dict)
+        # Phase 5: route through the shared injector when user context is present
+        sheets_service = _get_sheets_service(user_id=_user_id, injected_credentials=_injected_credentials)
         
         # Build full cell reference
         if sheet_name and '!' not in cell:
@@ -1482,8 +1456,8 @@ def google_sheets_add_formula(spreadsheet_id, range, formula, parse_natural=True
     
     try:
         # Get credentials
-        cred_dict = _get_user_credentials_if_available(_user_id, _injected_credentials)
-        sheets_service = _get_sheets_service(user_id=_user_id, injected_credentials=cred_dict)
+        # Phase 5: route through the shared injector when user context is present
+        sheets_service = _get_sheets_service(user_id=_user_id, injected_credentials=_injected_credentials)
         
         # Build full range
         if sheet_name and '!' not in range:
@@ -1624,8 +1598,8 @@ def google_sheets_manage_sheets(spreadsheet_id, action, sheet_name=None, new_nam
     
     try:
         # Get credentials
-        cred_dict = _get_user_credentials_if_available(_user_id, _injected_credentials)
-        sheets_service = _get_sheets_service(user_id=_user_id, injected_credentials=cred_dict)
+        # Phase 5: route through the shared injector when user context is present
+        sheets_service = _get_sheets_service(user_id=_user_id, injected_credentials=_injected_credentials)
         
         # Get spreadsheet metadata to find sheet IDs
         spreadsheet = sheets_service.spreadsheets().get(
@@ -1780,8 +1754,8 @@ def google_sheets_insert_delete_dimensions(spreadsheet_id, dimension, action, st
     
     try:
         # Get credentials
-        cred_dict = _get_user_credentials_if_available(_user_id, _injected_credentials)
-        sheets_service = _get_sheets_service(user_id=_user_id, injected_credentials=cred_dict)
+        # Phase 5: route through the shared injector when user context is present
+        sheets_service = _get_sheets_service(user_id=_user_id, injected_credentials=_injected_credentials)
         
         # Get sheet ID
         spreadsheet = sheets_service.spreadsheets().get(
@@ -1883,8 +1857,8 @@ def google_sheets_batch_update_cells(spreadsheet_id, updates, _user_id=None, _in
     
     try:
         # Get credentials
-        cred_dict = _get_user_credentials_if_available(_user_id, _injected_credentials)
-        sheets_service = _get_sheets_service(user_id=_user_id, injected_credentials=cred_dict)
+        # Phase 5: route through the shared injector when user context is present
+        sheets_service = _get_sheets_service(user_id=_user_id, injected_credentials=_injected_credentials)
         
         # Build batch update data
         data = []
@@ -2085,33 +2059,33 @@ def google_sheets_smart_builder(
     print("="*70)
     
     try:
-        # Get credentials
-        cred_dict = _get_user_credentials_if_available(_user_id, _injected_credentials)
-        
+        # Phase 5: route through the shared injector when user context is present
+        # (no local cred_dict needed — internal helpers receive _injected_credentials directly)
+
         # ═══════════════════════════════════════════════════════════════
         # DETERMINE MODE
         # ═══════════════════════════════════════════════════════════════
-        
+
         if spreadsheet_name and sheets:
             # MODE 1: CREATE multi-sheet spreadsheet
             mode = 'create'
             print("📋 Mode: CREATE multi-sheet spreadsheet")
             print(f"   Name: {spreadsheet_name}")
             print(f"   Sheets: {len(sheets)}")
-            
+
             return _smart_builder_create_multisheet(
-                spreadsheet_name, sheets, cred_dict, _user_id, _injected_credentials
+                spreadsheet_name, sheets, _user_id, _injected_credentials
             )
-            
+
         elif spreadsheet_id and operations:
             # MODE 2: UPDATE existing spreadsheet
             mode = 'update'
             print("✏️  Mode: UPDATE existing spreadsheet")
             print(f"   ID: {spreadsheet_id}")
             print(f"   Operations: {len(operations)}")
-            
+
             return _smart_builder_update_existing(
-                spreadsheet_id, operations, cred_dict, _user_id, _injected_credentials
+                spreadsheet_id, operations, _user_id, _injected_credentials
             )
             
         elif title:
@@ -2142,11 +2116,15 @@ def google_sheets_smart_builder(
         raise
 
 
-def _smart_builder_create_multisheet(spreadsheet_name, sheets, cred_dict, user_id, injected_credentials):
+def _smart_builder_create_multisheet(spreadsheet_name, sheets, user_id, injected_credentials):
     """MODE 1: Create multi-sheet spreadsheet"""
-    
-    sheets_service = _get_sheets_service(user_id=user_id, injected_credentials=cred_dict)
-    drive_service = build_drive_service(user_id=user_id, injected_credentials=cred_dict)
+
+    sheets_service = _get_sheets_service(user_id=user_id, injected_credentials=injected_credentials)
+    if user_id and injected_credentials:
+        from AI_infrastructure.auth.credential_injector import get_user_drive_service
+        drive_service = get_user_drive_service(user_id=user_id)
+    else:
+        drive_service = build_drive_service()
     
     # Step 1: Create spreadsheet with multiple sheets
     print(f"\n📝 Step 1: Creating spreadsheet with {len(sheets)} sheets...")
@@ -2261,7 +2239,7 @@ def _smart_builder_create_multisheet(spreadsheet_name, sheets, cred_dict, user_i
     }
 
 
-def _smart_builder_update_existing(spreadsheet_id, operations, cred_dict, user_id, injected_credentials):
+def _smart_builder_update_existing(spreadsheet_id, operations, user_id, injected_credentials):
     """MODE 2: Update existing spreadsheet"""
     
     print(f"\n🔧 Processing {len(operations)} operations...")
