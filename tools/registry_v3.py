@@ -213,7 +213,13 @@ class _LazyModuleProxy:
 # standard Redis cache when present, then to fresh load.
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 _WARM_CACHE_PATH = Path("/data/.cache/registry/tool_lookup.pickle")
-_WARM_CACHE_VERSION = 1  # bump to invalidate stale caches after schema-format changes
+_WARM_CACHE_VERSION = 2  # bump to invalidate stale caches after schema-format changes
+# 2026-07-27: bumped 1 -> 2 after the google_docs_create_document schema rewrite in
+# tools/schemas/google_docs_tools.json (commit 7d1444df). The Render warm cache at
+# /data/.cache/registry/tool_lookup.pickle was generated on FIRST startup after that
+# deploy with the OLD flat-dict parameters (required: []), causing the new JSON to be
+# silently ignored on subsequent restarts. Version mismatch discards the stale pickle
+# and triggers a fresh _load_schemas() pass that picks up the on-disk JSON.
 
 
 class RegistryV3:
