@@ -304,7 +304,30 @@ class ReactRenderer {
         // ── Library auto-detection ──────────────────────────────────────────────
         const usesRecharts = /recharts|BarChart|LineChart|PieChart|AreaChart|ScatterChart|RadarChart|ComposedChart|RadialBar|Treemap|Funnel/i.test(jsxContent);
         const usesLucide   = /lucide|LucideIcon|import.*from.*['"](lucide|lucide-react)['"]|\b(ChevronRight|ChevronDown|Circle|Square|Triangle|Star|Heart|Home|User|Settings|Search|Bell|Mail|Check|X|Plus|Minus|Edit|Trash|Download|Upload|Eye|Lock|Unlock|ArrowRight|ArrowLeft|ArrowUp|ArrowDown)\b/.test(jsxContent);
-        const usesTailwind = /className=["'`][^"'`]*(flex|grid|p-\d|m-\d|pt-|pb-|pl-|pr-|mt-|mb-|ml-|mr-|px-|py-|text-[a-z]|bg-[a-z]|border|rounded|shadow|w-\d|h-\d|gap-|space-|items-|justify-|font-|leading-|tracking-)[^"'`]*["'`]/.test(jsxContent);
+        // Tailwind detection — covers all 4 forms of className the AI commonly emits:
+        //   1. className="flex ..."           (plain double-quoted string)
+        //   2. className='flex ...'           (plain single-quoted)
+        //   3. className={"flex ..."}         (JS string literal in braces)
+        //   4. className={`flex ...`}         (template literal in braces)
+        // The OLD regex only matched form 1, so any AI emission in forms 3/4
+        // produced usesTailwind=false → Tailwind was never injected → the
+        // dashboard rendered as naked text. Symptom: "huge icons, text with no
+        // structure". Bug filed 2026-07-27 against d3f516bc-era logic.
+        //
+        // Each Tailwind utility keyword is anchored with left+right
+        // word-boundary lookarounds so substrings inside longer identifiers
+        // (e.g. "hidden" inside "another-class") don't false-positive.
+        const tailwindClassAttrRegex = /className=(?:"([^"']*?)"|'([^"']*?)'|\{"([^"']*?)"\}|'\{`([^`]*?)`\}'|\{`([^`]*?)`\})/g;
+        const tailwindKeywordPattern = /(?:^|\s|["'`\\$])(?:flex|grid|p-\d+|m-\d+|pt-\d+|pb-\d+|pl-\d+|pr-\d+|mt-\d+|mb-\d+|ml-\d+|mr-\d+|mx-\d+|my-\d+|px-\d+|py-\d+|text-[a-z]+|bg-[a-z]+|border|rounded|shadow|w-\d+|h-\d+|min-h-|max-w-|gap-\d+|space-[xy]-|items-|justify-|font-|leading-|tracking-|opacity-\d+|z-\d+|top-|right-|bottom-|left-|absolute|relative|fixed|sticky|hidden|block|inline|overflow-|cursor-|transition|duration-|ease-|hover:|focus:|sm:|md:|lg:|xl:|2xl:)(?=\s|$|["'`}])/;
+        const usesTailwind = (() => {
+            tailwindClassAttrRegex.lastIndex = 0;
+            let m;
+            while ((m = tailwindClassAttrRegex.exec(jsxContent)) !== null) {
+                const value = m[1] || m[2] || m[3] || m[4] || m[5];
+                if (value && tailwindKeywordPattern.test(value)) return true;
+            }
+            return false;
+        })();
 
         // ── Unwrap JSON wrappers the AI sometimes emits ──────────────────────────
         // The AI occasionally wraps its React code inside a JSON object literal
@@ -1149,7 +1172,20 @@ ${identifierHoist}
         try {
             var rootElSnap = document.getElementById('root');
             var tailwindEl = document.querySelector('script[src*="tailwindcss"]');
-            var tailwindRuntimeStyle = document.querySelector('style[data-tailwind], style#__tw_style__');
+            // The Tailwind PLAY CDN (cdn.tailwindcss.com) injects styles into a
+            // bare <style type="text/css"> element with NO [data-tailwind] or
+            // [id="__tw_style__"] marker (those markers are only added by some
+            // build-step / PostCSS toolchains, NOT the runtime CDN we ship
+            // here). The reliable detection is to look for a <style> whose
+            // text contains a Tailwind utility class definition like
+            // .bg-blue-500 or .flex { display: flex }. Fixed 2026-07-27:
+            // the previous selector returned false-negatives every render,
+            // making the dashboard "Tailwind absent" reading misleading.
+            var allStyleEls = document.querySelectorAll('style');
+            var tailwindRuntimeStyle = Array.prototype.filter.call(
+                allStyleEls,
+                function (s) { return /\.bg-(?:blue|red|emerald|slate|white|black)-\d|\.flex\b|\.grid\b|\.rounded\b|\.shadow\b/.test(s.textContent || ''); }
+            ).length;
             var snap = {
                 rawSourceLen:      typeof rawSource === 'string' ? rawSource.length : null,
                 rawSourceFirst4k:  typeof rawSource === 'string' ? rawSource.slice(0, 4000) : null,
