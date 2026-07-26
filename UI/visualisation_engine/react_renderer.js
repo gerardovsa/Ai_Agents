@@ -929,7 +929,7 @@ ${rechartsSetup}
                 + 'border-radius:8px;white-space:pre-wrap;'
                 + 'font-family:ui-monospace,monospace;font-size:13px;'
                 + 'line-height:1.5;border:1px solid #fecaca;';
-            document.getElementById('root').innerHTML =
+            (document.getElementById('root') || document.body).innerHTML =
                 '<pre style="' + styleA + '">'
                 + '⚠ Babel transform failed:'
                 + String.fromCharCode(10) + String.fromCharCode(10)
@@ -1055,7 +1055,7 @@ ${identifierHoist}
                     + 'border-radius:8px;white-space:pre-wrap;'
                     + 'font-family:ui-monospace,monospace;font-size:13px;'
                     + 'line-height:1.5;border:1px solid #fecaca;';
-                document.getElementById('root').innerHTML =
+                (document.getElementById('root') || document.body).innerHTML =
                     '<pre style="' + styleP + '">'
                     + '⚠ JSX parse error after transform:'
                     + String.fromCharCode(10) + String.fromCharCode(10)
@@ -1067,13 +1067,27 @@ ${identifierHoist}
             }
             var s = document.createElement('script');
             s.onerror = function (parseErr) {
+                var smsg = String((parseErr && parseErr.message) || parseErr || 'unknown');
                 try {
                     window.parent.postMessage({
                         type: 'react-render-script-error',
                         id: '${chartId}',
                         source: 'script-onerror',
-                        message: String((parseErr && parseErr.message) || parseErr || 'unknown')
+                        message: smsg
                     }, '*');
+                } catch (_) {}
+                try {
+                    var styleS = 'color:#b91c1c;background:#fef2f2;padding:16px;'
+                        + 'border-radius:8px;white-space:pre-wrap;'
+                        + 'font-family:ui-monospace,monospace;font-size:13px;'
+                        + 'line-height:1.5;border:1px solid #fecaca;';
+                    (document.getElementById('root') || document.body).innerHTML =
+                        '<pre style="' + styleS + '">'
+                        + '⚠ Inline script failed to execute:'
+                        + String.fromCharCode(10) + String.fromCharCode(10)
+                        + smsg
+                        + '</pre>';
+                    window.parent.postMessage({ type: 'iframe-resize', id: '${chartId}', height: 400 }, '*');
                 } catch (_) {}
             };
             s.textContent = out;
@@ -1085,7 +1099,7 @@ ${identifierHoist}
                 + 'border-radius:8px;white-space:pre-wrap;'
                 + 'font-family:ui-monospace,monospace;font-size:13px;'
                 + 'line-height:1.5;border:1px solid #fecaca;';
-            document.getElementById('root').innerHTML =
+            (document.getElementById('root') || document.body).innerHTML =
                 '<pre style="' + styleB + '">'
                 + '⚠ JSX execution error:'
                 + String.fromCharCode(10) + String.fromCharCode(10)
@@ -1313,7 +1327,7 @@ ${identifierHoist}
                                 window.React.createElement('div', {
                                     key: 'p1',
                                     style: { fontSize: '13px', marginBottom: '10px' }
-                                }, 'The chart triggered "a.set is not a function" inside React\'s commit phase (react-dom.production.min.js:85). This is the same family of Recharts internal-bug crashes as the yellow ComposedChart panel below: a LogicalExpression JSX child of <ComposedChart> (e.g. {cond && ComponentRef}) was not rewritten to a conditional in time, the falsy branch produced a placeholder fiber, and Recharts\' axis registry corrupted on first mount.'),
+                                }, 'The chart triggered "a.set is not a function" inside React\\\'s commit phase (react-dom.production.min.js:85). This is the same family of Recharts internal-bug crashes as the yellow ComposedChart panel below: a LogicalExpression JSX child of <ComposedChart> (e.g. {cond && ComponentRef}) was not rewritten to a conditional in time, the falsy branch produced a placeholder fiber, and Recharts\\\' axis registry corrupted on first mount.'),
                                 window.React.createElement('div', {
                                     key: 'p2',
                                     style: { fontSize: '13px', marginBottom: '6px', fontWeight: 600 }
@@ -1421,7 +1435,7 @@ ${identifierHoist}
                 + 'border-radius:8px;white-space:pre-wrap;'
                 + 'font-family:ui-monospace,monospace;font-size:13px;'
                 + 'line-height:1.5;border:1px solid #fecaca;';
-            document.getElementById('root').innerHTML =
+            (document.getElementById('root') || document.body).innerHTML =
                 '<pre style="' + styleC + '">'
                 + '⚠ Render error:'
                 + String.fromCharCode(10) + String.fromCharCode(10)
