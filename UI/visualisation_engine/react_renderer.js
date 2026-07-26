@@ -283,6 +283,120 @@ class ReactRenderer {
         return JSON.stringify(s).replace(/<\/(script)/gi, '<\\/$1');
     }
 
+    /**
+     * rewriteShortCircuitJSX — convert `{flag && <JSX/>}` to
+     * `{flag ? (<JSX/>) : null}` so the JSX renders as a stable React
+     * element of type `null` when flag is falsy, instead of a primitive
+     * `false` that Recharts' per-axis child registry mishandles.
+     *
+     * Recharts walks children with React.Children.forEach at first mount
+     * to register scale slots keyed by child position. When a child is the
+     * literal `false` (the result of `flag && JSX` when flag is falsy),
+     * the slot is left undefined; the next render call hits
+     * `TypeError: t.has is not a function` (Recharts.js On.o.domain).
+     *
+     * The 2026-07-25 simple-flag regex only matched `{flag && (<X/>)}`
+     * (paren-wrapped). Six common AI patterns slipped through:
+     *   1. `{flag && <X/>}` (no parens — most common)
+     *   2. `{flag && <X></X>}` (no parens, closing tag)
+     *   3. `{state.x && <X/>}` (member flag, no parens)
+     *   4. `{period === '1y' && <X/>}` (comparison flag, parens)
+     *   5. `{flag && (\n  <X/>\n)}` (multi-line paren JSX)
+     *   6. `{flag && (<><X/><X/></>)}` (fragment)
+     *
+     * This walker handles all six. Anchoring the right-hand side on `<`
+     * (JSX opener) prevents false-positives on `{x && y}`, `{x && 5}`,
+     * `{x && "str"}`, `{x && y.length}`, etc. Patterns where the flag
+     * itself contains a `&&` (e.g. `.map((p) => p.x && <Row/>}`) are
+     * intentionally LEFT ALONE — they don't reach Recharts' axis registry.
+     *
+     * @param {string} src  JSX source after import/export stripping
+     * @returns {string}    Source with short-circuit JSX rewritten
+     */
+    rewriteShortCircuitJSX(src) {
+        // Match the OPEN of a JSX expression `{ ... && ` where the left
+        // operand is a simple identifier (with optional dotted access) or
+        // a comparison expression. Captures the flag so we can put it back
+        // on the LHS of the ternary.
+        const FLAG_RE = /\{\s*([A-Za-z_$][\w$]*(?:\.[A-Za-z_$][\w$]*)*(?:\s*(?:==|!=|===|!==|<=|>=|<|>)\s*[^&]+?)?)\s*&&\s*/g;
+        let out = '';
+        let lastEnd = 0;
+        let m;
+        while ((m = FLAG_RE.exec(src)) !== null) {
+            const flag = m[1];
+            const afterAnd = FLAG_RE.lastIndex;
+            const rest = src.slice(afterAnd);
+
+            // Skip whitespace, optionally consume an outer `(`
+            let i = 0;
+            while (i < rest.length && /\s/.test(rest[i])) i++;
+            const wrappedInParen = rest[i] === '(';
+            if (wrappedInParen) i++;
+            while (i < rest.length && /\s/.test(rest[i])) i++;
+
+            // Must now see `<` (JSX opener) — otherwise this `&&` isn't
+            // the chart-axis-registry pattern; bail without rewriting.
+            if (rest[i] !== '<') {
+                FLAG_RE.lastIndex = afterAnd;  // re-attempt from after `&&`
+                continue;
+            }
+
+            // Walk forward tracking brace + paren depth. The outer `{`
+            // counts as 1, the optional `(` adds another. We stop when
+            // depth returns to 0 (i.e. we've consumed the matching `}`
+            // that closes the JSX expression). The closing `}` itself
+            // is then excluded from the JSX slice (see `j - 1` below)
+            // so the ternary output doesn't end with a stray `}`.
+            let depth = 1 + (wrappedInParen ? 1 : 0);
+            let inString = null;  // '"', "'", or '`'
+            let sawJsxContent = false;
+            let j = i;
+            while (j < rest.length && depth > 0) {
+                const c = rest[j];
+                if (inString) {
+                    if (c === '\\') { j += 2; continue; }
+                    if (c === inString) inString = null;
+                    j++; continue;
+                }
+                if (c === '"' || c === "'" || c === '`') { inString = c; j++; continue; }
+                if (c === '{') { depth++; j++; sawJsxContent = true; continue; }
+                if (c === '}') { depth--; j++; continue; }
+                if (c === '(') { depth++; j++; continue; }
+                if (c === ')') { depth--; j++; continue; }
+                if (c === '<') { sawJsxContent = true; j++; continue; }
+                j++;
+            }
+            // Bail if the JSX didn't close cleanly or didn't contain a `<`
+            if (!sawJsxContent || depth !== 0) {
+                FLAG_RE.lastIndex = afterAnd;
+                continue;
+            }
+
+            // Build the ternary. The walker exits the loop AFTER consuming
+            // the closing `}` of the JSX expression container, so back up
+            // by 1 to exclude it from the JSX slice. Strip the optional
+            // outer paren from the JSX slice so we don't end up with
+            // `? ((<X/>)) :` (still syntactically valid, just ugly).
+            let jsxSlice = rest.slice(0, j - 1);
+            if (jsxSlice.startsWith('(') && jsxSlice.endsWith(')')) {
+                jsxSlice = jsxSlice.slice(1, -1);
+            }
+
+            out += src.slice(lastEnd, m.index);
+            out += `{${flag} ? (${jsxSlice.trim()}) : null}`;
+            // lastEnd advances past the closing `}` of the JSX expression
+            // container. The substitution `{flag ? ... : null}` already
+            // has its own closing `}`, so we MUST consume the source's
+            // closing `}` to avoid emitting two of them back-to-back.
+            // (Without this, the output renders as `null}}` which is
+            // syntax-invalid and crashes Babel.)
+            lastEnd = afterAnd + j;
+            FLAG_RE.lastIndex = lastEnd;
+        }
+        out += src.slice(lastEnd);
+        return out;
+    }
+
     buildReactSrcdoc(jsxContent, chartId) {
         // ── DIAGNOSTIC v7 (2026-07-25): UNCONDITIONAL entry-point log ──────────
         // If you see this in the parent console, buildReactSrcdoc IS being
@@ -391,7 +505,7 @@ class ReactRenderer {
         // Strip every import / export shape the AI is known to emit, plus the
         // dynamic-import() and import.meta forms.  Plain function declarations
         // and JSX are left untouched.
-        const cleanedJSX = unwrappedJSX
+        const _cleanedJSX = unwrappedJSX
             // Static import statements — every form (with/without 'from',
             // with/without semicolon, with/without trailing comma, side-effect,
             // type-only, default, named, namespace, mixed).
@@ -444,14 +558,31 @@ class ReactRenderer {
             // type `null` when flag is false instead of a primitive boolean, which
             // Recharts handles cleanly across remounts. Toggle behaviour is
             // preserved — the JSX renders when flag is truthy and renders nothing
-            // (a null child) when flag is falsy. The regex matches a balanced
-            // outer paren group around the JSX; it is intentionally conservative
-            // and only triggers when the right-hand side starts with `<` (a JSX
-            // element). See REACT_RENDERER_LUCIDE_TROUBLESHOOTING_2026-07-22.md §3
-            // for the investigation that led to this transform.
-            .replace(/\{\s*([A-Za-z_$][\w$]*(?:\.[A-Za-z_$][\w$]*)*)\s*&&\s*(\(<[\s\S]+?\)\s*)\}/g,
-                (_, flag, jsx) => `{${flag} ? ${jsx} : null}`)
+            // (a null child) when flag is falsy.
+            //
+            // The 2026-07-25 simple-flag regex only matched the parenthesised
+            // form `{flag && (<X/>)}` and silently let six common AI patterns
+            // through:
+            //   1. {flag && <X/>}            (no parens — MOST COMMON)
+            //   2. {flag && <X></X>}         (no parens, closing tag)
+            //   3. {state.x && <X/>}         (member flag, no parens)
+            //   4. {period === '1y' && <X/>} (comparison flag)
+            //   5. {flag && (\n  <X/>\n)}    (multi-line paren JSX)
+            //   6. {flag && (<><X/></>)}     (fragment)
+            // These all crashed charts silently (chart axes never rendered) and
+            // surfaced only as `TypeError: t.has is not a function` deep inside
+            // Recharts' scale-merging code. The walker above (rewriteShortCircuitJSX)
+            // handles all six by anchoring the right-hand side on `<` (JSX opener)
+            // and walking brace + paren depth to find the matching `}`. See
+            // REACT_RENDERER_LUCIDE_TROUBLESHOOTING_2026-07-22.md §3 for the
+            // original investigation.
             .trim();
+
+        // Run the JSX-aware walker on the accumulated string. The walker is
+        // not a simple .replace() callback (it needs to see the whole source
+        // to advance `lastIndex` across matches), so it runs as a separate
+        // pass after the chain above.
+        const cleanedJSX = this.rewriteShortCircuitJSX(_cleanedJSX);
 
         // ── Pre-flight guard: refuse to send Babel code that still contains ─────
         // ES module keywords. Babel-standalone ONLY transforms JSX — it does
