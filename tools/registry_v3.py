@@ -206,20 +206,33 @@ class _LazyModuleProxy:
 
 
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-# PERSISTENT DISK WARM CACHE (July 23, 2026)
-# Cache path is on Render's persistent disk (/data/) so it survives across
-# redeploys. A warm boot hits this cache and skips re-parsing 99 JSON
-# schemas (saves ~2-4s on Render cold path). Local dev falls through to the
-# standard Redis cache when present, then to fresh load.
+# PERSISTENT DISK WARM CACHE — DISABLED 2026-07-27
+# Cache path was on Render's persistent disk (/data/) so it survived across
+# redeploys. A warm boot hit this cache and skipped re-parsing 99 JSON
+# schemas (saved ~2-3s on Render cold path).
+#
+# DISABLED because the persistent pickle caused a multi-day bug where the
+# google_docs_create_document schema rewrite (commit 7d1444df) was live on
+# disk but the platform still served the pre-fix schema — the pickle was
+# captured on first startup after deploy with the OLD parameters shape,
+# and every subsequent restart (including the post-bump restart after
+# commit 6ae9f142) hit the cached pre-fix shape until the version mismatch
+# finally evicted it. The version-bump is a bandage, not a fix — any new
+# schema edit will eventually re-trip the same trap.
+#
+# With the pickle disabled, every cold start re-reads tools/schemas/*.json
+# from disk. The 2-3s cold-start cost is the price of correctness. The
+# Redis cache (in-memory, per-instance, 1-hour TTL) is unaffected — it is
+# safe because it dies with the process.
+#
+# To re-enable: set _WARM_CACHE_DISABLED = False AND set _WARM_CACHE_PATH
+# to a non-persistent location (e.g. /tmp/) and accept the staleness risk.
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-_WARM_CACHE_PATH = Path("/data/.cache/registry/tool_lookup.pickle")
-_WARM_CACHE_VERSION = 2  # bump to invalidate stale caches after schema-format changes
-# 2026-07-27: bumped 1 -> 2 after the google_docs_create_document schema rewrite in
-# tools/schemas/google_docs_tools.json (commit 7d1444df). The Render warm cache at
-# /data/.cache/registry/tool_lookup.pickle was generated on FIRST startup after that
-# deploy with the OLD flat-dict parameters (required: []), causing the new JSON to be
-# silently ignored on subsequent restarts. Version mismatch discards the stale pickle
-# and triggers a fresh _load_schemas() pass that picks up the on-disk JSON.
+_WARM_CACHE_DISABLED = True
+_WARM_CACHE_PATH = None  # legacy location (/data/.cache/registry/tool_lookup.pickle) intentionally not used
+_WARM_CACHE_VERSION = 2  # retained only for code hygiene; not read while disabled
+_LEGACY_PICKLE_PATH = Path("/data/.cache/registry/tool_lookup.pickle")  # one-time cleanup target
+_LEGACY_PICKLE_DELETED = False  # flips to True after the first cleanup pass
 
 
 class RegistryV3:
@@ -553,6 +566,15 @@ class RegistryV3:
         Returns:
             bool: True if cache hit and schema loaded, False otherwise.
         """
+        # 2026-07-27: persistent warm cache disabled — see top-of-file comment.
+        # Always return False so the constructor falls through to _load_schemas(),
+        # which re-reads every tools/schemas/*.json from disk. The stale
+        # /data/.cache/registry/tool_lookup.pickle (if it still exists from a
+        # pre-July-27 deploy) is cleaned up by _save_to_warm_cache() on first
+        # run, not here, to keep this path read-only.
+        if _WARM_CACHE_DISABLED or _WARM_CACHE_PATH is None:
+            return False
+
         if not _WARM_CACHE_PATH.exists():
             logger.debug("[WARM_CACHE] No pickle found at %s", _WARM_CACHE_PATH)
             return False
@@ -584,9 +606,32 @@ class RegistryV3:
         Persist the current `self.tools` dict to the warm cache pickle so the
         next cold start can skip the JSON parse + platform filter pass.
 
-        No-op if /data is not mounted (local Windows dev) or the cache dir
-        is not writable.
+        2026-07-27: persistent warm cache is disabled. This method now (a)
+        returns immediately without writing anything, and (b) on first call
+        removes the stale /data/.cache/registry/tool_lookup.pickle from
+        Render's persistent disk so an old pickle cannot resurrect on a
+        future restart. The cleanup runs exactly once per process — guarded
+        by the module-level _LEGACY_PICKLE_DELETED flag.
         """
+        global _LEGACY_PICKLE_DELETED
+
+        # One-time legacy pickle cleanup (delete the stale file once).
+        if not _LEGACY_PICKLE_DELETED:
+            try:
+                if _LEGACY_PICKLE_PATH.exists():
+                    _LEGACY_PICKLE_PATH.unlink()
+                    logger.info("[WARM_CACHE] Removed legacy pickle at %s",
+                                _LEGACY_PICKLE_PATH)
+            except Exception as exc:
+                logger.debug("[WARM_CACHE] Legacy cleanup failed (non-fatal): %s", exc)
+            _LEGACY_PICKLE_DELETED = True
+
+        # Persistent write disabled — see top-of-file comment.
+        if _WARM_CACHE_DISABLED or _WARM_CACHE_PATH is None:
+            logger.info("[WARM_CACHE] Persistent cache disabled — not writing %s",
+                        _WARM_CACHE_PATH)
+            return
+
         try:
             _WARM_CACHE_PATH.parent.mkdir(parents=True, exist_ok=True)
             with open(_WARM_CACHE_PATH, "wb") as fh:
