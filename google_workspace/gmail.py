@@ -22,8 +22,6 @@ from email import encoders
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 try:
-    from google.oauth2.credentials import Credentials
-    from googleapiclient.discovery import build
     from googleapiclient.errors import HttpError
     
     # Suppress Google API discovery cache warning (harmless but verbose)
@@ -58,36 +56,12 @@ def _get_gmail_service(user_email=None, _user_id=None, _injected_credentials=Non
     if not HAS_GMAIL_API:
         raise Exception("Gmail API not available - install google-api-python-client")
     
-    # ✅ NEW: If user_id provided, use database credentials
+    # User OAuth is mandatory for Gmail tools; never fall back to a service account.
     if _user_id and _injected_credentials:
         print(f"🔑 Using database credentials for user {_user_id}")
         try:
-            # Import credential retrieval function
-            sys.path.insert(0, str(Path(__file__).parent.parent / 'AI_infrastructure'))
-            from auth.user_auth import UserAuthManager
-            
-            # Get user's Google OAuth credentials
-            auth_manager = UserAuthManager()
-            cred_dict = auth_manager.get_user_google_oauth_credentials(_user_id)
-            
-            if not cred_dict:
-                raise Exception(f"User {_user_id} does not have Google OAuth credentials. Please sign in with Google first.")
-            
-            # Build service from database credentials
-            credentials = Credentials(
-                token=cred_dict['access_token'],
-                refresh_token=cred_dict.get('refresh_token'),
-                token_uri=cred_dict['token_uri'],
-                client_id=cred_dict['client_id'],
-                client_secret=cred_dict['client_secret'],
-                scopes=cred_dict['scopes']
-            )
-            
-            service = build('gmail', 'v1', credentials=credentials)
-            # Reduced logging verbosity - only log in debug mode
-            # print(f"✅ Gmail service created with user {_user_id}'s credentials")
-            return service
-            
+            from AI_infrastructure.auth.credential_injector import get_user_gmail_service
+            return get_user_gmail_service(user_id=_user_id)
         except Exception as e:
             print(f"❌ Failed to use database credentials: {e}")
             raise
