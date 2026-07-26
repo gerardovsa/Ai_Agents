@@ -209,8 +209,29 @@ def enforce_thread_assignment_rules(user_id, session_id, location, swap=False):
                     WHERE thread_slug = %s::text AND user_id = %s
                 """, (displaced_new_location, str(displaced_thread), user_id))
                 cursor.execute(sql, params)
-                conn.commit()
                 logger.info(f"🔄 Moved displaced thread {displaced_thread} → {displaced_new_location} in sessions.threads")
+
+                # FIX (Jul 26, 2026): Mirror the displaced thread's new home into
+                # metadata.thread_assignments so the NEXT swap can find it.
+                # RULE 1 (line 130) iterates this dict to compute `previous_location`;
+                # if we don't write here, the displaced thread effectively disappears
+                # from the metadata map and the next swap of that thread falls back
+                # to previous_location=None → displaced_new_location='unassigned'.
+                # Symptom: "first swap works, second swap drops the displaced thread
+                # to Prime instead of routing it into the source's freed-up column".
+                # Both UPDATEs share the commit below — one transaction, atomic.
+                if displaced_new_location and displaced_new_location != 'unassigned':
+                    assignments[displaced_new_location] = str(displaced_thread)
+                    metadata['thread_assignments'] = assignments
+                    sql, params = convert_sql_placeholders("""
+                        UPDATE ai_infrastructure.users
+                        SET metadata = %s, last_active = CURRENT_TIMESTAMP
+                        WHERE id = %s
+                    """, (json.dumps(metadata), user_id))
+                    cursor.execute(sql, params)
+                    logger.info(f"🔄 Mirrored displaced thread {displaced_thread} → metadata.thread_assignments[{displaced_new_location}]")
+
+                conn.commit()
 
             logger.info(f"✅ Updated sessions.threads.location for thread {session_id} → {location}")
 
