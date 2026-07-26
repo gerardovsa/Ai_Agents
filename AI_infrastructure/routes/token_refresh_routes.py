@@ -180,6 +180,7 @@ def refresh_user_tokens():
         
         result = {
             'refreshed': [],
+            'validated': [],
             'errors': [],
             'skipped': []
         }
@@ -192,11 +193,19 @@ def refresh_user_tokens():
         try:
             logger.debug(f"Attempting Google token refresh for user {user_id}")
             
-            # This will trigger proactive refresh if token expires soon
-            create_google_service_with_user_credentials(user_id, 'gmail', 'v1')
-            
-            result['refreshed'].append('google')
-            logger.info(f"✅ Google token refreshed/validated for user {user_id}")
+            _, refresh_status = create_google_service_with_user_credentials(
+                user_id,
+                'gmail',
+                'v1',
+                return_refresh_status=True,
+            )
+
+            if refresh_status == 'refreshed':
+                result['refreshed'].append('google')
+                logger.info(f"✅ Google token refreshed for user {user_id}")
+            else:
+                result['validated'].append('google')
+                logger.info(f"✅ Google token validated for user {user_id} ({refresh_status})")
         
         except Exception as e:
             error_msg = str(e)
@@ -246,9 +255,12 @@ def refresh_user_tokens():
         # BUILD RESPONSE
         # ====================================================================
         
-        # Success if at least one platform refreshed
-        if result['refreshed']:
-            logger.info(f"Token refresh completed for user {user_id}: {result['refreshed']}")
+        # Success if at least one platform refreshed or validated
+        if result['refreshed'] or result['validated']:
+            logger.info(
+                f"Token refresh completed for user {user_id}: "
+                f"refreshed={result['refreshed']}, validated={result['validated']}"
+            )
             return format_success_response(result, 200)
         
         # All platforms skipped (no credentials configured)
@@ -344,21 +356,12 @@ def get_token_status():
             google_creds = auth_manager.get_user_google_oauth_credentials(user_id)
             
             if google_creds:
-                from google.oauth2.credentials import Credentials
-                
-                creds = Credentials(
-                    token=google_creds['access_token'],
-                    refresh_token=google_creds.get('refresh_token'),
-                    token_uri=google_creds['token_uri'],
-                    client_id=google_creds['client_id'],
-                    client_secret=google_creds['client_secret']
-                )
-                
-                if creds.expiry:
-                    expiry_utc = normalize_datetime_to_utc(creds.expiry)
+                expires_at = google_creds.get('expires_at')
+                if expires_at:
+                    expiry_utc = normalize_datetime_to_utc(expires_at)
                     now = datetime.now(timezone.utc)
                     time_remaining = (expiry_utc - now).total_seconds()
-                    
+
                     token_info = {
                         'platform': 'google',
                         'email': google_creds.get('email'),
@@ -366,7 +369,7 @@ def get_token_status():
                         'minutes_remaining': int(time_remaining / 60),
                         'should_refresh': time_remaining < REFRESH_THRESHOLD_SECONDS
                     }
-                    
+
                     status['tokens'].append(token_info)
                     logger.debug(f"Google token for user {user_id}: {int(time_remaining/60)} minutes remaining")
         

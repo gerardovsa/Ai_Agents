@@ -1407,7 +1407,8 @@ class UserAuthManager:
                 with conn.cursor() as cursor:
                     
                     cursor.execute('''
-                        SELECT 
+                        SELECT
+                            id,
                             access_token,
                             refresh_token,
                             token_type,
@@ -1416,7 +1417,10 @@ class UserAuthManager:
                             granted_scopes,
                             metadata,
                             is_valid,
-                            is_active
+                            is_active,
+                            link_purpose,
+                            account_identifier,
+                            email
                         FROM ai_infrastructure.oauth_tokens
                         WHERE user_id = %s AND platform = 'google'
                         AND is_active = TRUE
@@ -1429,13 +1433,23 @@ class UserAuthManager:
                         print(f"⚠️ No Google OAuth credentials found for user {user_id}")
                         return None
                     
-                    access_token = token_row['access_token'] if isinstance(token_row, dict) else token_row[0]
-                    refresh_token = token_row['refresh_token'] if isinstance(token_row, dict) else token_row[1]
-                    expires_at = token_row['expires_at'] if isinstance(token_row, dict) else token_row[3]
-                    scope = (token_row['scope'] if isinstance(token_row, dict) else token_row[4]) or (token_row['granted_scopes'] if isinstance(token_row, dict) else token_row[5]) or ''
-                    metadata = json.loads(token_row['metadata'] if isinstance(token_row, dict) else token_row[6]) if (token_row['metadata'] if isinstance(token_row, dict) else token_row[6]) else {}
-                
-                client_id = (os.getenv('GOOGLE_OAUTH_CLIENT_ID') or os.getenv('GOOGLE_CLIENT_ID') or 
+                    token_id = token_row['id'] if isinstance(token_row, dict) else token_row[0]
+                    access_token = token_row['access_token'] if isinstance(token_row, dict) else token_row[1]
+                    refresh_token = token_row['refresh_token'] if isinstance(token_row, dict) else token_row[2]
+                    expires_at = token_row['expires_at'] if isinstance(token_row, dict) else token_row[4]
+                    scope = (token_row['scope'] if isinstance(token_row, dict) else token_row[5]) or (token_row['granted_scopes'] if isinstance(token_row, dict) else token_row[6]) or ''
+                    metadata_value = token_row['metadata'] if isinstance(token_row, dict) else token_row[7]
+                    metadata = json.loads(metadata_value) if isinstance(metadata_value, str) and metadata_value else (metadata_value or {})
+                    is_valid = token_row['is_valid'] if isinstance(token_row, dict) else token_row[8]
+                    link_purpose = (token_row['link_purpose'] if isinstance(token_row, dict) else token_row[10]) or 'primary'
+                    account_identifier = token_row['account_identifier'] if isinstance(token_row, dict) else token_row[11]
+                    email = token_row['email'] if isinstance(token_row, dict) else token_row[12]
+
+                    if not is_valid:
+                        logger.warning(f"[AUTH] Google OAuth credentials are marked invalid for user {user_id}")
+                        return None
+
+                client_id = (os.getenv('GOOGLE_OAUTH_CLIENT_ID') or os.getenv('GOOGLE_CLIENT_ID') or
                             _config.get('GOOGLE_OAUTH_CLIENT_ID') or _config.get('GOOGLE_CLIENT_ID'))
                 client_secret = (os.getenv('GOOGLE_OAUTH_CLIENT_SECRET') or os.getenv('GOOGLE_CLIENT_SECRET') or
                                 _config.get('GOOGLE_OAUTH_CLIENT_SECRET') or _config.get('GOOGLE_CLIENT_SECRET'))
@@ -1444,17 +1458,27 @@ class UserAuthManager:
                     print(f"❌ Google OAuth config not found")
                     return None
                 
-                scopes = scope.split(' ') if isinstance(scope, str) and scope else [
-                    'https://www.googleapis.com/auth/gmail.modify',
-                    'https://www.googleapis.com/auth/calendar',
-                    'https://www.googleapis.com/auth/tasks',
-                    'https://www.googleapis.com/auth/forms.body',
-                    'https://www.googleapis.com/auth/drive.file',
-                    'https://www.googleapis.com/auth/documents',
-                    'https://www.googleapis.com/auth/spreadsheets'
-                ]
-                
+                if isinstance(scope, list):
+                    scopes = [str(item) for item in scope if item]
+                elif isinstance(scope, str) and scope:
+                    try:
+                        parsed_scopes = json.loads(scope)
+                    except (TypeError, json.JSONDecodeError):
+                        parsed_scopes = None
+                    scopes = parsed_scopes if isinstance(parsed_scopes, list) else scope.split()
+                else:
+                    scopes = [
+                        'https://www.googleapis.com/auth/gmail.modify',
+                        'https://www.googleapis.com/auth/calendar',
+                        'https://www.googleapis.com/auth/tasks',
+                        'https://www.googleapis.com/auth/forms.body',
+                        'https://www.googleapis.com/auth/drive.file',
+                        'https://www.googleapis.com/auth/documents',
+                        'https://www.googleapis.com/auth/spreadsheets'
+                    ]
+
                 credentials = {
+                    'token_id': token_id,
                     'access_token': access_token,
                     'refresh_token': refresh_token,
                     'token_uri': 'https://oauth2.googleapis.com/token',
@@ -1463,7 +1487,10 @@ class UserAuthManager:
                     'scopes': scopes,
                     'expires_at': expires_at,
                     'user_id': user_id,
-                    'metadata': metadata
+                    'metadata': metadata,
+                    'link_purpose': link_purpose,
+                    'account_identifier': account_identifier,
+                    'email': email or account_identifier
                 }
                 
                 return credentials

@@ -79,6 +79,9 @@ except ImportError:
 
 # ==================== GOOGLE WORKSPACE CREDENTIAL INJECTION ====================
 
+GOOGLE_PROACTIVE_REFRESH_SECONDS = int(os.getenv('GOOGLE_PROACTIVE_REFRESH_SECONDS', '300'))
+
+
 def _parse_google_token_expiry(expires_at):
     """Return token expiry as naive UTC for google-auth compatibility."""
     if not expires_at:
@@ -100,7 +103,23 @@ def _parse_google_token_expiry(expires_at):
     return expiry
 
 
-def create_google_service_with_user_credentials(user_id: int, service_name: str, version: str = 'v1'):
+def _should_refresh_google_token(expiry, threshold_seconds: Optional[int] = None) -> bool:
+    """Return whether a Google token should refresh before service creation."""
+    normalized_expiry = _parse_google_token_expiry(expiry)
+    if normalized_expiry is None:
+        return True
+
+    threshold = GOOGLE_PROACTIVE_REFRESH_SECONDS if threshold_seconds is None else threshold_seconds
+    now_utc_naive = datetime.now(timezone.utc).replace(tzinfo=None)
+    return normalized_expiry <= now_utc_naive + timedelta(seconds=threshold)
+
+
+def create_google_service_with_user_credentials(
+    user_id: int,
+    service_name: str,
+    version: str = 'v1',
+    return_refresh_status: bool = False,
+):
     """
     Create a Google API service using user's OAuth credentials from oauth_tokens table
     
@@ -128,25 +147,23 @@ def create_google_service_with_user_credentials(user_id: int, service_name: str,
             f"Please sign in with Google at /api/auth/google/login"
         )
     
-    # ✅ STORAGE-ONLY RESTRICTION: Check link_purpose before allowing service access
-    link_purpose = cred_dict.get('link_purpose', 'primary')
-    
-    if link_purpose == 'storage':
-        # User linked Google for storage only - restrict to Drive API
-        if service_name not in ['drive']:
-            raise Exception(
-                f"🚫 Google account linked for storage only (Google Drive). "
-                f"Cannot use {service_name} service. "
-                f"Only Google Drive is available for this account. "
-                f"To use Gmail, Calendar, or other services, please log in with your Google account."
-            )
-        print(f"✅ Storage-only account: Allowing Drive access for user {user_id}")
-    
-    # SECURITY: Auto-decrypt credentials if encrypted
+    # SECURITY: Auto-decrypt credentials before evaluating stored access policy.
     from AI_infrastructure.auth.credential_encryptor import get_encryptor
     encryptor = get_encryptor()
-    cred_dict = encryptor.decrypt_dict(cred_dict)
+    stored_cred_dict = cred_dict
+    cred_dict = encryptor.decrypt_dict(stored_cred_dict)
     print(f"🔓 Decrypted Google credentials for user {user_id}")
+
+    # STORAGE-ONLY RESTRICTION: allow these credentials to build Drive only.
+    link_purpose = cred_dict.get('link_purpose', 'primary')
+    if link_purpose == 'storage':
+        if service_name != 'drive':
+            raise Exception(
+                f"Google account linked for storage only (Google Drive). "
+                f"Cannot use {service_name} service. "
+                f"Only Google Drive is available for this account."
+            )
+        print(f"✅ Storage-only account: Allowing Drive access for user {user_id}")
     
     # google-auth compares expiry against a naive UTC clock in the deployed version.
     expiry = _parse_google_token_expiry(cred_dict.get('expires_at'))
@@ -161,76 +178,122 @@ def create_google_service_with_user_credentials(user_id: int, service_name: str,
         expiry=expiry,
     )
     
-    # ✅ AUTO-REFRESH: Check if token is expired and refresh if needed
-    if not credentials.valid and credentials.refresh_token:
-        print(f"🔄 Google OAuth token expired for user {user_id}, refreshing...")
-        try:
-            credentials.refresh(Request())
-            print(f"✅ Token refreshed successfully")
-            
-            # ✅ SAVE REFRESHED TOKEN back to database
-            _save_refreshed_google_token(user_id, credentials, cred_dict)
-            
-        except Exception as e:
-            print(f"❌ Token refresh failed: {e}")
-            raise Exception(f"Failed to refresh Google OAuth token: {e}. User may need to re-authenticate.")
-    
+    refresh_status = 'validated'
+    if _should_refresh_google_token(expiry):
+        if not credentials.refresh_token:
+            refresh_status = 'no_refresh_token'
+        else:
+            print(f"🔄 Google OAuth token nearing expiry for user {user_id}, refreshing...")
+            try:
+                credentials.refresh(Request())
+                _save_refreshed_google_token(
+                    user_id,
+                    credentials,
+                    cred_dict,
+                    stored_cred_dict,
+                )
+                refresh_status = 'refreshed'
+                print("✅ Google OAuth token refreshed successfully")
+            except Exception:
+                _record_google_refresh_failure(cred_dict.get('token_id'))
+                print(f"❌ Google OAuth token refresh failed for user {user_id}")
+                raise Exception(
+                    "Failed to refresh Google OAuth token. User may need to re-authenticate."
+                )
+
     # Build the service
     try:
         service = build(service_name, version, credentials=credentials)
         print(f"✅ Created {service_name} v{version} service for user {user_id} (purpose: {link_purpose})")
+        if return_refresh_status:
+            return service, refresh_status
         return service
     except Exception as e:
         print(f"❌ Failed to create {service_name} service: {e}")
         raise
 
 
-def _save_refreshed_google_token(user_id: int, credentials: Credentials, original_cred_dict: dict):
-    """
-    Save refreshed Google OAuth token back to database
-    
-    Args:
-        user_id: User ID
-        credentials: Refreshed Google Credentials object
-        original_cred_dict: Original credential dictionary (for metadata)
-    """
-    # Get database path
-    from AI_infrastructure.utils.db_path_helper import get_ai_infrastructure_db_path
-    db_path = get_ai_infrastructure_db_path()
-    
+def _save_refreshed_google_token(
+    user_id: int,
+    credentials: Credentials,
+    original_cred_dict: dict,
+    stored_cred_dict: dict,
+):
+    """Persist refreshed Google OAuth credentials to the exact selected row."""
+    token_id = original_cred_dict.get('token_id')
+    if not token_id:
+        raise ValueError("Google OAuth credential row ID is missing")
+
+    from AI_infrastructure.auth.credential_encryptor import get_encryptor
+    encryptor = get_encryptor()
+
+    access_token = credentials.token
+    if encryptor.is_encrypted(stored_cred_dict.get('access_token')):
+        access_token = encryptor.encrypt(access_token)
+
+    refresh_token = credentials.refresh_token or original_cred_dict.get('refresh_token')
+    if refresh_token and encryptor.is_encrypted(stored_cred_dict.get('refresh_token')):
+        refresh_token = encryptor.encrypt(refresh_token)
+
     conn = get_connection('ai_infrastructure')
-    
     try:
         with conn.cursor() as cursor:
-            
-            # Update access token in oauth_tokens table
             cursor.execute('''
-                UPDATE oauth_tokens
-                SET access_token = %s, expires_at = %s,
-                    updated_at = CURRENT_TIMESTAMP
-                WHERE user_id = %s 
-                AND platform = 'google'
+                UPDATE ai_infrastructure.oauth_tokens
+                SET access_token = %s,
+                    refresh_token = %s,
+                    expires_at = %s,
+                    last_refreshed_at = CURRENT_TIMESTAMP,
+                    updated_at = CURRENT_TIMESTAMP,
+                    is_valid = TRUE,
+                    refresh_attempts = 0,
+                    last_refresh_error = NULL,
+                    error_count = 0,
+                    last_error = NULL
+                WHERE id = %s
+                  AND user_id = %s
+                  AND platform = 'google'
             ''', (
-                credentials.token,
+                access_token,
+                refresh_token,
                 credentials.expiry.isoformat() if credentials.expiry else None,
-                user_id
+                token_id,
+                user_id,
             ))
-            
-            # Update refresh token if changed (Google sometimes returns new refresh token)
-            if credentials.refresh_token and credentials.refresh_token != original_cred_dict.get('refresh_token'):
-                cursor.execute('''
-                    UPDATE oauth_tokens
-                    SET refresh_token = %s,
-                        updated_at = CURRENT_TIMESTAMP
-                    WHERE user_id = %s 
-                    AND platform = 'google'
-                ''', (credentials.refresh_token, user_id))
-            
-            conn.commit()
-            print(f"✅ Saved refreshed Google token for user {user_id}")
-            
-    except Exception as e:
-        print(f"❌ Failed to save refreshed token: {e}")
+            if cursor.rowcount != 1:
+                raise RuntimeError("Google OAuth credential row was not updated")
+        conn.commit()
+    except Exception:
+        conn.rollback()
+        raise
+    finally:
+        conn.close()
+
+
+def _record_google_refresh_failure(token_id: Optional[int]) -> None:
+    """Record a sanitized Google refresh failure without exposing provider details."""
+    if not token_id:
+        return
+
+    conn = get_connection('ai_infrastructure')
+    try:
+        with conn.cursor() as cursor:
+            cursor.execute('''
+                UPDATE ai_infrastructure.oauth_tokens
+                SET refresh_attempts = COALESCE(refresh_attempts, 0) + 1,
+                    last_refresh_error = %s,
+                    error_count = COALESCE(error_count, 0) + 1,
+                    last_error = %s,
+                    updated_at = CURRENT_TIMESTAMP
+                WHERE id = %s
+                  AND platform = 'google'
+            ''', (
+                'Google OAuth refresh failed',
+                'Google OAuth refresh failed',
+                token_id,
+            ))
+        conn.commit()
+    except Exception:
         conn.rollback()
     finally:
         conn.close()
