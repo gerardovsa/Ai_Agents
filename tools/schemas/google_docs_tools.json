@@ -85,17 +85,72 @@
     {
       "name": "google_docs_create_document",
       "short_description": "Create new document: blank Google Doc for notes, meeting minutes, reports, or manual editing",
-      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) ALWAYS execute THIS tool NOW - NEVER reference 'I created earlier' or use conversation history\n(2) MUST return format: **[Name]** | ID: `[id]` | URL: [full_url] | Link: [title](url)\n(3) Use EXACT values from tool response - NEVER make up fake URLs/IDs\n(4) If tool fails, say 'Failed to create' - NEVER pretend it succeeded\n\nExample response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\n⚠️ MUST USE: execute_tool(tool_name='google_docs_create_document', ...) - DO NOT call directly!\n\nExample response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\nCreate a new Google Doc",
+      "description": "🚨 CRITICAL EXECUTION RULES:\n(1) ALWAYS execute THIS tool NOW - NEVER reference 'I created earlier' or use conversation history\n(2) MUST return format: **[Name]** | ID: `[id]` | URL: [full_url] | Link: [title](url)\n(3) Use EXACT values from tool response - NEVER make up fake URLs/IDs\n(4) If tool fails, say 'Failed to create' - NEVER pretend it succeeded\n\nExample response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\n⚠️ MUST USE: execute_tool(tool_name='google_docs_create_document', ...) - DO NOT call directly!\n\nExample response:\nCreated: **New Document**\n- ID: `abc123`\n- URL: https://example.com/doc/abc123\n- Link: [New Document](https://example.com/doc/abc123)\n\nCreate a new Google Doc. Wrapper signature: google_docs_create_document(title, with_sample_content=False, _user_id=None, _injected_credentials=None, **kwargs).\n\nWRAPPER CONTRACT (authoritative — what the Python wrapper actually accepts):\n- `title` is REQUIRED (positional, no default). Omitting it raises TypeError. The dispatcher's response will show `parameters_received: ['_user_id', '_injected_credentials']` if the AI forgets `title`.\n- `with_sample_content` is OPTIONAL (boolean, default false). When true, the new doc is pre-populated with a sample heading, paragraph, and list — useful for demos / template showcases.\n- `_user_id` and `_injected_credentials` are INJECTED by the dispatcher (combined_agent_worker.py). The model MUST NOT include them in `parameters`.\n- Any extra keys fall into **kwargs and are ignored — do not invent extra fields.\n\nDOs:\n- Always supply a non-empty `title` string (e.g. 'Q4 Meeting Notes', 'Project Proposal — Acme Co.').\n- Call via execute_tool so the dispatcher injects credentials automatically.\n- Set `with_sample_content=true` ONLY when the user explicitly asks for sample content / a demo template.\n\nDON'Ts:\n- NEVER call this tool directly (no execute_tool wrapper) — OAuth credentials will not be injected and the call will fail.\n- NEVER include `_user_id`, `_injected_credentials`, or any token / api_key / refresh_token field in `parameters` — the dispatcher owns these.\n- NEVER omit `title` — the wrapper raises TypeError: missing 1 required positional argument: 'title'.\n- NEVER use this tool for documents that need formatted content — use google_docs_smart_create_from_markdown (markdown body) or google_docs_smart_create_from_markdown_v2 (DOCX conversion) instead.",
       "platform": "google_docs",
       "parameters": {
-        "title": {
-          "type": "string",
-          "description": "Document title"
-        }
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": "string",
+            "description": "Document title. REQUIRED. Must be a non-empty string. The wrapper raises TypeError: missing 1 required positional argument: 'title' if this is missing.",
+            "minLength": 1,
+            "examples": [
+              "Q4 Meeting Notes",
+              "Project Proposal — Acme Co.",
+              "Untitled Document"
+            ]
+          },
+          "with_sample_content": {
+            "type": "boolean",
+            "description": "When true, the new document is pre-populated with a sample Heading 1, paragraph, and bulleted list (demonstrates rich-text formatting). Default: false.",
+            "default": false
+          }
+        },
+        "required": ["title"],
+        "additionalProperties": false
       },
+      "required": ["title"],
       "returns": {
         "type": "object",
         "description": "Created document with ID and URL"
+      },
+      "examples": [
+        {
+          "description": "Create a blank document with a user-supplied title.",
+          "tool_call": {
+            "tool_name": "google_docs_create_document",
+            "parameters": {
+              "title": "Q4 Meeting Notes"
+            }
+          },
+          "expected_response": "Created: **Q4 Meeting Notes**\n- ID: `1AbCdEf...`\n- URL: https://docs.google.com/document/d/1AbCdEf.../edit\n- Link: [Q4 Meeting Notes](https://docs.google.com/document/d/1AbCdEf.../edit)"
+        },
+        {
+          "description": "Create a document pre-populated with sample formatted content (demo / template use case).",
+          "tool_call": {
+            "tool_name": "google_docs_create_document",
+            "parameters": {
+              "title": "Demo Document",
+              "with_sample_content": true
+            }
+          },
+          "expected_response": "Created: **Demo Document**\n- ID: `1XyZ...`\n- URL: https://docs.google.com/document/d/1XyZ.../edit\n- Note: Pre-populated with sample Heading 1, paragraph, and bulleted list."
+        }
+      ],
+      "do_dont": {
+        "do": [
+          "Always supply a non-empty `title` string (required parameter).",
+          "Call via execute_tool so _user_id and _injected_credentials are injected automatically by the dispatcher.",
+          "Use `with_sample_content=true` only when the user explicitly asks for a demo / sample / template document.",
+          "Cite the returned ID and URL verbatim in your reply — never invent IDs or URLs."
+        ],
+        "dont": [
+          "Never call google_docs_create_document directly (without execute_tool) — OAuth credentials will not be injected and the call will fail.",
+          "Never include `_user_id`, `_injected_credentials`, `access_token`, `refresh_token`, or any auth field in `parameters` — the dispatcher owns these.",
+          "Never omit `title` — the wrapper raises TypeError: missing 1 required positional argument: 'title'.",
+          "Never include unknown keys in `parameters` — they are dropped into **kwargs and ignored (additionalProperties: false).",
+          "Don't use this tool for documents that need formatted content — use google_docs_smart_create_from_markdown instead."
+        ]
       }
     },
     {
