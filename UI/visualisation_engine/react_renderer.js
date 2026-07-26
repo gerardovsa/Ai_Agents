@@ -79,6 +79,21 @@
                     if (data.stack) console.error('  stackHead:', data.stack.split('\n').slice(0, 4).join('\n           '));
                 } catch (_) {}
                 break;
+            case 'react-render-script-error':
+                // DIAGNOSTIC (added 2026-07-26, see bug-findings H1):
+                // companion to the runtime-error case above. Captures the
+                // post-transform parse error so blank-iframe bugs leave a
+                // trail.  `outTail` is the last 2KB of Babel output — paste
+                // into `new Function(outTail)` to reproduce offline.
+                if (!data.id) return;
+                window.__renderScriptErrors__ = window.__renderScriptErrors__ || {};
+                window.__renderScriptErrors__[data.id] = data;
+                window.__lastRenderScriptErrorId = data.id;
+                try {
+                    console.error('[REACT_RENDERER_PARENT_DIAG] script parse error for',
+                        data.id, '(' + data.source + ')', data.message);
+                } catch (_) {}
+                break;
             case 'react-render-babel-output':
                 // DIAGNOSTIC v8 (2026-07-26): iframe posts the EXACT bytes Babel
                 // produced. The v5/v6 capture inside the iframe used
@@ -336,6 +351,12 @@ class ReactRenderer {
             // Matches anything that *starts* with `import` and consumes up to
             // the next semicolon OR end-of-line, whichever comes first.
             .replace(/^[ \t]*import\b[\s\S]*?(?:;|$)/gm, (m) => m.endsWith(';') ? '' : m.replace(/[\s\S]*$/, ''))
+            // `await import(...)` — the dynamic-import regex below would
+            // match the `import(...)` substring, leaving a stranded `await`
+            // keyword at the top level (a syntax error in any classic
+            // non-module script). Strip the `await` prefix so the next
+            // replace catches the rewritten `import(`. (Added 2026-07-26.)
+            .replace(/\bawait\s+import\s*\(/g, 'import(')
             // Dynamic import() — call expression, not a statement; strip any
             // line that contains an import( ... ) call by removing just the
             // call and leaving the rest of the line intact.
@@ -961,16 +982,100 @@ ${rechartsSetup}
         // Babel's syntax pass doesn't need window.BarChart, but the
         // executed code does — hence the placement between the transform
         // success and the classic-<script> append.
+        //
+        // ROLLBACK (added 2026-07-26, see bug-findings H3): the hoist
+        // writes to window[name] for each detected identifier; if it
+        // throws mid-loop, the iframe is left in a half-rendered state
+        // where some identifiers are present and others are not. Snapshot
+        // the pre-hoist window state so we can restore on failure.
+        var __preHoistRecharts = window.Recharts;
+        var __preHoistLucide = window.lucide;
+        var __preHoistKeys = {};
+        for (var __kk in window) {
+            if (Object.prototype.hasOwnProperty.call(window, __kk) && /^[A-Z]/.test(__kk)) {
+                __preHoistKeys[__kk] = window[__kk];
+            }
+        }
         try {
 ${identifierHoist}
         } catch (hoistErr) {
-            console.warn('[REACT_RENDERER] identifier hoist failed (best-effort):', hoistErr);
+            // Restore any PascalCase key the hoist may have touched.
+            // Keys that existed before the hoist get their prior value
+            // back; keys the hoist created (not in pre-snapshot) get
+            // deleted.
+            var __rollbackKeys = [];
+            for (var __jj in window) {
+                if (Object.prototype.hasOwnProperty.call(window, __jj) && /^[A-Z]/.test(__jj)) {
+                    __rollbackKeys.push(__jj);
+                }
+            }
+            for (var __i = 0; __i < __rollbackKeys.length; __i++) {
+                var __kk = __rollbackKeys[__i];
+                if (Object.prototype.hasOwnProperty.call(__preHoistKeys, __kk)) {
+                    window[__kk] = __preHoistKeys[__kk];
+                } else {
+                    try { delete window[__kk]; } catch (_) {}
+                }
+            }
+            window.Recharts = __preHoistRecharts;
+            window.lucide = __preHoistLucide;
+            console.warn('[REACT_RENDERER] identifier hoist failed (best-effort, rolled back):', hoistErr);
         }
 
         // Run the transformed code in a fresh classic <script> so top-level
         // 'function App()' declarations land on window for auto-mount.
+        //
+        // SAFETY NET (added 2026-07-26, see bug-findings H1): V8 fires
+        // parse errors on an appended <script> as an `error` event, NOT an
+        // exception — the catch below could not see them, leaving the iframe
+        // blank. Two layers prevent that:
+        //   (1) Pre-parse with `new Function(out)` so the parse error fires
+        //       as a regular exception BEFORE the append, paints a
+        //       diagnostic in the iframe, and posts
+        //       'react-render-script-error' to the parent diag-sink.
+        //   (2) Backup script.onerror for the rare case where the two
+        //       parsers disagree (strict-mode-only constructs, top-level
+        //       await, etc.).
         try {
+            try {
+                new Function(out);
+            } catch (parseErr) {
+                var pmsg = (parseErr && parseErr.message)
+                    ? parseErr.message : String(parseErr);
+                try {
+                    window.parent.postMessage({
+                        type: 'react-render-script-error',
+                        id: '${chartId}',
+                        source: 'pre-parse',
+                        message: pmsg,
+                        outTail: out.slice(Math.max(0, out.length - 2000))
+                    }, '*');
+                } catch (_) {}
+                var styleP = 'color:#b91c1c;background:#fef2f2;padding:16px;'
+                    + 'border-radius:8px;white-space:pre-wrap;'
+                    + 'font-family:ui-monospace,monospace;font-size:13px;'
+                    + 'line-height:1.5;border:1px solid #fecaca;';
+                document.getElementById('root').innerHTML =
+                    '<pre style="' + styleP + '">'
+                    + '⚠ JSX parse error after transform:'
+                    + String.fromCharCode(10) + String.fromCharCode(10)
+                    + pmsg
+                    + '</pre>';
+                window.parent.postMessage({ type: 'iframe-resize', id: '${chartId}', height: 400 }, '*');
+                console.error('[REACT_RENDERER] pre-parse failed:', parseErr);
+                return;
+            }
             var s = document.createElement('script');
+            s.onerror = function (parseErr) {
+                try {
+                    window.parent.postMessage({
+                        type: 'react-render-script-error',
+                        id: '${chartId}',
+                        source: 'script-onerror',
+                        message: String((parseErr && parseErr.message) || parseErr || 'unknown')
+                    }, '*');
+                } catch (_) {}
+            };
             s.textContent = out;
             document.body.appendChild(s);
         } catch (runErr) {

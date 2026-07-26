@@ -384,7 +384,7 @@ class VizPopupManager {
     _buildFloatIframe(srcdoc, id) {
         const iframe = document.createElement('iframe');
         iframe.id = id;
-        iframe.sandbox = 'allow-scripts allow-forms allow-modals allow-pointer-lock';
+        iframe.sandbox = 'allow-scripts allow-forms allow-modals allow-pointer-lock allow-downloads';
         iframe.allow   = 'clipboard-write';
         iframe.style.cssText = 'width:100%;height:400px;min-height:300px;border:none;display:block;background:white;';
         iframe.srcdoc = srcdoc;
@@ -395,7 +395,7 @@ class VizPopupManager {
     _buildPanelIframe(srcdoc, id) {
         const iframe = document.createElement('iframe');
         iframe.id = id;
-        iframe.sandbox = 'allow-scripts allow-forms allow-modals allow-pointer-lock';
+        iframe.sandbox = 'allow-scripts allow-forms allow-modals allow-pointer-lock allow-downloads';
         iframe.allow   = 'clipboard-write';
         iframe.style.cssText = 'width:100%;height:100%;border:none;display:block;background:white;';
         iframe.srcdoc = srcdoc;
@@ -414,7 +414,11 @@ class VizPopupManager {
                     Math.max(ev.data.height + 24, 300),
                     Math.floor(window.innerHeight * 0.88)
                 );
-                const iframe = bodyEl.querySelector(`#${iframeId}`);
+                // CSS.escape added 2026-07-26 (bug-findings M3): chartId is
+                // user-supplied. If it contains `.`, `[`, `:`, or any other
+                // CSS combinator, the raw `#${id}` selector throws SyntaxError
+                // and the resize handler silently falls through. Escape it.
+                const iframe = bodyEl.querySelector(`#${CSS.escape(iframeId)}`);
                 if (iframe) {
                     iframe.style.height = targetH + 'px';
                     // Keep body in sync so corner-drag baseline stays accurate
@@ -440,10 +444,17 @@ class VizPopupManager {
     }
 
     _esc(str) {
+        // Quotes added 2026-07-26 (bug-findings M3). The HTML we generate
+        // only uses this in text-content positions today (between tags),
+        // where quote-escape isn't strictly required — but adding the two
+        // quotes is one-line hygiene and makes the helper safe to paste
+        // into attribute-context interpolations in the future.
         return String(str)
             .replace(/&/g, '&amp;')
             .replace(/</g, '&lt;')
-            .replace(/>/g, '&gt;');
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#39;');
     }
 
     // â”€â”€ Draggable float header (pointer-captured) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€

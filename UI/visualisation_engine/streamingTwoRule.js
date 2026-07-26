@@ -101,6 +101,37 @@ function removeAllThinkingIndicators(container) {
     });
 }
 
+// =====================================
+// VIZ DELIMITER SINGLE SOURCE OF TRUTH (added 2026-07-26, see bug-findings L3)
+// =====================================
+// Every visualization start/end delimiter is declared here exactly once.
+// The three reading sites below (findVisualizationStart,
+// getPotentialDelimiterSuffixLength, and getStartDelimiter/getEndDelimiter)
+// derive their lists from this map. To add a new delimiter, add it here only
+// — the rest of the streaming pipeline will pick it up automatically.
+const VIZ_DELIMITERS = {
+    'react':                 { start: '<EXECUTE_REACT>', end: '</EXECUTE_REACT>' },
+    'html':                  { start: '<EXECUTE_HTML>', end: '</EXECUTE_HTML>' },
+    'mermaid':               { start: '<MERMAID>', end: '</MERMAID>' },
+    'plotly':                { start: '<PLOTLY>', end: '</PLOTLY>' },
+    'google':                { start: '<GRAPH>', end: '</GRAPH>' },
+    'chartjs':               { start: '<CHARTJS>', end: '</CHARTJS>' },
+    'apexcharts':            { start: '<APEXCHARTS>', end: '</APEXCHARTS>' },
+    'threejs':               { start: '<THREEJS>', end: '</THREEJS>' },
+    'gsap':                  { start: '<GSAP>', end: '</GSAP>' },
+    'lottie':                { start: '<LOTTIE>', end: '</LOTTIE>' },
+    'svg':                   { start: '<SVG_VISUAL>', end: '</SVG_VISUAL>' },
+    'cad':                   { start: '<CAD>', end: '</CAD>' },
+    'schematic':             { start: '<SCHEMATIC>', end: '</SCHEMATIC>' },
+    'blueprint':             { start: '<BLUEPRINT>', end: '</BLUEPRINT>' },
+    'molecule':              { start: '<MOLECULE>', end: '</MOLECULE>' },
+    'engineering_cad':       { start: '<ENGINEERING_CAD>', end: '</ENGINEERING_CAD>' },
+    'technical_drawing':     { start: '<TECHNICAL_DRAWING>', end: '</TECHNICAL_DRAWING>' },
+    'constraints_info':      { start: '<CONSTRAINTS_INFO>', end: '</CONSTRAINTS_INFO>' },
+    'bom':                   { start: '<BOM>', end: '</BOM>' },
+    'latex':                 { start: '<LATEX>', end: '</LATEX>' },
+};
+
 class TwoRuleStreamProcessor {
     constructor(container) {
         // ORE: Single Source of Truth - Raw Buffer
@@ -1331,41 +1362,13 @@ class TwoRuleStreamProcessor {
      * ELIMITER DETECTION: Find visualization start delimiter
      */
     findVisualizationStart(content) {
-        const patterns = [
-            // ✅ Original
-            { type: 'mermaid', start: '<MERMAID>', end: '</MERMAID>' },
-            { type: 'plotly', start: '<PLOTLY>', end: '</PLOTLY>' },
-            { type: 'google', start: '<GRAPH>', end: '</GRAPH>' },
-
-            // ✨ Chart Libraries
-            { type: 'chartjs', start: '<CHARTJS>', end: '</CHARTJS>' },
-            { type: 'apexcharts', start: '<APEXCHARTS>', end: '</APEXCHARTS>' },
-
-            // ✨ 3D & Animation
-            { type: 'threejs', start: '<THREEJS>', end: '</THREEJS>' },
-            { type: 'gsap', start: '<GSAP>', end: '</GSAP>' },
-            { type: 'lottie', start: '<LOTTIE>', end: '</LOTTIE>' },
-
-            // ✨ Interactive HTML
-            { type: 'html', start: '<EXECUTE_HTML>', end: '</EXECUTE_HTML>' },
-            { type: 'react', start: '<EXECUTE_REACT>', end: '</EXECUTE_REACT>' },
-
-            // ✨ SVG/Technical Diagrams
-            { type: 'svg', start: '<SVG_VISUAL>', end: '</SVG_VISUAL>' },
-            { type: 'cad', start: '<CAD>', end: '</CAD>' },
-            { type: 'schematic', start: '<SCHEMATIC>', end: '</SCHEMATIC>' },
-            { type: 'blueprint', start: '<BLUEPRINT>', end: '</BLUEPRINT>' },
-            { type: 'molecule', start: '<MOLECULE>', end: '</MOLECULE>' },
-
-            // ✨ Engineering CAD Metadata
-            { type: 'engineering_cad', start: '<ENGINEERING_CAD>', end: '</ENGINEERING_CAD>' },
-            { type: 'technical_drawing', start: '<TECHNICAL_DRAWING>', end: '</TECHNICAL_DRAWING>' },
-            { type: 'constraints_info', start: '<CONSTRAINTS_INFO>', end: '</CONSTRAINTS_INFO>' },
-            { type: 'bom', start: '<BOM>', end: '</BOM>' },
-
-            // ✨ Math
-            { type: 'latex', start: '<LATEX>', end: '</LATEX>' }
-        ];
+        // Derived from VIZ_DELIMITERS (single source of truth, see top of file).
+        // Order of insertion preserved via Object.keys.
+        const patterns = Object.keys(VIZ_DELIMITERS).map((type) => ({
+            type: type,
+            start: VIZ_DELIMITERS[type].start,
+            end: VIZ_DELIMITERS[type].end
+        }));
 
         let best = null;
         for (const pattern of patterns) {
@@ -1421,16 +1424,8 @@ class TwoRuleStreamProcessor {
     // Longest length L such that content ends with a prefix of any start delimiter of length L
     getPotentialDelimiterSuffixLength(text) {
         if (!text) return 0;
-        const starts = [
-            '<MERMAID>', '<PLOTLY>', '<GRAPH>',
-            '<CHARTJS>', '<APEXCHARTS>',
-            '<THREEJS>', '<GSAP>', '<LOTTIE>',
-            '<EXECUTE_HTML>',
-            '<EXECUTE_REACT>',
-            '<SVG_VISUAL>', '<CAD>', '<SCHEMATIC>', '<BLUEPRINT>', '<MOLECULE>',
-            '<ENGINEERING_CAD>', '<TECHNICAL_DRAWING>', '<CONSTRAINTS_INFO>', '<BOM>',
-            '<LATEX>'
-        ];
+        // Derived from VIZ_DELIMITERS (single source of truth, see top of file).
+        const starts = Object.values(VIZ_DELIMITERS).map((d) => d.start);
         let maxLen = 0;
         for (const s of starts) {
             const maxCheck = s.length - 1; // proper prefix only
@@ -1570,61 +1565,13 @@ class TwoRuleStreamProcessor {
      * TILITIES: Get delimiter strings
      */
     getStartDelimiter(type) {
-        const delimiters = {
-            // ✅ Existing
-            'mermaid': '<MERMAID>',
-            'plotly': '<PLOTLY>',
-            'google': '<GRAPH>',
-            'chartjs': '<CHARTJS>',
-
-            // ✨ NEW: SVG/Technical Diagrams
-            'svg': '<SVG_VISUAL>',
-            'cad': '<CAD>',
-            'schematic': '<SCHEMATIC>',
-            'blueprint': '<BLUEPRINT>',
-            'molecule': '<MOLECULE>',
-
-            // ✨ NEW: Math & Interactive
-            'latex': '<LATEX>',
-            'html': '<EXECUTE_HTML>',
-            'react': '<EXECUTE_REACT>',
-
-            // ✨ NEW: 3D & Animation
-            'apexcharts': '<APEXCHARTS>',
-            'threejs': '<THREEJS>',
-            'gsap': '<GSAP>',
-            'lottie': '<LOTTIE>'
-        };
-        return delimiters[type] || '';
+        // Derives from VIZ_DELIMITERS (single source of truth, see top of file).
+        return (VIZ_DELIMITERS[type] && VIZ_DELIMITERS[type].start) || '';
     }
 
     getEndDelimiter(type) {
-        const delimiters = {
-            // ✅ Existing
-            'mermaid': '</MERMAID>',
-            'plotly': '</PLOTLY>',
-            'google': '</GRAPH>',
-            'chartjs': '</CHARTJS>',
-
-            // ✨ NEW: SVG/Technical Diagrams
-            'svg': '</SVG_VISUAL>',
-            'cad': '</CAD>',
-            'schematic': '</SCHEMATIC>',
-            'blueprint': '</BLUEPRINT>',
-            'molecule': '</MOLECULE>',
-
-            // ✨ NEW: Math & Interactive
-            'latex': '</LATEX>',
-            'html': '</EXECUTE_HTML>',
-            'react': '</EXECUTE_REACT>',
-
-            // ✨ NEW: 3D & Animation
-            'apexcharts': '</APEXCHARTS>',
-            'threejs': '</THREEJS>',
-            'gsap': '</GSAP>',
-            'lottie': '</LOTTIE>'
-        };
-        return delimiters[type] || '';
+        // Derives from VIZ_DELIMITERS (single source of truth, see top of file).
+        return (VIZ_DELIMITERS[type] && VIZ_DELIMITERS[type].end) || '';
     }
 
     /**
