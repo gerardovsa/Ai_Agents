@@ -5,7 +5,10 @@ status: living document
 companion_files:
   - tool_usage_system_prompt.md (current canonical prompt, edited today)
   - tool_usage_system_prompt copy 13_trimmed_2026-07-26.md (trimmed variant)
-applied_commit: b8c58355  (2026-07-26, deploy b8c58355 → gerardo v11)
+applied_commit: b8c58355 (9 fixes — thinking-block + watchdog + storage hygiene,
+                              2026-07-26, deployed → gerardo v11)
+                836b151d (fix #1 — server-side tool-name allowlist, 2026-07-26,
+                          shipped as ancestor of subsequent auto-deploys)
 scope: harden the tool-use pipeline (Anthropic, OpenAI, DeepSeek, MiniMax-M3)
                       against thinking-block hallucination, runaway loops, and
                       fabricated intermediate tool outputs.
@@ -22,19 +25,30 @@ scope: harden the tool-use pipeline (Anthropic, OpenAI, DeepSeek, MiniMax-M3)
 
 ## 0. TL;DR
 
-Today (`b8c58355`) we shipped **9 fixes + 28 smoke tests** that addressed the
-"Tool Test Rd 5" failure mode (orphan thinking blocks, signature loss, and
-4 byte-identical "Excellent news" canned-response loops). The companion
-system-prompt updates in [`tool_usage_system_prompt.md`](./tool_usage_system_prompt.md) strengthen the
+Today we shipped **10 fixes + 47 smoke tests** across two commits on
+2026-07-26, addressing the "Tool Test Rd 5" failure mode (orphan thinking
+blocks, signature loss, 4 byte-identical "Excellent news" canned-response
+loops) and the "reasoning-amplified model fabricates tool names" attack
+mode. Companion system-prompt updates in
+[`tool_usage_system_prompt.md`](./tool_usage_system_prompt.md) strengthen the
 prompt-level defenses.
 
+| Commit | What it shipped |
+|--------|------------------|
+| `b8c58355` | F1-A/B/C (signature round-trip), F2 (interleaved-aware reorder), F3 (denylist for thinking-block fields), Adj 4A/B/C (MiniMax-M3 + beta-header conditional), F4 (tool_result SDK class), F5 (runaway-loop watchdog), F6 (storage hygiene + `ensure_ascii=False`) |
+| `836b151d` | **Fix #1 — server-side tool-name allowlist** at the dispatch boundary (see §1.7 below; §2.2 marked SHIPPED) |
+
 What we **have not yet shipped** but is now well-grounded in published
-research is a **server-side similarity gate** for fabricated tool outputs
+research is the **server-side similarity gate** for fabricated tool outputs
 inside reasoning blocks (academic confirmation at arXiv 2510.22977 per the
 agent's persistent memory; same theme covered empirically by AgentSentinel,
-arXiv 2509.07764), plus an explicit **tool-call name allowlist** enforced
-*before* the executor dispatches a call. These two are the highest-impact
-remaining changes. Recommended order in §5.
+arXiv 2509.07764) — this is the load-bearing remaining change per the
+memory note. Recommended order in §5.
+
+> **Note on §2.2 vs §1.7:** §2.2 was written *before* fix #1 shipped and
+> still describes the gap as open. The "✅ SHIPPED 2026-07-26" banner at
+> the top of §2.2 is the authoritative pointer; §1.7 has the implementation
+> details. Do not read §2.2 in isolation.
 
 ---
 
@@ -92,6 +106,42 @@ this local env; the file explicitly handles this with `self.skipTest(...)`).
 Ran 28 tests in 0.769s — OK (skipped=2)
 ```
 
+### 1.7 Server-side tool-name allowlist (Fix #1, commit `836b151d`)
+
+**The single-line gate** at the dispatch boundary of the agentic loop in
+`AI_infrastructure/core/combined_agent_worker.py` (`run_simple_agent_worker`,
+top of the `try:` block inside the `tool_uses` loop):
+
+```python
+if not registry.is_tool_allowed(tool_name):
+    # ... build a same-prefix hint (capped at 5) ...
+    raise ValueError(
+        f"Tool '{tool_name}' is not in the registered tool "
+        f"registry ({registered_count} tools available).{hint}"
+    )
+```
+
+| Aspect | Value |
+|--------|-------|
+| Helper added | `RegistryV3.is_tool_allowed(name)` + `RegistryV3.list_tool_names()` |
+| Location of helpers | `tools/registry_v3.py` (line 899 onward) |
+| Meta-tool fallback constant | `_ALLOWED_META_TOOL_NAMES = frozenset({"get_tool_schema", "execute_tool"})` |
+| Test file | `AI_infrastructure/tests/test_tool_name_allowlist.py` — **19 tests, all green** |
+| Non-string input handling | `None`, empty string, int, list, dict all return `False` (no TypeError on `in`) |
+| Recovery path | The existing `except Exception as tool_error:` handler emits a structured `tool_result` with `is_error=True`; the model sees its hallucination labelled as failed and self-corrects on the next turn |
+| Provider alignment | Provider-agnostic — gates on `tool_name` only, never on wire format. All 4 providers (Anthropic, OpenAI, DeepSeek, MiniMax-M3) route through the same `tool_uses` loop |
+| DB migration | None — gate emits via existing SSE path; no new schema |
+| New dependencies | None — `jsonschema` not installed (fix #2 deferred per CLAUDE.md rule #8) |
+| Source-invariant tests | TA-10 in the test file grep-checks `combined_agent_worker.py` for `registry.is_tool_allowed(tool_name)` and `TOOL-ALLOWLIST`, and `tools/registry_v3.py` for `def is_tool_allowed(` and the constant. Prevents accidental regression |
+
+**Smoke-test coverage (combined):**
+
+| File | Tests | Notes |
+|------|-------|-------|
+| `AI_infrastructure/tests/test_tool_system_robustness_fixes.py` | 28 (26 pass, 2 skipped) | The 9-fix series from `b8c58355` |
+| `AI_infrastructure/tests/test_tool_name_allowlist.py` | 19 (all pass) | Fix #1 from `836b151d` |
+| **Total** | **47 (45 pass, 2 skipped)** | |
+
 ---
 
 ## 2. What was identified before this PR but is NOT yet shipped
@@ -132,6 +182,11 @@ executed in this conversation. The audit chain is already in
 `tool_intelligence_logger`; the gate is a thin reader.
 
 ### 2.2 Tool-name allowlist (AgentSentinel pattern, generalizable)
+
+> **✅ SHIPPED 2026-07-26 in commit `836b151d`** — see §1.7 for implementation
+> details, file locations, test count, and provider-alignment notes. This
+> section is preserved as the original motivation; do not re-read it as a
+> pending gap.
 
 The current executor dispatches by `tool_name` lookup in
 `tools/registry_v3.py`. If the model invents a `tool_name` that doesn't
@@ -388,21 +443,20 @@ JSONB, currently monitored by F6). Specifically:
 Ordered by *risk reduced per unit of effort*. All entries reference
 existing files; no new directory layout required.
 
-| # | Fix | File target | Effort | Risk reduced |
-|---|-----|-------------|--------|--------------|
-| **1** | **Tool-name allowlist** (§2.2) | `AI_infrastructure/core/tool_executor.py` `execute_tool()` — reject if `tool_name not in RegistryV3.tool_names()`; loop guard in `combined_agent_worker.py` agentic loop | **S** (≈30 LOC) | High — blocks the most-cited hallucination vector in AgentSentinel |
-| **2** | **JSON-schema input validation** (§2.3) | `AI_infrastructure/core/tool_executor.py` `execute_tool()` — `jsonschema.validate(parameters, tool_schema)` before dispatch | **S** (≈60 LOC including tests) | Medium — catches silently-misformed args before side effects |
-| **3** | **Server-side similarity gate** (§2.1) — first pass: tool_use_id grounding only | `AI_infrastructure/core/combined_agent_worker.py` — at top of loop, assert `tool_use_id ∈ session.tool_calls` | **M** (≈120 LOC including audit row write) | **Very high** — this is the load-bearing fix from the memory note |
-| **4** | **Hallucination incident log + diagnostics route** (§2.6) | New table value on `tool_intelligence_logger` + `AI_infrastructure/routes/diagnostics_routes.py` | **S** (≈80 LOC) | Medium — enables future forensics and validation |
-| **5** | **Constrained-decoding strict mode** (§2.4) | `AI_infrastructure/core/unified_ai_client.py` `_init_anthropic` / `_init_openai` / `_init_deepseek` / `_init_minimax` — set `strict=True` / `input_schema=` per tool, ensure 1:1 schema mapping | **M** (≈150 LOC across 4 init paths) | High — pushes constraint to the wire so the model can never emit a malformed tool call |
-| **6** | **SAC³ cross-check similarity gate** (§2.1 step 2) | `AI_infrastructure/core/combined_agent_worker.py` — for reasoning-amplified models, embedding-similarity between reasoning's claim and actual tool_result; on low score, fall back to real result | **L** (≈250 LOC, requires embedding call) | High — closes the "I checked Gmail and got X" fabrication |
-| **7** | **Signature-on-mutation invalidation** (§2.5) | `AI_infrastructure/core/unified_ai_client.py` — when F2/F3 mutates an assistant turn, drop the signature on any thinking block whose sibling context was touched | **S** (≈40 LOC) | Medium — prevents Anthropic 400s after our own fixes touch the cache |
-| **8** | **Reasoning-block self-check for MiniMax-M3** | `AI_infrastructure/core/combined_agent_worker.py` — when `provider == "MiniMax"` and `thinking_enabled`, run a lightweight classifier over thinking content looking for invented tool references | **L** (≈300 LOC, needs LLM-classifier call) | Marginal — overlaps with #6 |
+| # | Fix | File target | Effort | Risk reduced | Status |
+|---|-----|-------------|--------|--------------|--------|
+| **1** | **Tool-name allowlist** (§2.2) | `AI_infrastructure/core/tool_executor.py` `execute_tool()` — reject if `tool_name not in RegistryV3.tool_names()`; loop guard in `combined_agent_worker.py` agentic loop | **S** (≈30 LOC) | High — blocks the most-cited hallucination vector in AgentSentinel | ✅ **Shipped 2026-07-26** (`836b151d` — see §1.7) |
+| **2** | **JSON-schema input validation** (§2.3) | `AI_infrastructure/core/tool_executor.py` `execute_tool()` — `jsonschema.validate(parameters, tool_schema)` before dispatch | **S** (≈60 LOC including tests) | Medium — catches silently-misformed args before side effects | ⏳ Pending — requires `jsonschema` dep (deferred per CLAUDE.md rule #8) |
+| **3** | **Server-side similarity gate** (§2.1) — first pass: tool_use_id grounding only | `AI_infrastructure/core/combined_agent_worker.py` — at top of loop, assert `tool_use_id ∈ session.tool_calls` | **M** (≈120 LOC including audit row write) | **Very high** — this is the load-bearing fix from the memory note | ⏳ **Next recommended** — load-bearing |
+| **4** | **Hallucination incident log + diagnostics route** (§2.6) | New table value on `tool_intelligence_logger` + `AI_infrastructure/routes/diagnostics_routes.py` | **S** (≈80 LOC) | Medium — enables future forensics and validation | ⏳ Pending |
+| **5** | **Constrained-decoding strict mode** (§2.4) | `AI_infrastructure/core/unified_ai_client.py` `_init_anthropic` / `_init_openai` / `_init_deepseek` / `_init_minimax` — set `strict=True` / `input_schema=` per tool, ensure 1:1 schema mapping | **M** (≈150 LOC across 4 init paths) | High — pushes constraint to the wire so the model can never emit a malformed tool call | ⏳ Pending — see §6 Q2 (OpenAI strict-mode risk) |
+| **6** | **SAC³ cross-check similarity gate** (§2.1 step 2) | `AI_infrastructure/core/combined_agent_worker.py` — for reasoning-amplified models, embedding-similarity between reasoning's claim and actual tool_result; on low score, fall back to real result | **L** (≈250 LOC, requires embedding call) | High — closes the "I checked Gmail and got X" fabrication | ⏳ Pending — depends on #3 |
+| **7** | **Signature-on-mutation invalidation** (§2.5) | `AI_infrastructure/core/unified_ai_client.py` — when F2/F3 mutates an assistant turn, drop the signature on any thinking block whose sibling context was touched | **S** (≈40 LOC) | Medium — prevents Anthropic 400s after our own fixes touch the cache | ⏳ Pending |
+| **8** | **Reasoning-block self-check for MiniMax-M3** | `AI_infrastructure/core/combined_agent_worker.py` — when `provider == "MiniMax"` and `thinking_enabled`, run a lightweight classifier over thinking content looking for invented tool references | **L** (≈300 LOC, needs LLM-classifier call) | Marginal — overlaps with #6 | ⏳ Exploratory |
 
 **Recommended execution order:**
 
-1. Fix #1 (allowlist) — smallest, highest leverage, addresses the most
-   common vector.
+1. ✅ ~~Fix #1 (allowlist)~~ — **DONE 2026-07-26** (commit `836b151d`).
 2. Fix #4 (audit log) — sets up the data substrate that #3 reads from.
 3. Fix #3 (similarity gate, tool_use_id grounding only) — the load-bearing
    fix from the agent memory.
@@ -482,3 +536,4 @@ existing files; no new directory layout required.
 |------|--------|--------|
 | 2026-07-26 | Initial version — captures applied `b8c58355` fixes, lists pending fixes, integrates 4 named sources | Claude Fable 5 (via Claude Code) |
 | 2026-07-26 | **Fix #1 SHIPPED** — added `RegistryV3.is_tool_allowed()` and `RegistryV3.list_tool_names()` (`tools/registry_v3.py`); inserted a single-line allowlist gate at the dispatch boundary in `combined_agent_worker.py` (`run_simple_agent_worker`, line 2269+); the gate raises `ValueError` on unregistered names and falls through to the existing `except Exception as tool_error:` handler which emits a structured `tool_result` block with `is_error=True` — the model sees the rejection on its next turn and can self-correct; added `AI_infrastructure/tests/test_tool_name_allowlist.py` (19 tests, all green); no DB migration required (gate emits via existing SSE path); no new dependencies (`jsonschema` not installed — fix #2 deferred per CLAUDE.md rule #8); provider-agnostic — works identically for Anthropic, OpenAI/DeepSeek, MiniMax-M3 | Claude Fable 5 (via Claude Code) |
+| 2026-07-26 | **Doc revision for coherence** — four places had drifted out of sync after fix #1: (a) frontmatter `applied_commit` listed only `b8c58355`, now lists both commits; (b) §0 TL;DR described the tool-name allowlist as a future recommendation, now distinguishes shipped (F1-A/B/C + F2 + F3 + 4A/B/C + F4 + F5 + F6 + allowlist) from pending (similarity gate); (c) §2.2 still read as a pending gap, now has a `✅ SHIPPED 2026-07-26 in commit 836b151d` banner pointing to §1.7; (d) §5 implementation matrix marked fix #1 as recommended-first, now marked `✅ Shipped` and a `Status` column added. Added new sub-section §1.7 documenting fix #1's file locations, helper signatures, recovery path, provider-alignment, and test count. Smoke-test coverage now totals **47 tests** (45 pass, 2 skipped) across the two test files. No code changes in this revision — doc-only. | Claude Fable 5 (via Claude Code) |
