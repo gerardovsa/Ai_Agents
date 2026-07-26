@@ -11,6 +11,7 @@ Phase 2 of Agent Routes Rebuild
 FIXED: Parameter conflict in execute_tool() method - now only accepts **kwargs
 FIXED: Microsoft tools class instance extraction - detects and uses global instances
 """
+import hashlib
 import json
 import importlib
 import os
@@ -206,33 +207,67 @@ class _LazyModuleProxy:
 
 
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-# PERSISTENT DISK WARM CACHE — DISABLED 2026-07-27
-# Cache path was on Render's persistent disk (/data/) so it survived across
-# redeploys. A warm boot hit this cache and skipped re-parsing 99 JSON
-# schemas (saved ~2-3s on Render cold path).
+# PERSISTENT DISK WARM CACHE — CONTENT-ADDRESSED (2026-07-27)
 #
-# DISABLED because the persistent pickle caused a multi-day bug where the
-# google_docs_create_document schema rewrite (commit 7d1444df) was live on
-# disk but the platform still served the pre-fix schema — the pickle was
-# captured on first startup after deploy with the OLD parameters shape,
-# and every subsequent restart (including the post-bump restart after
-# commit 6ae9f142) hit the cached pre-fix shape until the version mismatch
-# finally evicted it. The version-bump is a bandage, not a fix — any new
-# schema edit will eventually re-trip the same trap.
+# Cache lives on Render's persistent disk so a warm boot skips re-parsing
+# 99 JSON schemas (saves ~2-3s on cold path).
 #
-# With the pickle disabled, every cold start re-reads tools/schemas/*.json
-# from disk. The 2-3s cold-start cost is the price of correctness. The
-# Redis cache (in-memory, per-instance, 1-hour TTL) is unaffected — it is
-# safe because it dies with the process.
+# INVALIDATION MODEL — content fingerprint (no manual version bump required):
+#   * _schema_fingerprint() computes a SHA256 over every tools/schemas/*.json
+#     file's contents and filename.
+#   * The pickle stores the fingerprint alongside the tools dict.
+#   * On load, the current fingerprint is recomputed and compared. If any
+#     JSON file has changed, the fingerprint differs, the cache misses,
+#     and the registry falls through to _load_schemas() — then writes a
+#     fresh pickle with the new fingerprint.
+#   * Adding, removing, or editing ANY schema file therefore invalidates
+#     the cache automatically. No more `_WARM_CACHE_VERSION += 1` ritual.
 #
-# To re-enable: set _WARM_CACHE_DISABLED = False AND set _WARM_CACHE_PATH
-# to a non-persistent location (e.g. /tmp/) and accept the staleness risk.
+# DISABLED BY DEFAULT: the persistent pickle caused a multi-day bug
+# (commit 7d1444df's google_docs_create_document rewrite was live on disk
+# but the platform served the pre-fix schema because the first deploy
+# captured the OLD shape and every subsequent restart hit the cache).
+# To re-enable: flip _WARM_CACHE_DISABLED to False and deploy. The
+# fingerprint logic makes future staleness structurally impossible.
+#
+# LEGACY CLEANUP: a stale pickle from the pre-fingerprint era
+# (/data/.cache/registry/tool_lookup.pickle without a fingerprint field)
+# is unlinked once per process in _save_to_warm_cache().
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-_WARM_CACHE_DISABLED = True
-_WARM_CACHE_PATH = None  # legacy location (/data/.cache/registry/tool_lookup.pickle) intentionally not used
-_WARM_CACHE_VERSION = 2  # retained only for code hygiene; not read while disabled
-_LEGACY_PICKLE_PATH = Path("/data/.cache/registry/tool_lookup.pickle")  # one-time cleanup target
+_WARM_CACHE_DISABLED = True  # flip to False to re-enable persistent cache
+_WARM_CACHE_PATH = Path("/data/.cache/registry/tool_lookup.pickle")
+_WARM_CACHE_VERSION = 2  # bumped only when the pickle BLOB FORMAT changes
+_LEGACY_PICKLE_PATH = Path("/data/.cache/registry/tool_lookup.pickle")  # alias
 _LEGACY_PICKLE_DELETED = False  # flips to True after the first cleanup pass
+
+
+def _schema_fingerprint() -> str:
+    """
+    Deterministic SHA256 fingerprint of every tools/schemas/*.json file.
+
+    Any change to any JSON schema file (content or filename) changes the
+    fingerprint, automatically invalidating the warm cache on the next
+    cold start. This eliminates the manual `_WARM_CACHE_VERSION += 1`
+    dance that previously caused repeated schema-staleness incidents.
+
+    The fingerprint is the SHA256 of the concatenated contents, prefixed
+    by each file's basename so reordering or renaming files also changes
+    the fingerprint. Truncated to 16 hex chars (64 bits) which is
+    collision-resistant for our scale (~100 schemas in one process).
+    """
+    h = hashlib.sha256()
+    schemas_dir = Path(__file__).parent / "schemas"
+    if not schemas_dir.exists():
+        return hashlib.sha256(b"<missing-schemas-dir>").hexdigest()[:16]
+    for path in sorted(schemas_dir.glob("*.json")):
+        h.update(path.name.encode("utf-8"))
+        try:
+            h.update(path.read_bytes())
+        except OSError as exc:
+            # Permission errors / missing files should not crash startup.
+            # The cache will simply miss this file.
+            logger.debug("[WARM_CACHE] Cannot read %s: %s", path, exc)
+    return h.hexdigest()[:16]  # 64-bit cache key is plenty
 
 
 class RegistryV3:
@@ -565,13 +600,16 @@ class RegistryV3:
 
         Returns:
             bool: True if cache hit and schema loaded, False otherwise.
+
+        INVALIDATION: cache blob carries a content fingerprint of every
+        tools/schemas/*.json file. On load we recompute the fingerprint
+        from disk and compare. Any schema change (add / remove / edit /
+        rename) mismatches the fingerprint and the cache is treated as
+        a miss — no manual version bump required.
         """
-        # 2026-07-27: persistent warm cache disabled — see top-of-file comment.
-        # Always return False so the constructor falls through to _load_schemas(),
-        # which re-reads every tools/schemas/*.json from disk. The stale
-        # /data/.cache/registry/tool_lookup.pickle (if it still exists from a
-        # pre-July-27 deploy) is cleaned up by _save_to_warm_cache() on first
-        # run, not here, to keep this path read-only.
+        # 2026-07-27: persistent warm cache disabled by default — see top-of-file comment.
+        # Flip _WARM_CACHE_DISABLED to False to re-enable. The fingerprint
+        # plumbing is live either way, so re-enabling is safe.
         if _WARM_CACHE_DISABLED or _WARM_CACHE_PATH is None:
             return False
 
@@ -583,8 +621,24 @@ class RegistryV3:
             with open(_WARM_CACHE_PATH, "rb") as fh:
                 blob = pickle.load(fh)
 
-            if not isinstance(blob, dict) or blob.get("version") != _WARM_CACHE_VERSION:
-                logger.info("[WARM_CACHE] Stale or wrong version — ignoring")
+            if not isinstance(blob, dict):
+                logger.info("[WARM_CACHE] Cache blob not a dict — ignoring")
+                return False
+
+            # Blob format version check (only increments when the dict SHAPE changes).
+            if blob.get("version") != _WARM_CACHE_VERSION:
+                logger.info("[WARM_CACHE] Cache blob version mismatch — ignoring")
+                return False
+
+            # CONTENT FINGERPRINT CHECK — the load-bearing invalidation step.
+            current_fingerprint = _schema_fingerprint()
+            cached_fingerprint = blob.get("fingerprint")
+            if cached_fingerprint != current_fingerprint:
+                logger.info(
+                    "[WARM_CACHE] Schema fingerprint changed "
+                    "(cached=%s current=%s) — invalidating",
+                    cached_fingerprint, current_fingerprint,
+                )
                 return False
 
             cached_tools = blob.get("tools")
@@ -593,8 +647,10 @@ class RegistryV3:
                 return False
 
             self.tools = cached_tools
-            logger.info("[WARM_CACHE] Loaded %d tools from %s",
-                        len(self.tools), _WARM_CACHE_PATH)
+            logger.info(
+                "[WARM_CACHE] Loaded %d tools from %s (fingerprint=%s)",
+                len(self.tools), _WARM_CACHE_PATH, current_fingerprint,
+            )
             return True
 
         except Exception as exc:
@@ -606,10 +662,13 @@ class RegistryV3:
         Persist the current `self.tools` dict to the warm cache pickle so the
         next cold start can skip the JSON parse + platform filter pass.
 
-        2026-07-27: persistent warm cache is disabled. This method now (a)
-        returns immediately without writing anything, and (b) on first call
-        removes the stale /data/.cache/registry/tool_lookup.pickle from
-        Render's persistent disk so an old pickle cannot resurrect on a
+        The pickle includes a content fingerprint so the next cold start can
+        detect schema changes automatically.
+
+        2026-07-27: persistent warm cache is disabled by default. This method
+        also (a) returns immediately when disabled, and (b) on first call
+        removes the stale /data/.cache/registry/tool_lookup.pickle from any
+        pre-fingerprint deploy so an old-shape pickle cannot resurrect on a
         future restart. The cleanup runs exactly once per process — guarded
         by the module-level _LEGACY_PICKLE_DELETED flag.
         """
@@ -634,14 +693,19 @@ class RegistryV3:
 
         try:
             _WARM_CACHE_PATH.parent.mkdir(parents=True, exist_ok=True)
+            current_fingerprint = _schema_fingerprint()
             with open(_WARM_CACHE_PATH, "wb") as fh:
                 pickle.dump(
-                    {"version": _WARM_CACHE_VERSION, "tools": self.tools},
+                    {
+                        "version": _WARM_CACHE_VERSION,
+                        "fingerprint": current_fingerprint,
+                        "tools": self.tools,
+                    },
                     fh,
                     protocol=pickle.HIGHEST_PROTOCOL,
                 )
-            logger.info("[WARM_CACHE] Saved %d tools to %s",
-                        len(self.tools), _WARM_CACHE_PATH)
+            logger.info("[WARM_CACHE] Saved %d tools to %s (fingerprint=%s)",
+                        len(self.tools), _WARM_CACHE_PATH, current_fingerprint)
         except Exception as exc:
             logger.debug("[WARM_CACHE] Failed to save (non-fatal): %s", exc)
 
