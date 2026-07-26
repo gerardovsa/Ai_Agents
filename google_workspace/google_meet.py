@@ -36,11 +36,18 @@ CREDENTIALS_FILE = os.getenv(
 )
 
 
-def _get_meet_service():
+def _get_native_meet_service_with_service_account():
     """
-    Build and return Google Meet API service.
-    Uses service account authentication.
-    
+    Build and return Google Meet v2 Spaces API service.
+    Uses service account authentication (Phase 8: explicit).
+
+    The native Meet v2 API does NOT support per-user OAuth for the spaces
+    collection — spaces are workspace-scoped. Therefore this helper is
+    intentionally service-account owned and must NOT be called when a
+    user identity is required. Use ``_get_calendar_service_for_user``
+    (which routes through Google's Calendar v3 API) for user-scoped
+    meeting creation.
+
     Returns:
         Google Meet service object
     """
@@ -48,29 +55,36 @@ def _get_meet_service():
         'https://www.googleapis.com/auth/meetings.space.created',
         'https://www.googleapis.com/auth/meetings.space.readonly'
     ]
-    
+
     credentials = service_account.Credentials.from_service_account_file(
         CREDENTIALS_FILE,
         scopes=scopes
     )
-    
+
     return build('meet', 'v2', credentials=credentials)
 
 
-def _get_calendar_service(_user_id=None, _injected_credentials=None):
+def _get_calendar_service_for_user(_user_id=None, _injected_credentials=None):
     """
-    Build Google Calendar service for meeting creation.
-    Most Meet functionality is via Calendar API.
-    Supports database OAuth (priority) and service account (fallback).
-    
+    Build Google Calendar service for meeting creation (Phase 8: renamed).
+
+    Most Meet functionality is via Calendar's ``conferenceData`` field on
+    events. The user OAuth path is canonical and routes through the shared
+    user OAuth injector so expiry / proactive refresh / persistence are
+    applied. When no user context is present, the helper falls back to a
+    service-account Calendar client (intentional — some call sites such as
+    the spaces helpers need a meeting but no user is logged in).
+
     Args:
         _user_id: User ID for database OAuth credential lookup
         _injected_credentials: Flag to use database OAuth credentials
-    
+
     Returns:
         Google Calendar service object
     """
-    # Priority: Database OAuth (if user_id provided)
+    # Priority: Database OAuth (if user_id provided) — routes through the
+    # shared user OAuth injector so expiry/proactive-refresh/storage-only
+    # rules are applied consistently.
     if _user_id and _injected_credentials:
         try:
             from AI_infrastructure.auth.credential_injector import create_google_service_with_user_credentials
@@ -81,16 +95,21 @@ def _get_calendar_service(_user_id=None, _injected_credentials=None):
             )
         except Exception as e:
             print(f"⚠️ Database OAuth failed for Google Meet: {e}, falling back to service account")
-    
-    # Fallback: Service account
+
+    # Fallback: Service account (intentional — see docstring).
     scopes = ['https://www.googleapis.com/auth/calendar']
-    
+
     credentials = service_account.Credentials.from_service_account_file(
         CREDENTIALS_FILE,
         scopes=scopes
     )
-    
+
     return build('calendar', 'v3', credentials=credentials)
+
+
+# Backwards-compatible aliases (Phase 8). Existing callers still work.
+_get_meet_service = _get_native_meet_service_with_service_account
+_get_calendar_service = _get_calendar_service_for_user
 
 
 # ==================== MEETING CREATION (via Calendar) ====================

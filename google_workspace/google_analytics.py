@@ -14,7 +14,6 @@ from datetime import datetime, timedelta
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 try:
-    from google.oauth2.credentials import Credentials
     from googleapiclient.discovery import build
     from googleapiclient.errors import HttpError
     from google_workspace.google_auth_helper import build_analytics_service, get_service_account_credentials
@@ -24,23 +23,38 @@ except ImportError:
     print("⚠️ Google Analytics API dependencies not available")
 
 
-def _get_analytics_service():
-    """Get authenticated Google Analytics Data API service (for reports)"""
+def _get_analytics_service_with_service_account():
+    """Get authenticated Google Analytics Data API service (for reports).
+
+    Phase 8: Analytics is intentionally service-account-only. The Analytics
+    Data API does not support per-user OAuth for the property reports in
+    this platform's tenant model — operations are workspace-scoped. Do NOT
+    add user OAuth to this helper without a separate product requirement.
+    """
     if not HAS_ANALYTICS_API:
         raise Exception("Google Analytics API not available - install google-api-python-client")
-    
+
     # Use the unified Google Workspace authentication helper
     return build_analytics_service()
 
 
-def _get_analytics_admin_service():
-    """Get authenticated Google Analytics Admin API service (for accounts/properties)"""
+def _get_analytics_admin_service_with_service_account():
+    """Get authenticated Google Analytics Admin API service (for accounts/properties).
+
+    Phase 8: Analytics Admin API is intentionally service-account-only for
+    the same reason as the Data API above. Do NOT add user OAuth here.
+    """
     if not HAS_ANALYTICS_API:
         raise Exception("Google Analytics API not available - install google-api-python-client")
-    
+
     scopes = ['https://www.googleapis.com/auth/analytics.readonly']
     credentials = get_service_account_credentials(scopes)
     return build('analyticsadmin', 'v1beta', credentials=credentials)
+
+
+# Backwards-compatible aliases (Phase 8). Existing callers still work.
+_get_analytics_service = _get_analytics_service_with_service_account
+_get_analytics_admin_service = _get_analytics_admin_service_with_service_account
 
 
 # ==================== ACCOUNT & PROPERTY ====================
