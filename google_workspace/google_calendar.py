@@ -80,17 +80,7 @@ class GoogleCalendarTools:
 
         # Use the central helper for calendar service creation (handles refresh/save)
         from AI_infrastructure.auth.credential_injector import get_user_calendar_service
-        try:
-            service = get_user_calendar_service(user_id=self._user_id, _user_id=self._user_id)
-            return service
-        except Exception:
-            # Fallback to lower-level creator for older codepaths
-            from AI_infrastructure.auth.credential_injector import create_google_service_with_user_credentials
-            return create_google_service_with_user_credentials(
-                user_id=self._user_id,
-                service_name='calendar',
-                version='v3'
-            )
+        return get_user_calendar_service(user_id=self._user_id, _user_id=self._user_id)
     
     def list_calendars(self, show_hidden=False, **kwargs):
         """List all calendars"""

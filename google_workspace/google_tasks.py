@@ -47,12 +47,8 @@ def build_tasks_service(_user_id=None, _injected_credentials=None, **kwargs):
         Exception: If _user_id or _injected_credentials not provided
     """
     if _user_id and _injected_credentials:
-        from AI_infrastructure.auth.credential_injector import create_google_service_with_user_credentials
-        return create_google_service_with_user_credentials(
-            user_id=_user_id,
-            service_name='tasks',
-            version='v1'
-        )
+        from AI_infrastructure.auth.credential_injector import get_user_tasks_service
+        return get_user_tasks_service(user_id=_user_id, _user_id=_user_id)
     
     # No credentials provided - throw clear error
     raise Exception(
