@@ -22,10 +22,16 @@ SMART BULK ACTIONS:
 - Create branded templates
 """
 
-from googleapiclient.discovery import build
-from google.oauth2 import service_account
-from google.oauth2.credentials import Credentials
-from .google_auth_helper import get_service_account_credentials, build_drive_service
+# Phase 6: Google Slides symbols no longer imported at module top level
+# (Credentials, legacy oauth_credential_loader) — they were either dead in
+# practice or pinning to private symbols the shared injector now owns.
+try:
+    from googleapiclient.discovery import build
+    from .google_auth_helper import get_service_account_credentials, build_drive_service
+    HAS_GOOGLE_API = True
+except ImportError as e:
+    HAS_GOOGLE_API = False
+    print(f"⚠️ Google API dependencies not available: {e}")
 import json
 import time
 
@@ -35,72 +41,26 @@ SLIDES_SCOPES = [
     'https://www.googleapis.com/auth/drive.file'
 ]
 
-def _get_user_credentials_if_available(user_id, injected_credentials_flag):
-    """Helper to get user OAuth credentials from database
-    
-    Args:
-        user_id: User ID (from _user_id parameter)
-        injected_credentials_flag: Flag indicating credentials should be injected
-    
-    Returns:
-        dict: Credential dictionary or None
-    """
-    if user_id and injected_credentials_flag:
-        try:
-            from AI_infrastructure.auth.user_auth import UserAuthManager
-            auth_manager = UserAuthManager()
-            cred_dict = auth_manager.get_user_google_oauth_credentials(user_id)
-            if cred_dict:
-                print(f"🔑 Using database OAuth credentials for user {user_id}")
-                return cred_dict
-            else:
-                print(f"⚠️ User {user_id} has no Google OAuth credentials in database")
-        except Exception as e:
-            print(f"⚠️ Could not load user credentials: {e}")
-    return None
-
 
 def _get_slides_service(user_id=None, injected_credentials=None):
-    """Get authenticated Google Slides service
-    
-    Args:
-        user_id: User ID for OAuth credentials from database
-        injected_credentials: OAuth credentials dict (from database)
-    
-    Returns:
-        Authenticated Slides service
+    """Get authenticated Google Slides API service.
+
+    Routing policy (Phase 6 — single shared contract):
+      - When the caller supplies user context (``user_id`` + ``injected_credentials``),
+        build the Slides service through the shared injector
+        (``get_user_slides_service``) so proactive refresh, exact-row persistence,
+        and storage-only enforcement are honoured. A missing/invalid user OAuth
+        row raises — NEVER silently falls back to a service account.
+      - When no user context is present at all, fall through to the explicit
+        service-account builder.
     """
-    # Priority 1: Use new oauth_tokens DB path via build_service_with_oauth
-    if user_id:
-        try:
-            from google_workspace.oauth_credential_loader import build_service_with_oauth
-            service = build_service_with_oauth(
-                user_id=user_id,
-                service_name='slides',
-                version='v1',
-                scopes=SLIDES_SCOPES
-            )
-            if service:
-                print(f"✅ Slides service created with user {user_id}'s OAuth credentials from database")
-                return service
-            print(f"⚠️  Failed to load OAuth credentials for Slides, falling back")
-        except ImportError:
-            pass
-    
-    # Priority 2: Legacy injected credentials dict
+    if not HAS_GOOGLE_API:
+        raise Exception("Google Slides API not available - install google-api-python-client")
+
     if user_id and injected_credentials:
-        credentials = Credentials(
-            token=injected_credentials['access_token'],
-            refresh_token=injected_credentials.get('refresh_token'),
-            token_uri=injected_credentials['token_uri'],
-            client_id=injected_credentials['client_id'],
-            client_secret=injected_credentials['client_secret'],
-            scopes=injected_credentials['scopes']
-        )
-        print(f"📊 Building Slides service with user {user_id}'s OAuth credentials (legacy)")
-        return build('slides', 'v1', credentials=credentials)
-    
-    # Fallback to service account (may have permission issues)
+        from AI_infrastructure.auth.credential_injector import get_user_slides_service
+        return get_user_slides_service(user_id=user_id)
+
     credentials = get_service_account_credentials(SLIDES_SCOPES)
     return build('slides', 'v1', credentials=credentials)
 
@@ -127,16 +87,14 @@ def google_slides_create_presentation(title, template_id=None, _user_id=None, _i
         }
     """
     try:
-        # Get user OAuth credentials if available
-        cred_dict = _get_user_credentials_if_available(_user_id, _injected_credentials)
-        
-        if cred_dict:
-            slides_service = _get_slides_service(user_id=_user_id, injected_credentials=cred_dict)
-            drive_service = build_drive_service(_user_id=_user_id, user_id=_user_id, injected_credentials=cred_dict)
+        # Phase 6: route through the shared injector when user context is present
+        slides_service = _get_slides_service(user_id=_user_id, injected_credentials=_injected_credentials)
+        if _user_id and _injected_credentials:
+            from AI_infrastructure.auth.credential_injector import get_user_drive_service
+            drive_service = get_user_drive_service(user_id=_user_id)
         else:
-            slides_service = _get_slides_service(user_id=_user_id)
             drive_service = build_drive_service(_user_id=_user_id)
-        
+
         if template_id:
             # Copy from template
             copied_file = drive_service.files().copy(
@@ -208,14 +166,9 @@ def google_slides_get_presentation(presentation_id, format='summary',
         dict: Content in requested format
     """
     try:
-        # Get user OAuth credentials if available
-        cred_dict = _get_user_credentials_if_available(_user_id, _injected_credentials)
-        
-        if cred_dict:
-            slides_service = _get_slides_service(user_id=_user_id, injected_credentials=cred_dict)
-        else:
-            slides_service = _get_slides_service()
-        
+        # Phase 6: route through the shared injector when user context is present
+        slides_service = _get_slides_service(user_id=_user_id, injected_credentials=_injected_credentials)
+
         presentation = slides_service.presentations().get(
             presentationId=presentation_id
         ).execute()
@@ -426,21 +379,9 @@ def google_slides_get_slide(presentation_id, slide_number, **kwargs):
         # Get credentials
         user_id = kwargs.get('_user_id')
         injected_creds = kwargs.get('_injected_credentials')
-        credentials_dict = _get_user_credentials_if_available(user_id, injected_creds)
-        
-        if credentials_dict:
-            credentials = Credentials(
-                token=credentials_dict.get('access_token'),
-                refresh_token=credentials_dict.get('refresh_token'),
-                token_uri='https://oauth2.googleapis.com/token',
-                client_id=os.getenv('GOOGLE_CLIENT_ID'),
-                client_secret=os.getenv('GOOGLE_CLIENT_SECRET')
-            )
-            service = build('slides', 'v1', credentials=credentials)
-        else:
-            credentials = get_service_account_credentials(SLIDES_SCOPES)
-            service = build('slides', 'v1', credentials=credentials)
-        
+        # Phase 6: route through the shared injector when user context is present
+        service = _get_slides_service(user_id=user_id, injected_credentials=injected_creds)
+
         # Get full presentation
         presentation = service.presentations().get(presentationId=presentation_id).execute()
         
@@ -541,21 +482,9 @@ def google_slides_search_presentation(presentation_id, query, **kwargs):
         # Get credentials
         user_id = kwargs.get('_user_id')
         injected_creds = kwargs.get('_injected_credentials')
-        credentials_dict = _get_user_credentials_if_available(user_id, injected_creds)
-        
-        if credentials_dict:
-            credentials = Credentials(
-                token=credentials_dict.get('access_token'),
-                refresh_token=credentials_dict.get('refresh_token'),
-                token_uri='https://oauth2.googleapis.com/token',
-                client_id=os.getenv('GOOGLE_CLIENT_ID'),
-                client_secret=os.getenv('GOOGLE_CLIENT_SECRET')
-            )
-            service = build('slides', 'v1', credentials=credentials)
-        else:
-            credentials = get_service_account_credentials(SLIDES_SCOPES)
-            service = build('slides', 'v1', credentials=credentials)
-        
+        # Phase 6: route through the shared injector when user context is present
+        service = _get_slides_service(user_id=user_id, injected_credentials=injected_creds)
+
         # Get full presentation
         presentation = service.presentations().get(presentationId=presentation_id).execute()
         
@@ -658,14 +587,9 @@ def google_slides_add_slide(presentation_id, layout='BLANK', index=None,
         }
     """
     try:
-        # Get user OAuth credentials if available
-        cred_dict = _get_user_credentials_if_available(_user_id, _injected_credentials)
-        
-        if cred_dict:
-            slides_service = _get_slides_service(user_id=_user_id, injected_credentials=cred_dict)
-        else:
-            slides_service = _get_slides_service()
-        
+        # Phase 6: route through the shared injector when user context is present
+        slides_service = _get_slides_service(user_id=_user_id, injected_credentials=_injected_credentials)
+
         # Get presentation to find layout ID
         presentation = slides_service.presentations().get(
             presentationId=presentation_id
@@ -729,14 +653,9 @@ def google_slides_delete_slide(presentation_id, slide_id,
         _injected_credentials: OAuth credentials flag
     """
     try:
-        # Get user OAuth credentials if available
-        cred_dict = _get_user_credentials_if_available(_user_id, _injected_credentials)
-        
-        if cred_dict:
-            slides_service = _get_slides_service(user_id=_user_id, injected_credentials=cred_dict)
-        else:
-            slides_service = _get_slides_service()
-        
+        # Phase 6: route through the shared injector when user context is present
+        slides_service = _get_slides_service(user_id=_user_id, injected_credentials=_injected_credentials)
+
         requests = [{
             'deleteObject': {
                 'objectId': slide_id
@@ -769,14 +688,9 @@ def google_slides_duplicate_slide(presentation_id, slide_id,
         _injected_credentials: OAuth credentials flag
     """
     try:
-        # Get user OAuth credentials if available
-        cred_dict = _get_user_credentials_if_available(_user_id, _injected_credentials)
-        
-        if cred_dict:
-            slides_service = _get_slides_service(user_id=_user_id, injected_credentials=cred_dict)
-        else:
-            slides_service = _get_slides_service()
-        
+        # Phase 6: route through the shared injector when user context is present
+        slides_service = _get_slides_service(user_id=_user_id, injected_credentials=_injected_credentials)
+
         requests = [{
             'duplicateObject': {
                 'objectId': slide_id
@@ -832,14 +746,9 @@ def google_slides_insert_text(presentation_id, slide_id, text,
         dict: Text box object ID and properties
     """
     try:
-        # Get user OAuth credentials if available
-        cred_dict = _get_user_credentials_if_available(_user_id, _injected_credentials)
-        
-        if cred_dict:
-            slides_service = _get_slides_service(user_id=_user_id, injected_credentials=cred_dict)
-        else:
-            slides_service = _get_slides_service()
-        
+        # Phase 6: route through the shared injector when user context is present
+        slides_service = _get_slides_service(user_id=_user_id, injected_credentials=_injected_credentials)
+
         # Generate unique ID
         text_box_id = f"textBox_{int(time.time() * 1000)}"
         
@@ -954,14 +863,9 @@ def google_slides_insert_image(presentation_id, slide_id, image_url,
         dict: Image object ID and properties
     """
     try:
-        # Get user OAuth credentials if available
-        cred_dict = _get_user_credentials_if_available(_user_id, _injected_credentials)
-        
-        if cred_dict:
-            slides_service = _get_slides_service(user_id=_user_id, injected_credentials=cred_dict)
-        else:
-            slides_service = _get_slides_service()
-        
+        # Phase 6: route through the shared injector when user context is present
+        slides_service = _get_slides_service(user_id=_user_id, injected_credentials=_injected_credentials)
+
         image_id = f"image_{int(time.time() * 1000)}"
         
         x_emu = x * 12700
@@ -1036,14 +940,9 @@ def google_slides_insert_shape(presentation_id, slide_id, shape_type='RECTANGLE'
         dict: Shape object ID and properties
     """
     try:
-        # Get user OAuth credentials if available
-        cred_dict = _get_user_credentials_if_available(_user_id, _injected_credentials)
-        
-        if cred_dict:
-            slides_service = _get_slides_service(user_id=_user_id, injected_credentials=cred_dict)
-        else:
-            slides_service = _get_slides_service()
-        
+        # Phase 6: route through the shared injector when user context is present
+        slides_service = _get_slides_service(user_id=_user_id, injected_credentials=_injected_credentials)
+
         shape_id = f"shape_{int(time.time() * 1000)}"
         
         # Convert colors
@@ -1146,14 +1045,9 @@ def google_slides_insert_table(presentation_id, slide_id, rows, columns,
         dict: Table object ID and properties
     """
     try:
-        # Get user OAuth credentials if available
-        cred_dict = _get_user_credentials_if_available(_user_id, _injected_credentials)
-        
-        if cred_dict:
-            slides_service = _get_slides_service(user_id=_user_id, injected_credentials=cred_dict)
-        else:
-            slides_service = _get_slides_service()
-        
+        # Phase 6: route through the shared injector when user context is present
+        slides_service = _get_slides_service(user_id=_user_id, injected_credentials=_injected_credentials)
+
         table_id = f"table_{int(time.time() * 1000)}"
         
         requests = [{
@@ -1237,14 +1131,9 @@ def google_slides_insert_chart_from_sheets(presentation_id, slide_id,
         dict: Chart object ID and properties
     """
     try:
-        # Get user OAuth credentials if available
-        cred_dict = _get_user_credentials_if_available(_user_id, _injected_credentials)
-        
-        if cred_dict:
-            slides_service = _get_slides_service(user_id=_user_id, injected_credentials=cred_dict)
-        else:
-            slides_service = _get_slides_service()
-        
+        # Phase 6: route through the shared injector when user context is present
+        slides_service = _get_slides_service(user_id=_user_id, injected_credentials=_injected_credentials)
+
         chart_obj_id = f"chart_{int(time.time() * 1000)}"
         
         requests = [{
@@ -1306,14 +1195,13 @@ def google_slides_export_as_pdf(presentation_id,
         from googleapiclient.http import MediaIoBaseDownload
         import io
         
-        # Get user OAuth credentials if available
-        cred_dict = _get_user_credentials_if_available(_user_id, _injected_credentials)
-        
-        if cred_dict:
-            drive_service = build_drive_service(_user_id=_user_id, user_id=_user_id, injected_credentials=cred_dict)
+        # Phase 6: route Drive sidecar through the shared injector when user context is present
+        if _user_id and _injected_credentials:
+            from AI_infrastructure.auth.credential_injector import get_user_drive_service
+            drive_service = get_user_drive_service(user_id=_user_id)
         else:
             drive_service = build_drive_service(_user_id=_user_id)
-        
+
         request = drive_service.files().export_media(
             fileId=presentation_id,
             mimeType='application/pdf'
@@ -1353,14 +1241,13 @@ def google_slides_export_as_pptx(presentation_id,
         from googleapiclient.http import MediaIoBaseDownload
         import io
         
-        # Get user OAuth credentials if available
-        cred_dict = _get_user_credentials_if_available(_user_id, _injected_credentials)
-        
-        if cred_dict:
-            drive_service = build_drive_service(_user_id=_user_id, user_id=_user_id, injected_credentials=cred_dict)
+        # Phase 6: route Drive sidecar through the shared injector when user context is present
+        if _user_id and _injected_credentials:
+            from AI_infrastructure.auth.credential_injector import get_user_drive_service
+            drive_service = get_user_drive_service(user_id=_user_id)
         else:
             drive_service = build_drive_service(_user_id=_user_id)
-        
+
         request = drive_service.files().export_media(
             fileId=presentation_id,
             mimeType='application/vnd.openxmlformats-officedocument.presentationml.presentation'
