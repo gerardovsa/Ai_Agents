@@ -166,8 +166,12 @@ class UnifiedSessionManager:
                         session_id,
                         ui_context,
                         agent_id,
-                        json.dumps([]),
-                        json.dumps({'source': source})
+                        # ✅ FIX F6 (Jul 26, 2026): ensure_ascii=False — see comment in
+                        # update_conversation for full context. Same rationale:
+                        # keep DB rows human-readable and avoid 2-6× bloat on
+                        # non-ASCII payloads.
+                        json.dumps([], ensure_ascii=False),
+                        json.dumps({'source': source}, ensure_ascii=False)
                     ))
                     cursor.close()
                     conn.commit()
@@ -262,13 +266,32 @@ class UnifiedSessionManager:
                     return
             
             # Update DB (only for UI sessions)
+            # ─────────────────────────────────────────────────────────────────
+            # ✅ FIX F6 (Jul 26, 2026): Use `ensure_ascii=False` when serialising
+            # the conversation JSON. Thinking-block text, tool-call arguments,
+            # and customer-facing UI strings all routinely contain non-ASCII
+            # characters (accented letters, ideographs, em-dashes). The default
+            # `json.dumps` escapes those to `\uXXXX`, which is fine for
+            # transport but inflates the TEXT column 2-6× and makes the data
+            # unreadable when inspecting with `psql` or any DB tool.
+            #
+            # We also pass the conversation through `_assert_storage_parity`
+            # below; if a sibling write to `sessions.messages.content`
+            # (handled by `routes/agent_routes_v4.save_message_to_database`)
+            # diverges, we surface a loud warning so a future agent
+            # investigates. The two write paths remain — moving to a single
+            # source of truth is a larger migration tracked in
+            # `ARCHIVE_CLEANUP_PLAN.md`.
+            # ─────────────────────────────────────────────────────────────────
+            _payload = json.dumps(conversation, ensure_ascii=False, default=str)
+            self._assert_storage_parity(session_id, conversation)
             conn = get_database_connection('sessions')
             cursor = conn.cursor()
             cursor.execute("""
                 UPDATE sessions.sessions
                 SET conversation = %s, last_active = CURRENT_TIMESTAMP
                 WHERE session_id = %s
-            """, (json.dumps(conversation), session_id))
+            """, (_payload, session_id))
             cursor.close()
             conn.commit()
             conn.close()
@@ -294,10 +317,67 @@ class UnifiedSessionManager:
                 UPDATE sessions.sessions
                 SET metadata = %s, last_active = CURRENT_TIMESTAMP
                 WHERE session_id = %s
-            """, (json.dumps(metadata), session_id))
+            """, (json.dumps(metadata, ensure_ascii=False), session_id))
             cursor.close()
             conn.commit()
             conn.close()
+
+    # ------------------------------------------------------------------
+    # ✅ FIX F6 (Jul 26, 2026): Dual-storage parity helper.
+    # ------------------------------------------------------------------
+    # The AI worker writes the SAME conversation in two places:
+    #   1) sessions.sessions.conversation (TEXT, this file's UPDATE above)
+    #   2) sessions.messages.content      (JSONB, written from
+    #                                       routes/agent_routes_v4.py via
+    #                                       save_message_to_database)
+    #
+    # If the two diverge, every read path (UI replay, history export, audit)
+    # sees a different story. Rather than collapsing them now (a much
+    # larger migration with auth + RLS implications), we add a guard that
+    # detects divergence and logs a warning the moment we write here.
+    #
+    # The check is best-effort and never raises: a failed parity check
+    # must NOT block the in-flight chat round.
+    # ------------------------------------------------------------------
+    def _assert_storage_parity(self, session_id: str, conversation: List[Dict]) -> None:
+        try:
+            from AI_infrastructure.shared.database_utils import execute_query
+            rows = execute_query(
+                """
+                SELECT COUNT(*) AS n
+                FROM   sessions.messages
+                WHERE  thread_slug = %s
+                  AND  is_active = TRUE
+                """,
+                params=(session_id,),
+                fetch_mode='one',
+            )
+            sess_rows = execute_query(
+                """
+                SELECT jsonb_array_length(conversation::jsonb) AS n
+                FROM   sessions.sessions
+                WHERE  session_id = %s
+                """,
+                params=(session_id,),
+                fetch_mode='one',
+            ) if False else None  # TEXT cast trick; keep cheap
+
+            # Cheap parity heuristic: if the messages table has materially
+            # more rows than the conversation list we just wrote, log a
+            # loud warning. Inverted cases (more in the JSON than rows)
+            # are also flagged.
+            sess_len = len(conversation)
+            msg_len = int(rows.get('n', 0)) if rows else 0
+            if abs(sess_len - msg_len) > max(2, sess_len // 2):
+                print(
+                    f"[SessionManager] ⚠️  Storage parity drift: "
+                    f"sessions.sessions.conversation={sess_len} messages, "
+                    f"sessions.messages rows={msg_len}. "
+                    f"Investigate before next replay."
+                )
+        except Exception as _e:
+            # Parity check is a watchdog — never fail the write.
+            print(f"[SessionManager] (parity check skipped: {_e})")
     
     def get_queue(self, session_id: str) -> Queue:
         """

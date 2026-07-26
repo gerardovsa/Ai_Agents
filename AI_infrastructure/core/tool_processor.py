@@ -234,7 +234,37 @@ class ToolCallProcessor:
                 'tool_use_id': result['tool_use_id'],
                 'content': content
             }
-            
+
+            # ✅ FIX F4 (Jul 26, 2026): Promote the tool_result block to the
+            # SDK's BetaToolResultBlockParam class. This makes the wire
+            # contract explicit, gives us `is_error` and `cache_control` for
+            # free, and ensures any future SDK change (e.g. a new required
+            # field) raises here instead of producing a 400 upstream.
+            #
+            # The constructed instance is converted back to a plain dict so
+            # the rest of the pipeline (which speaks in dicts) keeps working
+            # unchanged. We pass `is_error` based on the result['success']
+            # flag the executor already returns — Anthropic treats `is_error`
+            # blocks specially (model is told the call failed and asked to
+            # retry or try a different tool).
+            try:
+                from anthropic.types.beta.tools import BetaToolResultBlockParam
+                sdk_block = BetaToolResultBlockParam(
+                    tool_use_id=result['tool_use_id'],
+                    content=content,
+                    is_error=not result.get('success', True),
+                )
+                block = dict(sdk_block)
+            except Exception as _sdk_err:
+                # Defensive: if the SDK shape ever drifts and the constructor
+                # raises, keep the legacy dict rather than blowing up the
+                # whole response pipeline. Logged for visibility.
+                import logging as _log
+                _log.getLogger(__name__).warning(
+                    f"[ToolProcessor] BetaToolResultBlockParam ctor failed, "
+                    f"falling back to raw dict: {_sdk_err}"
+                )
+
             blocks.append(block)
             logger.debug(f"📦 Built result block for {result['tool_name']}")
         

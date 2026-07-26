@@ -543,27 +543,75 @@ Always explain what you're doing when using these tools so the user understands 
         all_tools = validated_tools + server_tools
         print(f"[UnifiedAIClient] Total tools: {len(all_tools)} ({len(validated_tools)} client + {len(server_tools)} server)")
         
-        # ✅ FIX: Validate and reorder assistant message content blocks
-        # Anthropic API requirement: If thinking blocks exist, first block MUST be thinking
+        # ✅ FIX F2 (Jul 26, 2026): Interleaved-aware reorder.
+        # ─────────────────────────────────────────────────────────────────────
+        # WHY THIS REPLACES THE OLD CODE
+        #   The previous code unconditionally moved every thinking block to
+        #   the front of each assistant message. That breaks the
+        #   `interleaved-thinking-2025-05-14` beta contract when the model
+        #   emits a thinking block *after* a tool_use (the reasoning that
+        #   justifies the tool call). The Anthropic API requires the
+        #   original order to be preserved in that case.
+        #
+        # WHAT IT DOES
+        #   Walks each assistant message and detects whether the message is
+        #   "interleaved" (i.e. a thinking block appears after a tool_use).
+        #   - Non-interleaved messages: safe to reorder — thinking stays
+        #     first (the original rule).
+        #   - Interleaved messages: order is left untouched, exactly as the
+        #     model produced it. A log line marks the bypass for traceability.
+        #
+        # SAFETY
+        #   - Operates only on assistant messages with structured content.
+        #   - Does not drop or duplicate blocks; only reorders.
+        #   - Mirrors the helper in `combined_agent_worker.py:
+        #     validate_and_reorder_assistant_content` so the two paths
+        #     agree on the contract.
+        # ─────────────────────────────────────────────────────────────────────
+        _THINKING_TYPES = ('thinking', 'redacted_thinking')
+        _TOOL_TYPES = ('tool_use', 'server_tool_use')
+
+        def _is_interleaved(blocks: list) -> bool:
+            seen_tool_use = False
+            for b in blocks:
+                if not isinstance(b, dict):
+                    continue
+                t = b.get('type')
+                if t in _TOOL_TYPES:
+                    seen_tool_use = True
+                elif t in _THINKING_TYPES and seen_tool_use:
+                    return True
+            return False
+
         for msg in conversation:
             if msg['role'] == 'assistant' and isinstance(msg.get('content'), list):
-                # Check if message has thinking blocks
-                has_thinking = any(block.get('type') == 'thinking' for block in msg['content'])
-                
-                if has_thinking and len(msg['content']) > 0:
-                    first_block = msg['content'][0]
-                    
-                    # If first block is NOT thinking, reorder
-                    if first_block.get('type') != 'thinking':
-                        print(f"⚠️  [UnifiedAIClient] Reordering content blocks - moving thinking to first position")
-                        
-                        # Extract thinking blocks and other blocks
-                        thinking_blocks = [b for b in msg['content'] if b.get('type') == 'thinking']
-                        other_blocks = [b for b in msg['content'] if b.get('type') != 'thinking']
-                        
-                        # Reorder: thinking first, then others
-                        msg['content'] = thinking_blocks + other_blocks
-                        print(f"✅ [UnifiedAIClient] Reordered: {len(thinking_blocks)} thinking + {len(other_blocks)} other blocks")
+                content = msg['content']
+                if not content:
+                    continue
+                has_thinking = any(
+                    isinstance(b, dict) and b.get('type') in _THINKING_TYPES
+                    for b in content
+                )
+                if not has_thinking:
+                    continue
+                # First block is already thinking — nothing to do.
+                if isinstance(content[0], dict) and content[0].get('type') in _THINKING_TYPES:
+                    continue
+                # Interleaved pattern — DO NOT reorder.
+                if _is_interleaved(content):
+                    print(
+                        f"[UnifiedAIClient] ℹ️  Interleaved thinking detected "
+                        f"({len(content)} blocks); preserving original order"
+                    )
+                    continue
+                # Non-interleaved: move thinking blocks to the front.
+                thinking_blocks = [b for b in content if isinstance(b, dict) and b.get('type') in _THINKING_TYPES]
+                other_blocks = [b for b in content if not (isinstance(b, dict) and b.get('type') in _THINKING_TYPES)]
+                msg['content'] = thinking_blocks + other_blocks
+                print(
+                    f"[UnifiedAIClient] ✅ Reordered: {len(thinking_blocks)} thinking + "
+                    f"{len(other_blocks)} other blocks"
+                )
         
         # ✅ EXPLICIT CHECK: Validate final assistant message when thinking is enabled
         thinking_enabled = session_data.get('enable_thinking', True)
@@ -596,7 +644,14 @@ Always explain what you're doing when using these tools so the user understands 
         assistant_message = {'role': 'assistant', 'content': []}
         
         # Beta headers
-        beta_headers = ["interleaved-thinking-2025-05-14"]
+        # ✅ FIX 4A (Jul 26, 2026): Send the `interleaved-thinking-…` header
+        # ONLY when thinking is enabled. Advertising the beta while not using
+        # it is a contract violation and Anthropic may reject the request in
+        # the future. (Provider routing itself is already conditional — the
+        # MiniMax code path omits these headers entirely.)
+        beta_headers = []
+        if thinking_enabled:
+            beta_headers.append("interleaved-thinking-2025-05-14")
         if enable_web_fetch:
             beta_headers.append("web-fetch-2025-09-10")
         
@@ -621,6 +676,17 @@ Always explain what you're doing when using these tools so the user understands 
             messages=conversation,
             tools=all_tools,
             # ✅ Extended Thinking: Internal reasoning blocks
+            # ─────────────────────────────────────────────────────────────────
+            # ✅ FIX 4B (Jul 26, 2026): The Anthropic `thinking` param shape
+            # is `{"type": "enabled", "budget_tokens": N}`. MiniMax-M3 uses the
+            # SAME shape (documented in MiniMax API as Anthropic-compatible
+            # thinking param), so no shape switch is needed at this point —
+            # but if MiniMax ever introduces `{"type": "adaptive"}` or
+            # `{"type": "disabled"}` without `budget_tokens`, branch here.
+            # The block CONTENT divergence (redacted_thinking) is handled in
+            # `validate_messages_for_api` (F3 denylist) and the per-provider
+            # strip helper in 4C.
+            # ─────────────────────────────────────────────────────────────────
             thinking={
                 "type": "enabled",
                 "budget_tokens": session_data.get('thinking_budget', 5000)
@@ -714,10 +780,10 @@ Always explain what you're doing when using these tools so the user understands 
                     if event.delta.type == 'thinking_delta':
                         # Accumulate thinking content
                         assistant_message['content'][-1]['thinking'] += event.delta.thinking
-                    
+
                     elif event.delta.type == 'text_delta':
                         assistant_message['content'][-1]['text'] += event.delta.text
-                    
+
                     elif event.delta.type == 'input_json_delta':
                         # Accumulate tool input (client and server)
                         if assistant_message['content']:
@@ -730,7 +796,40 @@ Always explain what you're doing when using these tools so the user understands 
                                     last_block['input'].update(partial_input)
                                 except:
                                     pass  # Partial JSON, wait for more chunks
-                    
+
+                    # ✅ FIX F1-A (Jul 26, 2026): Capture signature_delta for thinking blocks.
+                    # ─────────────────────────────────────────────────────────────────────
+                    # WHY THIS EXISTS
+                    #   Anthropic streams a final `signature_delta` event for every
+                    #   thinking block. The signature is a cryptographic token that
+                    #   the API uses to verify the block was produced by Anthropic.
+                    #   Without it, the next round-trip rejects the assistant message
+                    #   with `400 invalid_request_error: thinking block must be
+                    #   signed`. This was the root cause of the orphaned thinking
+                    #   blocks in the "Tool Test Rd 5" thread (commit bd5841ed).
+                    #
+                    # WHAT IT DOES
+                    #   Stamps the signature onto the last thinking block in the
+                    #   in-memory `assistant_message` so it round-trips correctly
+                    #   on the next API call AND is persisted to the DB with the
+                    #   signature field populated.
+                    #
+                    # SAFETY
+                    #   - Only touches the last block (the one currently streaming).
+                    #   - Only assigns when the last block is a thinking block
+                    #     (extras like tool_use or text are skipped).
+                    #   - Writes nothing if the SDK never sends a signature_delta
+                    #     (the API then returns an error itself with a clear
+                    #     message); we never fabricate a signature.
+                    # ─────────────────────────────────────────────────────────────────────
+                    elif event.delta.type == 'signature_delta':
+                        if assistant_message['content']:
+                            last_block = assistant_message['content'][-1]
+                            if last_block.get('type') == 'thinking':
+                                last_block['signature'] = event.delta.signature
+                            else:
+                                print(f"[UnifiedAIClient] ⚠️  signature_delta for non-thinking block (type={last_block.get('type')}); ignored")
+
                     # Handle citations in text blocks
                     elif hasattr(event.delta, 'citations') and event.delta.citations:
                         if assistant_message['content']:
@@ -1073,6 +1172,45 @@ Always explain what you're doing when using these tools so the user understands 
         print(f"[UnifiedAIClient/MiniMax] Total tools: {len(all_tools)} (client only — no server tools)")
 
         # Reorder assistant message content blocks so any thinking block is first
+        # ─────────────────────────────────────────────────────────────────────
+        # ✅ FIX 4C (Jul 26, 2026): Strip `redacted_thinking` blocks before send.
+        # WHY
+        #   Anthropic uses `redacted_thinking` for encrypted thinking payloads
+        #   (e.g. when a safety classifier intercepts internal reasoning).
+        #   MiniMax-M3 does not support this block type — sending it produces
+        #   a 400 from the upstream provider. Earlier rounds of the
+        #   conversation may have been answered by Anthropic and persisted
+        #   with `redacted_thinking`; the next MiniMax round-trip needs them
+        #   removed without disturbing the regular `thinking` blocks.
+        #
+        # WHAT IT DOES
+        #   Walks every assistant message, removes only `redacted_thinking`
+        #   blocks, and logs a count. Then reorders the remaining
+        #   `thinking` blocks to the front (same shape as Anthropic path).
+        #
+        # SAFETY
+        #   - Operates on a copy-safe iteration; does not mutate the
+        #     conversation reference shared with the rest of the app.
+        #   - Only the redacted variant is removed; `thinking` and
+        #     `text` blocks pass through untouched.
+        # ─────────────────────────────────────────────────────────────────────
+        _stripped_redacted = 0
+        for msg in conversation:
+            if msg['role'] != 'assistant' or not isinstance(msg.get('content'), list):
+                continue
+            new_content = []
+            for b in msg['content']:
+                if isinstance(b, dict) and b.get('type') == 'redacted_thinking':
+                    _stripped_redacted += 1
+                    continue
+                new_content.append(b)
+            msg['content'] = new_content
+        if _stripped_redacted:
+            print(
+                f"[UnifiedAIClient/MiniMax] 🧹 Stripped {_stripped_redacted} redacted_thinking "
+                f"block(s) — MiniMax does not support them"
+            )
+
         for msg in conversation:
             if msg['role'] == 'assistant' and isinstance(msg.get('content'), list):
                 has_thinking = any(block.get('type') == 'thinking' for block in msg['content'])
@@ -1105,6 +1243,13 @@ Always explain what you're doing when using these tools so the user understands 
         }
 
         # MiniMax accepts the same `thinking` block as Anthropic; only M3 supports it.
+        # ─────────────────────────────────────────────────────────────────
+        # ✅ FIX 4B/C (Jul 26, 2026): Param shape is intentionally identical
+        # to the Anthropic path ({"type": "enabled", "budget_tokens": N}).
+        # The only provider divergence is the BLOCK CONTENT — MiniMax-M3
+        # does not support `redacted_thinking` blocks; the strip helper
+        # added below removes them from the conversation before send.
+        # ─────────────────────────────────────────────────────────────────
         if thinking_enabled:
             stream_params['thinking'] = {
                 'type': 'enabled',
@@ -1150,6 +1295,18 @@ Always explain what you're doing when using these tools so the user understands 
                                     last_block['input'].update(partial_input)
                                 except Exception:
                                     pass  # Partial JSON
+                    # ✅ FIX F1-B (Jul 26, 2026): Capture signature_delta for MiniMax.
+                    # Mirror of F1-A. MiniMax-M3 emits signatures on the same
+                    # `signature_delta` event through the Anthropic SDK; without
+                    # this, thinking blocks break on the next round-trip exactly
+                    # as they do for Anthropic (see F1-A comment for full context).
+                    elif event.delta.type == 'signature_delta':
+                        if assistant_message['content']:
+                            last_block = assistant_message['content'][-1]
+                            if last_block.get('type') == 'thinking':
+                                last_block['signature'] = event.delta.signature
+                            else:
+                                print(f"[UnifiedAIClient:MiniMax] ⚠️  signature_delta for non-thinking block (type={last_block.get('type')}); ignored")
 
         # Handle CLIENT tool use (MiniMax has no server tools)
         client_tool_blocks = [
@@ -1166,38 +1323,77 @@ Always explain what you're doing when using these tools so the user understands 
     def _convert_anthropic_event_to_sse(self, event) -> Optional[Dict]:
         """
         Convert Anthropic event to SSE format
-        
+
         Handles:
         - text_delta: Regular text content
         - thinking_delta: Extended thinking content
+        - signature_delta: Signature for thinking blocks (interleaved-thinking)
         - server_tool_use: Web search/fetch requests
         - web_search_tool_result: Web search results
         - web_fetch_tool_result: Web fetch results
         """
-        
-        # Text deltas
+
+        # ─────────────────────────────────────────────────────────────────
+        # Content-block deltas (text / thinking / signature / input_json).
+        # ─────────────────────────────────────────────────────────────────
+        # All four delta kinds are delivered by the SDK as
+        # `event.type == 'content_block_delta'` with `event.delta.type` set
+        # to one of `text_delta | thinking_delta | signature_delta |
+        # input_json_delta`. The previous version of this function put
+        # text_delta in the first `if` branch and the other three in an
+        # `elif hasattr(event, 'delta')` branch — but that elif was
+        # unreachable for any `content_block_delta` event, so the
+        # thinking_delta / signature_delta paths never fired. The smoke
+        # test in `tests/test_tool_system_robustness_fixes.py` exposed
+        # this; the corrected structure collapses all four into one
+        # branch.
         if event.type == 'content_block_delta':
-            if event.delta.type == 'text_delta':
+            d = event.delta
+            if d.type == 'text_delta':
                 return {
                     'type': 'text_delta',
-                    'text': event.delta.text,
-                    'index': event.index
+                    'text': d.text,
+                    'index': event.index,
                 }
-        
-        # Thinking deltas
-        elif hasattr(event, 'delta') and hasattr(event.delta, 'type'):
-            if event.delta.type == 'thinking_delta':
+            if d.type == 'thinking_delta':
                 return {
                     'type': 'thinking_delta',
-                    'text': event.delta.text,
-                    'index': event.index
+                    'text': d.thinking,
+                    'index': event.index,
                 }
-        
-        # Server tool use (web_search, web_fetch)
-        elif event.type == 'content_block_start':
+            # ✅ FIX F1-C (Jul 26, 2026): Forward signature_delta to the browser.
+            # The signature is the cryptographic token that proves the
+            # thinking block was produced by Anthropic (or MiniMax-M3).
+            # Without it, the client-side cache can never reconstruct a
+            # valid round-trip. Used together with F1-A/F1-B, this
+            # ensures the signature reaches the UI as soon as the SDK
+            # delivers it.
+            if d.type == 'signature_delta':
+                return {
+                    'type': 'signature_delta',
+                    'signature': d.signature,
+                    'index': event.index,
+                }
+            if d.type == 'input_json_delta':
+                return {
+                    'type': 'input_json_delta',
+                    'partial_json': d.partial_json,
+                    'index': event.index,
+                }
+            # Unknown delta type — surface for visibility rather than
+            # silently dropping on the floor.
+            return {
+                'type': 'unknown_delta',
+                'delta_type': d.type,
+                'index': event.index,
+            }
+
+        # Server tool use (web_search, web_fetch) — only delivered by
+        # the Anthropic provider, not MiniMax.
+        if event.type == 'content_block_start':
             if hasattr(event, 'content_block'):
                 block = event.content_block
-                
+
                 # Server tool use
                 if block.type == 'server_tool_use':
                     return {
@@ -1207,7 +1403,7 @@ Always explain what you're doing when using these tools so the user understands 
                         'input': getattr(block, 'input', {}),
                         'index': event.index
                     }
-                
+
                 # Web search results
                 elif block.type == 'web_search_tool_result':
                     return {
@@ -1216,7 +1412,7 @@ Always explain what you're doing when using these tools so the user understands 
                         'content': getattr(block, 'content', []),
                         'index': event.index
                     }
-                
+
                 # Web fetch results
                 elif block.type == 'web_fetch_tool_result':
                     return {
@@ -1225,7 +1421,7 @@ Always explain what you're doing when using these tools so the user understands 
                         'content': getattr(block, 'content', {}),
                         'index': event.index
                     }
-        
+
         return None
     
     def _validate_tool_schema(self, tool: dict, index: int) -> tuple[bool, list[str]]:

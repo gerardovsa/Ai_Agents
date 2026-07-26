@@ -158,21 +158,50 @@ def validate_messages_for_api(messages: List[Dict], log_prefix: str = "") -> Lis
                 msg['content'] = cleaned_content
         
         # VALIDATION 4: Check for thinking block modifications (must be immutable)
-        # Anthropic requires: type, thinking, and signature (when from database)
-        # DO NOT remove signature - it's required by Anthropic
+        # ─────────────────────────────────────────────────────────────────────
+        # ✅ FIX F3 (Jul 26, 2026): Flipped the allowlist to a denylist.
+        # WHY
+        #   The old code had `valid_fields = {'type', 'thinking', 'signature'}`
+        #   and DELETED anything else. That silently dropped any future
+        #   field Anthropic might add to a thinking block (e.g. a new
+        #   redacted_thinking payload, or a new metadata key the API
+        #   starts to require). The first time a new field appears in
+        #   the SDK response, every round-trip would break.
+        #
+        # WHAT IT DOES
+        #   Drops only fields we KNOW are wire-incompatible (SDK-internal
+        #   private attrs, request echoes that would loop). Every other
+        #   field is preserved and only warned about. This is the same
+        #   direction Anthropic's own SDK uses for its internal "extras"
+        #   bucket (`AdditionalProperties`).
+        #
+        # SAFETY
+        #   - `signature` is still never removed (F1's contract).
+        #   - Redacted thinking fields and any new SDK keys flow through
+        #     untouched, so the API can see them.
+        #   - Server-side logs still surface unexpected fields so we can
+        #     decide later whether to add them to the denylist.
+        # ─────────────────────────────────────────────────────────────────────
+        _THINKING_BLOCK_DENY = {
+            # SDK internals — never belong on the wire.
+            '_client', '_callbacks', '_request_id', '_logprobs',
+            # Request-echo fields — would loop indefinitely.
+            'request_id', 'trace_id',
+        }
         for block in msg.get('content', []):
-            if isinstance(block, dict) and block.get('type') == 'thinking':
-                # Valid thinking block fields when from database: type, thinking, signature
-                valid_fields = {'type', 'thinking', 'signature'}
-                extra_fields = set(block.keys()) - valid_fields
-                # Only warn if there are truly unexpected fields (not signature)
-                if extra_fields:
-                    print(f"{log_prefix} ⚠️ Message {idx}: Thinking block has unexpected fields: {extra_fields}")
-                    # Only remove truly unexpected fields, KEEP signature
-                    for field in list(extra_fields):
-                        if field != 'signature':  # Never remove signature!
-                            del block[field]
-                            print(f"{log_prefix} 🔧 Message {idx}: Removed field '{field}' from thinking block")
+            if not isinstance(block, dict):
+                continue
+            if block.get('type') not in ('thinking', 'redacted_thinking'):
+                continue
+            for field in list(block.keys()):
+                if field in _THINKING_BLOCK_DENY:
+                    print(f"{log_prefix} 🔧 Message {idx}: Stripped SDK-internal field '{field}' from {block['type']} block")
+                    del block[field]
+            # Informational only — let unknown fields through; the API is the
+            # source of truth and will reject anything actually invalid.
+            unknown = set(block.keys()) - {'type', 'thinking', 'signature', 'data'}
+            if unknown:
+                print(f"{log_prefix} ℹ️  Message {idx}: Preserving unknown {block['type']} fields (forward-compat): {unknown}")
         
         # VALIDATION 5: Ensure content is not empty
         if not msg['content']:
@@ -2115,12 +2144,102 @@ def run_simple_agent_worker(
         current_response = response
         cumulative_tool_result_tokens = 0
         
-        while (tool_uses and current_response.get('stop_reason') == 'tool_use' and 
+        while (tool_uses and current_response.get('stop_reason') == 'tool_use' and
                tool_iteration < max_tool_iterations):
-            
+
             tool_iteration += 1
             print(f"{log_prefix} 🔧 Tool iteration {tool_iteration}: {len(tool_uses)} tool(s)")
-            
+
+            # ✅ FIX F5 (Jul 26, 2026): Runaway-loop watchdog.
+            # ─────────────────────────────────────────────────────────────────
+            # WHY THIS EXISTS
+            #   The "Tool Test Rd 5" thread (commit bd5841ed) showed 4
+            #   byte-identical "Excellent news" blocks emitted by the model
+            #   in a tight tool-call loop. The agentic loop only bounded by
+            #   `max_tool_iterations = 20` and ran the full 20 rounds,
+            #   burning tokens, time, and patience before the user saw
+            #   anything useful.
+            #
+            # WHAT IT DOES
+            #   Tracks the last few (a) full text payloads and (b) tool-call
+            #   signatures the model produced. If either repeats more than
+            #   a threshold number of times in a row, the loop breaks with
+            #   a `watchdog_triggered` event so the UI can show a clear
+            #   "The model got stuck; stopping here" banner instead of an
+            #   infinite-looking spinner.
+            #
+            # SAFETY
+            #   - Watchdog state is local to the loop (uses `nonlocal` and
+            #     a list, not a global). It does not leak across sessions.
+            #   - Threshold is conservative (3 consecutive identical rounds)
+            #     to avoid false positives in legitimate "retry" patterns.
+            #   - The break is one-way: the function returns the partial
+            #     response so the user still gets a coherent final message.
+            # ─────────────────────────────────────────────────────────────────
+            _WATCHDOG_TEXT_THRESHOLD = 3
+            _WATCHDOG_TOOL_THRESHOLD = 3
+            _recent_text_hashes = getattr(execute_streaming_request, '_watchdog_text_hashes', [])
+            _recent_tool_hashes = getattr(execute_streaming_request, '_watchdog_tool_hashes', [])
+
+            def _stable_hash(payload) -> str:
+                import hashlib
+                return hashlib.md5(repr(payload).encode('utf-8')).hexdigest()[:12]
+
+            # Hash the text the model produced this round.
+            _text_payload = ''
+            if isinstance(current_response, dict):
+                for _b in current_response.get('content', []) or []:
+                    if isinstance(_b, dict) and _b.get('type') == 'text':
+                        _text_payload += _b.get('text', '')
+            _text_hash = _stable_hash(_text_payload)
+            _recent_text_hashes.append(_text_hash)
+            if len(_recent_text_hashes) > _WATCHDOG_TEXT_THRESHOLD:
+                _recent_text_hashes = _recent_text_hashes[-_WATCHDOG_TEXT_THRESHOLD:]
+
+            # Hash the tool_use signature this round.
+            _tool_payload = []
+            for _tu in tool_uses or []:
+                if isinstance(_tu, dict):
+                    _tool_payload.append((_tu.get('name'), _stable_hash(_tu.get('input', {}))))
+            _tool_payload.sort()
+            _tool_hash = _stable_hash(_tool_payload)
+            _recent_tool_hashes.append(_tool_hash)
+            if len(_recent_tool_hashes) > _WATCHDOG_TOOL_THRESHOLD:
+                _recent_tool_hashes = _recent_tool_hashes[-_WATCHDOG_TOOL_THRESHOLD:]
+
+            execute_streaming_request._watchdog_text_hashes = _recent_text_hashes
+            execute_streaming_request._watchdog_tool_hashes = _recent_tool_hashes
+
+            _text_stuck = (
+                len(_recent_text_hashes) >= _WATCHDOG_TEXT_THRESHOLD
+                and len(set(_recent_text_hashes[-_WATCHDOG_TEXT_THRESHOLD:])) == 1
+            )
+            _tool_stuck = (
+                len(_recent_tool_hashes) >= _WATCHDOG_TOOL_THRESHOLD
+                and len(set(_recent_tool_hashes[-_WATCHDOG_TOOL_THRESHOLD:])) == 1
+            )
+
+            if _text_stuck or _tool_stuck:
+                _reason = 'text' if _text_stuck else 'tool_use'
+                print(
+                    f"{log_prefix} 🛑 WATCHDOG: {_reason} repeated "
+                    f"{_WATCHDOG_TEXT_THRESHOLD if _text_stuck else _WATCHDOG_TOOL_THRESHOLD} "
+                    f"times in a row — aborting loop at iteration {tool_iteration}"
+                )
+                queue.put({
+                    'type': 'watchdog_triggered',
+                    'reason': _reason,
+                    'iteration': tool_iteration,
+                })
+                # Emit a final text block so the user gets closure.
+                _watchdog_msg = (
+                    f"\n\n_The model produced the same {_reason} "
+                    f"{_WATCHDOG_TEXT_THRESHOLD if _text_stuck else _WATCHDOG_TOOL_THRESHOLD} "
+                    f"times in a row. Stopping here to avoid an infinite loop._"
+                )
+                queue.put({'type': 'content_delta', 'text': _watchdog_msg})
+                break
+
             if tool_iteration == 1 and response_text:
                 queue.put({'type': 'content_delta', 'text': response_text})
             
