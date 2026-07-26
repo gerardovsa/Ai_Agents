@@ -75,13 +75,15 @@ if not _whisper_lib_available:
     logger.warning('[TRANSCRIPTION] Whisper/torch not found in environment')
 
 # ---------------------------------------------------------------------------
-# engines_status in-memory cache (5s TTL, per user)
-# The UI polls /engines-status on every panel tick; without a cache the
-# endpoint runs 4 sequential resolve_api_key lookups (which each hit the
-# Fernet vault + DB) per request and queues behind other gevent work.
+# engines_status in-memory cache (30s TTL, per user)
+# The UI polls /engines-status on every panel tick. Even with the batched
+# resolve_api_keys_batch() helper, each poll still costs ~2-3s at the
+# Supabase pooler (port 6543, 15-connection limit) when other gevent
+# work is in flight. A 30s TTL drops poll-load 6x vs the original 5s while
+# staying well below the typical 60-90s user perception of "stale" status.
 # ---------------------------------------------------------------------------
 _engines_status_cache: dict = {}
-_ENGINES_STATUS_CACHE_TTL: float = 5.0
+_ENGINES_STATUS_CACHE_TTL: float = 30.0
 
 
 def get_whisper_model():

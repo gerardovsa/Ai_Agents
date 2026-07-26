@@ -389,6 +389,25 @@ def resolve_api_keys_batch(user_id, platforms, prefer_user=True):
 
     Returns:
         Dict mapping *canonical* platform name -> API key string or None.
+
+    Parallelism (2026-07-26, fix #2b for /api/transcription/engines-status):
+        On Render (gevent single-worker + Supabase pooler, 15-conn limit) the
+        four SQL round-trips - Tier 1 DB, _get_parent_user_id, users.org_id
+        lookup, Tier 1.5 DB, Tier 2 DB - serialise behind the same event loop
+        and each one waits ~2-3s at pool.getconn(). That made the cold path
+        ~9.57s in practice despite the prior batched-SQL optimisation.
+
+        This variant runs the independent ID lookups (parent_user_id and
+        users.organisation_id) in parallel greenlets, then runs the two
+        remaining tier queries (parent creds and org creds) in parallel
+        after those IDs are resolved. Falls back to sequential execution
+        when gevent is not importable (e.g. local dev server).
+
+    Graceful degradation:
+        - Each greenlet pair has a 5.0s joinall timeout; slow queries fall
+          through as empty results instead of blocking the route.
+        - Each tier's own try/except still swallows DB errors and logs at
+          debug; the caller never sees a credential-resolver exception.
     """
     if not platforms:
         return {}
@@ -405,8 +424,38 @@ def resolve_api_keys_batch(user_id, platforms, prefer_user=True):
     result = {p: None for p in canonicals}
     missing = list(canonicals)
 
+    # Detect gevent once per call. Cheaper than hoisting to module scope
+    # and avoids triggering the import at module load (gevent is only
+    # installed in the gunicorn-geventworker runtime, not local dev).
+    try:
+        import gevent
+        _HAS_GEVENT = True
+    except Exception:
+        gevent = None
+        _HAS_GEVENT = False
+
+    def _spawn_pair(coro_a, coro_b, timeout=5.0):
+        """Run two zero-arg callables concurrently via gevent if available;
+        otherwise sequentially. Returns (val_a, val_b). Exceptions inside
+        the callables are swallowed inside each callable; if a greenlet
+        dies unexpectedly we return None for that branch."""
+        if _HAS_GEVENT:
+            ga = gevent.spawn(coro_a)
+            gb = gevent.spawn(coro_b)
+            gevent.joinall([ga, gb], timeout=timeout)
+            va = ga.value if not ga.dead else None
+            vb = gb.value if not gb.dead else None
+            if ga.dead and ga.exception:
+                logger.debug(f"[ORG_CREDS_BATCH] greenlet A died: {ga.exception}")
+            if gb.dead and gb.exception:
+                logger.debug(f"[ORG_CREDS_BATCH] greenlet B died: {gb.exception}")
+            return va, vb
+        return coro_a(), coro_b()
+
     # ----- Tier 1: user_platform_credentials (cache -> DB) -----
     if prefer_user and missing:
+        # Per-platform Redis cache lookup stays sequential (microsecond range,
+        # no I/O wait - geventing it would add overhead, not save any).
         try:
             from AI_infrastructure.utils.cache_utils import get_cached_platform_credentials
         except Exception:
@@ -426,6 +475,7 @@ def resolve_api_keys_batch(user_id, platforms, prefer_user=True):
                     still_missing.append(p)
             missing = still_missing
 
+        # Tier 1 DB: single batched query (already O(1) round-trips vs N).
         if missing:
             try:
                 rows = execute_query(
@@ -455,84 +505,122 @@ def resolve_api_keys_batch(user_id, platforms, prefer_user=True):
             except Exception as e:
                 logger.debug(f"[ORG_CREDS_BATCH] Tier 1 DB error: {e}")
 
-    # ----- Tier 1.5: sub-user -> parent_user_credentials -----
-    if missing:
-        parent_id = _get_parent_user_id(user_id)
-        if parent_id:
-            try:
-                rows = execute_query(
-                    """
-                    SELECT platform, credential_type, credential_key,
-                           credential_value, credentials, metadata
-                    FROM ai_infrastructure.user_platform_credentials
-                    WHERE user_id = %s
-                      AND platform = ANY(%s)
-                      AND is_active = TRUE
-                    ORDER BY platform, updated_at DESC
-                    """,
-                    (parent_id, missing),
-                    fetch_mode='all',
-                ) or []
-                seen_p = set()
-                for row in rows:
-                    p = row.get('platform') if isinstance(row, dict) else None
-                    if not p or p in seen_p:
-                        continue
-                    seen_p.add(p)
-                    norm = _normalise_row(dict(row))
-                    key = _extract_api_key_from_norm(norm)
-                    if key:
-                        result[p] = key
-                missing = [p for p in missing if result.get(p) is None]
-            except Exception as e:
-                logger.debug(f"[ORG_CREDS_BATCH] Tier 1.5 DB error: {e}")
+    if not missing:
+        return result
 
-    # ----- Tier 2: organisation_platform_credentials -----
-    if missing:
+    # ----- Phase 1 (parallel): parent_user_id + users.organisation_id -----
+    # Both are PK lookups on users; independent. Sequential cost ~2 * pool-
+    # wait (~5-6s on Render). Parallel cost ~1 * pool-wait (~2-3s).
+    def _lookup_parent():
+        return _get_parent_user_id(user_id)
+
+    def _lookup_org():
         try:
-            org_id = execute_query(
+            return execute_query(
                 "SELECT organisation_id FROM ai_infrastructure.users WHERE id = %s",
                 (user_id,),
                 fetch_mode='value',
             )
-            if not org_id:
-                parent_id = _get_parent_user_id(user_id)
-                if parent_id:
-                    org_id = execute_query(
-                        "SELECT organisation_id FROM ai_infrastructure.users WHERE id = %s",
-                        (parent_id,),
-                        fetch_mode='value',
-                    )
+        except Exception as e:
+            logger.debug(f"[ORG_CREDS_BATCH] org_id lookup failed: {e}")
+            return None
 
-            if org_id:
-                rows = execute_query(
-                    """
-                    SELECT platform, credential_value, credentials,
-                           display_name, environment, last_used_at
-                    FROM ai_infrastructure.organisation_platform_credentials
-                    WHERE organisation_id = %s
-                      AND platform = ANY(%s)
-                      AND is_active = TRUE
-                    ORDER BY platform,
-                             environment = 'production' DESC,
-                             updated_at DESC
-                    """,
-                    (org_id, missing),
-                    fetch_mode='all',
-                ) or []
-                seen_p = set()
-                for row in rows:
-                    p = row.get('platform') if isinstance(row, dict) else None
-                    if not p or p in seen_p:
-                        continue
-                    seen_p.add(p)
-                    norm = _normalise_row(dict(row))
-                    key = _extract_api_key_from_norm(norm)
-                    if key:
-                        result[p] = key
-                missing = [p for p in missing if result.get(p) is None]
+    parent_id, org_id = _spawn_pair(_lookup_parent, _lookup_org)
+
+    # ----- Phase 2 (parallel): Tier 1.5 (parent creds) + Tier 2 (org creds) -----
+    # Tier 2 needs org_id; if user has none, fall back to parent_user's org
+    # (matches original behaviour). The fallback itself is one extra query
+    # but only when needed; we still parallelise the two tier queries.
+
+    def _tier_15_query():
+        if not parent_id:
+            return {}
+        try:
+            rows = execute_query(
+                """
+                SELECT platform, credential_type, credential_key,
+                       credential_value, credentials, metadata
+                FROM ai_infrastructure.user_platform_credentials
+                WHERE user_id = %s
+                  AND platform = ANY(%s)
+                  AND is_active = TRUE
+                ORDER BY platform, updated_at DESC
+                """,
+                (parent_id, missing),
+                fetch_mode='all',
+            ) or []
+            seen_p = set()
+            out = {}
+            for row in rows:
+                p = row.get('platform') if isinstance(row, dict) else None
+                if not p or p in seen_p:
+                    continue
+                seen_p.add(p)
+                norm = _normalise_row(dict(row))
+                k = _extract_api_key_from_norm(norm)
+                if k:
+                    out[p] = k
+            return out
+        except Exception as e:
+            logger.debug(f"[ORG_CREDS_BATCH] Tier 1.5 DB error: {e}")
+            return {}
+
+    def _tier_2_query():
+        org = org_id
+        if not org and parent_id:
+            try:
+                org = execute_query(
+                    "SELECT organisation_id FROM ai_infrastructure.users WHERE id = %s",
+                    (parent_id,),
+                    fetch_mode='value',
+                )
+            except Exception as e:
+                logger.debug(f"[ORG_CREDS_BATCH] Tier 2 parent org_id fallback failed: {e}")
+                org = None
+        if not org:
+            return {}
+        try:
+            rows = execute_query(
+                """
+                SELECT platform, credential_value, credentials,
+                       display_name, environment, last_used_at
+                FROM ai_infrastructure.organisation_platform_credentials
+                WHERE organisation_id = %s
+                  AND platform = ANY(%s)
+                  AND is_active = TRUE
+                ORDER BY platform,
+                         environment = 'production' DESC,
+                         updated_at DESC
+                """,
+                (org, missing),
+                fetch_mode='all',
+            ) or []
+            seen_p = set()
+            out = {}
+            for row in rows:
+                p = row.get('platform') if isinstance(row, dict) else None
+                if not p or p in seen_p:
+                    continue
+                seen_p.add(p)
+                norm = _normalise_row(dict(row))
+                k = _extract_api_key_from_norm(norm)
+                if k:
+                    out[p] = k
+            return out
         except Exception as e:
             logger.debug(f"[ORG_CREDS_BATCH] Tier 2 DB error: {e}")
+            return {}
+
+    tier15_res, tier2_res = _spawn_pair(_tier_15_query, _tier_2_query)
+
+    # Merge in tier-priority order: Tier 1.5 wins over Tier 2 if both hit.
+    for p, k in (tier15_res or {}).items():
+        if result.get(p) is None:
+            result[p] = k
+    for p, k in (tier2_res or {}).items():
+        if result.get(p) is None:
+            result[p] = k
+    missing = [p for p in missing if result.get(p) is None]
 
     # ----- Tier 3: env var fallback (in-process, no DB) -----
     for p in missing:
