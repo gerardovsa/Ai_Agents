@@ -13,10 +13,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 try:
-    from google.oauth2.credentials import Credentials
-    from googleapiclient.discovery import build
     from googleapiclient.http import MediaFileUpload, MediaIoBaseDownload
-    from googleapiclient.errors import HttpError
     from google_workspace.google_auth_helper import build_drive_service
     import io
     HAS_DRIVE_API = True
@@ -25,38 +22,30 @@ except ImportError:
     print("⚠️ Google Drive API dependencies not available")
 
 
-def _get_user_credentials_if_available(user_id, injected_credentials_flag):
-    """Helper to get user OAuth credentials from database"""
-    if user_id and injected_credentials_flag:
-        try:
-            from AI_infrastructure.auth.user_auth import UserAuthManager
-            auth_manager = UserAuthManager()
-            cred_dict = auth_manager.get_user_google_oauth_credentials(user_id)
-            if cred_dict:
-                print(f"🔑 Using database OAuth credentials for user {user_id}")
-                return cred_dict
-            else:
-                print(f"⚠️ User {user_id} has no Google OAuth credentials in database")
-        except Exception as e:
-            print(f"⚠️ Could not load user credentials: {e}")
-    return None
-
-
 def _get_drive_service(user_id=None, injected_credentials=None):
-    """Get authenticated Google Drive API service
-    
-    Args:
-        user_id: User ID for OAuth credentials from database
-        injected_credentials: OAuth credentials dict (from database)
-    
-    Returns:
-        Authenticated Drive service
+    """Get authenticated Google Drive API service.
+
+    Routing policy (Phase 3 — single shared contract):
+      - When the caller supplies user context (``user_id`` + ``injected_credentials``),
+        build the Drive service through the shared injector
+        (``get_user_drive_service``) so proactive refresh, exact-row persistence,
+        and storage-only enforcement are honoured. A missing/invalid user OAuth
+        row raises — NEVER silently falls back to a service account.
+      - When no user context is present at all, fall through to the legacy
+        service-account helper. This is the only path that may use a service
+        account, and only because the caller explicitly opted out of user OAuth.
     """
     if not HAS_DRIVE_API:
         raise Exception("Google Drive API not available - install google-api-python-client")
-    
-    # Pass _user_id so build_drive_service uses the new oauth_tokens path (Priority 1)
-    return build_drive_service(_user_id=user_id, user_id=user_id, injected_credentials=injected_credentials)
+
+    if user_id and injected_credentials:
+        # User context present — go through the shared injector.
+        from AI_infrastructure.auth.credential_injector import get_user_drive_service
+        return get_user_drive_service(user_id=user_id)
+
+    # No user context — explicit service-account path. No fallback from a user OAuth
+    # failure into this branch.
+    return build_drive_service()
 
 
 # ==================== FILE OPERATIONS ====================
@@ -73,13 +62,8 @@ def google_drive_list_files(max_results=10, query=None, order_by=None, page_toke
         _injected_credentials: OAuth credentials dict
     """
     try:
-        # Get user credentials if available
-        if _user_id and _injected_credentials:
-            from AI_infrastructure.auth.credential_injector import create_google_service_with_user_credentials
-            service = create_google_service_with_user_credentials(_user_id, 'drive', 'v3')
-            print(f" Drive service created with user {_user_id}'s credentials")
-        else:
-            service = _get_drive_service()
+        # Phase 3: route through the shared injector when user context is present
+        service = _get_drive_service(user_id=_user_id, injected_credentials=_injected_credentials)
         
         params = {
             'pageSize': max_results,
@@ -117,13 +101,8 @@ def google_drive_get_file(file_id, fields='*', _user_id=None, _injected_credenti
         _injected_credentials: OAuth credentials dict
     """
     try:
-        # Get user credentials if available
-        if _user_id and _injected_credentials:
-            from AI_infrastructure.auth.credential_injector import create_google_service_with_user_credentials
-            service = create_google_service_with_user_credentials(_user_id, 'drive', 'v3')
-            print(f" Drive service created with user {_user_id}'s credentials")
-        else:
-            service = _get_drive_service()
+        # Phase 3: route through the shared injector when user context is present
+        service = _get_drive_service(user_id=_user_id, injected_credentials=_injected_credentials)
         
         file = service.files().get(fileId=file_id, fields=fields).execute()
         
@@ -146,8 +125,8 @@ def google_drive_upload_file(file_path, name=None, mime_type=None, parent_folder
         _injected_credentials: Flag for credential injection
     """
     try:
-        cred_dict = _get_user_credentials_if_available(_user_id, _injected_credentials)
-        service = _get_drive_service(user_id=_user_id, injected_credentials=cred_dict)
+        # Phase 3: route through the shared injector when user context is present
+        service = _get_drive_service(user_id=_user_id, injected_credentials=_injected_credentials)
         
         file_metadata = {'name': name or os.path.basename(file_path)}
         
@@ -181,13 +160,8 @@ def google_drive_update_file(file_id, file_path=None, name=None, description=Non
         _injected_credentials: Flag for credential injection
     """
     try:
-        # Get user credentials if available
-        if _user_id and _injected_credentials:
-            from AI_infrastructure.auth.credential_injector import create_google_service_with_user_credentials
-            service = create_google_service_with_user_credentials(_user_id, 'drive', 'v3')
-            print(f" Drive service created with user {_user_id}'s credentials")
-        else:
-            service = _get_drive_service()
+        # Phase 3: route through the shared injector when user context is present
+        service = _get_drive_service(user_id=_user_id, injected_credentials=_injected_credentials)
         
         file_metadata = {}
         if name:
@@ -222,8 +196,8 @@ def google_drive_delete_file(file_id, _user_id=None, _injected_credentials=None,
         _injected_credentials: Flag for credential injection
     """
     try:
-        cred_dict = _get_user_credentials_if_available(_user_id, _injected_credentials)
-        service = _get_drive_service(user_id=_user_id, injected_credentials=cred_dict)
+        # Phase 3: route through the shared injector when user context is present
+        service = _get_drive_service(user_id=_user_id, injected_credentials=_injected_credentials)
         service.files().delete(fileId=file_id).execute()
         
         return {'deleted': True, 'file_id': file_id}
@@ -245,8 +219,8 @@ def google_drive_create_folder(name, parent_folder_id=None, _user_id=None, _inje
         _injected_credentials: Flag for credential injection
     """
     try:
-        cred_dict = _get_user_credentials_if_available(_user_id, _injected_credentials)
-        service = _get_drive_service(user_id=_user_id, injected_credentials=cred_dict)
+        # Phase 3: route through the shared injector when user context is present
+        service = _get_drive_service(user_id=_user_id, injected_credentials=_injected_credentials)
         
         file_metadata = {
             'name': name,
@@ -279,13 +253,8 @@ def google_drive_move_file(file_id, new_parent_folder_id, previous_parent_folder
         _injected_credentials: Flag for credential injection
     """
     try:
-        # Get user credentials if available
-        if _user_id and _injected_credentials:
-            from AI_infrastructure.auth.credential_injector import create_google_service_with_user_credentials
-            service = create_google_service_with_user_credentials(_user_id, 'drive', 'v3')
-            print(f" Drive service created with user {_user_id}'s credentials")
-        else:
-            service = _get_drive_service()
+        # Phase 3: route through the shared injector when user context is present
+        service = _get_drive_service(user_id=_user_id, injected_credentials=_injected_credentials)
         
         # Get current parents if not provided
         if not previous_parent_folder_id:
@@ -317,13 +286,8 @@ def google_drive_copy_file(file_id, name=None, parent_folder_id=None, _user_id=N
         _injected_credentials: Flag for credential injection
     """
     try:
-        # Get user credentials if available
-        if _user_id and _injected_credentials:
-            from AI_infrastructure.auth.credential_injector import create_google_service_with_user_credentials
-            service = create_google_service_with_user_credentials(_user_id, 'drive', 'v3')
-            print(f" Drive service created with user {_user_id}'s credentials")
-        else:
-            service = _get_drive_service()
+        # Phase 3: route through the shared injector when user context is present
+        service = _get_drive_service(user_id=_user_id, injected_credentials=_injected_credentials)
         
         file_metadata = {}
         if name:
@@ -358,8 +322,8 @@ def google_drive_share_file(file_id, email, role='reader', type='user', _user_id
         _injected_credentials: Flag for credential injection
     """
     try:
-        cred_dict = _get_user_credentials_if_available(_user_id, _injected_credentials)
-        service = _get_drive_service(user_id=_user_id, injected_credentials=cred_dict)
+        # Phase 3: route through the shared injector when user context is present
+        service = _get_drive_service(user_id=_user_id, injected_credentials=_injected_credentials)
         
         permission = {
             'type': type,
@@ -389,13 +353,8 @@ def google_drive_list_permissions(file_id, _user_id=None, _injected_credentials=
         _injected_credentials: Flag for credential injection
     """
     try:
-        # Get user credentials if available
-        if _user_id and _injected_credentials:
-            from AI_infrastructure.auth.credential_injector import create_google_service_with_user_credentials
-            service = create_google_service_with_user_credentials(_user_id, 'drive', 'v3')
-            print(f" Drive service created with user {_user_id}'s credentials")
-        else:
-            service = _get_drive_service()
+        # Phase 3: route through the shared injector when user context is present
+        service = _get_drive_service(user_id=_user_id, injected_credentials=_injected_credentials)
         
         result = service.permissions().list(
             fileId=file_id,
@@ -424,13 +383,8 @@ def google_drive_remove_permission(file_id, permission_id, _user_id=None, _injec
         _injected_credentials: Flag for credential injection
     """
     try:
-        # Get user credentials if available
-        if _user_id and _injected_credentials:
-            from AI_infrastructure.auth.credential_injector import create_google_service_with_user_credentials
-            service = create_google_service_with_user_credentials(_user_id, 'drive', 'v3')
-            print(f" Drive service created with user {_user_id}'s credentials")
-        else:
-            service = _get_drive_service()
+        # Phase 3: route through the shared injector when user context is present
+        service = _get_drive_service(user_id=_user_id, injected_credentials=_injected_credentials)
         
         service.permissions().delete(fileId=file_id, permissionId=permission_id).execute()
         
@@ -502,13 +456,8 @@ def google_drive_export_file(file_id, mime_type, _user_id=None, _injected_creden
         _injected_credentials: Flag for credential injection
     """
     try:
-        # Get user credentials if available
-        if _user_id and _injected_credentials:
-            from AI_infrastructure.auth.credential_injector import create_google_service_with_user_credentials
-            service = create_google_service_with_user_credentials(_user_id, 'drive', 'v3')
-            print(f" Drive service created with user {_user_id}'s credentials")
-        else:
-            service = _get_drive_service()
+        # Phase 3: route through the shared injector when user context is present
+        service = _get_drive_service(user_id=_user_id, injected_credentials=_injected_credentials)
         
         request = service.files().export_media(fileId=file_id, mimeType=mime_type)
         
@@ -538,13 +487,8 @@ def google_drive_get_storage_quota(_user_id=None, _injected_credentials=None, **
         _injected_credentials: Flag for credential injection
     """
     try:
-        # Get user credentials if available
-        if _user_id and _injected_credentials:
-            from AI_infrastructure.auth.credential_injector import create_google_service_with_user_credentials
-            service = create_google_service_with_user_credentials(_user_id, 'drive', 'v3')
-            print(f" Drive service created with user {_user_id}'s credentials")
-        else:
-            service = _get_drive_service()
+        # Phase 3: route through the shared injector when user context is present
+        service = _get_drive_service(user_id=_user_id, injected_credentials=_injected_credentials)
         
         about = service.about().get(fields='storageQuota').execute()
         quota = about.get('storageQuota', {})
@@ -570,13 +514,8 @@ def google_drive_restore_file(file_id, _user_id=None, _injected_credentials=None
         _injected_credentials: Flag for credential injection
     """
     try:
-        # Get user credentials if available
-        if _user_id and _injected_credentials:
-            from AI_infrastructure.auth.credential_injector import create_google_service_with_user_credentials
-            service = create_google_service_with_user_credentials(_user_id, 'drive', 'v3')
-            print(f" Drive service created with user {_user_id}'s credentials")
-        else:
-            service = _get_drive_service()
+        # Phase 3: route through the shared injector when user context is present
+        service = _get_drive_service(user_id=_user_id, injected_credentials=_injected_credentials)
         
         file = service.files().update(
             fileId=file_id,
