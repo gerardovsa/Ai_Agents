@@ -17,9 +17,6 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 try:
-    from google.oauth2.credentials import Credentials
-    from googleapiclient.discovery import build
-    from googleapiclient.errors import HttpError
     from googleapiclient.http import MediaFileUpload, MediaIoBaseUpload
     from google_workspace.google_auth_helper import build_docs_service, build_drive_service, get_service_account_credentials
     HAS_DOCS_API = True
@@ -38,46 +35,30 @@ except ImportError as e:
     print(f"⚠️ python-docx not available for DOCX conversion: {e}")
 
 
-def _get_user_credentials_if_available(user_id, injected_credentials_flag):
-    """Helper to get user OAuth credentials from database
-    
-    Args:
-        user_id: User ID (from _user_id parameter)
-        injected_credentials_flag: Flag indicating credentials should be injected
-    
-    Returns:
-        dict: Credential dictionary or None
-    """
-    if user_id and injected_credentials_flag:
-        try:
-            from AI_infrastructure.auth.user_auth import UserAuthManager
-            auth_manager = UserAuthManager()
-            cred_dict = auth_manager.get_user_google_oauth_credentials(user_id)
-            if cred_dict:
-                print(f"🔑 Using database OAuth credentials for user {user_id}")
-                return cred_dict
-            else:
-                print(f"⚠️ User {user_id} has no Google OAuth credentials in database")
-        except Exception as e:
-            print(f"⚠️ Could not load user credentials: {e}")
-    return None
-
-
 def _get_docs_service(user_id=None, injected_credentials=None):
-    """Get authenticated Google Docs API service
-    
-    Args:
-        user_id: User ID for OAuth credentials from database
-        injected_credentials: OAuth credentials dict (from database)
-    
-    Returns:
-        Authenticated Docs service
+    """Get authenticated Google Docs API service.
+
+    Routing policy (Phase 4 — single shared contract):
+      - When the caller supplies user context (``user_id`` + ``injected_credentials``),
+        build the Docs service through the shared injector
+        (``get_user_docs_service``) so proactive refresh, exact-row persistence,
+        and storage-only enforcement are honoured. A missing/invalid user OAuth
+        row raises — NEVER silently falls back to a service account.
+      - When no user context is present at all, fall through to the legacy
+        service-account helper. This is the only path that may use a service
+        account, and only because the caller explicitly opted out of user OAuth.
     """
     if not HAS_DOCS_API:
         raise Exception("Google Docs API not available - install google-api-python-client")
-    
-    # Pass user_id as _user_id so build_docs_service uses the new oauth_tokens path first
-    return build_docs_service(_user_id=user_id, user_id=user_id, injected_credentials=injected_credentials)
+
+    if user_id and injected_credentials:
+        # User context present — go through the shared injector.
+        from AI_infrastructure.auth.credential_injector import get_user_docs_service
+        return get_user_docs_service(user_id=user_id)
+
+    # No user context — explicit service-account path. No fallback from a user OAuth
+    # failure into this branch.
+    return build_docs_service()
 
 
 # ==================== DOCUMENT OPERATIONS ====================
@@ -94,26 +75,22 @@ def google_docs_create_document(title, with_sample_content=False, _user_id=None,
         _injected_credentials: OAuth credentials dict (from database)
     """
     try:
-        # Get user's OAuth credentials from database if available
-        cred_dict = _get_user_credentials_if_available(_user_id, _injected_credentials)
-        
-        if cred_dict:
-            docs_service = _get_docs_service(user_id=_user_id, injected_credentials=cred_dict)
-        else:
-            # Fall back to service account
-            docs_service = _get_docs_service()
-        
+        # Phase 4: route through the shared injector when user context is present
+        docs_service = _get_docs_service(user_id=_user_id, injected_credentials=_injected_credentials)
+
         # Create the document
         document = {'title': title}
         doc = docs_service.documents().create(body=document).execute()
         document_id = doc.get('documentId')
-        
+
         # Make it shareable (anyone with link can view)
         try:
             # Use same credentials for Drive service
-            if cred_dict:
-                drive_service = build_drive_service(user_id=_user_id, injected_credentials=cred_dict)
+            if _user_id and _injected_credentials:
+                from AI_infrastructure.auth.credential_injector import get_user_drive_service
+                drive_service = get_user_drive_service(user_id=_user_id)
             else:
+                # Explicit service-account path (no user context)
                 drive_service = build_drive_service()
             permission = {
                 'type': 'anyone',
@@ -507,21 +484,24 @@ def google_docs_smart_create_from_markdown(title, markdown_content, _user_id=Non
         result = google_docs_smart_create_from_markdown("My Doc", markdown)
     """
     import re
-    
+
     try:
-        # Get user credentials if available
-        cred_dict = _get_user_credentials_if_available(_user_id, _injected_credentials)
-        
-        docs_service = _get_docs_service(user_id=_user_id, injected_credentials=cred_dict)
-        
+        # Phase 4: route through the shared injector when user context is present
+        docs_service = _get_docs_service(user_id=_user_id, injected_credentials=_injected_credentials)
+
         # Create the document
         document = {'title': title}
         doc = docs_service.documents().create(body=document).execute()
         document_id = doc.get('documentId')
-        
+
         # Make it shareable
         try:
-            drive_service = build_drive_service(user_id=_user_id, injected_credentials=cred_dict)
+            if _user_id and _injected_credentials:
+                from AI_infrastructure.auth.credential_injector import get_user_drive_service
+                drive_service = get_user_drive_service(user_id=_user_id)
+            else:
+                # Explicit service-account path (no user context)
+                drive_service = build_drive_service()
             permission = {
                 'type': 'anyone',
                 'role': 'writer'
@@ -1738,11 +1718,10 @@ def google_docs_smart_update(document_id, markdown_content, insertion_position='
     """
     try:
         print(f"🎯 Smart Update: Adding content to document {document_id}")
-        
-        # Get user credentials if available
-        cred_dict = _get_user_credentials_if_available(_user_id, _injected_credentials)
-        docs_service = _get_docs_service(user_id=_user_id, injected_credentials=cred_dict)
-        
+
+        # Phase 4: route through the shared injector when user context is present
+        docs_service = _get_docs_service(user_id=_user_id, injected_credentials=_injected_credentials)
+
         # STEP 1: Query document to find insertion point
         print(f"📖 Reading document structure...")
         doc = docs_service.documents().get(documentId=document_id).execute()
@@ -2342,10 +2321,10 @@ def google_docs_get_document(document_id, format='summary', _user_id=None, _inje
     For full document content use format='text' or format='markdown' instead.
     """
     try:
-        cred_dict = _get_user_credentials_if_available(_user_id, _injected_credentials)
-        service = _get_docs_service(user_id=_user_id, injected_credentials=cred_dict)
+        # Phase 4: route through the shared injector when user context is present
+        service = _get_docs_service(user_id=_user_id, injected_credentials=_injected_credentials)
         document = service.documents().get(documentId=document_id).execute()
-        
+
         # Return full document if explicitly requested (LEGACY - CAN BE VERY LARGE!)
         if format == 'full':
             print(f"WARNING: Returning full document JSON - may be 200K+ tokens for large documents!")
@@ -2575,10 +2554,10 @@ def google_docs_search_document(document_id, query, context_chars=800, max_match
     - Extract specific information without loading full doc
     """
     try:
-        cred_dict = _get_user_credentials_if_available(_user_id, _injected_credentials)
-        service = _get_docs_service(user_id=_user_id, injected_credentials=cred_dict)
+        # Phase 4: route through the shared injector when user context is present
+        service = _get_docs_service(user_id=_user_id, injected_credentials=_injected_credentials)
         document = service.documents().get(documentId=document_id).execute()
-        
+
         title = document.get('title', 'Untitled')
         body = document.get('body', {})
         content = body.get('content', [])
@@ -2701,9 +2680,9 @@ def google_docs_batch_update(document_id, requests, _user_id=None, _injected_cre
                     }
                 })
         
-        cred_dict = _get_user_credentials_if_available(_user_id, _injected_credentials)
-        service = _get_docs_service(user_id=_user_id, injected_credentials=cred_dict)
-        
+        # Phase 4: route through the shared injector when user context is present
+        service = _get_docs_service(user_id=_user_id, injected_credentials=_injected_credentials)
+
         result = service.documents().batchUpdate(
             documentId=document_id,
             body={'requests': enhanced_requests}
@@ -2788,13 +2767,8 @@ def google_docs_update_content(document_id, content, mode='replace_all', find_te
     print(f"Updating document {document_id} with mode: {mode}")
     
     try:
-        # Get user OAuth credentials if available
-        cred_dict = _get_user_credentials_if_available(_user_id, _injected_credentials)
-        
-        if cred_dict:
-            service = _get_docs_service(user_id=_user_id, injected_credentials=cred_dict)
-        else:
-            service = _get_docs_service()
+        # Phase 4: route through the shared injector when user context is present
+        service = _get_docs_service(user_id=_user_id, injected_credentials=_injected_credentials)
         
         requests = []
         
@@ -3094,13 +3068,8 @@ def google_docs_add_formatted_content(document_id, _user_id=None, _injected_cred
         _injected_credentials: OAuth credentials flag
     """
     try:
-        # Get user OAuth credentials if available
-        cred_dict = _get_user_credentials_if_available(_user_id, _injected_credentials)
-        
-        if cred_dict:
-            service = _get_docs_service(user_id=_user_id, injected_credentials=cred_dict)
-        else:
-            service = _get_docs_service()
+        # Phase 4: route through the shared injector when user context is present
+        service = _get_docs_service(user_id=_user_id, injected_credentials=_injected_credentials)
         
         # Build all requests in a single batch for efficiency
         requests = []
@@ -3481,16 +3450,17 @@ def google_docs_export_as_pdf(document_id, _user_id=None, _injected_credentials=
         from googleapiclient.http import MediaIoBaseDownload
         import io
         
-        # Get user OAuth credentials if available
-        cred_dict = _get_user_credentials_if_available(_user_id, _injected_credentials)
-        
-        if cred_dict:
-            service = _get_docs_service(user_id=_user_id, injected_credentials=cred_dict)
-        else:
-            service = _get_docs_service()
+        # Phase 4: route through the shared injector when user context is present
+        service = _get_docs_service(user_id=_user_id, injected_credentials=_injected_credentials)
         
         # Note: Need to use Drive API for export
-        drive_service = build('drive', 'v3', credentials=service._http.credentials)
+        # Phase 4: route Drive sidecar through the shared injector when user context is present
+        if _user_id and _injected_credentials:
+            from AI_infrastructure.auth.credential_injector import get_user_drive_service
+            drive_service = get_user_drive_service(user_id=_user_id)
+        else:
+            # Explicit service-account path (no user context)
+            drive_service = build_drive_service()
         
         request = drive_service.files().export_media(
             fileId=document_id,
@@ -3558,13 +3528,8 @@ def google_docs_add_page_numbers(document_id, position='FOOTER', alignment='CENT
     _injected_credentials = kwargs.get('_injected_credentials')
     
     try:
-        # Get user OAuth credentials if available
-        cred_dict = _get_user_credentials_if_available(_user_id, _injected_credentials)
-        
-        if cred_dict:
-            service = _get_docs_service(user_id=_user_id, injected_credentials=cred_dict)
-        else:
-            service = _get_docs_service()
+        # Phase 4: route through the shared injector when user context is present
+        service = _get_docs_service(user_id=_user_id, injected_credentials=_injected_credentials)
         
         print(f"🔧 Configuring page numbering for document {document_id}...")
         print(f"   Starting number: {starting_number}")
@@ -3656,15 +3621,16 @@ def google_docs_export_as_html(document_id, _user_id=None, _injected_credentials
         from googleapiclient.http import MediaIoBaseDownload
         import io
         
-        # Get user OAuth credentials if available
-        cred_dict = _get_user_credentials_if_available(_user_id, _injected_credentials)
+        # Phase 4: route through the shared injector when user context is present
+        service = _get_docs_service(user_id=_user_id, injected_credentials=_injected_credentials)
         
-        if cred_dict:
-            service = _get_docs_service(user_id=_user_id, injected_credentials=cred_dict)
+        # Phase 4: route Drive sidecar through the shared injector when user context is present
+        if _user_id and _injected_credentials:
+            from AI_infrastructure.auth.credential_injector import get_user_drive_service
+            drive_service = get_user_drive_service(user_id=_user_id)
         else:
-            service = _get_docs_service()
-        
-        drive_service = build('drive', 'v3', credentials=service._http.credentials)
+            # Explicit service-account path (no user context)
+            drive_service = build_drive_service()
         
         request = drive_service.files().export_media(
             fileId=document_id,
@@ -3702,15 +3668,16 @@ def google_docs_export_as_markdown(document_id, _user_id=None, _injected_credent
         from googleapiclient.http import MediaIoBaseDownload
         import io
         
-        # Get user OAuth credentials if available
-        cred_dict = _get_user_credentials_if_available(_user_id, _injected_credentials)
+        # Phase 4: route through the shared injector when user context is present
+        service = _get_docs_service(user_id=_user_id, injected_credentials=_injected_credentials)
         
-        if cred_dict:
-            service = _get_docs_service(user_id=_user_id, injected_credentials=cred_dict)
+        # Phase 4: route Drive sidecar through the shared injector when user context is present
+        if _user_id and _injected_credentials:
+            from AI_infrastructure.auth.credential_injector import get_user_drive_service
+            drive_service = get_user_drive_service(user_id=_user_id)
         else:
-            service = _get_docs_service()
-        
-        drive_service = build('drive', 'v3', credentials=service._http.credentials)
+            # Explicit service-account path (no user context)
+            drive_service = build_drive_service()
         
         request = drive_service.files().export_media(
             fileId=document_id,
@@ -3753,15 +3720,16 @@ def google_docs_create_from_template(template_id, title, _user_id=None, _injecte
         # Copy template using Drive API
         from googleapiclient.discovery import build
         
-        # Get user OAuth credentials if available
-        cred_dict = _get_user_credentials_if_available(_user_id, _injected_credentials)
+        # Phase 4: route through the shared injector when user context is present
+        service = _get_docs_service(user_id=_user_id, injected_credentials=_injected_credentials)
         
-        if cred_dict:
-            service = _get_docs_service(user_id=_user_id, injected_credentials=cred_dict)
+        # Phase 4: route Drive sidecar through the shared injector when user context is present
+        if _user_id and _injected_credentials:
+            from AI_infrastructure.auth.credential_injector import get_user_drive_service
+            drive_service = get_user_drive_service(user_id=_user_id)
         else:
-            service = _get_docs_service()
-        
-        drive_service = build('drive', 'v3', credentials=service._http.credentials)
+            # Explicit service-account path (no user context)
+            drive_service = build_drive_service()
         
         body = {'name': title}
         doc = drive_service.files().copy(fileId=template_id, body=body).execute()
@@ -3786,13 +3754,8 @@ def google_docs_get_suggestions(document_id, _user_id=None, _injected_credential
         _injected_credentials: OAuth credentials flag
     """
     try:
-        # Get user OAuth credentials if available
-        cred_dict = _get_user_credentials_if_available(_user_id, _injected_credentials)
-        
-        if cred_dict:
-            service = _get_docs_service(user_id=_user_id, injected_credentials=cred_dict)
-        else:
-            service = _get_docs_service()
+        # Phase 4: route through the shared injector when user context is present
+        service = _get_docs_service(user_id=_user_id, injected_credentials=_injected_credentials)
         
         document = service.documents().get(
             documentId=document_id,
@@ -5616,37 +5579,41 @@ def google_docs_smart_create_from_markdown_v2(title, markdown_content, folder_id
         doc.save(docx_buffer)
         docx_buffer.seek(0)
         
-        # Get Drive service
-        cred_dict = _get_user_credentials_if_available(_user_id, _injected_credentials)
-        service = build_drive_service(user_id=_user_id, injected_credentials=cred_dict)
-        
+        # Phase 4: route Drive sidecar through the shared injector when user context is present
+        if _user_id and _injected_credentials:
+            from AI_infrastructure.auth.credential_injector import get_user_drive_service
+            service = get_user_drive_service(user_id=_user_id)
+        else:
+            # Explicit service-account path (no user context)
+            service = build_drive_service()
+
         # Prepare file metadata
         file_metadata = {
             'name': title,
             'mimeType': 'application/vnd.google-apps.document'  # Auto-convert to Google Docs
         }
-        
+
         if folder_id:
             file_metadata['parents'] = [folder_id]
-        
+
         # Upload DOCX as Google Doc
         media = MediaIoBaseUpload(
             docx_buffer,
             mimetype='application/vnd.openxmlformats-officedocument.wordprocessingml.document',
             resumable=True
         )
-        
+
         file = service.files().create(
             body=file_metadata,
             media_body=media,
             fields='id, name, mimeType, webViewLink'
         ).execute()
-        
+
         document_id = file.get('id')
         web_url = file.get('webViewLink', '')
-        
+
         # Make document shareable with edit permissions
-        share_result = _make_google_doc_shareable(document_id, _user_id, cred_dict)
+        share_result = _make_google_doc_shareable(document_id, _user_id, _injected_credentials)
         
         print(f"Google Doc created successfully: {document_id}")
         print(f"Web URL: {web_url}")
@@ -5668,20 +5635,31 @@ def google_docs_smart_create_from_markdown_v2(title, markdown_content, folder_id
         raise
 
 
-def _make_google_doc_shareable(document_id, user_id=None, cred_dict=None):
+def _make_google_doc_shareable(document_id, user_id=None, injected_credentials=None):
     """
-    Make a Google Doc shareable with anonymous edit access
-    
+    Make a Google Doc shareable with anonymous edit access.
+
+    Routing policy (Phase 4 — single shared contract):
+      - When ``user_id`` + ``injected_credentials`` are present, build the Drive
+        service through the shared injector (``get_user_drive_service``).
+      - Otherwise, fall through to the explicit service-account path.
+
     Args:
         document_id: The Google Doc ID
         user_id: User ID for credentials
-        cred_dict: OAuth credentials dict
-    
+        injected_credentials: User OAuth credentials flag (truthy ⇒ shared wrapper)
+
     Returns:
         Dict with success status and share_link
     """
     try:
-        service = build_drive_service(user_id=user_id, injected_credentials=cred_dict)
+        # Phase 4: route Drive sidecar through the shared injector when user context is present
+        if user_id and injected_credentials:
+            from AI_infrastructure.auth.credential_injector import get_user_drive_service
+            service = get_user_drive_service(user_id=user_id)
+        else:
+            # Explicit service-account path (no user context)
+            service = build_drive_service()
         
         # Create permission for anyone with link to edit
         permission = {
