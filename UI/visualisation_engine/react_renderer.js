@@ -79,6 +79,65 @@
                     if (data.stack) console.error('  stackHead:', data.stack.split('\n').slice(0, 4).join('\n           '));
                 } catch (_) {}
                 break;
+            case 'react-render-babel-output':
+                // DIAGNOSTIC v8 (2026-07-26): iframe posts the EXACT bytes Babel
+                // produced. The v5/v6 capture inside the iframe used
+                // window.parent.__lastChartOut__ which silently fails in
+                // srcdoc-sandboxed iframes (opaque-origin). postMessage is
+                // cross-origin-safe, so this capture survives even when the
+                // appended <script> tag throws a script-body SyntaxError and
+                // kills the rest of the iframe script.
+                if (!data.id) return;
+                window.__babelOutputs__ = window.__babelOutputs__ || {};
+                window.__babelOutputs__[data.id] = data;
+                window.__lastBabelOutputId = data.id;
+                window.__lastChartOut__     = data.babelOut;
+                window.__lastChartOutLen__  = data.babelOutLen;
+                window.__lastChartRaw__     = data.rawSource;
+                window.__lastChartRawLen__  = data.rawSourceLen;
+                window.__lastChartRawId__   = data.id;
+                try {
+                    console.log('[REACT_RENDERER_PARENT_DIAG] v8 babel-output captured.',
+                        'id:', data.id,
+                        'rawLen:', data.rawSourceLen,
+                        'outLen:', data.babelOutLen);
+                } catch (_) {}
+                break;
+            case 'react-render-babel-error':
+                // DIAGNOSTIC v8 (2026-07-26): mirror of the in-iframe
+                // __lastBadJsx capture, but cross-origin-safe. Surfaces the
+                // exact Babel error message + failing source when Babel.transform
+                // itself throws (separate from the script-body SyntaxError
+                // case captured by react-render-babel-output).
+                if (!data.id) return;
+                window.__babelErrors__ = window.__babelErrors__ || {};
+                window.__babelErrors__[data.id] = data;
+                window.__lastBabelErrorId = data.id;
+                try {
+                    console.error('[REACT_RENDERER_PARENT_DIAG] v8 babel-error captured.',
+                        'id:', data.id,
+                        'rawLen:', data.rawSourceLen,
+                        'msg:', data.errorMessage);
+                } catch (_) {}
+                break;
+            case 'react-render-pre-transform':
+                // DIAGNOSTIC v8 (2026-07-26): captures the cleaned JSX
+                // (after import-strip + {flag&&JSX} regex rewrite) that is
+                // about to be fed to Babel. Lets us reproduce the exact
+                // Babel input offline when __lastChartOut__ reveals a
+                // script-body SyntaxError.
+                if (!data.id) return;
+                window.__preTransform__ = window.__preTransform__ || {};
+                window.__preTransform__[data.id] = data;
+                window.__lastPreTransformId = data.id;
+                window.__lastChartRaw__    = data.rawSource;
+                window.__lastChartRawLen__ = data.rawSourceLen;
+                try {
+                    console.log('[REACT_RENDERER_PARENT_DIAG] v8 pre-transform captured.',
+                        'id:', data.id,
+                        'len:', data.rawSourceLen);
+                } catch (_) {}
+                break;
         }
     });
 })();
@@ -711,7 +770,28 @@ ${rechartsSetup}
             }, '*');
         } catch (_) {}
 
+        // DIAGNOSTIC v8 (2026-07-26): forward the cleaned JSX source to the
+        // parent BEFORE Babel.transform runs. The raw capture inside the
+        // iframe (v6) lives on window.__lastChartRaw__, but v6 reads from
+        // 'cleanedJSX' after import/export stripping + the {flag && JSX}
+        // regex rewrite -- which is exactly what gets fed to Babel. Sending
+        // it via postMessage (cross-origin-safe) lets the parent console
+        // inspect the EXACT bytes Babel sees even when the iframe script
+        // later dies with a script-body SyntaxError.
+        //
+        // Note: rawSource must be assigned BEFORE this postMessage runs, so
+        // the JSON.stringify has a defined value to send.
         var rawSource = ${JSON.stringify(cleanedJSX)};
+        try {
+            window.parent.postMessage({
+                type: 'react-render-pre-transform',
+                id: '${chartId}',
+                rawSource: rawSource,
+                rawSourceLen: rawSource.length,
+                fencesAtStart: __babelFences.slice()
+            }, '*');
+        } catch (_) {}
+
         var out;
         try {
             // ----- Babel plugin: rewrite {cond && <JSX/>} -> {cond ? <JSX/> : null}
@@ -759,10 +839,33 @@ ${rechartsSetup}
             }).code;
             if (typeof __babelFences !== 'undefined') {
                 __babelFences.push({
-                    label: 'F2b — plugin disabled v4, raw Babel output',
+                    label: 'F2b -- plugin disabled v4, raw Babel output',
                     ok: true
                 });
             }
+
+            // DIAGNOSTIC v8 (2026-07-26): postMessage the Babel output to the
+            // parent IMMEDIATELY after transform succeeds, BEFORE the
+            // identifierHoist IIFE and the classic-<script> append. This
+            // captures the exact bytes the iframe's script parser will
+            // (attempt to) parse -- if that parser later throws a script-body
+            // SyntaxError at 'about:srcdoc:653:36', we can pull __lastChartOut__
+            // from the parent console and reproduce the parse failure offline.
+            // postMessage is cross-origin-safe; the direct window.parent.X =
+            // assignments below are NOT (srcdoc iframes are opaque-origin and
+            // those writes fail silently, which is why __lastChartOut__ was
+            // undefined in v5/v6/v7 diagnostic runs).
+            try {
+                window.parent.postMessage({
+                    type: 'react-render-babel-output',
+                    id: '${chartId}',
+                    rawSource: rawSource,
+                    rawSourceLen: rawSource.length,
+                    babelOut: out,
+                    babelOutLen: out.length,
+                    babelFences: __babelFences.slice()
+                }, '*');
+            } catch (_postMsgErr) { /* never throws */ }
 
             // DIAGNOSTIC v5 (2026-07-25): unconditionally capture the raw
             // JSX source AND the Babel output on parent.__lastChartRaw__ /
@@ -832,6 +935,19 @@ ${rechartsSetup}
                 console.error('[REACT_RENDERER_DIAG] Babel fence results at throw:',
                     JSON.stringify(__babelFences, null, 2));
             } catch (_) { /* parent unreachable (srcdoc sandbox) */ }
+            // DIAGNOSTIC v8 (2026-07-26): cross-origin-safe postMessage mirror
+            // of the failing-source capture above. The window.parent.X writes
+            // silently fail in srcdoc iframes; postMessage does not.
+            try {
+                window.parent.postMessage({
+                    type: 'react-render-babel-error',
+                    id: '${chartId}',
+                    rawSource: rawSource,
+                    rawSourceLen: rawSource.length,
+                    errorMessage: tmsg,
+                    babelFences: __babelFences.slice()
+                }, '*');
+            } catch (_) {}
             return;
         }
 
