@@ -327,6 +327,234 @@ def resolve_api_key(
 
 
 # ============================================================================
+# BATCH RESOLVER - resolve_api_keys_batch
+# ============================================================================
+# Added 2026-07-26 (fix #2 for /api/transcription/engines-status).
+#
+# The /engines-status route previously called resolve_api_key() in a loop,
+# once per platform (openai, assemblyai, deepgram, speechmatics). Each
+# call cost:
+#   - 1 Redis lookup + 1 SQL round-trip to user_platform_credentials (Tier 1)
+#   - 1 SQL round-trip for parent_user_id if sub-user (Tier 1.5)
+#   - 1 SQL round-trip to users.organisation_id + 1 to
+#     organisation_platform_credentials (Tier 2)
+#   - env-var dict lookup (Tier 3, free)
+# For 4 platforms that's ~12 round-trips on a cold cache; gevent single-
+# worker on Render Starter serialises them and the user sees ~30s wall-
+# clock per status tick.
+#
+# This batched variant keeps the 4-tier resolution semantics (with the
+# same prefer_user default) but consolidates to:
+#   - 1 SQL round-trip per tier using `WHERE platform = ANY(%s)`
+#   - 1 lookup for parent_user_id if needed
+#   - 1 lookup for organisation_id if needed
+# Net: at most ~4 SQL round-trips for N platforms (independent of N).
+#
+# The decryption (Fernet) per row still happens via _normalise_row - that
+# cost is unavoidable. Returns a {canonical_platform: api_key_or_None}
+# dict. The canonical form is the DB storage form (lowercase except
+# 'MiniMax').
+
+def _extract_api_key_from_norm(norm):
+    """Extract the API key string from an already-normalised credential
+    dict. Mirrors resolve_api_key()'s fallback chain without re-deriving
+    _source. Returns '' when no key is present.
+    """
+    if not norm:
+        return ''
+    return (
+        norm.get('credential_value')
+        or norm.get('api_key')
+        or (norm.get('credentials') or {}).get('api_key')
+        or (norm.get('credentials') or {}).get('access_token')
+        or (norm.get('credentials') or {}).get('secret_key')
+        or ''
+    )
+
+
+def resolve_api_keys_batch(user_id, platforms, prefer_user=True):
+    """Batched version of resolve_api_key - resolves N platform keys
+    at once via single SQL queries per tier (vs N per-platform queries).
+
+    Resolution order matches resolve_credentials():
+        Tier 1    - user_platform_credentials (with Redis cache per-plat)
+        Tier 1.5  - sub-user -> parent_user_credentials
+        Tier 2    - organisation_platform_credentials (org_id once)
+        Tier 3    - PLATFORM_ENV_VARS / os.getenv() fallback
+
+    Args:
+        user_id:    Authenticated user making the request.
+        platforms:  Iterable of platform names (any case; canonicalised).
+        prefer_user: See resolve_credentials().
+
+    Returns:
+        Dict mapping *canonical* platform name -> API key string or None.
+    """
+    if not platforms:
+        return {}
+    canonicals = []
+    seen = set()
+    for p in platforms:
+        c = _canonicalize_platform(p)
+        if c and c not in seen:
+            seen.add(c)
+            canonicals.append(c)
+    if not canonicals:
+        return {}
+
+    result = {p: None for p in canonicals}
+    missing = list(canonicals)
+
+    # ----- Tier 1: user_platform_credentials (cache -> DB) -----
+    if prefer_user and missing:
+        try:
+            from AI_infrastructure.utils.cache_utils import get_cached_platform_credentials
+        except Exception:
+            get_cached_platform_credentials = None
+
+        if get_cached_platform_credentials is not None:
+            still_missing = []
+            for p in missing:
+                try:
+                    cached = get_cached_platform_credentials(user_id, p)
+                    key = _extract_api_key_from_norm(cached) if cached else ''
+                    if key:
+                        result[p] = key
+                    else:
+                        still_missing.append(p)
+                except Exception:
+                    still_missing.append(p)
+            missing = still_missing
+
+        if missing:
+            try:
+                rows = execute_query(
+                    """
+                    SELECT platform, credential_type, credential_key,
+                           credential_value, credentials, metadata
+                    FROM ai_infrastructure.user_platform_credentials
+                    WHERE user_id = %s
+                      AND platform = ANY(%s)
+                      AND is_active = TRUE
+                    ORDER BY platform, updated_at DESC
+                    """,
+                    (user_id, missing),
+                    fetch_mode='all',
+                ) or []
+                seen_p = set()
+                for row in rows:
+                    p = row.get('platform') if isinstance(row, dict) else None
+                    if not p or p in seen_p:
+                        continue
+                    seen_p.add(p)
+                    norm = _normalise_row(dict(row))
+                    key = _extract_api_key_from_norm(norm)
+                    if key:
+                        result[p] = key
+                missing = [p for p in missing if result.get(p) is None]
+            except Exception as e:
+                logger.debug(f"[ORG_CREDS_BATCH] Tier 1 DB error: {e}")
+
+    # ----- Tier 1.5: sub-user -> parent_user_credentials -----
+    if missing:
+        parent_id = _get_parent_user_id(user_id)
+        if parent_id:
+            try:
+                rows = execute_query(
+                    """
+                    SELECT platform, credential_type, credential_key,
+                           credential_value, credentials, metadata
+                    FROM ai_infrastructure.user_platform_credentials
+                    WHERE user_id = %s
+                      AND platform = ANY(%s)
+                      AND is_active = TRUE
+                    ORDER BY platform, updated_at DESC
+                    """,
+                    (parent_id, missing),
+                    fetch_mode='all',
+                ) or []
+                seen_p = set()
+                for row in rows:
+                    p = row.get('platform') if isinstance(row, dict) else None
+                    if not p or p in seen_p:
+                        continue
+                    seen_p.add(p)
+                    norm = _normalise_row(dict(row))
+                    key = _extract_api_key_from_norm(norm)
+                    if key:
+                        result[p] = key
+                missing = [p for p in missing if result.get(p) is None]
+            except Exception as e:
+                logger.debug(f"[ORG_CREDS_BATCH] Tier 1.5 DB error: {e}")
+
+    # ----- Tier 2: organisation_platform_credentials -----
+    if missing:
+        try:
+            org_id = execute_query(
+                "SELECT organisation_id FROM ai_infrastructure.users WHERE id = %s",
+                (user_id,),
+                fetch_mode='value',
+            )
+            if not org_id:
+                parent_id = _get_parent_user_id(user_id)
+                if parent_id:
+                    org_id = execute_query(
+                        "SELECT organisation_id FROM ai_infrastructure.users WHERE id = %s",
+                        (parent_id,),
+                        fetch_mode='value',
+                    )
+
+            if org_id:
+                rows = execute_query(
+                    """
+                    SELECT platform, credential_value, credentials,
+                           display_name, environment, last_used_at
+                    FROM ai_infrastructure.organisation_platform_credentials
+                    WHERE organisation_id = %s
+                      AND platform = ANY(%s)
+                      AND is_active = TRUE
+                    ORDER BY platform,
+                             environment = 'production' DESC,
+                             updated_at DESC
+                    """,
+                    (org_id, missing),
+                    fetch_mode='all',
+                ) or []
+                seen_p = set()
+                for row in rows:
+                    p = row.get('platform') if isinstance(row, dict) else None
+                    if not p or p in seen_p:
+                        continue
+                    seen_p.add(p)
+                    norm = _normalise_row(dict(row))
+                    key = _extract_api_key_from_norm(norm)
+                    if key:
+                        result[p] = key
+                missing = [p for p in missing if result.get(p) is None]
+        except Exception as e:
+            logger.debug(f"[ORG_CREDS_BATCH] Tier 2 DB error: {e}")
+
+    # ----- Tier 3: env var fallback (in-process, no DB) -----
+    for p in missing:
+        env_key = PLATFORM_ENV_VARS.get(p)
+        if not env_key:
+            for k, v in PLATFORM_ENV_VARS.items():
+                if k.lower() == p:
+                    env_key = v
+                    break
+        if env_key:
+            val = os.getenv(env_key)
+            if val:
+                result[p] = val
+                logger.warning(
+                    f"[ORG_CREDS_BATCH] Using env var {env_key} for {p} "
+                    f"(Tier 3 - legacy, no per-org isolation)"
+                )
+
+    return result
+
+
+# ============================================================================
 # INTERNAL: FETCH FROM user_platform_credentials
 # ============================================================================
 

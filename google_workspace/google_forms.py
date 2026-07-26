@@ -25,10 +25,7 @@ from datetime import datetime
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 try:
-    from google.oauth2.credentials import Credentials
-    from googleapiclient.discovery import build
     from googleapiclient.errors import HttpError
-    from google_workspace.google_auth_helper import build_forms_service, build_drive_service
     HAS_FORMS_API = True
 except ImportError:
     HAS_FORMS_API = False
@@ -50,48 +47,63 @@ except ImportError:
 
 def _get_forms_service(_user_id=None, _injected_credentials=None, **kwargs):
     """Get authenticated Google Forms API service
-    
+
     Args:
         _user_id: User ID for credential injection (from tool registry)
         _injected_credentials: Flag indicating credentials will be injected
         **kwargs: Additional parameters (captured and ignored)
-    
+
     Returns:
         Authenticated Google Forms service
+
+    Note (Phase 7): The Forms API cannot be authorized with a service account
+    that doesn't have domain-wide delegation. The previous SA fallback silently
+    failed inside the Forms API, so we now require a user OAuth row and
+    raise a clear authentication error otherwise.
     """
     if not HAS_FORMS_API:
         raise Exception("Google Forms API not available - install google-api-python-client")
-    
-    # If user_id provided, use database OAuth credentials
+
+    # If user_id provided, use the shared user Oauth injector
     if _user_id and _injected_credentials:
-        from google_workspace.google_auth_helper import build_forms_service_with_user_creds
-        return build_forms_service_with_user_creds(_user_id)
-    
-    # Fallback to service account (for testing only - will fail for Forms API)
-    print("⚠️  Using service account from environment variables")
-    return build_forms_service()
+        from AI_infrastructure.auth.credential_injector import get_user_forms_service
+        return get_user_forms_service(user_id=_user_id)
+
+    # No user context — the Forms API does not support service-account
+    # authorization without domain-wide delegation, so raise a clear error
+    # instead of silently falling back to a known-broken SA path.
+    raise Exception(
+        "Google Forms tools require an authenticated user. "
+        "Connect your Google account via the OAuth flow before calling Forms tools."
+    )
 
 
 def _get_drive_service(_user_id=None, _injected_credentials=None, **kwargs):
     """Get authenticated Google Drive API service
-    
+
     Args:
         _user_id: User ID for credential injection
         _injected_credentials: Flag indicating credentials will be injected
         **kwargs: Additional parameters
-    
+
     Returns:
         Authenticated Google Drive service
     """
     if not HAS_FORMS_API:
         raise Exception("Google Drive API not available")
-    
-    # If user_id provided, use database OAuth credentials
+
+    # If user_id provided, use the shared user Oauth injector
     if _user_id and _injected_credentials:
-        from google_workspace.google_auth_helper import build_drive_service_with_user_creds
-        return build_drive_service_with_user_creds(_user_id)
-    
-    return build_drive_service()
+        from AI_infrastructure.auth.credential_injector import get_user_drive_service
+        return get_user_drive_service(user_id=_user_id)
+
+    # Phase 7: Drive sidecars in Forms use the shared wrapper when user
+    # context is present; without user context there is no Forms-only
+    # service-account path — the calling tool must supply user credentials.
+    raise Exception(
+        "Google Drive sidecar from Forms requires an authenticated user. "
+        "Connect your Google account via the OAuth flow before calling Forms tools."
+    )
 
 
 # ==================== FORM OPERATIONS ====================
@@ -873,14 +885,10 @@ def google_forms_search_responses(form_id, query, **kwargs):
     print(f"Searching responses in form {form_id} for query: {query}")
     
     try:
-        # Get credentials - check kwargs first, then service account
-        credentials = _get_user_credentials_if_available(kwargs)
-        if credentials:
-            print("Using user-provided OAuth credentials")
-            service = build('forms', 'v1', credentials=credentials)
-        else:
-            print("Using service account credentials")
-            service = _get_forms_service(**kwargs)
+        # Phase 7 fix: the previous branch referenced the undefined helper
+        # `_get_user_credentials_if_available` and bypassed the shared injector
+        # entirely. Use the shared helper like every other Forms entry point.
+        service = _get_forms_service(**kwargs)
         
         # Get all responses
         response = service.forms().responses().list(formId=form_id).execute()

@@ -660,10 +660,18 @@ def engines_status():
     Check all transcription engine API keys at once via the 4-tier credential resolver.
     Returns {engines: {platform -> {has_key: bool, ...}}}.
 
-    ✅ FIX 2026-07-26: 5s in-memory cache. The route is hit on every UI tick
+    ✅ FIX 2026-07-26a: 5s in-memory cache. The route is hit on every UI tick
        of the engines panel (and was being called repeatedly while other
        gevent-blocked requests queued behind it). The per-user cache key
        prevents one user's cache from leaking to another.
+
+    ✅ FIX 2026-07-26b: Batched credential resolution. The previous loop
+       called resolve_api_key() once per platform, costing ~3 DB round-trips
+       per call (Tier 1 user_platform_credentials + Tier 1.5 parent lookup
+       + Tier 2 org_id + organisation_platform_credentials). For 4 platforms
+       that was ~12 round-trips serialised by gevent single-worker -> 30s+
+       on cold cache. Now uses resolve_api_keys_batch() which collapses to
+       ~4 SQL round-trips total via WHERE platform = ANY(%s).
     """
     # Per-user, per-process cache with a 5s TTL. Cached payload is the
     # final engines dict so callers get a stable response shape.
@@ -674,15 +682,25 @@ def engines_status():
         return jsonify({'engines': cached['payload'], 'cached': True}), 200
 
     try:
-        from AI_infrastructure.shared.org_credentials_loader import resolve_api_key
+        from AI_infrastructure.shared.org_credentials_loader import resolve_api_keys_batch
         user_id = g.user_id
+        platforms = ('openai', 'assemblyai', 'deepgram', 'speechmatics')
+        # Single batched call covers all 4 platforms in ~4 SQL round-trips,
+        # regardless of N. A batch failure must not blow up the route -
+        # fall back to per-platform "no key" entries so the UI still renders.
+        try:
+            keys_by_platform = resolve_api_keys_batch(user_id, platforms) or {}
+        except Exception as batch_err:
+            logger.error(
+                f'[TRANSCRIPTION] Batch credential resolve failed, '
+                f'all engines will report has_key=False: {batch_err}',
+                exc_info=True,
+            )
+            keys_by_platform = {}
         result = {}
-        for platform in ('openai', 'assemblyai', 'deepgram', 'speechmatics'):
-            try:
-                key = resolve_api_key(user_id, platform)
-                result[platform] = {'has_key': bool(key)}
-            except Exception as e:
-                result[platform] = {'has_key': False, 'error': str(e)}
+        for platform in platforms:
+            key = keys_by_platform.get(platform)
+            result[platform] = {'has_key': bool(key)}
         result['local_whisper'] = {
             'has_key': True,
             'available': _whisper_lib_available,
