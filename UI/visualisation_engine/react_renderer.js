@@ -1026,10 +1026,10 @@ ${identifierHoist}
         // 'function App()' declarations land on window for auto-mount.
         //
         // SAFETY NET (added 2026-07-26, see bug-findings H1): V8 fires
-        // parse errors on an appended <script> as an `error` event, NOT an
+        // parse errors on an appended <script> as an 'error' event, NOT an
         // exception — the catch below could not see them, leaving the iframe
         // blank. Two layers prevent that:
-        //   (1) Pre-parse with `new Function(out)` so the parse error fires
+        //   (1) Pre-parse with 'new Function(out)' so the parse error fires
         //       as a regular exception BEFORE the append, paints a
         //       diagnostic in the iframe, and posts
         //       'react-render-script-error' to the parent diag-sink.
