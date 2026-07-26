@@ -255,6 +255,34 @@ class ReactRenderer {
      * @param {string} chartId    - Used in the postMessage resize payload
      * @returns {string} Full HTML document string
      */
+
+    /**
+     * safeJsString — wrap a user/AI-controlled string as a JavaScript string
+     * literal that is also safe to embed inside a `<script>` element.
+     *
+     * The browser's HTML parser scans the raw bytes of the page for the byte
+     * sequence `</script` (case-insensitive) and treats it as the end of the
+     * enclosing `<script>` element, REGARDLESS of JavaScript string quoting.
+     * When an AI emits a literal `</script>` inside a template string in
+     * its JSX (e.g. an `</script>` HTML snippet inside a `<Tooltip>` or a
+     * `<style>` template), it survives JSON.stringify (JSON does not escape
+     * `<` or `/`) and breaks the host `<script>` block — every line of the
+     * run-engine that follows becomes raw HTML, producing a white iframe
+     * with `SyntaxError: Invalid or unexpected token (at about:srcdoc:N:36)`.
+     *
+     * Fix: after JSON.stringify, replace `</script` with `<\/script`. Inside
+     * the resulting JS source the string literal `"<\/script>"` is parsed by
+     * the JS engine as `<\/script>` → escape sequence `\/` → `/` literal →
+     * final string value `</script>` (the AI's intent is preserved). The
+     * HTML parser never sees `</script>`, so the host script stays open.
+     *
+     * @param {string} s  Raw string value (the AI's JSX, identifier list, etc.)
+     * @returns {string}  A JS string literal safe to embed inside <script>
+     */
+    safeJsString(s) {
+        return JSON.stringify(s).replace(/<\/(script)/gi, '<\\/$1');
+    }
+
     buildReactSrcdoc(jsxContent, chartId) {
         // ── DIAGNOSTIC v7 (2026-07-25): UNCONDITIONAL entry-point log ──────────
         // If you see this in the parent console, buildReactSrcdoc IS being
@@ -712,7 +740,7 @@ ${lucideScript}
                 type: 'react-render-diagnostic',
                 id: '${chartId}',
                 jsxLength: ${JSON.stringify(cleanedJSX.length)},
-                jsxPreview: ${JSON.stringify(cleanedJSX.slice(0, 300))}
+                jsxPreview: ${this.safeJsString(cleanedJSX.slice(0, 300))}
             }, '*');
         } catch (_) {}
 
@@ -802,7 +830,7 @@ ${rechartsSetup}
         //
         // Note: rawSource must be assigned BEFORE this postMessage runs, so
         // the JSON.stringify has a defined value to send.
-        var rawSource = ${JSON.stringify(cleanedJSX)};
+        var rawSource = ${this.safeJsString(cleanedJSX)};
         try {
             window.parent.postMessage({
                 type: 'react-render-pre-transform',
@@ -1220,7 +1248,29 @@ ${identifierHoist}
                             && (typeof rawSource === 'string')
                             && (rawSource.indexOf('ComposedChart') !== -1);
 
-                        if (isRechartsComposedBug) {
+                        // Companion Recharts-internal bug: "a.set is not a function"
+                        // thrown from react-dom.production.min.js:85 inside function d()
+                        // (the child-map builder mapIntoArray). Reproduces for ANY
+                        // Recharts chart in the patched bundle — verified 2026-07-26
+                        // with a single BarChart/Bar pattern (no ComposedChart, no
+                        // multiple YAxes). Root cause is the same class of bug as
+                        // t.has: a Recharts internal Map extension dereferences a
+                        // missing _intern slot. Show the same yellow hint panel so
+                        // the user gets an actionable message instead of a raw red
+                        // stack trace.
+                        var isRechartsSetBug =
+                            (typeof msg === 'string')
+                            && (msg.indexOf('a.set is not a function') !== -1)
+                            && (typeof rawSource === 'string')
+                            && rawSource.indexOf('Recharts.') !== -1;
+
+                        if (isRechartsComposedBug || isRechartsSetBug) {
+                            var headerTitle = isRechartsComposedBug
+                                ? '⚠ ComposedChart with multiple YAxes hit a Recharts internal bug'
+                                : '⚠ Recharts internal bug in the patched bundle';
+                            var bodyText = isRechartsComposedBug
+                                ? 'The chart pattern using <ComposedChart> with dual YAxes plus Area/Bar/Line children triggered t.has is not a function inside Recharts domain merging (verified on Recharts.js:2:121494).'
+                                : 'The patched Recharts bundle threw "a.set is not a function" from react-dom.production.min.js:85 inside the child-map builder. This is the same class of bug as t.has — a Recharts internal Map extension dereferences a missing _intern slot during render. Verified 2026-07-26 with a single <BarChart><Bar/></BarChart> pattern (no ComposedChart).';
                             return window.React.createElement('div', {
                                 style: {
                                     color: '#92400e',
@@ -1236,11 +1286,11 @@ ${identifierHoist}
                                 window.React.createElement('div', {
                                     key: 'h',
                                     style: { fontSize: '15px', fontWeight: 600, marginBottom: '12px' }
-                                }, '⚠ ComposedChart with multiple YAxes hit a Recharts internal bug'),
+                                }, headerTitle),
                                 window.React.createElement('div', {
                                     key: 'p1',
                                     style: { fontSize: '13px', marginBottom: '10px' }
-                                }, 'The chart pattern using <ComposedChart> with dual YAxes plus Area/Bar/Line children triggered t.has is not a function inside Recharts domain merging (verified on Recharts.js:2:121494).'),
+                                }, bodyText),
                                 window.React.createElement('div', {
                                     key: 'p2',
                                     style: { fontSize: '13px', marginBottom: '6px', fontWeight: 600 }
@@ -1264,7 +1314,7 @@ ${identifierHoist}
                                 window.React.createElement('div', {
                                     key: 'p5',
                                     style: { fontSize: '12px', color: '#78350f' }
-                                }, 'Single-axis LineChart / BarChart / PieChart already render correctly here. Only ComposedChart-with-multiple-YAxes is blocked.'),
+                                }, 'This is a known issue in the self-hosted Recharts.js bundle (UI/visualisation_engine/libs/Recharts.js). Workaround: use plain HTML/CSS/SVG charts, or regenerate the visualisation without Recharts. See ARCHIVE_CLEANUP / TRACKER for the open ticket on Recharts runtime bugs.'),
                                 window.React.createElement('details', {
                                     key: 'p6',
                                     style: { fontSize: '11px', marginTop: '10px', color: '#78350f' }
@@ -1347,7 +1397,7 @@ ${identifierHoist}
                                         margin: '8px 0 12px 0',
                                         whiteSpace: 'pre-wrap'
                                     }
-                                }, '// Instead of:\n{showLegend && <Legend />}\n// Use:\n{showLegend ? <Legend /> : null}\n\n// Or split into side-by-side single-axis charts.'),
+                                }, '// Instead of:\\n{showLegend && <Legend />}\\n// Use:\\n{showLegend ? <Legend /> : null}\\n\\n// Or split into side-by-side single-axis charts.'),
                                 window.React.createElement('div', {
                                     key: 'p5',
                                     style: { fontSize: '12px', color: '#78350f' }
