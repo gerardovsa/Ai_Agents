@@ -523,8 +523,12 @@ class UniversalSidebarManager {
                 const config = this.sidebars.get(id);
                 if (config) {
                     config.isOpen = state[id].isOpen || false;
-                    // DON'T restore initialized state - onInit should run on every page load
-                    // config.initialized = state[id].initialized || false;
+                    // Restore the initialized flag so onInit runs once per
+                    // browser (matching what saveState persists) instead of
+                    // re-running on every page load. The HTML fetch in
+                    // transcription's onInit is expensive enough that running
+                    // it on every navigation was the user-visible regression.
+                    config.initialized = state[id].initialized || false;
                 }
             });
 

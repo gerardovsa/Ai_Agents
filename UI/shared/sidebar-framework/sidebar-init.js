@@ -169,29 +169,6 @@
 
         // Note: Universal Search loads via ModuleLoader (hybrid module with dashboard + sidebar views)
 
-        // ==================== TRANSCRIPTION SIDEBAR ====================
-        SidebarManager.register({
-            id: 'transcription-sidebar',
-            side: 'right',
-            toggleButtonId: 'transcription-toggle',
-            width: '500px',
-            icon: 'fa-microphone',
-            title: 'Transcription',
-            zIndex: 9999,
-            onInit: async () => {
-                console.log('[TRANSCRIPTION] First open - initializing...');
-                if (window.TranscriptionSidebar && typeof TranscriptionSidebar.init === 'function') {
-                    await TranscriptionSidebar.init();
-                }
-            },
-            onOpen: () => {
-                console.log('[TRANSCRIPTION] Sidebar opened');
-            },
-            onClose: () => {
-                console.log('[TRANSCRIPTION] Sidebar closed');
-            }
-        });
-
         // ==================== VECTOR DATABASE SIDEBAR ====================
         SidebarManager.register({
             id: 'vector-database',

@@ -40,6 +40,7 @@ LAST MODIFIED: 2025-12-18 - Disabled PyTorch/Whisper to optimize Docker builds (
 from flask import Blueprint, request, jsonify, Response, g
 import os
 import logging
+import time
 from werkzeug.utils import secure_filename
 import tempfile
 import json
@@ -72,6 +73,15 @@ _whisper_lib_available = (
 if not _whisper_lib_available:
     _whisper_load_error = 'whisper or torch package not installed'
     logger.warning('[TRANSCRIPTION] Whisper/torch not found in environment')
+
+# ---------------------------------------------------------------------------
+# engines_status in-memory cache (5s TTL, per user)
+# The UI polls /engines-status on every panel tick; without a cache the
+# endpoint runs 4 sequential resolve_api_key lookups (which each hit the
+# Fernet vault + DB) per request and queues behind other gevent work.
+# ---------------------------------------------------------------------------
+_engines_status_cache: dict = {}
+_ENGINES_STATUS_CACHE_TTL: float = 5.0
 
 
 def get_whisper_model():
@@ -398,12 +408,19 @@ def system_check():
 @require_auth
 def save_transcription():
     """
-    Save a transcription record to the local database. Requires auth.
-    
-    ✅ FIXED: Proper cursor management with finally block
+    Save a transcription record to the database for the authenticated user.
+
+    ✅ FIX 2026-07-26:
+       - Use execute_query() (pooled, transactional, RLS-aware) instead of the
+         manual get_connection()/cursor() pattern that previously called
+         conn.commit() *after* the `with` block had already closed the
+         connection (raises InterfaceError).
+       - Resolve user_id from g.user_id (canonical @require_auth injection)
+         before falling back to the legacy request.user dict.
+       - The secondary transcription_uploads INSERT now matches the real
+         table created in migration 061 (transcription_id, filename, file_size,
+         file_type, mime_type, original_duration, processing_time_ms).
     """
-    cur = None  # ✅ Initialize cursor before try
-    conn = None  # ✅ Initialize connection before try
     try:
         payload = request.get_json() or {}
         transcript = payload.get('transcript') or payload.get('text') or ''
@@ -415,89 +432,76 @@ def save_transcription():
         duration = payload.get('duration_seconds')
         metadata = json.dumps(payload.get('metadata') or {})
 
-        # Determine user id from decorator-injected request.user
-        user_id = None
-        if hasattr(request, 'user') and isinstance(request.user, dict):
+        # Canonical @require_auth injects g.user_id; fall back to legacy
+        # request.user dict for any older call sites that still set it.
+        user_id = getattr(g, 'user_id', None)
+        if not user_id and hasattr(request, 'user') and isinstance(request.user, dict):
             user_id = request.user.get('user_id') or request.user.get('id')
         if not user_id and hasattr(request, 'user_id'):
             user_id = request.user_id
 
-        # ✅ FIX: Use PostgreSQL instead of SQLite
-        from AI_infrastructure.shared.database_utils import get_connection
-        
-        cursor = None
-        try:
-            with get_connection('ai_infrastructure') as conn:
-                cursor = conn.cursor()
+        if not user_id:
+            return jsonify({'success': False, 'error': 'user_id not resolved from JWT'}), 401
 
-                cursor.execute('''
-                    INSERT INTO ai_infrastructure.user_transcriptions
-                    (user_id, source_type, transcript_text, confidence, language, duration_seconds, word_count, model_used, metadata)
-                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
-                    RETURNING id
-                ''', (
-                    user_id,
-                    source_type,
-                    transcript,
-                    confidence,
-                    language,
-                    duration,
-                    len(transcript.split()) if transcript else 0,
-                    model_used,
-                    metadata
-                ))
-                transcription_id = cursor.fetchone()[0]
+        # Lazy import to match the pattern used by transcription_history and
+        # avoid the circular-import risk called out in CLAUDE.md §5.
+        from AI_infrastructure.shared.database_utils import execute_query
 
-                # If file_info provided, store
-                if file_info and transcription_id:
-                    try:
-                        cursor.execute('''
-                            INSERT INTO ai_infrastructure.transcription_uploads
-                            (transcription_id, filename, file_size, file_type, mime_type, original_duration, processing_time_ms)
-                            VALUES (%s, %s, %s, %s, %s, %s, %s)
-                        ''', (
-                            transcription_id,
-                            file_info.get('filename'),
-                            file_info.get('size'),
-                            file_info.get('format') or file_info.get('file_type'),
-                            file_info.get('mime_type'),
-                            file_info.get('duration_seconds'),
-                            file_info.get('processing_time_ms')
-                        ))
-                    except Exception:
-                        logger.exception('[TRANSCRIPTION] Failed to save upload metadata')
-                
-                cursor.close()
-        except Exception as e:
-            if cursor:
-                cursor.close()
-            raise e
+        # Insert the parent transcription row. execute_query auto-commits
+        # on DML+RETURNING (database_utils.py:1132).
+        transcription_id = execute_query(
+            '''
+            INSERT INTO ai_infrastructure.user_transcriptions
+                (user_id, source_type, transcript_text, confidence, language,
+                 duration_seconds, word_count, model_used, metadata)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
+            RETURNING id
+            ''',
+            (
+                user_id,
+                source_type,
+                transcript,
+                confidence,
+                language,
+                duration,
+                len(transcript.split()) if transcript else 0,
+                model_used,
+                metadata,
+            ),
+            fetch_mode='value',
+        )
 
-        conn.commit()
-        
-        # ✅ Close cursor BEFORE connection
-        cur.close()
-        cur = None
-        conn.close()
-        conn = None
+        # If file_info provided, persist the upload metadata in the child
+        # table created by migration 061. A failure here must not block the
+        # transcription record itself, so it is logged and swallowed.
+        if file_info and transcription_id:
+            try:
+                execute_query(
+                    '''
+                    INSERT INTO ai_infrastructure.transcription_uploads
+                        (transcription_id, filename, file_size, file_type,
+                         mime_type, original_duration, processing_time_ms)
+                    VALUES (%s, %s, %s, %s, %s, %s, %s)
+                    ''',
+                    (
+                        transcription_id,
+                        file_info.get('filename'),
+                        file_info.get('size'),
+                        file_info.get('format') or file_info.get('file_type'),
+                        file_info.get('mime_type'),
+                        file_info.get('duration_seconds'),
+                        file_info.get('processing_time_ms'),
+                    ),
+                    fetch_mode=None,
+                )
+            except Exception:
+                logger.exception('[TRANSCRIPTION] Failed to save upload metadata')
 
         return jsonify({'success': True, 'transcription_id': transcription_id}), 200
 
     except Exception as e:
         logger.error(f'[TRANSCRIPTION] Save error: {e}', exc_info=True)
         return jsonify({'success': False, 'error': str(e)}), 500
-    finally:
-        # ✅ Guaranteed cleanup
-        if cur:
-            try:
-                cur.close()
-            except:
-                pass
-        if conn:
-            try:
-                conn.close()
-            except:
-                pass
 
 
 @transcription_bp.route('/api/transcriptions/history', methods=['GET'])
@@ -654,8 +658,21 @@ def engines_status():
     """
     GET /api/transcription/engines-status
     Check all transcription engine API keys at once via the 4-tier credential resolver.
-    Returns {engines: {platform -> {has_key: bool, ...}}}
+    Returns {engines: {platform -> {has_key: bool, ...}}}.
+
+    ✅ FIX 2026-07-26: 5s in-memory cache. The route is hit on every UI tick
+       of the engines panel (and was being called repeatedly while other
+       gevent-blocked requests queued behind it). The per-user cache key
+       prevents one user's cache from leaking to another.
     """
+    # Per-user, per-process cache with a 5s TTL. Cached payload is the
+    # final engines dict so callers get a stable response shape.
+    cache_key = (g.user_id, 'engines_status')
+    now = time.monotonic()
+    cached = _engines_status_cache.get(cache_key)
+    if cached and (now - cached['ts']) < _ENGINES_STATUS_CACHE_TTL:
+        return jsonify({'engines': cached['payload'], 'cached': True}), 200
+
     try:
         from AI_infrastructure.shared.org_credentials_loader import resolve_api_key
         user_id = g.user_id
@@ -672,7 +689,8 @@ def engines_status():
             'model_loaded': whisper_model is not None,
             'error': _whisper_load_error if not _whisper_lib_available else None,
         }
-        return jsonify({'engines': result}), 200
+        _engines_status_cache[cache_key] = {'ts': now, 'payload': result}
+        return jsonify({'engines': result, 'cached': False}), 200
     except Exception as e:
         logger.error(f'[TRANSCRIPTION] Engines status error: {e}', exc_info=True)
         return jsonify({'error': str(e)}), 500
