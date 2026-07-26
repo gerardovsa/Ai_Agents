@@ -848,6 +848,74 @@ class RegistryV3:
         """Get tool definition by name"""
         return self.tools.get(tool_name)
 
+    # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    # ✅ FIX (Jul 26, 2026): Server-side tool-name allowlist.
+    # ─────────────────────────────────────────────────────────────────────
+    # WHY THIS EXISTS
+    #   The provider's `input_schema` constraint (Anthropic `input_schema`,
+    #   OpenAI/DeepSeek `function.parameters`, MiniMax-M3 inherits the
+    #   Anthropic contract) prevents tool-name hallucination on the wire
+    #   for ordinary models. But reasoning-amplified models can fabricate
+    #   tool names *inside* the thinking trace and emit them anyway — a
+    #   known edge case for extended-thinking providers (Anthropic
+    #   extended-thinking docs note it explicitly). We need a server-side
+    #   gate that runs *after* the SDK returns but *before* dispatch.
+    #
+    #   Per AgentSentinel (arXiv 2509.07764), tool-name hallucination has
+    #   a 90-100% Attack Success Rate on Claude 3.5/3.7 Sonnet and
+    #   GPT-4/4o. Cutting it off at the dispatch boundary is the cheapest
+    #   possible mitigation — no extra round-trip, no extra latency, and
+    #   the rejection is visible to the model on its next turn so it can
+    #   self-correct (try a different tool, or stop trying).
+    #
+    # WHAT IT DOES
+    #   `is_tool_allowed(name)` returns True iff `name` is registered
+    #   in `self.tools` OR is one of the two meta-tools (`get_tool_schema`,
+    #   `execute_tool`) that are routed through a special-case branch in
+    #   the agentic loop and bypass `self.implementations` dispatch.
+    #
+    # PROVIDER ALIGNMENT (per AI_infrastructure/prompts/TOOL_SYSTEM_ROBUSTNESS_
+    #   2026-07-26.md §4):
+    #     Anthropic       input_schema  — enforced server-side, but the gate
+    #                                     catches reasoning-trace leaks.
+    #     OpenAI          function.parameters (strict mode) — same gap.
+    #     DeepSeek        OpenAI-compatible — same gap.
+    #     MiniMax-M3      inherits Anthropic contract — same gap.
+    #
+    # DATABASE STORAGE
+    #   No migration required. The rejection event is emitted via the SSE
+    #   queue from the agentic loop (line ~2270, added alongside this
+    #   method). Future forensic storage goes on `tool_intelligence_logger`
+    #   with a new `kind` value (tracked as fix #4 in the dated doc).
+    #
+    # SAFETY
+    #   - Empty / non-string names always return False.
+    #   - The fallback meta-tool set is a frozen constant — adding new
+    #     tools to it requires explicit code review (we do NOT auto-derive
+    #     it from `self.implementations` to avoid the edge case where a
+    #     broken implementation appears in `self.implementations` and
+    #     accidentally widens the allowlist).
+    # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    _ALLOWED_META_TOOL_NAMES = frozenset({"get_tool_schema", "execute_tool"})
+
+    def is_tool_allowed(self, tool_name: str) -> bool:
+        """Return True iff `tool_name` is in the registered tool schema dict.
+
+        The check is provider-agnostic — it runs after the SDK returns the
+        model response and before any dispatch. Combined with the provider's
+        own server-side schema enforcement, this closes the reasoning-trace
+        leak vector documented for extended-thinking models.
+        """
+        if not isinstance(tool_name, str) or not tool_name:
+            return False
+        if tool_name in self.tools:
+            return True
+        return tool_name in self._ALLOWED_META_TOOL_NAMES
+
+    def list_tool_names(self) -> List[str]:
+        """Return all registered tool names (sorted). Cheap O(N log N)."""
+        return sorted(self.tools.keys())
+
     def get_implementation(self, module_name: str):
         """Get implementation module by name"""
         return self.implementations.get(module_name)

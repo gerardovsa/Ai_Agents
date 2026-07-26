@@ -2267,6 +2267,58 @@ def run_simple_agent_worker(
                 queue.put({'type': 'tool_use', 'tool_name': tool_name, 'tool_input': tool_input})
                 
                 try:
+                    # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+                    # ✅ FIX (Jul 26, 2026): Server-side tool-name allowlist.
+                    # ────────────────────────────────────────────────────────
+                    # Cuts off tool-name hallucination (AgentSentinel,
+                    # arXiv 2509.07764: 90-100% ASR on reasoning-amplified
+                    # models) at the dispatch boundary, BEFORE we hand the
+                    # name to either the meta-tool branch below or
+                    # `registry.execute_tool`.
+                    #
+                    # Provider alignment (TOOL_SYSTEM_ROBUSTNESS_2026-07-26
+                    # §4):
+                    #   Anthropic       input_schema enforced server-side
+                    #                   but the gate catches reasoning-trace
+                    #                   leaks for extended-thinking models.
+                    #   OpenAI/DeepSeek function.parameters (strict mode)
+                    #                   — same gap.
+                    #   MiniMax-M3      inherits Anthropic contract.
+                    #
+                    # On rejection: raise ValueError → existing `except`
+                    # block (line ~2325) emits a structured tool_result
+                    # with `is_error=True`. The model sees the rejection
+                    # on its next turn and can self-correct.
+                    # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+                    if not registry.is_tool_allowed(tool_name):
+                        # Build a small "did you mean" hint to help the
+                        # model recover without burning another round.
+                        try:
+                            same_prefix = sorted({
+                                n for n in registry.tools.keys()
+                                if isinstance(n, str)
+                                and isinstance(tool_name, str)
+                                and len(n) > 0
+                                and len(tool_name) > 0
+                                and n.split('_', 1)[0] == tool_name.split('_', 1)[0]
+                            })[:5]
+                        except Exception:
+                            same_prefix = []
+                        hint = (
+                            f" Did you mean one of: {same_prefix}?"
+                            if same_prefix else ""
+                        )
+                        registered_count = len(registry.tools)
+                        print(
+                            f"{log_prefix} [TOOL-ALLOWLIST] rejected unregistered "
+                            f"tool name '{tool_name}' (thread={thread_id}, "
+                            f"registered={registered_count})"
+                        )
+                        raise ValueError(
+                            f"Tool '{tool_name}' is not in the registered tool "
+                            f"registry ({registered_count} tools available).{hint}"
+                        )
+
                     # Execute tool
                     if tool_name in ['get_tool_schema', 'execute_tool']:
                         from tools.implementations.meta_tools import execute_tool as execute_tool_fn, get_tool_schema as get_tool_schema_fn
