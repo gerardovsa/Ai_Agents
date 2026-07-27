@@ -11463,7 +11463,8 @@
 
         .ai-chat-attach-btn,
         .ai-chat-feedback-btn,
-        .ai-chat-mic-btn {
+        .ai-chat-mic-btn,
+        .ai-chat-test-render-btn {
             width: 32px;
             height: 32px;
             padding: 0;
@@ -11478,6 +11479,10 @@
             justify-content: center;
             transition: all 0.3s ease;
         }
+
+        /* Test-render button (dev diagnostic) — purple to match the flask icon */
+        .ai-chat-test-render-btn { color: rgba(167, 139, 250, 0.7); }
+        .ai-chat-test-render-btn:hover { color: #a78bfa; background: rgba(167, 139, 250, 0.1); }
 
         .ai-chat-send-btn {
             width: 32px;
@@ -21656,6 +21661,15 @@
                                     <input type="file" id="ai-chat-file-input" multiple
                                         accept=".pdf,.png,.jpg,.jpeg,.gif,.webp,.docx,.doc,.odt,.rtf,.xlsx,.xls,.pptx,.ppt,.csv,.txt,.md,.json,.xml,.yaml,.yml,.html,.htm,.py,.js,.ts,.jsx,.tsx,.css" />
                                 </button>
+                                <!-- TEST RENDER (dev only): paste AI code, see iframes side-by-side
+                                     - left = production pipeline (window.ReactRenderer.buildReactSrcdoc)
+                                     - right = bypass pipeline (raw Babel+sandbox, no fence extractor, no walker)
+                                     See injectTestRenderBubble() in the bottom IIFE. -->
+                                <button class="ai-chat-test-render-btn" id="ai-chat-test-render-btn"
+                                    title="Paste AI code and render it side-by-side through prod + bypass iframes (dev diagnostic)"
+                                    onclick="injectTestRenderBubble()">
+                                    <i class="fas fa-flask"></i>
+                                </button>
                                 <!-- Send/Stop buttons - inside wrapper so they collapse with input -->
                                 <button class="ai-chat-send-btn" id="ai-chat-send-btn" title="Send message">
                                     <i class="fas fa-paper-plane"></i>
@@ -28978,6 +28992,278 @@
             console.log('[Circuit] Starting animation loop...');
             animate();
         })();
+    </script>
+
+    <!-- ==================== TEST RENDER WIDGET (dev diagnostic, added 2026-07-27) ====================
+         Side-by-side rendering of AI-generated JSX through:
+           PROD   = the EXACT production pipeline (window.ReactRenderer.buildReactSrcdoc)
+                    — fence extractor, JSON-unwrap, import-strip, short-circuit walker, etc.
+           BYPASS = a hand-built srcdoc that ONLY strips imports/exports and runs Babel
+                    — no fence extractor, no walker, no auto-detection.
+         If the two render differently → the bug is in the production pipeline upstream
+             of Babel.
+         If both fail the same way → the bug is in Babel / Recharts / the AI payload.
+         Trigger: the flask icon in .ai-chat-right-buttons (#ai-chat-test-render-btn). -->
+    <script>
+    (function () {
+        'use strict';
+
+        // safeJsString — same trick as react_renderer.js:282 to keep the host
+        // <script> tag alive when user/AI code contains "</script>".
+        function safeJsString(s) {
+            return JSON.stringify(s).replace(/<\/(script)/gi, '<\\/$1');
+        }
+
+        // ── BYPASS srcdoc builder ──────────────────────────────────────────────
+        // Treats the textarea contents as raw, already-clean JSX. The ONLY
+        // pipeline steps we run are import/export stripping (Babel-standalone
+        // rejects the `import` keyword outside modules) and the standard
+        // identifier hoist so <BarChart/> resolves to window.BarChart.
+        function buildBypassSrcdoc(jsxContent, chartId, opts) {
+            opts = opts || {};
+            var tailwindOn = !!opts.tailwind;
+            var tailwindScript = tailwindOn
+                ? '<script src="https://cdn.tailwindcss.com"></' + 'script>'
+                : '';
+            var payload = safeJsString(jsxContent);
+
+            return [
+                '<!DOCTYPE html>',
+                '<html><head><meta charset="UTF-8">',
+                tailwindScript,
+                '<script src="visualisation_engine/libs/react.production.min.js?v=20260727_1820"></' + 'script>',
+                '<script src="visualisation_engine/libs/react-dom.production.min.js?v=20260727_1820"></' + 'script>',
+                '<script src="visualisation_engine/libs/prop-types.js?v=20260727_1640"></' + 'script>',
+                '<script src="visualisation_engine/libs/Recharts.js?v=20260727_1640"></' + 'script>',
+                '<script src="visualisation_engine/libs/babel.min.js"></' + 'script>',
+                '<script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></' + 'script>',
+                '<style>',
+                '  html,body,#root{margin:0;padding:0;height:100%;width:100%;box-sizing:border-box;}',
+                '  #root{padding:8px;}',
+                '  body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;}',
+                '</style>',
+                '</head><body><div id="root"></div>',
+                '<script>',
+                '(function () {',
+                '  try {',
+                '    var rawSource = ' + payload + ';',
+                '    console.log("[BYPASS_DEMO " + ' + JSON.stringify(chartId) + ' + "] rawSource bytes=" + rawSource.length);',
+                // Strip ONLY what Babel-standalone refuses to parse (import /
+                // export keywords and import.meta). No fence extraction, no
+                // JSON-unwrap, no short-circuit walker, no Tailwind auto-detect.
+                '    var cleaned = rawSource',
+                '      .replace(/^[ \\t]*import[\\s\\S]*?(?:;|$)/gm, "")',
+                '      .replace(/^[ \\t]*export[\\s\\S]*?(?:;|$)/gm, "")',
+                '      .replace(/\\bimport\\s*\\([^)]*\\)\\s*;?/g, "")',
+                '      .replace(/\\bimport\\s*\\.\\s*meta\\b/g, "({})");',
+                '    console.log("[BYPASS_DEMO " + ' + JSON.stringify(chartId) + ' + "] cleaned bytes=" + cleaned.length);',
+                // PascalCase hoist — same idea as production (post-transform),
+                // but written inline rather than via AST analysis.
+                '    (function () {',
+                '      var r = window.Recharts;',
+                '      if (r && typeof r === "object") {',
+                '        ["BarChart","Bar","LineChart","Line","PieChart","Pie","Cell","AreaChart","Area","ScatterChart","Scatter","XAxis","YAxis","ZAxis","CartesianGrid","Tooltip","Legend","ResponsiveContainer","ComposedChart","LabelList","ReferenceLine","ReferenceArea","ReferenceDot","Brush","ErrorBar"].forEach(function (n) { if (typeof r[n] !== "undefined") window[n] = r[n]; });',
+                '      }',
+                '      var L = window.lucide;',
+                '      if (L && L.icons) { Object.keys(L.icons).forEach(function (k) { if (/^[A-Z]/.test(k)) window[k] = L.icons[k]; }); }',
+                '      var RH = window.React;',
+                '      if (RH) { ["useState","useEffect","useCallback","useMemo","useRef","useContext","createContext","useReducer","useLayoutEffect","forwardRef","memo","Fragment"].forEach(function (k) { if (typeof RH[k] !== "undefined") window[k] = RH[k]; }); }',
+                '    })();',
+                '    var transformed = Babel.transform(cleaned, { presets: [["react", { runtime: "classic" }]] }).code;',
+                '    console.log("[BYPASS_DEMO " + ' + JSON.stringify(chartId) + ' + "] babel OK, bytes=" + transformed.length);',
+                // Pre-parse — matches production's safety net so we surface
+                // script-body SyntaxErrors as exceptions, not silent blank iframes.
+                '    new Function(transformed);',
+                '    var s = document.createElement("script");',
+                '    s.textContent = transformed;',
+                '    document.body.appendChild(s);',
+                '    console.log("[BYPASS_DEMO " + ' + JSON.stringify(chartId) + ' + "] script appended");',
+                // Auto-mount — find the root component the user declared
+                '    var Root = window.App || window.Component || window.Dashboard || null;',
+                '    if (Root) {',
+                '      ReactDOM.createRoot(document.getElementById("root")).render(React.createElement(Root));',
+                '      console.log("[BYPASS_DEMO " + ' + JSON.stringify(chartId) + ' + "] mount committed");',
+                '    } else {',
+                '      document.body.insertAdjacentHTML("beforeend", "<pre style=\\"color:#b91c1c;padding:16px;font:12px monospace;white-space:pre-wrap;\\">No exported root component found. Define <code>function App()</code> (or <code>Dashboard</code>) in your code.</pre>");',
+                '    }',
+                '  } catch (err) {',
+                '    console.error("[BYPASS_DEMO " + ' + JSON.stringify(chartId) + ' + "] FATAL:", err && err.stack || err);',
+                '    document.body.innerHTML = "<pre style=\\"color:#b91c1c;padding:16px;font:12px ui-monospace,monospace;white-space:pre-wrap;\\">[BYPASS_DEMO] FAILED:\\n" + (err && err.stack || err) + "</pre>";',
+                '  }',
+                '})();',
+                '</' + 'script>',
+                '</body></html>'
+            ].join('\n');
+        }
+
+        // ── PROD srcdoc builder ────────────────────────────────────────────────
+        // Delegates to the EXACT production pipeline. window.ReactRenderer is
+        // exposed as a global at react_renderer.js:1843.
+        function buildProdSrcdoc(jsxContent, chartId, opts) {
+            opts = opts || {};
+            if (!window.ReactRenderer || typeof window.ReactRenderer.buildReactSrcdoc !== 'function') {
+                return '<pre style="color:#b91c1c;padding:16px;font:13px monospace;white-space:pre-wrap;">window.ReactRenderer is not loaded yet — react_renderer.js may have failed to load. Reload the SPA and try again.</pre>';
+            }
+            // The production pipeline auto-detects Tailwind from the source's
+            // className= attrs. To honour the toggle, we splice a hint string
+            // that DOES contain a Tailwind utility keyword so the detector
+            // turns on. Cheap and effective — no need to reach inside the
+            // detector itself.
+            var payload = jsxContent;
+            if (opts.tailwind && !/tailwind/i.test(payload)) {
+                // The string is never rendered; it's just for the regex.
+                payload = '// tailwind-override-hint: flex\n' + payload;
+            }
+            try {
+                return window.ReactRenderer.buildReactSrcdoc(payload, chartId);
+            } catch (err) {
+                return '<pre style="color:#b91c1c;padding:16px;font:13px monospace;white-space:pre-wrap;">buildReactSrcdoc threw: ' + (err && err.stack || err) + '</pre>';
+            }
+        }
+
+        function injectIframeIntoCell(cell, srcdoc, label) {
+            // Preserve the status div by replacing only its sibling iframes.
+            var oldIframes = cell.querySelectorAll('iframe');
+            for (var i = 0; i < oldIframes.length; i++) oldIframes[i].remove();
+            var frame = document.createElement('iframe');
+            frame.sandbox = 'allow-scripts';
+            frame.style.cssText = 'width:100%;height:520px;border:1px solid var(--border-color,#444);border-radius:6px;background:#fff;display:block;';
+            frame.srcdoc = srcdoc;
+            cell.appendChild(frame);
+            var status = cell.querySelector('.test-render-cell-status');
+            if (status) {
+                status.textContent = label + ' — srcdoc ' + srcdoc.length + ' bytes';
+            }
+        }
+
+        function renderBoth(textarea, prodCell, bypassCell, opts) {
+            var src = textarea.value || '';
+            var stamp = Date.now();
+            var prodSrcdoc = buildProdSrcdoc(src, 'test-render-prod-' + stamp, opts);
+            injectIframeIntoCell(prodCell, prodSrcdoc,
+                'PROD path (window.ReactRenderer.buildReactSrcdoc)');
+            var bypassSrcdoc = buildBypassSrcdoc(src, 'test-render-bypass-' + stamp, opts);
+            injectIframeIntoCell(bypassCell, bypassSrcdoc,
+                'BYPASS path (raw Babel, no fence extractor / walker)');
+        }
+
+        // Seed JSX — the canonical "Sales Analytics" AI payload the user has
+        // been debugging. Saves a paste on the common case; user can wipe it
+        // and paste something else to test that pattern instead.
+        var SEED_JSX = [
+            'function App() {',
+            '  var data = [',
+            '    { month: "Jan", revenue: 4200, users: 240 },',
+            '    { month: "Feb", revenue: 3800, users: 198 },',
+            '    { month: "Mar", revenue: 5100, users: 312 },',
+            '    { month: "Apr", revenue: 4700, users: 280 },',
+            '    { month: "May", revenue: 6200, users: 401 },',
+            '    { month: "Jun", revenue: 5900, users: 367 }',
+            '  ];',
+            '  return (',
+            '    React.createElement("div", { style: { padding: 16, fontFamily: "system-ui" } },',
+            '      React.createElement("h2", { style: { margin: "0 0 12px 0" } }, "Sales Analytics"),',
+            '      React.createElement(ResponsiveContainer, { width: "100%", height: 220 },',
+            '        React.createElement(LineChart, { data: data },',
+            '          React.createElement(XAxis, { dataKey: "month" }),',
+            '          React.createElement(YAxis, null),',
+            '          React.createElement(Tooltip, null),',
+            '          React.createElement(Line, { type: "monotone", dataKey: "revenue", stroke: "#8884d8" })',
+            '        )',
+            '      )',
+            '    )',
+            '  );',
+            '}'
+        ].join('\n');
+
+        // Public API — invoked by the trigger button's onclick.
+        window.injectTestRenderBubble = function () {
+            var messages = document.getElementById('ai-chat-messages');
+            if (!messages) {
+                alert('Test-render widget could not find #ai-chat-messages. Open a chat first.');
+                return;
+            }
+            // Re-use an existing bubble if one is already open.
+            var existing = document.getElementById('test-render-bubble');
+            if (existing) {
+                existing.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                var ta = existing.querySelector('#test-render-textarea');
+                if (ta) ta.focus();
+                return;
+            }
+
+            var bubble = document.createElement('div');
+            bubble.id = 'test-render-bubble';
+            bubble.className = 'ai-message assistant';
+            bubble.style.cssText = 'margin:16px 0;padding:0;';
+            bubble.innerHTML = [
+                '<div class="ai-message-header" style="display:flex;align-items:center;justify-content:space-between;gap:12px;padding:8px 12px;background:var(--bg-secondary,#1e1e2e);border-bottom:1px solid var(--border-color,#333);flex-wrap:wrap;">',
+                '  <div style="display:flex;align-items:center;gap:8px;flex:1;min-width:240px;">',
+                '    <i class="fas fa-flask" style="color:#a78bfa;"></i>',
+                '    <strong>Test render</strong>',
+                '    <span style="font-size:11px;color:var(--text-tertiary,#94a3b8);">PROD = real pipeline &middot; BYPASS = raw Babel</span>',
+                '  </div>',
+                '  <div style="display:flex;align-items:center;gap:10px;">',
+                '    <label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer;color:var(--text-secondary,#cbd5e1);">',
+                '      <input type="checkbox" id="test-render-tailwind-toggle">',
+                '      <span>Tailwind</span>',
+                '    </label>',
+                '    <button type="button" id="test-render-reload-btn" style="padding:4px 12px;background:var(--accent,#42b883);color:#fff;border:0;border-radius:4px;cursor:pointer;font:inherit;font-size:12px;">Reload</button>',
+                '    <button type="button" id="test-render-close-btn"  style="padding:4px 10px;background:transparent;color:var(--text-secondary,#cbd5e1);border:1px solid var(--border-color,#444);border-radius:4px;cursor:pointer;font:inherit;font-size:12px;">Close</button>',
+                '  </div>',
+                '</div>',
+                '<div class="ai-message-content" style="padding:12px;">',
+                '  <textarea id="test-render-textarea" rows="10" placeholder="Paste AI-generated JSX here. The widget renders it side-by-side through the production pipeline and a bypass pipeline." style="width:100%;box-sizing:border-box;font:12px ui-monospace,Consolas,monospace;background:var(--bg-primary,#0f172a);color:var(--text-primary,#e2e8f0);border:1px solid var(--border-color,#333);border-radius:6px;padding:10px;resize:vertical;line-height:1.5;"></textarea>',
+                '  <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:12px;">',
+                '    <div class="test-render-cell" id="test-render-prod-cell" style="border:1px solid var(--border-color,#444);border-radius:6px;padding:8px;background:var(--bg-secondary,#1e1e2e);min-width:0;">',
+                '      <div class="test-render-cell-status" style="font:11px ui-monospace,monospace;color:var(--text-tertiary,#94a3b8);margin-bottom:6px;word-break:break-all;">PROD path &mdash; idle</div>',
+                '    </div>',
+                '    <div class="test-render-cell" id="test-render-bypass-cell" style="border:1px solid var(--border-color,#444);border-radius:6px;padding:8px;background:var(--bg-secondary,#1e1e2e);min-width:0;">',
+                '      <div class="test-render-cell-status" style="font:11px ui-monospace,monospace;color:var(--text-tertiary,#94a3b8);margin-bottom:6px;word-break:break-all;">BYPASS path &mdash; idle</div>',
+                '    </div>',
+                '  </div>',
+                '</div>'
+            ].join('\n');
+
+            messages.appendChild(bubble);
+            bubble.scrollIntoView({ behavior: 'smooth', block: 'center' });
+
+            var textarea    = bubble.querySelector('#test-render-textarea');
+            var prodCell    = bubble.querySelector('#test-render-prod-cell');
+            var bypassCell  = bubble.querySelector('#test-render-bypass-cell');
+            var tailwindTgl = bubble.querySelector('#test-render-tailwind-toggle');
+            var reloadBtn   = bubble.querySelector('#test-render-reload-btn');
+            var closeBtn    = bubble.querySelector('#test-render-close-btn');
+
+            textarea.value = SEED_JSX;
+
+            function getOpts() { return { tailwind: tailwindTgl.checked }; }
+
+            function refresh() {
+                renderBoth(textarea, prodCell, bypassCell, getOpts());
+            }
+
+            // Debounce textarea input — Babel transform + iframe render is
+            // ~150-300ms, no point firing on every keystroke.
+            var debounceTimer = null;
+            textarea.addEventListener('input', function () {
+                clearTimeout(debounceTimer);
+                debounceTimer = setTimeout(refresh, 400);
+            });
+            tailwindTgl.addEventListener('change', refresh);
+            reloadBtn.addEventListener('click', refresh);
+            closeBtn.addEventListener('click', function () {
+                clearTimeout(debounceTimer);
+                bubble.remove();
+            });
+
+            // First paint
+            refresh();
+
+            console.log('[test-render] widget injected. seed JSX bytes=', SEED_JSX.length,
+                'ReactRenderer=', !!(window.ReactRenderer && window.ReactRenderer.buildReactSrcdoc));
+        };
+    })();
     </script>
 
     <!-- Module Status Debug Script -->
