@@ -1415,8 +1415,10 @@
     <!-- Multi-agent system components extracted for modularity -->
     <!-- Note: Message renderer loaded from shared/utilities/message_renderer.js above -->
     <link data-post-auth rel="stylesheet" href="modules_internal/agents/agent-ui.css?v=20260328_1054" disabled>
+    <link data-post-auth rel="stylesheet" href="modules_internal/agents/feedback-styles.css?v=20260328_1054" disabled>
     <script data-post-auth defer src="modules_internal/agents/error_recovery_manager.js?v=20260328_1054"></script>
     <script data-post-auth defer src="shared/js/workspace-manager.js?v=20260328_1054"></script>
+    <script data-post-auth defer src="modules_internal/agents/feedback-module.js?v=20260328_1054"></script>
     <script data-post-auth defer src="modules_internal/agents/agent-column.js?v=20260328_1054"></script>
     <script data-post-auth defer src="modules_internal/agents/agent-input-manager.js?v=20260328_1054"></script>
     <script data-post-auth defer src="modules_internal/agents/agent-js.js?v=20260328_1054"></script>
@@ -12723,44 +12725,78 @@
 
         /* ====================================================================
            PANEL-LEVEL STATUS PULSE (matches the badge ring mechanism)
-           - Three layers breathe together, each contributing a different cue:
+           Four layers breathe together, each contributing a different cue:
              1. Static 1 px border in status colour (constant; set on each
-                .status-X rule below — paints all 4 sides reliably).
+                .status-X rule below — paints all 4 sides reliably because
+                it uses the `border` shorthand).
              2. Outer 2 px ring + soft outer glow (4 -> 8 px blur). Visible on
                 the LEFT and RIGHT edges of an agent column where the 12 px
                 column gap gives the glow room. The 8 px peak reach stays
                 inside the gap so it does not bleed into the neighbour.
                 At top/bottom this layer IS clipped by #multi-agent-container's
                 overflow:auto (padding: 0, height: 100%) — that is expected
-                and harmless because layer 3 covers it.
-             3. Inset atmospheric wash (8 -> 22 px blur + 0 -> 2 px spread,
-                alpha 0.4 -> 0.95). Inset box-shadow paints INSIDE the panel
-                and is NEVER clipped by ancestor overflow — so the breath is
-                visible on ALL FOUR edges. This is the load-bearing layer for
-                the top/bottom of the agent columns.
+                and harmless because layer 4 covers it.
+             3. Inset atmospheric wash (4 -> 14 px blur + 0 -> 2 px spread).
+                Inset box-shadow paints INSIDE the panel and is NEVER clipped
+                by ancestor overflow, so the breath is visible at the bottom
+                of every agent column where no child covers the edge. It is
+                ALSO partially covered by children on top/sides — see layer 4.
+             4. Rim-glow OVERLAY (NEW 2026-07-27). A `::after` pseudo-element
+                positioned `inset: 0` with `pointer-events: none` and
+                `z-index: 1`, painted ABOVE children via a radial-gradient
+                (transparent center, status-colour at the rim) whose opacity
+                breathes via @keyframes panelStatusPulseOverlay. This is the
+                load-bearing layer for the TOP and SIDES of the panel —
+                anywhere a child has its own background that would otherwise
+                hide the inset box-shadow.
+                Specificity tie-break vs the existing `.agent-column.drag-over::after`
+                drop tooltip: my selector requires a status-X class so it
+                never fires on a non-busy column. During status + drag-over,
+                the (0,4,0) `.status-X.drag-over::after { display: none }`
+                rule (below) suppresses both the drop tooltip AND the overlay
+                — but during that state the user is mid-drag and not looking
+                at the rim glow anyway; the border + outer glow still pulse.
            - Animation timing matches statusPulse so icon and panel breathe
              in lock-step.
-           - Uses box-shadow rather than a pseudo-element because the existing
-             pseudo-elements are already load-bearing:
+           - Uses box-shadow + ::after rather than re-tasking an existing
+             pseudo. The other pseudo slots are load-bearing:
                .ai-chat-panel::before = resize strip
                .agent-column::before  = agent-action-button label
-               .agent-column::after   = drop tooltip
+               .agent-column::after   = drop tooltip (suppressed when busy)
+             Prime's `.ai-chat-panel::after` is unused and free; the agent
+             column's `.agent-column::after` is the drop tooltip but is
+             hidden by the (0,4,0) suppress rule whenever a status is active.
            ==================================================================== */
         @keyframes panelStatusPulse {
 
             0%,
             100% {
                 box-shadow:
-                    inset 0 0 8px 0 var(--status-glow-rest, rgba(139, 92, 246, 0.4)),
+                    inset 0 0 4px 0 var(--status-glow-rest, rgba(139, 92, 246, 0.4)),
                     0 0 0 2px var(--status-color, #8b5cf6),
                     0 0 4px 0 var(--status-glow-rest, rgba(139, 92, 246, 0.4));
             }
 
             50% {
                 box-shadow:
-                    inset 0 0 22px 2px var(--status-glow-peak, rgba(139, 92, 246, 0.95)),
+                    inset 0 0 14px 2px var(--status-glow-peak, rgba(139, 92, 246, 0.95)),
                     0 0 0 2px var(--status-color, #8b5cf6),
                     0 0 8px 0 var(--status-glow-peak, rgba(139, 92, 246, 0.95));
+            }
+        }
+
+        /* Rim-glow overlay breath — runs in lock-step with panelStatusPulse.
+           Painted above children so the pulse is visible even where
+           .ai-chat-messages / .agent-header have their own backgrounds. */
+        @keyframes panelStatusPulseOverlay {
+
+            0%,
+            100% {
+                opacity: 0.15;
+            }
+
+            50% {
+                opacity: 0.95;
             }
         }
 
@@ -12773,6 +12809,28 @@
             animation: panelStatusPulse 2s ease-in-out infinite;
         }
 
+        /* Rim-glow overlay for thinking — painted ABOVE children so the
+           pulse is visible at top/sides where chat-messages / agent-header
+           have their own backgrounds. pointer-events: none keeps clicks
+           passing through to the underlying buttons. */
+        .ai-chat-panel.status-thinking::after,
+        .agent-column.status-thinking::after {
+            content: '';
+            position: absolute;
+            inset: 0;
+            pointer-events: none;
+            border-radius: inherit;
+            background: radial-gradient(
+                ellipse at center,
+                transparent 55%,
+                var(--status-glow-peak, rgba(139, 92, 246, 0.95)) 95%,
+                var(--status-glow-peak, rgba(139, 92, 246, 0.95)) 100%
+            );
+            z-index: 1;
+            opacity: 0;
+            animation: panelStatusPulseOverlay 2s ease-in-out infinite;
+        }
+
         .ai-chat-panel.status-tool-running,
         .agent-column.status-tool-running {
             --status-color: #eab308;
@@ -12780,6 +12838,24 @@
             --status-glow-peak: rgba(234, 179, 8, 0.95);
             border: 1px solid #eab308;
             animation: panelStatusPulse 1.5s ease-in-out infinite;
+        }
+
+        .ai-chat-panel.status-tool-running::after,
+        .agent-column.status-tool-running::after {
+            content: '';
+            position: absolute;
+            inset: 0;
+            pointer-events: none;
+            border-radius: inherit;
+            background: radial-gradient(
+                ellipse at center,
+                transparent 55%,
+                var(--status-glow-peak, rgba(234, 179, 8, 0.95)) 95%,
+                var(--status-glow-peak, rgba(234, 179, 8, 0.95)) 100%
+            );
+            z-index: 1;
+            opacity: 0;
+            animation: panelStatusPulseOverlay 1.5s ease-in-out infinite;
         }
 
         .ai-chat-panel.status-tool-success,
@@ -12791,6 +12867,24 @@
             animation: panelStatusPulse 1.5s ease-in-out infinite;
         }
 
+        .ai-chat-panel.status-tool-success::after,
+        .agent-column.status-tool-success::after {
+            content: '';
+            position: absolute;
+            inset: 0;
+            pointer-events: none;
+            border-radius: inherit;
+            background: radial-gradient(
+                ellipse at center,
+                transparent 55%,
+                var(--status-glow-peak, rgba(96, 165, 250, 0.95)) 95%,
+                var(--status-glow-peak, rgba(96, 165, 250, 0.95)) 100%
+            );
+            z-index: 1;
+            opacity: 0;
+            animation: panelStatusPulseOverlay 1.5s ease-in-out infinite;
+        }
+
         .ai-chat-panel.status-writing,
         .agent-column.status-writing {
             --status-color: #ffffff;
@@ -12798,6 +12892,24 @@
             --status-glow-peak: rgba(255, 255, 255, 1);
             border: 1px solid #ffffff;
             animation: panelStatusPulse 2s ease-in-out infinite;
+        }
+
+        .ai-chat-panel.status-writing::after,
+        .agent-column.status-writing::after {
+            content: '';
+            position: absolute;
+            inset: 0;
+            pointer-events: none;
+            border-radius: inherit;
+            background: radial-gradient(
+                ellipse at center,
+                transparent 55%,
+                var(--status-glow-peak, rgba(255, 255, 255, 1)) 95%,
+                var(--status-glow-peak, rgba(255, 255, 255, 1)) 100%
+            );
+            z-index: 1;
+            opacity: 0;
+            animation: panelStatusPulseOverlay 2s ease-in-out infinite;
         }
 
         /* When a panel is pulsing (AI is busy), drop affordance is suppressed.

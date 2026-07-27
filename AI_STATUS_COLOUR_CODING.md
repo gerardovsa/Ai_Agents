@@ -46,23 +46,35 @@ A status class paints **three places in lock-step**:
    4 sides reliably — declared via the `border` shorthand in each
    `.status-X` rule, not `border-color`, so it works on `.ai-chat-panel`
    whose base only declares `border-left`).
-3. The wrapping panel: a 3-layer **box-shadow stack** (`panelStatusPulse`
-   keyframe):
+3. The wrapping panel: a **4-layer pulse stack** that keeps the breath
+   visible on all four edges even though children paint opaque backgrounds
+   on top:
    - **Layer 1 — outer ring (2 px, constant).** Drawn via `0 0 0 2px
-     <color>` spread. Always visible on the left and right where the 12 px
-     column gap gives it room; may be clipped at top/bottom by the parent
+     <color>` spread. Visible on the left and right where the 12 px column
+     gap gives it room; may be clipped at top/bottom by the parent
      `#multi-agent-container`'s `overflow:auto` (padding 0, height 100% —
      no free space there).
    - **Layer 2 — outer glow (4 → 8 px blur, alpha 0.4 → 0.95).** Visible
      at the sides; intentionally tuned to stay within the 12 px column gap
      so it does not bleed into the neighbour column. May be clipped
      top/bottom — see Layer 3.
-   - **Layer 3 — inset atmospheric wash (8 → 22 px blur + 0 → 2 px spread,
+   - **Layer 3 — inset atmospheric wash (4 → 14 px blur + 0 → 2 px spread,
      alpha 0.4 → 0.95).** Inset box-shadow paints INSIDE the panel and is
-     **never clipped by ancestor overflow** — so this layer is the
-     load-bearing breath on the top and bottom of an agent column.
+     **never clipped by ancestor overflow**, but opaque child elements
+     (`.agent-header` at the top, `.ai-chat-messages` filling the middle
+     with `flex: 1` and `background: var(--bg-secondary)`) paint OVER it.
+     It is visible only on the bottom of agent columns where no child
+     occludes it.
+   - **Layer 4 — `::after` rim-glow overlay (new, 2026-07-27).** Painted
+     ABOVE children via `position: absolute; inset: 0; z-index: 1;
+     pointer-events: none;` and a radial-gradient vignette
+     (`transparent 55% → status color 95% → 100%`). The vignette fades
+     into the centre so the chat content stays readable; the rim glows
+     uniformly on all four edges regardless of which child elements sit
+     inside. The opacity oscillates `0.15 → 0.95` via the
+     `panelStatusPulseOverlay` keyframe (synced to the Layer 3 timings).
 
-Animation durations match across icon and panel:
+Animation durations match across icon, panel box-shadow, and rim overlay:
 
 - `thinking` / `writing`: `2s ease-in-out infinite`
 - `tool-running` / `tool-success`: `1.5s ease-in-out infinite`
@@ -71,11 +83,12 @@ Animation durations match across icon and panel:
 
 - Icon ring geometric pulse: `scale(1.0 → 1.1)` on a ~36 px outer ring ≈ 3.6 px outward reach.
 - Badge ring reference: 2 px positioned `::before` border + 5 % scale ≈ ~4.2 px outward reach.
-- Panel pulse: 2 px outer ring (constant) + 4 → 8 px outer glow (matches badge reach) + 8 → 22 px inset wash (visible at all 4 edges regardless of parent overflow).
+- Panel pulse: 2 px outer ring (constant) + 4 → 8 px outer glow (matches badge reach) + 4 → 14 px inset wash + radial-gradient rim overlay (alpha 0.15 → 0.95) visible on all 4 edges regardless of parent overflow or child occlusion.
 - The 8 px peak outer glow reach stays inside the 12 px column gap so the
-  glow does not bleed into the neighbour. The inset layer compensates on
-  the clipped top/bottom edges. Tune the per-class `--status-glow-rest` /
-  `--status-glow-peak` variables to adjust; do not fork the keyframe.
+  glow does not bleed into the neighbour. The inset layer + rim overlay
+  together compensate on the clipped top/bottom edges and the child-painted
+  sides. Tune the per-class `--status-glow-rest` / `--status-glow-peak`
+  variables to adjust; do not fork the keyframe.
 
 ## 5. Hover behaviour
 
