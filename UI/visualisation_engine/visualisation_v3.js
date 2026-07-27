@@ -2443,20 +2443,31 @@ class VisualizationEngine {
             return keys.length ? dict[keys[keys.length - 1]] : undefined;
         };
 
+        // Each action gets a `source` descriptor — a string that explains WHERE
+        // the data comes from. When the copy is pasted into chat, the
+        // self-documenting header below makes this instant to interpret
+        // without having to scroll up to find which button was clicked.
         const actions = [
             { id: 'babel-out',     label: 'Babel output',           icon: 'fas fa-magic',
+              source: 'window.__babelOutputs__[chartId].babelOut — transpiled JS sent to Function()',
               read: () => _pick(window.__babelOutputs__,        chartId)?.babelOut },
             { id: 'pre-transform', label: 'Cleaned JSX (raw)',      icon: 'fas fa-code',
+              source: 'window.__preTransform__[chartId].rawSource — JSX after fence extraction, before short-circuit rewrite',
               read: () => _pick(window.__preTransform__,         chartId)?.rawSource },
             { id: 'snapshot',      label: 'Runtime snapshot',       icon: 'fas fa-camera',
+              source: 'window.__renderSnapshots__[chartId] — store / state / props / canvas size captured at mount',
               read: () => _pick(window.__renderSnapshots__,     chartId) },
             { id: 'fences',        label: 'Babel fences (F0–F3)',   icon: 'fas fa-layer-group',
+              source: 'window.__renderFences__[chartId] — F0 original / F1 state-stripped / F2 render-isolated / F3 ibsert-fixed',
               read: () => _pick(window.__renderFences__,        chartId) },
             { id: 'errors',        label: 'Runtime errors',         icon: 'fas fa-exclamation-triangle',
+              source: 'window.__renderErrors__[chartId] — componentDidCatch errors with stack traces',
               read: () => _pick(window.__renderErrors__,        chartId) },
             { id: 'babel-errors',  label: 'Babel transform errors', icon: 'fas fa-times-circle',
+              source: 'window.__babelErrors__[chartId] — Babel.parse / Babel.transform throws',
               read: () => _pick(window.__babelErrors__,         chartId) },
             { id: 'script-errors', label: 'Script-parse errors',    icon: 'fas fa-bolt',
+              source: 'window.__renderScriptErrors__[chartId] — SyntaxError caught at new Function(code) step',
               read: () => _pick(window.__renderScriptErrors__, chartId) },
         ];
 
@@ -2496,6 +2507,21 @@ class VisualizationEngine {
                 </span>
                 <span style="font-size:11px;opacity:0.7;margin-left:24px;">
                     composite · fetches iframe console (5s timeout)
+                </span>
+            </button>
+            <button class="viz-diag-action viz-diag-action-aggregator" data-action="copy-all"
+                    role="menuitem"
+                    style="display:flex;flex-direction:column;align-items:flex-start;gap:2px;
+                           width:100%;padding:6px 10px;border:0;border-top:1px solid var(--border-color, #333);
+                           background:transparent;color:inherit;text-align:left;cursor:pointer;
+                           border-radius:6px;font:inherit;margin-top:4px;">
+                <span style="display:flex;align-items:center;gap:8px;">
+                    <i class="fas fa-clipboard-list" style="width:16px;display:inline-block;
+                       text-align:center;flex:0 0 16px;"></i>
+                    <span>Copy ALL diagnostics (labeled paste)</span>
+                </span>
+                <span style="font-size:11px;opacity:0.7;margin-left:24px;">
+                    aggregates all 8 sections with self-documenting headers
                 </span>
             </button>
         `;
@@ -2545,7 +2571,7 @@ class VisualizationEngine {
             refreshButtons();
             const rect = diagBtn.getBoundingClientRect();
             const popW = 248;
-            const popH = actions.length * 44 + 56; // 7 simple + composite + chrome
+            const popH = (actions.length + 2) * 44 + 16; // 7 simple + composite + copy-all + chrome
             let top = rect.bottom + 6 + window.scrollY;
             let left = rect.right - popW + window.scrollX;
             const maxLeft = window.scrollX + window.innerWidth - popW - 8;
@@ -2595,6 +2621,8 @@ class VisualizationEngine {
             try {
                 if (action === 'cache-console') {
                     await this._diagCopyComposite(chartId, iframe);
+                } else if (action === 'copy-all') {
+                    await this._diagCopyAll(chartId, iframe, actions);
                 } else {
                     const found = actions.find(a => a.id === action);
                     const payload = found?.read?.();
@@ -2605,7 +2633,7 @@ class VisualizationEngine {
                     const text = typeof payload === 'string'
                         ? payload
                         : JSON.stringify(payload, null, 2);
-                    await this._diagCopyText(text, found.label);
+                    await this._diagCopyText(text, found.label, chartId, found.source);
                 }
             } catch (err) {
                 console.error('[viz-diag] action failed:', action, err);
@@ -2622,20 +2650,70 @@ class VisualizationEngine {
     }
 
     /**
+     * DIAGNOSTIC v10 (2026-07-27): Wrap any diagnostic payload with a
+     * self-documenting header + footer so a paste into chat is
+     * immediately interpretable without scrolling context. Format:
+     *
+     *   === AI Agents Visualization Diagnostic ===
+     *   chartId: <id>
+     *   capturedAt: <ISO timestamp>
+     *   section: <label>
+     *   source: <where it came from>
+     *   bytes: <N>
+     *   =========================================
+     *
+     *   <raw content>
+     *
+     *   === /<label> ===
+     *
+     * Optional `rawOverride` lets the caller pass a different raw text
+     * (for example the already-JSON-stringified composite) and report
+     * its true byte count instead of `String(text).length`.
+     */
+    _diagLabelWrap(text, label, chartId, source, capturedAt) {
+        const ts = capturedAt || new Date().toISOString();
+        const rawContent = typeof text === 'string'
+            ? text
+            : JSON.stringify(text, null, 2);
+        const bytes = rawContent.length;
+        return [
+            '=== AI Agents Visualization Diagnostic ===',
+            `chartId: ${chartId}`,
+            `capturedAt: ${ts}`,
+            `section: ${label}`,
+            `source: ${source}`,
+            `bytes: ${bytes}`,
+            '=========================================',
+            '',
+            rawContent,
+            '',
+            `=== /${label} ===`,
+            '',
+        ].join('\n');
+    }
+
+    /**
      * DIAGNOSTIC v9 (2026-07-27): Copy text to clipboard with two-tier
      * fallback. navigator.clipboard requires a focused doc; tests and
      * background-debug sessions often lack that, so we fall through to
      * a transient textarea + execCommand, then a textarea-less call.
+     *
+     * v10 (2026-07-27): Accept chartId + source so the paste carries
+     * a self-documenting header. If chartId/source are omitted (legacy
+     * callsites), copy the raw text untouched.
      */
-    async _diagCopyText(text, label) {
+    async _diagCopyText(text, label, chartId, source) {
         let copied = false;
+        const payload = (chartId != null)
+            ? this._diagLabelWrap(text, label, chartId, source || '(unknown source)')
+            : text;
         try {
-            await navigator.clipboard.writeText(text);
+            await navigator.clipboard.writeText(payload);
             copied = true;
         } catch (_) {
             try {
                 const ta = document.createElement('textarea');
-                ta.value = text;
+                ta.value = payload;
                 ta.style.cssText = 'position:fixed;top:-1000px;left:-1000px;';
                 document.body.appendChild(ta);
                 ta.focus();
@@ -2646,11 +2724,11 @@ class VisualizationEngine {
             } catch (_) { /* fall through */ }
         }
         if (copied) {
-            const bytes = text.length;
+            const bytes = payload.length;
             this._vizToast?.(`Copied ${label} (${bytes} bytes)`, 'success');
         } else {
             this._vizToast?.(`Copy failed — see console for ${label}`, 'error');
-            console.log(`[viz-diag] ${label} payload (${text.length} bytes):\n`, text);
+            console.log(`[viz-diag] ${label} payload (${payload.length} bytes):\n`, payload);
         }
     }
 
@@ -2659,6 +2737,10 @@ class VisualizationEngine {
      * Posts `react-render-console-request` to the iframe with a 5s timeout
      * (matching the `_tier1Request` shape) so the user gets the real
      * iframe console buffer paired with cache stats in a single paste.
+     *
+     * v10 (2026-07-27): Wrap with self-documenting header explaining that
+     * the iframe-console entries were captured via the console-buffer IIFE
+     * injected at the top of the srcdoc template.
      */
     async _diagCopyComposite(chartId, iframe) {
         const composite = {
@@ -2685,7 +2767,128 @@ class VisualizationEngine {
         }
 
         const text = JSON.stringify(composite, null, 2);
-        await this._diagCopyText(text, 'Cache stats + iframe console');
+        await this._diagCopyText(text, 'Cache stats + iframe console', chartId,
+            'iframe.postMessage("react-render-console-request") → __DIAG_CONSOLE_BUFFER__ ring buffer (50 entries, console.{log,warn,error,info,debug} patched) + window.buildReactSrcdocCalls / __renderSnapshots__ / __renderFences__ / __preTransform__ key counts');
+    }
+
+    /**
+     * DIAGNOSTIC v10 (2026-07-27): The "Copy ALL diagnostics" aggregator.
+     *
+     * Iterates all 7 simple actions, resolves the composite via the
+     * postMessage round-trip, wraps every section in a labeled block, and
+     * concatenates them under a master header that lists section count +
+     * total bytes. The result is a single paste whose every line is
+     * self-documenting — chartId, source, byte count all inline.
+     *
+     * Sections with no data are skipped (not pasted as empty headers).
+     * If ALL sections are empty, emits a single explanatory block instead
+     * of an empty paste.
+     */
+    async _diagCopyAll(chartId, iframe, actions) {
+        const ts = new Date().toISOString();
+        const sections = [];
+        const sectionNames = [];
+
+        // 7 simple actions + composite
+        for (const a of actions) {
+            try {
+                const payload = a.read();
+                if (payload == null) continue;
+                if (typeof payload === 'object' && Object.keys(payload).length === 0) continue;
+                const text = typeof payload === 'string' ? payload : JSON.stringify(payload, null, 2);
+                sections.push(this._diagLabelWrap(text, a.label, chartId, a.source, ts));
+                sectionNames.push(a.label);
+            } catch (err) {
+                // swallow per-section errors — they're logged to console
+                console.warn(`[viz-diag] copy-all skipped "${a.label}":`, err);
+            }
+        }
+
+        // Composite (always run — even when empty it confirms the chartId
+        // and tells the reader whether the iframe is alive)
+        try {
+            const composite = {
+                capturedAt: ts,
+                chartId,
+                cache: {
+                    buildReactSrcdocCalls: window.buildReactSrcdocCalls ?? null,
+                    snapshotsTracked:     Object.keys(window.__renderSnapshots__ || {}).length,
+                    fencesTracked:        Object.keys(window.__renderFences__    || {}).length,
+                    preTransformsTracked: Object.keys(window.__preTransform__     || {}).length,
+                },
+                iframeConsole: { status: 'pending', entries: [] },
+            };
+            try {
+                const batch = await this._diagFetchConsole(iframe, chartId, 5000);
+                composite.iframeConsole = { status: 'ok', entries: batch.entries || [] };
+            } catch (err) {
+                composite.iframeConsole = {
+                    status: 'timeout',
+                    message: err?.message || String(err),
+                    entries: [],
+                };
+            }
+            const compositeText = JSON.stringify(composite, null, 2);
+            const compositeSrc = 'iframe.postMessage("react-render-console-request") → __DIAG_CONSOLE_BUFFER__ ring buffer + window.buildReactSrcdocCalls / __renderSnapshots__ / __renderFences__ / __preTransform__ key counts';
+            sections.push(this._diagLabelWrap(compositeText, 'Cache stats + iframe console', chartId, compositeSrc, ts));
+            sectionNames.push('Cache stats + iframe console');
+        } catch (err) {
+            sections.push(this._diagLabelWrap(
+                JSON.stringify({ error: err?.message || String(err) }, null, 2),
+                'Cache stats + iframe console',
+                chartId,
+                'composite fetch failed before wrap',
+                ts,
+            ));
+            sectionNames.push('Cache stats + iframe console (error)');
+        }
+
+        if (sections.length === 0) {
+            this._vizToast?.('Copy ALL — no diagnostic data captured yet', 'warning');
+            return;
+        }
+
+        const body = sections.join('\n');
+        const totalBytes = body.length;
+        const header = [
+            '=== AI Agents Visualization Diagnostic Export — ALL SECTIONS ===',
+            `chartId: ${chartId}`,
+            `capturedAt: ${ts}`,
+            `sections: ${sectionNames.length} (${sectionNames.join(' | ')})`,
+            `totalBytes: ${totalBytes}`,
+            'source: UI/visualisation_engine/visualisation_v3.js (addIframeDiagToolbar / _diagCopyAll)',
+            '============================================================',
+            '',
+        ].join('\n');
+        const footer = [
+            '',
+            `=== END — ${sectionNames.length} sections, ${totalBytes} bytes ===`,
+        ].join('\n');
+        const fullPaste = header + body + footer;
+
+        let copied = false;
+        try {
+            await navigator.clipboard.writeText(fullPaste);
+            copied = true;
+        } catch (_) {
+            try {
+                const ta = document.createElement('textarea');
+                ta.value = fullPaste;
+                ta.style.cssText = 'position:fixed;top:-1000px;left:-1000px;';
+                document.body.appendChild(ta);
+                ta.focus();
+                ta.select();
+                document.execCommand('copy');
+                document.body.removeChild(ta);
+                copied = true;
+            } catch (_) { /* fall through */ }
+        }
+        if (copied) {
+            this._vizToast?.(`Copied ALL diagnostics (${sectionNames.length} sections, ${totalBytes} bytes)`, 'success');
+        } else {
+            this._vizToast?.('Copy ALL failed — see console', 'error');
+            console.log(`[viz-diag] ALL diagnostics (${totalBytes} bytes):\n`, fullPaste);
+        }
     }
 
     /**
