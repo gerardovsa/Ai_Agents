@@ -34448,10 +34448,29 @@ Thanks`;
                 connectionsListHtml += sortedConnections.map(conn => {
                     const meta = getPlatformMeta(conn.platform);
                     const isActive = conn.is_active;
+                    // Surface the Google OAuth `is_valid` signal (set by the
+                    // probe endpoint and by credential_injector.py's
+                    // _record_google_refresh_failure). OAuth rows default to
+                    // true (we don't yet know); non-OAuth rows don't carry the
+                    // flag, so we treat them as "n/a".
+                    const isValid = conn.credential_type === 'oauth'
+                        ? (conn.is_valid === undefined ? true : !!conn.is_valid)
+                        : null;
+                    const validityLabel = isValid === null
+                        ? ''
+                        : (isValid ? 'Token valid' : 'Token needs reauth');
+                    const validityColor = isValid === null
+                        ? 'transparent'
+                        : (isValid ? '#10B981' : '#F59E0B');
                     // Show updated_at if available (reflects latest save), fallback to created_at
                     const dateSource = conn.updated_at || conn.created_at;
                     const displayDate = dateSource ? new Date(dateSource).toLocaleDateString() : '—';
                     const dateLabel = conn.updated_at ? 'Updated' : 'Added';
+                    // Last refreshed text (OAuth rows only). last_refreshed_at
+                    // arrives as an ISO string from the probe endpoint.
+                    const lastRefreshed = conn.last_refreshed_at
+                        ? new Date(conn.last_refreshed_at).toLocaleString()
+                        : null;
 
                     // Get credential type badge (use CSS classes from ui-standardization.css)
                     let typeBadge = '';
@@ -34475,11 +34494,15 @@ Thanks`;
                                     <button onclick="testPlatformConnection('${conn.id}')" title="Test Connection" class="connection-btn test">
                                         <i class="fas fa-flask"></i>
                                     </button>
-                                    ${conn.credential_type !== 'oauth' ? `
+                                    ${conn.credential_type === 'oauth' ? `
+                                        <button onclick="reconnectPlatform('${conn.id}')" title="Reconnect" class="connection-btn reconnect">
+                                            <i class="fas fa-sync"></i>
+                                        </button>
+                                    ` : `
                                         <button onclick="editPlatformConnection('${conn.id}')" title="Edit" class="connection-btn edit">
                                             <i class="fas fa-edit"></i>
                                         </button>
-                                    ` : ''}
+                                    `}
                                     <button onclick="disconnectPlatformModal('${conn.id}')" title="Disconnect" class="connection-btn disconnect">
                                         <i class="fas fa-trash"></i>
                                     </button>
@@ -34504,6 +34527,12 @@ Thanks`;
                                             </span>
                                         </div>
                                     </div>
+                                    ${isValid !== null ? `
+                                        <div style="display: flex; align-items: center; gap: 4px;">
+                                            <div style="width: 8px; height: 8px; border-radius: 50%; background: ${validityColor};"></div>
+                                            <span style="color: ${validityColor};">${validityLabel}</span>
+                                        </div>
+                                    ` : ''}
                                     <div style="display: flex; align-items: center; gap: 4px;">
                                         <i class="fas fa-calendar" style="font-size: 10px;"></i>
                                         <span>${dateLabel}: ${displayDate}</span>
@@ -34515,6 +34544,14 @@ Thanks`;
                                     <div style="display: flex; align-items: center; gap: 6px; color: var(--text-secondary); font-size: 12px;">
                                         <i class="fas fa-user-circle" style="font-size: 12px;"></i>
                                         <span>${conn.account_name}</span>
+                                    </div>
+                                ` : ''}
+
+                                <!-- OAuth last-refreshed timestamp (only meaningful for oauth rows) -->
+                                ${conn.credential_type === 'oauth' && lastRefreshed ? `
+                                    <div style="display: flex; align-items: center; gap: 6px; color: var(--text-secondary); font-size: 12px;">
+                                        <i class="fas fa-clock" style="font-size: 10px;"></i>
+                                        <span>Last refreshed: ${lastRefreshed}</span>
                                     </div>
                                 ` : ''}
                                 
@@ -35363,12 +35400,59 @@ Thanks`;
 
         /**
          * Test platform connection
+         *
+         * Calls the authoritative probe endpoint introduced in the second-pass
+         * Google credential-injection hardening work. For Google OAuth rows
+         * (credentialId starts with `oauth_`) we hit GET /probe which actually
+         * round-trips a tokeninfo-style request to Google and refreshes the
+         * stored `is_valid` flag -- this is no longer a synthetic AI-stamp.
+         *
+         * For non-Google rows we fall through to the legacy /test endpoint
+         * to keep parity with the existing connection-management UX.
          */
         async function testPlatformConnection(credentialId) {
+            const token = localStorage.getItem('authToken') || sessionStorage.getItem('authToken');
+            const isGoogleOAuth = typeof credentialId === 'string' && credentialId.startsWith('oauth_');
+
             try {
-                const token = localStorage.getItem('authToken') || sessionStorage.getItem('authToken');
                 showNotification('Testing connection...', 'info');
 
+                if (isGoogleOAuth) {
+                    const response = await fetch(
+                        `${API_BASE_URL}/api/connections/${credentialId}/probe`,
+                        {
+                            method: 'GET',
+                            headers: {
+                                'Authorization': `Bearer ${token}`,
+                                'Content-Type': 'application/json'
+                            }
+                        }
+                    );
+
+                    const data = await response.json().catch(() => ({}));
+
+                    if (response.ok && data.is_valid) {
+                        const acct = data.account_identifier || 'Google account';
+                        showNotification(
+                            `Connection valid — ${acct}`,
+                            'success'
+                        );
+                    } else {
+                        showNotification(
+                            'Connection test failed: ' + (data.error_message || 'Token rejected by Google'),
+                            'error'
+                        );
+                    }
+
+                    // Re-render the connections modal so the row reflects the
+                    // freshly-written is_valid / last_refreshed_at values.
+                    if (typeof refreshConnectionsModal === 'function') {
+                        refreshConnectionsModal();
+                    }
+                    return;
+                }
+
+                // Legacy path: non-Google platform rows use the synthetic /test.
                 const response = await fetch(`${API_BASE_URL}/api/connections/${credentialId}/test`, {
                     method: 'POST',
                     headers: {
@@ -35382,11 +35466,63 @@ Thanks`;
                 if (data.success && data.valid) {
                     showNotification('Connection test successful', 'success');
                 } else {
-                    showNotification('Connection test failed: ' + data.message, 'error');
+                    showNotification('Connection test failed: ' + (data.message || 'Unknown error'), 'error');
                 }
             } catch (error) {
                 console.error('[TEST CONNECTION] Error:', error);
                 showNotification('Failed to test connection: ' + error.message, 'error');
+            }
+        }
+
+        /**
+         * Reconnect a platform credential.
+         *
+         * For Google OAuth rows this kicks the user back through the OAuth
+         * consent screen so a fresh refresh_token + access_token are minted
+         * and stored. For other platforms we surface a clear "not yet wired"
+         * toast -- this is intentionally a Google-only scope for the
+         * second-pass hardening work.
+         */
+        async function reconnectPlatform(credentialId) {
+            // We can only meaningfully reconnect Google OAuth rows in this pass.
+            // The credentialId format is `oauth_<numeric_id>` for OAuth rows.
+            if (typeof credentialId !== 'string' || !credentialId.startsWith('oauth_')) {
+                showNotification('Reconnect is only available for Google OAuth credentials right now.', 'info');
+                return;
+            }
+
+            if (!confirm('Reconnect your Google account? You will be asked to sign in to Google again.')) {
+                return;
+            }
+
+            try {
+                // Prefer the existing OrgManager.connectGoogle() helper if the
+                // org modal is wired, else fall back to the canonical
+                // /api/auth/google/login endpoint which initiates the OAuth
+                // dance. Either way the row will be upserted by the callback.
+                if (typeof connectGoogle === 'function') {
+                    connectGoogle();
+                    return;
+                }
+
+                const token = localStorage.getItem('authToken') || sessionStorage.getItem('authToken');
+                const response = await fetch(
+                    `${API_BASE_URL}/api/auth/google/login?mode=signin`,
+                    {
+                        method: 'GET',
+                        headers: { 'Authorization': `Bearer ${token}` },
+                        credentials: 'include',
+                    }
+                );
+
+                if (response.ok || response.redirected) {
+                    showNotification('Redirecting to Google to reconnect…', 'info');
+                } else {
+                    throw new Error(`HTTP ${response.status}`);
+                }
+            } catch (error) {
+                console.error('[RECONNECT] Error:', error);
+                showNotification('Failed to start reconnect flow: ' + error.message, 'error');
             }
         }
 

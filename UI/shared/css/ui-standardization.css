@@ -1025,3 +1025,32 @@ textarea.form-control {
     background: rgba(239, 68, 68, 0.12);
     border-color: rgba(239, 68, 68, 0.2);
 }
+
+/* Reconnect action button — paired with Disconnect for OAuth rows in the
+ * connection-management modal. Picked an amber/accent palette that mirrors
+ * the warning-style "Token needs reauth" indicator introduced alongside the
+ * authoritative is_valid probe. */
+.connection-btn.reconnect {
+    background: rgba(245, 158, 11, 0.06);
+    color: #b45309;
+    border-color: rgba(245, 158, 11, 0.18);
+}
+
+.connection-btn.reconnect:hover {
+    background: rgba(245, 158, 11, 0.12);
+    border-color: rgba(245, 158, 11, 0.28);
+}
+
+/* Keyboard / high-contrast focus-visible state shared across the connection
+ * button trio. Keeps the modal accessible without changing the existing
+ * hover palette. */
+.connection-btn:focus-visible {
+    outline: 2px solid var(--accent-primary, #42b883);
+    outline-offset: 2px;
+    box-shadow: 0 0 0 3px rgba(66, 184, 131, 0.18);
+}
+
+.connection-btn.reconnect:focus-visible {
+    outline-color: #b45309;
+    box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.22);
+}

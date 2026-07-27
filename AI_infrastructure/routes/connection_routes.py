@@ -1,7 +1,7 @@
 """
 File: AI_infrastructure/routes/connection_routes.py
 
-C:/Users\gpoli\GIT\AI_agents\AI_infrastructure\routes\connection_routes.py
+C:/Users/gpoli/GIT/AI_agents/AI_infrastructure/routes/connection_routes.py
 Platform Connections Routes
 ===========================
 
@@ -13,8 +13,9 @@ Database: ai_infrastructure.oauth_tokens
 
 from flask import Blueprint, jsonify, request
 from AI_infrastructure.auth.user_auth import require_auth
-from shared.database_utils import get_database_connection
+from shared.database_utils import get_database_connection, execute_query
 import json
+import logging
 
 connections_bp = Blueprint('connections', __name__)
 
@@ -830,6 +831,209 @@ def test_platform_credential(credential_id):
                 conn.close()
             except:
                 pass
+
+
+@connections_bp.route('/api/connections/<credential_id>/probe', methods=['GET'])
+@require_auth
+def probe_google_oauth_credential(credential_id):
+    """
+    GET /api/connections/<credential_id>/probe
+
+    Authoritative, non-mutating health probe for a Google OAuth credential row.
+    Decrypts the stored access_token and calls Google's ``oauth2/v2/userinfo``
+    (read-only, scoped to the token's grants) -- then mirrors the bookkeeping
+    contract used by ``_save_refreshed_google_token`` (success) and
+    ``_record_google_refresh_failure`` (failure) in
+    ``AI_infrastructure/auth/credential_injector.py`` so ``is_valid`` and the
+    error counters stay in sync with reality.
+
+    Args:
+        credential_id: Must be ``oauth_<numeric_id>``. Other formats
+            (``platform_*``, ``org_*``) are rejected -- this endpoint is the
+            second-pass companion to the ``is_valid`` flag work in
+            ``AI_infrastructure/auth/credential_injector.py``.
+
+    Returns:
+        {
+            "success": bool,
+            "account_identifier": "user@example.com" | None,
+            "is_valid": bool,
+            "last_refreshed_at": "2026-07-27T12:00:00Z" | None,
+            "error_message": str | None
+        }
+    """
+    user_id = getattr(request, 'user', {}).get('user_id') if hasattr(request, 'user') else None
+    if not user_id:
+        return jsonify({'error': 'User ID not found in session'}), 401
+
+    # Only oauth_ rows are in scope for this probe.
+    if not credential_id.startswith('oauth_'):
+        return jsonify({
+            'success': False,
+            'is_valid': False,
+            'account_identifier': None,
+            'last_refreshed_at': None,
+            'error_message': 'Probe endpoint only supports Google OAuth rows (oauth_<id>).'
+        }), 400
+
+    _, id_value = credential_id.split('_', 1)
+    if not id_value.isdigit():
+        return jsonify({
+            'success': False,
+            'is_valid': False,
+            'account_identifier': None,
+            'last_refreshed_at': None,
+            'error_message': 'Invalid credential ID format - ID must be numeric.'
+        }), 400
+
+    # Read the canonical row from oauth_tokens via the canonical executor.
+    # All ai_infrastructure.* access goes through execute_query per CLAUDE.md.
+    row = execute_query(
+        """
+        SELECT id,
+               access_token,
+               email,
+               account_identifier,
+               is_valid,
+               last_refreshed_at
+        FROM ai_infrastructure.oauth_tokens
+        WHERE user_id = %s
+          AND platform = 'google'
+          AND id = %s
+          AND is_active = TRUE
+        """,
+        (user_id, int(id_value)),
+        fetch_mode='one',
+    )
+
+    if not row:
+        return jsonify({
+            'success': False,
+            'is_valid': False,
+            'account_identifier': None,
+            'last_refreshed_at': None,
+            'error_message': 'Credential not found or not active.'
+        }), 404
+
+    token_id = row['id']
+    encrypted_access_token = row['access_token']
+    stored_email = row['email']
+    stored_account_identifier = row['account_identifier']
+    stored_is_valid = row['is_valid']
+    last_refreshed_at = row['last_refreshed_at']
+
+    # Decrypt the access token (Fernet). Tokens are stored Fernet-encrypted
+    # with the enc:v1: prefix -- respect that, never log the token.
+    # decrypt() returns the original value unchanged if it isn't encrypted,
+    # so this is safe for legacy plain rows too.
+    try:
+        from AI_infrastructure.auth.credential_encryptor import get_encryptor
+        encryptor = get_encryptor()
+        access_token = encryptor.decrypt(encrypted_access_token) if encrypted_access_token else ''
+    except Exception:
+        logging.getLogger('connections').error(
+            '[CONNECTIONS] probe_google_oauth_credential: decrypt failed for user=%s token_id=%s',
+            user_id, token_id,
+        )
+        return jsonify({
+            'success': False,
+            'is_valid': bool(stored_is_valid),
+            'account_identifier': stored_account_identifier or stored_email,
+            'last_refreshed_at': last_refreshed_at.isoformat() if last_refreshed_at else None,
+            'error_message': 'Stored access token could not be decrypted.'
+        }), 500
+
+    if not access_token:
+        return jsonify({
+            'success': False,
+            'is_valid': False,
+            'account_identifier': stored_account_identifier or stored_email,
+            'last_refreshed_at': last_refreshed_at.isoformat() if last_refreshed_at else None,
+            'error_message': 'No access token on file.'
+        }), 500
+
+    # Non-mutating Google probe: oauth2/v2/userinfo is read-only and
+    # scoped to the access token's grants. No writes, no quota cost.
+    import requests as _requests
+    try:
+        probe_resp = _requests.get(
+            'https://www.googleapis.com/oauth2/v2/userinfo',
+            headers={'Authorization': f'Bearer {access_token}'},
+            timeout=8,
+        )
+    except _requests.RequestException:
+        # Network / TLS / timeout -- do NOT mark the credential invalid.
+        # DB still says valid; we just couldn't reach Google right now.
+        return jsonify({
+            'success': False,
+            'is_valid': bool(stored_is_valid),
+            'account_identifier': stored_account_identifier or stored_email,
+            'last_refreshed_at': last_refreshed_at.isoformat() if last_refreshed_at else None,
+            'error_message': 'Could not reach Google to verify token right now.'
+        }), 502
+
+    if probe_resp.status_code == 200:
+        try:
+            user_info = probe_resp.json()
+        except ValueError:
+            user_info = {}
+        account_identifier = (
+            user_info.get('email')
+            or stored_account_identifier
+            or stored_email
+        )
+
+        # Persist the success path via execute_query (mirrors
+        # _save_refreshed_google_token: is_valid=TRUE, counters cleared,
+        # last_refreshed_at bumped).
+        execute_query(
+            """
+            UPDATE ai_infrastructure.oauth_tokens
+            SET is_valid = TRUE,
+                last_refreshed_at = CURRENT_TIMESTAMP,
+                last_error = NULL,
+                error_count = 0,
+                last_refresh_error = NULL,
+                updated_at = CURRENT_TIMESTAMP
+            WHERE id = %s
+              AND user_id = %s
+              AND platform = 'google'
+            """,
+            (token_id, user_id),
+            fetch_mode=None,
+        )
+
+        # Re-read the canonical last_refreshed_at we just wrote.
+        ts_row = execute_query(
+            "SELECT last_refreshed_at FROM ai_infrastructure.oauth_tokens WHERE id = %s",
+            (token_id,),
+            fetch_mode='one',
+        )
+        last_refreshed_at = ts_row['last_refreshed_at'] if ts_row else last_refreshed_at
+
+        return jsonify({
+            'success': True,
+            'account_identifier': account_identifier,
+            'is_valid': True,
+            'last_refreshed_at': last_refreshed_at.isoformat() if last_refreshed_at else None,
+            'error_message': None,
+        }), 200
+
+    # Non-200 from Google: token is rejected. Persist via the same helper that
+    # refresh failures use (_record_google_refresh_failure in
+    # AI_infrastructure/auth/credential_injector.py) so the bookkeeping stays
+    # in one place -- don't duplicate the SQL contract here.
+    sanitized_reason = f'Google rejected the token (HTTP {probe_resp.status_code}).'
+    from AI_infrastructure.auth.credential_injector import _record_google_refresh_failure
+    _record_google_refresh_failure(token_id)
+
+    return jsonify({
+        'success': False,
+        'is_valid': False,
+        'account_identifier': stored_account_identifier or stored_email,
+        'last_refreshed_at': last_refreshed_at.isoformat() if last_refreshed_at else None,
+        'error_message': sanitized_reason,
+    }), 200
 
 
 @connections_bp.route('/api/connections/<credential_id>', methods=['DELETE'])
