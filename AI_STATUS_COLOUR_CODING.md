@@ -42,24 +42,33 @@ If a status needs a new colour, change it here **and** in the inline rules of
 A status class paints **three places in lock-step**:
 
 1. The icon's ring (`statusPulse` keyframe: `scale(1.0 → 1.1)`, `opacity(1.0 → 0.6)`).
-2. The wrapping panel's full border (solid colour).
-3. The wrapping panel's inset glow (`panelStatusPulse` keyframe: 4 → 8 px blur).
+2. A 2 px status-coloured **outer ring** drawn via box-shadow spread on the
+   wrapping panel — visible from across the page (replaces the previous
+   inset box-shadow, which was imperceptible on a 400 px column).
+3. An **outer glow** that grows wider AND brighter on the 50 % keyframe
+   (blur 4 → 18 px, alpha 0.4 → 0.95) — the visible "breath".
+
+The mechanism is a direct translation of the badge ring (which uses a
+positioned `::before` with `opacity 1 → 0.5` + `scale 1 → 1.05`) onto a
+box-shadow stack. The panels can't use a positioned pseudo-element because
+their `::before` / `::after` slots are already load-bearing (resize strip,
+drop tooltip, agent-action-button label). Box-shadow doesn't take layout
+space and doesn't bleed into neighbours unless the glow radius exceeds the
+column gap — at 18 px peak blur it stays well clear.
 
 Animation durations match across icon and panel:
 
 - `thinking` / `writing`: `2s ease-in-out infinite`
 - `tool-running` / `tool-success`: `1.5s ease-in-out infinite`
 
-Panel pulse uses an *inset* box-shadow so the panel's outer box does not grow
-into its neighbours during the breath.
-
 ## 4. Pulse-width rationale
 
 - Icon ring geometric pulse: `scale(1.0 → 1.1)` on a ~36 px outer ring ≈ 3.6 px outward reach.
-- Panel pulse: 4 → 8 px inset box-shadow blur on a ~400 px column.
-- The panel is ~10× the icon's footprint, so the visual perceived amplitude is
-  roughly half the icon ring's reach — matching the "about 50 %" requirement.
-  Tune the per-class `--status-glow` variable to adjust; do not fork the keyframe.
+- Panel pulse: 2 px solid outer ring (always present) + outer glow 4 → 18 px blur and 0.4 → 0.95 alpha.
+- The 2 px ring + the breathing glow combine to a reach of about 20 px peak,
+  comparable to (and now more visible than) the icon ring's 3.6 px reach on a
+  much smaller surface. Tune the per-class `--status-glow-rest` /
+  `--status-glow-peak` variables to adjust; do not fork the keyframe.
 
 ## 5. Hover behaviour
 

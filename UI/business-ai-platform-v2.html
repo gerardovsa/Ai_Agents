@@ -12722,32 +12722,49 @@
         }
 
         /* ====================================================================
-           PANEL-LEVEL STATUS PULSE
-           - Colours mirror the icon ring palette exactly.
-           - Inset box-shadow 4 -> 8 px blur (about half the icon's ~3.6 px
-             geometric reach on a much larger surface).
-           - Animation timing matches statusPulse so icon and panel stay in sync.
-           - No pseudo-elements used: .ai-chat-panel::before is the resize strip
-             and .agent-column::after / ::before are drop tooltips / popout shimmer.
+           PANEL-LEVEL STATUS PULSE (same mechanism as the badge ring)
+           - Both .ai-chat-panel and .agent-column get a solid 2px status-coloured
+             ring drawn OUTSIDE their border via box-shadow spread (no layout
+             cost, doesn't extend the box into neighbours — unlike a real border).
+           - An outer glow grows wider AND brighter on the 50% keyframe, mirroring
+             the badge's "ripple outward" feel (badge uses opacity 1 -> 0.5 +
+             scale 1 -> 1.05 on a positioned ::before; we translate that to a
+             blur-radius and alpha pulse on a second box-shadow layer).
+           - Animation timing matches statusPulse so icon and panel breathe in
+             lock-step.
+           - Uses box-shadow rather than a pseudo-element because the existing
+             pseudo-elements are already load-bearing:
+               .ai-chat-panel::before = resize strip
+               .agent-column::before  = agent-action-button label
+               .agent-column::after   = drop tooltip
+           - Replaces the previous inset box-shadow approach: a 4 -> 8 px inset
+             blur change on a 400 px column reads as roughly 1% relative
+             change — perceptually flat. The new outer ring + outer glow is
+             visible from across the page.
            ==================================================================== */
         @keyframes panelStatusPulse {
 
             0%,
             100% {
                 border-color: var(--status-color, #8b5cf6);
-                box-shadow: inset 0 0 4px 0 var(--status-glow, rgba(139, 92, 246, 0.5));
+                box-shadow:
+                    0 0 0 2px var(--status-color, #8b5cf6),
+                    0 0 4px 0 var(--status-glow-rest, rgba(139, 92, 246, 0.4));
             }
 
             50% {
                 border-color: var(--status-color, #8b5cf6);
-                box-shadow: inset 0 0 8px 0 var(--status-glow, rgba(139, 92, 246, 0.85));
+                box-shadow:
+                    0 0 0 2px var(--status-color, #8b5cf6),
+                    0 0 18px 4px var(--status-glow-peak, rgba(139, 92, 246, 0.95));
             }
         }
 
         .ai-chat-panel.status-thinking,
         .agent-column.status-thinking {
             --status-color: #8b5cf6;
-            --status-glow: rgba(139, 92, 246, 0.7);
+            --status-glow-rest: rgba(139, 92, 246, 0.4);
+            --status-glow-peak: rgba(139, 92, 246, 0.95);
             border-color: #8b5cf6;
             animation: panelStatusPulse 2s ease-in-out infinite;
         }
@@ -12755,7 +12772,8 @@
         .ai-chat-panel.status-tool-running,
         .agent-column.status-tool-running {
             --status-color: #eab308;
-            --status-glow: rgba(234, 179, 8, 0.7);
+            --status-glow-rest: rgba(234, 179, 8, 0.4);
+            --status-glow-peak: rgba(234, 179, 8, 0.95);
             border-color: #eab308;
             animation: panelStatusPulse 1.5s ease-in-out infinite;
         }
@@ -12763,7 +12781,8 @@
         .ai-chat-panel.status-tool-success,
         .agent-column.status-tool-success {
             --status-color: #60A5FA;
-            --status-glow: rgba(96, 165, 250, 0.7);
+            --status-glow-rest: rgba(96, 165, 250, 0.4);
+            --status-glow-peak: rgba(96, 165, 250, 0.95);
             border-color: #60A5FA;
             animation: panelStatusPulse 1.5s ease-in-out infinite;
         }
@@ -12771,7 +12790,8 @@
         .ai-chat-panel.status-writing,
         .agent-column.status-writing {
             --status-color: #ffffff;
-            --status-glow: rgba(255, 255, 255, 0.85);
+            --status-glow-rest: rgba(255, 255, 255, 0.5);
+            --status-glow-peak: rgba(255, 255, 255, 1);
             border-color: #ffffff;
             animation: panelStatusPulse 2s ease-in-out infinite;
         }
