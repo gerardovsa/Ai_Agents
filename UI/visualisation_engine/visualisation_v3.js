@@ -2477,7 +2477,7 @@ class VisualizationEngine {
                            text-align:center;flex:0 0 16px;"></i>
                         <span>${a.label}</span>
                     </span>
-                    <span style="font-size:11px;opacity:0.7;margin-left:24px;">
+                    <span class="viz-diag-sub" style="font-size:11px;opacity:0.7;margin-left:24px;">
                         ${fmtSub(payload)}
                     </span>
                 </button>
@@ -2518,8 +2518,31 @@ class VisualizationEngine {
             diagBtn.setAttribute('aria-expanded', 'false');
         };
 
+        // Re-evaluate every action's read() and update the button's
+        // disabled / opacity / subtitle. Required because the initial
+        // popover.innerHTML pass bakes in the disabled state at creation
+        // time — if the iframe's diagnostic postMessage fires AFTER the
+        // kebab is wired but BEFORE the user opens it (the common case),
+        // the user would see permanent "no data" buttons. Refresh on every
+        // open so the buttons reflect the latest dict state.
+        const refreshButtons = () => {
+            actions.forEach((a) => {
+                const payload = a.read();
+                const hasData = payload != null && !(typeof payload === 'object' && Object.keys(payload).length === 0);
+                const btn = popover.querySelector(`.viz-diag-action[data-action="${a.id}"]`);
+                if (!btn) return;
+                if (hasData) btn.removeAttribute('disabled');
+                else btn.setAttribute('disabled', '');
+                btn.style.cursor = hasData ? 'pointer' : 'not-allowed';
+                btn.style.opacity = hasData ? '1' : '0.5';
+                const subSpan = btn.querySelector('.viz-diag-sub');
+                if (subSpan) subSpan.textContent = fmtSub(payload);
+            });
+        };
+
         const openPopover = () => {
             closeTier1IfOpen();
+            refreshButtons();
             const rect = diagBtn.getBoundingClientRect();
             const popW = 248;
             const popH = actions.length * 44 + 56; // 7 simple + composite + chrome
