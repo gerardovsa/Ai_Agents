@@ -10,6 +10,7 @@
 > - `.github/VECTOR_DB_ORG_ALIGNMENT_ANALYSIS_APR29_2026.md` — vector DB gap analysis + change history
 > - `.github/MODULE_VISIBILITY_ARCHITECTURE.md` — sidebar / module catalog / role gating
 > - `.github/SVG_CAD_GENERATION_RULES.md` — required for any SVG/CAD diagram generation
+> - `AI_STATUS_COLOUR_CODING.md` (repo root) — single source of truth for the four-state AI status palette (purple / white / yellow / blue), the icon-ring + panel-pulse visual model, drop-while-busy behaviour, and the dormant `shared/css/status-indicator.css` consolidation plan (Phase-2 follow-up).
 > - `ARCHIVE_CLEANUP_PLAN.md`, `ARCHIVE_CLEANUP_SUMMARY_NOV30.md`, `ARCHIVE_SAFETY_VERIFICATION.md` — **the precedent for any doc-cleanup task**; read before launching a doc-audit (see §16)
 > - `ARCHIVE_CLEANUP_TRACKER.md` (repo root) — **the live tracker** for the active cleanup round. One row per item, append-only chain of custody. Read this before claiming any work, and update it when you finish. See the per-feature cleanup prompt for the contract.
 > - `docs/agents/PER_FEATURE_CLEANUP_PROMPT.md` — the **per-feature cleanup prompt**. Hand this to an agent (or paste into the chat) when claiming a tracker row.

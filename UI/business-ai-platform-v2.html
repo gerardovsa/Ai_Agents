@@ -3162,7 +3162,9 @@
             opacity: 0;
         }
 
-        /* Resize handle on left border */
+        /* Resize handle on left border (z-index:10 sits above the border-left
+           so the lit 1px border paints underneath and the 6px drag handle
+           overlays on top) */
         .ai-chat-panel::before {
             content: '';
             position: absolute;
@@ -3173,7 +3175,11 @@
             cursor: ew-resize;
             background: transparent;
             z-index: 10;
-            transition: background 0.2s ease;
+            transition: background 0.2s ease, opacity 0.2s ease;
+        }
+
+        .ai-chat-panel:hover {
+            border-left-color: var(--accent-primary);
         }
 
         .ai-chat-panel:hover::before {
@@ -12672,6 +12678,140 @@
             border-color: #ffffff;
             opacity: 1;
             animation: statusPulse 2s ease-in-out infinite;
+        }
+
+        /* Same rules for the NEW agent-icon structure (.agent-title-wrapper i).
+           Fixes a latent bug: AgentStatusIndicator.update() looks up
+           .agent-title-wrapper i first but inline CSS only matched the legacy
+           .agent-header h2 i, so new-style icons rendered no ring even though
+           the JS class was set. Adding these keeps the icon-pulse + panel-pulse
+           (below) in lock-step across the agent-column rewrite. */
+        .agent-title-wrapper i::after {
+            content: '';
+            position: absolute;
+            top: -2px; left: -2px; right: -2px; bottom: -2px;
+            border-radius: 50%;
+            border: 2px solid transparent;
+            opacity: 0;
+            transition: all 0.3s ease;
+            pointer-events: none;
+        }
+
+        .agent-title-wrapper i.status-thinking::after {
+            border-color: #8b5cf6;
+            opacity: 1;
+            animation: statusPulse 2s ease-in-out infinite;
+        }
+
+        .agent-title-wrapper i.status-tool-running::after {
+            border-color: #eab308;
+            opacity: 1;
+            animation: statusPulse 1.5s ease-in-out infinite;
+        }
+
+        .agent-title-wrapper i.status-tool-success::after {
+            border-color: #60A5FA;
+            opacity: 1;
+            animation: statusPulse 1.5s ease-in-out infinite;
+        }
+
+        .agent-title-wrapper i.status-writing::after {
+            border-color: #ffffff;
+            opacity: 1;
+            animation: statusPulse 2s ease-in-out infinite;
+        }
+
+        /* ====================================================================
+           PANEL-LEVEL STATUS PULSE
+           - Colours mirror the icon ring palette exactly.
+           - Inset box-shadow 4 -> 8 px blur (about half the icon's ~3.6 px
+             geometric reach on a much larger surface).
+           - Animation timing matches statusPulse so icon and panel stay in sync.
+           - No pseudo-elements used: .ai-chat-panel::before is the resize strip
+             and .agent-column::after / ::before are drop tooltips / popout shimmer.
+           ==================================================================== */
+        @keyframes panelStatusPulse {
+
+            0%,
+            100% {
+                border-color: var(--status-color, #8b5cf6);
+                box-shadow: inset 0 0 4px 0 var(--status-glow, rgba(139, 92, 246, 0.5));
+            }
+
+            50% {
+                border-color: var(--status-color, #8b5cf6);
+                box-shadow: inset 0 0 8px 0 var(--status-glow, rgba(139, 92, 246, 0.85));
+            }
+        }
+
+        .ai-chat-panel.status-thinking,
+        .agent-column.status-thinking {
+            --status-color: #8b5cf6;
+            --status-glow: rgba(139, 92, 246, 0.7);
+            border-color: #8b5cf6;
+            animation: panelStatusPulse 2s ease-in-out infinite;
+        }
+
+        .ai-chat-panel.status-tool-running,
+        .agent-column.status-tool-running {
+            --status-color: #eab308;
+            --status-glow: rgba(234, 179, 8, 0.7);
+            border-color: #eab308;
+            animation: panelStatusPulse 1.5s ease-in-out infinite;
+        }
+
+        .ai-chat-panel.status-tool-success,
+        .agent-column.status-tool-success {
+            --status-color: #60A5FA;
+            --status-glow: rgba(96, 165, 250, 0.7);
+            border-color: #60A5FA;
+            animation: panelStatusPulse 1.5s ease-in-out infinite;
+        }
+
+        .ai-chat-panel.status-writing,
+        .agent-column.status-writing {
+            --status-color: #ffffff;
+            --status-glow: rgba(255, 255, 255, 0.85);
+            border-color: #ffffff;
+            animation: panelStatusPulse 2s ease-in-out infinite;
+        }
+
+        /* When a panel is pulsing (AI is busy), drop affordance is suppressed.
+           Status pulse continues; drop tooltip hidden; drop bg/border cleared.
+           Selector specificity (0,4,0) beats .drag-over / .prime-drag-over's
+           (0,2,0) so the suppress wins without !important. */
+        .ai-chat-panel.status-thinking.drag-over,
+        .ai-chat-panel.status-tool-running.drag-over,
+        .ai-chat-panel.status-tool-success.drag-over,
+        .ai-chat-panel.status-writing.drag-over,
+        .ai-chat-panel.status-thinking.prime-drag-over,
+        .ai-chat-panel.status-tool-running.prime-drag-over,
+        .ai-chat-panel.status-tool-success.prime-drag-over,
+        .ai-chat-panel.status-writing.prime-drag-over,
+        .agent-column.status-thinking.drag-over,
+        .agent-column.status-tool-running.drag-over,
+        .agent-column.status-tool-success.drag-over,
+        .agent-column.status-writing.drag-over {
+            background: transparent;
+            border: 1px solid var(--status-color);
+        }
+
+        .ai-chat-panel.status-thinking.drag-over::before,
+        .ai-chat-panel.status-tool-running.drag-over::before,
+        .ai-chat-panel.status-tool-success.drag-over::before,
+        .ai-chat-panel.status-writing.drag-over::before,
+        .ai-chat-panel.status-thinking.prime-drag-over::before,
+        .ai-chat-panel.status-tool-running.prime-drag-over::before,
+        .ai-chat-panel.status-tool-success.prime-drag-over::before,
+        .ai-chat-panel.status-writing.prime-drag-over::before {
+            content: none;
+        }
+
+        .agent-column.status-thinking.drag-over::after,
+        .agent-column.status-tool-running.drag-over::after,
+        .agent-column.status-tool-success.drag-over::after,
+        .agent-column.status-writing.drag-over::after {
+            display: none;
         }
 
         /* OLD agent-thread-info CSS REMOVED - Now using universal ai-chat-header-info structure */

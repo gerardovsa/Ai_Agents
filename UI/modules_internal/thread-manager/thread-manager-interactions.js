@@ -1150,6 +1150,11 @@ Object.assign(window.ThreadManager, {
 
             agentColumn.addEventListener('dragenter', (e) => {
                 e.preventDefault();
+                // Reject drop affordance when AI is actively responding in this
+                // column — the status pulse continues, drag-over styling does
+                // not appear. (CSS in business-ai-platform-v2.html also hides
+                // the drop styles when status is active; this is the JS guard.)
+                if (AgentStatusIndicator.isPanelBusy(agentColumn)) return;
                 if (dragDepth++ === 0) {
                     agentColumn.classList.add('drag-over');
                 }
@@ -1158,7 +1163,8 @@ Object.assign(window.ThreadManager, {
             agentColumn.addEventListener('dragover', (e) => {
                 e.preventDefault();
                 e.stopPropagation();
-                e.dataTransfer.dropEffect = 'move';
+                // Don't show "move" cursor when AI is busy — drop will be rejected.
+                e.dataTransfer.dropEffect = AgentStatusIndicator.isPanelBusy(agentColumn) ? 'none' : 'move';
             });
 
             agentColumn.addEventListener('dragleave', () => {
@@ -1172,6 +1178,13 @@ Object.assign(window.ThreadManager, {
                 e.preventDefault();
                 dragDepth = 0;
                 agentColumn.classList.remove('drag-over');
+
+                // Final guard — even if the drag affordance slipped through,
+                // reject the swap so the active thread can't be interrupted.
+                if (AgentStatusIndicator.isPanelBusy(agentColumn)) {
+                    console.warn(`[Drop] Rejected: agent-${agentId} is busy (AI is responding).`);
+                    return;
+                }
 
                 const threadId = e.dataTransfer.getData('application/x-thread-id');
                 if (!threadId) return;
@@ -1227,6 +1240,11 @@ Object.assign(window.ThreadManager, {
 
         primeContainer.addEventListener('dragenter', (e) => {
             e.preventDefault();
+            // Reject drop affordance when Prime is actively responding.
+            // Status pulse continues; the prime-drag-over outline does not
+            // appear. (CSS in business-ai-platform-v2.html also hides the
+            // drop styles when status is active; this is the JS guard.)
+            if (AgentStatusIndicator.isPanelBusy(primeContainer)) return;
             if (dragDepth++ === 0) {
                 primeContainer.classList.add('prime-drag-over');
             }
@@ -1235,7 +1253,8 @@ Object.assign(window.ThreadManager, {
         primeContainer.addEventListener('dragover', (e) => {
             e.preventDefault();
             e.stopPropagation();
-            e.dataTransfer.dropEffect = 'move';
+            // Don't show "move" cursor when AI is busy — drop will be rejected.
+            e.dataTransfer.dropEffect = AgentStatusIndicator.isPanelBusy(primeContainer) ? 'none' : 'move';
         });
 
         primeContainer.addEventListener('dragleave', () => {
@@ -1249,6 +1268,13 @@ Object.assign(window.ThreadManager, {
             e.preventDefault();
             dragDepth = 0;
             primeContainer.classList.remove('prime-drag-over');
+
+            // Final guard — even if the drag affordance slipped through,
+            // reject the swap so the active Prime thread can't be interrupted.
+            if (AgentStatusIndicator.isPanelBusy(primeContainer)) {
+                console.warn('[Drop] Rejected: Prime is busy (AI is responding).');
+                return;
+            }
 
             const threadId = e.dataTransfer.getData('application/x-thread-id');
             if (!threadId) return;

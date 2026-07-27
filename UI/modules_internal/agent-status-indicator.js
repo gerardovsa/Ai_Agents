@@ -85,7 +85,15 @@ const AgentStatusIndicator = {
             badge.classList.remove(...this.ALL_STATUS_CLASSES);
         });
 
-        console.log('[STATUS] All indicators cleared (icons + badges)');
+        // Clear panel status classes on every agent column.
+        // (Prime panel is cleared implicitly above via
+        //  _updatePrimeIcon(null) -> _updatePanel(null).)
+        const agentPanels = document.querySelectorAll('.agent-column[data-agent-id]');
+        agentPanels.forEach(panel => {
+            panel.classList.remove(...this.ALL_STATUS_CLASSES);
+        });
+
+        console.log('[STATUS] All indicators cleared (icons + badges + panels)');
     },
 
     /**
@@ -109,6 +117,10 @@ const AgentStatusIndicator = {
         } else {
             console.log('[STATUS] Prime AI: idle');
         }
+
+        // Mirror status onto the wrapping Prime panel so the border-pulse CSS
+        // (.ai-chat-panel.status-X) fires in lock-step with the icon ring.
+        this._updatePanel(status);
     },
 
     /**
@@ -150,6 +162,10 @@ const AgentStatusIndicator = {
 
         // ✨ NEW: Also update the quick-nav-badge with the same status
         this._updateQuickNavBadge(agentId, status);
+
+        // Mirror status onto the wrapping agent column so the border-pulse
+        // CSS (.agent-column.status-X) fires in lock-step with the icon ring.
+        this._updatePanel(status, agentId);
     },
 
     /**
@@ -172,6 +188,61 @@ const AgentStatusIndicator = {
             badge.classList.add(`status-${status}`);
             // console.log(`[STATUS] Quick-nav badge ${agentId}: ${status}`);
         }
+    },
+
+    /**
+     * Update the wrapping panel (Prime or agent column) with the same status
+     * class so the panel-border pulse system (CSS @keyframes panelStatusPulse)
+     * fires in lock-step with the icon ring. Pass status=null to clear.
+     *
+     * Public consumers can read this state via isPanelBusy() to, e.g., reject
+     * drop-while-busy at the drag/drop handler.
+     *
+     * @param {string|null} status - Status type or null to clear
+     * @param {number|null} agentId - null for Prime AI; agent ID for an agent column
+     * @private
+     */
+    _updatePanel(status, agentId = null) {
+        let panel = null;
+
+        if (agentId === null) {
+            // Prime AI panel — only ever one of these in the DOM.
+            panel = document.querySelector('.ai-chat-panel');
+        } else {
+            // Try the new agent-column attribute first, then fall back to the
+            // legacy #agent-{id} element lookup so we survive the column rewrite.
+            panel = document.querySelector(`.agent-column[data-agent-id="${agentId}"]`);
+            if (!panel) {
+                const agentEl = document.getElementById(`agent-${agentId}`);
+                if (agentEl) {
+                    panel = agentEl.closest('.agent-column') || agentEl;
+                }
+            }
+        }
+
+        if (!panel) {
+            // Panel not in the DOM yet (e.g. agent not rendered). Silent no-op.
+            return;
+        }
+
+        // Clear previous status, then apply new one (or none).
+        panel.classList.remove(...this.ALL_STATUS_CLASSES);
+        if (status) {
+            panel.classList.add(`status-${status}`);
+        }
+    },
+
+    /**
+     * Public helper: returns true when the given panel element is currently
+     * pulsing in any active status (thinking / tool-running / tool-success /
+     * writing). Used by drop handlers to reject drops onto a busy AI panel.
+     *
+     * @param {Element|null} panelEl - .ai-chat-panel or .agent-column
+     * @returns {boolean}
+     */
+    isPanelBusy(panelEl) {
+        if (!panelEl || !panelEl.classList) return false;
+        return this.ALL_STATUS_CLASSES.some(c => panelEl.classList.contains(c));
     },
 
     /**
@@ -227,6 +298,15 @@ const AgentStatusIndicator = {
         // Count agent icons
         const agentIcons = document.querySelectorAll('.agent-header h2 i');
         console.log(`[STATUS] ${agentIcons.length} agent icon(s) found`);
+
+        // Verify panel targets exist for the border-pulse system. If this logs
+        // "0 + 0", the agent-column rewrite hasn't run yet — _updatePanel will
+        // silently no-op until panels appear, which is safe.
+        const primePanel = document.querySelector('.ai-chat-panel');
+        const agentPanels = document.querySelectorAll('.agent-column[data-agent-id]');
+        console.log(
+            `[STATUS] Panel targets: ${primePanel ? 1 : 0} Prime + ${agentPanels.length} agent(s)`
+        );
     }
 };
 
