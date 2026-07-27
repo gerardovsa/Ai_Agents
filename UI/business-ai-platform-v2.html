@@ -12722,41 +12722,45 @@
         }
 
         /* ====================================================================
-           PANEL-LEVEL STATUS PULSE (same mechanism as the badge ring)
-           - Both .ai-chat-panel and .agent-column get a solid 2px status-coloured
-             ring drawn OUTSIDE their border via box-shadow spread (no layout
-             cost, doesn't extend the box into neighbours — unlike a real border).
-           - An outer glow grows wider AND brighter on the 50% keyframe, mirroring
-             the badge's "ripple outward" feel (badge uses opacity 1 -> 0.5 +
-             scale 1 -> 1.05 on a positioned ::before; we translate that to a
-             blur-radius and alpha pulse on a second box-shadow layer).
-           - Animation timing matches statusPulse so icon and panel breathe in
-             lock-step.
+           PANEL-LEVEL STATUS PULSE (matches the badge ring mechanism)
+           - Three layers breathe together, each contributing a different cue:
+             1. Static 1 px border in status colour (constant; set on each
+                .status-X rule below — paints all 4 sides reliably).
+             2. Outer 2 px ring + soft outer glow (4 -> 8 px blur). Visible on
+                the LEFT and RIGHT edges of an agent column where the 12 px
+                column gap gives the glow room. The 8 px peak reach stays
+                inside the gap so it does not bleed into the neighbour.
+                At top/bottom this layer IS clipped by #multi-agent-container's
+                overflow:auto (padding: 0, height: 100%) — that is expected
+                and harmless because layer 3 covers it.
+             3. Inset atmospheric wash (8 -> 22 px blur + 0 -> 2 px spread,
+                alpha 0.4 -> 0.95). Inset box-shadow paints INSIDE the panel
+                and is NEVER clipped by ancestor overflow — so the breath is
+                visible on ALL FOUR edges. This is the load-bearing layer for
+                the top/bottom of the agent columns.
+           - Animation timing matches statusPulse so icon and panel breathe
+             in lock-step.
            - Uses box-shadow rather than a pseudo-element because the existing
              pseudo-elements are already load-bearing:
                .ai-chat-panel::before = resize strip
                .agent-column::before  = agent-action-button label
                .agent-column::after   = drop tooltip
-           - Replaces the previous inset box-shadow approach: a 4 -> 8 px inset
-             blur change on a 400 px column reads as roughly 1% relative
-             change — perceptually flat. The new outer ring + outer glow is
-             visible from across the page.
            ==================================================================== */
         @keyframes panelStatusPulse {
 
             0%,
             100% {
-                border-color: var(--status-color, #8b5cf6);
                 box-shadow:
+                    inset 0 0 8px 0 var(--status-glow-rest, rgba(139, 92, 246, 0.4)),
                     0 0 0 2px var(--status-color, #8b5cf6),
                     0 0 4px 0 var(--status-glow-rest, rgba(139, 92, 246, 0.4));
             }
 
             50% {
-                border-color: var(--status-color, #8b5cf6);
                 box-shadow:
+                    inset 0 0 22px 2px var(--status-glow-peak, rgba(139, 92, 246, 0.95)),
                     0 0 0 2px var(--status-color, #8b5cf6),
-                    0 0 18px 4px var(--status-glow-peak, rgba(139, 92, 246, 0.95));
+                    0 0 8px 0 var(--status-glow-peak, rgba(139, 92, 246, 0.95));
             }
         }
 

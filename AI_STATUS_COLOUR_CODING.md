@@ -42,19 +42,25 @@ If a status needs a new colour, change it here **and** in the inline rules of
 A status class paints **three places in lock-step**:
 
 1. The icon's ring (`statusPulse` keyframe: `scale(1.0 → 1.1)`, `opacity(1.0 → 0.6)`).
-2. A 2 px status-coloured **outer ring** drawn via box-shadow spread on the
-   wrapping panel — visible from across the page (replaces the previous
-   inset box-shadow, which was imperceptible on a 400 px column).
-3. An **outer glow** that grows wider AND brighter on the 50 % keyframe
-   (blur 4 → 18 px, alpha 0.4 → 0.95) — the visible "breath".
-
-The mechanism is a direct translation of the badge ring (which uses a
-positioned `::before` with `opacity 1 → 0.5` + `scale 1 → 1.05`) onto a
-box-shadow stack. The panels can't use a positioned pseudo-element because
-their `::before` / `::after` slots are already load-bearing (resize strip,
-drop tooltip, agent-action-button label). Box-shadow doesn't take layout
-space and doesn't bleed into neighbours unless the glow radius exceeds the
-column gap — at 18 px peak blur it stays well clear.
+2. The wrapping panel: a static 1 px status-coloured **border** (paints all
+   4 sides reliably — declared via the `border` shorthand in each
+   `.status-X` rule, not `border-color`, so it works on `.ai-chat-panel`
+   whose base only declares `border-left`).
+3. The wrapping panel: a 3-layer **box-shadow stack** (`panelStatusPulse`
+   keyframe):
+   - **Layer 1 — outer ring (2 px, constant).** Drawn via `0 0 0 2px
+     <color>` spread. Always visible on the left and right where the 12 px
+     column gap gives it room; may be clipped at top/bottom by the parent
+     `#multi-agent-container`'s `overflow:auto` (padding 0, height 100% —
+     no free space there).
+   - **Layer 2 — outer glow (4 → 8 px blur, alpha 0.4 → 0.95).** Visible
+     at the sides; intentionally tuned to stay within the 12 px column gap
+     so it does not bleed into the neighbour column. May be clipped
+     top/bottom — see Layer 3.
+   - **Layer 3 — inset atmospheric wash (8 → 22 px blur + 0 → 2 px spread,
+     alpha 0.4 → 0.95).** Inset box-shadow paints INSIDE the panel and is
+     **never clipped by ancestor overflow** — so this layer is the
+     load-bearing breath on the top and bottom of an agent column.
 
 Animation durations match across icon and panel:
 
@@ -64,10 +70,11 @@ Animation durations match across icon and panel:
 ## 4. Pulse-width rationale
 
 - Icon ring geometric pulse: `scale(1.0 → 1.1)` on a ~36 px outer ring ≈ 3.6 px outward reach.
-- Panel pulse: 2 px solid outer ring (always present) + outer glow 4 → 18 px blur and 0.4 → 0.95 alpha.
-- The 2 px ring + the breathing glow combine to a reach of about 20 px peak,
-  comparable to (and now more visible than) the icon ring's 3.6 px reach on a
-  much smaller surface. Tune the per-class `--status-glow-rest` /
+- Badge ring reference: 2 px positioned `::before` border + 5 % scale ≈ ~4.2 px outward reach.
+- Panel pulse: 2 px outer ring (constant) + 4 → 8 px outer glow (matches badge reach) + 8 → 22 px inset wash (visible at all 4 edges regardless of parent overflow).
+- The 8 px peak outer glow reach stays inside the 12 px column gap so the
+  glow does not bleed into the neighbour. The inset layer compensates on
+  the clipped top/bottom edges. Tune the per-class `--status-glow-rest` /
   `--status-glow-peak` variables to adjust; do not fork the keyframe.
 
 ## 5. Hover behaviour
