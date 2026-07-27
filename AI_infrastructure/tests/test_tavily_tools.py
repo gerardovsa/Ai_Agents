@@ -146,6 +146,10 @@ def test_registry_auto_discovers_tavily_tools():
         "tavily_search", "tavily_extract", "tavily_crawl", "tavily_map",
         "tavily_research", "tavily_get_research",
     }
+    # Lazy-mode (2026-07-27): Tavily tools are no longer loaded at boot.
+    # Materialise each before asserting presence.
+    for name in tavily_tool_names:
+        registry.materialize_tool(name)
     registered = set(registry.tools.keys())
     found = tavily_tool_names & registered
     missing = tavily_tool_names - found

@@ -352,9 +352,142 @@ def _render_health():
     return response, 200
 
 
-    # Block 1 removed (2026-07-27): initialize_semantic_search_async + globals. Archive: archive/deprecated/2026-07-27-lazy-tool-load/deleted_sections/flask_app__initialize_semantic_search_async.py
+# ============================================================================
+# 🚀 BACKGROUND SEMANTIC SEARCH INITIALIZATION (Non-Blocking)
+# ============================================================================
+_semantic_search_initialization_complete = False
+_semantic_search_initialization_error = None
 
-    # Block 2 removed (2026-07-27): start_semantic_search_initialization. Archive: archive/deprecated/2026-07-27-lazy-tool-load/deleted_sections/flask_app__start_semantic_search_initialization.py
+def initialize_semantic_search_async():
+    """
+    Initialize persistent semantic search in background thread.
+    
+    This runs AFTER server starts to prevent health check timeouts.
+    Uses Supabase persistence - loads instantly if cache exists, regenerates if tools changed.
+    """
+    global _semantic_search_initialization_complete, _semantic_search_initialization_error
+    
+    try:
+        print("\n" + "=" * 80)
+        print("[BACKGROUND] INITIALIZING PERSISTENT SEMANTIC SEARCH (Supabase-backed)")
+        print("=" * 80)
+        
+        # Import registry and semantic search initializer
+        from tools.registry_v3 import get_registry
+        from AI_infrastructure.routes.agent_routes_v4 import get_semantic_search
+        
+        # Get singleton registry (NOT a new instance)
+        print("[BACKGROUND] Loading tool registry...")
+        registry = get_registry()
+        print(f"[BACKGROUND] [OK] Registry loaded with {len(registry.tools)} tools")
+
+        # ✅ FIX (June 11, 2026): Disk-backed registry cache on /data
+        # Previously: every gunicorn worker recycle re-walked tools/schemas/*.json
+        # + every UI/modules_external/*/tools/*.json (3-5 s on cold start).
+        # Now: warm starts hit /data/tool_registry_cache/ via a version-hash check
+        # (~50 ms). Cold starts (real code change to a schema) detect the hash
+        # mismatch and rebuild transparently. Pickling callables is intentionally
+        # avoided — implementations are re-imported from disk (safe + fast).
+        try:
+            from AI_infrastructure.shared.tool_registry_disk_cache import (
+                compute_version_hash,
+                should_use_disk_cache,
+                load_schemas_from_disk,
+                save_schemas_to_disk,
+            )
+            # Compute the hash of what was just loaded by get_registry() (it
+            # already populated registry.tools from a Redis cache or fresh read).
+            current_hash = compute_version_hash(registry.tools)
+            if should_use_disk_cache(current_hash):
+                print(f"[BACKGROUND] [DISK_CACHE] Hash {current_hash[:8]} matches /data cache — loading schemas from disk")
+                if load_schemas_from_disk(registry):
+                    # Implementations must always be re-imported (they are
+                    # Python callables, not JSON-serializable, and not in cache).
+                    print("[BACKGROUND] [DISK_CACHE] Re-importing implementations + module plugins (fast path)")
+                    registry._load_implementations()
+                    registry._load_module_plugins()
+                    print(f"[BACKGROUND] [OK] Disk-cache fast path: {len(registry.tools)} tools, {len(registry.implementations)} implementations")
+                else:
+                    # Cache load failed despite hash match — fall back to full rebuild
+                    print("[BACKGROUND] [DISK_CACHE] Cache read failed, falling back to full rebuild")
+                    registry._load_schemas()
+                    registry._load_implementations()
+                    registry._load_module_plugins()
+                    save_schemas_to_disk(registry)
+            else:
+                print(f"[BACKGROUND] [DISK_CACHE] Cache miss or hash mismatch — full rebuild")
+                registry._load_schemas()
+                registry._load_implementations()
+                registry._load_module_plugins()
+                save_schemas_to_disk(registry)
+                print(f"[BACKGROUND] [OK] Reloaded fresh tools: {len(registry.tools)} total")
+        except ImportError as e:
+            # Disk cache helper not available — fall back to the old Redis path
+            print(f"[BACKGROUND] [DISK_CACHE] Helper not available ({e}), using legacy path")
+            if registry.redis_manager and registry.redis_manager.connected:
+                print("[BACKGROUND] Invalidating stale Redis cache to force fresh tool loading...")
+                cache_cleared = registry.invalidate_cache()
+                if cache_cleared:
+                    print("[BACKGROUND] [OK] Redis cache invalidated - next load will be fresh")
+                    registry._load_schemas()
+                    registry._load_implementations()
+                    registry._load_module_plugins()
+                    registry._save_to_cache()
+                    print(f"[BACKGROUND] [OK] Reloaded fresh tools: {len(registry.tools)} total")
+                else:
+                    print("[BACKGROUND] [INFO] Redis cache not available - using fresh load")
+        except Exception as e:
+            # Defensive: any failure in the disk-cache path must not crash startup
+            print(f"[BACKGROUND] [DISK_CACHE] Error: {e}, falling back to fresh load")
+            import traceback
+            traceback.print_exc()
+            registry._load_schemas()
+            registry._load_implementations()
+            registry._load_module_plugins()
+        
+        # ✅ DEPLOY-TIME PREWARM (July 24, 2026):
+        # Tag every log line with [DEPLOY_PREWARM] so the user can grep
+        # `grep -c "DEPLOY_PREWARM" render.log` and confirm the prewarm
+        # actually ran as part of the deploy (not lazily on first chat).
+        # The previous tag was [BACKGROUND] — easy to miss.
+        print("=" * 80)
+        print("[DEPLOY_PREWARM] STEP 1/3 — Loading tool registry from disk cache (or fresh rebuild)")
+        print("=" * 80)
+        semantic_search = get_semantic_search(registry)
+
+        if semantic_search and semantic_search.available:
+            source = "Supabase" if semantic_search.db_available else "Generated (Database unavailable)"
+            print(f"[DEPLOY_PREWARM] STEP 2/3 — Loaded {len(semantic_search.tool_embeddings)} tool embeddings from {source}")
+            print(f"[DEPLOY_PREWARM] STEP 2/3 — Version hash: {semantic_search.version_hash[:16]}...")
+            print("=" * 80)
+            print(f"[DEPLOY_PREWARM] STEP 3/3 — ✅ DONE. Chat endpoint will be unblocked.")
+            print(f"[DEPLOY_PREWARM] STEP 3/3 — Total tools indexed: {len(semantic_search.tool_embeddings)}")
+            print("=" * 80 + "\n")
+        else:
+            print(f"[DEPLOY_PREWARM] STEP 2/3 — ⚠️  Semantic search NOT available (sentence-transformers not installed or HF download failed)")
+            print(f"[DEPLOY_PREWARM] STEP 3/3 — ⚠️  Chat endpoint will still respond but tool-selection will fall back to keyword matching")
+            print("=" * 80 + "\n")
+
+        _semantic_search_initialization_complete = True
+            
+    except Exception as e:
+        print(f"[DEPLOY_PREWARM] ❌ FAILED: {e}")
+        import traceback
+        print(traceback.format_exc())
+        print("=" * 80 + "\n")
+        _semantic_search_initialization_error = str(e)
+
+def start_semantic_search_initialization():
+    """Start semantic search initialization in background thread"""
+    thread = threading.Thread(
+        target=initialize_semantic_search_async,
+        daemon=True,
+        name="SemanticSearchInit"
+    )
+    thread.start()
+    print("[DEPLOY_PREWARM] 🚀 Started in background thread — server will accept requests immediately")
+    print("[DEPLOY_PREWARM] 🚀 Chat endpoints will return 503 with Retry-After until this thread completes")
+    print("[DEPLOY_PREWARM] 🚀 Follow progress by `grep \"DEPLOY_PREWARM\" render.log`\n")
 
 
 # ============================================================================
@@ -378,14 +511,95 @@ def _render_health():
 # instead of a hung spinner, and the prewarm runs as part of gunicorn
 # boot (not as part of their first chat request).
 # ============================================================================
-    # Block 3 removed (2026-07-27): PrewarmPending / PrewarmFailed / is_prewarm_complete / get_prewarm_error. Archive: archive/deprecated/2026-07-27-lazy-tool-load/deleted_sections/flask_app__prewarm_classes.py
+class PrewarmPending(Exception):
+    """Raised by get_semantic_search() when the deploy-time prewarm hasn't finished yet."""
+    def __init__(self, retry_after_seconds: int = 5):
+        self.retry_after_seconds = retry_after_seconds
+        super().__init__(f"Deploy prewarm still running; retry after {retry_after_seconds}s")
 
 
-    # Block 4 removed (2026-07-27): initialize_pgvector_bge_model_async + globals. Archive: archive/deprecated/2026-07-27-lazy-tool-load/deleted_sections/flask_app__initialize_pgvector_bge_model_async.py
+class PrewarmFailed(Exception):
+    """Raised by get_semantic_search() when the deploy-time prewarm raised an exception."""
+    def __init__(self, reason: str):
+        self.reason = reason
+        super().__init__(f"Deploy prewarm failed: {reason}")
+
+
+def is_prewarm_complete() -> bool:
+    """Cheap read of the global prewarm flag without importing anything heavy."""
+    return _semantic_search_initialization_complete
+
+
+def get_prewarm_error() -> Optional[str]:
+    """Returns the prewarm error string if the prewarm failed, else None."""
+    return _semantic_search_initialization_error
+
+
+# ============================================================================
+# 🚀 BACKGROUND PGVECTOR BGE MODEL PRELOAD (Non-Blocking)
+# ============================================================================
+# The BAAI/bge-base-en-v1.5 embedding model (~440 MB on disk, 768-dim) is
+# downloaded on first call to pgvector_upload_document() / pgvector_query_vectors()
+# if it isn't already on /data.  On a fresh deploy with an empty persistent
+# disk that first call takes 30-60 s and can hit Render's request timeout,
+# surfacing as a 502 to the user (same pattern as the all-MiniLM-L6-v2
+# preload via initialize_semantic_search_async above, but for the
+# pgvector provider's embedding model).
+#
+# This preload runs in a daemon thread at startup so the first user upload
+# is instant.  Failures here are non-fatal: the model will still load on
+# first use, just with the original 30-60 s wait.
+#
+# Target cache dir matches pgvector_tools.py: /data/vdb_models on Render,
+# ~/.cache/vdb_models on local dev.  Subsequent deploys reuse the cached
+# snapshot — only the FIRST deploy on a fresh disk pays the download cost.
+_pgvector_bge_initialization_complete = False
+_pgvector_bge_initialization_error = None
+
+def initialize_pgvector_bge_model_async():
+    """Preload the pgvector BGE embedding model in a background thread."""
+    global _pgvector_bge_initialization_complete, _pgvector_bge_initialization_error
+
+    try:
+        print("\n" + "=" * 80)
+        print("[BACKGROUND] PRELOADING PGVECTOR BGE MODEL (BAAI/bge-base-en-v1.5, 768-dim)")
+        print("=" * 80)
+
+        from tools.implementations.pgvector import pgvector_tools
+
+        # force_local=True bypasses the org-vault credential lookup so a
+        # missing/invalid Voyage or OpenAI key can never cause this preload
+        # to 500.  Trivial 1-char input → embedding call is essentially
+        # instant; the cost is the one-time model load (~30-60 s on a fresh
+        # disk, <1 s on a warm cache).
+        vec = pgvector_tools._generate_embedding(".", user_id=1, force_local=True)
+        assert len(vec) == 768, f"Expected 768-dim vector from BGE, got {len(vec)}"
+
+        print(f"[BACKGROUND] [OK] BGE model ready — {len(vec)}-dim embeddings available")
+        print("=" * 80)
+        print("[BACKGROUND] ✅ PGVECTOR BGE MODEL READY — first upload will be instant")
+        print("=" * 80 + "\n")
+
+        _pgvector_bge_initialization_complete = True
+
+    except Exception as e:
+        print(f"[BACKGROUND] [ERROR] Failed to preload pgvector BGE model: {e}")
+        import traceback
+        print(traceback.format_exc())
+        print("=" * 80 + "\n")
+        _pgvector_bge_initialization_error = str(e)
         # Non-fatal: the model will load on first use even if preload fails
         # (the user just pays the 30-60 s download cost on first upload).
 
-    # Block 5 removed (2026-07-27): start_pgvector_bge_initialization. Archive: archive/deprecated/2026-07-27-lazy-tool-load/deleted_sections/flask_app__start_pgvector_bge_initialization.py
+def start_pgvector_bge_initialization():
+    """Start pgvector BGE model preload in background thread."""
+    thread = threading.Thread(
+        target=initialize_pgvector_bge_model_async,
+        daemon=True,
+        name="PgvectorBgePreload"
+    )
+    thread.start()
+    print("[STARTUP] 🚀 pgvector BGE model preload started in background\n")
 
 
 # Note: OAuth state tokens are stored in database (oauth_states table) instead of Flask sessions
@@ -4862,9 +5076,85 @@ _st_begin('gunicorn_runtime_services', note='pool prewarm + connection leak dete
 if os.environ.get('RENDER') == 'true' or __name__ == '__main__':
     _prewarm_connection_pools()
 
-    # Block 6 removed (2026-07-27): prewarm marker check + start_semantic_search_initialization() call. Archive: archive/deprecated/2026-07-27-lazy-tool-load/deleted_sections/flask_app__prewarm_marker_check.py
+    # ============================================================================
+    # 🚀 SEMANTIC SEARCH PREWARM (Deploy-time marker + background-thread fallback)
+    # ============================================================================
+    # WHY HERE (not under `if __name__ == '__main__':`):
+    #   gunicorn imports flask_app as a module, so its __name__ is
+    #   "AI_infrastructure.flask_app" — never "__main__". Placing this inside
+    #   the __main__-only block silently skipped it under gunicorn, leaving
+    #   `_semantic_search_initialization_complete` stuck at False and the chat
+    #   endpoint returning 503 + Retry-After forever — the user reported
+    #   symptom on 2026-07-24. The same `RENDER or __main__` pattern that
+    #   gates `_prewarm_connection_pools()` above is what makes the connection
+    #   pool prewarm actually fire under gunicorn; we mirror it here so the
+    #   semantic-search prewarm behaves the same way.
+    #
+    # If startup.sh ran AI_infrastructure/scripts/deploy_prewarm.py BEFORE
+    # `exec gunicorn`, a marker file /data/.prewarm_complete exists. In that
+    # case the HuggingFace model is already in /data/vdb_models/ AND the tool
+    # embeddings are already cached in Supabase — workers load them on first
+    # chat in <2s. We SKIP the background thread (the user's clock is no
+    # longer paying for the prewarm cost).
+    #
+    # If the marker is absent (local dev, deploy script failed), fall back
+    # to the background-thread prewarm + the 503+Retry-After gate in
+    # agent_routes_v4.py get_semantic_search(). Deploys never crash-loop
+    # because of a prewarm failure.
+    _PREWARM_MARKER_PATH = '/data/.prewarm_complete'
 
-    # Block 7 removed (2026-07-27): start_pgvector_bge_initialization() call site. Archive: archive/deprecated/2026-07-27-lazy-tool-load/deleted_sections/flask_app__prewarm_calls.py
+    try:
+        _marker_present = os.path.isfile(_PREWARM_MARKER_PATH)
+    except Exception as _marker_err:
+        print(f"[DEPLOY_PREWARM] Marker detection error (non-fatal): {_marker_err}")
+        _marker_present = False
+
+    if _marker_present:
+        # Trust the marker — the persistent_semantic_search singleton will
+        # load instantly from /data/vdb_models/ + Supabase on first call.
+        _semantic_search_initialization_complete = True
+        _semantic_search_initialization_error = None
+        print(f"[DEPLOY_PREWARM] ✓ Marker file detected: {_PREWARM_MARKER_PATH}")
+        print("[DEPLOY_PREWARM]   Deploy-time prewarm already completed.")
+        print("[DEPLOY_PREWARM]   Skipping background-thread prewarm; workers will")
+        print("[DEPLOY_PREWARM]   load embeddings from cache on first chat (<2s).")
+        print("[DEPLOY_PREWARM] ✓ Background prewarm thread SKIPPED.\n")
+    else:
+        # No marker (dev mode or deploy-time prewarm failed). Start the
+        # background-thread prewarm; the chat endpoint will return 503 with
+        # Retry-After until it completes.
+        print("[STARTUP] No deploy-prewarm marker found — starting background-thread prewarm...")
+        print("[STARTUP] Server will respond to health checks immediately while embeddings load.")
+        print("[STARTUP] Chat endpoint will 503+Retry-After until prewarm completes.\n")
+        start_semantic_search_initialization()
+
+    # ============================================================================
+    # 🚀 PGVECTOR BGE MODEL PRELOAD (background thread, non-fatal)
+    # ============================================================================
+    # WHY HERE (not under `if __name__ == '__main__':`):
+    #   Same gunicorn __name__ trap as the semantic-search prewarm above:
+    #   `start_pgvector_bge_initialization()` is the function that actually
+    #   spawns the preload thread, and under gunicorn its __name__ is
+    #   "AI_infrastructure.flask_app" — never "__main__". Placing the call
+    #   inside the __main__-only block silently skipped it under gunicorn
+    #   on Render, leaving `_pgvector_bge_initialization_complete` stuck at
+    #   False and the first vector-DB upload paying the 30-60 s HuggingFace
+    #   download cost.
+    #
+    # NOTE: This is NOT on the chat hot path — it's only consumed by the
+    # vector-DB document upload flow. Failures here are non-fatal: the
+    # model will still load on first use (just with the original 30-60 s
+    # wait). We log and continue if anything goes wrong.
+    #
+    # Bug fixed 2026-07-24 — function was previously defined but never
+    # called from anywhere in the codebase, so the preload never ran on
+    # Render. The diagnostic endpoint at /api/dev-tools/startup-diagnostics
+    # was always reporting `pgvector_bge.initialized: false`.
+    # ============================================================================
+    try:
+        start_pgvector_bge_initialization()
+    except Exception as _bge_err:
+        print(f"[STARTUP] ⚠️  Failed to start pgvector BGE preload (non-fatal): {_bge_err}")
 
     # ============================================================================
     # CONNECTION LEAK DETECTOR STARTUP

@@ -83,7 +83,7 @@ def list_platform_tools(platform: str, **kwargs) -> Dict[str, Any]:
         'word': ['microsoft_word_'],
         'excel': ['microsoft_excel_'],
         'onenote': ['microsoft_onenote_'],
-        'forms': ['microsoft_forms_', 'google_forms_'],
+        'forms': ['microsoft_forms_'],
         'sharepoint': ['microsoft_sharepoint_'],
         'calendar': ['microsoft_calendar_', 'google_calendar_'],
         'google': ['google_', 'gmail_'],  # All Google tools
@@ -93,9 +93,7 @@ def list_platform_tools(platform: str, **kwargs) -> Dict[str, Any]:
         'sheets': ['google_sheets_'],
         'docs': ['google_docs_'],
         'drive': ['google_drive_'],
-        # 'forms' key deduped above — was ['google_forms_'] at line 96 of pre-refactor
-        # code, which silently shadowed the Microsoft Forms entry via dict
-        # last-wins semantics. Now both forms providers are covered.
+        'forms': ['google_forms_'],
         'synergy': ['synergy_'],  # Synergy Dashboard tools
         'dashboard': ['synergy_'],  # Alias for synergy
         'kanban': ['synergy_'],  # Alias for synergy
@@ -428,18 +426,11 @@ def get_tool_schema(tool_name: str = None, **kwargs) -> Dict[str, Any]:
     print(f"  - Tool name: {extracted_tool_name}")
     
     registry = get_registry()
-
-    # Lazy-mode (2026-07-27): trigger materialisation of the requested tool
-    # before the not-found check. If it's in the schema index but not yet
-    # loaded (e.g. the AI asked for a gmail tool on a fresh boot), this
-    # parses its JSON, runs process_schema(), and registers it. Idempotent —
-    # already-loaded tools short-circuit inside materialize_tool().
-    if not registry.materialize_tool(extracted_tool_name):
+    
+    # Check if tool exists
+    if extracted_tool_name not in registry.tools:
         # Find similar tools to suggest
-        # Use the SCHEMA INDEX (not just loaded tools) so we can suggest
-        # not-yet-materialized candidates — the AI may be able to discover
-        # the right name by spelling or token match.
-        all_tool_names = list(registry._schema_index.keys())
+        all_tool_names = list(registry.tools.keys())
         similar_tools = []
         search_term = extracted_tool_name.lower()
         
@@ -481,19 +472,14 @@ def get_tool_schema(tool_name: str = None, **kwargs) -> Dict[str, Any]:
         return error_result
     
     tool = registry.tools[extracted_tool_name]
-
-    # Use the already-loaded schema directly (LAZY mode, 2026-07-27).
-    # Pre-refactor this called registry.get_anthropic_tools() which rebuilt
-    # the Anthropic-format list for ALL loaded tools on every get_tool_schema
-    # call — wasted CPU in eager mode, and a latent bug: it searched for
-    # `tool_name` (the parameter, often None/empty for meta-tools) instead of
-    # `extracted_tool_name`, so multi-provider extraction paths always fell
-    # through to the manual fallback. Direct dict lookup fixes both.
-    anthropic_tool = {
-        "name": tool.get("name"),
-        "description": tool.get("description", ""),
-        "input_schema": tool.get("parameters", {"type": "object", "properties": {}}),
-    }
+    
+    # Get the Anthropic-formatted version which includes input_schema
+    anthropic_tools = registry.get_anthropic_tools()
+    anthropic_tool = None
+    for at in anthropic_tools:
+        if at.get('name') == tool_name:
+            anthropic_tool = at
+            break
     
     if not anthropic_tool:
         # Fallback to manual schema if not in Anthropic format
@@ -1055,14 +1041,11 @@ def execute_tool(
         }
     
     registry = get_registry()
-
-    # Lazy-mode (2026-07-27): same pattern as get_tool_schema above —
-    # trigger materialisation so not-yet-loaded tools dispatch correctly.
-    # Also switches the suggestion source to the schema index so we can
-    # recommend tools that exist but haven't been materialised yet.
-    if not registry.materialize_tool(extracted_tool_name):
+    
+    # Check if tool exists
+    if extracted_tool_name not in registry.tools:
         # Try to suggest similar tools
-        all_tools = list(registry._schema_index.keys())
+        all_tools = list(registry.tools.keys())
         suggestions = [t for t in all_tools if extracted_tool_name.lower() in t.lower()][:5]
         
         return {

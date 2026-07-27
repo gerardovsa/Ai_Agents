@@ -287,19 +287,6 @@ class RegistryV3:
         self.tool_call_count = 0
         self.last_feedback_check = 0
         self.feedback_check_interval = 1  # Check EVERY tool call (changed from 3)
-
-        # ━━━ Lazy-load mode state (added 2026-07-27) ━━━
-        # When LAZY_TOOLS=1 (default after refactor), boot loads only the 8
-        # meta-tools + a lightweight schema index. The other ~825 tools load
-        # on demand via materialize_tool(). The LAZY_TOOLS=0 escape hatch
-        # restores the original eager path; see ROLLBACK.md in the
-        # archive/deprecated/2026-07-27-lazy-tool-load/ bundle.
-        self._lazy_mode = os.getenv("LAZY_TOOLS", "1") == "1"
-        self._schema_index: Dict[str, str] = {}               # tool_name -> schema filepath (str for JSON-safety / future cache)
-        self._schema_index_descriptions: Dict[str, str] = {}  # tool_name -> cached short_description for cheap search_index()
-        self._schema_index_platforms: Dict[str, str] = {}     # tool_name -> platform for list_platform_tools() proxy
-        self.google_workspace_modules: Dict[str, Any] = {}    # module_name -> _LazyModuleProxy (replaces eager import)
-        self._materialize_lock = threading.Lock()             # guards concurrent materialize_tool() calls (brief JSON-parse window)
         
         # Tool Intelligence Logger (Nov 27, 2025)
         # Silent learning system that tracks patterns and generates AI observations
@@ -336,27 +323,6 @@ class RegistryV3:
                     if module_path not in sys.path:
                         sys.path.insert(0, module_path)
         
-        # ━━━ Lazy-load branch (2026-07-27) ━━━
-        # When LAZY_TOOLS=1, boot loads only meta_tools.json + a cheap schema
-        # index, then returns. All other tools materialize on demand via
-        # materialize_tool() triggered by the allowlist gates in
-        # meta_tools.py and combined_agent_worker.py. The eager path below
-        # is preserved byte-identical for the LAZY_TOOLS=0 escape hatch.
-        if self._lazy_mode:
-            self._load_meta_tools_only()
-            self._build_schema_index()
-            self._register_lazy_implementations()
-            self._register_lazy_google_workspace()
-            # _load_module_plugins stays eager (auspost + reactivation are <50 ms)
-            self._load_module_plugins()
-            logger.info(
-                f"[OK] Registry V3 initialized (LAZY mode, LAZY_TOOLS=1): "
-                f"{len(self.tools)} meta-tools, {len(self._schema_index)} schemas indexed, "
-                f"{len(self.implementations)} impl stubs, {len(self.google_workspace_modules)} google_workspace stubs"
-            )
-            return
-
-        # ━━━ Original eager path (preserved for LAZY_TOOLS=0 rollback) ━━━
         # Try warm cache (persistent pickle at /data/.cache/registry/) FIRST.
         # FIX (July 23, 2026): The warm cache survives Render redeploys unlike
         # the Redis cache (which is per-instance). On a hit, we skip the
@@ -949,296 +915,6 @@ class RegistryV3:
             except Exception as e:
                 logger.debug(f"  [WARN] Error registering lazy stub for {module_name}: {e}")
 
-    # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-    # LAZY-LOAD METHODS (added 2026-07-27)
-    # ─────────────────────────────────────────────────────────────────────
-    # These run when LAZY_TOOLS=1. Boot reads ONLY meta_tools.json + a
-    # lightweight schema index, then returns. Other tools load on demand
-    # via materialize_tool(). The original eager path (_load_schemas,
-    # _load_implementations eager version, _load_from_google_workspace
-    # with importlib) is preserved above for the LAZY_TOOLS=0 escape
-    # hatch — see archive/deprecated/2026-07-27-lazy-tool-load/ROLLBACK.md.
-    # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-    # Mirror of the EXCLUDED_TOOLS list in _load_schemas — kept as a class
-    # constant so materialize_tool() honors the same security boundary.
-    _EXCLUDED_TOOLS_LAZY = frozenset({
-        "microsoft_outlook_send_email",
-        "microsoft_outlook_smart_bulk_send_personalized",
-        "microsoft_outlook_reply_to_message",
-        "microsoft_outlook_forward_message",
-        "microsoft_outlook_send_draft",
-    })
-
-    def _load_meta_tools_only(self) -> None:
-        """Lazy-mode boot step 1: parse ONLY meta_tools.json (~10 ms).
-
-        Populates self.tools with the 8 meta-tools the AI sees at startup.
-        No model loads, no other JSON reads, no google_workspace imports.
-        """
-        schemas_dir = self.tools_dir / "schemas"
-        meta_file = schemas_dir / "meta_tools.json"
-        if not meta_file.exists():
-            logger.warning(f"[LAZY] meta_tools.json not found at {meta_file}")
-            return
-
-        try:
-            with open(meta_file, "r", encoding="utf-8") as f:
-                data = json.load(f)
-        except Exception as e:
-            logger.warning(f"[LAZY] Failed to read meta_tools.json: {e}")
-            return
-
-        # Dynamic-value injection (mirrors _load_schemas behaviour).
-        try:
-            from shared.schema_processor import process_schema
-            data = process_schema(data)
-            if not isinstance(data, dict):
-                logger.warning("[LAZY] process_schema returned non-dict for meta_tools.json")
-                return
-        except ImportError:
-            pass  # dynamic injection is optional
-        except Exception as e:
-            logger.warning(f"[LAZY] process_schema failed on meta_tools.json: {e}")
-
-        schema_platform = data.get("platform", "meta_tools")
-        loaded = 0
-        for tool in data.get("tools", []):
-            tool_name = tool.get("name")
-            if not tool_name:
-                continue
-            if tool_name in self._EXCLUDED_TOOLS_LAZY:
-                continue
-            if "platform" not in tool:
-                tool["platform"] = schema_platform
-            self.tools[tool_name] = tool
-            loaded += 1
-        logger.info(f"[LAZY] meta_tools.json loaded: {loaded} tools")
-
-    def _build_schema_index(self) -> None:
-        """Lazy-mode boot step 2: scan every schema JSON, cache name + description.
-
-        No process_schema() call — the index is intentionally cheap. On demand,
-        materialize_tool() re-reads the JSON and runs process_schema() for the
-        single file. Honors _DISABLED_SCHEMA_FILENAMES + _RENDER_DISABLED_PLATFORMS.
-        """
-        schemas_dir = self.tools_dir / "schemas"
-        if not schemas_dir.exists():
-            logger.warning(f"[LAZY] schemas dir not found: {schemas_dir}")
-            return
-
-        indexed = 0
-        skipped_filename = 0
-        skipped_platform = 0
-
-        for schema_file in sorted(schemas_dir.glob("*.json")):
-            try:
-                if schema_file.name in _DISABLED_SCHEMA_FILENAMES:
-                    skipped_filename += 1
-                    continue
-                with open(schema_file, "r", encoding="utf-8", errors="replace") as f:
-                    data = json.load(f)
-                if not isinstance(data, dict):
-                    continue
-                schema_platform = data.get("platform")
-                if schema_platform and schema_platform in _RENDER_DISABLED_PLATFORMS:
-                    skipped_platform += 1
-                    continue
-                for tool in data.get("tools", []):
-                    tool_name = tool.get("name")
-                    if not tool_name:
-                        continue
-                    # Index even already-loaded meta_tools — same key overwrites
-                    # fine; the schema filepath is still useful for a later
-                    # materialize pass if anything ever mutates the meta schema.
-                    self._schema_index.setdefault(tool_name, str(schema_file))
-                    self._schema_index_descriptions.setdefault(
-                        tool_name, tool.get("short_description") or tool.get("description") or ""
-                    )
-                    if schema_platform:
-                        self._schema_index_platforms.setdefault(tool_name, schema_platform)
-                    indexed += 1
-            except Exception as e:
-                logger.debug(f"[LAZY] index skipped {schema_file.name}: {e}")
-
-        logger.info(
-            f"[LAZY] Schema index built: {indexed} entries, "
-            f"{skipped_filename} filenames skipped, {skipped_platform} platforms skipped"
-        )
-
-    def _register_lazy_implementations(self) -> None:
-        """Lazy-mode boot step 3: register _LazyModuleProxy stubs for tools/implementations/*.
-
-        Special-case: meta_tools.py is FORCE-materialised because its per-function
-        registration pattern relies on import side-effects. All other modules
-        get a lazy stub; first attribute access triggers the real import.
-        Honors _DISABLED_IMPLEMENTATION_STEMS.
-        """
-        impl_dir = self.tools_dir / "implementations"
-        if not impl_dir.exists():
-            logger.warning(f"[LAZY] implementations dir not found: {impl_dir}")
-            return
-
-        registered = 0
-        forced = 0
-        skipped = 0
-        for impl_file in sorted(impl_dir.iterdir()):
-            if impl_file.suffix != ".py" or impl_file.name == "__init__.py":
-                continue
-            module_name = impl_file.stem
-
-            if module_name in _DISABLED_IMPLEMENTATION_STEMS:
-                skipped += 1
-                continue
-
-            # meta_tools stays force-loaded so per-function @tool_executor
-            # decorators register at import time. The other special modules
-            # (sql_database, visualization_guide, viz_snapshots) drop out of
-            # force-materialise — they get lazy stubs just like the rest.
-            if module_name == "meta_tools":
-                try:
-                    importlib.import_module(f"tools.implementations.{module_name}")
-                    forced += 1
-                    logger.info(f"  [IMPL/META] Forced: tools.implementations.{module_name}")
-                    continue
-                except Exception as e:
-                    logger.warning(f"[LAZY] Failed to force-load meta_tools: {e}")
-                    continue
-
-            fq_name = f"tools.implementations.{module_name}"
-            try:
-                proxy = _LazyModuleProxy(fq_name)
-                self.implementations[module_name] = proxy
-                registered += 1
-            except Exception as e:
-                logger.debug(f"[LAZY] Failed to register lazy stub for {module_name}: {e}")
-
-        logger.info(f"[LAZY] Implementations: {registered} lazy stubs, {forced} forced, {skipped} skipped")
-
-    def _register_lazy_google_workspace(self) -> None:
-        """Lazy-mode boot step 4: register _LazyModuleProxy stubs for google_workspace/*.py.
-
-        Replaces the eager importlib.import_module() calls in the pre-refactor
-        _load_from_google_workspace(). The 12 modules (gmail, docs, sheets,
-        drive, calendar, tasks, slides, meet, analytics, cloud_run,
-        auth_helper, …) only import when the AI first asks for a Google tool.
-        """
-        google_ws_dir = self.root_dir / "google_workspace"
-        if not google_ws_dir.exists():
-            logger.debug(f"[LAZY] google_workspace dir not found: {google_ws_dir}")
-            return
-
-        registered = 0
-        for py_file in sorted(google_ws_dir.iterdir()):
-            if py_file.suffix != ".py" or py_file.name == "__init__.py":
-                continue
-            module_name = py_file.stem
-            fq_name = f"google_workspace.{module_name}"
-            try:
-                proxy = _LazyModuleProxy(fq_name)
-                self.google_workspace_modules[module_name] = proxy
-                registered += 1
-            except Exception as e:
-                logger.debug(f"[LAZY] Failed to register google_workspace stub for {module_name}: {e}")
-
-        logger.info(f"[LAZY] google_workspace: {registered} lazy stubs registered")
-
-    def materialize_tool(self, name: str) -> bool:
-        """Parse one JSON schema on demand and register its tools.
-
-        Returns True if `name` is now registered (either was already, or was
-        just materialised). Returns False if unknown / disabled / parse-error.
-        Thread-safe via self._materialize_lock.
-        """
-        if not name:
-            return False
-        # Fast path: already loaded (the common case after first materialisation).
-        if name in self.tools:
-            return True
-
-        with self._materialize_lock:
-            # Re-check inside the lock — a concurrent caller may have just materialised it.
-            if name in self.tools:
-                return True
-
-            path_str = self._schema_index.get(name)
-            if not path_str:
-                return False
-
-            schema_path = Path(path_str)
-            try:
-                with open(schema_path, "r", encoding="utf-8", errors="replace") as f:
-                    data = json.load(f)
-            except Exception as e:
-                logger.warning(f"[MATERIALIZE] Failed to read {schema_path.name}: {e}")
-                return False
-
-            if not isinstance(data, dict):
-                return False
-
-            schema_platform = data.get("platform")
-            if schema_platform and schema_platform in _RENDER_DISABLED_PLATFORMS:
-                logger.debug(f"[MATERIALIZE] Skipped (disabled platform): {name}")
-                return False
-
-            # Dynamic-value injection (mirrors _load_schemas body).
-            try:
-                from shared.schema_processor import process_schema
-                data = process_schema(data)
-                if not isinstance(data, dict):
-                    return False
-            except ImportError:
-                pass
-            except Exception as e:
-                logger.debug(f"[MATERIALIZE] process_schema failed on {schema_path.name}: {e}")
-
-            registered_target = False
-            for tool in data.get("tools", []):
-                tool_name = tool.get("name")
-                if not tool_name:
-                    continue
-                if tool_name in self._EXCLUDED_TOOLS_LAZY:
-                    continue
-                if schema_platform and "platform" not in tool:
-                    tool["platform"] = schema_platform
-                self.tools[tool_name] = tool
-                if tool_name == name:
-                    registered_target = True
-
-            if registered_target:
-                logger.info(f"  [MATERIALIZE] {name} ({schema_path.name})")
-            return registered_target
-
-    def search_index(self, query: str, k: int = 8) -> List[Dict[str, Any]]:
-        """Walk _schema_index for substring matches on name + cached description.
-
-        Cheap — no JSON re-parse. Returns up to k matches with name + path +
-        score. Tokenises the query on whitespace and ORs the matches; a tool
-        matching more tokens ranks higher. Name-match scores 2.0 per token;
-        description-match scores 1.0 per token. Used by meta_tools.search_tools()
-        to give the AI a fast first-cut before it calls get_tool_schema() (which
-        triggers materialize_tool()).
-        """
-        if not query:
-            return []
-        tokens = [t for t in query.lower().split() if t]
-        if not tokens:
-            return []
-        matches: List[Dict[str, Any]] = []
-        for tool_name, path_str in self._schema_index.items():
-            name_lower = tool_name.lower()
-            desc_lower = self._schema_index_descriptions.get(tool_name, "").lower()
-            score = 0.0
-            for tok in tokens:
-                if tok in name_lower:
-                    score += 2.0
-                elif tok in desc_lower:
-                    score += 1.0
-            if score > 0:
-                matches.append({"name": tool_name, "path": path_str, "score": score})
-        matches.sort(key=lambda m: (-m["score"], m["name"]))
-        return matches[:k]
-
     def _load_module_plugins(self) -> None:
         """
         Auto-discover and load tools from UI/external/modules
@@ -1284,17 +960,7 @@ class RegistryV3:
             logger.debug("  (Module plugins are optional - registry will continue)")
 
     def get_tool(self, tool_name: str) -> Optional[Dict[str, Any]]:
-        """Get tool definition by name.
-
-        Lazy-mode behaviour (LAZY_TOOLS=1): on miss, calls materialize_tool()
-        which parses the JSON, runs process_schema(), and registers the tool.
-        Returns None only if the name is genuinely unknown (or disabled).
-        """
-        if tool_name in self.tools:
-            return self.tools[tool_name]
-        # Lazy materialise — no-op if already loaded, fast no-op if name unknown.
-        if self._lazy_mode and self.materialize_tool(tool_name):
-            return self.tools.get(tool_name)
+        """Get tool definition by name"""
         return self.tools.get(tool_name)
 
     # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -1354,17 +1020,10 @@ class RegistryV3:
         model response and before any dispatch. Combined with the provider's
         own server-side schema enforcement, this closes the reasoning-trace
         leak vector documented for extended-thinking models.
-
-        Lazy-mode behaviour (LAZY_TOOLS=1): on miss, calls materialize_tool()
-        first so a not-yet-loaded legitimate tool passes the gate. The
-        materialise call is a no-op for unknown names (returns False) and
-        a fast cache-hit for already-loaded names.
         """
         if not isinstance(tool_name, str) or not tool_name:
             return False
         if tool_name in self.tools:
-            return True
-        if self._lazy_mode and self.materialize_tool(tool_name):
             return True
         return tool_name in self._ALLOWED_META_TOOL_NAMES
 

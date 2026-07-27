@@ -200,18 +200,49 @@ fi
 
 # Start Flask application with Gunicorn (production) or Python (development)
 if [ "$RENDER" = "true" ]; then
-    # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-    # DEPLOY-TIME TOOL EMBEDDING PREWARM REMOVED (2026-07-27)
-    # ─────────────────────────────────────────────────────────────────────
-    # Lazy-tool-load refactor: no MiniLM embeddings, no deploy-time
-    # `python AI_infrastructure/scripts/deploy_prewarm.py`, no
-    # `/data/.prewarm_complete` marker. The first chat no longer triggers
-    # the gevent-blocking embedding loop — workers boot and serve.
+    # ============================================================================
+    # DEPLOY-TIME TOOL EMBEDDING PREWARM (added 2026-07-24)
+    # ----------------------------------------------------------------------------
+    # CRITICAL: runs BEFORE `exec gunicorn` so the HuggingFace model + tool
+    # embeddings are ready before /health returns 200. Without this, the first
+    # user chat arriving during the 30-60s background prewarm would block on
+    # a singleton lock - the "1.4 minute hang" symptom reported by the user.
     #
-    # Archive of the deploy_prewarm.py script:
-    #   archive/deprecated/2026-07-27-lazy-tool-load/deleted_files/deploy_prewarm.py
-    # Restore via ROLLBACK.md in that bundle.
-    # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    # Why a separate script:
+    #   flask_app.py's background-thread prewarm runs AFTER /health returns
+    #   200. Render routes traffic to the worker as soon as /health is 200,
+    #   so the user pays for the prewarm cost.
+    #
+    #   By running prewarm BEFORE exec gunicorn, Render never even starts
+    #   polling /health until the work is done. Render's healthCheckTimeout
+    #   (30s) only applies to gunicorn's own readiness AFTER exec - NOT to
+    #   the time spent in this script.
+    #
+    # Failure mode: if prewarm fails (e.g. Supabase unreachable), we still
+    # start gunicorn (degraded mode). flask_app.py detects the missing
+    # marker file and falls back to the background-thread prewarm + the
+    # 503+Retry-After gate on the chat endpoint. The deploy never crash-loops
+    # because of a prewarm failure.
+    # ============================================================================
+    echo ""
+    echo "→ Running deploy-time tool embedding prewarm..."
+    echo "  (first deploy:    30-90s for HuggingFace model download)"
+    echo "  (subsequent:      5-15s, model + embeddings cached in /data)"
+    echo ""
+    PREWARM_START=$(date +%s%N)
+    if python AI_infrastructure/scripts/deploy_prewarm.py; then
+        PREWARM_END=$(date +%s%N)
+        PREWARM_MS=$(( (PREWARM_END - PREWARM_START) / 1000000 ))
+        echo "✓ Deploy-time prewarm completed in ${PREWARM_MS}ms"
+    else
+        PREWARM_END=$(date +%s%N)
+        PREWARM_MS=$(( (PREWARM_END - PREWARM_START) / 1000000 ))
+        echo "⚠️  Deploy-time prewarm FAILED after ${PREWARM_MS}ms"
+        echo "   Starting gunicorn in DEGRADED mode."
+        echo "   Chat endpoint will return 503+Retry-After until background prewarm completes."
+    fi
+    emit_startup_timing "shell_deploy_prewarm" "tool embeddings + HF model (deploy-time)"
+
     echo ""
     echo "→ Starting Flask with Gunicorn (production)..."
     echo "  Workers: 1 (WebSocket limitation - sticky sessions required)"

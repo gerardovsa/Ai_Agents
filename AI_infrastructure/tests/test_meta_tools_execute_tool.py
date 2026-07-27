@@ -63,6 +63,15 @@ class _RecordingRegistry:
         self.calls = []  # list of (tool_name, params_dict)
         self.tools = {name: {'platform': 'stub'} for name in known_tools}
 
+    def materialize_tool(self, tool_name):
+        """Stub for the lazy-mode RegistryV3.materialize_tool (added 2026-07-27).
+
+        Returns True iff the name is already known — the stub has no
+        filesystem index, so "already known" is the only positive case.
+        Mirrors the production contract: idempotent, no side effects.
+        """
+        return tool_name in self.tools
+
     def execute_tool(self, tool_name=None, **kwargs):
         self.calls.append((tool_name, dict(kwargs)))
         return {"success": True, "echo": tool_name, "received": dict(kwargs)}
