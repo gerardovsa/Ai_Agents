@@ -2157,6 +2157,18 @@ class VisualizationEngine {
     addIframeActionBar(container, contentArea, chartId, vizType = 'Widget') {
         if (!container || container.querySelector('.viz-iframe-action-bar')) return;
 
+        // DIAGNOSTIC v9 (2026-07-27): opt-out gate for the diag kebab.
+        // Set window.__REACT_VIZ_DIAG__ = false in DevTools to remove
+        // the bug-icon button. Permanent removal is a 4-line delete:
+        //   1. the button HTML below
+        //   2. the addIframeDiagToolbar() call
+        //   3. the addIframeDiagToolbar() function definition
+        //   4. the console-capture IIFE in react_renderer.js
+        // Plus the 2 sink cases (render-console-batch, render-pre-transform
+        // already exists) in react_renderer.js.
+        const diagEnabled = window.__REACT_VIZ_DIAG__ !== false &&
+                            window.__REACT_VIZ_DIAG__ !== 'false';
+
         // Derive a human-readable label from thread title + message timestamp
         const label = this._buildVizLabel(container, vizType);
 
@@ -2174,12 +2186,16 @@ class VisualizationEngine {
             <button class="viz-action-btn" title="Open in side panel">&#x229F;</button>
             <button class="viz-action-btn" title="Open as floating window">&#x229E;</button>
             <button class="viz-action-btn viz-tier1-trigger" title="Export, save, and more (Tier 1)">&#x22EE;</button>
+            ${diagEnabled ? `<button class="viz-action-btn viz-diag-trigger" title="Diagnostic — copy per-chart Babel output, runtime errors, cache stats (dev only)" aria-label="Diagnostic"><i class="fas fa-bug" aria-hidden="true"></i></button>` : ''}
         `;
 
         const btns = bar.querySelectorAll('.viz-action-btn');
         const panelBtn = btns[0];
         const floatBtn = btns[1];
         const kebabBtn = btns[2];
+        // Diag button is class-looked-up so its absence (when diagEnabled=false)
+        // never mis-indexes into another button.
+        const diagBtn = bar.querySelector('.viz-diag-trigger');
 
         panelBtn.addEventListener('click', () => {
             if (window.vizPopupManager) {
@@ -2197,6 +2213,12 @@ class VisualizationEngine {
         const iframe = contentArea?.querySelector?.('iframe') || null;
         if (kebabBtn && iframe) {
             this.addIframeTier1Toolbar(container, contentArea, chartId, iframe, kebabBtn);
+        }
+        // Diag toolbar (Babel output / runtime / cache stats). Only wired
+        // when both the button was rendered (flag not disabled) and an
+        // iframe exists to postMessage for console-buffer captures.
+        if (diagBtn && iframe) {
+            this.addIframeDiagToolbar(container, contentArea, chartId, iframe, diagBtn);
         }
 
         container.appendChild(bar);
@@ -2345,6 +2367,327 @@ class VisualizationEngine {
             document.removeEventListener('click', onDocClick);
             document.removeEventListener('keydown', onKey);
             if (popover.parentNode) popover.parentNode.removeChild(popover);
+        });
+    }
+
+    /**
+     * DIAGNOSTIC v9 (2026-07-27): Diagnostic popover with 7 copy actions
+     * for per-chart Babel output / runtime state / errors, plus an 8th
+     * composite item that includes cache stats and the iframe's captured
+     * console buffer.
+     *
+     * Mirrors addIframeTier1Toolbar in shape but:
+     *   - Reads from window-level ring buffers populated by the postMessage
+     *     sink in react_renderer.js (cases for pre-transform, console-batch,
+     *     fences, etc.).
+     *   - Closes the Tier-1 popover if open (and vice versa) — one menu at a time.
+     *   - Closes on window scroll (Tier-1 leaks if the user scrolls).
+     *   - Item 8 posts `react-render-console-request` to the iframe and awaits
+     *     a `react-render-console-batch` reply with a 5s timeout, mirroring
+     *     the `_tier1Request` request/response shape.
+     *
+     * Deactivation: window.__REACT_VIZ_DIAG__ = false hides the trigger
+     * button. Permanent removal is a 4-line delete (button HTML + wiring
+     * call + this function + the IIFE in react_renderer.js) plus the
+     * `react-render-console-batch` sink case.
+     */
+    addIframeDiagToolbar(container, contentArea, chartId, iframe, diagBtn) {
+        if (!container || !iframe || diagBtn.dataset.diagWired === '1') return;
+        diagBtn.dataset.diagWired = '1';
+
+        // Tier-1 must yield — close it before we open.
+        const closeTier1IfOpen = () => {
+            const open = document.querySelector('.viz-tier1-trigger[aria-expanded="true"]');
+            if (open) open.click();
+        };
+
+        const popover = document.createElement('div');
+        popover.className = 'viz-diag-popover';
+        popover.setAttribute('role', 'menu');
+        popover.style.cssText = [
+            'position: absolute',
+            'z-index: 9999',
+            'display: none',
+            'min-width: 240px',
+            'padding: 6px',
+            'background: var(--bg-secondary, #1e1e2e)',
+            'border: 1px solid var(--border-color, #333)',
+            'border-radius: 8px',
+            'box-shadow: 0 8px 24px rgba(0,0,0,0.35)',
+            'color: var(--text-primary, #e6e6e6)',
+            'font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+            'font-size: 13px',
+        ].join(';');
+
+        // 7 simple copy actions + 1 composite (cache stats + iframe console).
+        const fmtSub = (payload) => {
+            if (payload == null || (typeof payload === 'object' && Object.keys(payload).length === 0)) {
+                return 'no data';
+            }
+            let bytes;
+            try { bytes = typeof payload === 'string' ? payload.length : JSON.stringify(payload).length; }
+            catch (_) { bytes = 0; }
+            return `${bytes} bytes · captured ${new Date().toLocaleTimeString()}`;
+        };
+
+        const actions = [
+            { id: 'babel-out',     label: 'Babel output',           icon: 'fas fa-magic',
+              read: () => (window.__babelOutputs__        || {})[chartId]?.babelOut },
+            { id: 'pre-transform', label: 'Cleaned JSX (raw)',      icon: 'fas fa-code',
+              read: () => (window.__preTransform__         || {})[chartId]?.rawSource },
+            { id: 'snapshot',      label: 'Runtime snapshot',       icon: 'fas fa-camera',
+              read: () => (window.__renderSnapshots__     || {})[chartId] },
+            { id: 'fences',        label: 'Babel fences (F0–F3)',   icon: 'fas fa-layer-group',
+              read: () => (window.__renderFences__        || {})[chartId] },
+            { id: 'errors',        label: 'Runtime errors',         icon: 'fas fa-exclamation-triangle',
+              read: () => (window.__renderErrors__        || {})[chartId] },
+            { id: 'babel-errors',  label: 'Babel transform errors', icon: 'fas fa-times-circle',
+              read: () => (window.__babelErrors__         || {})[chartId] },
+            { id: 'script-errors', label: 'Script-parse errors',    icon: 'fas fa-bolt',
+              read: () => (window.__renderScriptErrors__ || {})[chartId] },
+        ];
+
+        popover.innerHTML = actions.map(a => {
+            const payload = a.read();
+            const hasData = payload != null && !(typeof payload === 'object' && Object.keys(payload).length === 0);
+            return `
+                <button class="viz-diag-action" data-action="${a.id}" role="menuitem"
+                        ${hasData ? '' : 'disabled'}
+                        style="display:flex;flex-direction:column;align-items:flex-start;gap:2px;
+                               width:100%;padding:6px 10px;border:0;
+                               background:transparent;color:inherit;text-align:left;
+                               cursor:${hasData ? 'pointer' : 'not-allowed'};
+                               opacity:${hasData ? '1' : '0.5'};
+                               border-radius:6px;font:inherit;">
+                    <span style="display:flex;align-items:center;gap:8px;">
+                        <i class="${a.icon}" style="width:16px;display:inline-block;
+                           text-align:center;flex:0 0 16px;"></i>
+                        <span>${a.label}</span>
+                    </span>
+                    <span style="font-size:11px;opacity:0.7;margin-left:24px;">
+                        ${fmtSub(payload)}
+                    </span>
+                </button>
+            `;
+        }).join('') + `
+            <button class="viz-diag-action viz-diag-action-composite" data-action="cache-console"
+                    role="menuitem"
+                    style="display:flex;flex-direction:column;align-items:flex-start;gap:2px;
+                           width:100%;padding:6px 10px;border:0;border-top:1px solid var(--border-color, #333);
+                           background:transparent;color:inherit;text-align:left;cursor:pointer;
+                           border-radius:6px;font:inherit;margin-top:4px;">
+                <span style="display:flex;align-items:center;gap:8px;">
+                    <i class="fas fa-database" style="width:16px;display:inline-block;
+                       text-align:center;flex:0 0 16px;"></i>
+                    <span>Cache stats + iframe console</span>
+                </span>
+                <span style="font-size:11px;opacity:0.7;margin-left:24px;">
+                    composite · fetches iframe console (5s timeout)
+                </span>
+            </button>
+        `;
+
+        if (!document.getElementById('viz-diag-popover-styles')) {
+            const style = document.createElement('style');
+            style.id = 'viz-diag-popover-styles';
+            style.textContent = `
+                .viz-diag-popover .viz-diag-action:not([disabled]):hover { background: rgba(255,184,108,0.14); }
+                .viz-diag-popover .viz-diag-action:not([disabled]):focus  { outline: 2px solid rgba(255,184,108,0.5); outline-offset: -2px; }
+                .viz-diag-trigger[aria-expanded="true"]                  { background: rgba(255,184,108,0.18); }
+            `;
+            document.head.appendChild(style);
+        }
+
+        document.body.appendChild(popover);
+
+        const closePopover = () => {
+            popover.style.display = 'none';
+            diagBtn.setAttribute('aria-expanded', 'false');
+        };
+
+        const openPopover = () => {
+            closeTier1IfOpen();
+            const rect = diagBtn.getBoundingClientRect();
+            const popW = 248;
+            const popH = actions.length * 44 + 56; // 7 simple + composite + chrome
+            let top = rect.bottom + 6 + window.scrollY;
+            let left = rect.right - popW + window.scrollX;
+            const maxLeft = window.scrollX + window.innerWidth - popW - 8;
+            if (left > maxLeft) left = maxLeft;
+            if (left < window.scrollX + 8) left = window.scrollX + 8;
+            const maxTop = window.scrollY + window.innerHeight - popH - 8;
+            if (top > maxTop) top = rect.top - popH - 6 + window.scrollY;
+            popover.style.top = `${Math.max(8, top)}px`;
+            popover.style.left = `${Math.max(8, left)}px`;
+            popover.style.display = 'block';
+            diagBtn.setAttribute('aria-expanded', 'true');
+        };
+
+        diagBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            if (popover.style.display === 'block') {
+                closePopover();
+            } else {
+                openPopover();
+            }
+        });
+
+        const onDocClick = (ev) => {
+            if (popover.style.display !== 'block') return;
+            if (popover.contains(ev.target) || diagBtn.contains(ev.target)) return;
+            closePopover();
+        };
+        const onKey = (ev) => {
+            if (ev.key === 'Escape' && popover.style.display === 'block') {
+                closePopover();
+                diagBtn.focus();
+            }
+        };
+        const onScroll = () => {
+            if (popover.style.display === 'block') closePopover();
+        };
+        document.addEventListener('click', onDocClick);
+        document.addEventListener('keydown', onKey);
+        window.addEventListener('scroll', onScroll, { passive: true });
+
+        // Click handler — resolves the action and copies to clipboard.
+        popover.addEventListener('click', async (ev) => {
+            const btn = ev.target.closest('.viz-diag-action');
+            if (!btn || btn.disabled) return;
+            const action = btn.dataset.action;
+            closePopover();
+            try {
+                if (action === 'cache-console') {
+                    await this._diagCopyComposite(chartId, iframe);
+                } else {
+                    const found = actions.find(a => a.id === action);
+                    const payload = found?.read?.();
+                    if (payload == null) {
+                        this._vizToast?.(`No data for ${found?.label || action}`, 'warning');
+                        return;
+                    }
+                    const text = typeof payload === 'string'
+                        ? payload
+                        : JSON.stringify(payload, null, 2);
+                    await this._diagCopyText(text, found.label);
+                }
+            } catch (err) {
+                console.error('[viz-diag] action failed:', action, err);
+                this._vizToast?.(`Action "${action}" failed: ${err?.message || err}`, 'error');
+            }
+        });
+
+        container.addEventListener('DOMNodeRemoved', () => {
+            document.removeEventListener('click', onDocClick);
+            document.removeEventListener('keydown', onKey);
+            window.removeEventListener('scroll', onScroll);
+            if (popover.parentNode) popover.parentNode.removeChild(popover);
+        });
+    }
+
+    /**
+     * DIAGNOSTIC v9 (2026-07-27): Copy text to clipboard with two-tier
+     * fallback. navigator.clipboard requires a focused doc; tests and
+     * background-debug sessions often lack that, so we fall through to
+     * a transient textarea + execCommand, then a textarea-less call.
+     */
+    async _diagCopyText(text, label) {
+        let copied = false;
+        try {
+            await navigator.clipboard.writeText(text);
+            copied = true;
+        } catch (_) {
+            try {
+                const ta = document.createElement('textarea');
+                ta.value = text;
+                ta.style.cssText = 'position:fixed;top:-1000px;left:-1000px;';
+                document.body.appendChild(ta);
+                ta.focus();
+                ta.select();
+                document.execCommand('copy');
+                document.body.removeChild(ta);
+                copied = true;
+            } catch (_) { /* fall through */ }
+        }
+        if (copied) {
+            const bytes = text.length;
+            this._vizToast?.(`Copied ${label} (${bytes} bytes)`, 'success');
+        } else {
+            this._vizToast?.(`Copy failed — see console for ${label}`, 'error');
+            console.log(`[viz-diag] ${label} payload (${text.length} bytes):\n`, text);
+        }
+    }
+
+    /**
+     * DIAGNOSTIC v9 (2026-07-27): Build the cache+console composite.
+     * Posts `react-render-console-request` to the iframe with a 5s timeout
+     * (matching the `_tier1Request` shape) so the user gets the real
+     * iframe console buffer paired with cache stats in a single paste.
+     */
+    async _diagCopyComposite(chartId, iframe) {
+        const composite = {
+            capturedAt: new Date().toISOString(),
+            chartId,
+            cache: {
+                buildReactSrcdocCalls: window.buildReactSrcdocCalls ?? null,
+                snapshotsTracked:     Object.keys(window.__renderSnapshots__ || {}).length,
+                fencesTracked:        Object.keys(window.__renderFences__    || {}).length,
+                preTransformsTracked: Object.keys(window.__preTransform__     || {}).length,
+            },
+            iframeConsole: { status: 'pending', entries: [] },
+        };
+
+        try {
+            const batch = await this._diagFetchConsole(iframe, chartId, 5000);
+            composite.iframeConsole = { status: 'ok', entries: batch.entries || [] };
+        } catch (err) {
+            composite.iframeConsole = {
+                status: 'timeout',
+                message: err?.message || String(err),
+                entries: [],
+            };
+        }
+
+        const text = JSON.stringify(composite, null, 2);
+        await this._diagCopyText(text, 'Cache stats + iframe console');
+    }
+
+    /**
+     * DIAGNOSTIC v9 (2026-07-27): postMessage round-trip to the iframe's
+     * console-capture IIFE. Mirrors the `_tier1Request` nonce pattern but
+     * uses the in-script nonced handler in react_renderer.js (no separate
+     * nonce tracking object — the sink case stores by chartId directly).
+     */
+    _diagFetchConsole(iframe, chartId, timeoutMs) {
+        return new Promise((resolve, reject) => {
+            if (!iframe || !iframe.contentWindow) {
+                return reject(new Error('iframe not attached'));
+            }
+            const onMessage = (ev) => {
+                if (!ev.data || typeof ev.data !== 'object') return;
+                if (ev.source !== iframe.contentWindow) return;
+                if (ev.data.type === 'react-render-console-batch' &&
+                    ev.data.id === chartId) {
+                    window.removeEventListener('message', onMessage);
+                    clearTimeout(timer);
+                    resolve(ev.data);
+                }
+            };
+            const timer = setTimeout(() => {
+                window.removeEventListener('message', onMessage);
+                reject(new Error(`timeout after ${timeoutMs}ms`));
+            }, timeoutMs);
+            window.addEventListener('message', onMessage);
+            try {
+                iframe.contentWindow.postMessage({
+                    type: 'react-render-console-request',
+                    id: chartId,
+                }, '*');
+            } catch (e) {
+                window.removeEventListener('message', onMessage);
+                clearTimeout(timer);
+                reject(e);
+            }
         });
     }
 

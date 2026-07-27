@@ -153,6 +153,26 @@
                         'len:', data.rawSourceLen);
                 } catch (_) {}
                 break;
+            case 'react-render-console-batch':
+                // DIAGNOSTIC v9 (2026-07-27): reply to the parent's
+                // 'react-render-console-request'. The iframe's console-capture
+                // IIFE (installed at the top of its run-engine) holds a 50-entry
+                // ring buffer of every console.{log,warn,error,info,debug} call
+                // it saw. The parent copies the buffer into the diag popover
+                // so the user can paste it into chat without re-attaching
+                // DevTools to the sandboxed child iframe. See
+                // __REACT_VIZ_DIAG__ flag in addIframeActionBar() (in
+                // visualisation_v3.js) — set false to hide the diag button.
+                if (!data.id) return;
+                window.__renderConsoleBatches__ = window.__renderConsoleBatches__ || {};
+                window.__renderConsoleBatches__[data.id] = data;
+                window.__lastRenderConsoleBatchId = data.id;
+                try {
+                    console.log('[REACT_RENDERER_PARENT_DIAG] v9 console-batch captured.',
+                        'id:', data.id,
+                        'entries:', (data.entries || []).length);
+                } catch (_) {}
+                break;
         }
     });
 })();
@@ -888,6 +908,60 @@ ${lucideScript}
     // good.
     // ========================================================================
     (function () {
+        // ── DIAGNOSTIC v9 (2026-07-27): IFRAME CONSOLE CAPTURE ─────────────
+        // Patches console.{log,warn,error,info,debug} to push into a 50-entry
+        // ring buffer, then forwards to the real console (no double-log).
+        // The parent posts 'react-render-console-request' and we reply with
+        // 'react-render-console-batch'. The diag kebab in addIframeActionBar
+        // (visualisation_v3.js) surfaces the buffer in a copy-to-clipboard
+        // action so the user can paste iframe logs into chat without
+        // re-attaching DevTools to the sandboxed child. See __REACT_VIZ_DIAG__
+        // flag — set false to hide the diag button.
+        (function installDiagConsoleCapture() {
+            try {
+                if (window.__DIAG_CONSOLE_INSTALLED__) return;
+                window.__DIAG_CONSOLE_INSTALLED__ = true;
+                var __buf = [];
+                var __MAX = 50;
+                function __push(level, args) {
+                    try {
+                        var parts = [];
+                        for (var i = 0; i < args.length; i++) {
+                            var a = args[i];
+                            if (a instanceof Error) parts.push(a.stack || a.message);
+                            else if (typeof a === 'object') {
+                                try { parts.push(JSON.stringify(a)); }
+                                catch (_) { parts.push(String(a)); }
+                            } else parts.push(String(a));
+                        }
+                        __buf.push({ t: Date.now(), level: level, msg: parts.join(' ') });
+                        if (__buf.length > __MAX) __buf.shift();
+                    } catch (_) { /* never throw out of console */ }
+                }
+                ['log','warn','error','info','debug'].forEach(function (k) {
+                    var orig = console[k];
+                    console[k] = function () {
+                        __push(k, arguments);
+                        try { return orig.apply(console, arguments); } catch (_) {}
+                    };
+                });
+                window.__DIAG_CONSOLE_BUFFER__ = function () { return __buf.slice(); };
+                window.addEventListener('message', function (e) {
+                    if (!e.data || typeof e.data !== 'object') return;
+                    if (e.data.type === 'react-render-console-request' &&
+                        e.data.id === '${chartId}') {
+                        try {
+                            window.parent.postMessage({
+                                type: 'react-render-console-batch',
+                                id: '${chartId}',
+                                entries: __buf.slice()
+                            }, '*');
+                        } catch (_) {}
+                    }
+                });
+            } catch (_) { /* capture is best-effort */ }
+        })();
+
         // ── Pre-execute diagnostic for the parent console ──────────────────
         try {
             window.parent.postMessage({
