@@ -2329,13 +2329,25 @@ def run_simple_agent_worker(
                             result = get_tool_schema_fn(**tool_input)
                     else:
                         tool_input_copy = {k: v for k, v in tool_input.items() if k != 'tool_name'}
-                        
-                        # CRITICAL FIX (Jan 27, 2026): ALWAYS pass user_id to ALL tools, not just Google/Microsoft
-                        result = registry.execute_tool(
-                            tool_name=tool_name,
-                            _user_id=user_id,
-                            **tool_input_copy
-                        )
+
+                        # FIX (July 27, 2026): For OAuth-gated tools, also pass _injected_credentials=True
+                        # so the per-module _get_*_service gates accept the call. Mirrors the prefix set
+                        # already used in execute_streaming_request (line ~4088) so background / scheduler /
+                        # webhook-triggered tool calls behave identically to streaming chat.
+                        if tool_name.startswith(('google_', 'microsoft_', 'process_', 'gmail_', 'outlook_')):
+                            result = registry.execute_tool(
+                                tool_name=tool_name,
+                                _user_id=user_id,
+                                _injected_credentials=True,
+                                **tool_input_copy
+                            )
+                        else:
+                            # Non-OAuth tools: CRITICAL FIX (Jan 27, 2026): ALWAYS pass _user_id to ALL tools, not just Google/Microsoft
+                            result = registry.execute_tool(
+                                tool_name=tool_name,
+                                _user_id=user_id,
+                                **tool_input_copy
+                            )
                     
                     # Smart truncation based on tool type (with META-TOOLS exemption)
                     # Use smart_truncate_tool_result which exempts meta-tools from truncation
@@ -2834,7 +2846,11 @@ You can use tools to help the user complete tasks."""
                     if 'tool_name' in tool_input:
                         del tool_input['tool_name']
                     
-                    if tool_name.startswith(('google_', 'microsoft_')):
+                    # FIX (July 27, 2026): Widen prefix tuple to match execute_streaming_request (~line 4088)
+                    # so that tools named with bare gmail_/outlook_/process_ prefixes are also routed
+                    # through the shared OAuth injector. Previously these would miss the injection
+                    # and the per-module _get_*_service gate would reject the call.
+                    if tool_name.startswith(('google_', 'microsoft_', 'process_', 'gmail_', 'outlook_')):
                         result = registry.execute_tool(
                             tool_name=tool_name,
                             _user_id=user_id,
