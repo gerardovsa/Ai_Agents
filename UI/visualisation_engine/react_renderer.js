@@ -864,9 +864,16 @@ class ReactRenderer {
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
 ${tailwindLink}
+  <!-- Pre-React Map shim: react-dom 18.3.1 commit-phase child-fiber mapper
+       (function d inside Dh) does for(a=new Map;...) a.set(b.index,b).
+       If Map.prototype.set is missing or non-callable (e.g. an upstream
+       polyfill replaced it), every re-render crashes with
+       a.set is not a function deep in react-dom. Detect and restore a
+       minimal set/get/has/delete quartet before React loads. -->
+  <script>(function(){if(typeof Map==="undefined")return;var p=Map.prototype;if(!p||typeof p.set==="function")return;p.set=function(k,v){this["__m_"+k]=v;return this;};p.get=function(k){return this["__m_"+k];};p.has=function(k){return"__m_"+k in this;};p["delete"]=function(k){return delete this["__m_"+k];};})();<\/script>
   <!-- React 18 UMD (self-hosted: see UI/visualisation_engine/libs/) -->
-  <script src="visualisation_engine/libs/react.production.min.js"><\/script>
-  <script src="visualisation_engine/libs/react-dom.production.min.js"><\/script>
+  <script src="visualisation_engine/libs/react.production.min.js?v=20260727_1820"><\/script>
+  <script src="visualisation_engine/libs/react-dom.production.min.js?v=20260727_1820"><\/script>
 ${rechartsScript}
   <!-- Babel Standalone: transpiles JSX at runtime inside the sandboxed iframe (self-hosted) -->
   <script src="visualisation_engine/libs/babel.min.js"><\/script>
