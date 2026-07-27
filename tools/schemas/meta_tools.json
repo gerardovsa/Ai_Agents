@@ -214,6 +214,11 @@
           "tool_name": {
             "type": "string",
             "description": "Name of the tool to execute (e.g., 'gmail_send_email', 'google_docs_create_document')"
+          },
+          "parameters": {
+            "type": "object",
+            "description": "Dict of arguments to forward to the target tool. ALL target-tool arguments belong here -- e.g. parameters={'title': 'My Doc', 'folder_id': 'abc'}. _user_id and _injected_credentials are added by the auth layer and must NOT be supplied here. Top-level kwargs other than `tool_name` are silently dropped by the registry validator, so passing them at the top level (e.g. title=...) causes missing-argument failures downstream in the targeted tool.",
+            "additionalProperties": true
           }
         },
         "required": [
@@ -227,12 +232,30 @@
       },
       "examples": [
         {
-          "description": "Execute gmail_send_email after discovering it",
+          "description": "Correct -- target-tool args go inside the typed `parameters` dict",
           "parameters": {
             "tool_name": "gmail_send_email",
-            "to": "john@example.com",
-            "subject": "Hello",
-            "body": "Test email"
+            "parameters": {
+              "to": "john@example.com",
+              "subject": "Hello",
+              "body": "Test email"
+            }
+          }
+        },
+        {
+          "description": "Correct -- `title` is forwarded under `parameters`, not as a top-level kwarg",
+          "parameters": {
+            "tool_name": "google_docs_create_document",
+            "parameters": {
+              "title": "Q3 Planning Notes"
+            }
+          }
+        },
+        {
+          "description": "INCORRECT -- `to` at the top level is silently stripped. Do NOT do this.",
+          "parameters": {
+            "tool_name": "gmail_send_email",
+            "to": "john@example.com"
           }
         }
       ]
