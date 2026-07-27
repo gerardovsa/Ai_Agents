@@ -618,7 +618,7 @@ class ReactRenderer {
 
         // ── CDN script tags ─────────────────────────────────────────────────────
         const rechartsScript = usesRecharts
-            ? `  <script src="visualisation_engine/libs/prop-types.js?v=20260724_1830"><\/script>\n  <script src="visualisation_engine/libs/Recharts.js?v=20260724_1830"><\/script>` : '';
+            ? `  <script src="visualisation_engine/libs/prop-types.js?v=20260727_1640"><\/script>\n  <script src="visualisation_engine/libs/Recharts.js?v=20260727_1640"><\/script>` : '';
         // Always inject the lucide UMD. The detection regex above is brittle
         // (only ~30 hand-picked icons) and the AI emits PascalCase JSX tags
         // without explicit `import` statements, so by the time we know an

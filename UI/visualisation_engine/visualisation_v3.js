@@ -2430,21 +2430,34 @@ class VisualizationEngine {
             return `${bytes} bytes · captured ${new Date().toLocaleTimeString()}`;
         };
 
+        // chartId fallback: the iframe's diagnostic payloads are keyed by the
+        // chartId embedded in the srcdoc template. If that chartId doesn't match
+        // the parent-side chartId (e.g. the kebab is wired to a stale wrapper
+        // or the iframe re-mounted with a fresh id), prefer the parent-side id
+        // but fall back to the most-recent key so items 1-7 still work and copy
+        // real data instead of staying permanently "no data".
+        const _pick = (dict, wanted) => {
+            if (dict == null || typeof dict !== 'object') return undefined;
+            if (wanted != null && dict[wanted] !== undefined) return dict[wanted];
+            const keys = Object.keys(dict);
+            return keys.length ? dict[keys[keys.length - 1]] : undefined;
+        };
+
         const actions = [
             { id: 'babel-out',     label: 'Babel output',           icon: 'fas fa-magic',
-              read: () => (window.__babelOutputs__        || {})[chartId]?.babelOut },
+              read: () => _pick(window.__babelOutputs__,        chartId)?.babelOut },
             { id: 'pre-transform', label: 'Cleaned JSX (raw)',      icon: 'fas fa-code',
-              read: () => (window.__preTransform__         || {})[chartId]?.rawSource },
+              read: () => _pick(window.__preTransform__,         chartId)?.rawSource },
             { id: 'snapshot',      label: 'Runtime snapshot',       icon: 'fas fa-camera',
-              read: () => (window.__renderSnapshots__     || {})[chartId] },
+              read: () => _pick(window.__renderSnapshots__,     chartId) },
             { id: 'fences',        label: 'Babel fences (F0–F3)',   icon: 'fas fa-layer-group',
-              read: () => (window.__renderFences__        || {})[chartId] },
+              read: () => _pick(window.__renderFences__,        chartId) },
             { id: 'errors',        label: 'Runtime errors',         icon: 'fas fa-exclamation-triangle',
-              read: () => (window.__renderErrors__        || {})[chartId] },
+              read: () => _pick(window.__renderErrors__,        chartId) },
             { id: 'babel-errors',  label: 'Babel transform errors', icon: 'fas fa-times-circle',
-              read: () => (window.__babelErrors__         || {})[chartId] },
+              read: () => _pick(window.__babelErrors__,         chartId) },
             { id: 'script-errors', label: 'Script-parse errors',    icon: 'fas fa-bolt',
-              read: () => (window.__renderScriptErrors__ || {})[chartId] },
+              read: () => _pick(window.__renderScriptErrors__, chartId) },
         ];
 
         popover.innerHTML = actions.map(a => {
