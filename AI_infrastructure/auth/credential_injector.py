@@ -271,7 +271,15 @@ def _save_refreshed_google_token(
 
 
 def _record_google_refresh_failure(token_id: Optional[int]) -> None:
-    """Record a sanitized Google refresh failure without exposing provider details."""
+    """Record a sanitized Google refresh failure without exposing provider details.
+
+    Mirrors _save_refreshed_google_token's success-side bookkeeping: bump
+    the failure counters AND flip ``is_valid`` to FALSE so the UI test
+    button and any downstream caller that respects ``is_valid`` stops
+    trusting the row. _save_refreshed_google_token sets ``is_valid = TRUE``
+    again on the next successful refresh, so the flag stays in sync with
+    reality without needing an admin to clear it.
+    """
     if not token_id:
         return
 
@@ -284,6 +292,7 @@ def _record_google_refresh_failure(token_id: Optional[int]) -> None:
                     last_refresh_error = %s,
                     error_count = COALESCE(error_count, 0) + 1,
                     last_error = %s,
+                    is_valid = FALSE,
                     updated_at = CURRENT_TIMESTAMP
                 WHERE id = %s
                   AND platform = 'google'
