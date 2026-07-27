@@ -864,13 +864,21 @@ class ReactRenderer {
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
 ${tailwindLink}
-  <!-- Pre-React Map shim: react-dom 18.3.1 commit-phase child-fiber mapper
+  <!-- Pre-React Map shim v2: react-dom 18.3.1 commit-phase child-fiber mapper
        (function d inside Dh) does for(a=new Map;...) a.set(b.index,b).
-       If Map.prototype.set is missing or non-callable (e.g. an upstream
-       polyfill replaced it), every re-render crashes with
-       a.set is not a function deep in react-dom. Detect and restore a
-       minimal set/get/has/delete quartet before React loads. -->
-  <script>(function(){if(typeof Map==="undefined")return;var p=Map.prototype;if(!p||typeof p.set==="function")return;p.set=function(k,v){this["__m_"+k]=v;return this;};p.get=function(k){return this["__m_"+k];};p.has=function(k){return"__m_"+k in this;};p["delete"]=function(k){return delete this["__m_"+k];};})();<\/script>
+       If Map.prototype.set is missing or non-callable, every re-render
+       crashes with a.set is not a function deep in react-dom. v1 only
+       restored when broken AT iframe load — useless if the corruption
+       happens between mount and the first hover/scroll re-render. v2
+       unconditionally installs an accessor (getter/setter) pair on
+       Map.prototype.{set,get,has,delete}: the getter always returns
+       the saved native (or a __m_<key> storage fallback if the native
+       was already broken at load), and the silent setter absorbs any
+       later Map.prototype.set = somethingElse assignment. Also wraps
+       window.Map with an accessor so reassigning the global Map
+       constructor is absorbed too. Survives polyfill overrides that
+       happen AFTER iframe load. -->
+  <script>(function(){if(typeof window==="undefined"||!window.Map)return;var NativeMap=window.Map;var p=NativeMap.prototype;function fbSet(k,v){this["__m_"+k]=v;return this;}function fbGet(k){return this["__m_"+k];}function fbHas(k){return"__m_"+k in this;}function fbDel(k){return delete this["__m_"+k];}function guard(n,fb){var cur=p[n],fn=(typeof cur==="function")?cur:fb;try{Object.defineProperty(p,n,{configurable:true,enumerable:false,get:function(){return fn;},set:function(v){}});}catch(e){try{p[n]=fn;}catch(_){}}}guard("set",fbSet);guard("get",fbGet);guard("has",fbHas);guard("delete",fbDel);try{Object.defineProperty(window,"Map",{configurable:true,enumerable:false,get:function(){return NativeMap;},set:function(v){}});}catch(e){}})();<\/script>
   <!-- React 18 UMD (self-hosted: see UI/visualisation_engine/libs/) -->
   <script src="visualisation_engine/libs/react.production.min.js?v=20260727_1820"><\/script>
   <script src="visualisation_engine/libs/react-dom.production.min.js?v=20260727_1820"><\/script>
