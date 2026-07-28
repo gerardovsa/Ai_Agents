@@ -58,13 +58,14 @@ A status class paints **three places in lock-step**:
      at the sides; intentionally tuned to stay within the 12 px column gap
      so it does not bleed into the neighbour column. May be clipped
      top/bottom — see Layer 3.
-   - **Layer 3 — inset atmospheric wash (4 → 14 px blur + 0 → 2 px spread,
-     alpha 0.4 → 0.95).** Inset box-shadow paints INSIDE the panel and is
-     **never clipped by ancestor overflow**, but opaque child elements
-     (`.agent-header` at the top, `.ai-chat-messages` filling the middle
-     with `flex: 1` and `background: var(--bg-secondary)`) paint OVER it.
-     It is visible only on the bottom of agent columns where no child
-     occludes it.
+   - **Layer 3 — inset atmospheric wash (3 → 11 px blur + 0 → 2 px spread,
+     alpha 0.4 → 0.95, reduced 2026-07-27 from 4 → 14 px).** Inset
+     box-shadow paints INSIDE the panel and is **never clipped by ancestor
+     overflow**, but opaque child elements (`.agent-header` at the top,
+     `.ai-chat-messages` filling the middle with `flex: 1` and
+     `background: var(--bg-secondary)`) paint OVER it. It is visible only
+     on the bottom of agent columns where no child occludes it. The 25 %
+     reduction keeps the wash proportional to the visible footprint.
    - **Layer 4 — `::after` rim-glow overlay (new, 2026-07-27).** Painted
      ABOVE children via `position: absolute; inset: 0; z-index: 1;
      pointer-events: none;` and a radial-gradient vignette
@@ -83,8 +84,8 @@ Animation durations match across icon, panel box-shadow, and rim overlay:
 
 - Icon ring geometric pulse: `scale(1.0 → 1.1)` on a ~36 px outer ring ≈ 3.6 px outward reach.
 - Badge ring reference: 2 px positioned `::before` border + 5 % scale ≈ ~4.2 px outward reach.
-- Panel pulse: 2 px outer ring (constant) + 4 → 8 px outer glow (matches badge reach) + 4 → 14 px inset wash + radial-gradient rim overlay (alpha 0.15 → 0.95) visible on all 4 edges regardless of parent overflow or child occlusion.
-- The 8 px peak outer glow reach stays inside the 12 px column gap so the
+- Panel pulse: 2 px outer ring (constant) + 3 → 6 px outer glow (matches badge reach) + 3 → 11 px inset wash + radial-gradient rim overlay (alpha 0.15 → 0.95) visible on all 4 edges regardless of parent overflow or child occlusion.
+- The 6 px peak outer glow reach stays inside the 12 px column gap so the
   glow does not bleed into the neighbour. The inset layer + rim overlay
   together compensate on the clipped top/bottom edges and the child-painted
   sides. Tune the per-class `--status-glow-rest` / `--status-glow-peak`
