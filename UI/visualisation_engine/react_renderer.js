@@ -1524,6 +1524,35 @@ ${identifierHoist}
                 hasUsers:       typeof window.Users,
                 hasWallet:      typeof window.Wallet,
                 hasCreditCard:  typeof window.CreditCard,
+                // Identity-vs-Recharts check (Round 5 follow-up; cf. §14.9 of
+                // REACT_RENDERER_LUCIDE_TROUBLESHOOTING_2026-07-22.md).
+                // The hasX fields above only check typeof — a wrapped
+                // makeIconComponent('PieChart', lucideArray) is also a
+                // function, so the snapshot would lie. The identity check
+                // is the only signal that distinguishes the wrapped Lucide
+                // icon from the real Recharts component. For each priority
+                // name we record whether window[name] is the SAME function
+                // reference as window.Recharts[name]. A clashCount > 0 with
+                // the hasX fields all "function" is the signature of the
+                // Lucide-vs-Recharts name collision — mirror the priority
+                // list with RECHARTS_PRIORITY_NAMES at line 738 if you
+                // add a new colliding name here.
+                identityClashReport: (function () {
+                    var names = ${JSON.stringify(RECHARTS_PRIORITY_NAMES)};
+                    var r = window.Recharts || {};
+                    var rows = [];
+                    var clashCount = 0;
+                    for (var i = 0; i < names.length; i++) {
+                        var n = names[i];
+                        var wn = window[n];
+                        var rn = r[n];
+                        var sameRef = (wn === rn);
+                        var hasFn = (typeof wn === 'function');
+                        if (hasFn && !sameRef) clashCount++;
+                        rows.push({ name: n, hasFn: hasFn, matchesRecharts: sameRef });
+                    }
+                    return { clashCount: clashCount, total: names.length, rows: rows };
+                })(),
                 tailwindLoaded: !!tailwindEl,
                 tailwindStyleInjected: !!tailwindRuntimeStyle,
                 rootElExists:   !!rootElSnap,
