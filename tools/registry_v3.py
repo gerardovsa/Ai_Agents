@@ -1095,11 +1095,22 @@ class RegistryV3:
             # decorators register at import time. The other special modules
             # (sql_database, visualization_guide, viz_snapshots) drop out of
             # force-materialise — they get lazy stubs just like the rest.
+            #
+            # CRITICAL: the module object MUST be stored in self.implementations
+            # keyed by `module_name`. get_tool_function() at line 1416 iterates
+            # self.implementations.items() looking for tool_name as a module
+            # attribute. Without this entry, all 8 meta-tools (list_available_platforms,
+            # search_tools, get_tool_schema, execute_tool, etc.) resolve to None
+            # and the dispatcher raises "Tool implementation not found" — even
+            # though their schemas are loaded in self.tools and is_tool_allowed()
+            # returns True.
             if module_name == "meta_tools":
+                fq_name = f"tools.implementations.{module_name}"
                 try:
-                    importlib.import_module(f"tools.implementations.{module_name}")
+                    importlib.import_module(fq_name)
+                    self.implementations[module_name] = sys.modules.get(fq_name)
                     forced += 1
-                    logger.info(f"  [IMPL/META] Forced: tools.implementations.{module_name}")
+                    logger.info(f"  [IMPL/META] Forced: {fq_name}")
                     continue
                 except Exception as e:
                     logger.warning(f"[LAZY] Failed to force-load meta_tools: {e}")
