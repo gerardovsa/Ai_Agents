@@ -158,39 +158,24 @@
         <div class="transcription-section">
             <h3><i class="fas fa-cloud-upload-alt"></i> Upload Audio / Video</h3>
 
-            <!-- Upload Engine Selector -->
-            <div class="transcription-field" style="margin-bottom: 10px;">
-                <label style="font-weight: 600;">
-                    <i class="fas fa-cogs"></i> Transcription Engine:
+            <!-- Upload Engine Selector (vector-db-styled section) -->
+            <div class="vector-db-provider-section" style="margin-bottom: 16px;">
+                <!-- Status pill ABOVE the dropdown (per design feedback) -->
+                <div id="upload-engine-status" class="transcription-engine-status"></div>
+                <label class="vector-db-label">
+                    <i class="fas fa-cogs"></i> Transcription Engine
                 </label>
-                <div class="upload-engine-grid">
-                    <label class="upload-engine-btn" for="upload-engine-local" title="Server-side Whisper &mdash; free, no API key needed">
-                        <input type="radio" name="upload-engine" id="upload-engine-local" value="local" checked>
-                        <span>Local Whisper</span>
-                        <span class="engine-tier-badge engine-tier-local">Server</span>
-                    </label>
-                    <label class="upload-engine-btn" for="upload-engine-openai" title="OpenAI gpt-4o-transcribe &mdash; highest accuracy">
-                        <input type="radio" name="upload-engine" id="upload-engine-openai" value="openai">
-                        <span>OpenAI</span>
-                        <span class="engine-tier-badge engine-tier-api">API</span>
-                    </label>
-                    <label class="upload-engine-btn" for="upload-engine-deepgram" title="Deepgram Nova-3 &mdash; fast, GDPR/EU, diarization">
-                        <input type="radio" name="upload-engine" id="upload-engine-deepgram" value="deepgram">
-                        <span>Deepgram</span>
-                        <span class="engine-tier-badge engine-tier-eu">GDPR</span>
-                    </label>
-                    <label class="upload-engine-btn" for="upload-engine-assemblyai" title="AssemblyAI &mdash; best diarization">
-                        <input type="radio" name="upload-engine" id="upload-engine-assemblyai" value="assemblyai-async">
-                        <span>AssemblyAI</span>
-                        <span class="engine-tier-badge engine-tier-api">API</span>
-                    </label>
-                    <label class="upload-engine-btn" for="upload-engine-speechmatics" title="Speechmatics &mdash; EU company, best for accents">
-                        <input type="radio" name="upload-engine" id="upload-engine-speechmatics" value="speechmatics">
-                        <span>Speechmatics</span>
-                        <span class="engine-tier-badge engine-tier-eu">EU</span>
-                    </label>
+                <select id="upload-engine-selector" class="vector-db-select">
+                    <option value="local" selected>Local Whisper &mdash; Server (free, no API key)</option>
+                    <option value="openai">OpenAI &mdash; gpt-4o-transcribe (highest accuracy)</option>
+                    <option value="deepgram">Deepgram &mdash; Nova-3 (fast, GDPR/EU, diarization)</option>
+                    <option value="assemblyai-async">AssemblyAI &mdash; best diarization</option>
+                    <option value="speechmatics">Speechmatics &mdash; EU company, best for accents</option>
+                </select>
+                <div class="vector-db-provider-info">
+                    <i class="fas fa-info-circle"></i>
+                    <span id="upload-engine-description"><strong>Local Whisper:</strong> Free, runs on-server, no API key required. Best for privacy-sensitive audio.</span>
                 </div>
-                <div id="upload-engine-status" style="font-size: 11px; color: #6e7681; margin-top: 4px; min-height: 16px;"></div>
             </div>
 
             <div class="transcription-upload-zone" id="upload-zone"
@@ -206,13 +191,12 @@
                     style="display: none;" onchange="TranscriptionSidebar.handleFileSelect(event)">
             </div>
 
-            <!-- Language Selection (for Whisper) -->
-            <div style="margin-top: 12px;">
-                <label>
-                    <i class="fas fa-language"></i> Language (optional &mdash; engine auto-detects where supported)
+            <!-- Language Selection (vector-db-styled section) -->
+            <div class="vector-db-provider-section" style="margin-top: 16px;">
+                <label class="vector-db-label">
+                    <i class="fas fa-language"></i> Language
                 </label>
-                <select id="whisper-language-select"
-                    style="width: 100%; padding: 6px; border-radius: 4px; border: 1px solid #30363d; background: #0d1117; color: var(--text-primary);">
+                <select id="whisper-language-select" class="vector-db-select">
                     <option value="auto">Auto-detect (Recommended)</option>
                     <option value="en">English</option>
                     <option value="es">Spanish</option>
@@ -228,6 +212,10 @@
                     <option value="ar">Arabic</option>
                     <option value="hi">Hindi</option>
                 </select>
+                <div class="vector-db-provider-info">
+                    <i class="fas fa-info-circle"></i>
+                    Optional &mdash; engine auto-detects where supported. Leave on Auto for best results.
+                </div>
             </div>
 
             <div id="upload-status-panel" style="display: none; margin-top: 12px;">

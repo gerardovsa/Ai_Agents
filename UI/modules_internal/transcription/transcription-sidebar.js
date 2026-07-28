@@ -999,6 +999,9 @@ class TranscriptionSidebarController {
         // Load saved settings
         this.loadSettings();
 
+        // Wire up upload engine selector (now a <select>, not radio buttons)
+        this.setupUploadEngineSelector();
+
         // Start audio preview (shows before recording to detect sound)
         setTimeout(() => {
             if (this.sharedState && !this.sharedState.isRecording) {
@@ -1022,6 +1025,46 @@ class TranscriptionSidebarController {
         await this.testBackendConnection();
 
         console.log('[TRANSCRIPTION SIDEBAR] Initialization complete');
+    }
+
+    /**
+     * Wire up the upload engine <select> dropdown (was previously a 5-radio
+     * grid in upload-engine-grid). On change, updates the description text
+     * inside the .vector-db-provider-info panel and persists the choice.
+     */
+    setupUploadEngineSelector() {
+        const select = document.getElementById('upload-engine-selector');
+        if (!select) return;
+
+        // Restore saved selection if present
+        const saved = localStorage.getItem('transcription-upload-engine');
+        if (saved && [...select.options].some(o => o.value === saved)) {
+            select.value = saved;
+        }
+
+        const descriptions = {
+            'local':           '<strong>Local Whisper:</strong> Free, runs on-server, no API key required. Best for privacy-sensitive audio.',
+            'openai':          '<strong>OpenAI gpt-4o-transcribe:</strong> Highest accuracy. Requires OpenAI API key configured in Org Connections.',
+            'deepgram':        '<strong>Deepgram Nova-3:</strong> Fast, GDPR/EU, supports speaker diarization. Requires Deepgram API key.',
+            'assemblyai-async':'<strong>AssemblyAI:</strong> Best speaker diarization. Requires AssemblyAI API key.',
+            'speechmatics':    '<strong>Speechmatics:</strong> EU company, best for accents. Requires Speechmatics API key.'
+        };
+
+        const updateDescription = () => {
+            const descEl = document.getElementById('upload-engine-description');
+            if (descEl) descEl.innerHTML = descriptions[select.value] || descriptions['local'];
+        };
+
+        // Apply initial description + persist + update status hint
+        updateDescription();
+        select.addEventListener('change', () => {
+            localStorage.setItem('transcription-upload-engine', select.value);
+            updateDescription();
+            // Re-run availability check so the status pill reflects the new engine
+            if (typeof this.checkEnginesStatus === 'function') {
+                this.checkEnginesStatus();
+            }
+        });
     }
 
     /**
@@ -1413,8 +1456,8 @@ class TranscriptionSidebarController {
                 if (durationSpan) durationSpan.textContent = this.formatDuration(duration);
             }
 
-            // Send to selected engine
-            const uploadEngine = document.querySelector('input[name="upload-engine"]:checked')?.value || 'local';
+            // Send to selected engine (now a <select>, not radio buttons)
+            const uploadEngine = document.getElementById('upload-engine-selector')?.value || 'local';
             const engineLabels = {
                 'local': 'Local Whisper', 'openai': 'OpenAI gpt-4o-transcribe',
                 'deepgram': 'Deepgram Nova-3', 'assemblyai-async': 'AssemblyAI', 'speechmatics': 'Speechmatics'
@@ -3946,12 +3989,12 @@ class TranscriptionSidebarController {
             const data = await resp.json();
             const engines = data.engines || {};
 
-            // Map: platform key → live engine status element + upload chip id
+            // Map: platform key → live engine status element + upload <option> value
             const statusMap = [
-                { key: 'assemblyai',   elId: 'assemblyai-key-status',       radioId: 'engine-assemblyai',      uploadId: 'upload-engine-assemblyai', name: 'AssemblyAI',       fallbackEngine: 'browser' },
-                { key: 'openai',       elId: 'openai-realtime-key-status',  radioId: 'engine-openai-realtime', uploadId: 'upload-engine-openai',     name: 'OpenAI Realtime',  fallbackEngine: 'browser' },
-                { key: 'deepgram',     elId: 'deepgram-key-status',         radioId: 'engine-deepgram',        uploadId: 'upload-engine-deepgram',   name: 'Deepgram',         fallbackEngine: 'browser' },
-                { key: 'speechmatics', elId: 'speechmatics-key-status',     radioId: 'engine-speechmatics',    uploadId: 'upload-engine-speechmatics', name: 'Speechmatics',   fallbackEngine: 'browser' },
+                { key: 'assemblyai',   elId: 'assemblyai-key-status',       radioId: 'engine-assemblyai',      uploadValue: 'assemblyai-async', name: 'AssemblyAI',       fallbackEngine: 'browser' },
+                { key: 'openai',       elId: 'openai-realtime-key-status',  radioId: 'engine-openai-realtime', uploadValue: 'openai',           name: 'OpenAI Realtime',  fallbackEngine: 'browser' },
+                { key: 'deepgram',     elId: 'deepgram-key-status',         radioId: 'engine-deepgram',        uploadValue: 'deepgram',         name: 'Deepgram',         fallbackEngine: 'browser' },
+                { key: 'speechmatics', elId: 'speechmatics-key-status',     radioId: 'engine-speechmatics',    uploadValue: 'speechmatics',      name: 'Speechmatics',     fallbackEngine: 'browser' },
             ];
 
             const stored = localStorage.getItem('transcription-stt-settings');
@@ -3960,8 +4003,6 @@ class TranscriptionSidebarController {
             for (const entry of statusMap) {
                 const el = document.getElementById(entry.elId);
                 const radio = document.getElementById(entry.radioId);
-                const uploadRadio = document.getElementById(entry.uploadId);
-                const uploadLabel = uploadRadio ? uploadRadio.closest('label') : null;
                 const hasKey = engines[entry.key]?.available === true;
 
                 // Live engine status badge
@@ -3974,17 +4015,15 @@ class TranscriptionSidebarController {
                 // Disable live engine radio if no key
                 if (radio) radio.disabled = !hasKey;
 
-                // Grey out upload chip if no key; fall back to local if selected
-                if (uploadRadio) {
-                    uploadRadio.disabled = !hasKey;
-                    if (uploadLabel) {
-                        uploadLabel.style.opacity = hasKey ? '' : '0.45';
-                        uploadLabel.style.cursor = hasKey ? '' : 'not-allowed';
-                        uploadLabel.title = hasKey ? uploadLabel.title : `${entry.name} — no API key configured`;
-                    }
-                    if (!hasKey && uploadRadio.checked) {
-                        const localRadio = document.getElementById('upload-engine-local');
-                        if (localRadio) localRadio.checked = true;
+                // Disable the corresponding upload-engine <option> if no key,
+                // and fall back to local if that engine was currently selected.
+                const uploadSelect = document.getElementById('upload-engine-selector');
+                if (uploadSelect) {
+                    const uploadOption = uploadSelect.querySelector(`option[value="${entry.uploadValue}"]`);
+                    if (uploadOption) uploadOption.disabled = !hasKey;
+                    if (!hasKey && uploadSelect.value === entry.uploadValue) {
+                        uploadSelect.value = 'local';
+                        uploadSelect.dispatchEvent(new Event('change'));
                     }
                 }
 

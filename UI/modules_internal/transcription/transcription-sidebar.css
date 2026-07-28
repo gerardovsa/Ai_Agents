@@ -313,6 +313,33 @@
     margin-top: 4px;
 }
 
+/* ==================== ENGINE STATUS PILL ====================
+   Sits ABOVE the engine dropdown (was previously below the radio grid).
+   Shows the currently-selected engine's availability, e.g. "Local Whisper
+   ready" with a green check. Updated by checkEngineStatus() in JS. */
+
+.transcription-engine-status {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 12px;
+    margin-bottom: 10px;
+    background: var(--bg-tertiary, #161b22);
+    border: 1px solid var(--border-default, #30363d);
+    border-left: 3px solid var(--accent-primary, #58a6ff);
+    border-radius: 4px;
+    font-size: 12px;
+    color: var(--text-secondary, #8b949e);
+}
+
+.transcription-engine-status i {
+    font-size: 13px;
+}
+
+.transcription-engine-status:empty {
+    display: none;
+}
+
 /* ==================== TABS ==================== */
 
 .transcription-tabs {
@@ -765,10 +792,18 @@
 }
 
 .transcription-export-section {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
+    /* Flex (not grid) so both buttons are guaranteed equal width AND equal
+       height regardless of content length. Grid 1fr/1fr collapses to
+       min-content when one child is wider, producing the "Export as JSON"
+       taller-than-"Export as TXT" mismatch. */
+    display: flex;
     gap: 8px;
     margin-top: 16px;
+}
+
+.transcription-export-section .transcription-btn {
+    flex: 1;
+    margin-bottom: 0;
 }
 
 /* ==================== STATUS CARDS ==================== */
@@ -868,7 +903,7 @@
     }
 
     .transcription-export-section {
-        grid-template-columns: 1fr;
+        flex-direction: column;
     }
 }
 
