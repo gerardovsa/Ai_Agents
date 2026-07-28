@@ -729,10 +729,34 @@ class ReactRenderer {
             }
         }
 
+        // Recharts component names that ALSO exist as Lucide icons
+        // (BarChart, LineChart, PieChart, Brush, Bar, ...). For these
+        // names we MUST resolve to the Recharts component — Lucide's
+        // icon would render as a giant SVG instead of a chart. Mirror
+        // the names list used by rechartsSetup above so any name we
+        // pre-lift onto window is also excluded from the Lucide pass.
+        const RECHARTS_PRIORITY_NAMES = [
+            'BarChart','Bar','LineChart','Line','PieChart','Pie','Cell',
+            'AreaChart','Area','ScatterChart','Scatter','XAxis','YAxis','ZAxis',
+            'CartesianGrid','Tooltip','Legend','ResponsiveContainer',
+            'RadarChart','Radar','PolarAngleAxis','PolarRadiusAxis','PolarGrid',
+            'ComposedChart','RadialBarChart','RadialBar','Treemap','FunnelChart','Funnel',
+            'LabelList','ReferenceLine','ReferenceArea','ReferenceDot',
+            'Brush','ErrorBar','Label'
+        ];
+
         const identifierHoist = `
     (function () {
         var React = window.React;
-        var sources = [window.lucide || {}, window.Recharts || {}];
+        var R = window.Recharts || {};
+        var L = window.lucide || {};
+        // Names that need Recharts resolution BEFORE Lucide. Lucide UMD
+        // exports icons with the same names as several Recharts components
+        // (PieChart, BarChart, LineChart, Brush, Bar, ...). Without this
+        // priority list, the first pass would wrap Lucide's icon descriptor
+        // as a "component" and the user's <PieChart> would render a giant
+        // Lucide pie-chart SVG instead of a real Recharts pie chart.
+        var priorityNames = ${JSON.stringify(RECHARTS_PRIORITY_NAMES)};
         var hoisted = [];
 
         // Wrap a lucide icon-descriptor array as a real React component.
@@ -778,6 +802,10 @@ class ReactRenderer {
         // Hoist the specifically-detected identifiers first (cheap, only
         // references actually used in this code).
         Array.from(${JSON.stringify(Array.from(referenced))}).forEach(function (name) {
+            // For Recharts priority names, resolve Recharts BEFORE Lucide.
+            // For everything else, fall back to Lucide-first (the previous
+            // behaviour, which is correct for non-colliding Lucide icons).
+            var sources = priorityNames.indexOf(name) >= 0 ? [R, L] : [L, R];
             for (var i = 0; i < sources.length; i++) {
                 var src = sources[i];
                 if (!src) continue;
@@ -800,10 +828,13 @@ class ReactRenderer {
         // Then lift EVERY PascalCase key from lucide onto window so that
         // any icon the AI might reference (even ones we didn't pre-scan)
         // resolves to a renderable component rather than a ReferenceError.
+        // SKIP Recharts priority names so Lucide's array descriptors do
+        // not overwrite Recharts components that rechartsSetup already set
+        // (this was the root cause of the giant-Lucide-PieChart bug).
         try {
-            var L = window.lucide || {};
             Object.keys(L).forEach(function (k) {
                 if (k === 'createElement' || k === 'createIcons' || k === 'icons' || k === 'default') return;
+                if (priorityNames.indexOf(k) >= 0) return;
                 var v = L[k];
                 if (Array.isArray(v)) {
                     window[k] = makeIconComponent(k, v);
