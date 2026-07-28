@@ -23,14 +23,16 @@
 /* ==================== AGENT COLUMN LAYOUT ==================== */
 
 .agent-column {
+    --agent-column-width: 400px;
     display: flex;
     flex-direction: column;
+    position: relative;
     background: var(--bg-secondary);
     border-radius: 8px;
     overflow: hidden;
     transition: all 0.3s ease;
-    min-width: 400px;
-    max-width: 400px;
+    min-width: var(--agent-column-width);
+    max-width: var(--agent-column-width);
     flex: 1;
 }
 
@@ -63,26 +65,37 @@
     flex: 2;
 }
 
-/* ==================== RESIZE HANDLES (Dec 12, 2025) ==================== */
+/* ==================== RESIZE HANDLES ==================== */
 
-.agent-column .resize-handle {
+/* Right-edge column resize handle. The left edge remains anchored in the flex row. */
+.agent-column .agent-resize-handle {
     position: absolute;
     right: 0;
     top: 0;
-    width: 10px;
-    height: 100%;
+    bottom: 0;
+    width: 7px;
     cursor: ew-resize;
-    z-index: 100;
-    transition: background 0.2s ease;
+    touch-action: none;
+    z-index: 1001;
+    background: linear-gradient(to left, rgba(88, 166, 255, 0.32) 1px, transparent 1px);
+    transition: background-color 0.2s ease, box-shadow 0.2s ease;
 }
 
-.agent-column .resize-handle:hover {
-    background: rgba(103, 126, 234, 0.2);
+.agent-column .agent-resize-handle:hover,
+.agent-column .agent-resize-handle:focus-visible,
+.agent-column .agent-resize-handle.dragging {
+    outline: none;
+    background-color: rgba(88, 166, 255, 0.18);
+    box-shadow: inset -2px 0 0 var(--accent-primary);
+}
+
+.agent-column.collapsed .agent-resize-handle {
+    display: none !important;
 }
 
 .agent-column.resizing {
     user-select: none;
-    pointer-events: none;
+    transition: none !important;
 }
 
 .agent-column.resizing * {
@@ -1170,12 +1183,60 @@
     flex: 1;
     min-width: 0;
     margin-right: 40px;
+    position: relative;
     /* Space for 32px button column + 8px gap */
+}
+
+/* Custom top-edge grip replaces the browser's bottom-right textarea handle. */
+.agent-input-resize-handle {
+    position: absolute;
+    top: -5px;
+    left: 0;
+    right: 0;
+    height: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: ns-resize;
+    touch-action: none;
+    z-index: 11;
+}
+
+.agent-input-resize-handle::after {
+    content: '';
+    width: 52px;
+    height: 3px;
+    border-radius: 999px;
+    background: rgba(139, 148, 158, 0.65);
+    box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.35);
+    transition: width 0.2s ease, background-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.agent-input-resize-handle:hover::after,
+.agent-input-resize-handle:focus-visible::after,
+.agent-input-resize-handle.dragging::after {
+    width: 72px;
+    background: var(--accent-primary);
+    box-shadow: 0 0 8px rgba(88, 166, 255, 0.7);
+}
+
+.agent-input-resize-handle:focus-visible {
+    outline: 1px solid var(--accent-primary);
+    outline-offset: 2px;
+}
+
+.agent-input-container.resizing-input,
+.agent-input-container.resizing-input * {
+    user-select: none;
+    cursor: ns-resize !important;
 }
 
 .agent-input-textarea {
     width: 100%;
+    height: 80px;
     min-height: 80px;
+    max-height: 240px;
+    box-sizing: border-box;
     padding: 12px;
     padding-right: 50px;
     /* Space for button column overlay */
@@ -1186,7 +1247,8 @@
     color: var(--text-primary);
     font-size: 14px;
     line-height: 1.5;
-    resize: vertical;
+    overflow-y: hidden;
+    resize: none;
     transition: background-color 180ms ease, border-color 180ms ease, box-shadow 180ms ease;
 }
 
@@ -1201,6 +1263,19 @@
     background: rgba(0, 0, 0, 0.60) !important;
     border-color: rgba(255, 255, 255, 0.18) !important;
     box-shadow: 0 6px 20px rgba(0, 0, 0, 0.45);
+}
+
+.agent-input-textarea::-webkit-scrollbar {
+    width: 8px;
+}
+
+.agent-input-textarea::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.agent-input-textarea::-webkit-scrollbar-thumb {
+    background: var(--border-default);
+    border-radius: 4px;
 }
 
 /* Right Button Stack (6 buttons) */

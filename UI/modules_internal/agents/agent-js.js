@@ -2822,7 +2822,12 @@ async function initMultiAgent() {
                     MultiAgent.updateDashboardStats();
                 }
                 if (typeof window._buildDeferredThreadUI === 'function') {
-                    window._buildDeferredThreadUI().catch(err => {
+                    // FIX (Jul 27, 2026): Pass maxAgentId, agentIdsWithThreads, and assignments
+                    // explicitly — the function is attached to window, so it lives outside
+                    // initMultiAgent's scope and cannot close over the function-local `let`
+                    // bindings or the .then()-local `const assignments`. Implicit closure was
+                    // silently throwing ReferenceError, which the .catch swallowed as 'non-fatal'.
+                    window._buildDeferredThreadUI(maxAgentId, agentIdsWithThreads, assignments).catch(err => {
                         console.warn('⚠️ [initMultiAgent] _buildDeferredThreadUI error (non-fatal):', err.message);
                         // FIX (Jul 23, 2026): fallback if throw happened BEFORE
                         // the multiagent-threads-loaded event dispatch — the
@@ -2842,7 +2847,7 @@ async function initMultiAgent() {
  * Called internally by initMultiAgent after threads load from backend.
  * NOTE: Does NOT overwrite window.loadDeferredThreadMessages (which processes the queue).
  */
-window._buildDeferredThreadUI = async function () {
+window._buildDeferredThreadUI = async function (maxAgentId, agentIdsWithThreads, assignments) {
 
     // 🔍 DEBUG: Check parent container state
     const multiAgentContainer = document.getElementById('multi-agent-container');

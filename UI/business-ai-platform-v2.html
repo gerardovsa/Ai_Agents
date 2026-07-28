@@ -1414,7 +1414,13 @@
     <!-- ? DEFERRED: These load AFTER authentication via LazyLoader -->
     <!-- Multi-agent system components extracted for modularity -->
     <!-- Note: Message renderer loaded from shared/utilities/message_renderer.js above -->
-    <link data-post-auth rel="stylesheet" href="modules_internal/agents/agent-ui.css?v=20260728_resize" disabled>
+    <!-- agent-ui.css must load unconditionally (no `disabled`): the stylesheet
+         defines the right-edge column resize handle and the disabled native
+         textarea grip. If the post-auth enabler misses for any reason (login
+         edge case, script error, race) and the CSS stays `disabled`, the
+         user sees the native bottom-right textarea grip and no right-border
+         handle — exactly the bug this comment exists to prevent. -->
+    <link rel="stylesheet" href="modules_internal/agents/agent-ui.css?v=20260728_nodisable">
     <link data-post-auth rel="stylesheet" href="modules_internal/agents/feedback-styles.css?v=20260328_1054" disabled>
     <script data-post-auth defer src="modules_internal/agents/error_recovery_manager.js?v=20260328_1054"></script>
     <script data-post-auth defer src="shared/js/workspace-manager.js?v=20260328_1054"></script>

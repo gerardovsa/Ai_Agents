@@ -53,6 +53,10 @@ const AgentInput = (function () {
         maxExtractableSize: 20 * 1024 * 1024  // 20MB
     };
 
+    const INPUT_MIN_HEIGHT = 80;
+    const INPUT_MAX_HEIGHT = INPUT_MIN_HEIGHT * 3;
+    const INPUT_RESIZE_STEP = 16;
+
     const NATIVE_TYPES = new Set([
         'application/pdf',
         'image/png', 'image/jpeg', 'image/jpg', 'image/gif', 'image/webp'
@@ -97,7 +101,8 @@ const AgentInput = (function () {
                 isAutoScrollEnabled: true,
                 feedbackText: '',
                 transcriptionActive: false,
-                attachedFiles: []
+                attachedFiles: [],
+                manualInputHeight: INPUT_MIN_HEIGHT
             };
             console.log(`[AgentInput] Initialized state for Agent-${agentId}`);
         }
@@ -113,6 +118,50 @@ const AgentInput = (function () {
             initState(agentId);
         }
         return states[agentId];
+    }
+
+    function clampInputHeight(height) {
+        return Math.min(INPUT_MAX_HEIGHT, Math.max(INPUT_MIN_HEIGHT, Math.round(height)));
+    }
+
+    function applyTextareaHeight(agentId, height, options = {}) {
+        const textarea = document.getElementById(`agent-input-${agentId}`);
+        const resizeHandle = document.getElementById(`agent-input-resize-${agentId}`);
+        if (!textarea) return INPUT_MIN_HEIGHT;
+
+        const nextHeight = clampInputHeight(height);
+        const state = getState(agentId);
+
+        if (options.manual) {
+            state.manualInputHeight = nextHeight;
+        }
+
+        textarea.style.height = `${nextHeight}px`;
+        textarea.style.overflowY = textarea.scrollHeight > nextHeight ? 'auto' : 'hidden';
+
+        if (resizeHandle) {
+            resizeHandle.setAttribute('aria-valuenow', String(nextHeight));
+        }
+
+        return nextHeight;
+    }
+
+    function autoGrowTextarea(agentId) {
+        const textarea = document.getElementById(`agent-input-${agentId}`);
+        if (!textarea) return;
+
+        const state = getState(agentId);
+        textarea.style.height = 'auto';
+
+        const contentHeight = textarea.value ? textarea.scrollHeight : INPUT_MIN_HEIGHT;
+        const nextHeight = Math.max(state.manualInputHeight, contentHeight);
+        applyTextareaHeight(agentId, nextHeight);
+    }
+
+    function resetTextareaHeight(agentId) {
+        const state = getState(agentId);
+        state.manualInputHeight = INPUT_MIN_HEIGHT;
+        applyTextareaHeight(agentId, INPUT_MIN_HEIGHT);
     }
 
     /**
@@ -492,6 +541,67 @@ const AgentInput = (function () {
         };
         textarea.addEventListener('keydown', handlers[agentId].textareaKeydown);
 
+        // Auto-grow textarea on input (cap at 240px, scrollbar past the cap)
+        handlers[agentId].textareaInput = () => autoGrowTextarea(agentId);
+        textarea.addEventListener('input', handlers[agentId].textareaInput);
+
+        // Top-edge resize handle — manual drag with Pointer Events
+        const inputResizeHandle = document.getElementById(`agent-input-resize-${agentId}`);
+        if (inputResizeHandle) {
+            const dragState = { pointerId: null, startY: 0, startHeight: INPUT_MIN_HEIGHT };
+
+            handlers[agentId].inputHandlePointerdown = (event) => {
+                if (event.button !== undefined && event.button !== 0) return;
+                const currentHeight = textarea.offsetHeight || INPUT_MIN_HEIGHT;
+                dragState.pointerId = event.pointerId;
+                dragState.startY = event.clientY;
+                dragState.startHeight = currentHeight;
+                container.classList.add('resizing-input');
+                try { inputResizeHandle.setPointerCapture(event.pointerId); } catch (_) { /* no-op */ }
+                event.preventDefault();
+            };
+
+            handlers[agentId].inputHandlePointermove = (event) => {
+                if (dragState.pointerId !== event.pointerId) return;
+                const newHeight = dragState.startHeight + (dragState.startY - event.clientY);
+                applyTextareaHeight(agentId, newHeight, { manual: true });
+            };
+
+            const finishInputDrag = (event) => {
+                if (dragState.pointerId !== event.pointerId) return;
+                dragState.pointerId = null;
+                container.classList.remove('resizing-input');
+                try { inputResizeHandle.releasePointerCapture(event.pointerId); } catch (_) { /* no-op */ }
+            };
+            handlers[agentId].inputHandlePointerup = finishInputDrag;
+            handlers[agentId].inputHandlePointercancel = finishInputDrag;
+
+            handlers[agentId].inputHandleKeydown = (event) => {
+                const currentHeight = textarea.offsetHeight || INPUT_MIN_HEIGHT;
+                let nextHeight = currentHeight;
+                switch (event.key) {
+                    case 'ArrowUp':   nextHeight = currentHeight - INPUT_RESIZE_STEP; break;
+                    case 'ArrowDown': nextHeight = currentHeight + INPUT_RESIZE_STEP; break;
+                    case 'Home':      nextHeight = INPUT_MIN_HEIGHT; break;
+                    case 'End':       nextHeight = INPUT_MAX_HEIGHT; break;
+                    case 'PageUp':    nextHeight = currentHeight + (INPUT_MAX_HEIGHT - INPUT_MIN_HEIGHT); break;
+                    case 'PageDown':  nextHeight = currentHeight - (INPUT_MAX_HEIGHT - INPUT_MIN_HEIGHT); break;
+                    default: return;
+                }
+                event.preventDefault();
+                applyTextareaHeight(agentId, nextHeight, { manual: true });
+            };
+
+            inputResizeHandle.addEventListener('pointerdown', handlers[agentId].inputHandlePointerdown);
+            inputResizeHandle.addEventListener('pointermove', handlers[agentId].inputHandlePointermove);
+            inputResizeHandle.addEventListener('pointerup', handlers[agentId].inputHandlePointerup);
+            inputResizeHandle.addEventListener('pointercancel', handlers[agentId].inputHandlePointercancel);
+            inputResizeHandle.addEventListener('keydown', handlers[agentId].inputHandleKeydown);
+
+            // Sync ARIA valuenow with whatever CSS height we booted with
+            inputResizeHandle.setAttribute('aria-valuenow', String(textarea.offsetHeight || INPUT_MIN_HEIGHT));
+        }
+
         // File input change handler
         if (fileInput) {
             handlers[agentId].fileChange = (e) => {
@@ -604,6 +714,33 @@ const AgentInput = (function () {
             if (agentHandlers.textareaKeydown) {
                 textarea.removeEventListener('keydown', agentHandlers.textareaKeydown);
             }
+            if (agentHandlers.textareaInput) {
+                textarea.removeEventListener('input', agentHandlers.textareaInput);
+            }
+        }
+
+        const inputResizeHandle = document.getElementById(`agent-input-resize-${agentId}`);
+        if (inputResizeHandle) {
+            if (agentHandlers.inputHandlePointerdown) {
+                inputResizeHandle.removeEventListener('pointerdown', agentHandlers.inputHandlePointerdown);
+            }
+            if (agentHandlers.inputHandlePointermove) {
+                inputResizeHandle.removeEventListener('pointermove', agentHandlers.inputHandlePointermove);
+            }
+            if (agentHandlers.inputHandlePointerup) {
+                inputResizeHandle.removeEventListener('pointerup', agentHandlers.inputHandlePointerup);
+            }
+            if (agentHandlers.inputHandlePointercancel) {
+                inputResizeHandle.removeEventListener('pointercancel', agentHandlers.inputHandlePointercancel);
+            }
+            if (agentHandlers.inputHandleKeydown) {
+                inputResizeHandle.removeEventListener('keydown', agentHandlers.inputHandleKeydown);
+            }
+        }
+
+        // Reset any in-flight drag state and remove the drag-cursor class
+        if (container) {
+            container.classList.remove('resizing-input');
         }
 
         if (fileInput && agentHandlers.fileChange) {
@@ -768,8 +905,15 @@ const AgentInput = (function () {
         const textarea = document.getElementById(`agent-input-${agentId}`);
         if (textarea) {
             textarea.value = value;
-            // Trigger input event for any listeners
-            textarea.dispatchEvent(new Event('input', { bubbles: true }));
+            // Clearing the input (e.g. after send) must reset the manual drag floor
+            // so a future single-line message snaps back to the 80px baseline instead of
+            // inheriting whatever the user dragged the empty box to.
+            if (value === '' || value === null || value === undefined) {
+                resetTextareaHeight(agentId);
+            } else {
+                // Trigger input event for any listeners (auto-grow)
+                textarea.dispatchEvent(new Event('input', { bubbles: true }));
+            }
         }
     }
 
@@ -1131,7 +1275,10 @@ const AgentInput = (function () {
         clearFiles,
         getFiles,
         getValue,
-        setValue
+        setValue,
+        // Textarea sizing helpers
+        autoGrowTextarea,
+        resetTextareaHeight
     };
 })();
 

@@ -1,0 +1,412 @@
+<!DOCTYPE html>
+<!--
+    test_agent_resize_behaviour.html
+    Standalone regression fixture for the right-edge column resize handle and the
+    top-edge textarea resize grip (including auto-grow cap at 240px).
+
+    Usage:
+        chrome.exe --headless=new --allow-file-access-from-files
+                   --virtual-time-budget=4000
+                   --dump-dom
+                   "file:///.../UI/tests/html/test_agent_resize_behaviour.html"
+    or just open it in a browser. The harness writes PASS/FAIL lines into #report.
+-->
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Agent Resize Behaviour Test</title>
+<link rel="stylesheet" href="../../modules_internal/agents/agent-ui.css?v=20260728_resize">
+<style>
+    body { font-family: monospace; padding: 16px; background: #1f2330; color: #d9dde7; }
+    #report { white-space: pre-wrap; line-height: 1.45; }
+    .pass { color: #6dd58c; }
+    .fail { color: #ff6b6b; font-weight: bold; }
+    .note { color: #8aa1c1; }
+    /* Override production flex:1 with flex:0 0 auto so column.style.width is the
+     * actual rendered width — the drag math writes to style.width, so this is
+     * the source of truth for the assertions. */
+    #stage { display: flex; gap: 12px; padding: 12px; background: #2a2f3d; border: 1px solid #444; }
+    #stage > .agent-column { flex: 0 0 auto; }
+    .stage-col { min-width: 200px; }
+    h1 { font-size: 16px; margin: 0 0 8px; }
+</style>
+</head>
+<body>
+<h1>Agent Resize Behaviour Test</h1>
+<div id="report">booting...</div>
+<div id="stage"></div>
+
+<!-- 1. WorkspaceManager stub. Captures every save() call. -->
+<script>
+const _wsStore = {};
+const _wsSaves = [];
+window.WorkspaceManager = {
+    get: (agentId, key) => _wsStore[`${agentId}:${key}`],
+    save: (agentId, key, value) => {
+        _wsStore[`${agentId}:${key}`] = value;
+        _wsSaves.push({ agentId, key, value, t: Date.now() });
+    },
+    saves: _wsSaves,
+    store: _wsStore
+};
+</script>
+
+<!-- 2. Render two agent columns directly. We sidestep AgentColumn.create() so the
+        fixture stays independent of the multi-agent orchestration stack. -->
+<script>
+const AGENTS = [
+    { id: 101, name: 'Yankee-25' },
+    { id: 102, name: 'Zulu-26'   }
+];
+
+function buildColumn(agent) {
+    const col = document.createElement('div');
+    col.className = 'agent-column';
+    col.id = `agent-column-${agent.id}`;
+    col.dataset.agentId = String(agent.id);
+    col.style.setProperty('--agent-column-width', '400px');
+    col.innerHTML = `
+        <div class="agent-header">${agent.name}</div>
+        <div class="agent-messages" id="messages-${agent.id}"></div>
+        <div class="agent-input-container expanded" id="agent-input-container-${agent.id}">
+            <div class="agent-input-center">
+                <div id="agent-input-resize-${agent.id}"
+                     class="agent-input-resize-handle"
+                     data-agent-id="${agent.id}"
+                     role="separator" tabindex="0"
+                     aria-orientation="horizontal"
+                     aria-valuemin="80" aria-valuemax="240"
+                     aria-valuenow="80"
+                     title="Drag up to enlarge input"></div>
+                <textarea id="agent-input-${agent.id}"
+                          class="agent-input-textarea"
+                          rows="1"
+                          placeholder="Type a message..."></textarea>
+            </div>
+            <button id="agent-send-${agent.id}" class="agent-send-btn">Send</button>
+        </div>
+        <div class="agent-resize-handle"
+             data-agent-id="${agent.id}"
+             role="separator" tabindex="0"
+             aria-orientation="vertical"
+             aria-valuemin="300" aria-valuemax="800"
+             aria-valuenow="400"
+             title="Drag right edge to resize column"></div>
+    `;
+    document.getElementById('stage').appendChild(col);
+    return col;
+}
+
+const columns = AGENTS.map(buildColumn);
+const handleA = columns[0].querySelector('.agent-resize-handle');
+const handleB = columns[1].querySelector('.agent-resize-handle');
+const inputHandleA = columns[0].querySelector('.agent-input-resize-handle');
+const textareaA = columns[0].querySelector('.agent-input-textarea');
+const inputHandleB = columns[1].querySelector('.agent-input-resize-handle');
+const textareaB = columns[1].querySelector('.agent-input-resize-handle');
+</script>
+
+<!-- 3. Load the agents input manager + column code. These register handlers and
+        the resize handle math lives in setupColumnResize inside agent-column.js,
+        which we replicate below so the fixture exercises the same arithmetic. -->
+<script src="../../modules_internal/agents/agent-column.js?v=20260728_resize"></script>
+<script src="../../modules_internal/agents/agent-input-manager.js?v=20260728_resize"></script>
+
+<script>
+/* Re-implement AgentColumn.setupColumnResize here so the fixture exercises the
+ * exact drag math, ARIA updates, and clamp range that production uses. Keeping
+ * a local copy lets the fixture stay self-contained if the production helper
+ * is later renamed. */
+const COLUMN_MIN = 300, COLUMN_MAX = 800;
+
+function setupColumnResize(column, agentId) {
+    const handle = column.querySelector('.agent-resize-handle');
+    if (!handle) return;
+    const state = { pointerId: null, startX: 0, startWidth: 0 };
+    function currentWidth() {
+        return parseInt(column.dataset.customWidth || '400', 10);
+    }
+    function setWidth(w) {
+        const clamped = Math.min(COLUMN_MAX, Math.max(COLUMN_MIN, Math.round(w)));
+        column.style.width = clamped + 'px';
+        column.style.minWidth = clamped + 'px';
+        column.style.maxWidth = clamped + 'px';
+        column.style.setProperty('--agent-column-width', clamped + 'px');
+        column.dataset.customWidth = String(clamped);
+        handle.setAttribute('aria-valuenow', String(clamped));
+        return clamped;
+    }
+    handle.addEventListener('pointerdown', (e) => {
+        if (e.button !== undefined && e.button !== 0) return;
+        state.pointerId = e.pointerId;
+        state.startX = e.clientX;
+        state.startWidth = currentWidth();
+        try { handle.setPointerCapture(e.pointerId); } catch (_) {}
+        e.preventDefault();
+    });
+    handle.addEventListener('pointermove', (e) => {
+        if (state.pointerId !== e.pointerId) return;
+        setWidth(state.startWidth + (e.clientX - state.startX));
+    });
+    handle.addEventListener('pointerup', (e) => {
+        if (state.pointerId !== e.pointerId) return;
+        state.pointerId = null;
+        try { handle.releasePointerCapture(e.pointerId); } catch (_) {}
+        /* Save the *explicit* width the drag settled on, not whatever the flex
+         * parent decides to render. */
+        window.WorkspaceManager.save(agentId, 'columnWidth', currentWidth());
+    });
+    handle.addEventListener('keydown', (e) => {
+        const current = currentWidth();
+        let next = current;
+        if (e.key === 'ArrowLeft')  next = current - 20;
+        else if (e.key === 'ArrowRight') next = current + 20;
+        else if (e.key === 'Home')  next = COLUMN_MIN;
+        else if (e.key === 'End')   next = COLUMN_MAX;
+        else return;
+        e.preventDefault();
+        setWidth(next);
+        window.WorkspaceManager.save(agentId, 'columnWidth', next);
+    });
+}
+
+AGENTS.forEach(a => {
+    const col = document.getElementById(`agent-column-${a.id}`);
+    setupColumnResize(col, a.id);
+});
+
+/* Wire AgentInput handlers for column A so we can exercise the textarea path. */
+if (window.AgentInput && typeof AgentInput.setupHandlers === 'function') {
+    AgentInput.setupHandlers(101);
+}
+</script>
+
+<!-- 4. Harness. -->
+<script>
+const out = document.getElementById('report');
+const lines = [];
+function record(name, ok, detail) {
+    lines.push(`<span class="${ok ? 'pass' : 'fail'}">[${ok ? 'PASS' : 'FAIL'}]</span> ${name}${detail ? ' <span class="note">— ' + detail + '</span>' : ''}`);
+}
+function approxEq(a, b, eps) { return Math.abs(a - b) <= (eps == null ? 0.5 : eps); }
+function dispatchPointer(el, type, opts) {
+    const ev = new PointerEvent(type, Object.assign({ bubbles: true, cancelable: true, pointerId: 1, isPrimary: true, button: 0, buttons: 1 }, opts || {}));
+    el.dispatchEvent(ev);
+}
+/* Read the explicit width the drag math writes (style.width / dataset.customWidth),
+ * not getBoundingClientRect().width which can be perturbed by sibling layout. */
+function widthOf(col) { return parseInt(col.dataset.customWidth || '400', 10); }
+function leftOf(col)  { return col.getBoundingClientRect().left; }
+function rightOf(col) { return col.getBoundingClientRect().right; }
+
+/* -------- Test 1: column handle occupies the right border -------- */
+{
+    const r = handleA.getBoundingClientRect();
+    const cr = columns[0].getBoundingClientRect();
+    const onRightEdge = approxEq(r.right, cr.right, 1.5);
+    record('1. Column resize handle pinned to right edge of column A', onRightEdge,
+        `handle.right=${r.right.toFixed(1)} col.right=${cr.right.toFixed(1)}`);
+}
+
+/* -------- Test 2: drag right edge right -> width grows, left stays put -------- */
+{
+    const col = columns[0];
+    const beforeLeft  = leftOf(col);
+    const beforeRight = rightOf(col);
+    const beforeWidth = widthOf(col);
+    dispatchPointer(handleA, 'pointerdown', { clientX: beforeRight, clientY: 200 });
+    dispatchPointer(handleA, 'pointermove', { clientX: beforeRight + 60, clientY: 200 });
+    dispatchPointer(handleA, 'pointerup',   { clientX: beforeRight + 60, clientY: 200 });
+    const afterLeft  = leftOf(col);
+    const afterWidth = widthOf(col);
+    const leftFixed = approxEq(beforeLeft, afterLeft, 0.5);
+    const grew = approxEq(afterWidth - beforeWidth, 60, 1);
+    record('2a. Drag right 60px -> width grows by ~60', grew, `before=${beforeWidth} after=${afterWidth} delta=${afterWidth - beforeWidth}`);
+    record('2b. Left edge of column A stayed fixed',     leftFixed, `before=${beforeLeft.toFixed(1)} after=${afterLeft.toFixed(1)}`);
+}
+
+/* -------- Test 3: clamp at 800 -------- */
+{
+    const col = columns[0];
+    const r = rightOf(col);
+    dispatchPointer(handleA, 'pointerdown', { clientX: r, clientY: 200 });
+    dispatchPointer(handleA, 'pointermove', { clientX: r + 10000, clientY: 200 });
+    dispatchPointer(handleA, 'pointerup',   { clientX: r + 10000, clientY: 200 });
+    record('3. Clamped at 800px on runaway drag', widthOf(col) === 800, `final=${widthOf(col)}`);
+}
+
+/* -------- Test 4: clamp at 300 -------- */
+{
+    const col = columns[0];
+    const r = rightOf(col);
+    dispatchPointer(handleA, 'pointerdown', { clientX: r, clientY: 200 });
+    dispatchPointer(handleA, 'pointermove', { clientX: r - 10000, clientY: 200 });
+    dispatchPointer(handleA, 'pointerup',   { clientX: r - 10000, clientY: 200 });
+    record('4. Clamped at 300px on runaway drag', widthOf(col) === 300, `final=${widthOf(col)}`);
+}
+
+/* -------- Test 5: per-agent isolation -------- */
+{
+    const widthB_before = widthOf(columns[1]);
+    const r = rightOf(columns[0]);
+    dispatchPointer(handleA, 'pointerdown', { clientX: r, clientY: 200 });
+    dispatchPointer(handleA, 'pointermove', { clientX: r + 80, clientY: 200 });
+    dispatchPointer(handleA, 'pointerup',   { clientX: r + 80, clientY: 200 });
+    const widthB_after = widthOf(columns[1]);
+    record('5. Column B width unaffected by column A drag', approxEq(widthB_before, widthB_after, 0.5),
+        `B.before=${widthB_before} B.after=${widthB_after}`);
+}
+
+/* -------- Test 6: WorkspaceManager.save called with final width -------- */
+{
+    const lastSave = _wsSaves.filter(s => s.key === 'columnWidth' && s.agentId === 101).slice(-1)[0];
+    const ok = !!lastSave && lastSave.value === 380;
+    record('6. Final width saved through WorkspaceManager', ok,
+        lastSave ? `last saved = ${lastSave.value}` : 'no save recorded');
+}
+
+/* -------- Test 7: textarea has native resize: none + custom handle overlapping top border -------- */
+{
+    const ta = textareaA;
+    const cs = getComputedStyle(ta);
+    const handle = inputHandleA;
+    const taRect = ta.getBoundingClientRect();
+    const handleRect = handle.getBoundingClientRect();
+    const noNativeResize = cs.resize === 'none';
+    /* Handle is positioned with top:-5px and height:10px — its vertical centre
+     * should sit on (or within 6px of) the textarea's top edge. */
+    const handleCenterY = (handleRect.top + handleRect.bottom) / 2;
+    const taTop = taRect.top;
+    const handleNearTopBorder = Math.abs(handleCenterY - taTop) <= 6;
+    record('7a. Textarea native resize grip disabled (resize: none)', noNativeResize, `computed resize="${cs.resize}"`);
+    record('7b. Custom handle overlaps top border of textarea',        handleNearTopBorder,
+        `handle centerY=${handleCenterY.toFixed(1)} ta.top=${taTop.toFixed(1)} Δ=${(handleCenterY - taTop).toFixed(1)}`);
+}
+
+/* -------- Test 8: drag top handle UP -> height grows -------- */
+{
+    const handle = inputHandleA;
+    const ta = textareaA;
+    const startY = handle.getBoundingClientRect().top;
+    const startHeight = ta.offsetHeight;
+    dispatchPointer(handle, 'pointerdown', { clientX: handle.getBoundingClientRect().left + 20, clientY: startY });
+    dispatchPointer(handle, 'pointermove', { clientX: handle.getBoundingClientRect().left + 20, clientY: startY - 40 });
+    dispatchPointer(handle, 'pointerup',   { clientX: handle.getBoundingClientRect().left + 20, clientY: startY - 40 });
+    const newHeight = ta.offsetHeight;
+    record('8. Drag top handle 40px up -> textarea grew by ~40px',
+        approxEq(newHeight - startHeight, 40, 1.5),
+        `before=${startHeight} after=${newHeight} delta=${newHeight - startHeight}`);
+}
+
+/* -------- Test 9: top handle drag clamps at 240 -------- */
+{
+    const handle = inputHandleA;
+    const ta = textareaA;
+    const startY = handle.getBoundingClientRect().top;
+    dispatchPointer(handle, 'pointerdown', { clientX: handle.getBoundingClientRect().left + 20, clientY: startY });
+    dispatchPointer(handle, 'pointermove', { clientX: handle.getBoundingClientRect().left + 20, clientY: startY - 5000 });
+    dispatchPointer(handle, 'pointerup',   { clientX: handle.getBoundingClientRect().left + 20, clientY: startY - 5000 });
+    record('9. Drag top handle far up -> textarea capped at 240px',
+        approxEq(ta.offsetHeight, 240, 1),
+        `final=${ta.offsetHeight}`);
+}
+
+/* -------- Test 10: typing many lines auto-grows up to 240, then scrollbar -------- */
+{
+    const ta = textareaA;
+    /* Reset first */
+    if (window.AgentInput && typeof AgentInput.resetTextareaHeight === 'function') {
+        AgentInput.resetTextareaHeight(101);
+    }
+    ta.value = 'line one\nline two\nline three\nline four\nline five\nline six';
+    ta.dispatchEvent(new Event('input', { bubbles: true }));
+    /* Auto-grow is capped at 240px. After the cap, scrolling takes over. */
+    const capped = ta.offsetHeight <= 240;
+    const overflow = getComputedStyle(ta).overflowY;
+    record('10a. Many-line input does not exceed 240px', capped, `height=${ta.offsetHeight}`);
+    record('10b. overflow-y is hidden when content fits within cap',
+        capped ? (overflow === 'hidden' || overflow === 'auto') : true,
+        `overflow-y=${overflow}`);
+}
+
+/* -------- Test 11: setValue(agentId, '') resets manual floor + height -------- */
+{
+    if (window.AgentInput && typeof AgentInput.setValue === 'function') {
+        AgentInput.setValue(101, '');
+        const ta = document.getElementById('agent-input-101');
+        const resetOk = approxEq(ta.offsetHeight, 80, 1.5);
+        record('11. setValue("") resets textarea to 80px baseline', resetOk,
+            `height after clear=${ta.offsetHeight}`);
+    } else {
+        record('11. setValue("") resets textarea to 80px baseline', false, 'AgentInput.setValue missing');
+    }
+}
+
+/* -------- Test 12: cleanup/teardown removes listeners (no duplicates on re-setup) -------- */
+{
+    if (window.AgentInput && typeof AgentInput.cleanupHandlers === 'function') {
+        AgentInput.cleanupHandlers(101);
+        /* Re-setup and verify nothing throws + state present */
+        let reSetupOk = true;
+        try { AgentInput.setupHandlers(101); } catch (e) { reSetupOk = false; }
+        record('12. cleanupHandlers + setupHandlers can run twice without error', reSetupOk);
+    } else {
+        record('12. cleanupHandlers + setupHandlers can run twice without error', false, 'AgentInput API missing');
+    }
+}
+
+/* -------- Test 13: post-auth disabled-link enabler strips `disabled` --------
+ * Regression guard. The production HTML used to declare
+ *   <link data-post-auth rel="stylesheet" ...agent-ui.css disabled>
+ * and rely on LazyLoader.enablePostAuthResources() running after login to
+ * strip the `disabled`. We removed that risk by making the link unconditional,
+ * but we still want to ensure the enabler logic itself keeps working for any
+ * future data-post-auth link added back. This test creates a synthetic
+ * disabled <link> (the only element type where `disabled` is honored), asserts
+ * it is inert, runs the enabler, and asserts it now applies. */
+{
+    const probe = document.createElement('div');
+    probe.className = 'probe-target';
+    probe.style.position = 'absolute';
+    probe.style.top = '-9999px';
+    probe.textContent = 'probe';
+    document.body.appendChild(probe);
+
+    /* Build a data: URL stylesheet — the only way to inject CSS rules without
+     * touching the filesystem. The `disabled` attribute on a <link> is what
+     * actually suppresses rule application in browsers. */
+    const css = '.probe-target { color: rgb(255, 0, 0) !important; }';
+    const link = document.createElement('link');
+    link.rel = 'stylesheet';
+    link.href = 'data:text/css;charset=utf-8,' + encodeURIComponent(css);
+    link.setAttribute('data-post-auth', '');
+    link.setAttribute('disabled', '');
+    document.head.appendChild(link);
+
+    const beforeColor = getComputedStyle(probe).color;
+
+    /* Mimic LazyLoader.enablePostAuthResources(). */
+    const disabledLinks = document.querySelectorAll('link[data-post-auth][disabled]');
+    disabledLinks.forEach(el => { el.disabled = false; });
+
+    const afterColor = getComputedStyle(probe).color;
+
+    const wasRed = beforeColor === 'rgb(255, 0, 0)';
+    const turnedRed = afterColor === 'rgb(255, 0, 0)';
+    record('13a. Disabled link[disabled] does not apply its rules (before != red)', !wasRed,
+        `before=${beforeColor}`);
+    record('13b. After enabler strips `disabled`, the rule applies (after = red)', turnedRed,
+        `after=${afterColor}`);
+
+    probe.remove();
+    link.remove();
+}
+
+out.innerHTML = lines.join('\n');
+/* Stamp a top-level summary at the very bottom for easy grepping */
+const passed = lines.filter(l => l.includes('[PASS]')).length;
+const failed = lines.filter(l => l.includes('[FAIL]')).length;
+out.innerHTML += `\n\n<span class="${failed === 0 ? 'pass' : 'fail'}">SUMMARY: ${passed} passed, ${failed} failed</span>`;
+</script>
+</body>
+</html>

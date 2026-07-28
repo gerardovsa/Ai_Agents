@@ -29,15 +29,21 @@ sys.path.insert(0, str(ai_agents_root))
 sys.path.insert(0, str(ai_agents_root / 'scripts' / 'utilities'))
 from task_sync_universal import UniversalTaskMapper
 
-# Import tool registry for Google/Microsoft API calls
-from tools.registry import ToolRegistry
+# Import tool registry for Google/Microsoft API calls.
+# Lazy migration (2026-07-28): switch from eager `tools.registry.ToolRegistry`
+# (which loaded all ~808 tools at module import) to the lazy `registry_v3`
+# singleton. The AI Platform's lazy-load refactor ships the boot cost down
+# to ~8 meta-tools; this blueprint was the only place still instantiating the
+# legacy registry at module load and was the source of the
+# `[OK] Tool Registry ready - 808 tools loaded` boot line.
+from tools.registry_v3 import get_registry
 
 # Import database utilities - PostgreSQL only
 from shared.database_utils import convert_sql_placeholders, get_database_connection
 
 # Initialize
 task_sync_bp = Blueprint('task_sync', __name__, url_prefix='/api/sync')
-tool_registry = ToolRegistry()
+tool_registry = get_registry()
 mapper = UniversalTaskMapper()
 
 def get_db_connection():
@@ -103,8 +109,7 @@ def sync_to_google_tasks():
         google_task = mapper.kanban_to_google_task(kanban_card)
         
         # Create task via Google Tasks API
-        tool_schema = tool_registry.get_tool_schema('google_tasks_create_task')
-        if not tool_schema:
+        if not tool_registry.materialize_tool('google_tasks_create_task'):
             # ✅ Close before early return
             cursor.close()
             cursor = None
@@ -240,8 +245,7 @@ def sync_to_microsoft_todo():
         ms_task = mapper.kanban_to_microsoft_todo(kanban_card)
         
         # Create task via Microsoft To Do API
-        tool_schema = tool_registry.get_tool_schema('todo_create_task')
-        if not tool_schema:
+        if not tool_registry.materialize_tool('todo_create_task'):
             # ✅ Close before early return
             cursor.close()
             cursor = None
@@ -441,8 +445,7 @@ def _create_google_calendar_event(kanban_card, user_email, cursor):
             recurrence = [f"RRULE:FREQ={rec_type}"]
         
         # Create event via Google Calendar API
-        tool_schema = tool_registry.get_tool_schema('google_calendar_create_event')
-        if not tool_schema:
+        if not tool_registry.materialize_tool('google_calendar_create_event'):
             return {'success': False, 'error': 'Google Calendar tool not available'}
         
         params = {
@@ -616,10 +619,9 @@ def _sync_to_google_tasks_internal(kanban_card, user_email, cursor):
     """
     google_task = mapper.kanban_to_google_task(kanban_card)
     
-    tool_schema = tool_registry.get_tool_schema('google_tasks_create_task')
-    if not tool_schema:
+    if not tool_registry.materialize_tool('google_tasks_create_task'):
         return {'success': False, 'error': 'Google Tasks tool not available'}
-    
+
     result = tool_registry.execute_tool(
         tool_name='google_tasks_create_task',
         title=google_task['title'],
@@ -658,10 +660,9 @@ def _sync_to_microsoft_todo_internal(kanban_card, user_email, cursor):
     """
     ms_task = mapper.kanban_to_microsoft_todo(kanban_card)
     
-    tool_schema = tool_registry.get_tool_schema('todo_create_task')
-    if not tool_schema:
+    if not tool_registry.materialize_tool('todo_create_task'):
         return {'success': False, 'error': 'Microsoft To Do tool not available'}
-    
+
     params = {
         'title': ms_task['title'],
         'body': ms_task.get('body', {}).get('content', ''),
@@ -892,8 +893,8 @@ def health_check():
         'status': 'healthy',
         'service': 'task_sync',
         'tools_available': {
-            'google_tasks': tool_registry.get_tool_schema('google_tasks_create_task') is not None,
-            'microsoft_todo': tool_registry.get_tool_schema('todo_create_task') is not None,
-            'google_calendar': tool_registry.get_tool_schema('google_calendar_create_event') is not None
+            'google_tasks': tool_registry.materialize_tool('google_tasks_create_task'),
+            'microsoft_todo': tool_registry.materialize_tool('todo_create_task'),
+            'google_calendar': tool_registry.materialize_tool('google_calendar_create_event')
         }
     }), 200

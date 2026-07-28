@@ -102,6 +102,119 @@ const AgentColumn = (function () {
     // 5. 'ai-user': Show AI and user - no tools/no tool results
     const viewModes = {}; // Tracks current view mode per agent
 
+    const COLUMN_MIN_WIDTH = 300;
+    const COLUMN_MAX_WIDTH = 800;
+    const COLUMN_RESIZE_STEP = 20;
+
+    function clampColumnWidth(width) {
+        return Math.min(COLUMN_MAX_WIDTH, Math.max(COLUMN_MIN_WIDTH, Math.round(width)));
+    }
+
+    function applyCustomColumnWidth(column, width) {
+        const nextWidth = clampColumnWidth(width);
+        const resizeHandle = column.querySelector('.agent-resize-handle');
+
+        column.classList.remove('wide', 'extra-wide');
+        column.style.setProperty('--agent-column-width', `${nextWidth}px`);
+        column.dataset.customWidth = String(nextWidth);
+
+        if (resizeHandle) {
+            resizeHandle.setAttribute('aria-valuenow', String(nextWidth));
+        }
+
+        const popoutWindow = document.getElementById(`agent-popout-${column.dataset.agentId}`);
+        if (popoutWindow && column.dataset.poppedOut === 'true') {
+            popoutWindow.style.width = `${nextWidth}px`;
+        }
+
+        return nextWidth;
+    }
+
+    function saveColumnWidth(agentId, width) {
+        if (typeof WorkspaceManager !== 'undefined') {
+            WorkspaceManager.save(agentId, 'columnWidth', width);
+        }
+    }
+
+    function setupColumnResize(column, agentId) {
+        const resizeHandle = column.querySelector('.agent-resize-handle');
+        if (!resizeHandle) return;
+
+        const dragState = {
+            pointerId: null,
+            startX: 0,
+            startWidth: 0,
+            previousBodyCursor: ''
+        };
+
+        const finishResize = (event) => {
+            if (dragState.pointerId === null || (event.pointerId !== undefined && event.pointerId !== dragState.pointerId)) {
+                return;
+            }
+
+            if (resizeHandle.hasPointerCapture?.(dragState.pointerId)) {
+                resizeHandle.releasePointerCapture(dragState.pointerId);
+            }
+
+            dragState.pointerId = null;
+            column.classList.remove('resizing');
+            resizeHandle.classList.remove('dragging');
+            document.body.style.cursor = dragState.previousBodyCursor;
+
+            const finalWidth = clampColumnWidth(column.getBoundingClientRect().width);
+            applyCustomColumnWidth(column, finalWidth);
+            saveColumnWidth(agentId, finalWidth);
+        };
+
+        resizeHandle.addEventListener('pointerdown', (event) => {
+            if (event.button !== 0 || column.classList.contains('collapsed')) return;
+
+            event.preventDefault();
+            event.stopPropagation();
+
+            const rect = column.getBoundingClientRect();
+            dragState.pointerId = event.pointerId;
+            dragState.startX = event.clientX;
+            dragState.startWidth = rect.width;
+            dragState.previousBodyCursor = document.body.style.cursor;
+
+            column.classList.add('resizing');
+            resizeHandle.classList.add('dragging');
+            document.body.style.cursor = 'ew-resize';
+
+            try {
+                resizeHandle.setPointerCapture(event.pointerId);
+            } catch (error) {
+                console.debug('[AgentColumn] Pointer capture unavailable during synthetic resize:', error.message);
+            }
+        });
+
+        resizeHandle.addEventListener('pointermove', (event) => {
+            if (event.pointerId !== dragState.pointerId) return;
+            const nextWidth = dragState.startWidth + (event.clientX - dragState.startX);
+            applyCustomColumnWidth(column, nextWidth);
+        });
+
+        resizeHandle.addEventListener('pointerup', finishResize);
+        resizeHandle.addEventListener('pointercancel', finishResize);
+
+        resizeHandle.addEventListener('keydown', (event) => {
+            const currentWidth = clampColumnWidth(column.getBoundingClientRect().width);
+            let nextWidth = currentWidth;
+
+            if (event.key === 'ArrowLeft') nextWidth -= COLUMN_RESIZE_STEP;
+            else if (event.key === 'ArrowRight') nextWidth += COLUMN_RESIZE_STEP;
+            else if (event.key === 'Home') nextWidth = COLUMN_MIN_WIDTH;
+            else if (event.key === 'End') nextWidth = COLUMN_MAX_WIDTH;
+            else return;
+
+            event.preventDefault();
+            event.stopPropagation();
+            const appliedWidth = applyCustomColumnWidth(column, nextWidth);
+            saveColumnWidth(agentId, appliedWidth);
+        });
+    }
+
     /**
      * Create a new agent column
      * @param {number} agentId - Agent ID
@@ -117,14 +230,16 @@ const AgentColumn = (function () {
         column.id = `agent-column-${agentId}`;
         column.dataset.agentId = agentId;
 
+        let initialColumnWidth = 400;
+
         // ✅ LOAD STORED WORKSPACE SETTINGS (localStorage)
         if (typeof WorkspaceManager !== 'undefined') {
             // Load column width
             const storedWidth = WorkspaceManager.load(agentId, 'columnWidth', 400);
-            if (storedWidth && storedWidth !== 400) {
-                column.style.minWidth = `${storedWidth}px`;
-                column.style.maxWidth = `${storedWidth}px`;
-                column.dataset.customWidth = storedWidth;
+            initialColumnWidth = clampColumnWidth(Number(storedWidth) || 400);
+            if (initialColumnWidth !== 400) {
+                column.style.setProperty('--agent-column-width', `${initialColumnWidth}px`);
+                column.dataset.customWidth = String(initialColumnWidth);
             }
 
             // Load collapsed state
@@ -283,12 +398,18 @@ const AgentColumn = (function () {
                 </div>
             </div>
             
-            <!-- Resize Handle (right edge) -->
-            <div class="agent-resize-handle" 
+            <!-- Resize Handle (right edge; left edge remains fixed) -->
+            <div class="agent-resize-handle"
                  data-agent-id="${agentId}"
-                 title="Drag to resize column"
-                 aria-label="Resize column"></div>
-            
+                 role="separator"
+                 tabindex="0"
+                 aria-orientation="vertical"
+                 aria-valuemin="${COLUMN_MIN_WIDTH}"
+                 aria-valuemax="${COLUMN_MAX_WIDTH}"
+                 aria-valuenow="${initialColumnWidth}"
+                 title="Drag the right border to resize ${name}"
+                 aria-label="Resize ${name} column from the right border"></div>
+
             <!-- Expandable Input Container (Prime-style, column-specific isolation) -->
             <div class="agent-input-container" 
                  data-agent-id="${agentId}" 
@@ -305,9 +426,21 @@ const AgentColumn = (function () {
                     <div class="agent-input-controls">
                         <!-- Center: Textarea -->
                         <div class="agent-input-center">
-                            <textarea id="agent-input-${agentId}" 
+                            <div id="agent-input-resize-${agentId}"
+                                 class="agent-input-resize-handle"
+                                 data-agent-id="${agentId}"
+                                 role="separator"
+                                 tabindex="0"
+                                 aria-orientation="horizontal"
+                                 aria-valuemin="80"
+                                 aria-valuemax="240"
+                                 aria-valuenow="80"
+                                 aria-controls="agent-input-${agentId}"
+                                 title="Drag upward to enlarge the message input"
+                                 aria-label="Resize message input height"></div>
+                            <textarea id="agent-input-${agentId}"
                                       class="agent-input-textarea"
-                                      placeholder="Type your message to ${name}..." 
+                                      placeholder="Type your message to ${name}..."
                                       aria-label="Message input for ${name}"
                                       rows="3"></textarea>
                         </div>
@@ -361,6 +494,8 @@ const AgentColumn = (function () {
                 </div>
             </div>
         `;
+
+        setupColumnResize(column, agentId);
 
         // Presence scope: mark this agent column as the active focus within Command Center
         // Uses the shared Socket.IO connection managed by SynergyRealtime.
@@ -581,11 +716,11 @@ const AgentColumn = (function () {
             // ✅ If agent is in a popout window, restore the window to its current width state
             const popoutWindow = document.getElementById(`agent-popout-${agentId}`);
             if (popoutWindow && column.dataset.poppedOut === 'true') {
-                // Determine current width based on column classes
-                let expandedWidth = 400; // Default
-                if (column.classList.contains('extra-wide')) {
+                // Determine current width based on manual width or preset classes
+                let expandedWidth = Number(column.dataset.customWidth) || 400;
+                if (!column.dataset.customWidth && column.classList.contains('extra-wide')) {
                     expandedWidth = 800;
-                } else if (column.classList.contains('wide')) {
+                } else if (!column.dataset.customWidth && column.classList.contains('wide')) {
                     expandedWidth = 600;
                 }
                 popoutWindow.style.width = `${expandedWidth}px`;
@@ -1058,6 +1193,13 @@ const AgentColumn = (function () {
             const hasExtraWide = column.classList.contains('extra-wide');
             let newWidth = 400;
 
+            // Preset widths replace any exact width set by the right-edge drag handle.
+            column.style.removeProperty('--agent-column-width');
+            column.style.removeProperty('width');
+            column.style.removeProperty('min-width');
+            column.style.removeProperty('max-width');
+            delete column.dataset.customWidth;
+
             if (!hasWide && !hasExtraWide) {
                 // Stage 1 -> 2: 400px to 600px (icon: >)
                 column.classList.add('wide');
@@ -1083,6 +1225,11 @@ const AgentColumn = (function () {
                 newWidth = 400;
                 if (btn) btn.title = 'Make wide (600px)';
                 console.log(`[AgentColumn] Width for agent ${agentId}: 800px -> 400px`);
+            }
+
+            const resizeHandle = column.querySelector('.agent-resize-handle');
+            if (resizeHandle) {
+                resizeHandle.setAttribute('aria-valuenow', String(newWidth));
             }
 
             // ✅ SAVE COLUMN WIDTH TO STORAGE (localStorage + database)
@@ -2146,7 +2293,7 @@ const AgentColumn = (function () {
             attachedFilesContainer.innerHTML = '';
         }
 
-        // STEP 4.5: Hide input container and resize handle in empty state
+        // STEP 4.5: Hide input container in empty state
         const inputContainer = document.querySelector(`#agent-column-${agentId} .agent-input-container`);
         if (inputContainer) {
             inputContainer.style.display = 'none';
@@ -2157,12 +2304,6 @@ const AgentColumn = (function () {
                 AgentInput.cleanupHandlers(agentId);
                 console.log(`[AgentColumn] Cleaned up input handlers for agent ${agentId}`);
             }
-        }
-
-        const resizeHandle = document.querySelector(`.agent-resize-handle[data-agent-id="${agentId}"]`);
-        if (resizeHandle) {
-            resizeHandle.style.display = 'none';
-            console.log(`[AgentColumn] Hid resize handle for agent ${agentId} (empty state)`);
         }
 
         // STEP 5: Notify MultiAgent system if available (with threadId if available)

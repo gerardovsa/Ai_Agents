@@ -1345,7 +1345,19 @@ class RegistryV3:
     #     broken implementation appears in `self.implementations` and
     #     accidentally widens the allowlist).
     # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-    _ALLOWED_META_TOOL_NAMES = frozenset({"get_tool_schema", "execute_tool"})
+    # All 8 meta-tools declared in tools/schemas/meta_tools.json. Keep in
+    # sync with that schema. Adding a tool here is safe (it's a dispatch-side
+    # widening, not a security boundary); removing one breaks the AI.
+    _ALLOWED_META_TOOL_NAMES = frozenset({
+        "list_available_platforms",
+        "list_platform_tools",
+        "get_tool_schema",
+        "search_tools",
+        "get_platform_guide",
+        "recommend_tools_for_task",
+        "get_workflow_steps",
+        "execute_tool",
+    })
 
     def is_tool_allowed(self, tool_name: str) -> bool:
         """Return True iff `tool_name` is in the registered tool schema dict.
