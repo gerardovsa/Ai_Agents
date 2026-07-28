@@ -1,7 +1,7 @@
 # React Renderer Troubleshooting — Lucide / Babel / Recharts
 
 **Date:** 2026-07-22 → 2026-07-28 (live doc; appended as new evidence lands)
-**Status:** Lucide + Recharts hoist works. Babel `makeWeakCache` corruption fixed. **`t.has is not a function`** fixed in 3 patch rounds (§12). `window.Recharts` race fixed by §13 polling. **New bug 2026-07-28**: Lucide UMD icons (PieChart, BarChart, LineChart, Brush, Bar, …) overwrote Recharts components on `window` — fixed in §14 by adding a `RECHARTS_PRIORITY_NAMES` allowlist that swaps source order in the first pass and skips Lucide entirely in the second pass.
+**Status:** Lucide + Recharts hoist works. Babel `makeWeakCache` corruption fixed. **`t.has is not a function`** fixed in 3 patch rounds (§12). `window.Recharts` race fixed by §13 polling. **Round 5 (2026-07-28, §14)**: Lucide UMD icons (PieChart, BarChart, LineChart, Brush, Bar, …) overwrote Recharts components on `window` — fixed by adding a `RECHARTS_PRIORITY_NAMES` allowlist that swaps source order in the first pass and skips Lucide entirely in the second pass. **Round 6 (2026-07-28, §15)**: identity-check snapshot (`identityClashReport`) so the diagnostic can no longer lie about a Round 5-style regression.
 **Priority:** P3 — all 3 production dashboards (Advanced Analytics, Sales Analytics, Project Portfolio) verified rendering correctly on 2026-07-28.
 
 ---
@@ -23,6 +23,7 @@
 | `8c50daeb` / `25c27cc1` / `20e6994d` | Round 1–3 patches: `vn._intern` guard in `Recharts.js` | ✅ `t.has is not a function` no longer fires for ComposedChart + dual YAxes + conditional children |
 | `TBD (Round 4)` | Round 4: `rechartsSetup` polls for `window.Recharts` + assigns defined values only | ✅ `Element type is invalid: … got: undefined` no longer fires for ResponsiveContainer/Cell/etc. |
 | `bf6b3454` | **Round 5**: `RECHARTS_PRIORITY_NAMES` allowlist resolves Lucide ↔ Recharts name collision in `identifierHoist` | ✅ PieChart / BarChart / LineChart / Brush / Bar now resolve to the Recharts component, not the Lucide icon descriptor. All three production dashboards verified rendering 2026-07-28. |
+| `bbb60bad` | **Round 6**: `identityClashReport` snapshot field — identity check `window[name] === window.Recharts?.[name]` for all 36 priority names | ✅ The diagnostic snapshot can no longer lie about a Round 5-style regression. `clashCount: 0` in the clean state; `clashCount: N` where N is the number of wrapped Lucide components. Smoke-tested with Node.js `vm.runInNewContext` (3 scenarios green). |
 | `REACT_RENDERER_LUCIDE_TROUBLESHOOTING_2026-07-22.md` (this doc, original) | Wrote the always-inject-lucide plan (Strategy A) | ✅ Strategy A applied; verification confirms lucide is fully hoisted |
 
 ---
@@ -637,9 +638,116 @@ The user's screenshots after deploy (`bf6b3454`) confirmed:
 
 No new dependencies, no DB changes, no API changes, no env-var changes.
 
-### 14.9 Why the snapshot couldn't catch this
+### 14.9 Why the snapshot couldn't catch this (and how Round 6 fixed it)
 
 §4's `react-render-snapshot` message captures `typeof window[name]` for the names it cares about. The wrapped `makeIconComponent('PieChart', lucideArray)` IS a function — `typeof window.PieChart === 'function'` is true, so the snapshot reports `hasPieChart: "function"` and the bug hides. The snapshot doesn't dereference the identity — it never asks "is this the Recharts PieChart or a wrapped Lucide icon?"
 
-A future improvement could add an identity check: `({ name, type: typeof window[name], identityMatchesRecharts: window[name] === (window.Recharts || {})[name] })`. That would have caught this bug in §4. Tracked for a future round; not part of `bf6b3454`.
+Round 6 (`bbb60bad`, §15) added exactly this missing identity check to the snapshot. The `identityClashReport` field iterates the 36 priority names and reports `(name, hasFn, matchesRecharts)` for each plus a `clashCount` tally. `clashCount: 0` is the clean state; `clashCount > 0` with the corresponding `has*` fields showing `"function"` is the unambiguous signature of a Round 5-style regression. See §15 for the field shape, behavioural test results, and recognition guide.
+
+---
+
+## 15. Round 6 — `identityClashReport` snapshot field (commit `bbb60bad`, 2026-07-28)
+
+**Status:** Shipped in commit `bbb60bad` (cache-buster `20260728_1630` in `business-ai-platform-v2.html:808`). The diagnostic snapshot can no longer lie about a Round 5-style regression.
+
+### 15.1 What it adds
+
+A new field `identityClashReport` is appended to the `react-render-snapshot` payload at [react_renderer.js:1527-1555](UI/visualisation_engine/react_renderer.js#L1527). It runs **after** all the existing `has*` fields (so existing diagnostic consumers are unaffected) and **inside the same IIFE** that builds the snapshot, so it shares the same `__REACT_VIZ_DIAG__` opt-out and same diagnostic-disabled behaviour.
+
+Shape:
+
+```js
+identityClashReport: {
+    clashCount: <number>,         // 0 = clean, > 0 = wrapped-Lucide components on window
+    total:     <number>,         // always 36 — number of RECHARTS_PRIORITY_NAMES entries
+    rows: [
+        { name: 'PieChart', hasFn: true,  matchesRecharts: true },
+        { name: 'BarChart', hasFn: true,  matchesRecharts: true },
+        // …34 more rows, one per entry in RECHARTS_PRIORITY_NAMES
+    ]
+}
+```
+
+The IIFE iterates the same constant that the renderer's hoist logic uses (`RECHARTS_PRIORITY_NAMES` at line 738), so the list of checked names can never drift from the priority list. The interpolation `${JSON.stringify(RECHARTS_PRIORITY_NAMES)}` happens at template-build time, inside the same `buildReactSrcdoc` function — both the constant and the snapshot share scope.
+
+### 15.2 Why the snapshot previously lied
+
+`hasPieChart: "function"` was technically true even when `window.PieChart` was the wrapped Lucide icon component. Both the wrapped component and the real Recharts component are functions. Without an identity check, there was no way to distinguish them from a snapshot.
+
+The new `matchesRecharts` field asks the only question that matters: **is `window[name]` the same function reference as `window.Recharts[name]`?** If yes → real Recharts component. If no → either Lucide wrap (collision), or undefined (Round 4-style race).
+
+The `clashCount` tally is just `rows.filter(r => r.hasFn && !r.matchesRecharts).length`. `0` means all priority names resolve to the real Recharts components. `> 0` means at least one is wrapped.
+
+### 15.3 Behavioural verification (Node.js `vm.runInNewContext`)
+
+A standalone smoke test (`identity_check_smoke.js`, deleted after success) covered three scenarios:
+
+| Scenario | Fixture | Expected `clashCount` | Actual |
+|---|---|---|---|
+| **A — clean state** | `window.Recharts` populated with real components; `window.lucide` populated with icon arrays; no wrap yet | 0 | 0 ✅ |
+| **B — bug repro** | Same fixture, then `wrap(['PieChart', 'BarChart'])` runs `makeIconComponent` and assigns to `window[*]` | 2 | 2 ✅ |
+| **C — Recharts undefined** | Only `window.lucide` populated; `window.Recharts` undefined (rejected with `r = window.Recharts || {}`) | 0 | 0 ✅ |
+
+Scenario C required an extra reset (`window[n] = undefined` between scenarios) to avoid state bleed — `vm.runInNewContext` gives each context its own globals, but the smoke test reused `window` to share fixture setup.
+
+10/10 assertions green. The test file was deleted after success (per the no-leftover-tmp-files rule).
+
+### 15.4 How to use it from DevTools
+
+Inside an active chart iframe's console:
+
+```js
+const id = Object.keys(window.parent.__renderSnapshots__).pop();
+const report = window.parent.__renderSnapshots__[id].identityClashReport;
+console.table(report.rows);
+return { clashCount: report.clashCount, total: report.total };
+```
+
+Or from the parent SPA's console (the same global keys):
+
+```js
+const last = window.__renderSnapshots__[Object.keys(window.__renderSnapshots__).pop()];
+last.identityClashReport;
+```
+
+The diag kebab (see §4 / `_probe_production_renderer.html` and the diag kebab commit `ef578137`) also exposes "Copy runtime snapshot" — pasting that into the chat includes `identityClashReport` automatically.
+
+### 15.5 Recognition guide
+
+| Snapshot state | Meaning | Action |
+|---|---|---|
+| `identityClashReport.clashCount === 0` AND all `has*` fields `"function"` | Clean state — Round 5 fix is intact, Round 4 polling succeeded | None |
+| `identityClashReport.clashCount === 0` AND some `has*` fields `"undefined"` | Round 4-style race — `rechartsSetup` polling failed | Re-render; if persistent, check `prop-types.js` network response |
+| `identityClashReport.clashCount > 0` | **Round 5 regression** — a priority name is wrapped by Lucide instead of being the real Recharts component | Verify `RECHARTS_PRIORITY_NAMES` (line 738) is unchanged and identical to `rechartsSetup.names` (line 667). Check if lucide UMD was bumped to a version exporting new colliding names |
+| `identityClashReport` field missing entirely | Round 6 hasn't deployed yet — cache-buster is older than `20260728_1630` | Hard-reload (Ctrl+Shift+R); check `__REACT_VIZ_DIAG__` flag |
+
+### 15.6 Files changed
+
+| File | Change | Lines |
+|---|---|---|
+| [UI/visualisation_engine/react_renderer.js](UI/visualisation_engine/react_renderer.js) | Added `identityClashReport` field at lines 1527-1555 (after `hasCreditCard`) inside the existing snapshot IIFE; interpolation `${JSON.stringify(RECHARTS_PRIORITY_NAMES)}` reuses the line-738 constant | +29 / 0 |
+| [UI/business-ai-platform-v2.html](UI/business-ai-platform-v2.html) | Cache-buster bump `?v=20260728_1600` → `?v=20260728_1630` | 1 line |
+
+No new dependencies, no DB changes, no API changes, no env-var changes. The smoke test file lived at `C:/Users/<user>/AppData/Local/Temp/identity_check_smoke.js` and was deleted after success.
+
+### 15.7 Why not also add this check to the runtime-error path?
+
+The Round 5 bug never throws — the chart renders successfully (no React error, no Babel error), but it renders the wrong thing. So `componentDidCatch` (`__renderErrors__`) sees no exception. The only place this bug surfaces is the **post-exec snapshot**, which is why `identityClashReport` lives there and not in the error pipeline.
+
+Future round (not planned): if the renderer ever switches to using a `WeakMap`-based identity check at render time (e.g. inside an ErrorBoundary that compares `Component === window.Recharts[Component.name]`), `identityClashReport` becomes a debugging fallback rather than the primary signal. Not part of `bbb60bad`.
+
+---
+
+## 16. Hand-off (next session)
+
+If you're reading this in a new session:
+
+1. **If `t.has is not a function` reappears** → re-read §3, §12, §13. The patches in §12 are still load-bearing.
+2. **If a chart renders as a giant Lucide icon** → re-read §14, verify `RECHARTS_PRIORITY_NAMES` mirror invariant (§14.4), check `identityClashReport` (§15.5 recognition table).
+3. **If `Element type is invalid: … got: undefined`** → re-read §13, verify `rechartsSetup` polling is intact.
+4. **If Babel `e.get is not a function` reappears** → re-read §2 Bug 2, verify `${identifierHoist}` template position is still AFTER `Babel.transform` (line 642-656).
+5. **If a Lucide icon is `ReferenceError: X is not defined`** → re-read §2 Bug 1, verify unconditional lucide UMD injection at line 312-313.
+6. **If `__REACT_VIZ_DIAG__ === false` and the diag kebab is missing** → expected — that's the opt-out flag. Set it back to `true` (or delete the assignment) to re-enable.
+7. **If you bump Lucide or Recharts to a new major** → re-audit the name overlap table in §14.2, update both `rechartsSetup.names` (line 667) and `RECHARTS_PRIORITY_NAMES` (line 738) **before any chart can reference the new names**.
+8. **If you replace `libs/Recharts.js` with a fresh unpkg UMD** → ALL three `_intern` patches from §12 disappear. Re-apply them; otherwise `t.has is not a function` returns.
 
