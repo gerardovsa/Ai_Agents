@@ -1126,13 +1126,69 @@ ${rechartsSetup}
             // failure mode than blank-canvas. The simple-identifier regex
             // above still handles the {flag && (<JSX/>)} case which is the most
             // common Recharts offender.
-            out = Babel.transform(rawSource, {
-                presets: [['react', { runtime: 'classic' }]]
-            }).code;
+            // DIAGNOSTIC v9 (2026-07-28): auto-fixup for AI-emitted JSX with bare
+            // array literals on attributes, e.g. the AI writes
+            //   <ComposedChart data=[{...}, {...}] />
+            // where JSX grammar requires either quoted text or a curly-brace
+            // expression. A bare [ ... ] is a parse error. Without this fixup
+            // Babel throws BEFORE ReactDOM.createRoot().render(), so
+            // BoundaryClass never mounts and componentDidCatch never fires -
+            // the iframe ends up blank with only the red diagnostic panel,
+            // which is invisible from the parent DevTools because of the
+            // cross-origin sandbox (allow-scripts only, no allow-same-origin).
+            // The regex matches an equals-sign followed by [ array ] where
+            // the array contains 0..1 levels of nested brackets. This covers
+            // every chart payload shape the AI emits in practice. Wrapping
+            // [ ... ] in { ... } is idempotent: a well-formed attr={ [...] }
+            // is already wrapped, so the inner [ is preceded by {, not by an
+            // equals-sign, and the regex never matches it.
+            var __babelFixupApplied = false;
+            try {
+                out = Babel.transform(rawSource, {
+                    presets: [['react', { runtime: 'classic' }]]
+                }).code;
+            } catch (__babelErr) {
+                if (__babelErr && typeof __babelErr.message === 'string' &&
+                    __babelErr.message.indexOf('JSX value should be either') !== -1) {
+                    // ── BUGFIX 2026-07-28: double-escape every backslash in
+                    // the regex literal below. The entire run-engine block
+                    // lives inside the srcdoc template literal at line 861;
+                    // JS template literals silently strip UNRECOGNISED escape
+                    // sequences (\s, \[, \]) at parse time (same rule as
+                    // regular string literals), turning /(=\s*)\[...\]/g into
+                    // /(=s*)[...]/g at runtime - a regex that matches literal
+                    // 's' and literal '[' / ']' instead of the intended
+                    // metacharacters, so the fixup silently no-ops and the
+                    // original Babel error re-throws to the diagnostic path.
+                    // Doubling every \ leaves exactly one \ after template
+                    // literal evaluation, which is the regex source we want.
+                    var __fixedSrc = rawSource.replace(
+                        /(=\\s*)\\[((?:[^\\[\\]]|\\[[^\\[\\]]*\\])*)\\]/g,
+                        function (_m, _eq, _arr) { return _eq + '{' + _arr + '}'; }
+                    );
+                    if (__fixedSrc !== rawSource) {
+                        __babelFixupApplied = true;
+                        out = Babel.transform(__fixedSrc, {
+                            presets: [['react', { runtime: 'classic' }]]
+                        }).code;
+                    } else {
+                        // Regex did not change anything but Babel still
+                        // complained - re-throw so the existing diagnostic
+                        // path paints the red panel.
+                        throw __babelErr;
+                    }
+                } else {
+                    throw __babelErr;
+                }
+            }
             if (typeof __babelFences !== 'undefined') {
                 __babelFences.push({
                     label: 'F2b -- plugin disabled v4, raw Babel output',
                     ok: true
+                });
+                __babelFences.push({
+                    label: 'F4 -- JSX attr array wrap fixup',
+                    ok: __babelFixupApplied
                 });
             }
 
