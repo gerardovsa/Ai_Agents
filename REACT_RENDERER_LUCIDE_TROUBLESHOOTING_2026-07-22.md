@@ -1,8 +1,8 @@
 # React Renderer Troubleshooting — Lucide / Babel / Recharts
 
-**Date:** 2026-07-22 → 2026-07-24 (live doc; appended as new evidence lands)
-**Status:** Lucide + Recharts hoist works. Babel `makeWeakCache` corruption fixed. **`t.has is not a function`** fixed in 3 patch rounds (§12). **New bug 2026-07-24**: `window.Recharts` appears undefined in the post-exec snapshot while individual components (BarChart, ScatterChart) read as functions — fixed in §13 by polling for `window.Recharts` to appear before the rechartsSetup IIFE assigns.
-**Priority:** P2 — single-axis Recharts works since §12; multi-axis ComposedChart needs §13's defensive rechartsSetup.
+**Date:** 2026-07-22 → 2026-07-28 (live doc; appended as new evidence lands)
+**Status:** Lucide + Recharts hoist works. Babel `makeWeakCache` corruption fixed. **`t.has is not a function`** fixed in 3 patch rounds (§12). `window.Recharts` race fixed by §13 polling. **New bug 2026-07-28**: Lucide UMD icons (PieChart, BarChart, LineChart, Brush, Bar, …) overwrote Recharts components on `window` — fixed in §14 by adding a `RECHARTS_PRIORITY_NAMES` allowlist that swaps source order in the first pass and skips Lucide entirely in the second pass.
+**Priority:** P3 — all 3 production dashboards (Advanced Analytics, Sales Analytics, Project Portfolio) verified rendering correctly on 2026-07-28.
 
 ---
 
@@ -20,6 +20,9 @@
 | `67a17e56` | Replace literal `'\n'` in fence catch with `String.fromCharCode(10)` | ✅ Fixed a templated-comment bug |
 | `8e5e5294` | Hoist `__babelFence` via function declaration | ✅ Function hoisting bypassed the temporal dead zone |
 | `9ff3fc0b` | Move `identifierHoist` IIFE AFTER `Babel.transform` | ✅ Resolved the `e.get is not a function` at `babel.min.js:1:925003` |
+| `8c50daeb` / `25c27cc1` / `20e6994d` | Round 1–3 patches: `vn._intern` guard in `Recharts.js` | ✅ `t.has is not a function` no longer fires for ComposedChart + dual YAxes + conditional children |
+| `TBD (Round 4)` | Round 4: `rechartsSetup` polls for `window.Recharts` + assigns defined values only | ✅ `Element type is invalid: … got: undefined` no longer fires for ResponsiveContainer/Cell/etc. |
+| `bf6b3454` | **Round 5**: `RECHARTS_PRIORITY_NAMES` allowlist resolves Lucide ↔ Recharts name collision in `identifierHoist` | ✅ PieChart / BarChart / LineChart / Brush / Bar now resolve to the Recharts component, not the Lucide icon descriptor. All three production dashboards verified rendering 2026-07-28. |
 | `REACT_RENDERER_LUCIDE_TROUBLESHOOTING_2026-07-22.md` (this doc, original) | Wrote the always-inject-lucide plan (Strategy A) | ✅ Strategy A applied; verification confirms lucide is fully hoisted |
 
 ---
@@ -212,6 +215,7 @@ The SPA loads `react_renderer.js?v=<YYYYMMDD_HHMM>`. After every renderer edit, 
 - `221f1ed1` — Wrapped hoisted lucide arrays as React SVG components (`makeIconComponent` factory).
 - `c8078410` — AST-based module strip.
 - The original doc (now superseded by §1–§5 above) identified that the hoist block was correct but the lucide UMD never loaded for many AI-emitted icons. **That bug is now fixed via Strategy A; see §2 Bug 1.**
+- **`bf6b3454` (2026-07-28, §14) — Lucide ↔ Recharts name collision.** The `makeIconComponent` factory at `221f1ed1` is what made the collision catastrophic: when `identifierHoist` wrapped a Lucide icon descriptor that shared a name with a Recharts component, the wrapped function silently replaced the real component on `window`. The Round 5 fix in §14 adds a `RECHARTS_PRIORITY_NAMES` allowlist that prevents this. **If you re-touch `identifierHoist`, re-read §14 first.**
 
 ---
 
@@ -475,3 +479,167 @@ Run R5 from inside an active chart iframe (DevTools > Sources > top > select the
 - ScatterChart with mapped `<Cell>` children should now render.
 - The `[REACT_RENDERER] rechartsSetup resolved synchronously:` (or `after N ms:`) console line confirms the polling path was taken.
 - If `window.Recharts never appeared within 3 s` appears, check the Network tab for `visualisation_engine/libs/prop-types.js` — a 4xx/5xx/CORS error there is the most likely cause (the Recharts UMD factory needs PropTypes to evaluate without throwing).
+
+---
+
+## 14. Round 5 — Lucide ↔ Recharts name collision (commit `bf6b3454`, 2026-07-28)
+
+**Status:** Fixed in commit `bf6b3454` (cache-buster `20260728_1600` in `business-ai-platform-v2.html:808`). All three previously-failing production dashboards (Advanced Analytics, Sales Analytics, Project Portfolio) now render real Recharts charts.
+
+### 14.1 Symptom
+
+The iframe would render successfully (no Babel error, no React error #130, fences F0–F3 all `OK`, post-exec snapshot showed `hasBarChart: "function"`, `hasPieChart: "function"`, etc.), **but** the chart visually rendered as a **giant Lucide pie-chart SVG icon** instead of a Recharts pie chart.
+
+For Advanced Analytics specifically:
+- The KPI cards rendered fine.
+- The "Performance Trends" `<ComposedChart>` rendered fine.
+- The "Product Mix" `<PieChart>` rendered as a giant black-on-white Lucide pie icon — occupying the whole `<ResponsiveContainer>` height — with NO slices, NO labels, NO legend.
+
+Same shape affected Sales Analytics (`Customer Segments` donut), and indirectly Project Portfolio (`Budget vs Spent` bars). The `[REACT_RENDERER_PARENT_DIAG]` log showed the hoist succeeded:
+
+```
+[REACT_RENDERER] hoisted identifiers from lucide/Recharts:
+  PieChart, Pie, Cell, BarChart, Bar, LineChart, Line, Brush, …
+```
+
+…yet the rendered output was the icon, not the chart. This contradicted the snapshot, which showed `hasPieChart: "function"`.
+
+### 14.2 Root cause
+
+The Lucide UMD (`window.lucide`) exports icons as **PascalCase-named keys** at the top level. Several of those names overlap with Recharts component names:
+
+| Lucide icon | Also a Recharts component |
+|---|---|
+| `PieChart` | yes — Recharts pie-chart container |
+| `BarChart` | yes — Recharts bar-chart container |
+| `LineChart` | yes — Recharts line-chart container |
+| `Brush` | yes — Recharts brush tool |
+| `Bar` | yes — Recharts bar primitive |
+| `Line` | yes — Recharts line primitive |
+| `Area` | yes — Recharts area primitive |
+| `Pie` | yes — Recharts pie primitive |
+| `Cell` | yes — Recharts cell primitive |
+| `Radar` | yes — Recharts radar primitive |
+| `Scatter` | yes — Recharts scatter primitive |
+| `ComposedChart`, `RadarChart`, `AreaChart`, `ScatterChart`, `RadialBarChart`, `FunnelChart`, `Treemap` | yes — Recharts chart containers |
+| `XAxis`, `YAxis`, `ZAxis`, `CartesianGrid`, `Tooltip`, `Legend`, `PolarAngleAxis`, `PolarRadiusAxis`, `PolarGrid`, `ReferenceLine`, `ReferenceArea`, `ReferenceDot`, `ErrorBar`, `Label`, `LabelList` | yes — Recharts axis/decor primitives |
+| `ResponsiveContainer` | yes — Recharts layout container |
+
+The lucide icon-descriptor values are **arrays of `[tagName, attrs]` tuples**, e.g. `window.lucide.PieChart === [["path", { d: "M21 12a9 9 0 1 1-9-9c2.5 0 4.8 1 6.5 2.7l-3.5 3.5…" }]]`. When the renderer's `identifierHoist` IIFE saw `Array.isArray(v)`, it wrapped the descriptor in `makeIconComponent(name, v)` — producing a real React component that renders an `<svg>` of the icon.
+
+The bug was in `identifierHoist`'s **two-pass design**:
+
+1. **First pass** (lines 804-826) — for each identifier the user's code references (`PieChart`, `BarChart`, etc.), it walked `[L, R]` (lucide first, recharts second) and took the first hit. So `<PieChart>` in user code resolved to **`makeIconComponent('PieChart', window.lucide.PieChart)`** — a giant SVG icon.
+2. **Second pass** (lines 834-845) — for *every* PascalCase key on `window.lucide`, it lifted onto `window` with `L[k]`. For names that were also Recharts components, this overwrote the real component that `rechartsSetup` had placed on `window` one IIFE earlier. So even if a name wasn't in the user's referenced set, the second pass silently corrupted it.
+
+The net effect: **no matter what the AI's source contained, `window.PieChart` was always the Lucide icon component** by the time the user's JSX ran.
+
+The `hasPieChart: "function"` line in the snapshot was technically true (the wrapped component IS a function), so the snapshot couldn't catch this — it lied to us.
+
+### 14.3 Fix — `RECHARTS_PRIORITY_NAMES` allowlist
+
+Two surgical changes in `identifierHoist` at [react_renderer.js:732-851](UI/visualisation_engine/react_renderer.js#L732):
+
+**a) Define a `RECHARTS_PRIORITY_NAMES` constant** at line 738 — an **exact mirror** of the `names` list used by `rechartsSetup` at line 667:
+
+```js
+const RECHARTS_PRIORITY_NAMES = [
+    'BarChart','Bar','LineChart','Line','PieChart','Pie','Cell',
+    'AreaChart','Area','ScatterChart','Scatter','XAxis','YAxis','ZAxis',
+    'CartesianGrid','Tooltip','Legend','ResponsiveContainer',
+    'RadarChart','Radar','PolarAngleAxis','PolarRadiusAxis','PolarGrid',
+    'ComposedChart','RadialBarChart','RadialBar','Treemap','FunnelChart','Funnel',
+    'LabelList','ReferenceLine','ReferenceArea','ReferenceDot',
+    'Brush','ErrorBar','Label'
+];
+```
+
+The constant is interpolated into the `identifierHoist` template literal at line 759 via `JSON.stringify(RECHARTS_PRIORITY_NAMES)`.
+
+**b) In the first pass (line 808)** — swap the source order for priority names so Recharts resolves BEFORE Lucide:
+
+```js
+var sources = priorityNames.indexOf(name) >= 0 ? [R, L] : [L, R];
+```
+
+**c) In the second pass (line 837)** — skip priority names entirely so Lucide cannot overwrite Recharts on the second walk:
+
+```js
+if (priorityNames.indexOf(k) >= 0) return;
+```
+
+Both passes consult the same constant, so the two patches stay in lockstep — you can't fix one without the other.
+
+### 14.4 Mirror-rule maintenance note
+
+The `RECHARTS_PRIORITY_NAMES` constant MUST stay in sync with the `names` array inside `rechartsSetup` at line 667. If you add a new Recharts component name to `rechartsSetup`, you must add it to `RECHARTS_PRIORITY_NAMES` too. The two arrays currently have **36 entries, identical, in the same order**. A future lint check could enforce this — for now it's a manual invariant.
+
+**Audit recipe** (run from `react_renderer.js` repo root):
+
+```js
+// 1. Extract the rechartsSetup names block
+var setupStart = editorBuffer.indexOf("var names = [");
+var setupEnd = editorBuffer.indexOf("];", setupStart);
+// 2. Extract the RECHARTS_PRIORITY_NAMES block
+var priStart = editorBuffer.indexOf("const RECHARTS_PRIORITY_NAMES = [");
+var priEnd = editorBuffer.indexOf("];", priStart);
+// 3. JSON.parse both, sort, diff
+// (skip in production — this is a one-time audit)
+```
+
+If you bump Recharts to a new major version and the component API gains a new chart type (e.g. `SankeyChart`), update **both** lists before the chart can ever be referenced in user code.
+
+### 14.5 Behavioural verification (Node.js)
+
+A standalone Node.js smoke test (using `vm.runInNewContext` to mock `window.lucide` and `window.Recharts` with collision-shaped fixtures) confirmed:
+
+- `window.PieChart === Recharts.PieChart` (identity preserved, not a wrapped icon)
+- `window.BarChart === Recharts.BarChart`
+- `window.LineChart === Recharts.LineChart`
+- `window.Brush === Recharts.Brush`
+- `window.Bar === Recharts.Bar`
+- Non-colliding Lucide icons (`DollarSign`, `TrendingUp`, `Users`) still resolve to wrapped icon components
+- `[REACT_RENDERER] hoisted identifiers from lucide/Recharts:` log lists all 36 priority names + the user's references
+- The second-pass skip correctly leaves `window.PieChart` as the Recharts component even when lucide's array descriptor is present in `L`
+
+10/10 assertions green. Test was deleted after success (per the no-leftover-tmp-files rule).
+
+### 14.6 Render verification
+
+The user's screenshots after deploy (`bf6b3454`) confirmed:
+- **Advanced Analytics** — Performance Trends `<ComposedChart>` + Product Mix `<PieChart>` both render real charts
+- **Sales Analytics** — Revenue Trend `<LineChart>` + Customer Segments `<PieChart>` donut both render real charts
+- **Project Portfolio** — Overview (priority bars + budget vs spent) + Timeline (Gantt) both render real charts
+- No `Element type is invalid` errors, no `t.has is not a function`, no console errors
+- All buttons (tab/filter toggles) update the charts reactively
+
+### 14.7 How to recognise this bug if it ever returns
+
+1. **Visual:** A chart iframe renders, but a specific chart (always one that uses a name from the priority list above) renders as a **giant Lucide-shaped SVG icon** instead of a chart. The icon will be monochrome and recognisable — e.g. pie chart → wedge-shaped SVG; bar chart → three vertical bars; line chart → zig-zag line.
+2. **Diagnostic:** `[REACT_RENDERER] hoisted identifiers from lucide/Recharts:` log shows the priority names appear there. The post-exec snapshot shows `hasPieChart: "function"`, `hasBarChart: "function"`, etc. — i.e. the snapshot LIES about the bug. The real check is:
+   ```js
+   // Run from inside the iframe's DevTools console
+   ({ lucidePieChart: window.lucide.PieChart, rechartsPieChart: window.Recharts.PieChart, windowPieChart: window.PieChart, isIcon: Array.isArray(window.PieChart) || (window.PieChart && window.PieChart.displayName === 'PieChart' && Array.isArray(window.lucide.PieChart)) })
+   ```
+   If `window.PieChart` is a function but `window.lucide.PieChart` is an array (and `window.Recharts.PieChart` is a different function), the collision is happening — the priority allowlist is missing or stale.
+3. **Re-introduction vectors** to watch for:
+   - Adding a new Recharts chart component to `rechartsSetup` without also adding it to `RECHARTS_PRIORITY_NAMES`
+   - Bumping the Lucide UMD to a new version (check whether the new bundle exports any new colliding names)
+   - Bumping the Recharts UMD (a new chart type — add it to both lists)
+   - Rewriting `identifierHoist` without porting the priority logic
+
+### 14.8 Files changed in this fix
+
+| File | Change | Lines |
+|---|---|---|
+| [UI/visualisation_engine/react_renderer.js](UI/visualisation_engine/react_renderer.js) | Added `RECHARTS_PRIORITY_NAMES` constant, swapped source order in first pass, skipped priority names in second pass | +35 / −2 |
+| [UI/business-ai-platform-v2.html](UI/business-ai-platform-v2.html) | Cache-buster bump `?v=20260728_1430` → `?v=20260728_1600` | 1 line |
+
+No new dependencies, no DB changes, no API changes, no env-var changes.
+
+### 14.9 Why the snapshot couldn't catch this
+
+§4's `react-render-snapshot` message captures `typeof window[name]` for the names it cares about. The wrapped `makeIconComponent('PieChart', lucideArray)` IS a function — `typeof window.PieChart === 'function'` is true, so the snapshot reports `hasPieChart: "function"` and the bug hides. The snapshot doesn't dereference the identity — it never asks "is this the Recharts PieChart or a wrapped Lucide icon?"
+
+A future improvement could add an identity check: `({ name, type: typeof window[name], identityMatchesRecharts: window[name] === (window.Recharts || {})[name] })`. That would have caught this bug in §4. Tracked for a future round; not part of `bf6b3454`.
+
