@@ -1,7 +1,7 @@
 # AI Status Colour-Coding System
 
 > Single source of truth for the four-state AI status palette.
-> Last updated: 2026-07-28
+> Last updated: 2026-07-28 (Layer 4 redesign: radial-gradient → inset box-shadow to eliminate oval-shaped fade)
 
 ## 1. The palette (canonical)
 
@@ -67,20 +67,25 @@ A status class paints **three places in lock-step**:
      on the bottom of agent columns where no child occludes it. The 25 %
      reduction keeps the wash proportional to the visible footprint.
    - **Layer 4 — `::after` rim-glow overlay (new, 2026-07-27; tightened
-     2026-07-28).** Painted ABOVE children via `position: absolute;
-     inset: 0; z-index: 1; pointer-events: none;` and a radial-gradient
-     vignette (`transparent 78% → status color 88% → 100%`). The vignette
-     fades into the centre so the chat content stays readable; the rim
-     glows uniformly on all four edges regardless of which child elements
-     sit inside. The opacity oscillates `0.15 → 0.95` via the
-     `panelStatusPulseOverlay` keyframe (synced to the Layer 3 timings).
-     **Stop-choice rationale:** with `transparent 78%`, the colour sits in
-     the outer ~22% of the ellipse only. For a typical 350×600 agent
-     column (175 px half-width, 300 px half-height), the inward depth is
-     ~38 px on the horizontal axis and ~66 px on the vertical axis — a
-     tight rim glow rather than a wash. The earlier
-     `transparent 55% / 95% / 100%` produced 40% of the panel radius
-     (70-120 px) of smooth fade, which read as a wash rather than a rim.
+     2026-07-28 morning; redesigned 2026-07-28 afternoon to a non-oval
+     inset box-shadow).** Painted ABOVE children via `position: absolute;
+     inset: 0; z-index: 1; pointer-events: none;` and an **inset box-shadow**
+     (`inset 0 0 50px var(--status-glow-peak)`). The blur radius defines
+     the inward depth: a 50 px blur produces a falloff from full alpha at
+     the panel edge to transparent 50 px inward. The opacity oscillates
+     `0.15 → 0.95` via the `panelStatusPulseOverlay` keyframe (synced to
+     the Layer 3 timings).
+     **Why box-shadow and not a radial-gradient (the "oval" bug).** The
+     earlier implementation used `background: radial-gradient(ellipse at
+     center, transparent 78%, status 88%–100%)`. Because `ellipse at
+     center` uses an *elliptical* gradient path scaled to the panel's
+     aspect ratio, the colour band measured ~38 px wide horizontally but
+     ~66 px wide vertically on a 350×600 column — an asymmetry that read
+     as an oval-shaped fade. `inset box-shadow` has no directional bias:
+     it fades uniformly from each of the four edges inward, producing a
+     true rim regardless of panel dimensions. The conversion also deletes
+     the ellipse-aspect-ratio ambiguity that made "tighten the depth" a
+     one-knob change (the blur radius) instead of a four-stop rewrite.
 
 Animation durations match across icon, panel box-shadow, and rim overlay:
 
