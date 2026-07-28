@@ -2057,6 +2057,25 @@ Use tools in multiple rounds with interleaved thinking."""
     print(f"[STREAM] 🔍 DEBUG: System prompt BEFORE final append: {len(system_prompt):,} characters")
     print(f"[STREAM] 🔍 DEBUG: system_prompt_continued size: {len(system_prompt_continued):,} characters")
     system_prompt += system_prompt_continued
+
+    # ── CURRENT USER REQUEST ANCHOR ──────────────────────────────────
+    # Append the user's MOST RECENT message as the final block of the system
+    # prompt. On long threads the AI can lose track of which user message is
+    # the active one — repeating it at the absolute end of the system prompt
+    # gives it an unambiguous anchor. Format mirrors the static file's
+    # "END OF SYSTEM INSTRUCTIONS" terminator so the boundary is obvious.
+    if last_message:
+        system_prompt += (
+            "\n\n---\n\n"
+            "END OF SYSTEM INSTRUCTIONS\n\n"
+            "---\n\n"
+            "USERS NEW REQUEST:\n\n"
+            f"{last_message}\n"
+        )
+        print(f"[STREAM] 📌 Appended user-request anchor: +{len(last_message):,} chars")
+    else:
+        print(f"[STREAM] ⚠️ No last_message captured — skipping user-request anchor")
+
     print(f"[STREAM] ✅ System prompt complete: {len(system_prompt):,} characters")
     
     # Extract AI preferences

@@ -271,6 +271,12 @@ window.ThreadCardTemplates = {
                     <span class="thread-meta-item" title="Time">
                         <i class="fas fa-clock"></i> ${meta.timeStr}
                     </span>
+                    <span class="thread-meta-item thread-token-indicator tier-ok"
+                          id="thread-token-${thread.id}"
+                          data-thread-id="${thread.id}"
+                          title="Token usage vs context window — updated live after each AI response">
+                        <i class="fas fa-microchip"></i> <span class="thread-token-text">0 / 1M</span>
+                    </span>
                     ${headerHtml}
                 </div>
                 
@@ -355,6 +361,12 @@ window.ThreadCardTemplates = {
                     </span>
                     <span class="thread-meta-item" title="Time">
                         <i class="fas fa-clock"></i> ${meta.timeStr}
+                    </span>
+                    <span class="thread-meta-item thread-token-indicator tier-ok"
+                          id="thread-token-${thread.id}"
+                          data-thread-id="${thread.id}"
+                          title="Token usage vs context window — updated live after each AI response">
+                        <i class="fas fa-microchip"></i> <span class="thread-token-text">0 / 1M</span>
                     </span>
                 </div>
                 
@@ -558,6 +570,12 @@ window.ThreadCardTemplates = {
                 </span>
                 <span class="thread-meta-item" title="Time">
                     <i class="fas fa-clock"></i> ${meta.timeStr}
+                </span>
+                <span class="thread-meta-item thread-token-indicator tier-ok"
+                      id="thread-token-${thread.id}"
+                      data-thread-id="${thread.id}"
+                      title="Token usage vs context window — updated live after each AI response">
+                    <i class="fas fa-microchip"></i> <span class="thread-token-text">0 / 1M</span>
                 </span>
             </div>
         `;

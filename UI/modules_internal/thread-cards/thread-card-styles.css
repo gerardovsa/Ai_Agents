@@ -1377,6 +1377,46 @@
     overflow: visible !important;
 }
 
+/* Token usage indicator (live-updated via /ws/streaming token_status event) */
+.thread-token-indicator {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    margin-left: auto;
+    padding: 2px 8px;
+    border-radius: 10px;
+    font-size: 11px;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+    background: rgba(0, 0, 0, 0.04);
+    transition: background 0.3s ease, color 0.3s ease;
+}
+.thread-token-indicator i {
+    font-size: 10px;
+}
+/* Tier colour coding (matches backend ok/info/warning/critical thresholds) */
+.thread-token-indicator.tier-ok {
+    color: #6b7280; /* slate-500 — default */
+    background: rgba(107, 114, 128, 0.08);
+}
+.thread-token-indicator.tier-info {
+    color: #2563eb; /* blue-600 — filling up but healthy */
+    background: rgba(37, 99, 235, 0.10);
+}
+.thread-token-indicator.tier-warning {
+    color: #b45309; /* amber-700 — getting close */
+    background: rgba(245, 158, 11, 0.15);
+}
+.thread-token-indicator.tier-critical {
+    color: #b91c1c; /* red-700 — near overflow */
+    background: rgba(220, 38, 38, 0.15);
+    animation: token-critical-pulse 2s ease-in-out infinite;
+}
+@keyframes token-critical-pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.55; }
+}
+
 /* Expandable content - CLICK-BASED (not hover) */
 /* Controlled by .expanded class added above (lines 265-315) */
 /* Old hover behavior removed Nov 24, 2025 */

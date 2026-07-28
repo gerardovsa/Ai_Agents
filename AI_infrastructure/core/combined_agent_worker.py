@@ -74,6 +74,201 @@ def cprint(message: str, color: str = Colors.RESET):
 
 
 # ============================================================
+# USER INTERACTION PAUSE (Objective A — sync bridge)
+# ============================================================
+# Why this exists
+# ─────────────────────────────────────────────────────────────────────────────
+# `request_user_interaction()` (and friends) are platform tools that return a
+# marker DICT instead of raising. The marker tells the frontend "render an
+# inline input bubble for the user". `execute_streaming_request` runs
+# synchronously in a worker thread with no asyncio loop, so we can't await
+# `StreamingSession.request_user_input` directly. Instead:
+#
+#   1. Detect the marker shape (`is_user_interaction_marker`)
+#   2. Build a Socket.IO `input_request` payload and emit it on the
+#      `/ws/streaming` namespace, room=session_id. The frontend's
+#      `AgentInteractionWebSocket` (loaded by the SPA) is already connected to
+#      that exact room — see `AgentInteractionWebSocket.connect(agentId,
+#      threadId, wsUrl)` in `UI/business-ai-platform-v2.html`.
+#   3. Register a `threading.Event` keyed by `request_id` via
+#      `flask_app.register_pending_user_input`.
+#   4. Block on `event.wait(timeout_seconds)`.
+#   5. The user submits via the bubble → existing
+#      `@socketio.on('provide_input', namespace='/ws/streaming')` handler in
+#      flask_app.py calls `deliver_user_input_response(request_id, value)`,
+#      which sets the event. The worker wakes up and feeds the response back
+#      to the model as the `tool_result` content for the next turn.
+#
+# What this is NOT
+#   • Not an MCP tool. Not Anthropic tool-use. Not OpenAI function call. It's
+#     a RegistryV3 platform tool that the model calls; we just intercept the
+#     marker dict so the user can answer mid-loop without cancelling the
+#     thread.
+#   • Not coupled to the async StreamingSession. The async session is a
+#     separate path used by computer-use / 2FA flows. Objective A only needs
+#     the sync bridge.
+# ============================================================
+
+# Marker types that mean "pause and ask the user". Kept narrow on purpose —
+# any dict whose `type` field is one of these is intercepted BEFORE it would
+# otherwise be packed into a `tool_result` for the next model turn.
+_USER_INTERACTION_MARKER_TYPES = frozenset({
+    'user_interaction_request_v2',     # request_user_interaction()
+    'user_information',                 # inform_user() (non-blocking variant we honour as blocking here)
+    'next_action_suggestions',          # suggest_next_actions() (informational; treated as passthrough)
+})
+
+
+def is_user_interaction_marker(result: Any) -> bool:
+    """True when a tool returned a marker dict the worker should pause on."""
+    return (
+        isinstance(result, dict)
+        and result.get('type') in _USER_INTERACTION_MARKER_TYPES
+    )
+
+
+# Translation from the tool's `interaction_mode` vocabulary to the bubble's
+# `input_type` vocabulary. The bubble decides whether to render buttons
+# (`input_type === 'choice'`) or a text input (`input_type !== 'choice'`).
+_INTERACTION_MODE_TO_INPUT_TYPE = {
+    'choice': 'choice',
+    'confirmation': 'choice',       # yes/no → 2-option choice bubble
+    'control': 'choice',            # preset buttons → choice bubble (button_behavior controls click action)
+    'input': 'text',                # free-form text input
+}
+
+
+def _build_input_request_payload(
+    request_id: str,
+    marker: Dict[str, Any],
+    timeout_seconds: int,
+) -> Dict[str, Any]:
+    """
+    Translate the v2 marker dict into the shape `AgentInteractionBubbles.
+    renderInputRequestBubble(agentId, data)` expects.
+
+    The full marker is preserved under `metadata.v2_marker` so future
+    v2-aware renderers (control buttons, hidden_instructions) can read it
+    without us having to grow this mapping every time the spec changes.
+    """
+    interaction_mode = marker.get('interaction_mode', 'input')
+    input_type = _INTERACTION_MODE_TO_INPUT_TYPE.get(interaction_mode, 'text')
+    options = marker.get('options') or []
+    # Existing bubble renders `data-value="<str>"` — collapse v2 {label,value}
+    # records down to the visible label, falling back to value.
+    option_labels = [
+        (opt.get('label') if isinstance(opt, dict) else str(opt))
+        for opt in options
+    ]
+    return {
+        'request_id': request_id,
+        'prompt': marker.get('message', ''),
+        'input_type': input_type,                  # 'choice' | 'text' | 'password' | '2fa_code' | 'captcha'
+        'options': option_labels,                 # [str] — what the bubble iterates over
+        'option_records': options,                # raw {label, value, description, insert_text, hidden_instructions}
+        'required': bool(marker.get('allow_custom_input', True)),
+        'timeout_seconds': timeout_seconds,
+        'metadata': {
+            'v2_marker': marker,                  # full original marker for forward-compat
+            'interaction_mode': interaction_mode, # raw v2 mode (e.g. 'control' may need renderer special-case)
+            'level': marker.get('level'),
+            'context': marker.get('context'),
+            'button_behavior': marker.get('button_behavior', 'submit'),
+            'input_placeholder': marker.get('input_placeholder'),
+        },
+    }
+
+
+def _await_user_interaction(
+    tool_name: str,
+    marker: Dict[str, Any],
+    thread_id: Optional[str],
+    log_prefix: str,
+    timeout_seconds: int = 300,
+) -> Optional[Any]:
+    """
+    Pause the worker until the user responds to a `request_user_interaction`
+    marker, or the timeout fires. Returns the user's response (string,
+    choice-value, or None on cancel/timeout).
+
+    `None` is a valid signal to the model — it means the user dismissed the
+    bubble or the wait timed out, and the calling code should fold that into
+    the `tool_result` content for the next turn.
+    """
+    if not thread_id:
+        print(f"{log_prefix} ⚠️ Cannot pause for user interaction: no thread_id (skipping pause)")
+        return None
+
+    request_id = str(uuid.uuid4())
+    payload = _build_input_request_payload(request_id, marker, timeout_seconds)
+
+    # Register the sync wait BEFORE we emit so a fast user click can't race
+    # past the emit and miss the registration. Lazy imports keep circular
+    # import surface to a minimum (combined_agent_worker ↔ flask_app).
+    try:
+        import flask_app  # type: ignore
+    except Exception as e:
+        print(f"{log_prefix} ⚠️ flask_app import failed; user-interaction pause disabled: {e}")
+        return None
+
+    event = threading.Event()
+    flask_app.register_pending_user_input(request_id=request_id, session_id=thread_id, event=event)
+
+    # Emit `input_request` to the room the frontend already joined. Socket.IO
+    # `emit` is thread-safe per the flask_socketio contract — safe to call from
+    # this worker thread.
+    try:
+        flask_app.socketio.emit(
+            'input_request',
+            payload,
+            room=thread_id,
+            namespace='/ws/streaming',
+        )
+        print(
+            f"{log_prefix} 📥 USER INTERACTION REQUEST emitted "
+            f"(tool={tool_name}, request_id={request_id}, mode={marker.get('interaction_mode')}, "
+            f"timeout={timeout_seconds}s)"
+        )
+    except Exception as emit_err:
+        print(f"{log_prefix} ❌ Failed to emit input_request over Socket.IO: {emit_err}")
+        # Best-effort: don't leave a dangling registration
+        try:
+            flask_app._pending_user_inputs.pop(request_id, None)
+        except Exception:
+            pass
+        return None
+
+    # Block here. flask_app's `@socketio.on('provide_input')` handler will
+    # call `deliver_user_input_response(request_id, value)` which sets the
+    # event. Timeout fires the same path so the worker isn't stuck forever.
+    blocked = event.wait(timeout=timeout_seconds)
+    if not blocked:
+        print(f"{log_prefix} ⏰ USER INTERACTION timeout after {timeout_seconds}s (request_id={request_id})")
+        # Clean up so the registry doesn't grow forever
+        try:
+            flask_app._pending_user_inputs.pop(request_id, None)
+        except Exception:
+            pass
+        return None
+
+    # Read response from the registry
+    try:
+        with flask_app._pending_user_inputs_lock:
+            entry = flask_app._pending_user_inputs.pop(request_id, None)
+        if entry is None:
+            # Already popped by deliver_user_input_response; we just lost the
+            # value. This shouldn't happen, but degrade gracefully.
+            print(f"{log_prefix} ⚠️ Pending entry vanished after wakeup (request_id={request_id})")
+            return None
+        response = entry.get('response')
+        print(f"{log_prefix} ✅ USER INTERACTION received (request_id={request_id}, len={len(str(response)) if response is not None else 0})")
+        return response
+    except Exception as e:
+        print(f"{log_prefix} ❌ Error reading pending user input response: {e}")
+        return None
+
+
+# ============================================================
 # SHARED VALIDATION FUNCTIONS (Used by all workers)
 # ============================================================
 
@@ -2057,16 +2252,24 @@ def run_simple_agent_worker(
             messages.append({'role': 'user', 'content': prompt})
         
         print(f"{log_prefix} ✅ Final message count after cleaning: {len(messages)} messages")
-        
-        # CRITICAL: Check if conversation is too long and truncate if needed
-        MAX_MESSAGES = 30  # Keep last 30 messages to avoid API timeouts
-        if len(messages) > MAX_MESSAGES:
-            print(f"{log_prefix} ⚠️ Conversation too long ({len(messages)} messages)")
-            print(f"{log_prefix} 🔪 Truncating to last {MAX_MESSAGES} messages to avoid API timeout")
-            
-            # Keep last MAX_MESSAGES messages, ensuring we maintain role alternation
-            truncated = messages[-MAX_MESSAGES:]
-            
+
+        # ── SAFETY CAP (raised 2026-07-28) ──────────────────────────────────
+        # The historical hard cap of 30 messages was removed because the user's
+        # primary model has a 1M-token context window — 30 messages is roughly
+        # 3% of a typical long-thread budget. We keep a soft cap as a defense
+        # against runaway loops / accidental bulk-imports, but it is several
+        # orders of magnitude higher than before. Token-aware pruning
+        # (prune_conversation_for_context_limit) handles the real limit; this
+        # cap only kicks in if something pathological sends thousands of
+        # messages in one turn.
+        MAX_MESSAGES_SOFT_CAP = 500  # defence-in-depth — well above any realistic thread
+        if len(messages) > MAX_MESSAGES_SOFT_CAP:
+            print(f"{log_prefix} ⚠️ Conversation extremely long ({len(messages)} messages)")
+            print(f"{log_prefix} 🔪 Truncating to last {MAX_MESSAGES_SOFT_CAP} messages (safety net)")
+
+            # Keep last MAX_MESSAGES_SOFT_CAP messages, ensuring we maintain role alternation
+            truncated = messages[-MAX_MESSAGES_SOFT_CAP:]
+
             # Ensure first message is 'user' for valid conversation
             if truncated[0].get('role') != 'user':
                 # Find first user message
@@ -2074,9 +2277,12 @@ def run_simple_agent_worker(
                     if msg.get('role') == 'user':
                         truncated = truncated[i:]
                         break
-            
+
             messages = truncated
             print(f"{log_prefix} ✅ Truncated to {len(messages)} messages (starts with {messages[0].get('role')})")
+        elif len(messages) > 30:
+            # Long-but-healthy threads: just log it. No truncation.
+            print(f"{log_prefix} 📏 Long thread: {len(messages)} messages (no cap applied — model context window supports this)")
         
         # Estimate conversation tokens before API call
         total_conversation_tokens = 0
@@ -2093,6 +2299,76 @@ def run_simple_agent_worker(
                             total_conversation_tokens += estimate_tokens(block['thinking'])
         
         print(f"{log_prefix} 📊 CONVERSATION SIZE: {total_conversation_tokens:,} tokens (~{total_conversation_tokens/200000*100:.1f}% of 200K context limit)")
+
+        # ── TOKEN COUNT INDICATOR (added 2026-07-28) ─────────────────────────
+        # Resolve the actual context window for the active model so the %
+        # shown is accurate rather than the hardcoded 200K that was being used
+        # previously. Falls back to a safe default of 1M (the user's primary
+        # model uses a 1M-token window). Emits a `token_status` SSE event so
+        # the UI can render a live context-usage indicator.
+        _MODEL_CONTEXT_WINDOWS = {
+            # MiniMax family (user's primary)
+            'MiniMax-M3': 1_000_000,
+            'MiniMax-M2': 200_000,
+            # Anthropic Claude 4.x family
+            'claude-sonnet-4-5': 200_000,
+            'claude-sonnet-4-6': 200_000,
+            'claude-opus-4-7': 200_000,
+            'claude-opus-4-8': 200_000,
+            'claude-haiku-4-5-20251001': 200_000,
+            # OpenAI
+            'gpt-4o': 128_000,
+            'gpt-4o-mini': 128_000,
+            'o1': 200_000,
+            'o3-mini': 200_000,
+            # DeepSeek
+            'deepseek-chat': 64_000,
+            'deepseek-reasoner': 64_000,
+        }
+        context_window = _MODEL_CONTEXT_WINDOWS.get(ai_model, 1_000_000)
+        pct_of_context = (total_conversation_tokens / context_window) * 100 if context_window else 0
+
+        # Tier the notification: 50% = heads-up, 75% = warning, 90% = critical
+        if pct_of_context >= 90:
+            tier = 'critical'
+            tier_emoji = '🚨'
+        elif pct_of_context >= 75:
+            tier = 'warning'
+            tier_emoji = '⚠️'
+        elif pct_of_context >= 50:
+            tier = 'info'
+            tier_emoji = '📊'
+        else:
+            tier = 'ok'
+            tier_emoji = '✅'
+
+        print(
+            f"{log_prefix} {tier_emoji} CONTEXT WINDOW: "
+            f"{total_conversation_tokens:,} / {context_window:,} tokens "
+            f"({pct_of_context:.1f}%) [model={ai_model}, tier={tier}]"
+        )
+
+        # Emit SSE notification so the UI can render a live indicator.
+        # Frontend listens for `token_status` on the `/ws/streaming` namespace.
+        try:
+            import flask_app
+            flask_app.socketio.emit(
+                'token_status',
+                {
+                    'tokens': total_conversation_tokens,
+                    'context_window': context_window,
+                    'pct': round(pct_of_context, 2),
+                    'model': ai_model,
+                    'tier': tier,
+                    'message_count': len(messages),
+                    'thread_id': thread_id,
+                },
+                room=thread_id,
+                namespace='/ws/streaming',
+            )
+        except Exception as emit_err:
+            # Never let a notification failure abort the request
+            print(f"{log_prefix} ⚠️ Failed to emit token_status SSE event: {emit_err}")
         
         # CRITICAL: Final validation before API call
         print(f"{log_prefix} 🔐 Running final pre-API validation...")
@@ -2330,7 +2606,7 @@ def run_simple_agent_worker(
                     # Execute tool
                     if tool_name in ['get_tool_schema', 'execute_tool']:
                         from tools.implementations.meta_tools import execute_tool as execute_tool_fn, get_tool_schema as get_tool_schema_fn
-                        
+
                         if tool_name == 'execute_tool':
                             result = execute_tool_fn(**tool_input, _user_id=user_id, _injected_credentials=True)
                         else:
@@ -2356,7 +2632,69 @@ def run_simple_agent_worker(
                                 _user_id=user_id,
                                 **tool_input_copy
                             )
-                    
+
+                    # ─── Objective A: user-interaction pause point ─────────────
+                    # Detect when a platform tool (request_user_interaction,
+                    # inform_user, suggest_next_actions) returned a marker
+                    # dict instead of a normal result. We must NOT pack the
+                    # marker into a tool_result — the model would see its own
+                    # request echoed back. Instead, pause the worker thread,
+                    # emit `input_request` over Socket.IO so the inline bubble
+                    # UI renders, wait for the user's response, and then
+                    # convert the response into a tool_result content block
+                    # for the NEXT model turn. This is what keeps the thread
+                    # alive across mid-loop steering — the canonical Anthropic
+                    # tool_use → tool_result cycle, with a synchronous pause
+                    # in the middle.
+                    if is_user_interaction_marker(result):
+                        user_response = _await_user_interaction(
+                            tool_name=tool_name,
+                            marker=result,
+                            thread_id=thread_id,
+                            log_prefix=log_prefix,
+                            timeout_seconds=int(
+                                result.get('metadata', {}).get('timeout_seconds', 300)
+                                if isinstance(result.get('metadata'), dict) else 300
+                            ),
+                        )
+                        # Convert the user's response (or None on timeout/cancel)
+                        # into a string tool_result content the model can read.
+                        if user_response is None:
+                            response_content = (
+                                "[User did not respond within the timeout window. "
+                                "Decide on a sensible default and proceed.]"
+                            )
+                        else:
+                            response_content = f"[User response]: {user_response}"
+
+                        iteration_token_count += estimate_tokens(response_content)
+
+                        queue.put({
+                            'type': 'user_interaction_response',
+                            'tool_name': tool_name,
+                            'request_marker': result.get('type'),
+                            'response': user_response,
+                            'success': user_response is not None,
+                        })
+
+                        # Build a tool_result block for the NEXT model turn.
+                        tool_results.append({
+                            'type': 'tool_result',
+                            'tool_use_id': tool_id,
+                            'content': response_content,
+                        })
+
+                        # Skip the normal post-processing (smart_truncate,
+                        # _inject_session_status, queue 'tool_result' event)
+                        # because we already produced the tool_result block
+                        # and the user-facing event is `user_interaction_response`,
+                        # not `tool_result`. The marker dict is deliberately
+                        # kept off the wire to the frontend — the bubble UI is
+                        # driven entirely by the `input_request` Socket.IO
+                        # message that was emitted from _await_user_interaction.
+                        continue
+                    # ─────────────────────────────────────────────────────────
+
                     # Smart truncation based on tool type (with META-TOOLS exemption)
                     # Use smart_truncate_tool_result which exempts meta-tools from truncation
                     result_str = smart_truncate_tool_result(result, tool_name=tool_name, max_tokens=2000)

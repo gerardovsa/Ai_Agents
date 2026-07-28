@@ -32529,9 +32529,61 @@
                 _typingTimer = setTimeout(() => { if (el) el.style.display = 'none'; }, 3000);
             }
 
+            // \u2500\u2500 Token usage indicator \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
+            // Live-updated by the `token_status` SSE event emitted from
+            // AI_infrastructure/core/combined_agent_worker.py on the
+            // /ws/streaming namespace. The payload carries the running
+            // total conversation tokens, the model's context window, the
+            // percentage used, and a tier label (ok | info | warning |
+            // critical) that maps to foreground/background colour in
+            // thread-card-styles.css .thread-token-indicator.
+            function _formatTokenCount(n) {
+                if (typeof n !== 'number' || isNaN(n)) return '0';
+                if (n >= 1_000_000) return (n / 1_000_000).toFixed(n >= 10_000_000 ? 0 : 1) + 'M';
+                if (n >= 1_000)     return (n / 1_000).toFixed(n >= 10_000 ? 0 : 1) + 'k';
+                return String(n);
+            }
+
+            function _renderTokenStatus(data) {
+                // Find every indicator for this thread (Prime + agent columns + sidebar).
+                // The agent-render flow may clone the card into multiple panels,
+                // so we update all of them at once.
+                const threadId = data.thread_id;
+                if (!threadId) return;
+                const els = document.querySelectorAll(
+                    '.thread-token-indicator[data-thread-id="' + String(threadId).replace(/"/g, '\\"') + '"]'
+                );
+                if (!els.length) return;
+
+                const tokens = Number(data.tokens) || 0;
+                const window = Number(data.context_window) || 1_000_000;
+                const tier = data.tier || 'ok';
+                const left = _formatTokenCount(tokens);
+                const right = _formatTokenCount(window);
+                const pct = (typeof data.pct === 'number') ? data.pct.toFixed(1) : '0.0';
+
+                els.forEach(function(el) {
+                    // Update the inner text
+                    const text = el.querySelector('.thread-token-text');
+                    if (text) {
+                        text.textContent = left + ' / ' + right + ' (' + pct + '%)';
+                    }
+                    // Swap tier class
+                    el.classList.remove('tier-ok', 'tier-info', 'tier-warning', 'tier-critical');
+                    el.classList.add('tier-' + tier);
+                    // Refresh tooltip with model info
+                    const model = data.model || 'unknown';
+                    const msgCount = data.message_count != null ? data.message_count : '?';
+                    el.title = 'Token usage: ' + tokens.toLocaleString() + ' / ' +
+                               window.toLocaleString() + ' (' + pct + '%) \u2014 model: ' + model +
+                               ' \u2014 messages: ' + msgCount;
+                });
+            }
+
             function _bindSocketEvents(socket) {
                 socket.off('viewers_update');
                 socket.off('user_typing');
+                socket.off('token_status');
                 socket.on('viewers_update', function(data) {
                     if (data.thread_id === _currentThreadId) {
                         _renderViewers(data.viewers);
@@ -32540,6 +32592,15 @@
                 socket.on('user_typing', function(data) {
                     if (data.thread_id === _currentThreadId) {
                         _showTyping(data.display_name);
+                    }
+                });
+                socket.on('token_status', function(data) {
+                    // Backend emits on the thread's room; the chart panels
+                    // and sidebar may have multiple instances of the same
+                    // card, so update all matching indicators regardless
+                    // of which thread is currently focused.
+                    if (data && data.thread_id) {
+                        _renderTokenStatus(data);
                     }
                 });
             }
