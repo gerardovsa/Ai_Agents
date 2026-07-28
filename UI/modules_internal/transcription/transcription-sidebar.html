@@ -160,7 +160,7 @@
 
             <!-- Upload Engine Selector -->
             <div class="transcription-field" style="margin-bottom: 10px;">
-                <label style="font-weight: 600; margin-bottom: 6px; display: block; font-size: 12px; color: #8b949e;">
+                <label style="font-weight: 600;">
                     <i class="fas fa-cogs"></i> Transcription Engine:
                 </label>
                 <div class="upload-engine-grid">
@@ -197,19 +197,18 @@
                 onclick="document.getElementById('transcription-file-input').click()"
                 ondragover="TranscriptionSidebar.handleDragOver(event)"
                 ondrop="TranscriptionSidebar.handleFileDrop(event)"
-                ondragleave="TranscriptionSidebar.handleDragLeave(event)"
-                style="border: 2px dashed #30363d; border-radius: 8px; padding: 24px; text-align: center; cursor: pointer; transition: all 0.3s;">
-                <i class="fas fa-cloud-upload-alt" style="font-size: 36px; color: #58a6ff; margin-bottom: 8px;"></i>
-                <p style="color: #c9d1d9; margin-bottom: 4px;">Click or drag files here</p>
-                <small style="color: #8b949e;">Supports: MP3, WAV, MP4, WebM, OGG, M4A, FLAC (max 25MB)</small>
-                <small style="color: #6e7681; display: block; margin-top: 4px;">&#10024; Choose transcription engine above &bull; 50+ languages</small>
+                ondragleave="TranscriptionSidebar.handleDragLeave(event)">
+                <i class="fas fa-cloud-upload-alt"></i>
+                <p>Click or drag files here</p>
+                <small>Supports: MP3, WAV, MP4, WebM, OGG, M4A, FLAC (max 25MB)</small>
+                <small class="transcription-upload-zone-hint">&#10024; Choose transcription engine above &bull; 50+ languages</small>
                 <input type="file" id="transcription-file-input" accept="audio/*,video/*" multiple
                     style="display: none;" onchange="TranscriptionSidebar.handleFileSelect(event)">
             </div>
 
             <!-- Language Selection (for Whisper) -->
             <div style="margin-top: 12px;">
-                <label style="color: #8b949e; font-size: 12px; display: block; margin-bottom: 4px;">
+                <label>
                     <i class="fas fa-language"></i> Language (optional &mdash; engine auto-detects where supported)
                 </label>
                 <select id="whisper-language-select"
