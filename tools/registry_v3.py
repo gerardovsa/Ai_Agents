@@ -300,6 +300,16 @@ class RegistryV3:
         self._schema_index_platforms: Dict[str, str] = {}     # tool_name -> platform for list_platform_tools() proxy
         self.google_workspace_modules: Dict[str, Any] = {}    # module_name -> _LazyModuleProxy (replaces eager import)
         self._materialize_lock = threading.Lock()             # guards concurrent materialize_tool() calls (brief JSON-parse window)
+        # Plugin-tool lazy load (FIX C, Jul 28, 2026): at boot we index every
+        # enabled module's `schema/*.json` tool name into `_schema_index`, but
+        # DO NOT `importlib.util.spec_from_file_location()` the wrapper yet.
+        # Heavy wrappers (calculator, cadquery, etc.) only load on first
+        # `materialize_tool(name)` for one of their tools. `_schema_index_module`
+        # maps tool_name → module_id; `_plugin_wrappers` maps module_id → wrapper
+        # file paths. Disabled modules (per `is_module_enabled()`) are excluded
+        # by `_build_plugin_schema_index()` at boot.
+        self._schema_index_module: Dict[str, str] = {}        # tool_name -> module_id (plugin tools only)
+        self._plugin_wrappers: Dict[str, List[Path]] = {}     # module_id -> wrapper file paths (lazy import on materialize)
         
         # Tool Intelligence Logger (Nov 27, 2025)
         # Silent learning system that tracks patterns and generates AI observations
@@ -345,13 +355,19 @@ class RegistryV3:
         if self._lazy_mode:
             self._load_meta_tools_only()
             self._build_schema_index()
+            # FIX C (Jul 28, 2026): replace the eager `_load_module_plugins()`
+            # call (which imported every wrapper, including the 5,958-line
+            # calculator query_library and cadquery) with a lazy schema index.
+            # The wrapper Python files only load on first `materialize_tool()`
+            # for a tool in that module. Disabled modules are still skipped via
+            # the same `is_module_enabled()` gate.
+            self._build_plugin_schema_index()
             self._register_lazy_implementations()
             self._register_lazy_google_workspace()
-            # _load_module_plugins stays eager (auspost + reactivation are <50 ms)
-            self._load_module_plugins()
             logger.info(
                 f"[OK] Registry V3 initialized (LAZY mode, LAZY_TOOLS=1): "
                 f"{len(self.tools)} meta-tools, {len(self._schema_index)} schemas indexed, "
+                f"{len(self._plugin_wrappers)} plugin modules (wrappers deferred), "
                 f"{len(self.implementations)} impl stubs, {len(self.google_workspace_modules)} google_workspace stubs"
             )
             return
@@ -1066,6 +1082,189 @@ class RegistryV3:
             f"{skipped_filename} filenames skipped, {skipped_platform} platforms skipped"
         )
 
+    def _build_plugin_schema_index(self) -> None:
+        """Lazy-mode boot step (FIX C, Jul 28, 2026): index plugin schemas ONLY.
+
+        Walks `UI/modules_external/<module>/schema/*.json` for every ENABLED
+        module (skipping disabled via `is_module_enabled()`), parses each
+        schema to extract `tool.name`, and populates `self._schema_index` so
+        `materialize_tool()` can find plugin tools on demand.
+
+        Crucially, this method does NOT:
+          - `importlib.util.spec_from_file_location()` any wrapper file
+          - Add any tool to `self.tools`
+          - Register any callable in `self.implementations`
+
+        Those happen lazily inside `_ensure_plugin_wrapper_loaded()` when the
+        AI first asks for the schema of a plugin tool. This keeps boot at
+        exactly 8 meta-tools + schema index, with no cadquery / query_library
+        / Shopify / Xero module imports.
+
+        Plugin tools already keyed in `self._schema_index` (from
+        `_build_schema_index()`) are skipped — first-wins semantics keep the
+        central schema authoritative if a name collision ever occurs.
+        """
+        try:
+            from tools.plugins.module_plugin_loader import ModulePluginLoader
+            loader = ModulePluginLoader()
+            modules = loader.discover_modules_with_tools()
+        except Exception as e:
+            logger.debug(f"[PLUGINS] Module plugin loader unavailable at boot: {e}")
+            return
+
+        if not modules:
+            logger.debug("[PLUGINS] No enabled plugin modules with tools found")
+            return
+
+        modules_root = self.root_dir / "UI" / "modules_external"
+        indexed = 0
+        for module_id in modules:
+            schema_dir = modules_root / module_id / "schema"
+            impl_dir = modules_root / module_id / "implementations"
+            if not schema_dir.exists():
+                continue
+
+            # Index wrapper-file paths for lazy import. DO NOT exec_module here.
+            wrapper_files = sorted(impl_dir.glob("*_wrapper.py")) if impl_dir.exists() else []
+            if wrapper_files:
+                self._plugin_wrappers.setdefault(module_id, wrapper_files)
+
+            for schema_file in sorted(schema_dir.glob("*.json")):
+                try:
+                    with open(schema_file, "r", encoding="utf-8", errors="replace") as f:
+                        data = json.load(f)
+                except Exception as e:
+                    logger.debug(f"[PLUGINS] Skipped unreadable {module_id}/{schema_file.name}: {e}")
+                    continue
+                if not isinstance(data, dict):
+                    continue
+
+                for tool in data.get("tools", []):
+                    tool_name = tool.get("name")
+                    if not tool_name:
+                        continue
+                    if tool_name in self._EXCLUDED_TOOLS_LAZY:
+                        continue
+                    # First-wins: central schemas (tools/schemas/*.json) take
+                    # precedence over plugin schemas for the same tool name.
+                    if tool_name in self._schema_index:
+                        continue
+                    self._schema_index[tool_name] = str(schema_file)
+                    self._schema_index_descriptions.setdefault(
+                        tool_name, tool.get("short_description") or tool.get("description") or ""
+                    )
+                    schema_platform = data.get("platform")
+                    if schema_platform:
+                        self._schema_index_platforms.setdefault(tool_name, schema_platform)
+                    self._schema_index_module[tool_name] = module_id
+                    indexed += 1
+
+        logger.info(
+            f"[PLUGINS] Lazy schema index: {indexed} tools across {len(self._plugin_wrappers)} modules "
+            f"(wrappers deferred until first materialize_tool)"
+        )
+
+    def _ensure_plugin_wrapper_loaded(self, tool_name: str) -> None:
+        """Lazy-load a plugin module's wrapper file (FIX C, Jul 28, 2026).
+
+        Called from `materialize_tool()` for any tool whose name is in
+        `self._schema_index_module`. Mirrors the fuzzy name→function match
+        logic in `ModulePluginLoader.load_module_implementations()` (exact,
+        last-segment, last-two-segments) but only over the wrapper files of
+        THIS tool's module — never all enabled modules — to keep first-use
+        cost proportional to a single module's import weight.
+
+        Idempotent: if the tool is already in `self.implementations`, returns
+        immediately. Safe to call concurrently because `materialize_tool()`
+        holds `self._materialize_lock`.
+        """
+        module_id = self._schema_index_module.get(tool_name)
+        if not module_id:
+            return
+        if tool_name in self.implementations:
+            return
+
+        wrapper_files = self._plugin_wrappers.get(module_id)
+        if not wrapper_files:
+            return
+
+        # sys.path setup mirroring ModulePluginLoader.load_module_implementations():
+        # the wrapper files `import` sibling modules under `inhouse_modules`
+        # and root-level helpers, so both dirs need to be on sys.path.
+        inhouse_modules_dir = self.root_dir / "inhouse_modules"
+        if str(self.root_dir) not in sys.path:
+            sys.path.insert(0, str(self.root_dir))
+        if inhouse_modules_dir.exists() and str(inhouse_modules_dir) not in sys.path:
+            sys.path.insert(0, str(inhouse_modules_dir))
+
+        module_dir = self.root_dir / "UI" / "modules_external" / module_id
+        impl_dir = module_dir / "implementations"
+        if impl_dir.exists() and str(impl_dir) not in sys.path:
+            sys.path.insert(0, str(impl_dir))
+
+        # Gather every tool name belonging to this module for fuzzy match.
+        module_tool_names = [
+            n for n, m in self._schema_index_module.items() if m == module_id
+        ]
+
+        loaded_funcs = 0
+        try:
+            for wrapper_file in wrapper_files:
+                # Idempotent at the module level: if a previous materialize
+                # already imported this wrapper into sys.modules under its
+                # stem, reuse it instead of re-exec'ing.
+                mod_stem = wrapper_file.stem
+                wrapper_module = sys.modules.get(mod_stem)
+                if wrapper_module is None:
+                    spec = importlib.util.spec_from_file_location(mod_stem, str(wrapper_file))
+                    if spec is None or spec.loader is None:
+                        logger.debug(f"[PLUGINS] No loader for {module_id}/{wrapper_file.name}")
+                        continue
+                    wrapper_module = importlib.util.module_from_spec(spec)
+                    sys.modules[mod_stem] = wrapper_module
+                    spec.loader.exec_module(wrapper_module)
+
+                for tname in module_tool_names:
+                    if tname in self.implementations:
+                        continue
+                    # 1) Exact match: tool name == function name
+                    if hasattr(wrapper_module, tname):
+                        attr = getattr(wrapper_module, tname)
+                        if callable(attr):
+                            self.implementations[tname] = attr
+                            loaded_funcs += 1
+                            continue
+                    # 2) Last-segment match: "quote_calculator_business_cards" -> "business_cards"
+                    if "_" in tname:
+                        parts = tname.split("_")
+                        last = parts[-1]
+                        if hasattr(wrapper_module, last):
+                            attr = getattr(wrapper_module, last)
+                            if callable(attr):
+                                self.implementations[tname] = attr
+                                loaded_funcs += 1
+                                continue
+                        # 3) Last-two-segments joined: "..._business_cards_a4" -> "business_cards_a4"
+                        if len(parts) >= 2:
+                            last_two = "_".join(parts[-2:])
+                            if hasattr(wrapper_module, last_two):
+                                attr = getattr(wrapper_module, last_two)
+                                if callable(attr):
+                                    self.implementations[tname] = attr
+                                    loaded_funcs += 1
+                                    continue
+            if loaded_funcs:
+                logger.info(f"  [IMPL/PLUGIN] Lazy-loaded {module_id}: {loaded_funcs} functions imported")
+        except Exception as e:
+            logger.warning(f"[PLUGINS] Failed to lazy-load {module_id} wrapper: {type(e).__name__}: {e}")
+        finally:
+            # Mirror the original loader's path cleanup: leave the path on
+            # sys.path for subsequent calls (cheap, avoids re-insert churn).
+            # The original finally block removed it but our lazy pattern may
+            # be called many times for the same module — keeping the path
+            # avoids per-call churn.
+            pass
+
     def _register_lazy_implementations(self) -> None:
         """Lazy-mode boot step 3: register _LazyModuleProxy stubs for tools/implementations/*.
 
@@ -1218,6 +1417,16 @@ class RegistryV3:
 
             if registered_target:
                 logger.info(f"  [MATERIALIZE] {name} ({schema_path.name})")
+
+            # FIX C (Jul 28, 2026): if `name` belongs to a plugin module,
+            # lazy-import that module's wrapper file and register all its
+            # functions in self.implementations so `get_tool_function()`
+            # can resolve the callable on the subsequent dispatch.
+            # Idempotent — no-op if the tool isn't in `_schema_index_module`
+            # or its function is already cached.
+            if registered_target:
+                self._ensure_plugin_wrapper_loaded(name)
+
             return registered_target
 
     def search_index(self, query: str, k: int = 8) -> List[Dict[str, Any]]:
@@ -1435,7 +1644,25 @@ class RegistryV3:
                 if callable(attr):
                     logger.debug(f"  Found {tool_name} in {impl_name}")
                     return attr
-        
+
+        # FIX B (Jul 28, 2026): Same probe against google_workspace_modules.
+        # `_register_lazy_google_workspace()` stores each google module's
+        # `_LazyModuleProxy` in a SEPARATE dict (`self.google_workspace_modules`)
+        # — not in `self.implementations` — so the loop above never sees them.
+        # Without this mirror, google_docs_*, gmail_*, sheets_*, etc. return None
+        # even after the proxy materialises on first hasattr(). The proxy's
+        # __getattr__ handles the real import; hasattr() returning True is the
+        # signal that the module is loaded and the attribute exists.
+        for gw_name, gw_proxy in self.google_workspace_modules.items():
+            if callable(gw_proxy):
+                continue
+            func_name = function_name or tool_name
+            if hasattr(gw_proxy, func_name):
+                attr = getattr(gw_proxy, func_name)
+                if callable(attr):
+                    logger.debug(f"  Found {tool_name} in google_workspace.{gw_name}")
+                    return attr
+
         # Fallback: Extract module name from tool name (e.g., "gmail_send_email" -> "gmail")
         parts = tool_name.split("_")
         for i in range(len(parts), 0, -1):
@@ -1451,7 +1678,21 @@ class RegistryV3:
                     if callable(attr):
                         logger.debug(f"  Found {tool_name} -> {potential_module}.{func_name}")
                         return attr
-        
+
+        # FIX B (Jul 28, 2026): mirror the fallback against google_workspace_modules.
+        for i in range(len(parts), 0, -1):
+            potential_module = "_".join(parts[:i])
+            if potential_module in self.google_workspace_modules:
+                gw_proxy = self.google_workspace_modules[potential_module]
+                if callable(gw_proxy):
+                    continue
+                func_name = function_name or tool_name
+                if hasattr(gw_proxy, func_name):
+                    attr = getattr(gw_proxy, func_name)
+                    if callable(attr):
+                        logger.debug(f"  Found {tool_name} -> google_workspace.{potential_module}.{func_name}")
+                        return attr
+
         logger.error(f"  Tool function not found: {tool_name}")
         return None
 
