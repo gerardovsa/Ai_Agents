@@ -1,7 +1,7 @@
 # AI Status Colour-Coding System
 
 > Single source of truth for the four-state AI status palette.
-> Last updated: 2026-07-27
+> Last updated: 2026-07-28
 
 ## 1. The palette (canonical)
 
@@ -66,14 +66,21 @@ A status class paints **three places in lock-step**:
      `background: var(--bg-secondary)`) paint OVER it. It is visible only
      on the bottom of agent columns where no child occludes it. The 25 %
      reduction keeps the wash proportional to the visible footprint.
-   - **Layer 4 — `::after` rim-glow overlay (new, 2026-07-27).** Painted
-     ABOVE children via `position: absolute; inset: 0; z-index: 1;
-     pointer-events: none;` and a radial-gradient vignette
-     (`transparent 55% → status color 95% → 100%`). The vignette fades
-     into the centre so the chat content stays readable; the rim glows
-     uniformly on all four edges regardless of which child elements sit
-     inside. The opacity oscillates `0.15 → 0.95` via the
+   - **Layer 4 — `::after` rim-glow overlay (new, 2026-07-27; tightened
+     2026-07-28).** Painted ABOVE children via `position: absolute;
+     inset: 0; z-index: 1; pointer-events: none;` and a radial-gradient
+     vignette (`transparent 78% → status color 88% → 100%`). The vignette
+     fades into the centre so the chat content stays readable; the rim
+     glows uniformly on all four edges regardless of which child elements
+     sit inside. The opacity oscillates `0.15 → 0.95` via the
      `panelStatusPulseOverlay` keyframe (synced to the Layer 3 timings).
+     **Stop-choice rationale:** with `transparent 78%`, the colour sits in
+     the outer ~22% of the ellipse only. For a typical 350×600 agent
+     column (175 px half-width, 300 px half-height), the inward depth is
+     ~38 px on the horizontal axis and ~66 px on the vertical axis — a
+     tight rim glow rather than a wash. The earlier
+     `transparent 55% / 95% / 100%` produced 40% of the panel radius
+     (70-120 px) of smooth fade, which read as a wash rather than a rim.
 
 Animation durations match across icon, panel box-shadow, and rim overlay:
 
