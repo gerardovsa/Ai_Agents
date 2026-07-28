@@ -83,8 +83,10 @@ def query_namespaces():
         # Auto-populate user's namespaces if empty
         if not namespaces:
             # Get all user's namespaces from index stats
+            # NOTE: 'pinecone_describe_index_stats' is the correct registered tool name.
+            # The old 'pinecone_get_index_stats' was a typo that doesn't exist in the registry.
             stats_result = registry.execute_tool(
-                'pinecone_get_index_stats',
+                tool_name='pinecone_describe_index_stats',
                 _user_id=user_id,
                 _injected_credentials=True
             )
@@ -107,8 +109,12 @@ def query_namespaces():
             filter_dict['owner_user_id'] = {'$eq': user_id}
         
         # Call new tool: pinecone_query_namespaces
+        # NOTE: 'pinecone_query_namespaces' is a deprecated alias that currently forwards
+        # to 'pinecone_list_namespaces' (see tools/implementations/pinecone.py:60).
+        # The endpoint's parallel-search semantics depend on a real implementation
+        # landing in tools/implementations/pinecone/pinecone_tools.py — tracked separately.
         result = registry.execute_tool(
-            'pinecone_query_namespaces',
+            tool_name='pinecone_query_namespaces',
             query_text=query_text,
             namespaces=namespaces,
             metric=metric,
@@ -195,33 +201,61 @@ def fetch_by_metadata():
     try:
         user_id = request.user.get('user_id')
         data = request.json
-        
+
         filter_dict = data.get('filter', {})
         namespace = data.get('namespace', f"user_{user_id}_default")
         limit = min(data.get('limit', 100), 1000)  # Max 1000
         fields = data.get('fields', None)  # None = all fields
-        
+        query_text = data.get('query_text', '')  # Now required for semantic search
+
         # Validation
         if not filter_dict:
             return jsonify({"success": False, "error": "filter required"}), 400
-        
+
+        # Pinecone 'pinecone_query_vectors' requires a query_text (or query_vector) for
+        # similarity scoring. Without it the registry's documented replacement
+        # ('Use pinecone_query_vectors with filter') cannot return semantic matches.
+        if not query_text:
+            return jsonify({
+                "success": False,
+                "error": "query_text required when using semantic search with filter",
+                "hint": "Pass query_text to perform semantic search within the metadata filter."
+            }), 400
+
         # Force user ownership filter
         if 'owner_user_id' not in filter_dict:
             filter_dict['owner_user_id'] = {'$eq': user_id}
-        
-        # Call new tool: pinecone_fetch_by_metadata
+
+        # NOTE: 'pinecone_fetch_by_metadata' was DEPRECATED (tools/implementations/pinecone.py:64
+        # returns a hard error). The replacement — per the deprecation message — is
+        # 'pinecone_query_vectors' with a filter, which gives semantic + metadata-filtered
+        # retrieval. The response shape is adapted: 'matches' -> 'vectors'.
+        # Fields selection is best-effort: Pinecone's query API returns the full metadata
+        # object; per-field projection is not supported by the underlying tool.
         result = registry.execute_tool(
-            'pinecone_fetch_by_metadata',
-            filter=filter_dict,
+            tool_name='pinecone_query_vectors',
+            query_text=query_text,
             namespace=namespace,
-            limit=limit,
-            fields=fields,
+            top_k=limit,
+            filter=filter_dict,
+            include_metadata=True,
+            include_values=False,
             _user_id=user_id,
             _injected_credentials=True
         )
-        
+
         if result.get('success'):
-            vectors = result.get('vectors', [])
+            matches = result.get('matches', [])
+            vectors = []
+            for m in matches:
+                vec = {
+                    'id': m.get('id'),
+                    'metadata': m.get('metadata', {}),
+                    'namespace': namespace,
+                }
+                if m.get('score') is not None:
+                    vec['score'] = m.get('score')
+                vectors.append(vec)
             return jsonify({
                 "success": True,
                 "vectors": vectors,
@@ -283,15 +317,16 @@ def list_namespaces():
         prefix = request.args.get('prefix', f"user_{user_id}_")
         
         # Get index stats
+        # NOTE: 'pinecone_describe_index_stats' is the correct registered tool name.
         stats_result = registry.execute_tool(
-            'pinecone_get_index_stats',
+            tool_name='pinecone_describe_index_stats',
             _user_id=user_id,
             _injected_credentials=True
         )
-        
+
         if not stats_result.get('success'):
             return jsonify(stats_result), 500
-        
+
         all_namespaces = stats_result.get('namespaces', {})
         
         # Filter to user's namespaces
@@ -371,15 +406,16 @@ def describe_namespace(namespace: str):
             }), 403
         
         # Get namespace stats from index stats
+        # NOTE: 'pinecone_describe_index_stats' is the correct registered tool name.
         stats_result = registry.execute_tool(
-            'pinecone_get_index_stats',
+            tool_name='pinecone_describe_index_stats',
             _user_id=user_id,
             _injected_credentials=True
         )
-        
+
         if not stats_result.get('success'):
             return jsonify(stats_result), 500
-        
+
         namespaces = stats_result.get('namespaces', {})
         
         if namespace not in namespaces:
@@ -395,15 +431,12 @@ def describe_namespace(namespace: str):
         category = parts[2] if len(parts) > 2 else 'default'
         display_name = category.replace('_', ' ').title()
         
-        # Get index description for dimension and metric
-        describe_result = registry.execute_tool(
-            'pinecone_describe_index',
-            _user_id=user_id,
-            _injected_credentials=True
-        )
-        
-        dimension = describe_result.get('dimension', 1536)
-        metric = describe_result.get('metric', 'cosine')
+        # Get dimension and metric from the same index stats call (already executed above).
+        # NOTE: 'pinecone_describe_index' does NOT exist in the registry. The
+        # 'pinecone_describe_index_stats' response already includes dimension + metric,
+        # so we extract them from there instead of issuing a second (non-existent) call.
+        dimension = stats_result.get('dimension', 1536)
+        metric = stats_result.get('metric', 'cosine')
         
         namespace_details = {
             "name": namespace,
@@ -484,8 +517,9 @@ def delete_namespace(namespace: str):
             }), 400
         
         # Get vector count before deletion
+        # NOTE: 'pinecone_describe_index_stats' is the correct registered tool name.
         stats_result = registry.execute_tool(
-            'pinecone_get_index_stats',
+            tool_name='pinecone_describe_index_stats',
             _user_id=user_id,
             _injected_credentials=True
         )
@@ -499,7 +533,7 @@ def delete_namespace(namespace: str):
         # Delete all vectors in namespace
         # Note: Pinecone doesn't have direct namespace delete, so we delete all vectors
         delete_result = registry.execute_tool(
-            'pinecone_delete_vectors',
+            tool_name='pinecone_delete_vectors',
             delete_all=True,
             namespace=namespace,
             _user_id=user_id,

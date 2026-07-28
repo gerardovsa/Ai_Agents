@@ -173,7 +173,7 @@ def test_connection():
 
         # Execute describe_index_stats (this will test connection)
         result = registry.execute_tool(
-            'pinecone_describe_index_stats',
+            tool_name='pinecone_describe_index_stats',
             _user_id=user_id,
             _injected_credentials=True
         )
@@ -284,7 +284,7 @@ def upload_document():
 
             # Execute vector_db_upload_document tool
             result = registry.execute_tool(
-                'vector_db_upload_document',
+                tool_name='vector_db_upload_document',
                 file_path=tmp_path,
                 filename=file.filename,
                 chunk_size=chunk_size,
@@ -336,7 +336,7 @@ def get_stats():
         registry = RegistryV3()
 
         result = registry.execute_tool(
-            'pinecone_describe_index_stats',
+            tool_name='pinecone_describe_index_stats',
             _user_id=user_id,
             _injected_credentials=True
         )
@@ -387,7 +387,7 @@ def list_documents():
         registry = RegistryV3()
 
         result = registry.execute_tool(
-            'pinecone_list_namespaces',
+            tool_name='pinecone_list_namespaces',
             _user_id=user_id,
             _injected_credentials=True
         )
@@ -441,7 +441,7 @@ def delete_document(doc_id):
 
         # Delete all vectors in the namespace (document)
         result = registry.execute_tool(
-            'pinecone_delete_vectors',
+            tool_name='pinecone_delete_vectors',
             namespace=doc_id,
             delete_all=True,
             _user_id=user_id,
