@@ -952,7 +952,7 @@ From May 2026 to present (2026-07-28). Only commits affecting
 | `72855b99` | 2026-07-26 | regex escape | double-escape fixup regex so backslashes survive srcdoc embedding |
 | `bf6b3454` | 2026-07-26 | Round 5 (hoist) | resolve Lucide/Recharts name collisions in identifierHoist |
 | `bbb60bad` | 2026-07-28 | Round 6 (verify) | identity-check snapshot detects Lucide-vs-Recharts collisions |
-| `TBD` | 2026-07-29 | F5 (id shadow) | pre-pass renames destructured `([id, X]) => {…}` callbacks to `__entryId__`; fixes Babel Standalone scope-shadow that hid `ReferenceError: id is not defined` inside the iframe sandbox. Surface via `window.parent.__lastIdShadowFixRenames`. |
+| `d8d5c46e` | 2026-07-29 | F5 (id shadow) | pre-pass renames destructured `([id, X]) => {…}` callbacks to `__entryId__`; fixes Babel Standalone scope-shadow that hid `ReferenceError: id is not defined` inside the iframe sandbox. Surface via `window.parent.__lastIdShadowFixRenames`. (F5 work landed in `5c665f66`; this commit inherits the F5 tree.) |
 
 ---
 
