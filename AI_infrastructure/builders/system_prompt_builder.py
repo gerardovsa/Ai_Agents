@@ -82,21 +82,27 @@ Tool Usage:
 - If a tool fails, try alternatives or explain limitations
 - Chain tools together for complex workflows"""
 
-    def get_platform_guidance(self, platforms: List[str]) -> str:
+    def get_platform_guidance(self, platforms: List[str], org_id: Optional[int] = None) -> str:
         """
         Get platform-specific guidance.
-        
+
         Args:
             platforms: List of available platform names
-            
+            org_id:    Optional organisation ID. When provided AND 'vector_db'
+                       is in platforms, the active vector provider + any
+                       secondary providers are read from
+                       ai_infrastructure.org_vector_provider_config /
+                       org_vector_other_provider_inventory (migration 052)
+                       and injected into the prompt.
+
         Returns:
             Platform guidance section
         """
         if not platforms:
             return "\n\n=== PLATFORM STATUS ===\n⚠️ No platforms connected. Cannot use platform-specific tools."
-        
+
         guidance = ["\n\n=== AVAILABLE PLATFORMS ==="]
-        
+
         if 'google_workspace' in platforms:
             guidance.append("""
 Google Workspace CONNECTED
@@ -105,7 +111,7 @@ Google Workspace CONNECTED
 - Google Calendar: Create/update events, check availability
 - Google Contacts: Search and manage contacts
 - Google Tasks: Create and manage tasks""")
-        
+
         if 'microsoft_365' in platforms:
             guidance.append("""
 Microsoft 365 CONNECTED
@@ -114,7 +120,7 @@ Microsoft 365 CONNECTED
 - SharePoint: Access team sites and documents
 - Teams: Send messages, create meetings
 - Calendar: Manage appointments and meetings""")
-        
+
         if 'calculator' in platforms:
             guidance.append("""
 Quote Calculators AVAILABLE
@@ -124,7 +130,27 @@ Quote Calculators AVAILABLE
 - Corflute Signs: Tier-based pricing
 - Booklets: Saddle-stitched calculations
 - Stock Information: Get available paper stocks""")
-        
+
+        if 'vector_db' in platforms:
+            # Lazy import keeps module-load cheap and avoids any chance of a
+            # circular import when shared/vector_db_router is itself initialised.
+            from AI_infrastructure.shared.vector_db_router import get_vector_db_guidance_text
+            status_line = get_vector_db_guidance_text(org_id) if org_id else ''
+            header = 'Vector Database AVAILABLE'
+            if status_line:
+                # Two-line bullet so the active provider + any secondary
+                # providers (read from v_org_vector_status) are visible.
+                guidance.append(f"\n{header}\n- {status_line}")
+            else:
+                guidance.append(f"\n{header} (active provider: pgvector)")
+            guidance.append("""
+- Semantic search across the org's uploaded documents (use pgvector_query_vectors)
+- Per-document summaries: pgvector_search_summaries
+- Filter-only fetch (no semantic query): pgvector_fetch_by_metadata
+- Chunk context with neighbours: pgvector_get_vector_details
+- If the user asks "where is my X data?" and secondaries are listed above,
+  mention them — data is NOT moved when the active provider changes""")
+
         return '\n'.join(guidance)
 
     def get_tool_patterns(self) -> str:
@@ -203,43 +229,48 @@ If a tool fails:
 - Suggest alternatives or ask for clarification
 - Do NOT pretend the tool succeeded"""
 
-    def build_prompt(self, 
+    def build_prompt(self,
                     user_context: Optional[str] = None,
                     available_platforms: Optional[List[str]] = None,
+                    org_id: Optional[int] = None,
                     include_tool_patterns: bool = True,
                     include_anti_xml: bool = True) -> str:
         """
         Build complete system prompt.
-        
+
         Args:
             user_context: Optional user context section
             available_platforms: List of available platform names
+            org_id: Optional organisation ID. Forwarded to
+                    get_platform_guidance so the vector_db section can
+                    render active provider + secondary providers.
             include_tool_patterns: Include tool usage patterns
             include_anti_xml: Include anti-XML instructions
-            
+
         Returns:
             Complete system prompt
-            
+
         Example:
             prompt = builder.build_prompt(
                 user_context="Username: john...",
-                available_platforms=['google_workspace', 'calculator']
+                available_platforms=['google_workspace', 'calculator', 'vector_db'],
+                org_id=42,
             )
         """
         logger.debug("🔨 Building system prompt")
-        
+
         # Start with base
         parts = [self.get_base_prompt()]
-        
+
         # Add user context
         if user_context:
             parts.append(f"\n\n{user_context}")
             logger.debug("Added user context")
-        
-        # Add platform guidance
+
+        # Add platform guidance (org_id forwarded for vector_db section)
         if available_platforms:
-            parts.append(self.get_platform_guidance(available_platforms))
-            logger.debug(f"Added guidance for {len(available_platforms)} platforms")
+            parts.append(self.get_platform_guidance(available_platforms, org_id=org_id))
+            logger.debug(f"Added guidance for {len(available_platforms)} platforms (org_id={org_id})")
         
         # Add tool patterns
         if include_tool_patterns:

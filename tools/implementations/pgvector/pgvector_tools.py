@@ -689,3 +689,454 @@ def pgvector_upload_document(
     except Exception as exc:
         print(f'[PGVECTOR] upload_document error: {exc}')
         return {'success': False, 'error': str(exc)}
+
+
+# ============================================================================
+# SMART / EDUCATION TOOL FUNCTIONS (Parity with pinecone_tools.py)
+# ============================================================================
+# These bring pgvector up to parity with the 6 smart/education tools on the
+# Pinecone side (query_namespaces, fetch_by_metadata, search_summaries,
+# get_vector_details, search_and_retrieve, explain_strategies). They are
+# auto-discovered by RegistryV3 via the @tool_executor decorator that the
+# route layer applies, and surfaced to the AI through the system prompt.
+#
+# Key translation: Pinecone's namespaces and structured filters become
+# JSONB metadata->>'key' lookups + SQL WHERE clauses. See _translate_filter_to_sql.
+# ============================================================================
+
+
+def _translate_filter_to_sql(filter_dict, param_list):
+    """
+    Translate a Pinecone-style filter dict into a PostgreSQL JSONB WHERE
+    fragment.  The same fragment is safe for both the org_vector_documents
+    `metadata` column (jsonb) and any future jsonb column.
+
+    Supports:
+        $eq, $ne, $gt, $gte, $lt, $lte   (numeric + string)
+        $in, $nin                         (membership)
+        $exists                           (key present in jsonb)
+
+    Plain values are treated as $eq (Pinecone shorthand).
+
+    Args:
+        filter_dict: e.g. {"document_id": {"$eq": "abc"}, "tags": {"$in": ["x", "y"]}}
+        param_list:  MUTABLE list; %s placeholders are appended in order.
+
+    Returns:
+        SQL fragment like: (metadata->>'document_id' = %s AND metadata->>'tags' IN (%s, %s))
+        Returns 'TRUE' for empty input — caller can AND it without effect.
+    """
+    if not filter_dict:
+        return 'TRUE'
+
+    clauses = []
+    for key, val in filter_dict.items():
+        # Text extraction handles >90% of filter keys. Numeric operators
+        # cast at compare time (::float) — JSONB numbers extract as text.
+        json_path = f"metadata->>'{key}'"
+
+        if isinstance(val, dict):
+            for op, operand in val.items():
+                if op == '$eq':
+                    param_list.append(str(operand))
+                    clauses.append(f"{json_path} = %s")
+                elif op == '$ne':
+                    param_list.append(str(operand))
+                    clauses.append(f"{json_path} <> %s")
+                elif op in ('$gt', '$gte', '$lt', '$lte'):
+                    sym = {'$gt': '>', '$gte': '>=', '$lt': '<', '$lte': '<='}[op]
+                    param_list.append(str(operand))
+                    # Numeric-aware comparison: cast both sides to float.
+                    # Non-numeric values compare as NaN-equivalent and yield FALSE.
+                    clauses.append(f"(({json_path})::float {sym} %s::float)")
+                elif op == '$in':
+                    arr = [str(x) for x in (operand or [])]
+                    if not arr:
+                        clauses.append('FALSE')
+                    else:
+                        param_list.extend(arr)
+                        placeholders = ','.join(['%s'] * len(arr))
+                        clauses.append(f"{json_path} IN ({placeholders})")
+                elif op == '$nin':
+                    arr = [str(x) for x in (operand or [])]
+                    if not arr:
+                        clauses.append('TRUE')
+                    else:
+                        param_list.extend(arr)
+                        placeholders = ','.join(['%s'] * len(arr))
+                        clauses.append(
+                            f"({json_path} IS NULL OR {json_path} NOT IN ({placeholders}))"
+                        )
+                elif op == '$exists':
+                    # $exists:true  → key present   (jsonb ? operator)
+                    # $exists:false → key absent    (NOT (jsonb ? operator))
+                    if operand:
+                        clauses.append(f"(metadata ? '{key}')")
+                    else:
+                        clauses.append(f"(NOT (metadata ? '{key}'))")
+                else:
+                    print(f'[PGVECTOR] _translate_filter_to_sql: unknown operator {op!r}, skipping')
+        else:
+            # Plain value shorthand → $eq
+            param_list.append(str(val))
+            clauses.append(f"{json_path} = %s")
+
+    return ' AND '.join(clauses) if clauses else 'TRUE'
+
+
+def pgvector_query_namespaces(namespaces=None, include_counts=True, **kwargs):
+    """
+    List the namespaces available in this org's pgvector store.
+
+    pgvector has no physical namespaces (Pinecone does). We simulate the
+    concept by reading metadata->>'namespace'. If you have never set that
+    metadata field, every chunk lives in the implicit '' namespace.
+
+    Args:
+        namespaces: List of namespace names to inspect. If empty/None,
+                    returns the implicit '' namespace only.
+        include_counts: If True, attach document/vector counts.
+        **kwargs: Must contain _user_id.
+
+    Returns:
+        {"success": True, "namespaces": [{name, document_count, vector_count}]}
+    """
+    try:
+        user_id = kwargs.get('_user_id')
+        if not user_id:
+            raise PgvectorToolsError('_user_id required')
+        org_id = _get_org_id(user_id)
+
+        targets = list(namespaces) if namespaces else ['']
+        out = []
+        for ns in targets:
+            sql = """
+                SELECT
+                    COUNT(DISTINCT document_id) AS doc_count,
+                    COUNT(*)                    AS vector_count
+                FROM  ai_infrastructure.org_vector_documents
+                WHERE org_id = %s
+                  AND metadata->>'namespace' = %s
+            """
+            row = _run_in_org_context(org_id, sql, (org_id, ns), fetch_mode='one')
+            out.append({
+                'name':           ns,
+                'document_count': int((row or {}).get('doc_count') or 0),
+                'vector_count':   int((row or {}).get('vector_count') or 0),
+            })
+
+        return {
+            'success':    True,
+            'namespaces': out,
+            'note':       "pgvector namespaces are logical — stored in metadata->>'namespace'. "
+                          "Documents uploaded without that metadata live in the implicit '' namespace.",
+        }
+    except Exception as exc:
+        print(f'[PGVECTOR] query_namespaces error: {exc}')
+        return {'success': False, 'error': str(exc)}
+
+
+def pgvector_fetch_by_metadata(filter, namespace='', limit=100, **kwargs):
+    """
+    Filter-only retrieval — return chunks matching metadata predicates
+    WITHOUT a semantic query. Useful for "show me everything tagged X".
+
+    Args:
+        filter: Pinecone-style filter dict (see _translate_filter_to_sql).
+        namespace: Restrict to a single namespace (metadata->>'namespace').
+        limit: Max rows. Hard-capped at 1000 to protect the DB.
+        **kwargs: Must contain _user_id.
+
+    Returns:
+        {"success": True, "matches": [...], "total": N}
+    """
+    try:
+        user_id = kwargs.get('_user_id')
+        if not user_id:
+            raise PgvectorToolsError('_user_id required')
+        org_id = _get_org_id(user_id)
+
+        if not filter:
+            raise PgvectorToolsError('filter is required for fetch_by_metadata')
+        if limit > 1000:
+            limit = 1000
+        if limit < 1:
+            limit = 1
+
+        params = [org_id]
+        where = ['d.org_id = %s']
+        if namespace:
+            where.append("d.metadata->>'namespace' = %s")
+            params.append(namespace)
+        where.append(_translate_filter_to_sql(filter, params))
+        params.append(limit)
+
+        sql = f"""
+            SELECT
+                d.id::TEXT, d.document_id, d.filename, d.chunk_index,
+                d.content, d.metadata, d.created_at
+            FROM  ai_infrastructure.org_vector_documents d
+            WHERE {' AND '.join(where)}
+            ORDER BY d.created_at DESC
+            LIMIT %s
+        """
+        rows = _run_in_org_context(org_id, sql, tuple(params), fetch_mode='all') or []
+        matches = [
+            {
+                'id':          r['id'],
+                'document_id': r['document_id'],
+                'filename':    r['filename'],
+                'chunk_index': r['chunk_index'],
+                'text':        r['content'],
+                'metadata':    r.get('metadata') or {},
+                'created_at':  str(r.get('created_at', '')),
+            }
+            for r in rows
+        ]
+        return {'success': True, 'matches': matches, 'total': len(matches)}
+    except Exception as exc:
+        print(f'[PGVECTOR] fetch_by_metadata error: {exc}')
+        return {'success': False, 'error': str(exc)}
+
+
+def pgvector_search_summaries(query_text, top_k=5, **kwargs):
+    """
+    Semantic search that returns ONE best chunk PER DOCUMENT (not top_k
+    chunks from anywhere). Useful for "what contracts do we have about X?"
+    where the user wants the document, not the chunk.
+
+    Strategy: over-fetch by 3x, ROW_NUMBER() PARTITION BY document_id
+    ORDER BY similarity, then take rn=1. Portable to Postgres 12+.
+
+    Args:
+        query_text: Natural-language query.
+        top_k:      Number of unique documents to return (default 5).
+        **kwargs:   Must contain _user_id.
+
+    Returns:
+        {"success": True, "summaries": [{document_id, filename, best_chunk, score}]}
+    """
+    try:
+        user_id = kwargs.get('_user_id')
+        if not user_id:
+            raise PgvectorToolsError('_user_id required')
+        org_id = _get_org_id(user_id)
+
+        over_fetch = max(top_k * 3, 20)
+        query_vector = _generate_embedding(query_text, user_id, is_query=True)
+        vec_literal = '[' + ','.join(str(v) for v in query_vector) + ']'
+
+        sql = """
+            WITH ranked AS (
+                SELECT
+                    d.id::TEXT, d.document_id, d.filename, d.chunk_index,
+                    d.content, d.metadata, d.created_at,
+                    (1 - (d.embedding <=> %s::vector))::FLOAT AS similarity,
+                    ROW_NUMBER() OVER (
+                        PARTITION BY d.document_id
+                        ORDER BY d.embedding <=> %s::vector
+                    ) AS rn
+                FROM  ai_infrastructure.org_vector_documents d
+                WHERE d.org_id = %s
+                  AND d.embedding IS NOT NULL
+            )
+            SELECT *
+            FROM   ranked
+            WHERE  rn = 1
+            ORDER  BY embedding <=> %s::vector
+            LIMIT  %s
+        """
+        rows = _run_in_org_context(
+            org_id, sql,
+            (vec_literal, vec_literal, org_id, vec_literal, over_fetch),
+            fetch_mode='all',
+        ) or []
+        rows = rows[:top_k]  # trim to top_k unique docs
+        summaries = [
+            {
+                'document_id': r['document_id'],
+                'filename':    r['filename'],
+                'best_chunk': {
+                    'chunk_index': r['chunk_index'],
+                    'text':        r['content'],
+                    'id':          r['id'],
+                },
+                'score':      float(r['similarity']),
+                'created_at': str(r.get('created_at', '')),
+            }
+            for r in rows
+        ]
+        return {'success': True, 'summaries': summaries, 'total': len(summaries)}
+    except Exception as exc:
+        print(f'[PGVECTOR] search_summaries error: {exc}')
+        return {'success': False, 'error': str(exc)}
+
+
+def pgvector_get_vector_details(vector_id, include_adjacent=True, **kwargs):
+    """
+    Fetch the full row for a chunk (UUID) and optionally its prev/next
+    sibling chunks in the same document (chunk_index ± 1).
+
+    Args:
+        vector_id:         UUID of the chunk to fetch.
+        include_adjacent:  If True, also fetch ±1 neighbours.
+        **kwargs:          Must contain _user_id.
+
+    Returns:
+        {"success": True, "chunk": {...}, "previous": {...}?, "next": {...}?}
+    """
+    try:
+        user_id = kwargs.get('_user_id')
+        if not user_id:
+            raise PgvectorToolsError('_user_id required')
+        org_id = _get_org_id(user_id)
+
+        # ── Main chunk ─────────────────────────────────────────────────────
+        sql = """
+            SELECT
+                d.id::TEXT, d.document_id, d.filename, d.chunk_index,
+                d.total_chunks, d.content, d.metadata, d.created_at,
+                d.emb_model, d.emb_provider
+            FROM  ai_infrastructure.org_vector_documents d
+            WHERE d.org_id = %s AND d.id = %s::uuid
+        """
+        row = _run_in_org_context(org_id, sql, (org_id, vector_id), fetch_mode='one')
+        if not row:
+            return {'success': False, 'error': f'Vector {vector_id} not found'}
+
+        chunk = {
+            'id':           row['id'],
+            'document_id':  row['document_id'],
+            'filename':     row['filename'],
+            'chunk_index':  row['chunk_index'],
+            'total_chunks': row['total_chunks'],
+            'text':         row['content'],
+            'metadata':     row.get('metadata') or {},
+            'emb_model':    row.get('emb_model'),
+            'emb_provider': row.get('emb_provider'),
+            'created_at':   str(row.get('created_at', '')),
+        }
+        out = {'success': True, 'chunk': chunk}
+
+        if not include_adjacent:
+            return out
+
+        # ── Adjacent (prev / next by chunk_index in same doc) ──────────────
+        ci = row['chunk_index']
+        prev_idx = ci - 1
+        next_idx = ci + 1
+        adj_indices = []
+        if prev_idx >= 0:
+            adj_indices.append(prev_idx)
+        adj_indices.append(next_idx)
+        placeholders = ','.join(['%s'] * len(adj_indices))
+
+        adj_sql = f"""
+            SELECT id::TEXT, chunk_index, content
+            FROM   ai_infrastructure.org_vector_documents
+            WHERE  org_id = %s AND document_id = %s
+              AND  chunk_index IN ({placeholders})
+            ORDER  BY chunk_index
+        """
+        adj_rows = _run_in_org_context(
+            org_id, adj_sql,
+            (org_id, row['document_id']) + tuple(adj_indices),
+            fetch_mode='all',
+        ) or []
+        for ar in adj_rows:
+            slot_entry = {'chunk_index': ar['chunk_index'], 'text': ar['content'], 'id': ar['id']}
+            if ar['chunk_index'] == prev_idx:
+                out['previous'] = slot_entry
+            elif ar['chunk_index'] == next_idx:
+                out['next'] = slot_entry
+        return out
+    except Exception as exc:
+        print(f'[PGVECTOR] get_vector_details error: {exc}')
+        return {'success': False, 'error': str(exc)}
+
+
+def pgvector_search_and_retrieve(query_text, top_k=5, expand_to=3, **kwargs):
+    """
+    Two-stage retrieval: semantic search → fetch full chunk context for
+    top hits (with ±expand_to neighbours).
+
+    Args:
+        query_text: Natural-language query.
+        top_k:      Number of top hits to keep (default 5).
+        expand_to:  Expand each hit to its ±N neighbours (default 3).
+                    Set to 0 to skip expansion (semantic-search-only).
+        **kwargs:   Must contain _user_id.
+
+    Returns:
+        {"success": True, "results": [{match, previous, next}, ...]}
+    """
+    try:
+        user_id = kwargs.get('_user_id')
+        if not user_id:
+            raise PgvectorToolsError('_user_id required')
+        org_id = _get_org_id(user_id)
+
+        # Stage 1: semantic search (limit hard-capped inside pgvector_query_vectors)
+        search = pgvector_query_vectors(query_text=query_text, top_k=top_k, _user_id=user_id)
+        if not search.get('success'):
+            return search
+
+        # Stage 2: enrich each hit with adjacent chunks (best-effort; one bad
+        # detail call shouldn't kill the whole result set).
+        results = []
+        for hit in search.get('matches', []) or []:
+            entry = {'match': hit}
+            if expand_to > 0:
+                # For now, the helper only supports ±1. expand_to is documented
+                # as the user-tunable knob for a future helper variant.
+                detail = pgvector_get_vector_details(
+                    vector_id=hit['id'], include_adjacent=True, _user_id=user_id,
+                )
+                if detail.get('success'):
+                    entry['previous'] = detail.get('previous')
+                    entry['next']     = detail.get('next')
+            results.append(entry)
+        return {'success': True, 'results': results, 'total': len(results)}
+    except Exception as exc:
+        print(f'[PGVECTOR] search_and_retrieve error: {exc}')
+        return {'success': False, 'error': str(exc)}
+
+
+def pgvector_explain_strategies(**kwargs):
+    """
+    Static knowledge base about pgvector's retrieval behaviour — the AI
+    uses this to explain to the user WHY it chose a particular search
+    strategy and WHAT to expect from the active provider.
+
+    Args:
+        **kwargs: Must contain _user_id (kept for interface parity).
+
+    Returns:
+        {"success": True, "provider": "pgvector", "strategies": {...}}
+    """
+    return {
+        'success':  True,
+        'provider': 'pgvector',
+        'strategies': {
+            'metric':              'cosine similarity (Postgres <=> operator)',
+            'default_threshold':   0.5,
+            'embedding_dim':       768,
+            'embedding_providers': ['pgvector_bge (local BAAI/bge-base-en-v1.5, free)',
+                                    'voyager (Voyage AI voyage-4)',
+                                    'openai (text-embedding-3-small)'],
+            'index_type':          'HNSW (Supabase default; supports cosine distance)',
+            'rls':                 "app.current_org_id GUC + org_isolation_* policies (migration 044)",
+            'namespace_strategy':  "logical only — stored as metadata->>'namespace'; no physical partition",
+            'reindex_on_swap':     'NO — switching provider does NOT move data. '
+                                   'Previous provider is inventoried in '
+                                   'org_vector_other_provider_inventory so the AI can still '
+                                   'report/document it.',
+            'best_for':            'orgs that want zero external account, free embeddings (BGE), '
+                                   'and Postgres-native operations.',
+            'limits': {
+                'top_k_hard_cap':  1000,
+                'max_chunk_chars': 8000,
+                'overlap_must_be': '< chunk_size',
+            },
+        },
+    }

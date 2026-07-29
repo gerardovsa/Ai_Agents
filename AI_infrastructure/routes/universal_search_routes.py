@@ -492,41 +492,59 @@ def universal_search():
                 vector_results = []
                 provider_used = None
                 
-                # Option 1: Search separate pgvector embeddings table (if exists)
-                # This searches ai_infrastructure.vector_embeddings (separate from document_library)
+                # Option 1: Search pgvector (ai_infrastructure.org_vector_documents)
+                # BUGFIX (2026-07-28): The legacy SQL pointed at
+                # ai_infrastructure.vector_embeddings, which has been empty
+                # since the migration-044 org_vector_documents refactor — every
+                # pgvector search silently returned zero rows. Now we read the
+                # real table, filter by org_id (not user_id, since pgvector is
+                # org-scoped via the org_isolation_select RLS policy), and use
+                # the dedicated content/filename/file_type columns instead of
+                # extracting them out of metadata JSONB.
                 try:
-                    cursor.execute("""
-                        SELECT id, metadata->>'title' as title, 
-                               metadata->>'text' as text,
-                               metadata->>'file_type' as file_type,
-                               metadata->>'created_at' as created_at,
-                               1 - (embedding <=> %s::vector) AS similarity
-                        FROM ai_infrastructure.vector_embeddings
-                        WHERE user_id = %s
-                          AND namespace = 'user_documents'
-                          AND embedding IS NOT NULL
-                          AND (1 - (embedding <=> %s::vector)) > 0.3
-                        ORDER BY embedding <=> %s::vector
-                        LIMIT %s
-                    """, (query_embedding, user_id, query_embedding, query_embedding, limit))
-                    
-                    pgvector_results = cursor.fetchall()
-                    if pgvector_results:
-                        vector_results = [
-                            {
-                                'id': str(row[0]),
-                                'title': row[1] or 'Untitled',
-                                'snippet': (row[2] or '')[:200] + '...' if row[2] else '',
-                                'source': 'vector-database',
-                                'type': row[3] or 'document',
-                                'date': row[4],
-                                'score': float(row[5]) if row[5] else 0.0,
-                                'provider': 'pgvector (Supabase)'
-                            }
-                            for row in pgvector_results
-                        ]
-                        provider_used = 'pgvector'
-                        print(f"[UNIVERSAL SEARCH] Found {len(vector_results)} results in pgvector")
+                    # Look up the user's org_id. pgvector data is org-scoped
+                    # (not user-scoped) — see migration 044 and the
+                    # ai_infrastructure.org_vector_documents table.
+                    cursor.execute(
+                        "SELECT organisation_id FROM ai_infrastructure.users WHERE id = %s",
+                        (user_id,),
+                    )
+                    org_row = cursor.fetchone()
+                    user_org_id = org_row[0] if org_row else None
+
+                    if user_org_id is not None:
+                        cursor.execute("""
+                            SELECT d.id::TEXT,
+                                   d.filename         AS title,
+                                   d.content          AS text,
+                                   d.file_type,
+                                   d.created_at,
+                                   1 - (d.embedding <=> %s::vector) AS similarity
+                            FROM ai_infrastructure.org_vector_documents d
+                            WHERE d.org_id = %s
+                              AND d.embedding IS NOT NULL
+                              AND (1 - (d.embedding <=> %s::vector)) > 0.3
+                            ORDER BY d.embedding <=> %s::vector
+                            LIMIT %s
+                        """, (query_embedding, user_org_id, query_embedding, query_embedding, limit))
+
+                        pgvector_results = cursor.fetchall()
+                        if pgvector_results:
+                            vector_results = [
+                                {
+                                    'id':       str(row[0]),
+                                    'title':    row[1] or 'Untitled',
+                                    'snippet':  ((row[2] or '')[:200] + '...') if row[2] else '',
+                                    'source':   'vector-database',
+                                    'type':     row[3] or 'document',
+                                    'date':     row[4],
+                                    'score':    float(row[5]) if row[5] else 0.0,
+                                    'provider': 'pgvector (Supabase)'
+                                }
+                                for row in pgvector_results
+                            ]
+                            provider_used = 'pgvector'
+                            print(f"[UNIVERSAL SEARCH] Found {len(vector_results)} results in pgvector (org {user_org_id})")
                 except Exception as pgvector_err:
                     print(f"[UNIVERSAL SEARCH] pgvector search skipped: {pgvector_err}")
                 
@@ -559,12 +577,46 @@ def universal_search():
                     except Exception as qdrant_err:
                         print(f"[UNIVERSAL SEARCH] Qdrant search failed: {qdrant_err}")
                 
-                # Option 3: Try Pinecone (if user has configured it)
+                # Option 3: Try Pinecone (if user has configured it via the org vault).
+                # BUGFIX (2026-07-28): the legacy TODO stub did nothing — users
+                # with Pinecone credentials configured got zero results.
+                # Now we resolve credentials via the 4-tier loader, and if
+                # Pinecone is configured, dispatch through the registry so
+                # schema validation + provider routing happen in one place.
                 if not vector_results:
                     try:
-                        # TODO: Implement Pinecone search
-                        # pinecone_results = search_pinecone(query_embedding, user_id, limit)
-                        pass
+                        from AI_infrastructure.shared.org_credentials_loader import resolve_credentials
+                        pinecone_creds = resolve_credentials(user_id, 'pinecone')
+                        if pinecone_creds:
+                            from tools.registry_v3 import RegistryV3
+                            registry = RegistryV3()
+                            result = registry.execute_tool(
+                                tool_name='pinecone_query_vectors',
+                                query_vector=query_embedding,
+                                top_k=limit,
+                                _user_id=user_id,
+                                _injected_credentials=True,
+                            )
+                            if result.get('success') and result.get('matches'):
+                                matches = result['matches'] or []
+                                vector_results = [
+                                    {
+                                        'id':       m.get('id'),
+                                        'title':    ((m.get('metadata') or {}).get('filename')
+                                                     or (m.get('metadata') or {}).get('title')
+                                                     or 'Untitled'),
+                                        'snippet':  ((m.get('metadata') or {}).get('text') or '')[:200] + '...',
+                                        'source':   'vector-database',
+                                        'type':     (m.get('metadata') or {}).get('file_type') or 'document',
+                                        'date':     (m.get('metadata') or {}).get('created_at'),
+                                        'score':    float(m.get('score', 0.0) or 0.0),
+                                        'provider': 'pinecone',
+                                    }
+                                    for m in matches
+                                ]
+                                provider_used = 'pinecone'
+                                print(f"[UNIVERSAL SEARCH] Found {len(vector_results)} results in Pinecone")
+                        # No credentials → silently skip (matches the Qdrant behaviour above).
                     except Exception as pinecone_err:
                         print(f"[UNIVERSAL SEARCH] Pinecone search failed: {pinecone_err}")
                 

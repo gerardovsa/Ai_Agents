@@ -258,17 +258,33 @@ class UnifiedAIClient:
         self.MiniMax_model = self.config.get('AI', {}).get('MiniMaxModel', 'MiniMax-M3')
     
     def _get_tool_usage_instructions(self) -> str:
-        """Load tool usage instructions from prompt file"""
+        """Load tool usage instructions from prompt file.
+
+        After loading the base prompt (file or fallback), defensively reads
+        flask.g.rls_org_id (set by set_rls_context_from_jwt in
+        flask_app.py) and, if present, appends a '=== VECTOR DATABASE ==='
+        section describing the org's active provider + any secondaries.
+        The vector_db router (AI_infrastructure/shared/vector_db_router.py)
+        reads ai_infrastructure.org_vector_provider_config and the
+        v_org_vector_status view (migration 052).
+
+        Failure modes:
+          - No Flask request context (CLI, scheduled tasks): returns base
+            prompt unchanged; guidance is silently omitted, not crashed.
+          - DB read fails: router swallows the exception and returns ''.
+        """
+        base = ''
         try:
             prompt_path = Path(__file__).parent.parent / 'prompts' / 'tool_usage_system_prompt.md'
             if prompt_path.exists():
                 with open(prompt_path, 'r', encoding='utf-8') as f:
-                    return f.read()
+                    base = f.read()
         except Exception as e:
             print(f"Warning: Could not load tool usage prompt: {e}")
-        
-        # Fallback instructions with server tools documentation
-        return """You have access to 584+ tools across multiple platforms including Google Workspace, Microsoft 365, and business tools. ALWAYS use these tools to complete user requests. Never say you cannot do something - use the available tools.
+
+        if not base:
+            # Fallback instructions with server tools documentation
+            base = """You have access to 584+ tools across multiple platforms including Google Workspace, Microsoft 365, and business tools. ALWAYS use these tools to complete user requests. Never say you cannot do something - use the available tools.
 
 CRITICAL - NATURAL LANGUAGE COMMUNICATION:
 When communicating with users about tools, ALWAYS use natural, conversational language. NEVER mention internal tool names or technical function names.
@@ -336,7 +352,48 @@ IMPORTANT: You can use both server tools AND client tools in the same conversati
 3. Use google_docs_create_document to save the findings
 
 Always explain what you're doing when using these tools so the user understands your process - but use natural language, not technical tool names."""
-    
+
+        # ── VECTOR DATABASE SECTION ─────────────────────────────────────
+        # Defensively read the JWT-derived org_id from Flask's request
+        # context. If we're not in a request context (CLI, scheduler), or
+        # the DB read fails, the router returns '' and we silently omit
+        # the section rather than crash the prompt build.
+        try:
+            from flask import g as _flask_g
+            org_id = getattr(_flask_g, 'rls_org_id', None)
+        except RuntimeError:
+            # Working outside of application context (CLI, tests).
+            org_id = None
+
+        vector_db_section = ''
+        if org_id is not None:
+            try:
+                from AI_infrastructure.shared.vector_db_router import (
+                    get_vector_db_guidance_text,
+                )
+                status_line = get_vector_db_guidance_text(org_id)
+                if status_line:
+                    vector_db_section = (
+                        "\n\n=== VECTOR DATABASE ===\n"
+                        f"- {status_line}\n"
+                        "- Semantic search across the org's uploaded "
+                        "documents (use pgvector_query_vectors)\n"
+                        "- Per-document summaries: pgvector_search_summaries\n"
+                        "- Filter-only fetch (no semantic query): "
+                        "pgvector_fetch_by_metadata\n"
+                        "- Chunk context with neighbours: "
+                        "pgvector_get_vector_details\n"
+                        "- If the user asks 'where is my X data?' and "
+                        "secondaries are listed above, mention them — "
+                        "data is NOT moved when the active provider changes"
+                    )
+            except Exception as _exc:
+                # Never crash the prompt build because of a vector status
+                # read failure. Log so the operator can spot a real issue.
+                print(f"[UnifiedAIClient] vector_db guidance skipped: {_exc}")
+
+        return base + vector_db_section
+
     def get_system_prompt(self, ui_context: str, agent_id: Optional[str] = None) -> str:
         """
         Get system prompt for UI context

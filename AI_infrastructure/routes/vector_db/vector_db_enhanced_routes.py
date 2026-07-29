@@ -108,11 +108,11 @@ def query_namespaces():
         if 'owner_user_id' not in filter_dict:
             filter_dict['owner_user_id'] = {'$eq': user_id}
         
-        # Call new tool: pinecone_query_namespaces
-        # NOTE: 'pinecone_query_namespaces' is a deprecated alias that currently forwards
-        # to 'pinecone_list_namespaces' (see tools/implementations/pinecone.py:60).
-        # The endpoint's parallel-search semantics depend on a real implementation
-        # landing in tools/implementations/pinecone/pinecone_tools.py — tracked separately.
+        # Call pinecone_query_namespaces. This is the canonical smart-tool name
+        # registered in tools/implementations/pinecone.py — NOT a deprecated alias.
+        # The earlier note about an alias → pinecone_list_namespaces was stale;
+        # that was tracked under the V11 vector-DB parity work (migration 052)
+        # and resolved by porting the 6 smart/education tools to pgvector.
         result = registry.execute_tool(
             tool_name='pinecone_query_namespaces',
             query_text=query_text,
