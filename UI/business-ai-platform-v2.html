@@ -32544,6 +32544,13 @@
                 return String(n);
             }
 
+            // Tracks the most recently observed tier for each thread so
+            // _renderTokenStatus can fire a toast only on actual transitions
+            // (not on every SSE tick). Persists across the SPA session in the
+            // same module-level closure as _renderTokenStatus. Open question
+            // \u00a714.4 in THREAD_MESSAGE_CONSTRUCTION_MASTER_2026_07_29.md.
+            const _previousTokenTiers = {};
+
             function _renderTokenStatus(data) {
                 // Find every indicator for this thread (Prime + agent columns + sidebar).
                 // The agent-render flow may clone the card into multiple panels,
@@ -32578,6 +32585,42 @@
                                window.toLocaleString() + ' (' + pct + '%) \u2014 model: ' + model +
                                ' \u2014 messages: ' + msgCount;
                 });
+
+                // \u2500\u2500 TIER TRANSITION TOAST (added 2026-07-29) \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
+                // Fire a toast only when the tier actually changes (not on every
+                // SSE tick). Tier severity ordering is ok(0) < info(1) <
+                // warning(2) < critical(3). We toast on any transition that
+                // crosses at least one boundary AND increases severity (or
+                // drops back to ok/info \u2014 a relief signal worth surfacing).
+                const TIER_RANK = { ok: 0, info: 1, warning: 2, critical: 3 };
+                const prevTier = _previousTokenTiers[threadId];
+                const prevRank = (prevTier && TIER_RANK[prevTier] != null) ? TIER_RANK[prevTier] : -1;
+                const newRank  = TIER_RANK[tier] != null ? TIER_RANK[tier] : 0;
+
+                if (prevTier !== tier && typeof showToast === 'function') {
+                    const model = data.model || 'unknown';
+                    const pctRounded = (typeof data.pct === 'number') ? data.pct.toFixed(1) : pct;
+                    let toastType = 'info';
+                    let toastMsg = '';
+
+                    if (newRank >= 2 && prevRank < 2) {
+                        // ok|info \u2192 warning|critical : heads-up to error
+                        toastType = (tier === 'critical') ? 'error' : 'info';
+                        toastMsg = 'Context pressure \u2014 thread now at ' + pctRounded +
+                                   '% (' + tier + ', model: ' + model +
+                                   '). Consider summarising or starting a new thread.';
+                    } else if (newRank < prevRank && prevRank >= 2) {
+                        // warning|critical \u2192 ok|info : relief
+                        toastType = 'success';
+                        toastMsg = 'Context pressure eased \u2014 thread back to ' + tier +
+                                   ' (' + pctRounded + '%).';
+                    }
+
+                    if (toastMsg) {
+                        try { showToast(toastMsg, toastType); } catch (_e) { /* showToast may not exist yet */ }
+                    }
+                }
+                _previousTokenTiers[threadId] = tier;
             }
 
             function _bindSocketEvents(socket) {

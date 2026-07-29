@@ -2369,7 +2369,38 @@ def run_simple_agent_worker(
         except Exception as emit_err:
             # Never let a notification failure abort the request
             print(f"{log_prefix} ⚠️ Failed to emit token_status SSE event: {emit_err}")
-        
+
+        # ── PERSIST LAST-TOKEN TELEMETRY ON THE THREAD ROW (added 2026-07-29) ─
+        # Companion to migration 064_thread_token_telemetry_columns.sql. After
+        # the SSE emit, write the latest tier / model / pct / cumulative tokens
+        # back to sessions.threads so the next page-load can colour the
+        # thread-token indicator on FIRST paint (no flash from "0 / 1M").
+        # Failure here is logged but never raises — telemetry persistence is
+        # best-effort and must not block the AI response.
+        try:
+            from AI_infrastructure.shared.database_utils import execute_query
+            execute_query(
+                """
+                UPDATE sessions.threads
+                   SET token_count           = %s,
+                       last_token_tier       = %s,
+                       last_token_model      = %s,
+                       last_token_pct        = %s,
+                       last_token_updated_at = NOW()
+                 WHERE id = %s
+                """,
+                (
+                    int(total_conversation_tokens),
+                    tier,
+                    ai_model,
+                    round(float(pct_of_context), 2),
+                    thread_id,
+                ),
+                fetch_mode=None,
+            )
+        except Exception as persist_err:
+            print(f"{log_prefix} ⚠️ Failed to persist last-token telemetry on sessions.threads: {persist_err}")
+
         # CRITICAL: Final validation before API call
         print(f"{log_prefix} 🔐 Running final pre-API validation...")
         messages = validate_messages_for_api(messages, log_prefix)
