@@ -126,6 +126,270 @@ def generate_embedding(text: str, user_id: int, provider: str = None) -> Optiona
         return None
 
 # ============================================================================
+# HELPER: REGISTRY-DISPATCHED SEARCH (4-tier creds + schema validation)
+# ============================================================================
+#
+# Per the Option A refactor (2026-07-28), the 8 platform sources (Gmail, Google
+# Drive, Outlook, OneDrive, SharePoint, Slack, Google Calendar, Microsoft
+# Calendar) all funnel through the same shape:
+#
+#   1. resolve_credentials(user_id, '<platform_key>')   (org_credentials_loader)
+#   2. registry.execute_tool(tool_name='<tool>', query=..., top_k=limit, ...)
+#   3. map result['matches'] (or provider-specific shape) -> universal_search dict
+#
+# This replaces the prior OAuth-direct branches (GAP-V1 pattern from
+# CLAUDE.md §13.4). One helper, many callers.
+
+def _search_via_registry(user_id: int, platform_key: str, tool_name: str,
+                          query: str, limit: int,
+                          result_key: str = 'matches',
+                          result_adapter=None,
+                          extra_kwargs: Optional[Dict[str, Any]] = None,
+                          ) -> List[Dict[str, Any]]:
+    """Run a search-style tool through the registry.
+
+    Args:
+        user_id: RLS-scoped user id (request.user.get('user_id')).
+        platform_key: 4-tier resolver key — e.g. 'google_workspace',
+            'microsoft_365', 'slack'.
+        tool_name: Registered tool name in the registry, e.g.
+            'gmail_search_messages'.
+        query: User's search string.
+        limit: Max results the source should return.
+        result_key: The dict key holding the list inside the tool result.
+            Most platform search tools return {'success': True, 'matches': [...]}
+            or similar. Default 'matches'.
+        result_adapter: Optional callable(match) -> result_dict. If None, a
+            generic shape is produced from id/title/text/score.
+        extra_kwargs: Optional kwargs merged into the registry call.
+
+    Returns:
+        List of normalized result dicts. Empty list if no creds, no match,
+        or any silent skip condition. NEVER raises — errors are swallowed
+        by the caller.
+    """
+    try:
+        from AI_infrastructure.shared.org_credentials_loader import resolve_credentials
+        creds = resolve_credentials(user_id, platform_key)
+        if not creds:
+            return []
+        from tools.registry_v3 import RegistryV3
+        registry = RegistryV3()
+        kwargs = dict(
+            tool_name=tool_name,
+            query=query,
+            top_k=limit,
+            _user_id=user_id,
+            _injected_credentials=True,
+        )
+        if extra_kwargs:
+            kwargs.update(extra_kwargs)
+        result = registry.execute_tool(**kwargs)
+        if not result or not result.get('success'):
+            return []
+        items = result.get(result_key) or []
+        if result_adapter is not None:
+            return [result_adapter(m) for m in items if m]
+        # Generic shape: extract common fields if present, else pass through.
+        out: List[Dict[str, Any]] = []
+        for m in items:
+            if not isinstance(m, dict):
+                continue
+            out.append({
+                'id': m.get('id') or m.get('message_id') or m.get('file_id'),
+                'title': (m.get('title') or m.get('subject') or m.get('name')
+                          or m.get('filename') or ''),
+                'text': (m.get('text') or m.get('snippet') or m.get('body')
+                         or m.get('bodyPreview') or m.get('description') or ''),
+                'score': float(m.get('score', 0.0) or 0.0),
+                'date': (m.get('date') or m.get('receivedDateTime')
+                         or m.get('createdTime') or m.get('start', {}).get('dateTime')),
+                'link': (m.get('link') or m.get('webViewLink')
+                         or m.get('webUrl') or m.get('permalink')),
+                'metadata': m.get('metadata') or {},
+                'provider': platform_key,
+            })
+        return out
+    except Exception as e:
+        # Silent skip with print — same pattern as the Pinecone branch.
+        print(f"[UNIVERSAL SEARCH] {platform_key}.{tool_name} failed: {e}")
+        return []
+
+
+def _search_calendar_via_registry(user_id: int, platform_key: str,
+                                  list_tool: str, query: str, limit: int,
+                                  time_min: Optional[str] = None,
+                                  time_max: Optional[str] = None,
+                                  ) -> List[Dict[str, Any]]:
+    """Calendar sources have no dedicated search tool — only list_events.
+
+    Strategy: pull a recent window via list_events, then filter by substring
+    match on summary/description/subject. Capped at `limit` survivors.
+    """
+    try:
+        from AI_infrastructure.shared.org_credentials_loader import resolve_credentials
+        creds = resolve_credentials(user_id, platform_key)
+        if not creds:
+            return []
+        from tools.registry_v3 import RegistryV3
+        registry = RegistryV3()
+        kwargs: Dict[str, Any] = dict(
+            tool_name=list_tool,
+            max_results=min(limit * 4, 100),  # Pull more, then filter.
+            _user_id=user_id,
+            _injected_credentials=True,
+        )
+        if time_min:
+            kwargs['time_min'] = time_min
+        if time_max:
+            kwargs['time_max'] = time_max
+        result = registry.execute_tool(**kwargs)
+        if not result or not result.get('success'):
+            return []
+        events = (result.get('events')
+                  or result.get('items')
+                  or result.get('matches')
+                  or [])
+        if not isinstance(events, list):
+            return []
+        needle = (query or '').strip().lower()
+        if needle:
+            events = [
+                e for e in events
+                if needle in (str((e or {}).get('summary') or '')).lower()
+                or needle in (str((e or {}).get('description') or '')).lower()
+                or needle in (str((e or {}).get('subject') or '')).lower()
+            ]
+        out: List[Dict[str, Any]] = []
+        for e in events[:limit]:
+            start = (e or {}).get('start') or {}
+            out.append({
+                'id': (e or {}).get('id'),
+                'title': (e or {}).get('summary') or (e or {}).get('subject') or '',
+                'text': (e or {}).get('description') or '',
+                'score': 1.0,  # No native score — events are equal-weight.
+                'date': start.get('dateTime') or start.get('date'),
+                'link': (e or {}).get('htmlLink') or (e or {}).get('webLink'),
+                'metadata': e,
+                'provider': platform_key,
+            })
+        return out
+    except Exception as e:
+        print(f"[UNIVERSAL SEARCH] {platform_key} calendar failed: {e}")
+        return []
+
+
+# ============================================================================
+# HELPER: RESULT DEDUP
+# ============================================================================
+#
+# When the same content exists in multiple sources (e.g., a contract as a
+# Gmail attachment AND a Drive file), naive fan-out returns duplicates. We
+# bucket by content-hash, pick the highest-score winner per bucket, and emit
+# `merged_from` so the AI can cite every source that contributed.
+
+# Provider priority for tie-breaking (lower index = higher priority).
+# Tuned by hand-off brief §3; user can override by reordering.
+DEFAULT_PROVIDER_PRIORITY = [
+    'pgvector',
+    'pinecone',
+    'qdrant',
+    'documents',  # Internal document library
+    'vector-database',
+    'threads',
+    'messages',
+    'synergy',
+    'google_drive', 'google-drive',
+    'gmail',
+    'onedrive',
+    'outlook',
+    'sharepoint',
+    'google_calendar', 'microsoft_calendar',
+    'slack',
+    'xero',
+    'inhouseprint',
+]
+
+
+def _result_dedup_key(item: Dict[str, Any]) -> str:
+    """Compute a content-hash key for dedup.
+
+    Primary: SHA1 of lowercased + whitespace-stripped text.
+    Fallback (no text): SHA1 of (title + provider).
+    """
+    import hashlib
+    text = (item.get('text') or item.get('snippet') or '').strip().lower()
+    text = ' '.join(text.split())
+    if text:
+        payload = text
+    else:
+        payload = f"{(item.get('title') or '').strip().lower()}|{item.get('provider') or ''}"
+    return hashlib.sha1(payload.encode('utf-8')).hexdigest()
+
+
+def _dedup_results(results: List[Dict[str, Any]],
+                   priority: Optional[List[str]] = None,
+                   ) -> List[Dict[str, Any]]:
+    """Merge duplicate results, keeping the highest-score winner per content.
+
+    Each surviving result gains a `merged_from` list with one entry per
+    duplicate that was collapsed into it: `[{provider, id}, ...]`.
+
+    Args:
+        results: List of result dicts (must have at least `text`/`title` and
+            `provider`).
+        priority: Provider priority order for tie-breaking. Lower index wins.
+
+    Returns:
+        New list with duplicates removed. Empty list for empty input.
+    """
+    if not results:
+        return []
+    prio = priority or DEFAULT_PROVIDER_PRIORITY
+    prio_index = {p: i for i, p in enumerate(prio)}
+
+    buckets: Dict[str, Dict[str, Any]] = {}
+    order: List[str] = []  # Preserve first-seen order
+    for item in results:
+        key = _result_dedup_key(item)
+        if key not in buckets:
+            buckets[key] = {
+                'winner': dict(item),
+                'merged_from': [],
+            }
+            order.append(key)
+            continue
+        # Duplicate — track it on the bucket, but do NOT yet demote the winner.
+        existing = buckets[key]['winner']
+        incoming_prio = prio_index.get(item.get('provider'), 9999)
+        winner_prio = prio_index.get(existing.get('provider'), 9999)
+        incoming_score = float(item.get('score', 0.0) or 0.0)
+        winner_score = float(existing.get('score', 0.0) or 0.0)
+        if (incoming_score > winner_score
+                or (incoming_score == winner_score and incoming_prio < winner_prio)):
+            # Incoming wins — record the old winner as a merge source.
+            buckets[key]['merged_from'].append({
+                'provider': existing.get('provider'),
+                'id': existing.get('id'),
+            })
+            buckets[key]['winner'] = dict(item)
+        else:
+            buckets[key]['merged_from'].append({
+                'provider': item.get('provider'),
+                'id': item.get('id'),
+            })
+
+    out: List[Dict[str, Any]] = []
+    for key in order:
+        winner = dict(buckets[key]['winner'])
+        merged_from = buckets[key]['merged_from']
+        if merged_from:
+            winner['merged_from'] = merged_from
+        out.append(winner)
+    return out
+
+
+# ============================================================================
 # ENDPOINT 1: UNIVERSAL SEARCH
 # ============================================================================
 
@@ -187,6 +451,8 @@ def universal_search():
             include_onedrive = 'onedrive' in sources
             include_sharepoint = 'sharepoint' in sources
             include_outlook = 'outlook' in sources
+            include_google_calendar = 'google-calendar' in sources
+            include_microsoft_calendar = 'microsoft-calendar' in sources
         else:
             # For POST, use data payload
             include_documents = data.get('include_documents', True)
@@ -202,6 +468,8 @@ def universal_search():
             include_onedrive = data.get('include_onedrive', 'onedrive' in sources)
             include_sharepoint = data.get('include_sharepoint', 'sharepoint' in sources)
             include_outlook = data.get('include_outlook', 'outlook' in sources)
+            include_google_calendar = data.get('include_google_calendar', 'google-calendar' in sources)
+            include_microsoft_calendar = data.get('include_microsoft_calendar', 'microsoft-calendar' in sources)
         
         results = {
             'query': query,
@@ -640,60 +908,91 @@ def universal_search():
                 results['sources']['vector-database'] = {'error': str(e)}
         
         # ========================================================================
-        # 5. SEARCH GMAIL (via API)
+        # 5. SEARCH GMAIL (registry-dispatched)
         # ========================================================================
         if include_gmail:
             try:
-                gmail_creds = auth_manager.get_user_google_oauth_credentials(user_id)
-                if gmail_creds:
-                    # Call Gmail API
-                    response = requests.get(
-                        'https://gmail.googleapis.com/gmail/v1/users/me/messages',
-                        params={'q': query, 'maxResults': limit},
-                        headers={'Authorization': f'Bearer {gmail_creds.get("access_token")}'}
-                    )
-                    if response.status_code == 200:
-                        gmail_messages = response.json().get('messages', [])
-                        results['sources']['gmail'] = {
-                            'count': len(gmail_messages),
-                            'results': gmail_messages[:limit]
-                        }
-                        results['total_results'] += len(gmail_messages)
-                    else:
-                        print(f"[UNIVERSAL SEARCH] Gmail API error: {response.status_code}")
-                        results['sources']['gmail'] = {'error': f'Gmail API returned {response.status_code}'}
+                # 4-tier resolver → registry.execute_tool → matches
+                gmail_matches = _search_via_registry(
+                    user_id=user_id,
+                    platform_key='google_workspace',
+                    tool_name='gmail_search_messages',
+                    query=query,
+                    limit=limit,
+                    result_key='messages',
+                    result_adapter=lambda m: {
+                        'id': m.get('id') or m.get('message_id'),
+                        'title': (m.get('subject') or m.get('snippet') or '(no subject)'),
+                        'text': (m.get('snippet') or m.get('body') or ''),
+                        'score': float(m.get('score', 0.0) or 0.0),
+                        'date': m.get('date') or m.get('internal_date'),
+                        'link': None,
+                        'metadata': m,
+                        'provider': 'gmail',
+                    },
+                )
+                if not gmail_matches and results['sources'].get('gmail') is None:
+                    # Resolve returned None OR zero matches — distinguish by checking creds.
+                    try:
+                        from AI_infrastructure.shared.org_credentials_loader import resolve_credentials
+                        if not resolve_credentials(user_id, 'google_workspace'):
+                            results['sources']['gmail'] = {'error': 'Gmail not connected'}
+                        else:
+                            results['sources']['gmail'] = {
+                                'count': 0, 'results': [], 'message': 'No matches',
+                            }
+                    except Exception:
+                        results['sources']['gmail'] = {'error': 'Gmail not connected'}
                 else:
-                    results['sources']['gmail'] = {'error': 'Gmail not connected'}
+                    results['sources']['gmail'] = {
+                        'count': len(gmail_matches),
+                        'results': gmail_matches,
+                    }
+                    results['total_results'] += len(gmail_matches)
             except Exception as e:
                 print(f"[UNIVERSAL SEARCH] Gmail search error: {e}")
                 results['sources']['gmail'] = {'error': str(e)}
         
         # ========================================================================
-        # 6. SEARCH SLACK (via API)
+        # 6. SEARCH SLACK (registry-dispatched)
         # ========================================================================
         if include_slack:
             try:
-                # TODO: Add Slack OAuth credential retrieval
-                # slack_creds = auth_manager.get_user_slack_oauth_credentials(user_id)
-                slack_creds = None  # Not implemented yet
-                if slack_creds:
-                    # Call Slack API
-                    response = requests.get(
-                        'https://slack.com/api/search.messages',
-                        params={'query': query, 'count': limit},
-                        headers={'Authorization': f'Bearer {slack_creds.get("access_token")}'}
-                    )
-                    if response.status_code == 200:
-                        slack_messages = response.json().get('messages', {}).get('matches', [])
-                        results['sources']['slack'] = {
-                            'count': len(slack_messages),
-                            'results': slack_messages[:limit]
-                        }
-                        results['total_results'] += len(slack_messages)
-                    else:
-                        results['sources']['slack'] = {'error': f'Slack API returned {response.status_code}'}
+                slack_matches = _search_via_registry(
+                    user_id=user_id,
+                    platform_key='slack',
+                    tool_name='slack_search_messages',
+                    query=query,
+                    limit=limit,
+                    result_key='messages',
+                    result_adapter=lambda m: {
+                        'id': m.get('ts') or m.get('id'),
+                        'title': (m.get('text') or '')[:120],
+                        'text': m.get('text') or '',
+                        'score': float(m.get('score', 0.0) or 0.0),
+                        'date': None,
+                        'link': m.get('permalink'),
+                        'metadata': m,
+                        'provider': 'slack',
+                    },
+                )
+                if slack_matches:
+                    results['sources']['slack'] = {
+                        'count': len(slack_matches),
+                        'results': slack_matches,
+                    }
+                    results['total_results'] += len(slack_matches)
                 else:
-                    results['sources']['slack'] = {'error': 'Slack not connected'}
+                    try:
+                        from AI_infrastructure.shared.org_credentials_loader import resolve_credentials
+                        if not resolve_credentials(user_id, 'slack'):
+                            results['sources']['slack'] = {'error': 'Slack not connected'}
+                        else:
+                            results['sources']['slack'] = {
+                                'count': 0, 'results': [], 'message': 'No matches',
+                            }
+                    except Exception:
+                        results['sources']['slack'] = {'error': 'Slack not connected'}
             except Exception as e:
                 print(f"[UNIVERSAL SEARCH] Slack search error: {e}")
                 results['sources']['slack'] = {'error': str(e)}
@@ -878,207 +1177,292 @@ def universal_search():
                         pass
         
         # ========================================================================
-        # 8. SEARCH GOOGLE DRIVE (via Google Drive API v3)
+        # 8. SEARCH GOOGLE DRIVE (registry-dispatched)
         # ========================================================================
         if include_google_drive:
             try:
-                google_creds = auth_manager.get_user_google_oauth_credentials(user_id)
-                if google_creds and google_creds.get('access_token'):
-                    # Search Google Drive using Drive API v3
-                    drive_query = f"name contains '{query}' or fullText contains '{query}'"
-                    response = requests.get(
-                        'https://www.googleapis.com/drive/v3/files',
-                        params={
-                            'q': drive_query,
-                            'pageSize': limit,
-                            'fields': 'files(id,name,mimeType,createdTime,modifiedTime,size,webViewLink,owners)',
-                            'orderBy': 'modifiedTime desc'
+                drive_matches = _search_via_registry(
+                    user_id=user_id,
+                    platform_key='google_workspace',
+                    tool_name='google_drive_search_files',
+                    query=query,
+                    limit=limit,
+                    result_key='files',
+                    result_adapter=lambda f: {
+                        'id': f.get('id'),
+                        'title': f.get('name') or '(untitled)',
+                        'text': f.get('description') or f.get('name') or '',
+                        'score': float(f.get('score', 0.0) or 0.0),
+                        'date': f.get('modifiedTime') or f.get('createdTime'),
+                        'link': f.get('webViewLink'),
+                        'metadata': {
+                            'mime_type': f.get('mimeType'),
+                            'size': f.get('size'),
+                            'owner': ((f.get('owners') or [{}])[0].get('displayName')
+                                      if f.get('owners') else None),
                         },
-                        headers={'Authorization': f'Bearer {google_creds.get("access_token")}'}
-                    )
-                    if response.status_code == 200:
-                        drive_files = response.json().get('files', [])
-                        formatted_results = []
-                        for file in drive_files:
-                            formatted_results.append({
-                                'type': 'file',
-                                'id': file.get('id'),
-                                'name': file.get('name'),
-                                'mime_type': file.get('mimeType'),
-                                'created': file.get('createdTime'),
-                                'modified': file.get('modifiedTime'),
-                                'size': file.get('size'),
-                                'link': file.get('webViewLink'),
-                                'owner': file.get('owners', [{}])[0].get('displayName') if file.get('owners') else None
-                            })
-                        results['sources']['google-drive'] = {
-                            'count': len(formatted_results),
-                            'results': formatted_results
-                        }
-                        results['total_results'] += len(formatted_results)
-                    else:
-                        print(f"[UNIVERSAL SEARCH] Drive API error: {response.status_code}")
-                        results['sources']['google-drive'] = {'error': f'Drive API returned {response.status_code}'}
+                        'provider': 'google-drive',
+                    },
+                )
+                if drive_matches:
+                    results['sources']['google-drive'] = {
+                        'count': len(drive_matches),
+                        'results': drive_matches,
+                    }
+                    results['total_results'] += len(drive_matches)
                 else:
-                    results['sources']['google-drive'] = {'error': 'Google Drive not connected'}
+                    try:
+                        from AI_infrastructure.shared.org_credentials_loader import resolve_credentials
+                        if not resolve_credentials(user_id, 'google_workspace'):
+                            results['sources']['google-drive'] = {'error': 'Google Drive not connected'}
+                        else:
+                            results['sources']['google-drive'] = {
+                                'count': 0, 'results': [], 'message': 'No matches',
+                            }
+                    except Exception:
+                        results['sources']['google-drive'] = {'error': 'Google Drive not connected'}
             except Exception as e:
                 print(f"[UNIVERSAL SEARCH] Google Drive search error: {e}")
                 results['sources']['google-drive'] = {'error': str(e)}
         
         # ========================================================================
-        # 9. SEARCH ONEDRIVE (via Microsoft Graph API)
+        # 9. SEARCH ONEDRIVE (registry-dispatched)
         # ========================================================================
         if include_onedrive:
             try:
-                microsoft_creds = auth_manager.get_user_microsoft_oauth_credentials(user_id)
-                if microsoft_creds and microsoft_creds.get('access_token'):
-                    # Search OneDrive using Microsoft Graph API
-                    response = requests.get(
-                        f'https://graph.microsoft.com/v1.0/me/drive/search(q=\'{query}\')',
-                        params={
-                            '$top': limit,
-                            '$select': 'id,name,createdDateTime,lastModifiedDateTime,size,webUrl,file,folder'
+                onedrive_matches = _search_via_registry(
+                    user_id=user_id,
+                    platform_key='microsoft_365',
+                    tool_name='microsoft_onedrive_search_files',
+                    query=query,
+                    limit=limit,
+                    result_key='items',
+                    result_adapter=lambda f: {
+                        'id': f.get('id'),
+                        'title': f.get('name') or '(untitled)',
+                        'text': f.get('description') or f.get('name') or '',
+                        'score': float(f.get('score', 0.0) or 0.0),
+                        'date': f.get('lastModifiedDateTime') or f.get('createdDateTime'),
+                        'link': f.get('webUrl'),
+                        'metadata': {
+                            'type': 'folder' if f.get('folder') else 'file',
+                            'size': f.get('size'),
+                            'mime_type': (f.get('file') or {}).get('mimeType'),
                         },
-                        headers={'Authorization': f'Bearer {microsoft_creds.get("access_token")}'}
-                    )
-                    if response.status_code == 200:
-                        onedrive_items = response.json().get('value', [])
-                        formatted_results = []
-                        for item in onedrive_items:
-                            formatted_results.append({
-                                'type': 'folder' if item.get('folder') else 'file',
-                                'id': item.get('id'),
-                                'name': item.get('name'),
-                                'created': item.get('createdDateTime'),
-                                'modified': item.get('lastModifiedDateTime'),
-                                'size': item.get('size'),
-                                'link': item.get('webUrl'),
-                                'mime_type': item.get('file', {}).get('mimeType') if item.get('file') else None
-                            })
-                        results['sources']['onedrive'] = {
-                            'count': len(formatted_results),
-                            'results': formatted_results
-                        }
-                        results['total_results'] += len(formatted_results)
-                    else:
-                        print(f"[UNIVERSAL SEARCH] OneDrive API error: {response.status_code}")
-                        results['sources']['onedrive'] = {'error': f'Graph API returned {response.status_code}'}
+                        'provider': 'onedrive',
+                    },
+                )
+                if onedrive_matches:
+                    results['sources']['onedrive'] = {
+                        'count': len(onedrive_matches),
+                        'results': onedrive_matches,
+                    }
+                    results['total_results'] += len(onedrive_matches)
                 else:
-                    results['sources']['onedrive'] = {'error': 'OneDrive not connected'}
+                    try:
+                        from AI_infrastructure.shared.org_credentials_loader import resolve_credentials
+                        if not resolve_credentials(user_id, 'microsoft_365'):
+                            results['sources']['onedrive'] = {'error': 'OneDrive not connected'}
+                        else:
+                            results['sources']['onedrive'] = {
+                                'count': 0, 'results': [], 'message': 'No matches',
+                            }
+                    except Exception:
+                        results['sources']['onedrive'] = {'error': 'OneDrive not connected'}
             except Exception as e:
                 print(f"[UNIVERSAL SEARCH] OneDrive search error: {e}")
                 results['sources']['onedrive'] = {'error': str(e)}
         
         # ========================================================================
-        # 10. SEARCH SHAREPOINT (via Microsoft Graph API)
+        # 10. SEARCH SHAREPOINT (registry-dispatched)
         # ========================================================================
         if include_sharepoint:
             try:
-                microsoft_creds = auth_manager.get_user_microsoft_oauth_credentials(user_id)
-                if microsoft_creds and microsoft_creds.get('access_token'):
-                    # First get the user's SharePoint sites
-                    sites_response = requests.get(
-                        'https://graph.microsoft.com/v1.0/sites?search=*',
-                        headers={'Authorization': f'Bearer {microsoft_creds.get("access_token")}'}
-                    )
-                    
-                    sharepoint_results = []
-                    if sites_response.status_code == 200:
-                        sites = sites_response.json().get('value', [])
-                        # Search each site's drive (limit to first 3 sites to avoid timeout)
-                        for site in sites[:3]:
-                            site_id = site.get('id')
-                            site_name = site.get('displayName', 'Unknown Site')
-                            
-                            # Search this site's drive
-                            search_response = requests.get(
-                                f'https://graph.microsoft.com/v1.0/sites/{site_id}/drive/search(q=\'{query}\')',
-                                params={
-                                    '$top': 5,  # Limit per site
-                                    '$select': 'id,name,createdDateTime,lastModifiedDateTime,size,webUrl'
-                                },
-                                headers={'Authorization': f'Bearer {microsoft_creds.get("access_token")}'}
-                            )
-                            
-                            if search_response.status_code == 200:
-                                items = search_response.json().get('value', [])
-                                for item in items:
-                                    sharepoint_results.append({
-                                        'type': 'file',
-                                        'id': item.get('id'),
-                                        'name': item.get('name'),
-                                        'site': site_name,
-                                        'created': item.get('createdDateTime'),
-                                        'modified': item.get('lastModifiedDateTime'),
-                                        'size': item.get('size'),
-                                        'link': item.get('webUrl')
-                                    })
-                        
-                        results['sources']['sharepoint'] = {
-                            'count': len(sharepoint_results),
-                            'results': sharepoint_results[:limit]  # Apply overall limit
-                        }
-                        results['total_results'] += len(sharepoint_results)
-                    else:
-                        print(f"[UNIVERSAL SEARCH] SharePoint sites API error: {sites_response.status_code}")
-                        results['sources']['sharepoint'] = {'error': f'Graph API returned {sites_response.status_code}'}
+                sharepoint_matches = _search_via_registry(
+                    user_id=user_id,
+                    platform_key='microsoft_365',
+                    tool_name='microsoft_sharepoint_search_content',
+                    query=query,
+                    limit=limit,
+                    result_key='matches',
+                    result_adapter=lambda f: {
+                        'id': f.get('id') or f.get('driveItemId'),
+                        'title': f.get('name') or f.get('title') or '(untitled)',
+                        'text': f.get('summary') or f.get('name') or '',
+                        'score': float(f.get('score', 0.0) or 0.0),
+                        'date': f.get('lastModifiedDateTime') or f.get('createdDateTime'),
+                        'link': f.get('webUrl'),
+                        'metadata': {
+                            'site': f.get('siteName') or f.get('siteDisplayName'),
+                            'size': f.get('size'),
+                        },
+                        'provider': 'sharepoint',
+                    },
+                )
+                if sharepoint_matches:
+                    results['sources']['sharepoint'] = {
+                        'count': len(sharepoint_matches),
+                        'results': sharepoint_matches,
+                    }
+                    results['total_results'] += len(sharepoint_matches)
                 else:
-                    results['sources']['sharepoint'] = {'error': 'SharePoint not connected'}
+                    try:
+                        from AI_infrastructure.shared.org_credentials_loader import resolve_credentials
+                        if not resolve_credentials(user_id, 'microsoft_365'):
+                            results['sources']['sharepoint'] = {'error': 'SharePoint not connected'}
+                        else:
+                            results['sources']['sharepoint'] = {
+                                'count': 0, 'results': [], 'message': 'No matches',
+                            }
+                    except Exception:
+                        results['sources']['sharepoint'] = {'error': 'SharePoint not connected'}
             except Exception as e:
                 print(f"[UNIVERSAL SEARCH] SharePoint search error: {e}")
                 results['sources']['sharepoint'] = {'error': str(e)}
         
         # ========================================================================
-        # 11. SEARCH OUTLOOK (via Microsoft Graph API)
+        # 11. SEARCH OUTLOOK (registry-dispatched)
         # ========================================================================
         if include_outlook:
             try:
-                microsoft_creds = auth_manager.get_user_microsoft_oauth_credentials(user_id)
-                if microsoft_creds and microsoft_creds.get('access_token'):
-                    # Search Outlook emails using Microsoft Graph API
-                    response = requests.get(
-                        'https://graph.microsoft.com/v1.0/me/messages',
-                        params={
-                            '$search': f'"{query}"',
-                            '$top': limit,
-                            '$select': 'id,subject,from,receivedDateTime,bodyPreview,isRead,hasAttachments,webLink',
-                            '$orderby': 'receivedDateTime DESC'
+                outlook_matches = _search_via_registry(
+                    user_id=user_id,
+                    platform_key='microsoft_365',
+                    tool_name='microsoft_outlook_search_messages',
+                    query=query,
+                    limit=limit,
+                    result_key='messages',
+                    result_adapter=lambda m: {
+                        'id': m.get('id') or m.get('message_id'),
+                        'title': m.get('subject') or '(no subject)',
+                        'text': m.get('bodyPreview') or m.get('snippet') or '',
+                        'score': float(m.get('score', 0.0) or 0.0),
+                        'date': m.get('receivedDateTime'),
+                        'link': m.get('webLink'),
+                        'metadata': {
+                            'from': ((m.get('from') or {}).get('emailAddress') or {}).get('address'),
+                            'is_read': m.get('isRead'),
+                            'has_attachments': m.get('hasAttachments'),
                         },
-                        headers={
-                            'Authorization': f'Bearer {microsoft_creds.get("access_token")}',
-                            'ConsistencyLevel': 'eventual'  # Required for search
-                        }
-                    )
-                    if response.status_code == 200:
-                        outlook_messages = response.json().get('value', [])
-                        formatted_results = []
-                        for msg in outlook_messages:
-                            formatted_results.append({
-                                'type': 'email',
-                                'id': msg.get('id'),
-                                'subject': msg.get('subject'),
-                                'from': msg.get('from', {}).get('emailAddress', {}).get('address'),
-                                'from_name': msg.get('from', {}).get('emailAddress', {}).get('name'),
-                                'received': msg.get('receivedDateTime'),
-                                'preview': msg.get('bodyPreview'),
-                                'is_read': msg.get('isRead'),
-                                'has_attachments': msg.get('hasAttachments'),
-                                'link': msg.get('webLink')
-                            })
-                        results['sources']['outlook'] = {
-                            'count': len(formatted_results),
-                            'results': formatted_results
-                        }
-                        results['total_results'] += len(formatted_results)
-                    else:
-                        print(f"[UNIVERSAL SEARCH] Outlook API error: {response.status_code}")
-                        results['sources']['outlook'] = {'error': f'Graph API returned {response.status_code}'}
+                        'provider': 'outlook',
+                    },
+                )
+                if outlook_matches:
+                    results['sources']['outlook'] = {
+                        'count': len(outlook_matches),
+                        'results': outlook_matches,
+                    }
+                    results['total_results'] += len(outlook_matches)
                 else:
-                    results['sources']['outlook'] = {'error': 'Outlook not connected'}
+                    try:
+                        from AI_infrastructure.shared.org_credentials_loader import resolve_credentials
+                        if not resolve_credentials(user_id, 'microsoft_365'):
+                            results['sources']['outlook'] = {'error': 'Outlook not connected'}
+                        else:
+                            results['sources']['outlook'] = {
+                                'count': 0, 'results': [], 'message': 'No matches',
+                            }
+                    except Exception:
+                        results['sources']['outlook'] = {'error': 'Outlook not connected'}
             except Exception as e:
                 print(f"[UNIVERSAL SEARCH] Outlook search error: {e}")
                 results['sources']['outlook'] = {'error': str(e)}
-        
+
+        # ========================================================================
+        # 12. SEARCH GOOGLE CALENDAR (list-then-filter; no native search tool)
+        # ========================================================================
+        if include_google_calendar:
+            try:
+                gcal_matches = _search_calendar_via_registry(
+                    user_id=user_id,
+                    platform_key='google_workspace',
+                    list_tool='google_calendar_list_events',
+                    query=query,
+                    limit=limit,
+                )
+                if gcal_matches:
+                    results['sources']['google-calendar'] = {
+                        'count': len(gcal_matches),
+                        'results': gcal_matches,
+                    }
+                    results['total_results'] += len(gcal_matches)
+                else:
+                    try:
+                        from AI_infrastructure.shared.org_credentials_loader import resolve_credentials
+                        if not resolve_credentials(user_id, 'google_workspace'):
+                            results['sources']['google-calendar'] = {'error': 'Google Calendar not connected'}
+                        else:
+                            results['sources']['google-calendar'] = {
+                                'count': 0, 'results': [], 'message': 'No matches',
+                            }
+                    except Exception:
+                        results['sources']['google-calendar'] = {'error': 'Google Calendar not connected'}
+            except Exception as e:
+                print(f"[UNIVERSAL SEARCH] Google Calendar search error: {e}")
+                results['sources']['google-calendar'] = {'error': str(e)}
+
+        # ========================================================================
+        # 13. SEARCH MICROSOFT CALENDAR (list-then-filter; no native search tool)
+        # ========================================================================
+        if include_microsoft_calendar:
+            try:
+                mcal_matches = _search_calendar_via_registry(
+                    user_id=user_id,
+                    platform_key='microsoft_365',
+                    list_tool='microsoft_calendar_list_events',
+                    query=query,
+                    limit=limit,
+                )
+                if mcal_matches:
+                    results['sources']['microsoft-calendar'] = {
+                        'count': len(mcal_matches),
+                        'results': mcal_matches,
+                    }
+                    results['total_results'] += len(mcal_matches)
+                else:
+                    try:
+                        from AI_infrastructure.shared.org_credentials_loader import resolve_credentials
+                        if not resolve_credentials(user_id, 'microsoft_365'):
+                            results['sources']['microsoft-calendar'] = {'error': 'Microsoft Calendar not connected'}
+                        else:
+                            results['sources']['microsoft-calendar'] = {
+                                'count': 0, 'results': [], 'message': 'No matches',
+                            }
+                    except Exception:
+                        results['sources']['microsoft-calendar'] = {'error': 'Microsoft Calendar not connected'}
+            except Exception as e:
+                print(f"[UNIVERSAL SEARCH] Microsoft Calendar search error: {e}")
+                results['sources']['microsoft-calendar'] = {'error': str(e)}
+
+        # ========================================================================
+        # 14. CROSS-SOURCE DEDUP (content-hash + merged_from)
+        # ========================================================================
+        # Flatten every successful source into one list, dedup by content-hash,
+        # then write the survivors back into a synthetic 'merged' source. The
+        # per-source buckets are preserved so the UI can still show per-source
+        # facets; the merged list is the canonical answer for the AI.
+        try:
+            all_hits: List[Dict[str, Any]] = []
+            for src_key, src_blob in (results.get('sources') or {}).items():
+                if not isinstance(src_blob, dict):
+                    continue
+                items = src_blob.get('results')
+                if not isinstance(items, list) or not items:
+                    continue
+                # Only dedup registry-shaped dicts (have provider field).
+                for it in items:
+                    if isinstance(it, dict) and it.get('provider'):
+                        all_hits.append(it)
+            if all_hits:
+                deduped = _dedup_results(all_hits)
+                results['sources']['merged'] = {
+                    'count': len(deduped),
+                    'results': deduped,
+                    'note': 'Cross-source dedup; merged_from lists collapses.',
+                }
+        except Exception as dedup_err:
+            print(f"[UNIVERSAL SEARCH] dedup skipped: {dedup_err}")
+
         return jsonify({
             'success': True,
             **results
