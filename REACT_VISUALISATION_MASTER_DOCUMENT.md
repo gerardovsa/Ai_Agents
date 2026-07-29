@@ -285,6 +285,7 @@ AI before handing it to Babel. The transforms (in order) live at
 | Trim whitespace | `.trim()` | Cosmetic. |
 | Strip `import` declarations (regex) | 14+ regex passes for: `import 'side.css'`, `import Foo from 'bar'`, `import {a,b} from 'bar'`, `import * as Foo from 'bar'`, `import default as Foo from 'bar'`, multi-line, comments-inside, `import.meta`, dynamic `import(...)`, `export * from`, `export { a, b }`, `export default`, `export class`, `export function`, `await` at top-level. | Babel Standalone's transformScriptTags does NOT strip ES module keywords; surviving keywords trigger `appendChild on 'Node': Cannot use import statement outside a module`. |
 | `{flag && JSX}` rewrite | `rewriteShortCircuitJSX(src)` — walker that converts `{flag && <X/>}` to `{flag ? <X/> : null}` for 6 AI patterns (see §7). | Recharts builds its axis registry via `React.Children.toArray()`; a literal `false` child becomes a placeholder text fiber, corrupting the registry. |
+| **F5 — id-shadow rename** (2026-07-29) | Pre-pass over `rawSource` that detects `([id, X])` destructuring inside `.map(...)` callbacks and rewrites every `id` reference in that callback body to `__entryId__`. Regex `(?<![.\w])id(?!\w)(?!:)` skips `node.id`, `idempotent`, and `id:` property keys. State machine skips strings (`'...'`, `"..."`, template literals), line and block comments, and counts brace depth to find the callback body. | Babel Standalone 7.24.7 has a silent scope-shadow bug: when JSX contains BOTH `<X id="..."/>` and a nested `.map(([id, X]) => {…})`, the destructured `id` parameter is dropped from the emitted scope and React throws `ReferenceError: id is not defined` at runtime. The error hides inside the iframe sandbox (the parent console sees nothing), so prompt-level workarounds ("rename your destructured id") would be required to keep React parity with Mermaid. F5 fixes it in the renderer instead. |
 | `safeJsString(s)` | escape `</script` → `<\/script` for srcdoc embedding. | Without this, a literal `</script>` in the AI's JSX (e.g. inside a `<Tooltip>` or `dangerouslySetInnerHTML`) terminates the enclosing `<script>` tag mid-string. |
 | Library auto-detect | `usesRecharts = /(BarChart|LineChart|PieChart|…)/.test(jsx)`; same for `usesLucide`, `usesTailwind`. | If the AI uses Recharts, the Recharts script tags are included; otherwise they're omitted to keep the iframe lean. |
 
@@ -617,13 +618,14 @@ diagnose. They are cumulative — all are live.
 |---|---|---|---|
 | **v1** | 2026-07-22 | First iframe scaffolding — Tier-1 export hook added. | `iframe-svg`, `iframe-data` postMessages. |
 | **v2** | 2026-07-22 | Tier-1 toolbar (PNG / PDF / CSV / copy / fullscreen / save). | `addIframeTier1Toolbar` at `visualisation_v3.js:2242`. |
-| **v3** | 2026-07-23 | Babel fences F0–F3 — bracket Babel setup steps to find which seam corrupts the plugin cache. | `react-render-fences` postMessage. |
+| **v3** | 2026-07-23 | Babel fences F0–F3 — bracket Babel setup steps to find which seam corrupts the plugin cache. (Superseded conceptually by F5 — the id-shadow pre-pass — but F0–F3 still run as Babel-health probes.) | `react-render-fences` postMessage. |
 | **v4** | 2026-07-23 | Post-exec snapshot — "transform succeeded but iframe blank" class of bug. | `react-render-snapshot` postMessage. |
 | **v5** | 2026-07-25 | Parent-side raw capture. Even when the iframe script dies, parent has both inputs (raw JSX + Babel output) synchronously. | `window.parent.__lastChartRaw__`, `window.parent.__lastChartOut__`. |
 | **v6** | 2026-07-25 | In-iframe `__lastChartRaw__` mirror. Same data on `window.parent` inside the iframe (often fails silently in srcdoc sandbox). | n/a — superseded by v7. |
 | **v7** | 2026-07-26 | Entry-point log on `buildReactSrcdoc`. Catches the case where the function itself crashes before the iframe is even created. | `console.log` at line 200. |
 | **v8** | 2026-07-26 | Cross-origin-safe Babel output. `postMessage` survives srcdoc opacity. Four messages: `react-render-babel-output`, `react-render-babel-error`, `react-render-pre-transform`, `react-render-script-error`. | All four postMessages populated. |
 | **v9** | 2026-07-27 | Iframe console capture. 50-entry ring buffer of `console.{log,warn,error,info,debug}`, forwarded to the real `console.*` (no double-log). Parent requests via `react-render-console-request`; iframe replies `react-render-console-batch`. | `window.__DIAG_CONSOLE_BUFFER__()` (inside iframe). `window.__renderConsoleBatches__[chartId]` (parent). |
+| **v10** | 2026-07-29 | F5 id-shadow rename counter. Surfaces the F5 pre-pass outcome on every render so the diag kebab can show how many destructured `[id, X]` bindings were rewritten — even on success, even when Babel throws *after* F5 rewrote the source. | `window.parent.__lastIdShadowFixApplied`, `window.parent.__lastIdShadowFixRenames`. Same fields on the `react-render-babel-error` postMessage payload. |
 
 **Plus three later rounds:**
 
@@ -950,6 +952,7 @@ From May 2026 to present (2026-07-28). Only commits affecting
 | `72855b99` | 2026-07-26 | regex escape | double-escape fixup regex so backslashes survive srcdoc embedding |
 | `bf6b3454` | 2026-07-26 | Round 5 (hoist) | resolve Lucide/Recharts name collisions in identifierHoist |
 | `bbb60bad` | 2026-07-28 | Round 6 (verify) | identity-check snapshot detects Lucide-vs-Recharts collisions |
+| `TBD` | 2026-07-29 | F5 (id shadow) | pre-pass renames destructured `([id, X]) => {…}` callbacks to `__entryId__`; fixes Babel Standalone scope-shadow that hid `ReferenceError: id is not defined` inside the iframe sandbox. Surface via `window.parent.__lastIdShadowFixRenames`. |
 
 ---
 
@@ -1026,6 +1029,7 @@ that resolves it.
 | Bare-array JSX attribute | Babel throws "JSX value should be either..." | AI emits `data=[...]` not `data={[...]}` | Regex wrap fixup (Round 12) |
 | `Map.prototype.set is not a function` | Recharts runtime error | Native Map broken | v2 Map shim at line 898 |
 | `window.Recharts` undefined at hoist time | All charts undefined | UMD async load | 3-second poll in `rechartsSetup` |
+| `ReferenceError: id is not defined` | Runtime error in `__renderErrors__[chartId]` | Babel Standalone 7.24.7 drops destructured `id` parameter from scope when JSX also has `id="..."` attributes | F5 id-shadow rename pre-pass (2026-07-29) |
 
 ---
 
@@ -1081,6 +1085,16 @@ that resolves it.
     `*.has is not a function` pattern), add a new panel — but only with a
     verified reproducer.
 
+13. **The F5 id-shadow rename heuristic.** The pre-pass detects `([id, X]) =>
+    {…}` callbacks by scanning for the literal `([id,` token and counting
+    brace depth. **It does NOT parse JS.** If the AI emits destructuring with
+    comments or whitespace between the bracket and the `id` (e.g.
+    `([/* comment */ id, X] => …`), F5 misses it and Babel may still drop the
+    binding. The state machine also bails out for implicit-return single-
+    expression arrows (no `{` body) and unbalanced braces — these fall
+    through to Babel unmodified. Verified by `f5_smoke.py` (7/7 sanity
+    checks) before deploy.
+
 ---
 
 ## 27. Glossary
@@ -1088,6 +1102,7 @@ that resolves it.
 | Term | Meaning |
 |---|---|
 | **Babel fence** | A probe `Babel.transform()` call at a known seam in the run-engine. Records whether Babel is healthy at that point. F0 = initial, F1 = after React hooks, F2 = after Recharts globals, F3 = before actual transform. |
+| **F5 fence** | A source-cleaning pre-pass (NOT a Babel probe) that rewrites destructured `([id, X]) => {…}` callbacks to use `__entryId__` instead of `id`. Works around Babel Standalone 7.24.7's silent scope-shadow bug when JSX contains both `<X id="..."/>` and nested `.map(([id, X]) => {…})`. Records the rename count via `__idShadowFixRenames` (captured on parent as `window.parent.__lastIdShadowFixRenames`). |
 | **BoundaryClass** | Hand-rolled error boundary used to wrap the user's root component. Uses prototype assignment (not `class extends`) for transpiler independence. |
 | **Cache-bust** | `?v=YYYYMMDD_HHMM` suffix on every script tag that loads a renderer file. Bumped whenever the file changes. |
 | **Chart id** | Unique identifier for each iframe. Used as the key in every `window.__Xxx__[chartId]` global and every `postMessage` payload. |
@@ -1095,6 +1110,7 @@ that resolves it.
 | **Hoist** | `identifierHoist` IIFE that lifts PascalCase identifiers onto `window` so the transformed code can use them as globals. Two-pass design with priority source swap (Round 5). |
 | **Iframe-resize** | postMessage type `{type: 'iframe-resize', id, height}` sent from iframe to parent. Parent clamps to [200, 900]. |
 | **Identity check** | `window[name] === window.Recharts?.[name]`. The only signal that distinguishes a wrapped Lucide icon from a real Recharts component (both are functions). |
+| **idShadowFixRenames** | Counter on the F5 fence indicating how many `id` bindings were rewritten to `__entryId__`. Surfaces on `window.parent.__lastIdShadowFixRenames` for both success and failure captures, plus on the `react-render-babel-error` postMessage payload so the diag kebab can show how many destructured bindings the AI emitted even when Babel throws. |
 | **Page-level sink** | `installReactRendererDiagSink` IIFE at line 42. Registers a single `window.message` listener that captures every `react-render-*` postMessage. |
 | **Priority names** | 36 PascalCase identifiers that exist in BOTH Recharts and Lucide. Listed in `RECHARTS_PRIORITY_NAMES`. Recharts always wins the hoist for these names. |
 | **Sandbox string** | `allow-scripts allow-forms allow-modals allow-pointer-lock allow-downloads`. Note the absence of `allow-same-origin`. |

@@ -1173,6 +1173,187 @@ ${rechartsSetup}
             // [ ... ] in { ... } is idempotent: a well-formed attr={ [...] }
             // is already wrapped, so the inner [ is preceded by {, not by an
             // equals-sign, and the regex never matches it.
+            // ── F5: defensive rename of destructured [id, X] parameters ────────
+            // BUGFIX 2026-07-28. Babel Standalone 7.24.7 has a silent scope-
+            // shadow bug when JSX contains BOTH <X id="..."/> AND a nested
+            // .map(([id, ...]) => {...}) callback: the destructured \'id\'
+            // parameter is dropped from the emitted scope, so the React
+            // render throws \'ReferenceError: id is not defined\' even though
+            // the Babel output passes the \'new Function()\' pre-parse and
+            // the <script> append succeeds. The error is also a runtime
+            // (not a script-body) failure, so the iframe sandbox hides it
+            // from the parent console.
+            //
+            // The pre-pass scans the rawSource for \'([id, X])\' destructuring
+            // patterns, finds the matching \'=>\' arrow + \'{ ... }\' body, and
+            // renames \'id\' -> \'__entryId__\' everywhere inside that callback.
+            // The rename regex \'(?<![.\w])id(?!\w)(?!:)\' is precise:
+            //   - (?<![.\w]) rejects \'node.id\' (preceded by \'.\') and \'hidden\'
+            //     (preceded by word char)
+            //   - (?!\w) rejects \'idempotent\' (followed by word char)
+            //   - (?!:) rejects the \'id:\' shorthand-key position in \'{id: id}\'
+            //     -- the *property key* is left alone, only the *value ref*
+            //     is renamed. This matters because Babel transforms JSX
+            //     <X id="..."> into \'{id: "..."}\' createElement props, and
+            //     the property key stays put.
+            //
+            // State machine correctness: skips string literals (with
+            // backslash escapes for \" \\ \\' \'), line comments, and block
+            // comments when scanning for the \'([id,\' token and when
+            // counting brace depth. Skips implicit-return single-expression
+            // arrows (no \'{\' body) and unbalanced braces (assumes our
+            // heuristic was wrong and lets Babel have the original source).
+            //
+            // Fixes: chartId 'two-rule-react-1785241715598' (Business Process
+            // Flow, 12-step decision tree with branching paths). Without
+            // this, the user has to retry the AI with "rename your destructured
+            // id parameter", which is a prompt-level workaround and would
+            // block React parity with Mermaid for flow diagrams.
+            //
+            // Diagnostic: every rename is reported on the F5 fence so we can
+            // see in the kebab menu exactly how many bindings were rewritten.
+            var __idShadowFixApplied = false;
+            var __idShadowFixRenames = 0;
+            try {
+                var __idShadowResult = (function () {
+                    var s = rawSource;
+                    var out = '';
+                    var i = 0;
+                    var n = s.length;
+                    var renames = 0;
+                    // Match standalone \'id\' -- not preceded by \'.\' or word
+                    // char, not followed by word char, not followed by \':\'.
+                    var idRefRegex = /(?<![.\w])id(?!\w)(?!:)/g;
+                    function skipStr(j) {
+                        var c = s.charAt(j);
+                        if (c !== '"' && c !== "'" && c !== String.fromCharCode(96)) return j + 1;
+                        var q = c; j++;
+                        while (j < n) {
+                            var cc = s.charAt(j);
+                            if (cc === '\\') { j += 2; continue; }
+                            if (cc === q) { j++; return j; }
+                            j++;
+                        }
+                        return j;
+                    }
+                    function skipComment(j) {
+                        if (s.charAt(j) === '/' && s.charAt(j + 1) === '/') {
+                            while (j < n && s.charAt(j) !== '\n') j++;
+                            return j;
+                        }
+                        if (s.charAt(j) === '/' && s.charAt(j + 1) === '*') {
+                            j += 2;
+                            while (j < n - 1 && !(s.charAt(j) === '*' && s.charAt(j + 1) === '/')) j++;
+                            return j + 2;
+                        }
+                        return j + 1;
+                    }
+                    function skipStrOrComment(j) {
+                        var c = s.charAt(j);
+                        if (c === '"' || c === "'" || c === String.fromCharCode(96)) return skipStr(j);
+                        if (c === '/' && (s.charAt(j + 1) === '/' || s.charAt(j + 1) === '*')) return skipComment(j);
+                        return j + 1;
+                    }
+                    function findArrow(j) {
+                        // Find \'=>\' not inside string/comment, after \']\'
+                        while (j < n) {
+                            var c = s.charAt(j);
+                            if (c === '"' || c === "'" || c === String.fromCharCode(96) || (c === '/' && (s.charAt(j + 1) === '/' || s.charAt(j + 1) === '*'))) {
+                                j = skipStrOrComment(j); continue;
+                            }
+                            if (c === '=' && s.charAt(j + 1) === '>') return j;
+                            j++;
+                        }
+                        return -1;
+                    }
+                    while (i < n) {
+                        // Find next \'([id,\' (skip strings/comments)
+                        var idx = -1;
+                        var k = i;
+                        while (k < n) {
+                            var ck = s.charAt(k);
+                            if (ck === '"' || ck === "'" || ck === String.fromCharCode(96) || (ck === '/' && (s.charAt(k + 1) === '/' || s.charAt(k + 1) === '*'))) {
+                                k = skipStrOrComment(k); continue;
+                            }
+                            if (ck === '(' && s.charAt(k + 1) === '[' && s.charAt(k + 2) === 'i' && s.charAt(k + 3) === 'd' && s.charAt(k + 4) === ',') {
+                                idx = k; break;
+                            }
+                            k++;
+                        }
+                        if (idx === -1) { out += s.slice(i); break; }
+                        // Emit everything up to and including the open bracket
+                        out += s.slice(i, idx + 2);
+                        // Find the fat arrow after the destructuring
+                        var arrowIdx = findArrow(idx + 4);
+                        if (arrowIdx === -1) { out += s.slice(idx + 2); break; }
+                        // Emit the renamed identifier (replacing id)
+                        out += '__entryId__';
+                        renames++;
+                        // BUGFIX 2026-07-29: emit the trailing slice UP TO AND
+                        // INCLUDING the fat arrow. Previous slice ended at
+                        // arrowIdx (the equals sign), so the arrow operator
+                        // was dropped from the output and produced syntax
+                        // like map( ([__entryId__, next]) { ... } ) with no
+                        // fat-arrow between the param list and body. Caught
+                        // by f5_smoke.py before deploy.
+                        out += s.slice(idx + 4, arrowIdx + 2);
+                        // Find the opening \'{\' of the arrow body (skip ws)
+                        var braceStart = arrowIdx + 2;
+                        while (braceStart < n && /\s/.test(s.charAt(braceStart))) braceStart++;
+                        if (s.charAt(braceStart) !== '{') {
+                            // Implicit-return single expression -- skip
+                            // rename for safety (regex scope guess is too
+                            // risky vs the cost of a false-positive rename)
+                            i = braceStart;
+                            continue;
+                        }
+                        // Find matching \'}\' by brace depth (skip strings/comments)
+                        var depth = 1;
+                        var j = braceStart + 1;
+                        while (j < n && depth > 0) {
+                            var cj = s.charAt(j);
+                            if (cj === '"' || cj === "'" || cj === String.fromCharCode(96) || (cj === '/' && (s.charAt(j + 1) === '/' || s.charAt(j + 1) === '*'))) {
+                                j = skipStrOrComment(j); continue;
+                            }
+                            if (cj === '{') depth++;
+                            else if (cj === '}') depth--;
+                            j++;
+                        }
+                        if (depth !== 0) {
+                            // Unbalanced -- bail out, leave Babel to try
+                            i = braceStart + 1;
+                            continue;
+                        }
+                        // Emit the body with 'id' references renamed
+                        var body = s.slice(braceStart + 1, j - 1);
+                        var renamedBody = body.replace(idRefRegex, '__entryId__');
+                        var bodyRenames = (body.match(idRefRegex) || []).length;
+                        renames += bodyRenames;
+                        out += '{' + renamedBody + '}';
+                        i = j;
+                    }
+                    return { src: out, renames: renames };
+                })();
+                if (__idShadowResult.renames > 0) {
+                    rawSource = __idShadowResult.src;
+                    __idShadowFixApplied = true;
+                    __idShadowFixRenames = __idShadowResult.renames;
+                }
+                __babelFences.push({
+                    label: 'F5 -- id shadow rename (destructured [id, X] => __entryId__)',
+                    ok: __idShadowFixApplied,
+                    renames: __idShadowFixRenames
+                });
+            } catch (__idShadowErr) {
+                // Pre-process failed -- safe to ignore, Babel will still try.
+                try {
+                    __babelFences.push({
+                        label: 'F5 -- id shadow rename (skipped: ' + ((__idShadowErr && __idShadowErr.message) || 'unknown') + ')',
+                        ok: false
+                    });
+                } catch (_) {}
+            }
+
             var __babelFixupApplied = false;
             try {
                 out = Babel.transform(rawSource, {
@@ -1271,6 +1452,14 @@ ${rechartsSetup}
                     // user can eyeball it in DevTools without grepping a 5k+
                     // string into the clipboard.
                     window.parent.__lastChartOutHead__ = out.slice(0, 1200);
+                    // v9 (2026-07-29): surface F5 (id shadow rename) outcome
+                    // on the parent window so the diag kebab can show how many
+                    // destructured [id, X] bindings were rewritten even on
+                    // successful renders. Falls back to false/0 because the
+                    // vars are declared inside the F5 try block; outside the
+                    // iframe-script root scope they exist if Babel got past it.
+                    window.parent.__lastIdShadowFixApplied = (typeof __idShadowFixApplied === 'boolean') ? __idShadowFixApplied : false;
+                    window.parent.__lastIdShadowFixRenames = (typeof __idShadowFixRenames === 'number') ? __idShadowFixRenames : 0;
                     console.log(
                         '[REACT_RENDERER_DIAG] v5 captured raw/out on parent.',
                         'rawLen:', rawSource.length,
@@ -1309,6 +1498,8 @@ ${rechartsSetup}
                 window.parent.__lastBadMsg     = tmsg;
                 window.parent.__lastBadFrameId = '${chartId}';
                 window.parent.__lastBadFences  = __babelFences;
+                window.parent.__lastIdShadowFixRenames = __idShadowFixRenames;
+                window.parent.__lastIdShadowFixApplied = __idShadowFixApplied;
                 console.error('[REACT_RENDERER_DIAG] Captured failing JSX on window.parent.__lastBadJsx — length:',
                     rawSource.length, 'preview:', rawSource.slice(0, 200));
                 console.error('[REACT_RENDERER_DIAG] Babel fence results at throw:',
@@ -1317,6 +1508,9 @@ ${rechartsSetup}
             // DIAGNOSTIC v8 (2026-07-26): cross-origin-safe postMessage mirror
             // of the failing-source capture above. The window.parent.X writes
             // silently fail in srcdoc iframes; postMessage does not.
+            // v9 (2026-07-29): include idShadowFixApplied/Renames so the parent
+            // can surface the F5 outcome in the diag kebab even if Babel throws
+            // *after* F5 rewrote the source.
             try {
                 window.parent.postMessage({
                     type: 'react-render-babel-error',
@@ -1324,7 +1518,9 @@ ${rechartsSetup}
                     rawSource: rawSource,
                     rawSourceLen: rawSource.length,
                     errorMessage: tmsg,
-                    babelFences: __babelFences.slice()
+                    babelFences: __babelFences.slice(),
+                    idShadowFixApplied: typeof __idShadowFixApplied === 'boolean' ? __idShadowFixApplied : false,
+                    idShadowFixRenames: typeof __idShadowFixRenames === 'number' ? __idShadowFixRenames : 0
                 }, '*');
             } catch (_) {}
             return;
