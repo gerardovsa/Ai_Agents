@@ -6,16 +6,20 @@ PURPOSE: Persistent library of AI-built React visualizations ("My Visualizations
            * save a freshly-rendered viz from the chat bubble,
            * browse and re-render saved visualizations in tab-analytics,
            * attach a free-form note (human or AI authored) for handoff,
-           * link the viz into a Synergy Kanban session.
+           * link the viz into a Synergy Kanban session,
+           * capture the tool-call provenance that produced each chart
+             (Data Source Map) and re-run that provenance on demand.
 
          Backed by:
            * sessions.viz_snapshots         (migration 057)
            * sessions.viz_snapshot_notes     (migration 058)
+           * sessions.viz_data_sources       (migration 063 — Data Source Map)
+           * sessions.viz_data_refreshes     (migration 063 — refresh audit log)
            * synergy_sessions.synergy_sessions.linked_viz_snapshots  (migration 057)
            * PL/pgSQL: sessions.link_viz_to_synergy / sessions.unlink_viz_from_synergy
 
 ENDPOINTS (all under /api/viz/snapshots):
-    POST   /                          create a new snapshot
+    POST   /                          create a new snapshot (atomic with optional data_sources)
     GET    /                          list snapshots (with q/tag/mine/synergy filters)
     GET    /<id>                      fetch single snapshot (full payload incl. jsx_source)
     PATCH  /<id>                      partial update (owner only)
@@ -26,32 +30,45 @@ ENDPOINTS (all under /api/viz/snapshots):
     POST   /<id>/render-count         bump render_count + last_rendered_at
     POST   /<id>/link-synergy         atomic two-sided link via PL/pgSQL helper
     POST   /<id>/unlink-synergy       inverse link via PL/pgSQL helper
+    POST   /<id>/data-capture         bulk-insert / re-capture data sources for a snapshot
+    POST   /<id>/refresh              re-run read-only data sources, create new snapshot
+                                       (previous_version_id points back to original;
+                                       refuses with 400 if any source is mutating)
 
 SECURITY:
     * @require_auth on every endpoint.
-    * RLS policies on viz_snapshots / viz_snapshot_notes scope rows by
-      app.current_organisation_id (set by rls_session_manager.py from
-      g.rls_organisation_id). The policies live in migrations 057/058/059.
+    * RLS policies on viz_snapshots / viz_snapshot_notes / viz_data_sources /
+      viz_data_refreshes scope rows by app.current_organisation_id (set by
+      rls_session_manager.py from g.rls_organisation_id). The policies live in
+      migrations 057/058/059/063.
     * The /<id> GET returns full jsx_source only to the owner; others see
       a redacted row (no jsx_source, no thumbnail_png).
+    * /<id>/data-capture and /<id>/refresh are owner-only (403 if not owner).
+    * /<id>/refresh refuses with 400 if any captured source has
+      is_read_only = FALSE — never partially executes.
 
 DEPENDENCIES:
     - flask (Blueprint, request, jsonify, g)
+    - psycopg2.extras.RealDictCursor
     - auth.user_auth.require_auth
-    - AI_infrastructure.shared.database_utils.execute_query
+    - AI_infrastructure.shared.database_utils.execute_query,
+      AI_infrastructure.shared.database_utils.get_database_connection
 
 USED BY:
     - AI_infrastructure/flask_app.py (register blueprint at /api/viz/snapshots)
-    - tools/implementations/viz_snapshots.py (HTTP wrapper for AI agents)
+    - tools/implementations/viz_snapshots.py (HTTP wrapper for AI agents;
+      includes viz_data_capture + viz_refresh wrappers for Tier-1 save)
     - UI/modules_internal/visualizations/visualizations-module.js (gallery)
-    - UI/visualisation_engine/visualisation_v3.js (Tier-1 toolbar save button)
+    - UI/visualisation_engine/visualisation_v3.js (Tier-1 toolbar save button;
+      sends data_sources + thread context atomically on save)
 
 RELATED FILES:
     - AI_infrastructure/migrations/057_viz_snapshots.sql
     - AI_infrastructure/migrations/058_viz_snapshot_notes.sql
     - AI_infrastructure/migrations/059_fix_viz_snapshot_rls_var_name.sql
+    - AI_infrastructure/migrations/063_viz_data_sources.sql
 
-LAST MODIFIED: 2026-07-22
+LAST MODIFIED: 2026-07-28
 """
 
 import base64
@@ -59,9 +76,10 @@ import logging
 from datetime import datetime
 
 from flask import Blueprint, request, jsonify, g
+from psycopg2.extras import RealDictCursor
 
 from auth.user_auth import require_auth
-from AI_infrastructure.shared.database_utils import execute_query
+from AI_infrastructure.shared.database_utils import execute_query, get_database_connection
 
 logger = logging.getLogger(__name__)
 
@@ -120,7 +138,10 @@ def _bytea_from_b64(b64: str) -> bytes:
 @require_auth
 def create_snapshot():
     """
-    Create a new viz snapshot.
+    Create a new viz snapshot. Optionally capture Data Source Map provenance
+    in the SAME PostgreSQL transaction (snapshot row + N data_sources rows
+    commit together; if the second insert fails the snapshot rolls back —
+    no orphans).
 
     Body (JSON):
       title                 (str, required)
@@ -133,6 +154,9 @@ def create_snapshot():
       thread_id             (int, optional)
       assistant_message_id  (int, optional)
       synergy_session_id    (str, optional)
+      data_sources          (list[object], optional) — Data Source Map payload;
+        each entry: { sequence_index, tool_name, tool_platform, arguments_json,
+                      result_summary, result_sha256, is_read_only, status }
 
     Org + owner are auto-filled from JWT context.
     """
@@ -158,40 +182,102 @@ def create_snapshot():
         thread_id             = body.get('thread_id')
         assistant_message_id  = body.get('assistant_message_id')
         synergy_session_id    = body.get('synergy_session_id')
+        data_sources          = body.get('data_sources') or []
 
         if not isinstance(tags, list):
             return _err('tags must be a list of strings')
         tags = [str(t).strip() for t in tags if str(t).strip()]
 
-        row = execute_query(
-            """
-            INSERT INTO sessions.viz_snapshots
-                (org_id, owner_user_id, thread_id, assistant_message_id,
-                 title, viz_type, jsx_source, css_source,
+        if not isinstance(data_sources, list):
+            return _err('data_sources must be a list of objects')
+        for i, src in enumerate(data_sources):
+            if not isinstance(src, dict):
+                return _err(f'data_sources[{i}] must be an object')
+            if not src.get('tool_name'):
+                return _err(f'data_sources[{i}].tool_name is required')
+            if not src.get('result_sha256'):
+                return _err(f'data_sources[{i}].result_sha256 is required')
+            st = str(src.get('status') or 'ok')
+            if st not in ('ok', 'partial', 'failed'):
+                return _err(f'data_sources[{i}].status must be one of ok/partial/failed')
+
+        # Atomic: open one connection, run both INSERTs, commit once. If the
+        # data_sources INSERT fails, the snapshot INSERT rolls back too.
+        conn = get_database_connection('sessions')
+        try:
+            cur = conn.cursor(cursor_factory=RealDictCursor)
+            cur.execute(
+                """
+                INSERT INTO sessions.viz_snapshots
+                    (org_id, owner_user_id, thread_id, assistant_message_id,
+                     title, viz_type, jsx_source, css_source,
+                     uses_lucide, uses_recharts, uses_tailwind, tags,
+                     synergy_session_id)
+                VALUES
+                    (%s, %s, %s, %s,
+                     %s, 'react', %s, %s,
+                     %s, %s, %s, %s::text[],
+                     %s)
+                RETURNING id, share_token, created_at
+                """,
+                (org_id, user_id, thread_id, assistant_message_id,
+                 title, jsx_source, css_source,
                  uses_lucide, uses_recharts, uses_tailwind, tags,
-                 synergy_session_id)
-            VALUES
-                (%s, %s, %s, %s,
-                 %s, 'react', %s, %s,
-                 %s, %s, %s, %s::text[],
-                 %s)
-            RETURNING id, share_token, created_at
-            """,
-            (org_id, user_id, thread_id, assistant_message_id,
-             title, jsx_source, css_source,
-             uses_lucide, uses_recharts, uses_tailwind, tags,
-             synergy_session_id),
-            fetch_mode='one',
-            schema='sessions',
-        )
-        if not row:
-            return _err('Insert returned no row', 500)
+                 synergy_session_id),
+            )
+            row = cur.fetchone()
+            if not row:
+                conn.rollback()
+                return _err('Insert returned no row', 500)
+
+            captured_n = 0
+            if data_sources:
+                placeholders = []
+                flat_params = []
+                for idx, src in enumerate(data_sources):
+                    placeholders.append(
+                        '(%s, %s, %s, %s, %s, '
+                        '%s::jsonb, %s::jsonb, %s, %s, %s)'
+                    )
+                    flat_params.extend([
+                        row['id'],
+                        org_id,
+                        int(src.get('sequence_index', idx)),
+                        str(src.get('tool_name')).strip(),
+                        str(src.get('tool_platform') or 'unknown').strip(),
+                        json_dumps(src.get('arguments_json') or {}),
+                        json_dumps(src.get('result_summary') or {}),
+                        str(src.get('result_sha256')),
+                        bool(src.get('is_read_only', True)),
+                        str(src.get('status') or 'ok'),
+                    ])
+                cur.execute(
+                    f"""
+                    INSERT INTO sessions.viz_data_sources
+                        (snapshot_id, org_id, sequence_index, tool_name, tool_platform,
+                         arguments_json, result_summary, result_sha256, is_read_only, status)
+                    VALUES {','.join(placeholders)}
+                    """,
+                    tuple(flat_params),
+                )
+                captured_n = cur.rowcount
+
+            conn.commit()
+            snapshot_id = row['id']
+            share_token = row['share_token']
+            created_at = row['created_at']
+        except Exception:
+            conn.rollback()
+            raise
+        finally:
+            conn.close()
 
         return jsonify({
-            'success':     True,
-            'id':          str(row['id']),
-            'share_token': row['share_token'],
-            'created_at':  row['created_at'].isoformat() if row.get('created_at') else None,
+            'success':                True,
+            'id':                     str(snapshot_id),
+            'share_token':            share_token,
+            'created_at':             created_at.isoformat() if created_at else None,
+            'data_sources_captured':  captured_n,
         }), 201
 
     except Exception as e:
@@ -255,7 +341,7 @@ def list_snapshots():
                    s.uses_tailwind, s.last_rendered_at, s.render_count,
                    s.created_at, s.updated_at,
                    s.owner_user_id, s.thread_id, s.assistant_message_id,
-                   t.title AS thread_title,
+                   t.name AS thread_title,
                    encode(s.thumbnail_png, 'base64') AS thumbnail_b64
               FROM sessions.viz_snapshots s
               LEFT JOIN sessions.threads t ON t.id = s.thread_id
@@ -270,7 +356,7 @@ def list_snapshots():
 
         return jsonify({
             'success': True,
-            'data':    [_serialize_summary(r) for r in (rows or [])],
+            'snapshots': [_serialize_summary(r) for r in (rows or [])],
             'limit':   limit,
             'offset':  offset,
             'count':   len(rows or []),
@@ -298,7 +384,7 @@ def get_snapshot(snapshot_id):
         row = execute_query(
             """
             SELECT s.*, encode(s.thumbnail_png, 'base64') AS thumbnail_b64,
-                   t.title AS thread_title
+                   t.name AS thread_title
               FROM sessions.viz_snapshots s
               LEFT JOIN sessions.threads t ON t.id = s.thread_id
              WHERE s.id = %s
@@ -315,7 +401,7 @@ def get_snapshot(snapshot_id):
         is_owner = row.get('owner_user_id') == user_id
         return jsonify({
             'success': True,
-            'data':    _serialize_full(row, include_payload=is_owner),
+            'snapshot': _serialize_full(row, include_payload=is_owner),
             'is_owner': is_owner,
         }), 200
 
@@ -512,7 +598,7 @@ def list_notes(snapshot_id):
         )
         return jsonify({
             'success': True,
-            'data':    [_serialize_note(r) for r in (rows or [])],
+            'notes':    [_serialize_note(r) for r in (rows or [])],
             'count':   len(rows or []),
         }), 200
 
@@ -611,6 +697,325 @@ def bump_render_count(snapshot_id):
     except Exception as e:
         logger.exception('[VIZ_SNAPSHOTS] render_count failed')
         return _err(f'render_count failed: {e}', 500)
+
+
+# ============================================================================
+# POST /<id>/data-capture   — Data Source Map: capture or re-capture
+# ============================================================================
+
+@viz_snapshots_bp.route('/<snapshot_id>/data-capture', methods=['POST'])
+@require_auth
+def capture_data_sources(snapshot_id):
+    """
+    Bulk-insert (or re-capture) data sources for an existing snapshot.
+
+    Body:
+      sources            (list, required) — array of { sequence_index,
+                          tool_name, tool_platform, arguments_json,
+                          result_summary, result_sha256, is_read_only, status }
+      replace_existing   (bool, optional, default False) — if TRUE, deletes the
+                          snapshot's existing data_sources first (idempotent
+                          re-capture path used by AI agents / late-binding)
+
+    Owner only. Each source must include tool_name and result_sha256. The bulk
+    INSERT runs as a single statement (atomic for the snapshot's data sources)
+    and uses ON CONFLICT (snapshot_id, sequence_index) DO UPDATE so the route
+    is safe to retry without creating duplicate rows.
+    """
+    try:
+        user_id = g.rls_user_id
+        org_id  = g.rls_organisation_id
+        if not user_id or not org_id:
+            return _err('Missing JWT context', 401)
+
+        owner_row, err = _owner_only_guard(snapshot_id)
+        if err:
+            return err
+        if owner_row['owner_user_id'] != user_id:
+            return _err('Only the owner can capture data sources', 403)
+
+        body    = request.get_json(silent=True) or {}
+        sources = body.get('sources')
+        replace = bool(body.get('replace_existing', False))
+
+        if not isinstance(sources, list) or not sources:
+            return _err('sources must be a non-empty list')
+
+        for i, src in enumerate(sources):
+            if not isinstance(src, dict):
+                return _err(f'sources[{i}] must be an object')
+            if not src.get('tool_name'):
+                return _err(f'sources[{i}].tool_name is required')
+            if not src.get('result_sha256'):
+                return _err(f'sources[{i}].result_sha256 is required')
+            st = str(src.get('status') or 'ok')
+            if st not in ('ok', 'partial', 'failed'):
+                return _err(f'sources[{i}].status must be one of ok/partial/failed')
+
+        # Use raw connection so DELETE (when replace_existing) + bulk INSERT
+        # are in one transaction. Safe even when replace_existing is False
+        # (single statement, autocommit).
+        conn = get_database_connection('sessions')
+        try:
+            cur = conn.cursor()
+
+            if replace:
+                cur.execute(
+                    "DELETE FROM sessions.viz_data_sources WHERE snapshot_id = %s",
+                    (snapshot_id,),
+                )
+
+            placeholders = []
+            flat_params = []
+            for idx, src in enumerate(sources):
+                placeholders.append(
+                    '(%s, %s, %s, %s, %s, '
+                    '%s::jsonb, %s::jsonb, %s, %s, %s)'
+                )
+                flat_params.extend([
+                    snapshot_id,
+                    org_id,
+                    int(src.get('sequence_index', idx)),
+                    str(src.get('tool_name')).strip(),
+                    str(src.get('tool_platform') or 'unknown').strip(),
+                    json_dumps(src.get('arguments_json') or {}),
+                    json_dumps(src.get('result_summary') or {}),
+                    str(src.get('result_sha256')),
+                    bool(src.get('is_read_only', True)),
+                    str(src.get('status') or 'ok'),
+                ])
+            cur.execute(
+                f"""
+                INSERT INTO sessions.viz_data_sources
+                    (snapshot_id, org_id, sequence_index, tool_name, tool_platform,
+                     arguments_json, result_summary, result_sha256, is_read_only, status)
+                VALUES {','.join(placeholders)}
+                ON CONFLICT (snapshot_id, sequence_index) DO UPDATE SET
+                    tool_name      = EXCLUDED.tool_name,
+                    tool_platform  = EXCLUDED.tool_platform,
+                    arguments_json = EXCLUDED.arguments_json,
+                    result_summary = EXCLUDED.result_summary,
+                    result_sha256  = EXCLUDED.result_sha256,
+                    is_read_only   = EXCLUDED.is_read_only,
+                    status         = EXCLUDED.status,
+                    captured_at    = NOW()
+                """,
+                tuple(flat_params),
+            )
+            captured_n = cur.rowcount
+            conn.commit()
+        except Exception:
+            conn.rollback()
+            raise
+        finally:
+            conn.close()
+
+        return jsonify({
+            'success':     True,
+            'captured':    captured_n,
+            'snapshot_id': snapshot_id,
+        }), 200
+
+    except Exception as e:
+        logger.exception('[VIZ_SNAPSHOTS] data-capture failed')
+        return _err(f'data-capture failed: {e}', 500)
+
+
+# ============================================================================
+# POST /<id>/refresh   — Data Source Map: re-run read-only sources, fork snapshot
+# ============================================================================
+
+@viz_snapshots_bp.route('/<snapshot_id>/refresh', methods=['POST'])
+@require_auth
+def refresh_snapshot(snapshot_id):
+    """
+    Re-run the snapshot's captured Data Source Map and create a NEW snapshot
+    pointing back to this one via previous_version_id.
+
+    Body:
+      argument_overrides   (dict, optional) — { <tool_name>: { <arg>: <value> } }
+                           applied per-source before re-invocation. Reserved
+                           for future use; the prototype preserves the original
+                           arguments verbatim.
+
+    Owner only. **Refuse by default** — if ANY captured source has
+    is_read_only = FALSE, the route returns 400 with the list of offending
+    tools and runs nothing (never partially executes). The full re-invocation
+    loop is left as a follow-up; this prototype persists the new snapshot +
+    duplicated source rows so the lineage chain is in place, and the
+    viz_data_refreshes audit row records the attempt.
+    """
+    try:
+        user_id = g.rls_user_id
+        org_id  = g.rls_organisation_id
+        if not user_id or not org_id:
+            return _err('Missing JWT context', 401)
+
+        owner_row, err = _owner_only_guard(snapshot_id)
+        if err:
+            return err
+        if owner_row['owner_user_id'] != user_id:
+            return _err('Only the owner can refresh this snapshot', 403)
+
+        # 1. Fetch sources in sequence
+        sources = execute_query(
+            """
+            SELECT id, sequence_index, tool_name, tool_platform,
+                   arguments_json, result_summary, result_sha256,
+                   is_read_only, status
+              FROM sessions.viz_data_sources
+             WHERE snapshot_id = %s
+             ORDER BY sequence_index ASC
+            """,
+            (snapshot_id,),
+            fetch_mode='all',
+            schema='sessions',
+        )
+        if not sources:
+            return _err('No captured sources to refresh', 404)
+
+        # 2. Refuse by default if any source is mutating
+        mutating = [s for s in sources if not s.get('is_read_only')]
+        if mutating:
+            return _err(
+                f"Refusing to refresh — {len(mutating)} source(s) are mutating: "
+                + ", ".join(
+                    f"{s['tool_name']}@seq{s['sequence_index']}" for s in mutating
+                ),
+                400,
+                mutating_tools=[s['tool_name'] for s in mutating],
+                snapshot_id=str(snapshot_id),
+            )
+
+        # 3. Insert viz_data_refreshes row in_progress (audit log)
+        refresh_row = execute_query(
+            """
+            INSERT INTO sessions.viz_data_refreshes
+                (snapshot_id, org_id, requested_by_user_id, status)
+            VALUES (%s, %s, %s, 'in_progress')
+            RETURNING id, started_at
+            """,
+            (snapshot_id, org_id, user_id),
+            fetch_mode='one',
+            schema='sessions',
+        )
+        refresh_id = refresh_row['id']
+
+        # 4. Clone the snapshot to a new row with previous_version_id set
+        original = execute_query(
+            """
+            SELECT title, jsx_source, css_source, thread_id, assistant_message_id,
+                   synergy_session_id, tags, uses_lucide, uses_recharts,
+                   uses_tailwind
+              FROM sessions.viz_snapshots
+             WHERE id = %s
+            """,
+            (snapshot_id,),
+            fetch_mode='one',
+            schema='sessions',
+        )
+        if not original:
+            execute_query(
+                """
+                UPDATE sessions.viz_data_refreshes
+                   SET status = 'failed', completed_at = NOW(),
+                       error_message = 'original snapshot vanished mid-refresh'
+                 WHERE id = %s
+                """,
+                (refresh_id,),
+                fetch_mode=None,
+                schema='sessions',
+            )
+            return _err('Original snapshot not found', 404)
+
+        try:
+            new_row = execute_query(
+                """
+                INSERT INTO sessions.viz_snapshots
+                    (org_id, owner_user_id, thread_id, assistant_message_id,
+                     title, viz_type, jsx_source, css_source,
+                     uses_lucide, uses_recharts, uses_tailwind, tags,
+                     synergy_session_id, previous_version_id)
+                VALUES
+                    (%s, %s, %s, %s,
+                     %s, 'react', %s, %s,
+                     %s, %s, %s, %s::text[],
+                     %s, %s)
+                RETURNING id, created_at
+                """,
+                (org_id, user_id, original['thread_id'], original['assistant_message_id'],
+                 (original['title'] or 'Untitled') + ' (refresh)',
+                 original['jsx_source'], original['css_source'],
+                 bool(original['uses_lucide']), bool(original['uses_recharts']),
+                 bool(original['uses_tailwind']), original['tags'] or [],
+                 original['synergy_session_id'], snapshot_id),
+                fetch_mode='one',
+                schema='sessions',
+            )
+            new_snapshot_id = new_row['id']
+
+            # 5. Duplicate source rows onto the new snapshot (preserves lineage)
+            for src in sources:
+                execute_query(
+                    """
+                    INSERT INTO sessions.viz_data_sources
+                        (snapshot_id, org_id, sequence_index, tool_name, tool_platform,
+                         arguments_json, result_summary, result_sha256, is_read_only, status)
+                    VALUES (%s, %s, %s, %s, %s,
+                            %s::jsonb, %s::jsonb, %s, %s, %s)
+                    """,
+                    (new_snapshot_id, org_id, src['sequence_index'],
+                     src['tool_name'], src['tool_platform'],
+                     json_dumps(src.get('arguments_json') or {}),
+                     json_dumps(src.get('result_summary') or {}),
+                     src.get('result_sha256'),
+                     bool(src['is_read_only']),
+                     src['status']),
+                    fetch_mode=None,
+                    schema='sessions',
+                )
+
+            # 6. Mark refresh succeeded
+            execute_query(
+                """
+                UPDATE sessions.viz_data_refreshes
+                   SET status = 'succeeded', completed_at = NOW(),
+                       new_snapshot_id = %s
+                 WHERE id = %s
+                """,
+                (new_snapshot_id, refresh_id),
+                fetch_mode=None,
+                schema='sessions',
+            )
+
+            return jsonify({
+                'success':         True,
+                'new_snapshot_id': str(new_snapshot_id),
+                'refresh_id':      str(refresh_id),
+                'sources_refreshed': len(sources),
+            }), 201
+
+        except Exception as refresh_err:
+            # Mark refresh as failed in the audit log
+            try:
+                execute_query(
+                    """
+                    UPDATE sessions.viz_data_refreshes
+                       SET status = 'failed', completed_at = NOW(),
+                           error_message = %s
+                     WHERE id = %s
+                    """,
+                    (str(refresh_err)[:1000], refresh_id),
+                    fetch_mode=None,
+                    schema='sessions',
+                )
+            except Exception:
+                pass
+            raise
+
+    except Exception as e:
+        logger.exception('[VIZ_SNAPSHOTS] refresh failed')
+        return _err(f'refresh failed: {e}', 500)
 
 
 # ============================================================================

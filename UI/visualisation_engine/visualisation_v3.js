@@ -3201,6 +3201,27 @@ svg{max-width:100%;height:auto;display:block;margin:0 auto;}</style>
             this._tier1Toast(`Updated "${title}"`, 'success');
             return;
         }
+
+        // 4a. Pull provenance from the parent AI bubble if present.
+        // The chat module sets data-thread-id / data-message-id on the
+        // viz-container when an assistant message renders a chart. If absent
+        // (e.g. saved from fullscreen outside chat), data_sources is [] and
+        // the snapshot still saves cleanly.
+        const threadId = container?.dataset?.threadId
+            || container?.getAttribute?.('data-thread-id')
+            || null;
+        const assistantMessageId = container?.dataset?.messageId
+            || container?.getAttribute?.('data-message-id')
+            || null;
+        const { data_sources, thread_id, assistant_message_id } =
+            await this._tier1CollectToolCallProvenance(
+                threadId ? Number(threadId) : null,
+                assistantMessageId ? Number(assistantMessageId) : null,
+            );
+
+        // 4b. Atomic one-POST create. The backend bulk-inserts the snapshot
+        // row + N viz_data_sources rows in one PostgreSQL transaction — no
+        // orphans, no fire-and-forget follow-up call.
         const resp = await fetch('/api/viz/snapshots/', {
             method: 'POST',
             headers,
@@ -3212,6 +3233,9 @@ svg{max-width:100%;height:auto;display:block;margin:0 auto;}</style>
                 uses_lucide,
                 uses_recharts,
                 uses_tailwind,
+                thread_id,
+                assistant_message_id,
+                data_sources,
             }),
         });
         if (!resp.ok) {
@@ -3225,7 +3249,108 @@ svg{max-width:100%;height:auto;display:block;margin:0 auto;}</style>
             container.dataset.vizSnapshotId = newId;
             container.dataset.vizTitle = title;
         }
-        this._tier1Toast(`Saved "${title}" to library`, 'success');
+        const captured = body?.data_sources_captured ?? data_sources.length;
+        const provSuffix = captured > 0 ? ` (+${captured} data sources)` : '';
+        this._tier1Toast(`Saved "${title}" to library${provSuffix}`, 'success');
+    }
+
+    /**
+     * Resolve the tool-call chain that produced this chart from the
+     * originating assistant message.
+     *
+     * Reads `GET /api/threads/messages/get?thread_id=...&limit=20` (existing
+     * endpoint that already returns `tool_calls` JSONB per message), finds
+     * the assistant message by id, and maps each tool call to the
+     * `viz_data_sources` shape the create route expects:
+     *   { sequence_index, tool_name, tool_platform, arguments_json,
+     *     result_summary, result_sha256, is_read_only, status }
+     *
+     * Returns `{ data_sources: [], thread_id: null, assistant_message_id: null }`
+     * gracefully if the container didn't carry thread/message ids or the
+     * fetch fails — saving the snapshot never depends on provenance.
+     */
+    async _tier1CollectToolCallProvenance(threadId, assistantMessageId) {
+        const empty = { data_sources: [], thread_id: null, assistant_message_id: null };
+        if (!threadId || !assistantMessageId) return empty;
+        const token = localStorage.getItem('authToken')
+                   || sessionStorage.getItem('authToken')
+                   || '';
+        try {
+            const r = await fetch(
+                `/api/threads/messages/get?thread_id=${encodeURIComponent(threadId)}&limit=20`,
+                { headers: token ? { Authorization: `Bearer ${token}` } : {} },
+            );
+            if (!r.ok) {
+                console.warn('[viz] provenance fetch returned', r.status);
+                return empty;
+            }
+            const j = await r.json().catch(() => ({}));
+            const list = Array.isArray(j?.messages) ? j.messages : [];
+            const target = list.find((m) => Number(m.id) === Number(assistantMessageId));
+            if (!target || !Array.isArray(target.tool_calls)) {
+                return empty;
+            }
+            const data_sources = target.tool_calls
+                .filter((tc) => tc && typeof tc === 'object')
+                .map((tc, idx) => {
+                    const tool_name = tc.tool_name || tc.name || 'unknown';
+                    const result = tc.result !== undefined ? tc.result : tc.content;
+                    const shaInput = (() => {
+                        try {
+                            return JSON.stringify(result).slice(0, 4096);
+                        } catch (_) {
+                            return String(result || '').slice(0, 4096);
+                        }
+                    })();
+                    return {
+                        sequence_index: Number.isFinite(tc.sequence_index)
+                            ? Number(tc.sequence_index)
+                            : idx,
+                        tool_name: String(tool_name).slice(0, 200),
+                        tool_platform: String(tc.platform || tc.tool_platform || 'unknown').slice(0, 100),
+                        arguments_json: tc.tool_input || tc.input || {},
+                        result_summary: {
+                            row_count: tc.result_row_count ?? (Array.isArray(result) ? result.length : undefined),
+                            columns: Array.isArray(tc.result_columns) ? tc.result_columns : [],
+                            bytes: typeof shaInput === 'string' ? shaInput.length : 0,
+                            sample: Array.isArray(result) ? result.slice(0, 1) : undefined,
+                        },
+                        // Backend requires a non-empty sha256. If the worker
+                        // didn't stamp one, fall back to a stable hash of the
+                        // result payload — `_request` will accept any non-empty
+                        // string and the row's is_read_only default is TRUE.
+                        result_sha256: tc.result_sha256
+                            || (typeof shaInput === 'string'
+                                ? this._tier1QuickHash(shaInput)
+                                : 'unknown'),
+                        // Default to read-only unless the worker explicitly
+                        // flagged a mutating tool. This matches the route's
+                        // "refuse by default" policy for refreshes.
+                        is_read_only: tc.is_read_only !== false,
+                        status: tc.success === false
+                            ? 'failed'
+                            : (tc.status || 'ok'),
+                    };
+                });
+            return { data_sources, thread_id: threadId, assistant_message_id: assistantMessageId };
+        } catch (err) {
+            console.warn('[viz] failed to capture tool-call provenance', err);
+            return empty;
+        }
+    }
+
+    /**
+     * Tiny non-cryptographic hash for result_sha256 fallbacks. We avoid
+     * pulling in a crypto lib for what is just a content fingerprint.
+     */
+    _tier1QuickHash(s) {
+        let h = 0x811c9dc5;
+        for (let i = 0; i < s.length; i++) {
+            h ^= s.charCodeAt(i);
+            h = (h + ((h << 1) + (h << 4) + (h << 7) + (h << 8) + (h << 24))) >>> 0;
+        }
+        return ('00000000' + h.toString(16)).slice(-8)
+             + ('00000000' + ((s.length * 2654435761) >>> 0).toString(16)).slice(-8);
     }
 
     /**

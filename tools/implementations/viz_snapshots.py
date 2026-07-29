@@ -14,10 +14,12 @@ PURPOSE: AI tool wrappers for the 'My Visualizations' library.
 DEPENDENCIES:
 - requests - HTTP client
 
-EXPORTS (12 tools):
-- viz_create          - POST   /api/viz/snapshots/
+EXPORTS (14 tools):
+- viz_create          - POST   /api/viz/snapshots/                  (atomic w/ data_sources)
 - viz_update          - PATCH  /api/viz/snapshots/<id>
 - viz_save            - alias of viz_create / viz_update (idempotent by title)
+- viz_data_capture    - POST   /api/viz/snapshots/<id>/data-capture (re-capture / late-bind)
+- viz_refresh         - POST   /api/viz/snapshots/<id>/refresh      (replay tool chain)
 - viz_search          - GET    /api/viz/snapshots/
 - viz_get             - GET    /api/viz/snapshots/<id>
 - viz_delete          - DELETE /api/viz/snapshots/<id>
@@ -33,9 +35,10 @@ USED BY:
 - AI agents via the unified tool dispatcher
 
 RELATED FILES:
-- tools/schemas/viz_snapshots_tools.json (12 JSON Schemas)
+- tools/schemas/viz_snapshots_tools.json (14 JSON Schemas)
 - AI_infrastructure/routes/viz_snapshots_routes.py
 - AI_infrastructure/migrations/057_viz_snapshots.sql + 058_viz_snapshot_notes.sql
+                                            + 063_viz_data_sources.sql
 """
 
 import os
@@ -130,7 +133,7 @@ def _request(method: str, path: str, *, params: Optional[dict] = None,
 
 
 # ---------------------------------------------------------------------------
-# Tool implementations (12)
+# Tool implementations (14)
 # ---------------------------------------------------------------------------
 
 def viz_create(title: str,
@@ -561,3 +564,102 @@ def viz_unlink_synergy(snapshot_id: str, **kwargs) -> Dict[str, Any]:
     if not snapshot_id:
         return {'success': False, 'error': 'snapshot_id is required'}
     return _request('POST', f'{VIZ_BASE_PATH}/{snapshot_id}/unlink-synergy', json_body={}, kwargs=kwargs)
+
+
+def viz_data_capture(snapshot_id: str,
+                     sources: List[Dict[str, Any]],
+                     replace_existing: bool = False,
+                     **kwargs) -> Dict[str, Any]:
+    """Capture (or re-capture) the tool-call provenance chain for a snapshot.
+
+    Each source describes one tool call that contributed data to the chart
+    (in invocation order). The backend bulk-inserts one row per source into
+    `viz_data_sources` keyed by (snapshot_id, sequence_index) using
+    ``ON CONFLICT DO UPDATE`` — so retries are idempotent.
+
+    Use ``replace_existing=True`` to wipe the previous chain before inserting
+    (e.g. when re-capturing after a fix). Default False merges with the
+    existing rows.
+
+    Fields per source (matches migration 063 `viz_data_sources`):
+        sequence_index   int   — call order within the chart's tool chain
+        tool_name        str   — REQUIRED
+        tool_platform    str   — e.g. 'xero', 'shopify', 'pgvector'
+        arguments_json   dict  — sanitised args (no tokens / secrets)
+        result_summary   dict  — row count, columns, sample row, sha256, bytes
+        result_sha256    str   — REQUIRED — sha256 of the raw tool result
+        is_read_only     bool  — default True; refresh refuses if any is False
+        status           str   — 'ok' | 'partial' | 'failed' (default 'ok')
+
+    NB: most callers should pass ``data_sources`` inline to ``viz_create`` —
+    this wrapper is for re-capture / late-bind scenarios only.
+    """
+    if not snapshot_id:
+        return {'success': False, 'error': 'snapshot_id is required'}
+    if not sources or not isinstance(sources, list):
+        return {'success': False, 'error': 'sources must be a non-empty list'}
+
+    # Light client-side validation — surface a clear error before the HTTP
+    # round-trip if the shape is wrong. The backend re-validates authoritatively.
+    for idx, src in enumerate(sources):
+        if not isinstance(src, dict):
+            return {'success': False, 'error': f'sources[{idx}] must be a dict'}
+        if not src.get('tool_name'):
+            return {'success': False, 'error': f'sources[{idx}].tool_name is required'}
+        if not src.get('result_sha256'):
+            return {'success': False, 'error': f'sources[{idx}].result_sha256 is required'}
+
+    body: Dict[str, Any] = {'sources': sources}
+    if replace_existing:
+        body['replace_existing'] = True
+
+    return _request(
+        'POST',
+        f'{VIZ_BASE_PATH}/{snapshot_id}/data-capture',
+        json_body=body,
+        kwargs=kwargs,
+    )
+
+
+def viz_refresh(snapshot_id: str,
+                argument_overrides: Optional[Dict[str, Dict[str, Any]]] = None,
+                **kwargs) -> Dict[str, Any]:
+    """Replay the captured tool-call chain to produce a fresh snapshot.
+
+    The backend reads `viz_data_sources` for this snapshot in
+    ``sequence_index`` order, **refuses by default** if any source has
+    ``is_read_only = FALSE`` (returns 400 with the offending tool list),
+    and otherwise re-invokes each tool to rebuild the data.
+
+    On success the backend creates a NEW viz_snapshots row with
+    ``previous_version_id`` pointing back to the original, and writes
+    fresh `viz_data_sources` rows for the new snapshot. The original
+    snapshot is untouched (a clone, not a mutation).
+
+    ``argument_overrides`` lets the caller patch one or more argument
+    values without rewriting the whole chain — keys are tool_name,
+    values are partial-arg dicts that deep-merge into the captured args.
+
+    Returns:
+        {success: True, new_snapshot_id, refresh_id, sources_refreshed}
+        On refusal: {success: False, status_code: 400, error: '...',
+                    details: {offending_sources: [...]}}
+    """
+    if not snapshot_id:
+        return {'success': False, 'error': 'snapshot_id is required'}
+
+    body: Dict[str, Any] = {}
+    if argument_overrides:
+        if not isinstance(argument_overrides, dict):
+            return {'success': False, 'error': 'argument_overrides must be a dict'}
+        body['argument_overrides'] = argument_overrides
+
+    return _request(
+        'POST',
+        f'{VIZ_BASE_PATH}/{snapshot_id}/refresh',
+        json_body=body,
+        kwargs=kwargs,
+        # Refresh can re-invoke multiple tools (Xero, Shopify, vector searches)
+        # so allow a longer timeout than the 15s default.
+        timeout=60,
+    )

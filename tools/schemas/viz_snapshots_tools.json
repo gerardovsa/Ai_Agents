@@ -209,6 +209,154 @@
       }
     },
     {
+      "name": "viz_data_capture",
+      "short_description": "Capture (or re-capture) the tool-call provenance chain for a saved snapshot",
+      "description": "Record the tool calls that produced a chart's data so the AI can later replay them via viz_refresh. Each source describes one tool invocation in chronological order (sequence_index 0..N-1). This is the 'Data Source Map' — the strategic centerpiece of the gallery's provenance model. Most callers should pass `data_sources` INLINE to viz_create (atomic one-POST) — this wrapper is for re-capture / late-bind scenarios only (e.g. fixing a corrupted chain, or capturing a viz that was saved before the feature shipped).\n\nThe backend dedupes by (snapshot_id, sequence_index) with ON CONFLICT DO UPDATE, so retries are idempotent. Pass replace_existing=true to wipe the previous chain before inserting — useful when re-capturing after a fix.\n\nUSE CASES:\n1. A snapshot was saved without data_sources (legacy save) and the user now wants to enable one-click refresh.\n2. The user fixed bugs in the underlying data pipeline and wants to re-record the chain with fresh sha256s.\n3. The AI is rebuilding a chart from prior messages and wants to stamp the chain onto a freshly-created snapshot.\n\nWHEN NOT TO USE:\n- Brand-new save → pass data_sources inline to viz_create (atomic, one transaction).\n- Want to actually run the tools → use viz_refresh (which internally re-invokes the chain).\n\nFIELDS PER SOURCE (matches migration 063 viz_data_sources):\n  * sequence_index   int    — call order within the chart's tool chain (0-based, required for correct ordering; backend auto-stamps if omitted).\n  * tool_name        str    — REQUIRED. Matches the @tool_executor name (e.g. 'xero_get_invoices').\n  * tool_platform    str    — grouping tag, e.g. 'xero', 'shopify', 'pgvector'. Default 'unknown'.\n  * arguments_json   dict   — sanitised args (strip tokens / secrets / PII before sending). Default {}.\n  * result_summary   dict   — {row_count, columns, sample_row, sha256, bytes}. Default {}.\n  * result_sha256    str    — REQUIRED. sha256 of the raw tool result body.\n  * is_read_only     bool   — default True. If False, viz_refresh will refuse to replay this source (use for write tools).\n  * status           str    — 'ok' | 'partial' | 'failed'. Default 'ok'.\n\nERROR HANDLING:\n- snapshot_id missing → 400.\n- sources empty/non-list → 400.\n- Any source lacks tool_name or result_sha256 → 400 (caught client-side; backend re-validates).\n- Not the owner → 403.\n\nRELATED TOOLS:\n- viz_create — pass data_sources inline here for new saves (preferred).\n- viz_refresh — actually re-invokes the captured chain.\n- viz_get — fetch the snapshot's current source chain (data_sources included in response).",
+      "platform": "viz_snapshots",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "snapshot_id": {
+            "type": "string",
+            "description": "UUID of the snapshot to attach provenance to. Owner-only."
+          },
+          "sources": {
+            "type": "array",
+            "description": "List of tool-call source rows in invocation order (sequence_index 0..N-1).",
+            "items": {
+              "type": "object",
+              "properties": {
+                "sequence_index": {
+                  "type": "integer",
+                  "description": "Call order within the chart's tool chain (0-based). Backend auto-stamps if omitted."
+                },
+                "tool_name": {
+                  "type": "string",
+                  "description": "Required. Matches the @tool_executor name (e.g. 'xero_get_invoices')."
+                },
+                "tool_platform": {
+                  "type": "string",
+                  "description": "Grouping tag, e.g. 'xero', 'shopify', 'pgvector'. Default 'unknown'."
+                },
+                "arguments_json": {
+                  "type": "object",
+                  "description": "Sanitised args (strip tokens / secrets / PII before sending). Default {}.",
+                  "additionalProperties": true
+                },
+                "result_summary": {
+                  "type": "object",
+                  "description": "{row_count, columns, sample_row, sha256, bytes}. Default {}.",
+                  "additionalProperties": true
+                },
+                "result_sha256": {
+                  "type": "string",
+                  "description": "Required. sha256 of the raw tool result body."
+                },
+                "is_read_only": {
+                  "type": "boolean",
+                  "description": "Default true. If false, viz_refresh refuses to replay this source.",
+                  "default": true
+                },
+                "status": {
+                  "type": "string",
+                  "enum": ["ok", "partial", "failed"],
+                  "description": "Outcome of the original tool call. Default 'ok'.",
+                  "default": "ok"
+                }
+              },
+              "required": ["tool_name", "result_sha256"]
+            }
+          },
+          "replace_existing": {
+            "type": "boolean",
+            "description": "If true, wipe the previous chain before inserting. Default false (merge by sequence_index).",
+            "default": false
+          }
+        },
+        "required": ["snapshot_id", "sources"]
+      },
+      "returns": {
+        "type": "object",
+        "description": "{success, captured, snapshot_id} — captured is the count of rows written (insert + update on conflict)."
+      },
+      "examples": [
+        {
+          "description": "Re-capture a chain after a fix",
+          "parameters": {
+            "snapshot_id": "0d6ab1e2-7e9d-4d3e-8c1f-9a4b2c1d5e6f",
+            "sources": [
+              {
+                "sequence_index": 0,
+                "tool_name": "xero_get_invoices",
+                "tool_platform": "xero",
+                "arguments_json": {"limit": 50, "status": "AUTHORISED"},
+                "result_summary": {"row_count": 47, "columns": ["id", "amount", "status"]},
+                "result_sha256": "f3a1c0...",
+                "is_read_only": true,
+                "status": "ok"
+              },
+              {
+                "sequence_index": 1,
+                "tool_name": "pgvector_search",
+                "tool_platform": "pgvector",
+                "arguments_json": {"query": "Q3 anomalies", "top_k": 10},
+                "result_summary": {"row_count": 8, "columns": ["doc_id", "score"]},
+                "result_sha256": "b9d4e2...",
+                "is_read_only": true,
+                "status": "ok"
+              }
+            ],
+            "replace_existing": true
+          }
+        }
+      ]
+    },
+    {
+      "name": "viz_refresh",
+      "short_description": "Replay a saved snapshot's tool-call chain to produce a fresh snapshot",
+      "description": "Re-run every captured tool call for a snapshot (in sequence_index order) and create a NEW snapshot row with the refreshed data. The original snapshot is untouched — writes are atomic in a single transaction. The new snapshot's previous_version_id is set to the source snapshot's id, so the gallery can show 'v1 → v2' lineage.\n\nSAFETY: Refuses by default. If any captured source has is_read_only=FALSE, the route returns 400 with the offending tool list and runs nothing. Use is_read_only=true for read-only data fetches (Xero read, Shopify read, pgvector search, calculator eval, etc.) and false for write tools (calendar_create_event, email_send, etc.). Most legitimate refresh chains are read-only.\n\nUSE CASES:\n1. User opens a chart from last week and asks 'give me the latest version'.\n2. AI is monitoring a recurring query and wants to update the saved view without losing history.\n3. The user explicitly asks 'refresh that chart'.\n\nWHEN NOT TO USE:\n- The original snapshot has no data_sources captured → return a clear error to the user, then offer viz_data_capture.\n- The user wants to mutate the original snapshot's metadata → use viz_update.\n\nWORKFLOW:\n1. AI calls viz_refresh(snapshot_id) with no overrides (uses captured args as-is).\n2. Backend reads viz_data_sources for snapshot_id, ordered by sequence_index.\n3. If any source.is_read_only is FALSE → 400 with offending list; run nothing.\n4. Otherwise, re-invoke each tool (in order), gather results, write a new viz_snapshots row + new viz_data_sources rows + a viz_data_refreshes audit row.\n5. Returns {success, new_snapshot_id, refresh_id, sources_refreshed}.\n\nARGUMENT OVERRIDES:\nPass argument_overrides as {tool_name: {arg: value, ...}} to deep-merge into the captured args before re-invocation. Useful for 'refresh but with last 90 days instead of 30' without re-capturing the chain.\n\nERROR HANDLING:\n- snapshot_id missing → 400.\n- Owner check fails → 403.\n- Any source has is_read_only=false → 400 with details.offending_sources list. NO partial execution.\n- Tool re-invocation throws → 502 with error_message; the refresh row is marked 'failed'.\n\nRELATED TOOLS:\n- viz_data_capture — capture (or re-capture) the chain if it's missing or stale.\n- viz_get — fetch the resulting snapshot's metadata + new data_sources.\n- viz_create — for brand-new charts (no prior chain).",
+      "platform": "viz_snapshots",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "snapshot_id": {
+            "type": "string",
+            "description": "UUID of the snapshot to replay. Owner-only."
+          },
+          "argument_overrides": {
+            "type": "object",
+            "description": "Optional per-tool argument patches. Keys are tool_name, values are partial-arg dicts that deep-merge into the captured args before re-invocation.",
+            "additionalProperties": {
+              "type": "object",
+              "additionalProperties": true
+            }
+          }
+        },
+        "required": ["snapshot_id"]
+      },
+      "returns": {
+        "type": "object",
+        "description": "{success, new_snapshot_id, refresh_id, sources_refreshed} — on refusal {success:false, status_code:400, error, details:{offending_sources:[...]}}."
+      },
+      "examples": [
+        {
+          "description": "Refresh with no overrides",
+          "parameters": {
+            "snapshot_id": "0d6ab1e2-7e9d-4d3e-8c1f-9a4b2c1d5e6f"
+          }
+        },
+        {
+          "description": "Refresh with one argument override",
+          "parameters": {
+            "snapshot_id": "0d6ab1e2-7e9d-4d3e-8c1f-9a4b2c1d5e6f",
+            "argument_overrides": {
+              "xero_get_invoices": {"limit": 200, "since": "2026-04-01"}
+            }
+          }
+        }
+      ]
+    },
+    {
       "name": "viz_search",
       "short_description": "List or search saved visualizations for the calling user/org",
       "description": "Browse the visualization library. Returns a JSON array of summaries (NO jsx_source, NO thumbnail_png — those are heavy). Default scope is the calling user's own snapshots; pass synergy_session_id to filter to a single Kanban session, or pass is_public=true via a separate viz_get call to view public snapshots.\n\nFilters can be combined:\n  * q — case-insensitive ILIKE on title.\n  * tag — exact match against the tags array.\n  * mine=true — explicit; default already true.\n  * synergy_session_id — TEXT not UUID; the synergy session_id is a slug.\n  * limit / offset — pagination (default 20 / 0).\n\nUSE CASES:\n1. User asks 'show my saved dashboards'.\n2. User asks 'find my finance charts'.\n3. AI wants to check if a similar viz already exists before creating a duplicate.\n4. AI wants to enumerate snapshots linked to a Synergy session before unlinking one.\n\nWHEN NOT TO USE:\n- Need the actual JSX → call viz_get on the chosen snapshot.\n- Need notes on a snapshot → call viz_list_notes.\n\nWORKFLOW:\n1. AI calls viz_search(q='pipeline') to find candidates.\n2. AI surfaces 3-5 results to the user.\n3. User picks one; AI calls viz_get(snapshot_id) for the full payload.\n\nBEST PRACTICES:\n- Always paginate; do not ask for >50 results in one call.\n- Combine q + tag for precision (e.g. q='forecast' tag='finance').\n- For Synergy linkage: viz_search(synergy_session_id='quarterly-review') returns the linked viz array.\n\nERROR HANDLING:\n- Empty result set → return success:true with items:[].\n- Invalid limit (>100) → 400.\n\nRELATED TOOLS:\n- viz_get — fetch full payload for one snapshot.\n- viz_delete — soft-delete a snapshot.\n- viz_link_synergy — link one of the returned snapshots.",

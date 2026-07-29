@@ -196,7 +196,7 @@ async function apiListSnapshots(params = {}) {
         throw new Error(`List failed (${resp.status}): ${text.slice(0, 160)}`);
     }
     const body = await resp.json();
-    return body.snapshots || body.results || body || [];
+    return body.snapshots || [];
 }
 
 async function apiGetSnapshot(id) {
@@ -209,7 +209,7 @@ async function apiGetSnapshot(id) {
         throw new Error(`Get failed (${resp.status}): ${text.slice(0, 160)}`);
     }
     const body = await resp.json();
-    return body.snapshot || body;
+    return body.snapshot;
 }
 
 async function apiDeleteSnapshot(id) {
