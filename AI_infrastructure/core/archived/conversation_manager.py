@@ -42,7 +42,15 @@ from AI_infrastructure.core.response_serializer import ResponseSerializer
 
 # Builder modules
 from AI_infrastructure.builders.user_profile_builder import UserProfileBuilder
-from AI_infrastructure.builders.system_prompt_builder import SystemPromptBuilder
+try:
+    # SystemPromptBuilder was deleted 2026-07-29 — its vector_db routing
+    # is duplicated in UnifiedAIClient._get_tool_usage_instructions and the
+    # only live caller of this archived module never referenced the class.
+    # See AI_infrastructure/tests/test_universal_search_refactor.py and the
+    # Option-2 cleanup note in the 2026-07-29 session transcript.
+    from AI_infrastructure.builders.system_prompt_builder import SystemPromptBuilder
+except ImportError:  # pragma: no cover — archived module, kept only for archaeology
+    SystemPromptBuilder = None
 from AI_infrastructure.builders.tool_schema_converter import ToolSchemaConverter
 from AI_infrastructure.builders.credential_fetcher import CredentialFetcher
 

@@ -1,12 +1,14 @@
 """
 Regression test for the LIVE vector_db guidance wiring.
 
-CONTEXT (2026-07-28):
+CONTEXT (2026-07-28, updated 2026-07-29):
     The Option A work (migration 052 + vector_db_router.py +
     system_prompt_builder.py) was initially wired ONLY into the
     SystemPromptBuilder class. A later audit revealed that class is dead
     code in production — the only caller is core/archived/conversation_manager
-    (frozen per CLAUDE.md §2).
+    (frozen per CLAUDE.md §2). The class file was DELETED 2026-07-29;
+    the archived conversation_manager import is now guarded with
+    try/except ImportError.
 
     The ACTUAL live prompt builder is
     AI_infrastructure/core/unified_ai_client.py:

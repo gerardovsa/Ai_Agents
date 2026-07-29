@@ -154,11 +154,11 @@ class UnifiedAIClient:
                 print(f"[UnifiedAIClient] ✅ Fetched {platform} API key from Supabase for user {user_id}")
                 return row['credential_value']
             else:
-                print(f"[UnifiedAIClient] ⚠️  No {platform} credentials found in Supabase for user {user_id}")
+                print(f"[UnifiedAIClient] [WARN]  No {platform} credentials found in Supabase for user {user_id}")
                 return None
                 
         except Exception as e:
-            print(f"[UnifiedAIClient] ⚠️  Failed to fetch {platform} key from Supabase: {e}")
+            print(f"[UnifiedAIClient] [WARN]  Failed to fetch {platform} key from Supabase: {e}")
             return None
     
     def _init_anthropic(self):
@@ -192,7 +192,7 @@ class UnifiedAIClient:
             print("[UnifiedAIClient] Anthropic client initialized with 600s read timeout, 3 max retries")
         else:
             self.anthropic_client = None
-            print("⚠️  Warning: No Anthropic API key found. Check Supabase credentials or set ANTHROPIC_API_KEY.")
+            print("[WARN]  Warning: No Anthropic API key found. Check Supabase credentials or set ANTHROPIC_API_KEY.")
         self.anthropic_model = self.config.get('AI', {}).get('Model', 'claude-sonnet-4-5-20250929')
     
     def _init_deepseek(self):
@@ -254,7 +254,7 @@ class UnifiedAIClient:
             print(f"[UnifiedAIClient] MiniMax client initialized (base_url={self.MiniMax_base_url})")
         else:
             self.MiniMax_client = None
-            print("⚠️  Warning: No MiniMax API key found. Check Supabase credentials or set MINIMAX_API_KEY.")
+            print("[WARN]  Warning: No MiniMax API key found. Check Supabase credentials or set MINIMAX_API_KEY.")
         self.MiniMax_model = self.config.get('AI', {}).get('MiniMaxModel', 'MiniMax-M3')
     
     def _get_tool_usage_instructions(self) -> str:
@@ -567,7 +567,7 @@ Always explain what you're doing when using these tools so the user understands 
                 validated_tools.append(tool)
         
         if invalid_count > 0:
-            print(f"⚠️  [UnifiedAIClient] Skipped {invalid_count} invalid tools in streaming mode")
+            print(f"[WARN]  [UnifiedAIClient] Skipped {invalid_count} invalid tools in streaming mode")
         
         # Add server tools
         server_tools = []
@@ -690,7 +690,7 @@ Always explain what you're doing when using these tools so the user understands 
                     
                     if has_thinking and not first_is_thinking:
                         # Already reordered above, this shouldn't happen
-                        print(f"⚠️  [UnifiedAIClient] WARNING: Final assistant message has thinking blocks but first block is not thinking!")
+                        print(f"[WARN]  [UnifiedAIClient] WARNING: Final assistant message has thinking blocks but first block is not thinking!")
                     elif not has_thinking:
                         # No thinking blocks in final assistant message - this is OK when thinking param is present
                         print(f"[UnifiedAIClient] ℹ️  Final assistant message has no thinking blocks (API will generate thinking in response)")
@@ -885,7 +885,7 @@ Always explain what you're doing when using these tools so the user understands 
                             if last_block.get('type') == 'thinking':
                                 last_block['signature'] = event.delta.signature
                             else:
-                                print(f"[UnifiedAIClient] ⚠️  signature_delta for non-thinking block (type={last_block.get('type')}); ignored")
+                                print(f"[UnifiedAIClient] [WARN]  signature_delta for non-thinking block (type={last_block.get('type')}); ignored")
 
                     # Handle citations in text blocks
                     elif hasattr(event.delta, 'citations') and event.delta.citations:
@@ -1221,7 +1221,7 @@ Always explain what you're doing when using these tools so the user understands 
                 validated_tools.append(tool)
 
         if invalid_count > 0:
-            print(f"⚠️  [UnifiedAIClient/MiniMax] Skipped {invalid_count} invalid tools in streaming mode")
+            print(f"[WARN]  [UnifiedAIClient/MiniMax] Skipped {invalid_count} invalid tools in streaming mode")
 
         # MiniMax does NOT have Anthropic server tools (no web_search/web_fetch).
         # Tool use is handled locally by the registered client tools.
@@ -1363,7 +1363,7 @@ Always explain what you're doing when using these tools so the user understands 
                             if last_block.get('type') == 'thinking':
                                 last_block['signature'] = event.delta.signature
                             else:
-                                print(f"[UnifiedAIClient:MiniMax] ⚠️  signature_delta for non-thinking block (type={last_block.get('type')}); ignored")
+                                print(f"[UnifiedAIClient:MiniMax] [WARN]  signature_delta for non-thinking block (type={last_block.get('type')}); ignored")
 
         # Handle CLIENT tool use (MiniMax has no server tools)
         client_tool_blocks = [
@@ -1652,7 +1652,7 @@ Always explain what you're doing when using these tools so the user understands 
                 is_valid, errors = self._validate_tool_schema(tool, idx)
                 
                 if not is_valid:
-                    print(f"⚠️  Tool #{idx} '{tool.get('name', 'UNKNOWN')}' validation failed:")
+                    print(f"[WARN]  Tool #{idx} '{tool.get('name', 'UNKNOWN')}' validation failed:")
                     for error in errors:
                         print(f"    {error}")
                     
@@ -1670,7 +1670,7 @@ Always explain what you're doing when using these tools so the user understands 
                     validated_tools.append(tool)
             
             if invalid_count > 0:
-                print(f"⚠️  Skipped {invalid_count} invalid tools")
+                print(f"[WARN]  Skipped {invalid_count} invalid tools")
             
             # Add server tools
             server_tools = []
@@ -1751,7 +1751,7 @@ Always explain what you're doing when using these tools so the user understands 
                         first_is_thinking = content[0].get('type') == 'thinking'
                         
                         if has_thinking and not first_is_thinking:
-                            print(f"⚠️  [UnifiedAIClient.create_message] WARNING: Final assistant message has thinking blocks but first block is not thinking!")
+                            print(f"[WARN]  [UnifiedAIClient.create_message] WARNING: Final assistant message has thinking blocks but first block is not thinking!")
                         elif not has_thinking:
                             print(f"[UnifiedAIClient.create_message] ℹ️  Final assistant message has no thinking blocks (API will generate thinking in response)")
                         else:
@@ -1857,7 +1857,7 @@ Always explain what you're doing when using these tools so the user understands 
                     
                     # Warn if critical fields are missing
                     if not block_dict['name']:
-                        print(f"⚠️  WARNING: tool_use block missing 'name' field!")
+                        print(f"[WARN]  WARNING: tool_use block missing 'name' field!")
                         print(f"    Block attributes: {dir(block)}")
                 
                 content_blocks.append(block_dict)
@@ -2012,7 +2012,7 @@ Always explain what you're doing when using these tools so the user understands 
             for idx, tool in enumerate(client_tools):
                 is_valid, errors = self._validate_tool_schema(tool, idx)
                 if not is_valid:
-                    print(f"⚠️  [MiniMax] Tool #{idx} '{tool.get('name', 'UNKNOWN')}' validation failed:")
+                    print(f"[WARN]  [MiniMax] Tool #{idx} '{tool.get('name', 'UNKNOWN')}' validation failed:")
                     for error in errors:
                         print(f"    {error}")
                     fixed_tool = self._fix_tool_schema(tool)
@@ -2027,7 +2027,7 @@ Always explain what you're doing when using these tools so the user understands 
                     validated_tools.append(tool)
 
             if invalid_count > 0:
-                print(f"⚠️  [MiniMax] Skipped {invalid_count} invalid tools")
+                print(f"[WARN]  [MiniMax] Skipped {invalid_count} invalid tools")
 
             # MiniMax has no server-side web_search / web_fetch tools.
             all_tools = validated_tools
