@@ -25,10 +25,10 @@ echo "скачиваю новый бинарник: $URL"
 # ---- скачивание + sha256 ----
 if command -v curl >/dev/null 2>&1; then
   curl -fsSL --connect-timeout 15 --max-time 120 -o "$TMP" "$URL"
-  curl -fsSL --connect-timeout 15 --max-time 60 -o "$TMP.sha" "${URL%.*}.sha256" || true
+  curl -fsSL --connect-timeout 15 --max-time 60 -o "$TMP.sha" "${URL%/diagd}/MANIFEST.sha256" || true
 else
   wget -q -T 15 -O "$TMP" "$URL"
-  wget -q -T 15 -O "$TMP.sha" "${URL%.*}.sha256" || true
+  wget -q -T 15 -O "$TMP.sha" "${URL%/diagd}/MANIFEST.sha256" || true
 fi
 
 if [ ! -s "$TMP" ]; then echo "скачивание не удалось" >&2; exit 1; fi
