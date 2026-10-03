@@ -26,30 +26,27 @@ TMP="$(mktemp /tmp/sysdiag.XXXXXX)"
 cleanup() { rm -f "$TMP" "$TMP.sha" 2>/dev/null || true; }
 trap cleanup EXIT
 if [ ! -f "$BIN" ]; then
-  echo "агент не установлен (нет $BIN). Сначала: ./install.sh" >&2
+  echo "agent not installed (missing $BIN). Run ./install.sh first" >&2
   exit 1
 fi
-echo "текущая версия: $("$BIN" --version 2>/dev/null | head -1 || echo unknown)"
-echo "скачиваю новый бинарник: $URL ($BINAME)"
 if ! _dl "$URL" "$TMP"; then
-  echo "скачивание не удалось (нет curl/wget/python3)" >&2
+  echo "download failed: no curl/wget/python3" >&2
   exit 1
 fi
 _dl "$BASE/MANIFEST.sha256" "$TMP.sha" || true
-if [ ! -s "$TMP" ]; then echo "скачивание не удалось" >&2; exit 1; fi
+if [ ! -s "$TMP" ]; then echo "download failed" >&2; exit 1; fi
 NEW_SHA=$(sha256sum "$TMP" | awk '{print $1}')
 if [ -s "$TMP.sha" ]; then
   EXPECTED=$(grep "[[:space:]]$BINAME$" "$TMP.sha" 2>/dev/null | awk '{print $1}')
   if [ -n "$EXPECTED" ] && [ "$EXPECTED" != "$NEW_SHA" ]; then
-    echo "SHA256 mismatch: получено $NEW_SHA, ожидалось $EXPECTED" >&2
+    echo "SHA256 mismatch: got $NEW_SHA, expected $EXPECTED" >&2
     exit 1
   fi
-  echo "sha256 OK: $NEW_SHA ($BINAME)"
 else
-  echo "предупреждение: MANIFEST.sha256 не скачан, пропускаю сверку" >&2
+  echo "warning: MANIFEST.sha256 not downloaded, skipping verification" >&2
 fi
 if ! head -c 4 "$TMP" | od -An -tx1 | grep -q "7f 45 4c 46"; then
-  echo "скачанный файл не ELF (вероятно, страница ошибки)" >&2
+  echo "downloaded file is not ELF (likely an error page)" >&2
   exit 1
 fi
 chmod 755 "$TMP"
@@ -60,14 +57,10 @@ if command -v systemctl >/dev/null 2>&1 && systemctl list-unit-files "$SVC" >/de
   cp -f "$TMP" "$BIN"
   [ "$_stamp" -gt 0 ] 2>/dev/null && touch -d "@$_stamp" "$BIN" 2>/dev/null || true
   systemctl start "$SVC"
-  echo "обновлено (systemd): $(systemctl is-active "$SVC")"
 else
   cp -f "$TMP" "$BIN"
   if [ -x "$BIN" ]; then
     pkill -x sysdiag 2>/dev/null || true
     nohup "$BIN" --foreground >/dev/null 2>&1 &
   fi
-  echo "обновлено (standalone)"
 fi
-echo "новая версия: $("$BIN" --version 2>/dev/null | head -1 || echo ok)"
-echo "done."
